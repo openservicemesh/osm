@@ -17,14 +17,12 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*trafficpolicy.OutboundTrafficPolicy{
@@ -698,49 +696,6 @@ func TestRoutesFromRules(t *testing.T) {
 	}
 }
 
-func TestGetTrafficPoliciesForService(t *testing.T) {
-	assert := tassert.New(t)
-
-	type getTrafficPoliciesForServiceTest struct {
-		input  service.MeshService
-		output []trafficpolicy.TrafficTarget
-	}
-
-	getTrafficPoliciesForServiceTests := []getTrafficPoliciesForServiceTest{
-		{
-			input: tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{
-				{
-					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-					Destination:      tests.BookstoreV1Service,
-					Source:           tests.BookbuyerService,
-					HTTPRouteMatches: tests.BookstoreV1TrafficPolicy.HTTPRouteMatches,
-				},
-				{
-					Name:             utils.GetTrafficTargetName(tests.BookstoreV2TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-					Destination:      tests.BookstoreV2Service,
-					Source:           tests.BookbuyerService,
-					HTTPRouteMatches: tests.BookstoreV2TrafficPolicy.HTTPRouteMatches,
-				},
-				{
-					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
-					Destination:      tests.BookstoreApexService,
-					Source:           tests.BookbuyerService,
-					HTTPRouteMatches: tests.BookstoreApexTrafficPolicy.HTTPRouteMatches,
-				},
-			},
-		},
-	}
-
-	mc := newFakeMeshCatalog()
-
-	for _, test := range getTrafficPoliciesForServiceTests {
-		allTrafficPolicies, err := getTrafficPoliciesForService(mc, tests.RoutePolicyMap, test.input)
-		assert.Nil(err)
-		assert.ElementsMatch(allTrafficPolicies, test.output)
-	}
-}
-
 func TestGetHTTPPathsPerRoute(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -786,33 +741,6 @@ func TestGetTrafficSpecName(t *testing.T) {
 	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
-}
-
-func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	selectors := map[string]string{
-		tests.SelectorKey: tests.SelectorValue,
-	}
-	source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-	expectedSourceTrafficResource := utils.K8sSvcToMeshSvc(source)
-	destination := tests.NewServiceFixture(tests.BookstoreV1ServiceName, tests.Namespace, selectors)
-	expectedDestinationTrafficResource := utils.K8sSvcToMeshSvc(destination)
-
-	expectedHostHeaders := map[string]string{"user-agent": tests.HTTPUserAgent}
-	expectedRoute := trafficpolicy.HTTPRouteMatch{
-		PathRegex: constants.RegexMatchAll,
-		Methods:   []string{constants.WildcardHTTPMethod},
-		Headers:   expectedHostHeaders,
-	}
-
-	trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
-	assert.Equal(trafficTarget.Source, expectedSourceTrafficResource)
-	assert.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)
-	assert.Equal(trafficTarget.HTTPRouteMatches[0].PathRegex, expectedRoute.PathRegex)
-	assert.ElementsMatch(trafficTarget.HTTPRouteMatches[0].Methods, expectedRoute.Methods)
 }
 
 func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
@@ -899,20 +827,6 @@ func TestListMeshServices(t *testing.T) {
 	}
 }
 
-func TestGetWeightedClusterForService(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-	weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreV1Service)
-	assert.Nil(err)
-
-	expected := service.WeightedCluster{
-		ClusterName: "default/bookstore-v1",
-		Weight:      tests.Weight90,
-	}
-	assert.Equal(weightedCluster, expected)
-}
-
 func TestGetServiceHostnames(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -973,179 +887,6 @@ func TestGetDefaultWeightedClusterForService(t *testing.T) {
 		Weight:      100,
 	}
 	assert.Equal(actual, expected)
-}
-
-// TODO : remove as a part of routes refactor (#2397)
-func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	testCases := []struct {
-		downstream        service.MeshService
-		expectedHostnames []string
-	}{
-		{
-			downstream: service.MeshService{
-				Namespace: "default",
-				Name:      "foo",
-			},
-			expectedHostnames: []string{
-				"bookstore-apex",
-				"bookstore-apex.default",
-				"bookstore-apex.default.svc",
-				"bookstore-apex.default.svc.cluster",
-				"bookstore-apex.default.svc.cluster.local",
-				"bookstore-apex:8888",
-				"bookstore-apex.default:8888",
-				"bookstore-apex.default.svc:8888",
-				"bookstore-apex.default.svc.cluster:8888",
-				"bookstore-apex.default.svc.cluster.local:8888",
-				"bookstore-v1",
-				"bookstore-v1.default",
-				"bookstore-v1.default.svc",
-				"bookstore-v1.default.svc.cluster",
-				"bookstore-v1.default.svc.cluster.local",
-				"bookstore-v1:8888",
-				"bookstore-v1.default:8888",
-				"bookstore-v1.default.svc:8888",
-				"bookstore-v1.default.svc.cluster:8888",
-				"bookstore-v1.default.svc.cluster.local:8888",
-			},
-		},
-		{
-			downstream: service.MeshService{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			expectedHostnames: []string{
-				"bookstore-apex.default",
-				"bookstore-apex.default.svc",
-				"bookstore-apex.default.svc.cluster",
-				"bookstore-apex.default.svc.cluster.local",
-				"bookstore-apex.default:8888",
-				"bookstore-apex.default.svc:8888",
-				"bookstore-apex.default.svc.cluster:8888",
-				"bookstore-apex.default.svc.cluster.local:8888",
-				"bookstore-v1.default",
-				"bookstore-v1.default.svc",
-				"bookstore-v1.default.svc.cluster",
-				"bookstore-v1.default.svc.cluster.local",
-				"bookstore-v1.default:8888",
-				"bookstore-v1.default.svc:8888",
-				"bookstore-v1.default.svc.cluster:8888",
-				"bookstore-v1.default.svc.cluster.local:8888",
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing hostnames when %s svc reaches %s svc", tc.downstream, tests.BookstoreV1Service), func(t *testing.T) {
-			actual, err := mc.GetResolvableHostnamesForUpstreamService(tc.downstream, tests.BookstoreV1Service)
-			assert.Nil(err)
-			assert.Equal(actual, tc.expectedHostnames)
-		})
-	}
-}
-
-func TestBuildAllowAllTrafficPolicies(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	actual := mc.buildAllowAllTrafficPolicies(tests.BookstoreV1Service)
-	var actualTargetNames []string
-	for _, target := range actual {
-		actualTargetNames = append(actualTargetNames, target.Name)
-	}
-
-	expected := []string{
-		"default/bookstore-v1->default/bookbuyer",
-		"default/bookstore-v1->default/bookstore-apex",
-		"default/bookstore-v2->default/bookbuyer",
-		"default/bookstore-v2->default/bookstore-apex",
-		"default/bookbuyer->default/bookstore-v1",
-		"default/bookbuyer->default/bookstore-apex",
-		"default/bookstore-apex->default/bookstore-v1",
-		"default/bookbuyer->default/bookstore-v2",
-		"default/bookstore-apex->default/bookstore-v2",
-		"default/bookstore-apex->default/bookbuyer",
-		"default/bookstore-v1->default/bookstore-v2",
-		"default/bookstore-v2->default/bookstore-v1",
-	}
-	assert.ElementsMatch(actualTargetNames, expected)
-}
-
-func TestListTrafficTargetPermutations(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
-	assert.Nil(err)
-
-	var actualTargetNames []string
-	for _, target := range trafficTargets {
-		actualTargetNames = append(actualTargetNames, target.Name)
-	}
-
-	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
-	}
-	assert.ElementsMatch(actualTargetNames, expected)
-}
-
-func TestHashSrcDstService(t *testing.T) {
-	assert := tassert.New(t)
-
-	src := service.MeshService{
-		Namespace: "src-ns",
-		Name:      "source",
-	}
-	dst := service.MeshService{
-		Namespace: "dst-ns",
-		Name:      "destination",
-	}
-
-	srcDstServiceHash := hashSrcDstService(src, dst)
-	assert.Equal(srcDstServiceHash, "src-ns/source:dst-ns/destination")
-}
-
-func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
-	assert := tassert.New(t)
-
-	src := service.MeshService{
-		Namespace: "src-ns",
-		Name:      "source",
-	}
-	dst := service.MeshService{
-		Namespace: "dst-ns",
-		Name:      "destination",
-	}
-	srcDstServiceHash := "src-ns/source:dst-ns/destination"
-
-	targetName := "test"
-	httpRoutes := []trafficpolicy.HTTPRouteMatch{
-		{
-			PathRegex: tests.BookstoreBuyPath,
-			Methods:   []string{"GET"},
-			Headers: map[string]string{
-				"user-agent": tests.HTTPUserAgent,
-			},
-		},
-	}
-
-	trafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, targetName, httpRoutes)
-
-	expectedTrafficTarget := trafficpolicy.TrafficTarget{
-		Source:           src,
-		Destination:      dst,
-		Name:             targetName,
-		HTTPRouteMatches: httpRoutes,
-	}
-
-	assert.Equal(trafficTarget, expectedTrafficTarget)
 }
 
 func TestBuildOutboundPolicies(t *testing.T) {

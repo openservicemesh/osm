@@ -5,10 +5,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
@@ -271,41 +270,6 @@ func pathContains(allowed []string, path string) bool {
 	}
 	return false
 }
-
-// TODO : remove this test as a part of routes refactor (#2397)
-var _ = Describe("Test ingress route policies", func() {
-	Context("Testing GetIngressRoutesPerHost", func() {
-		mc := newFakeMeshCatalog()
-		It("Gets the route policies per domain from multiple ingress resources corresponding to a service", func() {
-			fakeService := service.MeshService{
-				Namespace: fakeIngressNamespace,
-				Name:      fakeIngressService,
-			}
-
-			domainRoutesMap, _ := mc.GetIngressRoutesPerHost(fakeService)
-
-			for domain, routePolicies := range domainRoutesMap {
-				// The number of route policies per domain is the product of the number of rules and paths per rule
-				Expect(len(routePolicies)).To(Equal(len(fakeIngressPaths[domain])))
-				for _, routePolicy := range routePolicies {
-
-					// For each ingress path, all HTTP methods are allowed, which is a regex match all of '*'
-					Expect(len(routePolicy.Methods)).To(Equal(1))
-
-					Expect(routePolicy.Methods[0]).To(Equal(constants.RegexMatchAll))
-
-					// routePolicy.Path is the path specified in the ingress resource rule. Since the same service
-					// could be a backend for multiple ingress resources, we don't know which ingress resource
-					// this path corresponds to just from 'domainRoutesMap'. In order to not make assumptions
-					// on the implementation of 'GetIngressRoutesPerHost()', we relax the check here
-					// to match on any of the ingress paths corresponding to the domain.
-					Expect(pathContains(fakeIngressPaths[domain], routePolicy.PathRegex)).To(BeTrue())
-				}
-			}
-		})
-
-	})
-})
 
 func TestGetIngressPoliciesForService(t *testing.T) {
 	assert := tassert.New(t)
