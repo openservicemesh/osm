@@ -8,6 +8,7 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -340,4 +341,116 @@ func TestBuildWeightedCluster(t *testing.T) {
 			assert.EqualValues(uint32(tc.totalWeight), actual.TotalWeight.GetValue())
 		})
 	}
+}
+
+func TestSanitizeHTTPMethods(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                   string
+		allowedMethods         []string
+		expectedAllowedMethods []string
+		direction              Direction
+	}{
+		{
+			name:                   "returns unique list of allowed methods",
+			allowedMethods:         []string{"GET", "POST", "PUT", "POST", "GET", "GET"},
+			expectedAllowedMethods: []string{"GET", "POST", "PUT"},
+		},
+		{
+			name:                   "returns wildcard allowed method (*)",
+			allowedMethods:         []string{"GET", "POST", "PUT", "POST", "GET", "GET", "*"},
+			expectedAllowedMethods: []string{"*"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := sanitizeHTTPMethods(tc.allowedMethods)
+			assert.Equal(tc.expectedAllowedMethods, actual)
+		})
+	}
+}
+
+func TestNewRouteConfigurationStub(t *testing.T) {
+	assert := tassert.New(t)
+
+	testName := "testing"
+	actual := NewRouteConfigurationStub(testName)
+
+	assert.Equal(testName, actual.Name)
+	assert.Nil(actual.VirtualHosts)
+	assert.False(actual.ValidateClusters.Value)
+}
+
+func TestGetRegexForMethod(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "wildcard HTTP method correctly translates to a match all regex",
+			input:    "*",
+			expected: constants.RegexMatchAll,
+		},
+		{
+			name:     "non wildcard HTTP method correctly translates to its corresponding regex",
+			input:    "GET",
+			expected: "GET",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getRegexForMethod(tc.input)
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetHeadersForRoute(t *testing.T) {
+	assert := tassert.New(t)
+
+	userAgentHeader := "user-agent"
+
+	// Returns a list of HeaderMatcher for a route
+	routePolicy := trafficpolicy.HTTPRouteMatch{
+		PathRegex: "/books-bought",
+		Methods:   []string{"GET", "POST"},
+		Headers: map[string]string{
+			userAgentHeader: "This is a test header",
+		},
+	}
+	actual := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+	assert.Equal(2, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
+	assert.Equal(userAgentHeader, actual[1].Name)
+	assert.Equal(routePolicy.Headers[userAgentHeader], actual[1].GetSafeRegexMatch().Regex)
+
+	// Returns only one HeaderMatcher for a route
+	routePolicy = trafficpolicy.HTTPRouteMatch{
+		PathRegex: "/books-bought",
+		Methods:   []string{"GET", "POST"},
+	}
+	actual = getHeadersForRoute(routePolicy.Methods[1], routePolicy.Headers)
+	assert.Equal(1, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[1], actual[0].GetSafeRegexMatch().Regex)
+
+	// Returns only one HeaderMatcher for a route ignoring the host
+	routePolicy = trafficpolicy.HTTPRouteMatch{
+		PathRegex: "/books-bought",
+		Methods:   []string{"GET", "POST"},
+		Headers: map[string]string{
+			"user-agent": tests.HTTPUserAgent,
+		},
+	}
+	actual = getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+	assert.Equal(2, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
 }

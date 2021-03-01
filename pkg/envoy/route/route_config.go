@@ -87,6 +87,19 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 	return routeConfiguration
 }
 
+//NewRouteConfigurationStub creates the route configuration placeholder
+func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
+	routeConfiguration := xds_route.RouteConfiguration{
+		Name: routeConfigName,
+		// ValidateClusters `true` causes RDS rejections if the CDS is not "warm" with the expected
+		// clusters RDS wants to use. This can happen when CDS and RDS updates are sent closely
+		// together. Setting it to false bypasses this check, and just assumes the cluster will
+		// be present when it needs to be checked by traffic (or 404 otherwise).
+		ValidateClusters: &wrappers.BoolValue{Value: false},
+	}
+	return &routeConfiguration
+}
+
 func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds_route.VirtualHost {
 	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
@@ -178,4 +191,78 @@ func buildWeightedCluster(weightedClusters set.Set, totalWeight int, direction D
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(wc.Clusters))
 	return &wc
+}
+
+// sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
+// the methods is a wildcard or sanitizes the input list to avoid duplicates.
+func sanitizeHTTPMethods(allowedMethods []string) []string {
+	var newAllowedMethods []string
+	keys := make(map[string]interface{})
+	for _, method := range allowedMethods {
+		if method != "" {
+			if method == constants.WildcardHTTPMethod {
+				newAllowedMethods = []string{constants.WildcardHTTPMethod}
+				return newAllowedMethods
+			}
+			if _, value := keys[method]; !value {
+				keys[method] = nil
+				newAllowedMethods = append(newAllowedMethods, method)
+			}
+		}
+	}
+	return newAllowedMethods
+}
+
+type clusterWeightByName []*xds_route.WeightedCluster_ClusterWeight
+
+func (c clusterWeightByName) Len() int      { return len(c) }
+func (c clusterWeightByName) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+func (c clusterWeightByName) Less(i, j int) bool {
+	if c[i].Name == c[j].Name {
+		return c[i].Weight.Value < c[j].Weight.Value
+	}
+	return c[i].Name < c[j].Name
+}
+
+func getHeadersForRoute(method string, headersMap map[string]string) []*xds_route.HeaderMatcher {
+	var headers []*xds_route.HeaderMatcher
+
+	// add methods header
+	methodsHeader := &xds_route.HeaderMatcher{
+		Name: MethodHeaderKey,
+		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+			SafeRegexMatch: &xds_matcher.RegexMatcher{
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+				Regex:      getRegexForMethod(method),
+			},
+		},
+	}
+	headers = append(headers, methodsHeader)
+
+	// add all other custom headers
+	for headerKey, headerValue := range headersMap {
+		// omit the host header as we have already configured this
+		if headerKey == httpHostHeader {
+			continue
+		}
+		header := xds_route.HeaderMatcher{
+			Name: headerKey,
+			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: &xds_matcher.RegexMatcher{
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+					Regex:      headerValue,
+				},
+			},
+		}
+		headers = append(headers, &header)
+	}
+	return headers
+}
+
+func getRegexForMethod(httpMethod string) string {
+	methodRegex := httpMethod
+	if httpMethod == constants.WildcardHTTPMethod {
+		methodRegex = constants.RegexMatchAll
+	}
+	return methodRegex
 }
