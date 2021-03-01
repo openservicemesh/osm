@@ -24,7 +24,7 @@ The domain state used to compute the traffic policies is entirely provided by th
 Multiple `osm-controller`s running will subscribe to the same set of objects and will generate the identical configurations for the service mesh. Due to the nature of client-go Kubernetes informers being eventually consistent `osm-controller` guarantees policy enforcement to be eventually consistent.
 
 <p align="center">
-  <img src="/docs/content/docs/images/ha/ha1.png" width="400" height="350"/>
+  <img src="../images/ha/ha1.png" width="400" height="350"/>
 </p>
 
 ### Restartability: 
@@ -41,7 +41,7 @@ Components `osm-controller` and `osm-injector` allow for separate horizontal sca
   Multiple `osm-controller` instances might create different yet valid service certificates for a single service. These different certificates will (1) have been signed by the same root, as multiple OSM instances must load the same root CA, and (2) will have the same Common Name (CN), which is be used to match against and authenticate when traffic is proxied between services.
 
 <p align="center">
-  <img src="/docs/content/docs/images/ha/ha2.png" width="450" height="400"/>
+  <img src="../images/ha/ha2.png" width="450" height="400"/>
 </p>
 
   In short, no matter what control plane a proxy connects to, a valid certificate, with correct/proper CN and signed by the shared control plane root CA, will be pushed to it.
@@ -50,7 +50,7 @@ Components `osm-controller` and `osm-injector` allow for separate horizontal sca
 - Decreasing horizontal scale will make the disconnected proxies connect to instances that were not terminated by the downscale. New versions of the config should be computed and pushed upon establishing the connection anew.
 
 <p align="center">
-  <img src="/docs/content/docs/images/ha/ha3.png" width="450" height="400"/>
+  <img src="../images/ha/ha3.png" width="450" height="400"/>
 </p>
 
 - If the control plane is brought down entirely, running proxies should continue to operate in headless<sup>[1]</sup> mode till they can reconnect to a running control plane.
