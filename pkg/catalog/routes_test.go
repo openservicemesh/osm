@@ -9,9 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +67,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 		meshServiceAccounts []service.K8sServiceAccount
 		trafficsplits       []*split.TrafficSplit
 		traffictargets      []*access.TrafficTarget
-		trafficspecs        []*specs.HTTPRouteGroup
+		trafficspecs        []*spec.HTTPRouteGroup
 		expectedOutbound    []*trafficpolicy.OutboundTrafficPolicy
 		permissiveMode      bool
 	}{
@@ -81,7 +79,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			meshServiceAccounts: []service.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficspecs:        []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound:    expectedBookbuyerOutbound,
 			permissiveMode:      false,
 		},
@@ -98,7 +96,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			meshServiceAccounts: []service.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{&tests.TrafficSplit},
 			traffictargets:      []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficspecs:        []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-v1",
@@ -149,7 +147,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			meshServiceAccounts: []service.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{&tests.TrafficSplit},
 			traffictargets:      []*access.TrafficTarget{},
-			trafficspecs:        []*specs.HTTPRouteGroup{},
+			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-apex",
@@ -175,7 +173,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			meshServiceAccounts: []service.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{},
-			trafficspecs:        []*specs.HTTPRouteGroup{},
+			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound:    []*trafficpolicy.OutboundTrafficPolicy{},
 			permissiveMode:      false,
 		},
@@ -187,7 +185,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			meshServiceAccounts: []service.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{},
-			trafficspecs:        []*specs.HTTPRouteGroup{},
+			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name: "bookstore-v1.default",
@@ -313,7 +311,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 		serviceAccount   service.K8sServiceAccount
 		apexMeshServices []service.MeshService
 		traffictargets   []*access.TrafficTarget
-		trafficspecs     []*specs.HTTPRouteGroup
+		trafficspecs     []*spec.HTTPRouteGroup
 		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
@@ -321,7 +319,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			serviceAccount:   tests.BookbuyerServiceAccount,
 			apexMeshServices: []service.MeshService{},
 			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficspecs:     []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound: expectedBookbuyerOutbound,
 		},
 		{
@@ -329,7 +327,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			serviceAccount:   tests.BookbuyerServiceAccount,
 			apexMeshServices: []service.MeshService{},
 			traffictargets:   []*access.TrafficTarget{},
-			trafficspecs:     []*specs.HTTPRouteGroup{},
+			trafficspecs:     []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
 		},
 	}
@@ -950,7 +948,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 			},
 		},
 	}
-	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&trafficSpec}).AnyTimes()
+	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&trafficSpec}).AnyTimes()
 	mockEndpointProvider.EXPECT().GetServicesForServiceAccount(destSA).Return([]service.MeshService{destMeshService}, nil).AnyTimes()
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
@@ -1006,7 +1004,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 		sourceSA                service.K8sServiceAccount
 		destSA                  service.K8sServiceAccount
 		inboundService          service.MeshService
-		trafficSpec             specs.HTTPRouteGroup
+		trafficSpec             spec.HTTPRouteGroup
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
 		{
@@ -1197,7 +1195,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			destK8sService := tests.NewServiceFixture(tc.inboundService.Name, tc.inboundService.Namespace, map[string]string{})
 			mockKubeController.EXPECT().GetService(tc.inboundService).Return(destK8sService).AnyTimes()
 
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
 
@@ -1230,7 +1228,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 		upstreamSA              service.K8sServiceAccount
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
-		trafficSpec             specs.HTTPRouteGroup
+		trafficSpec             spec.HTTPRouteGroup
 		trafficSplit            split.TrafficSplit
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
@@ -1342,9 +1340,9 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{
 					Namespace: "default",
 				},
-				Spec: v1alpha2.TrafficSplitSpec{
+				Spec: split.TrafficSplitSpec{
 					Service: "bookstore-apex",
-					Backends: []v1alpha2.TrafficSplitBackend{
+					Backends: []split.TrafficSplitBackend{
 						{
 							Service: "bookstore",
 							Weight:  tests.Weight90,
@@ -1410,7 +1408,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
 			}
 
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
@@ -1433,7 +1431,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
 		meshServiceAccounts     []service.K8sServiceAccount
-		trafficSpec             specs.HTTPRouteGroup
+		trafficSpec             spec.HTTPRouteGroup
 		trafficSplit            split.TrafficSplit
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		permissiveMode          bool
@@ -1581,9 +1579,9 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{
 					Namespace: "default",
 				},
-				Spec: v1alpha2.TrafficSplitSpec{
+				Spec: split.TrafficSplitSpec{
 					Service: "bookstore-apex",
-					Backends: []v1alpha2.TrafficSplitBackend{
+					Backends: []split.TrafficSplitBackend{
 						{
 							Service: "bookstore",
 							Weight:  tests.Weight90,
@@ -1758,7 +1756,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				mockKubeController.EXPECT().ListServices().Return(services).AnyTimes()
 				mockKubeController.EXPECT().ListServiceAccounts().Return(serviceAccounts).AnyTimes()
 			} else {
-				mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+				mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
 				trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
 				mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
@@ -1791,7 +1789,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 		downstreamSA            service.K8sServiceAccount
 		upstreamSA              service.K8sServiceAccount
 		upstreamServices        []service.MeshService
-		trafficSpec             specs.HTTPRouteGroup
+		trafficSpec             spec.HTTPRouteGroup
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
 		{
@@ -1893,7 +1891,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 				mockKubeController.EXPECT().GetService(destMeshSvc).Return(destK8sService).AnyTimes()
 			}
 
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.upstreamSA).Return(tc.upstreamServices, nil).AnyTimes()
 

@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,9 +86,9 @@ func TestNewResponse(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{
 					Namespace: tests.Namespace,
 				},
-				Spec: v1alpha2.TrafficSplitSpec{
+				Spec: split.TrafficSplitSpec{
 					Service: tests.BookstoreApexServiceName,
-					Backends: []v1alpha2.TrafficSplitBackend{
+					Backends: []split.TrafficSplitBackend{
 						{
 							Service: tests.BookstoreV1ServiceName,
 							Weight:  tests.Weight90,

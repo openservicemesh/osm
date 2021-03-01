@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	a "github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
@@ -82,9 +81,9 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 	informerName := "ConfigMap"
 	providerName := "OSMConfigMap"
 	eventTypes := k8s.EventTypes{
-		Add:    a.ConfigMapAdded,
-		Update: a.ConfigMapUpdated,
-		Delete: a.ConfigMapDeleted,
+		Add:    announcements.ConfigMapAdded,
+		Update: announcements.ConfigMapUpdated,
+		Delete: announcements.ConfigMapDeleted,
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, nil, eventTypes))
 

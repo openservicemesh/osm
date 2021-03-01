@@ -6,7 +6,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -73,7 +72,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return serviceAccounts
 	}).AnyTimes()
-	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *corev1.Service {
 		// play pretend this call queries a controller cache
 		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.Background(), msh.Name, metav1.GetOptions{})
 		if err != nil {
@@ -82,13 +81,13 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return vv
 	}).AnyTimes()
-	mockKubeController.EXPECT().ListPods().DoAndReturn(func() []*v1.Pod {
+	mockKubeController.EXPECT().ListPods().DoAndReturn(func() []*corev1.Pod {
 		vv, err := kubeClient.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return nil
 		}
 
-		var podRet []*v1.Pod = []*v1.Pod{}
+		var podRet []*corev1.Pod = []*corev1.Pod{}
 		for idx := range vv.Items {
 			podRet = append(podRet, &vv.Items[idx])
 		}
