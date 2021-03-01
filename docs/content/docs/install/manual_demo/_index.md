@@ -22,7 +22,7 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 
 ## Install OSM CLI
 
-Use the [installation guide](/docs/content/docs/installation_guide.md) to install the `osm` cli.
+Use the [installation guide](../../install) to install the `osm` cli.
 
 ## Install OSM Control Plane
 
@@ -46,7 +46,7 @@ _Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as 
     ```bash
     osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
     ```
-    See the [observability documentation](/docs/content/docs/patterns/observability/_index.md) for more details.
+    See the [observability documentation](../../patterns/observability/_index.md) for more details.
 
 ## Deploying the Bookstore Demo Applications
 

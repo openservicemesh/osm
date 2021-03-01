@@ -79,9 +79,9 @@ Below, more results with meaningful related data explained.
 - Certificate issuance: constant, going from 1s to 5s buckets at most, with some non-trended outliers.
 - Webhook injector: constant, ranging also from 1s to 5s, with some non-trended outliers.
 
-[CPU profile during test](/docs/content/docs/images/scale/256-1.5-cpu.png)
+[CPU profile during test](../images/scale/256-1.5-cpu.png)
 
-[ADS Histogram during test](/docs/content/docs/images/scale/256-1.5-ADSTimes.png)
+[ADS Histogram during test](../images/scale/256-1.5-ADSTimes.png)
 
 *256MB poses a hard limit on the number of pods supported, hence we did not proceed to test other cpu form factors with 256MB.*
 
@@ -92,11 +92,11 @@ Below, more results with meaningful related data explained.
 - Certificate issuance and Webhook injector trend to take a little bit more on average on higher pod count, but still in the 1s to 5s margin.
 - A number RDS updates seems to be consistently failing.
 
-[CPU profile during test](/docs/content/docs/images/scale/512-1.5-cpu.png)
+[CPU profile during test](../images/scale/512-1.5-cpu.png)
 
-[ADS Histogram during test](/docs/content/docs/images/scale/512-1.5-ADSTimes.png)
+[ADS Histogram during test](../images/scale/512-1.5-ADSTimes.png)
 
-[Injector & ADS (success/failure) update count](/docs/content/docs/images/scale/512-1.5-injads.png)
+[Injector & ADS (success/failure) update count](../images/scale/512-1.5-injads.png)
 
 #### 512RAM @4CPU
 - OSM fails to converge network configuration at around ~460 pods (Test timeout).
@@ -105,11 +105,11 @@ Below, more results with meaningful related data explained.
 - Certificate issuance and Webhook injector trend to take a little bit more on average on higher pod count, but still in the 1s to 5s margin.
 - A number of RDS updates seems to be consistently failing.
 
-[CPU profile during test](/docs/content/docs/images/scale/512-4-cpu.png)
+[CPU profile during test](../images/scale/512-4-cpu.png)
 
-[ADS Histogram during test](/docs/content/docs/images/scale/512-4-ADSTimes.png)
+[ADS Histogram during test](../images/scale/512-4-ADSTimes.png)
 
-[Injector & ADS (success/failure) update count](/docs/content/docs/images/scale/512-4-injads.png)
+[Injector & ADS (success/failure) update count](../images/scale/512-4-injads.png)
 
 
 <sup>[1]</sup>: Note that collective updates do not mean \<time> per ADS update, but since all updates are scheduled at the same time (coroutine per proxy) they share the same cpu time at the mercy of the scheduler, and on average, they all start and finish \<time> seconds apart. The exact time taken per update should be a division of that time by the number of updates being handled at a time interval by the scheduler, which we don't have an accurate count of because we don't know when the scheduler schedules them.
