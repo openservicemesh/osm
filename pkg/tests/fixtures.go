@@ -359,14 +359,6 @@ var (
 		},
 	}
 
-	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
-		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
-			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName):  BookstoreBuyHTTPRoute,
-			trafficpolicy.TrafficSpecMatchName(SellBooksMatchName): BookstoreSellHTTPRoute,
-		},
-	}
-
 	// BookstoreServiceAccount is a namespaced service account.
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
