@@ -6,7 +6,6 @@ import (
 	set "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // TrafficSpecName is the namespaced name of the SMI TrafficSpec
@@ -27,19 +26,10 @@ type TCPRouteMatch struct {
 	Ports []int `json:"ports:omitempty"`
 }
 
-// TrafficTarget is a struct to represent a traffic policy between a source and destination along with its routes
-type TrafficTarget struct {
-	Name             string              `json:"name:omitempty"`
-	Destination      service.MeshService `json:"destination:omitempty"`
-	Source           service.MeshService `json:"source:omitempty"`
-	HTTPRouteMatches []HTTPRouteMatch    `json:"http_route_matches:omitempty"`
-}
-
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
 	HTTPRouteMatch   HTTPRouteMatch `json:"http_route_match:omitempty"`
 	WeightedClusters set.Set        `json:"weighted_clusters:omitempty"`
-	Hostnames        set.Set        `json:"hostnames:omitempty"` // TODO remove hostnames as part of #2034
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
