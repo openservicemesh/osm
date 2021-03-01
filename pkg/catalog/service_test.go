@@ -10,7 +10,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -28,7 +27,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testSplit2 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -47,7 +46,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 	}
 
 	testSplit3 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -116,7 +115,7 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testSplit2 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -135,7 +134,7 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 	}
 
 	testSplit3 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 		},
 		Spec: split.TrafficSplitSpec{

@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,7 +49,7 @@ var _ = Describe("Testing event handlers", func() {
 			Expect(pubsubMsg.OldObj).To(BeNil())
 
 			// Cast New obj, expect v1.Pod
-			podObj, castOk := pubsubMsg.NewObj.(*v1.Pod)
+			podObj, castOk := pubsubMsg.NewObj.(*corev1.Pod)
 			Expect(castOk).To(BeTrue())
 			Expect(podObj.Name).To(Equal("pod-name"))
 			Expect(podObj.Namespace).To(Equal(testNamespace))

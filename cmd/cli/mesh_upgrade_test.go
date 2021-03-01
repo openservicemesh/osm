@@ -6,19 +6,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
-	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
-func meshUpgradeConfig() *helm.Configuration {
+func meshUpgradeConfig() *action.Configuration {
 	mem := driver.NewMemory()
 	mem.SetNamespace(settings.Namespace())
 	store := storage.Init(mem)
 
-	return &helm.Configuration{
+	return &action.Configuration{
 		Releases: store,
 		KubeClient: &kubefake.PrintingKubeClient{
 			Out: ioutil.Discard,

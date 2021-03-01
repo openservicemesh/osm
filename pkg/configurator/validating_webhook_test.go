@@ -12,20 +12,16 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
-
 	tassert "github.com/stretchr/testify/assert"
-	"k8s.io/client-go/kubernetes/fake"
-
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 var (
@@ -122,7 +118,7 @@ func TestGetAdmissionReqResp(t *testing.T) {
 		Response: &v1beta1.AdmissionResponse{
 			UID:              "11111111-2222-3333-4444-555555555555",
 			Allowed:          true,
-			Result:           &v1.Status{},
+			Result:           &metav1.Status{},
 			Patch:            nil,
 			PatchType:        nil,
 			AuditAnnotations: nil,
