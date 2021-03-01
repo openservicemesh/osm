@@ -99,7 +99,7 @@ See the [installation guide](docs/content/docs/install/_index.md) for more detai
 We have provided two demos for you to experience OSM.
 
 - The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
-- The [manual demo](docs/content/docs/install/manual_demo.md) is a step-by-step walkthrough set of instruction of the automated demo.
+- The [manual demo](docs/content/docs/install/manual_demo/_index.md) is a step-by-step walkthrough set of instruction of the automated demo.
 
 ## Using OSM
 
