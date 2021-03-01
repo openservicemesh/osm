@@ -34,6 +34,10 @@ type Proxy struct {
 	PodMetadata *PodMetadata
 }
 
+func (p Proxy) String() string {
+	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
+}
+
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
