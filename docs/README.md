@@ -82,6 +82,7 @@ This is Bar. Go back to [Foo](./foo.md).
 
 Visit the Hugo docs for more information on [Alias](https://gohugo.io/content-management/urls/#aliases) setup.
 
+If embedding an image, using a relative link is necessary for the image to appear correctly on both GitHub and the website, and the page displaying the image needs to be an `_index.md` page with the expected level of `..` to reach the `/docs/images` directory.
 
 ## Versioning the Docs Site
 
