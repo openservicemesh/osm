@@ -85,6 +85,9 @@ const (
 	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
 	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
 
+	// WebhookCertificateSecretName is the default value for webhook secret name
+	WebhookCertificateSecretName = "mutating-webhook-cert-secret"
+
 	// RegexMatchAll is a regex pattern match for all
 	RegexMatchAll = ".*"
 

@@ -4,15 +4,15 @@ package reconciler
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -23,10 +23,10 @@ var log = logger.New("reconciler")
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
+	KubeClient   *kubernetes.Clientset
 	Scheme       *runtime.Scheme
 	OsmWebhook   string
 	OsmNamespace string
-	CertManager  certificate.Manager
 }
 
 // Reconcile is the reconciliation method for OSM MutatingWebhookConfiguration.
@@ -49,12 +49,11 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(req ctrl.Request) (ct
 				if webhook.Name == injector.MutatingWebhookName && webhook.ClientConfig.CABundle == nil {
 					log.Trace().Msgf("CA bundle missing for webhook : %s ", req.Name)
 					shouldUpdate = true
-					cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, r.OsmNamespace))
-					cert, err := r.CertManager.GetCertificate(cn)
+					webhookHandlerCert, err := providers.GetCertFromKubernetes(r.OsmNamespace, constants.WebhookCertificateSecretName, r.KubeClient)
 					if err != nil {
-						return ctrl.Result{}, errors.Errorf("Error updating mutating webhook, unable to get certificate for the mutating webhook %s: %s", req.Name, err)
+						return ctrl.Result{}, errors.Errorf("Error fetching injector webhook certificate from k8s secret: %s", err)
 					}
-					instance.Webhooks[idx].ClientConfig.CABundle = cert.GetCertificateChain()
+					instance.Webhooks[idx].ClientConfig.CABundle = webhookHandlerCert.GetCertificateChain()
 				}
 			}
 		}

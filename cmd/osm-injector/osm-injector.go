@@ -178,7 +178,7 @@ func main() {
 	}
 
 	// Initialize the reconciler for the injector's MutatingWebhookConfiguration
-	if err := createReconciler(certManager); err != nil {
+	if err := createReconciler(kubeClient); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile sidecar injector webhook config")
 	}
 
