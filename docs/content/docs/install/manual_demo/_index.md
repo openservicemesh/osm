@@ -327,6 +327,8 @@ The counter in the `bookthief` window will start incrementing.
 
 We will now demonstrate how to balance traffic between two Kubernetes services, commonly known as a traffic split. We will be splitting the traffic directed to the root `bookstore` service between the backends `bookstore-v1` service and `bookstore-v2` service.
 
+_Note:_ The root Kubernetes service should not have any label selectors defined that match a/any pod on the mesh. This may lead to unintended behavior.
+
 #### Split Traffic to v2 of Bookstore
 
 Deploy an SMI TrafficTarget policy to allow `bookbuyer` and `bookthief` to access the `bookstore-v2` service:
