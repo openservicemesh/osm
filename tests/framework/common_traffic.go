@@ -59,6 +59,9 @@ type GRPCRequestDef struct {
 
 	// Symbol is the fully qualified grpc service name, ex. hello.HelloService/SayHello
 	Symbol string
+
+	// UseTLS indicates if the request should be encrypted with TLS
+	UseTLS bool
 }
 
 // HTTPRequestResult represents results of an HTTPRequest call
@@ -148,7 +151,16 @@ func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
 
 // GRPCRequest runs a GRPC request to run the GRPCRequestDef and return a GRPCRequestResult
 func (td *OsmTestData) GRPCRequest(req GRPCRequestDef) GRPCRequestResult {
-	command := []string{"/grpcurl", "-d", req.JSONRequest, "-plaintext", req.Destination, req.Symbol}
+	var command []string
+
+	if req.UseTLS {
+		// '-insecure' is to indicate to grpcurl to not validate the server certificate. This is suitable
+		// for testing purpose and does not mean the channel is not encrypted using TLS.
+		command = []string{"/grpcurl", "-d", req.JSONRequest, "-insecure", req.Destination, req.Symbol}
+	} else {
+		// '-plaintext' is to indicate to the grpcurl to send plaintext requests; not encrypted with TLS
+		command = []string{"/grpcurl", "-d", req.JSONRequest, "-plaintext", req.Destination, req.Symbol}
+	}
 
 	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
 	if err != nil {

@@ -16,13 +16,16 @@ import (
 
 const grpcbinInsecurePort = 9000
 
-var _ = OSMDescribe("Test gRPC traffic from 1 pod client -> 1 pod server",
+// This test originates insecure (plaintext) gRPC traffic between a client and server and
+// verifies that the traffic is routable within the service mesh using HTTP routes.
+// <Client app plaintext request> --> <local proxy> -- |mTLS over HTTP routes| --> <remote proxy> -- <server app plaintext request>
+var _ = OSMDescribe("gRPC insecure traffic origination for client pod -> server pod usint HTTP routes",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 2,
 	},
 	func() {
-		Context("gRPC client server with SMI policies", func() {
+		Context("gRPC insecure traffic origination over HTTP2 with SMI HTTP routes", func() {
 			testGRPCTraffic()
 		})
 	})
@@ -33,7 +36,7 @@ func testGRPCTraffic() {
 		const destName = "server"
 		var ns = []string{sourceName, destName}
 
-		It("Tests gRPC traffic for client pod -> server pod", func() {
+		It("Tests insecure gRPC traffic origination for client pod -> server pod using HTTP routes", func() {
 			// Install OSM
 			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
@@ -49,7 +52,7 @@ func testGRPCTraffic() {
 					Name:        destName,
 					Namespace:   destName,
 					Image:       "moul/grpcbin",
-					Ports:       []int{9000},
+					Ports:       []int{grpcbinInsecurePort},
 					AppProtocol: "grpc",
 				})
 
@@ -65,8 +68,8 @@ func testGRPCTraffic() {
 
 			srcPod := setupGRPCClient(sourceName)
 
-			trafficTargetName := "test-target"
-			trafficRouteName := "routes"
+			trafficTargetName := "test-target" //nolint: goconst
+			trafficRouteName := "routes"       //nolint: goconst
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
@@ -98,6 +101,7 @@ func testGRPCTraffic() {
 
 				JSONRequest: "{\"greeting\": \"client\"}",
 				Symbol:      "hello.HelloService/SayHello",
+				UseTLS:      false, // insecure gRPC, service mesh will upgrade connection to mTLS
 			}
 
 			srcToDestStr := fmt.Sprintf("%s/%s -> %s",
