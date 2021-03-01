@@ -6,6 +6,7 @@ import (
 
 	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -453,4 +454,83 @@ func TestGetHeadersForRoute(t *testing.T) {
 	assert.Equal(2, len(actual))
 	assert.Equal(MethodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
+}
+
+func TestLen(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+	})
+
+	actual := clusters.Len()
+	assert.Equal(2, actual)
+}
+
+func TestSwap(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "hello3",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+	})
+
+	expected := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "hello3",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+	})
+
+	clusters.Swap(1, 2)
+	assert.Equal(expected, clusters)
+}
+
+func TestLess(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "hello3",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+	})
+
+	actual := clusters.Less(1, 2)
+	assert.True(actual)
+	actual = clusters.Less(2, 1)
+	assert.False(actual)
 }
