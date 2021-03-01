@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
@@ -20,7 +19,6 @@ type Proxy struct {
 	xDSCertificateSerialNumber certificate.SerialNumber
 
 	net.Addr
-	announcements chan announcements.Announcement
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -165,9 +163,9 @@ func (p Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
-// GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
-func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
-	return p.announcements
+// GetIP returns the IP address of the Envoy proxy connected to xDS.
+func (p Proxy) GetIP() net.Addr {
+	return p.Addr
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
@@ -180,7 +178,6 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 
 		connectedAt: time.Now(),
 
-		announcements:      make(chan announcements.Announcement),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),
 		lastAppliedVersion: make(map[TypeURI]uint64),
