@@ -28,9 +28,6 @@ const (
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
 
-	// PodName is the name of the pod commonly used namespace.
-	PodName = "pod-name"
-
 	// BookstoreV1ServiceName is the name of the bookstore-v1 service.
 	BookstoreV1ServiceName = "bookstore-v1"
 

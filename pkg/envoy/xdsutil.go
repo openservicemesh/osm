@@ -21,9 +21,6 @@ import (
 // SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.
 type SDSCertType string
 
-// SDSDirection is a type to identify TLS certificate connectivity direction.
-type SDSDirection bool
-
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {

@@ -13,9 +13,6 @@ import (
 
 var log = logger.New("health")
 
-// ProbeFunc is a type alias for a function that can be probed
-type ProbeFunc func() bool
-
 // Probes is the interface for liveness and readiness probes
 type Probes interface {
 	Liveness() bool
