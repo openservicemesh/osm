@@ -15,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -60,12 +61,17 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 				Expect((cert.GetCertificateChain())).NotTo(BeNil())
 				caBundle = cert.GetCertificateChain()
 
+				// Assume the certificate secret is created on kubernetes, as is required in regular execution
+				Expect(Td.CreateNs(testWebhookServiceNamespace, map[string]string{})).To(BeNil())
+				_, err = providers.GetCertificateFromSecret(testWebhookServiceNamespace, constants.WebhookCertificateSecretName, cert, Td.Client)
+				Expect(err).To(BeNil())
+
 				controller := &reconciler.MutatingWebhookConfigurationReconciler{
 					Client:       mgr.GetClient(),
+					KubeClient:   Td.Client,
 					Scheme:       scheme.Scheme,
 					OsmWebhook:   webhookName,
 					OsmNamespace: testWebhookServiceNamespace,
-					CertManager:  certManager,
 				}
 				err = controller.SetupWithManager(mgr)
 				Expect(err).NotTo(HaveOccurred(), "failed to setup controller")

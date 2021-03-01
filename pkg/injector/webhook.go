@@ -23,6 +23,7 @@ import (
 	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -64,6 +65,13 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
+	}
+
+	// The following function ensures to atomically create or get the certificate from Kubernetes
+	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	if err != nil {
+		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
 	}
 
 	wh := mutatingWebhook{
@@ -348,9 +356,6 @@ func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webho
 // It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
 func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
 	mwc := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
-	if err := webhookExists(mwc, webhookName); err != nil {
-		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s; Will not update CA Bundle for webhook", webhookName)
-	}
 
 	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
 	if err != nil {
