@@ -304,26 +304,6 @@ var (
 		Name:      BookbuyerServiceAccountName,
 	}
 
-	// BookstoreV1WeightedService is a service with a weight used for traffic split.
-	BookstoreV1WeightedService = service.WeightedService{
-		Service: service.MeshService{
-			Namespace: Namespace,
-			Name:      BookstoreV1ServiceName,
-		},
-		Weight:      Weight90,
-		RootService: BookstoreApexServiceName,
-	}
-
-	// BookstoreV2WeightedService is a service with a weight used for traffic split.
-	BookstoreV2WeightedService = service.WeightedService{
-		Service: service.MeshService{
-			Namespace: Namespace,
-			Name:      BookstoreV2ServiceName,
-		},
-		Weight:      Weight10,
-		RootService: BookstoreApexServiceName,
-	}
-
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{

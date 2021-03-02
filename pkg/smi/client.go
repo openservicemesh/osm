@@ -228,27 +228,6 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	return trafficTargets
 }
 
-// ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListTrafficSplitServices() []service.WeightedService {
-	var services []service.WeightedService
-	for _, splitIface := range c.caches.TrafficSplit.List() {
-		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
-		rootService := trafficSplit.Spec.Service
-
-		for _, backend := range trafficSplit.Spec.Backends {
-			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
-			// so we assume that the top level namespace for the TrafficSplit is the namespace
-			// the backends belong to.
-			meshService := service.MeshService{
-				Namespace: trafficSplit.Namespace,
-				Name:      backend.Service,
-			}
-			services = append(services, service.WeightedService{Service: meshService, Weight: backend.Weight, RootService: rootService})
-		}
-	}
-	return services
-}
-
 // ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
 func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	var serviceAccounts []service.K8sServiceAccount

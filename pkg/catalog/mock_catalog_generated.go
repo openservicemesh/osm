@@ -290,15 +290,14 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interf
 }
 
 // ListSMIPolicies mocks base method
-func (m *MockMeshCataloger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
+func (m *MockMeshCataloger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSMIPolicies")
 	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
-	ret1, _ := ret[1].([]service.WeightedService)
-	ret2, _ := ret[2].([]service.K8sServiceAccount)
-	ret3, _ := ret[3].([]*v1alpha4.HTTPRouteGroup)
-	ret4, _ := ret[4].([]*v1alpha3.TrafficTarget)
-	return ret0, ret1, ret2, ret3, ret4
+	ret1, _ := ret[1].([]service.K8sServiceAccount)
+	ret2, _ := ret[2].([]*v1alpha4.HTTPRouteGroup)
+	ret3, _ := ret[3].([]*v1alpha3.TrafficTarget)
+	return ret0, ret1, ret2, ret3
 }
 
 // ListSMIPolicies indicates an expected call of ListSMIPolicies

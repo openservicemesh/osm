@@ -82,7 +82,7 @@ type MeshCataloger interface {
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
 
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)

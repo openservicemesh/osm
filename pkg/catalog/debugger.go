@@ -60,14 +60,13 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 }
 
 // ListSMIPolicies returns all policies OSM is aware of.
-func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget) {
+func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget) {
 	trafficSplits := mc.meshSpec.ListTrafficSplits()
-	splitServices := mc.meshSpec.ListTrafficSplitServices()
 	serviceAccounts := mc.meshSpec.ListServiceAccounts()
 	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
 	trafficTargets := mc.meshSpec.ListTrafficTargets()
 
-	return trafficSplits, splitServices, serviceAccounts, trafficSpecs, trafficTargets
+	return trafficSplits, serviceAccounts, trafficSpecs, trafficTargets
 }
 
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.

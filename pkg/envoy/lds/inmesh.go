@@ -361,33 +361,40 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	outboundSvc := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
-	if len(outboundSvc) == 0 {
+	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
+	if len(upstreamServices) == 0 {
 		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.svcAccount)
 		return filterChains
 	}
 
 	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid duplicates
 	// Transform into set, when listing apex services we might face repetitions
-	for _, meshSvc := range outboundSvc {
-		dstServicesSet[meshSvc] = struct{}{}
+	for _, upstreamSvc := range upstreamServices {
+		dstServicesSet[upstreamSvc] = struct{}{}
 	}
 
 	// Getting apex services referring to the outbound services
 	// We get possible apexes which could traffic split to any of the possible
 	// outbound services
-	splitServices := lb.meshCatalog.GetSMISpec().ListTrafficSplitServices()
-	for _, svc := range splitServices {
-		for _, outSvc := range outboundSvc {
-			if svc.Service == outSvc {
-				rootServiceName := kubernetes.GetServiceFromHostname(svc.RootService)
-				rootMeshService := service.MeshService{
-					Namespace: outSvc.Namespace,
-					Name:      rootServiceName,
-				}
+	splitPolicy := lb.meshCatalog.GetSMISpec().ListTrafficSplits()
 
-				// Add this root service into the set
-				dstServicesSet[rootMeshService] = struct{}{}
+	for upstreamSvc := range dstServicesSet {
+		for _, split := range splitPolicy {
+			// Split policy must be in the same namespace as the upstream service that is a backend
+			if split.Namespace != upstreamSvc.Namespace {
+				continue
+			}
+			for _, backend := range split.Spec.Backends {
+				if backend.Service == upstreamSvc.Name {
+					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
+					rootMeshService := service.MeshService{
+						Namespace: split.Namespace,
+						Name:      rootServiceName,
+					}
+
+					// Add this root service into the set
+					dstServicesSet[rootMeshService] = struct{}{}
+				}
 			}
 		}
 	}

@@ -19,7 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -125,61 +124,6 @@ var _ = Describe("When listing TrafficSplit", func() {
 		splits := meshSpec.ListTrafficSplits()
 		Expect(len(splits)).To(Equal(1))
 		Expect(split).To(Equal(splits[0]))
-
-		err = fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Delete(context.TODO(), split.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-tsChannel
-	})
-})
-
-var _ = Describe("When listing TrafficSplit services", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return a list of weighted services corresponding to the traffic split backends", func() {
-		tsChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficSplitAdded,
-			announcements.TrafficSplitDeleted,
-			announcements.TrafficSplitUpdated)
-		defer events.GetPubSubInstance().Unsub(tsChannel)
-
-		split := &smiSplit.TrafficSplit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-ListTrafficSplitServices",
-				Namespace: testNamespaceName,
-			},
-			Spec: smiSplit.TrafficSplitSpec{
-				Service: tests.BookstoreApexServiceName,
-				Backends: []smiSplit.TrafficSplitBackend{
-					{
-						Service: "bookstore-v1",
-						Weight:  tests.Weight90,
-					},
-					{
-						Service: "bookstore-v2",
-						Weight:  tests.Weight10,
-					},
-				},
-			},
-		}
-
-		_, err := fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Create(context.TODO(), split, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-tsChannel
-
-		weightedServices := meshSpec.ListTrafficSplitServices()
-		Expect(len(weightedServices)).To(Equal(len(split.Spec.Backends)))
-		for i, backend := range split.Spec.Backends {
-			Expect(weightedServices[i].Service).To(Equal(service.MeshService{Namespace: split.Namespace, Name: backend.Service}))
-			Expect(weightedServices[i].Weight).To(Equal(backend.Weight))
-			Expect(weightedServices[i].RootService).To(Equal(split.Spec.Service))
-		}
 
 		err = fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Delete(context.TODO(), split.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
