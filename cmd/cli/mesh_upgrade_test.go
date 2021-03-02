@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
@@ -28,10 +30,15 @@ func meshUpgradeConfig() *action.Configuration {
 }
 
 func defaultMeshUpgradeCmd() *meshUpgradeCmd {
+	chart, err := loader.Load(testChartPath)
+	if err != nil {
+		panic(err)
+	}
+
 	return &meshUpgradeCmd{
 		out:               ioutil.Discard,
 		meshName:          defaultMeshName,
-		chartPath:         testChartPath,
+		chart:             chart,
 		containerRegistry: defaultContainerRegistry,
 		osmImageTag:       defaultOsmImageTag,
 	}
@@ -49,6 +56,13 @@ func TestMeshUpgradeDefault(t *testing.T) {
 	a.Nil(err)
 
 	u := defaultMeshUpgradeCmd()
+
+	upgraded, err := action.NewGet(config).Run(u.meshName)
+	a.Nil(err)
+
+	osmImageTag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	a.Nil(err)
+	a.Equal(defaultOsmImageTag, osmImageTag)
 
 	err = u.run(config)
 	a.Nil(err)
@@ -143,4 +157,42 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	tag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
 	a.Nil(err)
 	a.Equal(defaultOsmImageTag, tag)
+}
+
+func TestMeshUpgradeToModifiedChart(t *testing.T) {
+	a := assert.New(t)
+
+	config := meshUpgradeConfig()
+
+	i := getDefaultInstallCmd(ioutil.Discard)
+	i.chartPath = testChartPath
+
+	err := i.run(config)
+	a.Nil(err)
+
+	u := defaultMeshUpgradeCmd()
+
+	// Upgrade to a "new version" of the chart with a new required value.
+	// The upgrade itself will fail if the required value is not defined.
+	_, exists := u.chart.Values["newRequired"]
+	a.False(exists)
+	u.chart.Values["newRequired"] = "anything"
+	u.chart.Schema = []byte(`{"required": ["newRequired"]}`)
+
+	// A value NOT set explicitly by `osm install` that exists in the old chart
+	oldNamespace, err := chartutil.Values(u.chart.Values).PathValue("OpenServiceMesh.namespace")
+	a.Nil(err)
+	newNamespace := fmt.Sprintf("new-%s", oldNamespace)
+	u.chart.Values["OpenServiceMesh"].(map[string]interface{})["namespace"] = newNamespace
+
+	err = u.run(config)
+	a.Nil(err)
+
+	upgraded, err := action.NewGet(config).Run(u.meshName)
+	a.Nil(err)
+
+	// When a default is changed in values.yaml, keep the old one
+	namespace, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.namespace")
+	a.Nil(err)
+	a.Equal(oldNamespace, namespace)
 }

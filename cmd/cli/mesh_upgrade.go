@@ -9,6 +9,7 @@ import (
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 
 	"github.com/openservicemesh/osm/pkg/cli"
 )
@@ -49,8 +50,8 @@ osm mesh upgrade --osm-namespace osm-system --enable-egress=false
 type meshUpgradeCmd struct {
 	out io.Writer
 
-	meshName  string
-	chartPath string
+	meshName string
+	chart    *chart.Chart
 
 	containerRegistry string
 	osmImageTag       string
@@ -82,6 +83,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 		useHTTPSIngress:               new(bool),
 		enableTracing:                 new(bool),
 	}
+	var chartPath string
 
 	cmd := &cobra.Command{
 		Use:     "upgrade",
@@ -110,6 +112,14 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 				upg.enableTracing = nil
 			}
 
+			if chartPath != "" {
+				var err error
+				upg.chart, err = loader.Load(chartPath)
+				if err != nil {
+					return err
+				}
+			}
+
 			return upg.run(config)
 		},
 	}
@@ -117,7 +127,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 	f := cmd.Flags()
 
 	f.StringVar(&upg.meshName, "mesh-name", defaultMeshName, "Name of the mesh to upgrade")
-	f.StringVar(&upg.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
+	f.StringVar(&chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&upg.containerRegistry, "container-registry", defaultContainerRegistry, "container registry that hosts control plane component images")
 	f.StringVar(&upg.osmImageTag, "osm-image-tag", defaultOsmImageTag, "osm image tag")
 
@@ -137,27 +147,24 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 }
 
 func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
-	var chartRequested *chart.Chart
-	var err error
-	if u.chartPath != "" {
-		chartRequested, err = loader.Load(u.chartPath)
-	} else {
-		chartRequested, err = cli.LoadChart(chartTGZSource)
-	}
-	if err != nil {
-		return err
+	if u.chart == nil {
+		var err error
+		u.chart, err = cli.LoadChart(chartTGZSource)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Add the overlay values to be updated to the current release's values map
-	values, err := u.resolveValues()
+	values, err := u.resolveValues(config)
 	if err != nil {
 		return err
 	}
 
 	upgradeClient := helm.NewUpgrade(config)
 	upgradeClient.Wait = true
-	upgradeClient.ReuseValues = true
-	if _, err = upgradeClient.Run(u.meshName, chartRequested, values); err != nil {
+	upgradeClient.ResetValues = true
+	if _, err = upgradeClient.Run(u.meshName, u.chart, values); err != nil {
 		return err
 	}
 
@@ -165,7 +172,7 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	return nil
 }
 
-func (u *meshUpgradeCmd) resolveValues() (map[string]interface{}, error) {
+func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]interface{}, error) {
 	vals := map[string]interface{}{
 		"image": map[string]interface{}{
 			"tag":      u.osmImageTag,
@@ -214,7 +221,19 @@ func (u *meshUpgradeCmd) resolveValues() (map[string]interface{}, error) {
 		setTracing("endpoint", u.tracingEndpoint)
 	}
 
-	return map[string]interface{}{
+	vals = map[string]interface{}{
 		"OpenServiceMesh": vals,
-	}, nil
+	}
+
+	oldRelease, err := config.Releases.Deployed(u.meshName)
+	if err != nil {
+		return nil, err
+	}
+
+	// The final merged values from the previous release
+	oldVals := chartutil.CoalesceTables(oldRelease.Config, oldRelease.Chart.Values)
+
+	vals = chartutil.CoalesceTables(vals, oldVals)
+
+	return vals, nil
 }
