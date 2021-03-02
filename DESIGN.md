@@ -312,7 +312,7 @@ type MeshCataloger interface {
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
@@ -445,9 +445,6 @@ type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
-	ListTrafficSplitServices() []service.WeightedService
-
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
 
@@ -566,14 +563,6 @@ The following types are referenced in the interfaces proposed in this document:
       ```go
       // ClusterName is a type for a service name
       type ClusterName string
-      ```
-  -  WeightedService
-      ```go
-      //WeightedService is a struct of a service name and its weight
-      type WeightedService struct {
-	   ServiceName MeshService `json:"service_name:omitempty"`
-	   Weight      int               `json:"weight:omitempty"`
-      }
       ```
 
   -  RoutePolicy

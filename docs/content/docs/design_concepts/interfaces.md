@@ -74,7 +74,7 @@ type MeshCataloger interface {
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
@@ -212,9 +212,6 @@ The `MeshSpec` implementation **has no awareness** of:
 type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
-
-	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
-	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount

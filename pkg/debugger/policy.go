@@ -13,11 +13,10 @@ import (
 )
 
 type policies struct {
-	TrafficSplits    []*split.TrafficSplit       `json:"traffic_splits"`
-	WeightedServices []service.WeightedService   `json:"weighted_services"`
-	ServiceAccounts  []service.K8sServiceAccount `json:"service_accounts"`
-	RouteGroups      []*spec.HTTPRouteGroup      `json:"route_groups"`
-	TrafficTargets   []*access.TrafficTarget     `json:"traffic_targets"`
+	TrafficSplits   []*split.TrafficSplit       `json:"traffic_splits"`
+	ServiceAccounts []service.K8sServiceAccount `json:"service_accounts"`
+	RouteGroups     []*spec.HTTPRouteGroup      `json:"route_groups"`
+	TrafficTargets  []*access.TrafficTarget     `json:"traffic_targets"`
 }
 
 func (ds DebugConfig) getOSMConfigHandler() http.Handler {
@@ -34,7 +33,7 @@ func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 func (ds DebugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
-		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
+		p.TrafficSplits, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {
