@@ -273,3 +273,7 @@ jobs:
         env:
           CTR_TAG: ${{ github.sha }}
         run: make docker-push
+      - name: Push images with latest_main tag
+        env:
+          CTR_TAG: latest_main
+        run: make docker-push

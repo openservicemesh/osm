@@ -19,17 +19,31 @@ Unpack the `osm` binary and add it to `$PATH` to get started.
 
 ### From Source (Linux, MacOS)
 
-Building OSM from source requires more steps but is the best way to test the latest changes and useful in a development environment.
+Building OSM CLI from source requires more steps but is the best way to test the latest changes and useful in a development environment.
 
 You must have a working [Go](https://golang.org/doc/install) environment.
 
 ```console
 $ git clone git@github.com:openservicemesh/osm.git
 $ cd osm
+```
+
+When OSM CLI is built from source, it might not be compatible with the default control plane images derived from the latest released version. In such cases, use the `latest_main` image tag to specify that the CLI should use the latest control plane images built from the `main` branch. It is recommended to build the OSM CLI binary from the latest commit on the `main` branch while using the `latest_main` image tag for compatibility reasons.
+
+```console
+# upstream points to git@github.com:openservicemesh/osm.git
+$ git fetch upstream && git rebease upstream/main
+
+# Compile OSM CLI
 $ make build-osm
 ```
 
 `make build-osm` will fetch any required dependencies, compile `osm` and place it in `bin/osm`. Add `bin/osm` to `$PATH` so you can easily use `osm`.
+
+```console
+# Install OSM using the latest image tag from main
+$ osm install --osm-image-tag latest_main
+```
 
 ## Install OSM
 
