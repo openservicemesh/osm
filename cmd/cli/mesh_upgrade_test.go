@@ -85,6 +85,9 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	*u.enableEgress = true
 	u.envoyLogLevel = "trace"
 	u.tracingEndpoint = "/here"
+	u.outboundIPRangeExclusionList = []string{"0.0.0.0/0", "1.1.1.1/1"}
+	u.enablePrivilegedInitContainer = new(bool)
+	*u.enablePrivilegedInitContainer = true
 
 	err = u.run(config)
 	a.Nil(err)
@@ -107,6 +110,14 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	tracingEndpoint, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.tracing.endpoint")
 	a.Nil(err)
 	a.Equal("/here", tracingEndpoint)
+
+	outboundIPRangeExclusionList, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.outboundIPRangeExclusionList")
+	a.Nil(err)
+	a.Equal([]string{"0.0.0.0/0", "1.1.1.1/1"}, outboundIPRangeExclusionList)
+
+	enablePrivilegedInitContainer, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enablePrivilegedInitContainer")
+	a.Nil(err)
+	a.True(enablePrivilegedInitContainer.(bool))
 
 	// Successive upgrades should keep the overridden values from the previous upgrade
 	u = defaultMeshUpgradeCmd()
