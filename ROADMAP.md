@@ -11,7 +11,7 @@ At this time, the OSM community is working on:
 - Implementing SMI Traffic Metrics and build tooling to leverage it.
 - Iterating on SMI Traffic Split and Traffic Access implementations.
 
-In the medium to long term future, the OSM communtiy will tackle the following:
+In the medium to long term future, the OSM community will tackle the following:
 - Iterate on the current Ingress/Egress functionality, experience, workflow.
 - Iterate on existing tools for debugging the OSM control plane and data plane.
 - Leverage xDS v3 protocol when limited by SMI to provide a "no cliffs" design.
