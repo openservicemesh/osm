@@ -163,6 +163,7 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 
 	upgradeClient := helm.NewUpgrade(config)
 	upgradeClient.Wait = true
+	upgradeClient.Timeout = 5 * time.Minute
 	upgradeClient.ResetValues = true
 	if _, err = upgradeClient.Run(u.meshName, u.chart, values); err != nil {
 		return err
