@@ -2,7 +2,7 @@
 title: "Uninstall"
 description: "Uninstall"
 type: docs
-aliases: ["uninstall"]
+aliases: ["uninstall", "uninstallation_guide"]
 weight: 3
 ---
 
@@ -13,7 +13,8 @@ This guide describes how to uninstall Open Service Mesh (OSM) from a Kubernetes 
 ## Prerequisites
 
 - Kubernetes cluster with OSM installed
-- The [osm CLI](../installation_guide/#set-up-the-osm-cli)
+- The [osm CLI](../../install)
+
 
 ## Uninstall OSM
 
