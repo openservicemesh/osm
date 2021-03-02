@@ -162,7 +162,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        bucket: [1, 2]
+        bucket: [1, 2, 3, 4]
     env:
       CTR_TAG: ${{ github.sha }}
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework

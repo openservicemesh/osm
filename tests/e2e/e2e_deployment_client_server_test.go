@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment server",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 2,
 	},
 	func() {
 		Context("DeploymentsClientServer", func() {

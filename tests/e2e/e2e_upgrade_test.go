@@ -22,7 +22,7 @@ import (
 var _ = OSMDescribe("Upgrade from latest",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 2,
+		Bucket: 1,
 	},
 	func() {
 		const ns = "upgrade-test"

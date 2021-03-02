@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 	OSMDescribeInfo{
 		Tier:   2, // experimental feature
-		Bucket: 1,
+		Bucket: 4,
 	},
 	func() {
 		const sourceNs = "clientns"
