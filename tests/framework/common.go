@@ -157,6 +157,7 @@ type OsmTestData struct {
 
 	CleanupTest    bool // Cleanup test-related resources once finished
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
+	IgnoreRestarts bool // Ignore control plane processes restarts, if any
 
 	// OSM install-time variables
 	InstType          InstallType // Install type.
@@ -187,6 +188,7 @@ type OsmTestData struct {
 func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.CleanupTest, "cleanupTest", true, "Cleanup test resources when done")
 	flag.BoolVar(&td.WaitForCleanup, "waitForCleanup", true, "Wait for effective deletion of resources")
+	flag.BoolVar(&td.IgnoreRestarts, "ignoreRestarts", false, "When true, will not make tests fail if restarts of control plane processes are observed")
 	flag.StringVar(&td.TestFolderName, "testFolderName", "", "Test folder name")
 
 	flag.StringVar((*string)(&td.InstType), "installType", string(SelfInstall), "Type of install/deployment for OSM")
@@ -1158,6 +1160,14 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		return
 	}
 
+	// Verify no crashes/restarts of OSM and control plane components were observed during the test
+	// We will not inmediately call Fail() here to not disturb the cleanup process, and instead
+	// call it at the end of cleanup
+	restartSeen, err := td.VerifyComponentRestarts()
+	if err != nil {
+		Td.T.Log("Failed to verify component restarts: %v", err)
+	}
+
 	// The condition enters to cleanup K8s resources if
 	// - cleanup is enabled and it's not a kind cluster
 	// - cleanup is enabled and it is a kind cluster, but the kind cluster will NOT be
@@ -1213,6 +1223,10 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 			}
 			td.ClusterProvider = nil
 		}
+	}
+
+	if restartSeen && !td.IgnoreRestarts {
+		Fail("Unexpected restarts for control plane processes were observed")
 	}
 }
 
@@ -1293,4 +1307,26 @@ func (td *OsmTestData) waitForCABundleSecret(ns string, timeout time.Duration) e
 	}
 
 	return fmt.Errorf("CA bundle secret not ready in NS %s after %s", ns, timeout)
+}
+
+// VerifyComponentRestarts ensure no crashes on osm-namespace instances
+func (td *OsmTestData) VerifyComponentRestarts() (bool, error) {
+	list, err := td.Client.CoreV1().Pods(td.OsmNamespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		td.T.Errorf("Error listing pods from osm Namespace: %v", err)
+		return false, err
+	}
+
+	restartSeen := false
+	for _, pod := range list.Items {
+		for _, contStatus := range pod.Status.ContainerStatuses {
+			if contStatus.RestartCount > 0 {
+				td.T.Logf("!! Restart observed for control plane pod/cont %s/%s : %d",
+					pod.Name, contStatus.ContainerID, contStatus.RestartCount)
+				restartSeen = true
+			}
+		}
+	}
+
+	return restartSeen, nil
 }
