@@ -512,6 +512,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			"--vault-protocol="+instOpts.VaultProtocol,
 			"--vault-role="+instOpts.VaultRole,
 		)
+		// Wait for the vault pod
+		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1); err != nil {
+			return errors.Wrap(err, "failed waiting for vault pod to become ready")
+		}
 	case "cert-manager":
 		if err := td.installCertManager(instOpts); err != nil {
 			return err
