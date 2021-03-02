@@ -24,6 +24,33 @@ Tests are organized by top-level `Describe` blocks into tiers based on priority.
 
 Independent of tiers, tests are also organized into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
 
+### Test organization
+
+| Test  | Tier | Bucket |
+|--|--|--|
+| e2e_smi_traffic_target_test.go | 1 | 1
+| e2e_trafficsplit_test.go | 1 | 1
+| e2e_permissive_test.go | 1 | 1
+| e2e_deployment_client_server_test.go | 1 | 2
+| e2e_tcp_client_server_test.go | 1 | 2
+| e2e_grpc_client_server_test.go | 1 | 2
+| e2e_http_ingress_test.go | 1 | 3
+| e2e_egress_test.go | 1 | 3
+| e2e_tcp_egress_test.go | 1 | 3
+| e2e_trafficsplit_same_sa_test.go | 1 | 4
+| e2e_pod_client_server_test.go | 1 | 4
+| e2e_helm_install_test.go | 2 | 1
+| e2e_upgrade_test.go | 2 | 1
+| e2e_controller_restart_test.go | 2 | 1
+| e2e_hashivault_test.go| 2 | 2
+| e2e_certmanager_test.go | 2 | 2
+| e2e_ip_exclusion_test.go | 2 | 3
+| e2e_multiple_services_per_pod_test.go | 2 | 3
+| e2e_metrics_test.go | 2 | 4
+| e2e_debug_server_test.go | 2 | 4
+| e2e_fluentbit_test.go | 2 | 4
+| e2e_fluentbit_out_test.go | 2 | 4
+
 **Note**: These tiers and buckets and which tests fall into each are likely to change as the test suite grows.
 
 To help organize the tests, a custom `Describe` block named `OSMDescribe` is provided which accepts an additional struct parameter which contains fields for test metadata like tier and bucket. `OSMDescribe` will construct a well-formatted name including the test metadata which can be used in CI to run tests accordingly. Ginkgo's original `Describe` should not be used directly at the top-level and `OSMDescribe` should be used instead.
@@ -121,16 +148,16 @@ will anyway be destroyed.
 ```
 Plus, `go test` and `Ginkgo` specific flags, of course.
 
-#### Running individual tests: 
+#### Running individual tests:
 
-The `ginkgo.focus` flag can be used to run individual tests. The flag should specify the "Context" of the test they wish to run, which can be found in the `.go` file for that test. For instance, if you want to run the `e2e_tcp_client_server_test` with SMI policies, you should run: 
+The `ginkgo.focus` flag can be used to run individual tests. The flag should specify the "Context" of the test they wish to run, which can be found in the `.go` file for that test. For instance, if you want to run the `e2e_tcp_client_server_test` with SMI policies, you should run:
 
 ```console
 go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus="\bSimpleClientServer TCP with SMI policies\b"
 ```
 
-#### Setting test timeout: 
+#### Setting test timeout:
 
-The `test.timeout` flag sets a total time limit for all the tests that you are running. If you run the e2es without specifying any timeout limit, the tests will terminate after 10 minutes. To run the tests without any time limit, you should set `test.timeout 0`. 
+The `test.timeout` flag sets a total time limit for all the tests that you are running. If you run the e2es without specifying any timeout limit, the tests will terminate after 10 minutes. To run the tests without any time limit, you should set `test.timeout 0`.
 
-To set a specific time limit, a unit must be specified along with a number. For instance, if you want to set the limit to 90 seconds (say for just testing one e2e), you should say `test.timeout 90s`. If you want the tests to run for 60 minutes, you should say `test.timeout 60m`. 
+To set a specific time limit, a unit must be specified along with a number. For instance, if you want to set the limit to 90 seconds (say for just testing one e2e), you should say `test.timeout 90s`. If you want the tests to run for 60 minutes, you should say `test.timeout 60m`.
