@@ -19,7 +19,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 		Bucket: 4,
 	},
 	func() {
-		Context("Fluentbit", func() {
+		Context("Fluent Bit deployment", func() {
 			It("Deploys a Fluent Bit sidecar only when enabled", func() {
 				// Install OSM with Fluentbit
 				installOpts := Td.GetOSMInstallOpts()
