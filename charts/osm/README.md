@@ -80,7 +80,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` | Enable proxy support toggle for Fluent Bit |
 | OpenServiceMesh.fluentBit.httpProxy | string | `""` | Optional HTTP proxy endpoint for Fluent Bit |
 | OpenServiceMesh.fluentBit.httpsProxy | string | `""` | Optional HTTPS proxy endpoint for Fluent Bit |
-| OpenServiceMesh.fluentBit.logLevel | string | `"error"` | Log level for Fluent Bit |
 | OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` | Fluent Bit sidecar container name |
 | OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` | Fluent Bit output plugin |
 | OpenServiceMesh.fluentBit.primaryKey | string | `""` | Primary Key for Fluent Bit output plugin to Log Analytics |

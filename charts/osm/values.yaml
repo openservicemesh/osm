@@ -80,8 +80,6 @@ OpenServiceMesh:
     tag: 1.6.4
     # -- PullPolicy for Fluent Bit sidecar container
     pullPolicy: IfNotPresent
-    # -- Log level for Fluent Bit
-    logLevel: error
     # -- Fluent Bit output plugin
     outputPlugin: stdout
     # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
