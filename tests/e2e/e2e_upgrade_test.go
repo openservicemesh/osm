@@ -20,7 +20,7 @@ import (
 var _ = OSMDescribe("Upgrade from latest",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 1,
+		Bucket: 0, // Disabled in CI pending https://github.com/openservicemesh/osm/issues/2675
 	},
 	func() {
 		const ns = "upgrade-test"
