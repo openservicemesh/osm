@@ -48,8 +48,8 @@ Independent of tiers, tests are also organized into buckets. Each bucket runs in
 | e2e_multiple_services_per_pod_test.go | 2 | 3
 | e2e_metrics_test.go | 2 | 4
 | e2e_debug_server_test.go | 2 | 4
-| e2e_fluentbit_test.go | 2 | 4
-| e2e_fluentbit_out_test.go | 2 | 4
+| e2e_fluentbit_deployment_test.go | 2 | 4
+| e2e_fluentbit_output_test.go | 2 | 4
 
 **Note**: These tiers and buckets and which tests fall into each are likely to change as the test suite grows.
 

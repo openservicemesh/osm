@@ -22,7 +22,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 		Bucket: 2,
 	},
 	func() {
-		Context("FluentbitOutput", func() {
+		Context("Fluent Bit output", func() {
 			It("Forwards correctly filtered logs to stdout", func() {
 				// Install OSM with Fluentbit
 				installOpts := Td.GetOSMInstallOpts()
