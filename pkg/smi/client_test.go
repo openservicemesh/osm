@@ -2,6 +2,7 @@ package smi
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -363,5 +364,48 @@ var _ = Describe("When listing TCP routes", func() {
 		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-trChannel
+	})
+})
+
+var _ = Describe("When getting a TCP route by its namespaced name", func() {
+	var (
+		meshSpec      MeshSpec
+		fakeClientSet *fakeKubeClientSet
+		err           error
+	)
+	BeforeEach(func() {
+		meshSpec, fakeClientSet, err = bootstrapClient()
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should return nil when a TCP route is not found", func() {
+		tcpRoute := meshSpec.GetTCPRoute("ns/route")
+		Expect(tcpRoute).To(BeNil())
+	})
+
+	It("should return a non nil TCPRoute when found", func() {
+		trChannel := events.GetPubSubInstance().Subscribe(announcements.TCPRouteAdded,
+			announcements.TCPRouteDeleted,
+			announcements.TCPRouteUpdated)
+		defer events.GetPubSubInstance().Unsub(trChannel)
+		routeSpec := &smiSpecs.TCPRoute{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "specs.smi-spec.io/v1alpha4",
+				Kind:       "TCPRoute",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: testNamespaceName,
+				Name:      "tcp-route",
+			},
+			Spec: smiSpecs.TCPRouteSpec{},
+		}
+
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-trChannel
+
+		tcpRoute := meshSpec.GetTCPRoute(fmt.Sprintf("%s/%s", routeSpec.Namespace, routeSpec.Name))
+		Expect(tcpRoute).ToNot(BeNil())
+		Expect(tcpRoute).To(Equal(routeSpec))
 	})
 })
