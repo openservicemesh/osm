@@ -26,6 +26,7 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			log.Error().Err(recvErr).Msgf("[grpc] Connection error")
 			return
 		}
+
 		if !proxy.HasPodMetadata() {
 			// Set the Pod metadata on the given proxy only once. This could arrive with the first few XDS requests.
 			if err := recordEnvoyPodMetadata(request, proxy, proxyRegistry); err != nil {

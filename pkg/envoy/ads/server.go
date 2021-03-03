@@ -67,8 +67,13 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 		log.Error().Err(err).Msg("Error starting ADS server")
 		return err
 	}
+	newADSEnabled := true
+	if newADSEnabled {
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.NewestServer())
+	} else {
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+	}
 
-	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
 	s.ready = true
 
