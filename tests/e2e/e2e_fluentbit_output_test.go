@@ -27,7 +27,6 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				// Install OSM with Fluentbit
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.DeployFluentbit = true
-				installOpts.SetOverrides = []string{"OpenServiceMesh.fluentBit.logLevel=info"}
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				pods, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
@@ -49,7 +48,6 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 							Expect(err).ToNot(HaveOccurred(), "Unable to get container logs")
 							Expect(podLogs).To(ContainSubstring(logLevel))
 							Expect(podLogs).To(ContainSubstring("\"controller_pod_name\"=>\"osm-controller-"))
-							Expect(podLogs).NotTo(ContainSubstring("\"keep\"=>\"true\""))
 						}
 					}
 				}
