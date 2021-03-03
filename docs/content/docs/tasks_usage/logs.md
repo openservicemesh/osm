@@ -21,8 +21,9 @@ To quickly bring up Fluent Bit with default values, use:
 ```console
 osm install --enable-fluentbit
 ```
+By default, logs will be filtered to emit info level logs. You may change the log level to "debug", "warn", "fatal", "panic", "disabled" or "trace" during installation using `--set OpenServiceMesh.controllerLogLevel=<desired log level>` . To get _all_ logs, set the log level to trace.
 
-However, once you have tried this out, we recommend configuring log forwarding to your preferred output for more informative results.
+Once you have tried out this basic setup, we recommend configuring log forwarding to your preferred output for more informative results.
 
 To customize log forwarding to your output, follow these steps and then reinstall OSM with Fluent Bit enabled.
 
@@ -30,11 +31,9 @@ To customize log forwarding to your output, follow these steps and then reinstal
 
 1. The default configuration uses CRI log format parsing. If you are using a kubernetes distribution that causes your logs to be formatted differently, you may need to add a new parser to the `[PARSER]` section and change the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf).
 
-1. The logs are currently filtered to match "error" level logs and multiple filters have been used to cover differences in log formatting on various Kubernetes distros. 
-    * To change the log level being filtered on, you can update the `logLevel` value in [`values.yaml`](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) to "debug", "info", "warn", "fatal", "panic", "disabled" or "trace". 
-    * To view all logs irrespective of log level, you may remove the `[FILTER]` sections. 
-    * The modify filter has been used to add a `controller_pod_name` key/value pair to help you query logs in your output by refining results on pod name (see example usage below).
-    * If you wish to apply further filtering, explore [Fluent Bit filters](https://docs.fluentbit.io/manual/pipeline/filters).
+1. Explore available [Fluent Bit Filters](https://docs.fluentbit.io/manual/pipeline/filters) and add as many `[FILTER]` sections as desired.
+    * The `[INPUT]` section tags ingested logs with `kube.*` so make sure to include `Match kube.*` key/value pair in each of your custom filters.
+    * The default configuration uses a modify filter to add a `controller_pod_name` key/value pair to help you query logs in your output by refining results on pod name (see example usage below).
 
 1. For these changes to take effect, run:
     ```console
@@ -43,7 +42,7 @@ To customize log forwarding to your output, follow these steps and then reinstal
 
 1. Once you have updated the Fluent Bit ConfigMap template, you can deploy Fluent Bit during OSM installation using:
     ```console
-    osm install --enable-fluentbit
+    osm install --enable-fluentbit [--set OpenServiceMesh.controllerLogLevel=<desired log level>]
     ```
     You should now be able to interact with error logs in the output of your choice as they get generated.
 
