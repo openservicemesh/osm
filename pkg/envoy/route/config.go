@@ -9,6 +9,7 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/golang/protobuf/ptypes/duration"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -112,6 +113,10 @@ func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]st
 		PolicySpecifier: t,
 		Terminal:        false,
 	}
+
+	// disable the timeouts, without this synchronous calls timeout
+	routeTimeout := duration.Duration{Seconds: 0}
+
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -128,6 +133,7 @@ func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]st
 					ClusterHeader: witesand.WSClusterHeader,
 				},
 				HashPolicy: []*xds_route.RouteAction_HashPolicy{r},
+				Timeout: &routeTimeout,
 			},
 		},
 	}
@@ -170,6 +176,9 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 		Terminal:        false,
 	}
 
+	// disable the timeouts, without this synchronous calls timeout
+	routeTimeout := duration.Duration{Seconds: 0}
+
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -186,6 +195,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, direction),
 				},
 				HashPolicy: []*xds_route.RouteAction_HashPolicy{r},
+				Timeout: &routeTimeout,
 			},
 		},
 	}
