@@ -20,7 +20,7 @@ import (
 var _ = OSMDescribe("Upgrade from latest",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 0, // Disabled in CI pending https://github.com/openservicemesh/osm/issues/2675
+		Bucket: 1,
 	},
 	func() {
 		const ns = "upgrade-test"
@@ -59,6 +59,24 @@ var _ = OSMDescribe("Upgrade from latest",
 				"OpenServiceMesh": map[string]interface{}{
 					"deployPrometheus": true,
 					"deployJaeger":     false,
+
+					// Reduce CPU so CI (capped at 2 CPU) can handle standing
+					// up the new control plane before tearing the old one
+					// down.
+					"osmcontroller": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.3",
+							},
+						},
+					},
+					"injector": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.1",
+							},
+						},
+					},
 				},
 			}
 			chartPath, err := i.LocateChart("osm", helmEnv)
