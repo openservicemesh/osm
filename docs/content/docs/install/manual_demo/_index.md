@@ -1,14 +1,14 @@
 ---
-title: "OSM Manual Demo"
+title: "OSM Manual Demo Guide"
 description: "The manual demo is a step-by-step walkthrough set of instruction of the automated demo."
 type: docs
 aliases: ["OSM Manaual Demo"]
 weight: 2
 ---
 
-# How to Run the OSM Manual Demo
+# OSM Manual Demo Guide
 
-The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh.
+The OSM Manual Install Demo Guide is a step by step set of instructions to quickly demo OSM's key features.
 
 ## Configure Prerequisites
 
@@ -20,35 +20,28 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
   - `git clone https://github.com/openservicemesh/osm.git`
   - `cd osm`
 
-## Install OSM CLI
+## Build or Download the OSM CLI
 
 Use the [installation guide](../../install) to install the `osm` cli.
 
 ## Install OSM Control Plane
 
-For the purpose of this demo, it is recommended to install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled.
+For the purpose of this demo, install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled via the `--enable-permissive-traffic-policy` flag. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled. Also by default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as a part of control plane installation.
 
-_Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as a part of control plane installation._
-
-1.  Install OSM in permissive traffic policy mode:
+Install OSM in permissive traffic policy mode:
 
     ```bash
     osm install --enable-permissive-traffic-policy
     ```
 
-1.  Install OSM in SMI traffic policy mode:
+For future reference, here are the flags to enable Prometheus, Grafana, and Jaeger:
 
-    ```bash
-    osm install
-    ```
-
-1.  To enable Prometheus, Grafana, and Jaeger, use their respective flags
     ```bash
     osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
     ```
-    See the [observability documentation](../../patterns/observability/_index.md) for more details.
+See the [observability documentation](../../patterns/observability/_index.md) for more details.
 
-## Deploying the Bookstore Demo Applications
+## Deploy the Bookstore Demo Applications
 
 The demo consists of the following resources:
 
