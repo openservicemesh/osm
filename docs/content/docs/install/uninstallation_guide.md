@@ -2,7 +2,7 @@
 title: "Uninstall"
 description: "Uninstall"
 type: docs
-aliases: ["uninstallation_guide"]
+aliases: ["uninstallation_guide.md"]
 weight: 3
 ---
 
