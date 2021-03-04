@@ -7,7 +7,7 @@ type: docs
 # OSM Uninstall Troubleshooting Guide
 
 ## Leaked Resources
-If the [uninstallation guide](../../install/uninstallation_guide/_index.md) was not followed, it is possible that resources could be leaked.
+If the [uninstallation guide](../../install/uninstallation_guide.md) was not followed, it is possible that resources could be leaked.
 
 If the Helm release, OSM controller, or their respective namespaces are deleted, then the `osm` CLI won't be able to uninstall any remaining resources, particularly if they are cluster scoped.
 
