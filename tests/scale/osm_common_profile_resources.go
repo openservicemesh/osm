@@ -87,7 +87,7 @@ func getOSMTrackResources() []TrackedLabel {
 
 // Get common outputs we are interested to print in (resultsFile and stdout basically)
 func getOSMTestOutputFiles() []*os.File {
-	fName := Td.GetTestFile(defaultFilename)
+	fName := Td.GetTestFilePath(defaultFilename)
 	f, err := os.Create(fName)
 	if err != nil {
 		fmt.Printf("Failed to open file: %v", err)
