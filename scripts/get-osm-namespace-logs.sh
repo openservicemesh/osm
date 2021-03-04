@@ -27,14 +27,14 @@ for pod in $(echo "$res" |  jq '.items[] | .metadata.name' | sed 's/"//g') ; do
   for cont in $(echo "$res" | jq '.items[] | select(.metadata.name|contains("'"$pod"'")) | .spec.containers[].name' | sed 's/"//g') ; do
     # Logs for running instance
     echo "Checking $pod / $cont"
-    kubectl logs "$pod" -c "$cont" > "$logStorePath/running_${pod}_${cont}.log"
+    kubectl logs -n "$K8S_NAMESPACE" "$pod" -c "$cont" > "$logStorePath/running_${pod}_${cont}.log"
 
     # Check if there are logs of previous run (restart)
-    kubectl logs "$pod" -c "$cont" -p > /dev/null 2>&1 
+    kubectl logs -n "$K8S_NAMESPACE" "$pod" -c "$cont" -p > /dev/null 2>&1 
     foundPrevLogs=$?
     if [ $foundPrevLogs -eq 0 ]; then
       # There's logs, fetch
-      kubectl logs "$pod" -c "$cont" -p > "$logStorePath/previous_${cont}.log"
+      kubectl logs -n "$K8S_NAMESPACE" "$pod" -c "$cont" -p > "$logStorePath/previous_${cont}.log"
     fi
   done
 done
