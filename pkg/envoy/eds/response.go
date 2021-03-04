@@ -76,6 +76,17 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 				protos = append(protos, proto)
 			}
 			continue
+		} else if catalog.GetWitesandCataloger().IsWSUnicastService(svc.Name) {
+			loadAssignments := cla.NewWSUnicastClusterLoadAssignment(catalog, svc)
+			for _, loadAssignment := range *loadAssignments {
+				proto, err := ptypes.MarshalAny(loadAssignment)
+				if err != nil {
+					log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
+					continue
+				}
+				protos = append(protos, proto)
+			}
+			// fall thru for default CLAs
 		}
 		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)

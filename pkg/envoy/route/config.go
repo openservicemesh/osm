@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/golang/protobuf/ptypes/duration"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -50,7 +51,7 @@ const (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
+func UpdateRouteConfiguration(catalog catalog.MeshCataloger, domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var virtualHostPrefix string
 
@@ -67,11 +68,11 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 	}
 
 	for host, routePolicyWeightedClustersMap := range domainRoutesMap {
-		wsGatewayHost := isWitesandGatewayHost(host, direction)
+		wsOutboundHost := isWitesandOutboundHost(catalog, host, direction)
 		domains := getDistinctDomains(routePolicyWeightedClustersMap)
 		virtualHost := createVirtualHostStub(virtualHostPrefix, host, domains)
-		if wsGatewayHost {
-			virtualHost.Routes = createWSGatewayRoutes(routePolicyWeightedClustersMap, direction)
+		if wsOutboundHost {
+			virtualHost.Routes = createWSOutboundRoutes(routePolicyWeightedClustersMap, direction)
 		} else {
 			virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
 		}
@@ -93,7 +94,7 @@ func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds
 	return &virtualHost
 }
 
-func createWSGatewayRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
+func createWSOutboundRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
 	var routes []*xds_route.Route
 	emptyHeaders := make(map[string]string)
 	route := getWSGatewayRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders)
@@ -354,10 +355,9 @@ func getRegexForMethod(httpMethod string) string {
 	return methodRegex
 }
 
-func isWitesandGatewayHost(host string, direction Direction) bool {
-	// move to a better mechanism
+func isWitesandOutboundHost(catalog catalog.MeshCataloger, host string, direction Direction) bool {
 	if direction == OutboundRoute {
-		return strings.HasPrefix(host, "gateway")
+		return catalog.GetWitesandCataloger().IsWSUnicastService(host)
 	}
 	return false
 }

@@ -45,6 +45,9 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		if catalog.GetWitesandCataloger().IsWSGatewayService(dstService) {
 			getWSGatewayUpstreamServiceCluster(catalog, dstService, proxyServiceName.GetMeshServicePort(), cfg, clusterFactories)
 			continue
+		} else if catalog.GetWitesandCataloger().IsWSUnicastService(dstService.Name) {
+			getWSUnicastUpstreamServiceCluster(catalog, dstService, proxyServiceName.GetMeshServicePort(), cfg, clusterFactories)
+			// fall thru to generate anycast cluster
 		}
 
 		remoteCluster, err := getUpstreamServiceCluster(dstService, proxyServiceName.GetMeshServicePort(), cfg)

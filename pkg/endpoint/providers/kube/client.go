@@ -104,6 +104,10 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		log.Info().Msgf("[%s] Endpoint subsets for service %s on Kubernetes :%+v", c.providerIdent, svc, kubernetesEndpoints.Subsets)
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
+				podName := ""
+				if address.TargetRef != nil && address.TargetRef.Kind == "Pod" {
+					podName = address.TargetRef.Name
+				}
 				for _, port := range kubernetesEndpoint.Ports {
 					ip := net.ParseIP(address.IP)
 					if ip == nil {
@@ -113,7 +117,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 					ept := endpoint.Endpoint{
 						IP:      ip,
 						Port:    endpoint.Port(port.Port),
-						PodName: address.Hostname,
+						PodName: podName,
 					}
 					endpoints = append(endpoints, ept)
 				}

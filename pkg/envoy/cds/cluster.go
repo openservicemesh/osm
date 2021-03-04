@@ -134,6 +134,33 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 	return nil
 }
 
+// create one cluster for each pod in the service.
+// cluster name of the form "<pod-name>:<port-num>"
+func getWSUnicastUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
+	serviceEndpoints, err := catalog.ListEndpointsForService(upstreamSvc.GetMeshService())
+	if err != nil {
+		return err
+	}
+
+	// create clusters with pod-names
+	for _, endpoint := range serviceEndpoints {
+		clusterName := endpoint.PodName + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	return nil
+}
+
 // getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
 func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{

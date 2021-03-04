@@ -105,8 +105,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	}
 	*/
 
-	route.UpdateRouteConfiguration(outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
-	route.UpdateRouteConfiguration(inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
+	route.UpdateRouteConfiguration(catalog, outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
+	route.UpdateRouteConfiguration(catalog, inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
 	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 

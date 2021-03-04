@@ -9,7 +9,6 @@ import (
 
 const (
 	localClusterDomain = "cluster.local"
-	remoteClusterDomain = "clusterset.local"
 )
 
 // GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
@@ -32,7 +31,6 @@ func GetHostnamesForService(service *corev1.Service, sameNamespace bool) []strin
 	domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))                   // service.namespace.svc
 	domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))           // service.namespace.svc.cluster
 	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, localClusterDomain)) // service.namespace.svc.cluster.local
-	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, remoteClusterDomain)) // service.namespace.svc.clusterset.local
 	for _, portSpec := range service.Spec.Ports {
 		port := portSpec.Port
 
@@ -45,7 +43,6 @@ func GetHostnamesForService(service *corev1.Service, sameNamespace bool) []strin
 		domains = append(domains, fmt.Sprintf("%s.%s.svc:%d", serviceName, namespace, port))                   // service.namespace.svc:port
 		domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster:%d", serviceName, namespace, port))           // service.namespace.svc.cluster:port
 		domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, localClusterDomain, port)) // service.namespace.svc.cluster.local:port
-		domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, remoteClusterDomain, port)) // service.namespace.svc.clusterset.local:port
 	}
 	return domains
 }

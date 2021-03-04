@@ -57,9 +57,36 @@ func NewClusterLoadAssignment(serviceName service.MeshServicePort, serviceEndpoi
 	return cla
 }
 
+func getSingleEndpointCLA(clusterName string, podIP string, servicePort int) *xds_endpoint.ClusterLoadAssignment {
+	cla := xds_endpoint.ClusterLoadAssignment{
+		ClusterName: clusterName,
+		Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+			{
+				Locality: &xds_core.Locality{
+					Zone: zone,
+				},
+				LbEndpoints: []*xds_endpoint.LbEndpoint{},
+			},
+		},
+	}
+
+	log.Trace().Msgf("[EDS][getCLASingleEndpoint] Adding Endpoint: Cluster=%s, IP=%s, Port=%d", clusterName, podIP, servicePort)
+	lbEpt := xds_endpoint.LbEndpoint{
+		HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+			Endpoint: &xds_endpoint.Endpoint{
+				Address: envoy.GetAddress(podIP, uint32(servicePort)),
+			},
+		},
+	}
+	cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
+	log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	return &cla
+}
+
 func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceName service.MeshServicePort) *[]*xds_endpoint.ClusterLoadAssignment {
+	log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Adding Endpoints")
 	servicePort := serviceName.Port
-	getCLA := func(atopMap witesand.ApigroupToPodIPMap, clusterName string) *xds_endpoint.ClusterLoadAssignment {
+	getMultiEndpointsCLA := func(atopMap witesand.ApigroupToPodIPMap, clusterName string) *xds_endpoint.ClusterLoadAssignment {
 		cla := xds_endpoint.ClusterLoadAssignment{
 			ClusterName: clusterName,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -92,41 +119,42 @@ func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceNam
 	atopMaps, _ := wscatalog.ListApigroupToPodIPs()
 	for _, atopMap := range atopMaps {
 		clusterName := atopMap.Apigroup + ":" + strconv.Itoa(servicePort)
-		cla := getCLA(atopMap, clusterName)
-		log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+		cla := getMultiEndpointsCLA(atopMap, clusterName)
 		clas = append(clas, cla)
 
 		clusterName = atopMap.Apigroup + witesand.DeviceHashSuffix + ":" + strconv.Itoa(servicePort)
-		cla = getCLA(atopMap, clusterName)
-		log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+		cla = getMultiEndpointsCLA(atopMap, clusterName)
 		clas = append(clas, cla)
 	}
 
 	pods, _ := wscatalog.ListAllGatewayPodIPs()
 	for podName, podIP := range pods.PodToIPMap {
-		cla := xds_endpoint.ClusterLoadAssignment{
-			ClusterName: podName + ":" + strconv.Itoa(servicePort),
-			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					Locality: &xds_core.Locality{
-						Zone: zone,
-					},
-					LbEndpoints: []*xds_endpoint.LbEndpoint{},
-				},
-			},
-		}
-
-		log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, IP=%+v, Port=%d", podName, serviceName.String(), podIP, servicePort)
-		lbEpt := xds_endpoint.LbEndpoint{
-			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-				Endpoint: &xds_endpoint.Endpoint{
-					Address: envoy.GetAddress(podIP, uint32(servicePort)),
-				},
-			},
-		}
-		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
-		log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
-		clas = append(clas, &cla)
+		clusterName := podName + ":" + strconv.Itoa(servicePort)
+		cla := getSingleEndpointCLA(clusterName, podIP, servicePort)
+		clas = append(clas, cla)
 	}
+	log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Constructed ClusterLoadAssignment: %+v", clas)
+	return &clas
+}
+
+func NewWSUnicastClusterLoadAssignment(catalog catalog.MeshCataloger, serviceName service.MeshServicePort) *[]*xds_endpoint.ClusterLoadAssignment {
+	log.Trace().Msgf("[EDS][NewWSUnicastClusterLoadAssignment] Adding Endpoints for Service:%+v", serviceName)
+	servicePort := serviceName.Port
+	serviceEndpoints, err := catalog.ListEndpointsForService(serviceName.GetMeshService())
+	if err != nil {
+		log.Error().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Error adding Endpoints for Service:%+v, err:%+v", serviceName, err)
+		return nil
+	}
+	var clas []*xds_endpoint.ClusterLoadAssignment
+	for _, endpoint := range serviceEndpoints {
+		if int(endpoint.Port) != servicePort {
+			// skip non-interesting ports
+			continue
+		}
+		clusterName := endpoint.PodName + ":" + strconv.Itoa(servicePort)
+		cla := getSingleEndpointCLA(clusterName, endpoint.IP.String(), servicePort)
+		clas = append(clas, cla)
+	}
+	log.Trace().Msgf("[EDS][NewWSUnicastClusterLoadAssignment] Constructed ClusterLoadAssignment: %+v", clas)
 	return &clas
 }
