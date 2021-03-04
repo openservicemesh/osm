@@ -80,8 +80,7 @@ func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {
 
 	wasmAny, err := ptypes.MarshalAny(wasmPlug)
 	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling WasmService object")
-		return nil, err
+		return nil, errors.Wrap(err, "Error marshalling Wasm config")
 	}
 
 	return &xds_hcm.HttpFilter{
