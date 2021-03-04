@@ -2,7 +2,7 @@
 title: "Installation"
 description: "This section describes how to install/uninstall Open Service Mesh (OSM) on a Kubernetes cluster using the `osm` CLI."
 type: docs
-aliases: ["_index.md"]
+aliases: ["installation guide"]
 weight: 3
 ---
 
