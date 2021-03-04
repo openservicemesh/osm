@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Test TCP traffic from 1 pod client -> 1 pod server",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 2,
 	},
 	func() {
 		Context("SimpleClientServer TCP with SMI policies", func() {

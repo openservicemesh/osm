@@ -18,7 +18,7 @@ import (
 var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 2,
+		Bucket: 1,
 	},
 	func() {
 		Context("ClientServerTrafficSplit", func() {

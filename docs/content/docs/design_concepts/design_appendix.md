@@ -45,15 +45,6 @@ The following types are referenced in the interfaces proposed in this document:
   // ClusterName is a type for a service name
   type ClusterName string
   ```
-- WeightedService
-
-  ```go
-  //WeightedService is a struct of a service name and its weight
-  type WeightedService struct {
-   ServiceName MeshService `json:"service_name:omitempty"`
-   Weight      int               `json:"weight:omitempty"`
-  }
-  ```
 
 - RoutePolicy
 

@@ -9,8 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	smiAccessV1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	smiSpecsV1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
@@ -22,7 +20,7 @@ import (
 var _ = OSMDescribe("Upgrade from latest",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 2,
+		Bucket: 1,
 	},
 	func() {
 		const ns = "upgrade-test"
@@ -61,6 +59,24 @@ var _ = OSMDescribe("Upgrade from latest",
 				"OpenServiceMesh": map[string]interface{}{
 					"deployPrometheus": true,
 					"deployJaeger":     false,
+
+					// Reduce CPU so CI (capped at 2 CPU) can handle standing
+					// up the new control plane before tearing the old one
+					// down.
+					"osmcontroller": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.3",
+							},
+						},
+					},
+					"injector": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.1",
+							},
+						},
+					},
 				},
 			}
 			chartPath, err := i.LocateChart("osm", helmEnv)
@@ -111,54 +127,22 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 2)).To(Succeed())
 
-			httpRG := smiSpecsV1alpha3.HTTPRouteGroup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "routes",
-				},
-				Spec: smiSpecsV1alpha3.HTTPRouteGroupSpec{
-					Matches: []smiSpecsV1alpha3.HTTPMatch{
-						{
-							Name:      "all",
-							PathRegex: ".*",
-							Methods:   []string{"*"},
-						},
-					},
-				},
-			}
+			// Deploy allow rule client->server
+			httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
+				SimpleAllowPolicy{
+					RouteGroupName:    "routes",
+					TrafficTargetName: "test-target",
 
-			trafficTarget := smiAccessV1alpha2.TrafficTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-target",
-				},
-				Spec: smiAccessV1alpha2.TrafficTargetSpec{
-					Sources: []smiAccessV1alpha2.IdentityBindingSubject{
-						{
-							Kind:      "ServiceAccount",
-							Name:      "client",
-							Namespace: ns,
-						},
-					},
-					Destination: smiAccessV1alpha2.IdentityBindingSubject{
-						Kind:      "ServiceAccount",
-						Name:      "server",
-						Namespace: ns,
-					},
-					Rules: []smiAccessV1alpha2.TrafficTargetRule{
-						{
-							Kind: "HTTPRouteGroup",
-							Name: "routes",
-							Matches: []string{
-								"all",
-							},
-						},
-					},
-				},
-			}
+					SourceNamespace:      ns,
+					SourceSVCAccountName: "client",
 
-			// Configs have to be put into a monitored NS, and osm-system can't be by cli
-			_, err = Td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &httpRG, metav1.CreateOptions{})
+					DestinationNamespace:      ns,
+					DestinationSvcAccountName: "server",
+				},
+			)
+			_, err = Td.CreateHTTPRouteGroup(ns, httpRG)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Create(context.Background(), &trafficTarget, metav1.CreateOptions{})
+			_, err = Td.CreateTrafficTarget(ns, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 
 			// All ready. Expect client to reach server
@@ -190,7 +174,7 @@ var _ = OSMDescribe("Upgrade from latest",
 				defer prometheus.Stop()
 				cond := Td.WaitForRepeatedSuccess(func() bool {
 					expectedProxyCount := float64(2)
-					proxies, err := prometheus.VectorQuery("sum(envoy_control_plane_connected_state)", time.Now())
+					proxies, err := prometheus.VectorQuery("osm_proxy_connect_count", time.Now())
 					if err != nil {
 						Td.T.Log("error querying prometheus:", err)
 						return false
@@ -213,9 +197,9 @@ var _ = OSMDescribe("Upgrade from latest",
 			// TODO: Only delete and recreate the CRDs if needed
 			By("Upgrading CRDs")
 
-			err = Td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Delete(context.Background(), httpRG.Name, metav1.DeleteOptions{})
+			err = Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(ns).Delete(context.Background(), httpRG.Name, metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			err = Td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Delete(context.Background(), trafficTarget.Name, metav1.DeleteOptions{})
+			err = Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(ns).Delete(context.Background(), trafficTarget.Name, metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			helm := &action.Configuration{}
@@ -250,22 +234,10 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 			Expect(err).NotTo(HaveOccurred())
 
-			// Deploy allow rule client->server
-			newHTTPRG, newTrafficTarget := Td.CreateSimpleAllowPolicy(
-				SimpleAllowPolicy{
-					RouteGroupName:    "routes",
-					TrafficTargetName: "test-target",
-
-					SourceNamespace:      ns,
-					SourceSVCAccountName: "client",
-
-					DestinationNamespace:      ns,
-					DestinationSvcAccountName: "server",
-				},
-			)
-			_, err = Td.CreateHTTPRouteGroup(ns, newHTTPRG)
+			// Re-deploy policies
+			_, err = Td.CreateHTTPRouteGroup(ns, httpRG)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(ns, newTrafficTarget)
+			_, err = Td.CreateTrafficTarget(ns, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 
 			checkClientToServerOK()
