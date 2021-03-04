@@ -220,7 +220,7 @@ Wait for the `bookstore-v1` and `bookstore-v2` pods to be running in the `bookst
 - http://localhost:8082 - **bookstore-v2**
 
 A simple topology view of the Bookstore application now looks like the following:
-![Bookstore Application Topology](/img/book-thief-app-topology.jpg "Bookstore Application Topology")
+![Bookstore Application Topology](../../images/bookstore-app-topology.jpg "Bookstore Application Topology")
 
 ### Deploy SMI Access Control Policies
 
