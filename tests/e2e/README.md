@@ -33,7 +33,7 @@ Independent of tiers, tests are also organized into buckets. Each bucket runs in
 | e2e_permissive_test.go | 1 | 1
 | e2e_deployment_client_server_test.go | 1 | 2
 | e2e_tcp_client_server_test.go | 1 | 2
-| e2e_grpc_client_server_test.go | 1 | 2
+| e2e_grpc_insecure_origination_test.go | 1 | 2
 | e2e_http_ingress_test.go | 1 | 3
 | e2e_egress_test.go | 1 | 3
 | e2e_tcp_egress_test.go | 1 | 3
@@ -45,6 +45,7 @@ Independent of tiers, tests are also organized into buckets. Each bucket runs in
 | e2e_hashivault_test.go| 2 | 2
 | e2e_certmanager_test.go | 2 | 2
 | e2e_ip_exclusion_test.go | 2 | 3
+| e2e_grpc_secure_origination_test.go | 2 | 3
 | e2e_multiple_services_per_pod_test.go | 2 | 3
 | e2e_metrics_test.go | 2 | 4
 | e2e_debug_server_test.go | 2 | 4
