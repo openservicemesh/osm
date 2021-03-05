@@ -84,13 +84,22 @@ func (cmd *proxyDumpConfigCmd) run() error {
 	if !isMeshedPod(*pod) {
 		return errors.Errorf("Pod %s in namespace %s is not a part of a mesh", cmd.pod, cmd.namespace)
 	}
+	if pod.Status.Phase != corev1.PodRunning {
+		return errors.Errorf("Pod %s in namespace %s is not running", cmd.pod, cmd.namespace)
+	}
 
-	portForwarder, err := k8s.NewPortForwarder(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace, cmd.localPort, constants.EnvoyAdminPort)
+	dialer, err := k8s.DialerToPod(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace)
+	if err != nil {
+		return err
+	}
+
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", cmd.localPort, constants.EnvoyAdminPort))
 	if err != nil {
 		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
+		defer pf.Stop()
 		url := fmt.Sprintf("http://localhost:%d/config_dump", cmd.localPort)
 
 		// #nosec G107: Potential HTTP request made with variable url
@@ -101,7 +110,6 @@ func (cmd *proxyDumpConfigCmd) run() error {
 		if _, err := io.Copy(cmd.out, resp.Body); err != nil {
 			return errors.Errorf("Error rendering HTTP response: %s", err)
 		}
-		pf.Stop()
 		return nil
 	})
 	if err != nil {
