@@ -6,6 +6,7 @@ set -aueo pipefail
 source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
@@ -21,7 +22,7 @@ metadata:
     app: bookstore
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
   selector:
     app: bookstore
@@ -36,6 +37,11 @@ metadata:
   namespace: $BOOKSTORE_NAMESPACE
 EOF
 
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    oc adm policy add-scc-to-user privileged -z "$SVC" -n "$BOOKSTORE_NAMESPACE"
+    oc secrets link "$SVC" "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKSTORE_NAMESPACE"
+fi
+
 echo -e "Deploy $SVC Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -47,7 +53,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
 
   selector:
@@ -79,10 +85,10 @@ spec:
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 80
+            - containerPort: 14001
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "80"]
+          args: ["--path", "./", "--port", "14001"]
           env:
             - name: IDENTITY
               value: ${SVC}
@@ -94,7 +100,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /liveness
-              port: 80
+              port: 14001
             initialDelaySeconds: 3
             periodSeconds: 3
 
@@ -104,7 +110,7 @@ spec:
             failureThreshold: 10
             httpGet:
               path: /readiness
-              port: 80
+              port: 14001
               scheme: HTTP
 
           # OSM's mutating webhook will rewrite this startup probe to /osm-startup-probe and
@@ -112,7 +118,7 @@ spec:
           startupProbe:
             httpGet:
               path: /startup
-              port: 80
+              port: 14001
             failureThreshold: 30
             periodSeconds: 5
 

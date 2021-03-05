@@ -41,7 +41,7 @@ metadata:
 
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
 
   selector:

@@ -37,7 +37,7 @@ Other ingress controllers might also work as long as they use Kubernetes Ingress
 ## Ingress configurations
 The following section describes sample ingress configurations used to expose services managed by OSM outside the cluster. The configuration might differ based on the ingress controller being used.
 
-The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on a pod with the service acccount `bookstore-v1` on port `80` in the `bookstore` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
+The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on a pod with the service acccount `bookstore-v1` on port `14001` in the `bookstore` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
 
 Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers when using HTTPS ingress. With `Tresor` as the certificate provider, OSM stores the CA root certificate in a Kubernetes secret named `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default). When using other certificate providers such as `cert-manager.io` or `Hashicorp Vault`, the `osm-ca-bundle` secret must be created by the user with the base64 encoded root certificate stored as the value to the `ca.crt` attribute in the secret's data.
 
@@ -71,7 +71,7 @@ For HTTPS ingress, additional annotations are required.
           - path: /books-bought
             backend:
               serviceName: bookstore-v1
-              servicePort: 80
+              servicePort: 14001
     ```
 
     Accessing the service:
@@ -96,7 +96,7 @@ For HTTPS ingress, additional annotations are required.
           - path: /books-bought
             backend:
               serviceName: bookstore-v1
-              servicePort: 80
+              servicePort: 14001
     ```
 
     Accessing the service:
@@ -131,7 +131,7 @@ For HTTPS ingress, additional annotations are required.
           - path: /books-bought
             backend:
               serviceName: bookstore-v1
-              servicePort: 80
+              servicePort: 14001
     ```
     Accessing the service:
     ```bash
@@ -178,7 +178,7 @@ HTTPS ingress requires additional annotations to be specified.
           - path: /books-bought
             backend:
               serviceName: bookstore-v1
-              servicePort: 80
+              servicePort: 14001
     ```
 
     Accessing the service:
@@ -205,7 +205,7 @@ HTTPS ingress requires additional annotations to be specified.
           - path: /books-bought
             backend:
               serviceName: bookstore-v1
-              servicePort: 8080 # Note: port 80 cannot be used for HTTPS ingress with Azure Application Gateway ingress
+              servicePort: 14001 # Note: port 80 cannot be used for HTTPS ingress with Azure Application Gateway ingress
     ```
 
     Accessing the service:
@@ -251,7 +251,7 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 80
+          servicePort: 14001
 ```
 
 Lastly, we configure the `Upstream` object to use OSM's root ca bundle:
@@ -260,7 +260,7 @@ Lastly, we configure the `Upstream` object to use OSM's root ca bundle:
 apiVersion: gloo.solo.io/v1
 kind: Upstream
 metadata:
-  name: bookstore-bookstore-80
+  name: bookstore-bookstore-14001
   namespace: gloo-system
 spec:
   sslConfig:
@@ -273,7 +273,7 @@ spec:
       app: bookstore
     serviceName: bookstore
     serviceNamespace: bookstore
-    servicePort: 80
+    servicePort: 14001
 
 ```
 
