@@ -30,113 +30,111 @@ var _ = OSMDescribe("gRPC secure traffic origination for client pod -> server po
 	})
 
 func testSecureGRPCTraffic() {
-	{
-		const sourceName = "client"
-		const destName = "server"
-		var ns = []string{sourceName, destName}
+	const sourceName = "client"
+	const destName = "server"
+	var ns = []string{sourceName, destName}
 
-		It("Tests secure gRPC traffic origination for client pod -> server pod using TCP routes", func() {
-			// Install OSM
-			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+	It("Tests secure gRPC traffic origination for client pod -> server pod using TCP routes", func() {
+		// Install OSM
+		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
-			// Create Test NS
-			for _, n := range ns {
-				Expect(Td.CreateNs(n, nil)).To(Succeed())
-				Expect(Td.AddNsToMesh(true, n)).To(Succeed())
+		// Create Test NS
+		for _, n := range ns {
+			Expect(Td.CreateNs(n, nil)).To(Succeed())
+			Expect(Td.AddNsToMesh(true, n)).To(Succeed())
+		}
+
+		// Get simple pod definitions for the gRPC server
+		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+			SimplePodAppDef{
+				Name:        destName,
+				Namespace:   destName,
+				Image:       "moul/grpcbin",
+				Ports:       []int{grpcbinSecurePort},
+				AppProtocol: "tcp",
+			})
+
+		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = Td.CreatePod(destName, podDef)
+		Expect(err).NotTo(HaveOccurred())
+		dstSvc, err := Td.CreateService(destName, svcDef)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Expect it to be up and running in it's receiver namespace
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+
+		srcPod := setupGRPCClient(sourceName)
+
+		trafficTargetName := "test-target"
+		trafficRouteName := "routes"
+
+		By("Creating SMI policies")
+		// Deploy allow rule client->server
+		tcpRoute, trafficTarget := Td.CreateSimpleTCPAllowPolicy(
+			SimpleAllowPolicy{
+				RouteGroupName:    trafficRouteName,
+				TrafficTargetName: trafficTargetName,
+
+				SourceNamespace:      sourceName,
+				SourceSVCAccountName: sourceName,
+
+				DestinationNamespace:      destName,
+				DestinationSvcAccountName: destName,
+			}, grpcbinSecurePort)
+
+		// Create SMI policies
+		_, err = Td.CreateTCPRoute(sourceName, tcpRoute)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
+		Expect(err).NotTo(HaveOccurred())
+
+		// All ready. Expect client to reach server
+		clientToServer := GRPCRequestDef{
+			SourceNs:        sourceName,
+			SourcePod:       srcPod.Name,
+			SourceContainer: sourceName,
+
+			Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, grpcbinSecurePort),
+
+			JSONRequest: "{\"greeting\": \"client\"}",
+			Symbol:      "hello.HelloService/SayHello",
+			UseTLS:      true, // Secure gRPC, service mesh will route this traffic using TCP routes over mTLS
+		}
+
+		srcToDestStr := fmt.Sprintf("%s/%s -> %s",
+			clientToServer.SourceNs, clientToServer.SourcePod, clientToServer.Destination)
+
+		cond := Td.WaitForRepeatedSuccess(func() bool {
+			result := Td.GRPCRequest(clientToServer)
+
+			if result.Err != nil {
+				Td.T.Logf("> (%s) gRPC req failed, response: %s, err: %s",
+					srcToDestStr, result.Response, result.Err)
+				return false
 			}
 
-			// Get simple pod definitions for the gRPC server
-			svcAccDef, podDef, svcDef := Td.SimplePodApp(
-				SimplePodAppDef{
-					Name:        destName,
-					Namespace:   destName,
-					Image:       "moul/grpcbin",
-					Ports:       []int{grpcbinSecurePort},
-					AppProtocol: "tcp",
-				})
+			Td.T.Logf("> (%s) gRPC req succeeded, response: %s", srcToDestStr, result.Response)
+			return true
+		}, 5, 3600*time.Second)
 
-			_, err := Td.CreateServiceAccount(destName, &svcAccDef)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreatePod(destName, podDef)
-			Expect(err).NotTo(HaveOccurred())
-			dstSvc, err := Td.CreateService(destName, svcDef)
-			Expect(err).NotTo(HaveOccurred())
+		Expect(cond).To(BeTrue(), "Failed testing gRPC traffic for: %s", srcToDestStr)
 
-			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		By("Deleting SMI policies")
+		Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceName).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
+		Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceName).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
 
-			srcPod := setupGRPCClient(sourceName)
+		// Expect client not to reach server
+		cond = Td.WaitForRepeatedSuccess(func() bool {
+			result := Td.GRPCRequest(clientToServer)
 
-			trafficTargetName := "test-target"
-			trafficRouteName := "routes"
-
-			By("Creating SMI policies")
-			// Deploy allow rule client->server
-			tcpRoute, trafficTarget := Td.CreateSimpleTCPAllowPolicy(
-				SimpleAllowPolicy{
-					RouteGroupName:    trafficRouteName,
-					TrafficTargetName: trafficTargetName,
-
-					SourceNamespace:      sourceName,
-					SourceSVCAccountName: sourceName,
-
-					DestinationNamespace:      destName,
-					DestinationSvcAccountName: destName,
-				}, grpcbinSecurePort)
-
-			// Create SMI policies
-			_, err = Td.CreateTCPRoute(sourceName, tcpRoute)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
-			Expect(err).NotTo(HaveOccurred())
-
-			// All ready. Expect client to reach server
-			clientToServer := GRPCRequestDef{
-				SourceNs:        sourceName,
-				SourcePod:       srcPod.Name,
-				SourceContainer: sourceName,
-
-				Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, grpcbinSecurePort),
-
-				JSONRequest: "{\"greeting\": \"client\"}",
-				Symbol:      "hello.HelloService/SayHello",
-				UseTLS:      true, // Secure gRPC, service mesh will route this traffic using TCP routes over mTLS
+			if result.Err == nil {
+				Td.T.Logf("> (%s) gRPC req did not fail, expected it to fail,  response: %s", srcToDestStr, result.Response)
+				return false
 			}
-
-			srcToDestStr := fmt.Sprintf("%s/%s -> %s",
-				clientToServer.SourceNs, clientToServer.SourcePod, clientToServer.Destination)
-
-			cond := Td.WaitForRepeatedSuccess(func() bool {
-				result := Td.GRPCRequest(clientToServer)
-
-				if result.Err != nil {
-					Td.T.Logf("> (%s) gRPC req failed, response: %s, err: %s",
-						srcToDestStr, result.Response, result.Err)
-					return false
-				}
-
-				Td.T.Logf("> (%s) gRPC req succeeded, response: %s", srcToDestStr, result.Response)
-				return true
-			}, 5, 3600*time.Second)
-
-			Expect(cond).To(BeTrue(), "Failed testing gRPC traffic for: %s", srcToDestStr)
-
-			By("Deleting SMI policies")
-			Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceName).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
-			Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceName).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
-
-			// Expect client not to reach server
-			cond = Td.WaitForRepeatedSuccess(func() bool {
-				result := Td.GRPCRequest(clientToServer)
-
-				if result.Err == nil {
-					Td.T.Logf("> (%s) gRPC req did not fail, expected it to fail,  response: %s", srcToDestStr, result.Response)
-					return false
-				}
-				Td.T.Logf("> (%s) gRPC req failed correctly, response: %s, err: %s", srcToDestStr, result.Response, result.Err)
-				return true
-			}, 5, 150*time.Second)
-			Expect(cond).To(BeTrue())
-		})
-	}
+			Td.T.Logf("> (%s) gRPC req failed correctly, response: %s, err: %s", srcToDestStr, result.Response, result.Err)
+			return true
+		}, 5, 150*time.Second)
+		Expect(cond).To(BeTrue())
+	})
 }
