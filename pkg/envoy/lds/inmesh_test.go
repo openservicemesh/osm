@@ -10,13 +10,16 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -416,6 +419,46 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tests.BookstoreApexService, tc.servicePort)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
+		})
+	}
+}
+
+func TestGetOutboundTCPFilter(t *testing.T) {
+	assert := tassert.New(t)
+
+	type testCase struct {
+		name                   string
+		upstream               service.MeshService
+		expectedTCPProxyConfig *xds_tcp_proxy.TcpProxy
+		expectError            bool
+	}
+
+	testCases := []testCase{
+		{
+			name:     "simple TCP filter",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix:       "outbound-mesh-tcp-filter-chain:bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
+			},
+			expectError: false,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			lb := &listenerBuilder{} // will be used for TCP traffic splitting
+			filter, err := lb.getOutboundTCPFilter(tc.upstream)
+
+			assert.Equal(tc.expectError, err != nil)
+
+			actualConfig := &xds_tcp_proxy.TcpProxy{}
+			err = ptypes.UnmarshalAny(filter.GetTypedConfig(), actualConfig)
+			assert.Nil(err)
+			assert.Equal(wellknown.TCPProxy, filter.Name)
+
+			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
+			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
 		})
 	}
 }
