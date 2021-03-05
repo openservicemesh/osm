@@ -21,7 +21,7 @@ metadata:
     app: bookstore
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
   selector:
     app: bookstore
@@ -47,7 +47,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
 
   selector:
@@ -79,10 +79,10 @@ spec:
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 80
+            - containerPort: 14001
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "80"]
+          args: ["--path", "./", "--port", "14001"]
           env:
             - name: IDENTITY
               value: ${SVC}
@@ -94,7 +94,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /liveness
-              port: 80
+              port: 14001
             initialDelaySeconds: 3
             periodSeconds: 3
 
@@ -104,7 +104,7 @@ spec:
             failureThreshold: 10
             httpGet:
               path: /readiness
-              port: 80
+              port: 14001
               scheme: HTTP
 
           # OSM's mutating webhook will rewrite this startup probe to /osm-startup-probe and
@@ -112,7 +112,7 @@ spec:
           startupProbe:
             httpGet:
               path: /startup
-              port: 80
+              port: 14001
             failureThreshold: 30
             periodSeconds: 5
 
