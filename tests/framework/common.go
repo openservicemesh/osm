@@ -105,7 +105,7 @@ var (
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
 	// default envoy loglevel
-	defaultEnvoyLogLevel = "debug"
+	defaultEnvoyLogLevel = "info"
 	// Test folder base default value
 	testFolderBase = "/tmp"
 )
