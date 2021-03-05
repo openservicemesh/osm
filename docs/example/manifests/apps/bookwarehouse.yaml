@@ -21,7 +21,7 @@ metadata:
     app: bookwarehouse
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookwarehouse-port
   selector:
     app: bookwarehouse

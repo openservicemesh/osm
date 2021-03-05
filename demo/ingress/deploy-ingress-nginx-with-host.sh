@@ -29,5 +29,5 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 80
+          servicePort: 14001
 EOF
