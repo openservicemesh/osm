@@ -21,7 +21,6 @@ func NewWitesandCatalog(kubeClient kubernetes.Interface, clusterId string) *Wite
 		kubeClient:         kubeClient,
 		apigroupToPodMap:   make(map[string]ApigroupToPodMap),
 		apigroupToPodIPMap: make(map[string]ApigroupToPodIPMap),
-
 	}
 
 	wc.UpdateMasterOsmIP()
@@ -51,9 +50,11 @@ func (wc *WitesandCatalog) UpdateMasterOsmIP() {
 }
 
 func (wc *WitesandCatalog) UpdateUnicastSvcs() {
+	wc.unicastEnabledSvcs = make([]string, 0)
+	wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, "gateway") // by default add gw
 	unicastSvcsString := os.Getenv("UNICAST_ENABLED_SERVICES")
 	if unicastSvcsString != "" {
-		wc.unicastEnabledSvcs = strings.Split(unicastSvcsString, ",")
+		wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, strings.Split(unicastSvcsString, ",")...)
 		log.Info().Msgf("[UpdateUnicastSvcs] unicastEnabledSvcs:%+v", wc.unicastEnabledSvcs)
 	}
 }
