@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
@@ -45,7 +46,7 @@ type PodMetadata struct {
 	Name           string
 	Namespace      string
 	IP             string
-	ServiceAccount string
+	ServiceAccount service.K8sServiceAccount
 	Cluster        string
 	EnvoyNodeID    string
 	WorkloadKind   string

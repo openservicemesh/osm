@@ -313,7 +313,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
-		ServiceAccount: chunks[3],
+		ServiceAccount: service.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
 		EnvoyNodeID:    chunks[4],
 	}
 
