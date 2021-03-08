@@ -1,8 +1,11 @@
 package envoy
 
 import (
+	"time"
+
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	. "github.com/onsi/ginkgo"
@@ -124,7 +127,8 @@ var _ = Describe("Test Envoy tools", func() {
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
 							},
-							ResourceApiVersion: core.ApiVersion_V3,
+							ResourceApiVersion:  core.ApiVersion_V3,
+							InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
 						},
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
@@ -137,7 +141,8 @@ var _ = Describe("Test Envoy tools", func() {
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
 								},
-								ResourceApiVersion: core.ApiVersion_V3,
+								ResourceApiVersion:  core.ApiVersion_V3,
+								InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
 							},
 						},
 					},
@@ -185,7 +190,8 @@ var _ = Describe("Test Envoy tools", func() {
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
 							},
-							ResourceApiVersion: core.ApiVersion_V3,
+							ResourceApiVersion:  core.ApiVersion_V3,
+							InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
 						},
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
@@ -195,7 +201,8 @@ var _ = Describe("Test Envoy tools", func() {
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
 								},
-								ResourceApiVersion: core.ApiVersion_V3,
+								ResourceApiVersion:  core.ApiVersion_V3,
+								InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
 							},
 						},
 					},
@@ -241,13 +248,25 @@ var _ = Describe("Test Envoy tools", func() {
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookbuyer",
-					SdsConfig: GetADSConfigSource(),
+					Name: "service-cert:default/bookbuyer",
+					SdsConfig: &core.ConfigSource{
+						ConfigSourceSpecifier: &core.ConfigSource_Ads{
+							Ads: &core.AggregatedConfigSource{},
+						},
+						ResourceApiVersion:  core.ApiVersion_V3,
+						InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+					},
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-for-mtls-outbound:default/bookstore-v1",
-						SdsConfig: GetADSConfigSource(),
+						Name: "root-cert-for-mtls-outbound:default/bookstore-v1",
+						SdsConfig: &core.ConfigSource{
+							ConfigSourceSpecifier: &core.ConfigSource_Ads{
+								Ads: &core.AggregatedConfigSource{},
+							},
+							ResourceApiVersion:  core.ApiVersion_V3,
+							InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+						},
 					},
 				},
 				AlpnProtocols: nil,
@@ -271,13 +290,25 @@ var _ = Describe("Test Envoy tools", func() {
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookstore-v1",
-					SdsConfig: GetADSConfigSource(),
+					Name: "service-cert:default/bookstore-v1",
+					SdsConfig: &core.ConfigSource{
+						ConfigSourceSpecifier: &core.ConfigSource_Ads{
+							Ads: &core.AggregatedConfigSource{},
+						},
+						ResourceApiVersion:  core.ApiVersion_V3,
+						InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+					},
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-for-mtls-inbound:default/bookstore-v1",
-						SdsConfig: GetADSConfigSource(),
+						Name: "root-cert-for-mtls-inbound:default/bookstore-v1",
+						SdsConfig: &core.ConfigSource{
+							ConfigSourceSpecifier: &core.ConfigSource_Ads{
+								Ads: &core.AggregatedConfigSource{},
+							},
+							ResourceApiVersion:  core.ApiVersion_V3,
+							InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+						},
 					},
 				},
 				AlpnProtocols: nil,
@@ -301,13 +332,25 @@ var _ = Describe("Test Envoy tools", func() {
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookstore-v1",
-					SdsConfig: GetADSConfigSource(),
+					Name: "service-cert:default/bookstore-v1",
+					SdsConfig: &core.ConfigSource{
+						ConfigSourceSpecifier: &core.ConfigSource_Ads{
+							Ads: &core.AggregatedConfigSource{},
+						},
+						ResourceApiVersion:  core.ApiVersion_V3,
+						InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+					},
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-https:default/bookstore-v1",
-						SdsConfig: GetADSConfigSource(),
+						Name: "root-cert-https:default/bookstore-v1",
+						SdsConfig: &core.ConfigSource{
+							ConfigSourceSpecifier: &core.ConfigSource_Ads{
+								Ads: &core.AggregatedConfigSource{},
+							},
+							ResourceApiVersion:  core.ApiVersion_V3,
+							InitialFetchTimeout: ptypes.DurationProto(0 * time.Second),
+						},
 					},
 				},
 				AlpnProtocols: nil,
