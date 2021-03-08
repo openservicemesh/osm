@@ -29,4 +29,13 @@ var _ = Describe("Test pkg/service functions", func() {
 			Expect(K8sServiceAccount{}.IsEmpty()).To(BeTrue())
 		})
 	})
+
+	Context("Test ClusterName String method", func() {
+		clusterNameStr := uuid.New().String()
+		cn := ClusterName(clusterNameStr)
+
+		It("implements stringer correctly", func() {
+			Expect(cn.String()).To(Equal(clusterNameStr))
+		})
+	})
 })
