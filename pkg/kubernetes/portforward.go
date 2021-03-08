@@ -1,16 +1,13 @@
 package kubernetes
 
 import (
-	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
@@ -22,52 +19,32 @@ type PortForwarder struct {
 	forwarder *portforward.PortForwarder
 	stopChan  chan struct{}
 	readyChan <-chan struct{}
+	sigChan   chan os.Signal
+	done      chan struct{}
 }
 
 // NewPortForwarder creates a new port forwarder to a pod
-func NewPortForwarder(conf *rest.Config, clientSet kubernetes.Interface, podName string, namespace string, localPort uint16, remotePort uint16) (*PortForwarder, error) {
-	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
-	if err != nil {
-		return nil, errors.Errorf("Error setting up round tripper for port forwarding: %s", err)
-	}
-
-	serverURL := clientSet.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Namespace(namespace).
-		Name(podName).
-		SubResource("portforward").URL()
-
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, serverURL)
-
+func NewPortForwarder(dialer httpstream.Dialer, portSpec string) (*PortForwarder, error) {
 	stopChan := make(chan struct{})
 	readyChan := make(chan struct{})
-	forwarder, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, remotePort)}, stopChan, readyChan, ioutil.Discard, os.Stderr)
+	forwarder, err := portforward.New(dialer, []string{portSpec}, stopChan, readyChan, ioutil.Discard, os.Stderr)
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
-	}
-
-	// Check if the pod exists in the given namespace
-	pod, err := clientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, errors.Errorf("Error retrieving pod %s in namespace %s: %s", podName, namespace, err)
-	}
-	if pod.Status.Phase != corev1.PodRunning {
-		return nil, errors.Errorf("Pod %s in namespace %s needs to be running before port forwarding, status is %s", podName, namespace, pod.Status.Phase)
 	}
 
 	return &PortForwarder{
 		forwarder: forwarder,
 		stopChan:  stopChan,
 		readyChan: readyChan,
+		done:      make(chan struct{}),
 	}, nil
 }
 
 // Start starts the port forwarding and calls the readyFunc callback function when port forwarding is ready
 func (pf *PortForwarder) Start(readyFunc func(pf *PortForwarder) error) error {
 	// Set up a channel to process OS signals
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
-	defer signal.Stop(sigChan)
+	pf.sigChan = make(chan os.Signal, 1)
+	signal.Notify(pf.sigChan, os.Interrupt)
 
 	// Set up a channel to process forwarding errors
 	errChan := make(chan error, 1)
@@ -80,10 +57,8 @@ func (pf *PortForwarder) Start(readyFunc func(pf *PortForwarder) error) error {
 
 	// Stop forwarding in case OS signals are received
 	go func() {
-		<-sigChan
-		if pf.stopChan != nil {
-			close(pf.stopChan)
-		}
+		<-pf.sigChan
+		pf.Stop()
 	}()
 
 	// Process signals and call readyFunc
@@ -93,15 +68,36 @@ func (pf *PortForwarder) Start(readyFunc func(pf *PortForwarder) error) error {
 
 	case err := <-errChan:
 		return errors.Errorf("Error during port forwarding: %s", err)
-
-	case <-pf.stopChan:
-		return nil
 	}
 }
 
 // Stop stops the port forwarding if not stopped already
 func (pf *PortForwarder) Stop() {
+	defer close(pf.done)
+	signal.Stop(pf.sigChan)
 	if pf.stopChan != nil {
 		close(pf.stopChan)
 	}
+}
+
+// Done returns a channel that is closed after Stop has been called.
+func (pf *PortForwarder) Done() <-chan struct{} {
+	return pf.done
+}
+
+// DialerToPod constructs a new httpstream.Dialer to connect to a pod for use
+// with a PortForwarder
+func DialerToPod(conf *rest.Config, clientSet kubernetes.Interface, podName string, namespace string) (httpstream.Dialer, error) {
+	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
+	if err != nil {
+		return nil, errors.Errorf("Error setting up round tripper for port forwarding: %s", err)
+	}
+
+	serverURL := clientSet.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Namespace(namespace).
+		Name(podName).
+		SubResource("portforward").URL()
+
+	return spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, serverURL), nil
 }
