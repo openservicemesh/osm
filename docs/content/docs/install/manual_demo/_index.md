@@ -30,15 +30,15 @@ For the purpose of this demo, install OSM with [permissive traffic policy mode](
 
 Install OSM in permissive traffic policy mode:
 
-    ```bash
-    osm install --enable-permissive-traffic-policy
-    ```
+```bash
+osm install --enable-permissive-traffic-policy
+```
 
 For future reference, here are the flags to enable Prometheus, Grafana, and Jaeger:
 
-    ```bash
-    osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
-    ```
+```bash
+osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
+```
 See the [observability documentation](../../patterns/observability/_index.md) for more details.
 
 ## Deploy the Bookstore Demo Applications
@@ -155,8 +155,7 @@ osm install --enable-permissive-traffic-policy
 2. Post install by updating the `osm-config` ConfigMap in the control plane's namespace (`osm-system` by default)
 
 ```bash
-# Replace osm-system with osm-controller's namespace if using a non default namespace
-kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"permissive_traffic_policy_mode":"true"}}' --type=merge
+osm mesh upgrade --enable-permissive-traffic-policy=true
 ```
 
 ### Verify traffic in permissive traffic policy mode
@@ -179,8 +178,7 @@ The `bookbuyer` and `bookthief` applications are able to buy and steal books res
 This can be demonstrated further by disabling permissive traffic policy mode and verifying that the counter for books bought from `bookstore-v1` is not incrementing anymore:
 
 ```bash
-# Replace osm-system with osm-controller's namespace if using a non default namespace
-kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"permissive_traffic_policy_mode":"false"}}' --type=merge
+osm mesh upgrade --enable-permissive-traffic-policy=false
 ```
 
 \*Note:
@@ -201,8 +199,7 @@ The following sections describe how to leverage each of these policies to enforc
 SMI traffic policy mode can be enabled by disabling permissive traffic policy mode:
 
 ```bash
-# Replace osm-system with osm-controller's namespace if using a non default namespace
-kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"permissive_traffic_policy_mode":"false"}}' --type=merge
+osm mesh upgrade --enable-permissive-traffic-policy=false
 ```
 
 ### Deploy bookstore v1 and v2 services
