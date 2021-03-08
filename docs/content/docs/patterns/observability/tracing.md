@@ -9,7 +9,7 @@ aliases: ["tracing.md"]
 Open Service Mesh (OSM) allows optional deployment of Jaeger for tracing. Similarly, tracing can be enabled and customized during installation (`tracing` section in `values.yaml`) or at runtime by editing the `osm-config` ConfigMap. Tracing can be enabled, disabled and configured at any time to support BYO scenarios.
 
 ## Jaeger
-[Jaeger](https://www.jaegertracing.io/) is an open source tracing system used for monitoring and troubleshooting distributed systems. It can be deployed with OSM as a new instance or you may bring your own instance. 
+[Jaeger](https://www.jaegertracing.io/) is an open source tracing system used for monitoring and troubleshooting distributed systems. It can be deployed with OSM as a new instance or you may bring your own instance.
 
 ### Automatic bring up
 By default, Jaeger deployment and tracing as a whole is disabled.
@@ -36,9 +36,10 @@ The sections below outline how to make required updates depending on whether you
 If you already have OSM running, `tracing` values must be updated in the OSM ConfigMap using:
 
 ```console
-osm mesh upgrade --enable-tracing --tracing-address <tracing server hostname> --tracing-port <tracing server port> --tracing-endpoint <tracing server endpoint>
+# Replace osm-system with osm-controller's namespace if using a non default namespace
+kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"tracing_enable":"true", "tracing_address":"<tracing server hostname>", "tracing_port":"<tracing server port>", "tracing_endpoint":" <tracing server endpoint>"}}' --type=merge
 ```
-> NOTE : This command upgrades an OSM control plane configuration by upgrading the underlying Helm release. Any user-provided configuration could be reverted during future changes made using the OSM CLI so make sure to persist these changes whenever you use OSM CLI for installs or upgrades
+> Note: To make this change persistent between upgrades, see osm mesh upgrade --help.
 
 You can verify these changes have been deployed by inspecting `osm-config`:
 ```console

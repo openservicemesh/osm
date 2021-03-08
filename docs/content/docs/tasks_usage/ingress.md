@@ -21,8 +21,10 @@ HTTPS ingress support is experimental. OSM supports one way TLS authentication t
 
 By default, OSM configures HTTP as the backend protocol for services when an ingress resource is applied with a backend service that belongs to the mesh. A mesh-wide configuration setting in OSM's `osm-config` ConfigMap enables configuring ingress with the backend protocol to be HTTPS. HTTPS ingress can be enabled by updating the `osm-config` ConfigMap in `osm-controller`'s namespace (`osm-system` by default).
 
-Patch the ConfigMap by setting `use_https_ingress: "true"`.
+Patch the ConfigMap by setting use_https_ingress: "true".
+> Note: To make this change persistent between upgrades, see osm mesh upgrade --help.
 ```bash
+# Replace osm-system with osm-controller's namespace if using a non default namespace
 kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"use_https_ingress":"true"}}' --type=merge
 ```
 
