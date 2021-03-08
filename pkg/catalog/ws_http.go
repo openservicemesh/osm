@@ -1,17 +1,17 @@
 package catalog
 
-import(
+import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
-var(
+var (
 	InitialSyncingPeriod = 3
 )
 
@@ -23,16 +23,19 @@ func (mc *MeshCatalog) witesandHttpServerAndClient() {
 func (mc *MeshCatalog) witesandHttpServer() {
 	// GET local gatewaypods, also learn remote OSM clusterID and IP
 	http.HandleFunc("/localgatewaypods", mc.GetLocalGatewayPods) // inter OSM
+	http.HandleFunc("/localallpods", mc.GetAllLocalPods)         // inter OSM
 
 	// GET handlers
 	http.HandleFunc("/allgatewaypods", mc.GetAllGatewayPods) // from waves
-	http.HandleFunc("/gatewaypod", mc.GetAllGatewayPods) // from waves, will deprecate
-	http.HandleFunc("/endpoints", mc.GetLocalEndpoints) // inter OSM
+	http.HandleFunc("/gatewaypod", mc.GetAllGatewayPods)     // from waves, will deprecate
+	http.HandleFunc("/endpoints", mc.GetLocalEndpoints)      // inter OSM
+
+	http.HandleFunc("/allpods", mc.GetAllPods) // from waves
 
 	// POST/PUT/DELETE handler
 	http.HandleFunc("/apigroupMap", mc.ApigroupMapping) // from waves
 
-	http.ListenAndServe(":" + witesand.HttpServerPort , nil)
+	http.ListenAndServe(":"+witesand.HttpServerPort, nil)
 }
 
 // HTTP client to query other OSMs for pods
@@ -63,6 +66,34 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			}
 		}
 		log.Info().Msgf("[queryRemoteOsm] err:%+v", err)
+		return remotePods, err
+	}
+
+	queryAllPodRemote := func(remoteOsmIP string) (witesand.ClusterPods, error) {
+		log.Info().Msgf("[queryAllPodRemote] querying osm:%s", remoteOsmIP)
+		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
+		url := fmt.Sprintf("http://%s/localallpods", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
+		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
+		resp, err := client.Do(req)
+		var remotePods witesand.ClusterPods
+		if err == nil {
+			defer resp.Body.Close()
+			b, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &remotePods)
+				if err == nil {
+					log.Info().Msgf("[queryAllPodRemote] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
+					return remotePods, nil
+				} else {
+					log.Error().Msgf("[queryAllPodRemote] Marshalling error:%s", err)
+					return remotePods, err
+				}
+			}
+		}
+		log.Info().Msgf("[queryAllPodRemote] err:%+v", err)
 		return remotePods, err
 	}
 
@@ -112,6 +143,22 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			}
 		}
 
+		// learn all local pods
+		localPods, err = wc.ListAllLocalPods()
+		if err == nil {
+			wc.UpdateAllPods(witesand.LocalClusterId, localPods)
+		}
+		// learn remote pods
+		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
+			remotePods, err := queryAllPodRemote(remoteK8s.OsmIP)
+			if err == nil {
+				wc.UpdateAllPods(clusterId, &remotePods)
+			} else {
+				// not responding, trigger remove
+				wc.UpdateRemoteK8s(clusterId, "")
+			}
+		}
+
 		// learn apigroups from waves
 		if wc.IsMaster() && !initialWavesSyncDone && InitialSyncingPeriod != 0 {
 			wavesPods, err := wc.ListWavesPodIPs()
@@ -132,7 +179,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 }
 
 func (mc *MeshCatalog) getMyIP(destIP string) string {
-        // Get preferred outbound ip of this machine
+	// Get preferred outbound ip of this machine
 	myIP := mc.GetWitesandCataloger().GetMyIP()
 	if myIP != "" {
 		return myIP
@@ -172,6 +219,24 @@ func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+func (mc *MeshCatalog) GetAllLocalPods(w http.ResponseWriter, r *http.Request) {
+	// learn remote OSM clusterID and address
+	remoteAddress := r.Header.Get(witesand.HttpRemoteAddrHeader)
+	remoteClusterId := r.Header.Get(witesand.HttpRemoteClusterIdHeader)
+
+	log.Info().Msgf("[GetAllLocalPods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
+	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteClusterId, remoteAddress)
+
+	list, err := mc.GetWitesandCataloger().ListAllLocalPods()
+	if err != nil {
+		log.Error().Msgf("err fetching local gateway pod %+v", err)
+	}
+
+	if err := json.NewEncoder(w).Encode(list); err != nil {
+		log.Error().Msgf("err fetching local gateway pod %+v", err)
+	}
+}
+
 func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request) {
 	if InitialSyncingPeriod != 0 {
 		// initial cooling period, need to wait till we sync with others
@@ -181,6 +246,24 @@ func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	list, err := mc.GetWitesandCataloger().ListAllGatewayPods()
+	if err != nil {
+		log.Error().Msgf("err fetching gateway pod %+v", err)
+	}
+
+	if err := json.NewEncoder(w).Encode(list); err != nil {
+		log.Error().Msgf("err fetching gateway pod %+v", err)
+	}
+}
+
+func (mc *MeshCatalog) GetAllPods(w http.ResponseWriter, r *http.Request) {
+	if InitialSyncingPeriod != 0 {
+		// initial cooling period, need to wait till we sync with others
+		log.Error().Msgf("InitialSyncingPeriod not over !!, send error response")
+		w.WriteHeader(503)
+		fmt.Fprintf(w, "Not ready")
+		return
+	}
+	list, err := mc.GetWitesandCataloger().ListAllPods()
 	if err != nil {
 		log.Error().Msgf("err fetching gateway pod %+v", err)
 	}
