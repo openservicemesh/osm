@@ -52,6 +52,16 @@ func TestNew(t *testing.T) {
 			flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
 
 			for k, v := range test.envVars {
+				oldv, found := os.LookupEnv(k)
+				defer func(k string, oldv string, found bool) {
+					var err error
+					if found {
+						err = os.Setenv(k, oldv)
+					} else {
+						err = os.Unsetenv(k)
+					}
+					assert.Nil(err)
+				}(k, oldv, found)
 				err := os.Setenv(k, v)
 				assert.Nil(err)
 			}
@@ -76,4 +86,9 @@ func TestNamespaceErr(t *testing.T) {
 	env.config.KubeConfig = &kConfigPath
 
 	tassert.Equal(t, env.Namespace(), "default")
+}
+
+func TestEnvVars(t *testing.T) {
+	env := New()
+	tassert.Equal(t, map[string]string{"OSM_NAMESPACE": "osm-system"}, env.EnvVars())
 }
