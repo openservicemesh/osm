@@ -21,7 +21,7 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 			"access_log_path": "/dev/stdout",
 			"address": map[string]interface{}{
 				"socket_address": map[string]string{
-					"address":    "0.0.0.0",
+					"address":    constants.LocalhostIPAddress,
 					"port_value": strconv.Itoa(config.EnvoyAdminPort),
 				},
 			},
