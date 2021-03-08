@@ -64,3 +64,16 @@ func TestNew(t *testing.T) {
 		})
 	}
 }
+
+func TestNamespaceErr(t *testing.T) {
+	env := New()
+
+	// Tell kube to load config from a file that doesn't exist. The exact error
+	// doesn't matter, this was just the simplest way to force an error to
+	// occur. Users of this package are not able to do this, but the resulting
+	// behavior is the same as if any other error had occurred.
+	kConfigPath := "This doesn't even look like a valid path name"
+	env.config.KubeConfig = &kConfigPath
+
+	tassert.Equal(t, env.Namespace(), "default")
+}
