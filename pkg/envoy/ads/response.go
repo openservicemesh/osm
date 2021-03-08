@@ -23,7 +23,7 @@ func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	success := false
 	xdsShortName := envoy.XDSShortURINames[tURI]
-	defer xdsPathTimeTrack(time.Now(), xdsShortName, proxy.GetCertificateCommonName().String(), &success)
+	defer xdsPathTimeTrack(time.Now(), log.Debug(), xdsShortName, proxy.GetCertificateSerialNumber().String(), &success)
 
 	log.Trace().Msgf("[%s] Creating response for proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
@@ -48,7 +48,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 	// Tracks the success of this full update of all its XDS paths. If a single XDS response path fails for this full update,
 	// the full updated will be considered as failed for metric purposes (success = false)
 	success := true
-	defer xdsPathTimeTrack(time.Now(), ADSUpdateStr, proxy.GetCertificateCommonName().String(), &success)
+	defer xdsPathTimeTrack(time.Now(), log.Info(), ADSUpdateStr, proxy.GetCertificateSerialNumber().String(), &success)
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59

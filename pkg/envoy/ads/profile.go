@@ -7,6 +7,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -14,12 +16,12 @@ const (
 	MaxXdsLogsPerProxy = 20
 )
 
-func xdsPathTimeTrack(t time.Time, tURIStr string, commonNameStr string, success *bool) {
+func xdsPathTimeTrack(t time.Time, log *zerolog.Event, tURIStr string, proxyXdsCertSerialNum string, success *bool) {
 	elapsed := time.Since(t)
 
-	log.Debug().Msgf("[%s] proxy %s took %s",
+	log.Msgf("[%s] processing for Proxy Serial=%s took %s",
 		tURIStr,
-		commonNameStr,
+		proxyXdsCertSerialNum,
 		elapsed)
 
 	metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime.
