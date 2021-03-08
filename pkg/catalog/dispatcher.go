@@ -84,6 +84,7 @@ func (mc *MeshCatalog) dispatcher() {
 					broadcastScheduled = true
 					chanMaxDeadline = time.After(maxBroadcastDeadlineTime)
 					chanMovingDeadline = time.After(maxGraceDeadlineTime)
+					log.Info().Msg("Broadcast scheduled by config changes")
 				} else {
 					// If a broadcast is already scheduled, just reset the moving deadline
 					chanMovingDeadline = time.After(maxGraceDeadlineTime)
@@ -95,7 +96,7 @@ func (mc *MeshCatalog) dispatcher() {
 
 		// A select-fallthrough doesn't exist, we are copying some code here
 		case <-chanMovingDeadline:
-			log.Debug().Msgf("[Moving deadline trigger] Broadcast envoy update")
+			log.Info().Msgf("Moving deadline trigger - Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
@@ -106,7 +107,7 @@ func (mc *MeshCatalog) dispatcher() {
 			chanMaxDeadline = make(<-chan time.Time)
 
 		case <-chanMaxDeadline:
-			log.Debug().Msgf("[Max deadline trigger] Broadcast envoy update")
+			log.Info().Msgf("Max deadline trigger - Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
