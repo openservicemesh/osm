@@ -516,15 +516,15 @@ func TestLess(t *testing.T) {
 
 	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
 		{
-			Name:   "hello1",
+			Name:   "cluster1",
 			Weight: &wrappers.UInt32Value{Value: uint32(20)},
 		},
 		{
-			Name:   "hello2",
+			Name:   "cluster1",
 			Weight: &wrappers.UInt32Value{Value: uint32(50)},
 		},
 		{
-			Name:   "hello3",
+			Name:   "cluster2",
 			Weight: &wrappers.UInt32Value{Value: uint32(30)},
 		},
 	})
@@ -532,5 +532,9 @@ func TestLess(t *testing.T) {
 	actual := clusters.Less(1, 2)
 	assert.True(actual)
 	actual = clusters.Less(2, 1)
+	assert.False(actual)
+	actual = clusters.Less(0, 1)
+	assert.True(actual)
+	actual = clusters.Less(1, 0)
 	assert.False(actual)
 }
