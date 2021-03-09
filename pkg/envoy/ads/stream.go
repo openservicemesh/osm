@@ -173,8 +173,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case certUpdateMsg := <-certAnnouncement:
-			cn := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.CommonName)
-			if isCNforProxy(proxy, cn) {
+			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+			if isCNforProxy(proxy, certificate.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
 				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())

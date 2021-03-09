@@ -164,22 +164,27 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
-	if err != nil {
-		return cert, err
+	oldCert, ok := cm.cache.Load(cn)
+	if !ok {
+		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	cm.cache.Store(cn, cert)
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if err != nil {
+		return nil, err
+	}
+
+	cm.cache.Store(cn, newCert)
 
 	events.GetPubSubInstance().Publish(events.PubSubMessage{
 		AnnouncementType: announcements.CertificateRotated,
-		NewObj:           cn,
-		OldObj:           cn,
+		NewObj:           newCert,
+		OldObj:           oldCert.(certificate.Certificater),
 	})
 
-	log.Trace().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
-	return cert, nil
+	return newCert, nil
 }
 
 // Certificate implements certificate.Certificater
