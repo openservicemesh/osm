@@ -121,8 +121,8 @@ OpenServiceMesh:
     # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
     enable: false
 
-    # -- Tracing destination cluster (must contain the namespace)
-    address: "jaeger.osm-system.svc.cluster.local"
+    # -- Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
+    address: ""
 
     # -- Destination port for the listener
     port: 9411
