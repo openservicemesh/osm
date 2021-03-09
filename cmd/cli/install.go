@@ -112,6 +112,7 @@ type installCmd struct {
 	clientSet                     kubernetes.Interface
 	chartRequested                *chart.Chart
 	setOptions                    []string
+	atomic                        bool
 
 	// Toggle to enable/disable Prometheus installation
 	deployPrometheus bool
@@ -185,6 +186,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
 	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
 	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.BoolVar(&inst.atomic, "atomic", false, "Automatically clean up resources if installation fails")
 
 	return cmd
 }
@@ -204,7 +206,8 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
-	installClient.Atomic = true
+	installClient.Wait = true
+	installClient.Atomic = i.atomic
 	installClient.Timeout = i.timeout
 	if _, err = installClient.Run(i.chartRequested, values); err != nil {
 		return err
