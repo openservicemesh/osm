@@ -9,7 +9,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
 )
 
 // MockCertificater is a mock of Certificater interface
@@ -140,20 +139,6 @@ func NewMockManager(ctrl *gomock.Controller) *MockManager {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockManager) EXPECT() *MockManagerMockRecorder {
 	return m.recorder
-}
-
-// GetAnnouncementsChannel mocks base method
-func (m *MockManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan announcements.Announcement)
-	return ret0
-}
-
-// GetAnnouncementsChannel indicates an expected call of GetAnnouncementsChannel
-func (mr *MockManagerMockRecorder) GetAnnouncementsChannel() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementsChannel", reflect.TypeOf((*MockManager)(nil).GetAnnouncementsChannel))
 }
 
 // GetCertificate mocks base method

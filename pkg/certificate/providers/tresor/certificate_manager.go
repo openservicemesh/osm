@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
@@ -152,7 +153,12 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	}
 
 	cm.cache.Store(cn, cert)
-	cm.announcements <- announcements.Announcement{}
+
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           cn,
+		OldObj:           cn,
+	})
 
 	log.Debug().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
@@ -172,9 +178,4 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 // GetRootCertificate returns the root certificate.
 func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil
-}
-
-// GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
 }
