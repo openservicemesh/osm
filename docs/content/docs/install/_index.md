@@ -54,6 +54,21 @@ The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DN
 - start with an alphanumeric character
 - end with an alphanumeric character
 
+### OpenShift
+
+To install OSM on OpenShift:
+1. Enable privileged init containers so that they can properly program iptables. The NET_ADMIN capability is not sufficient on OpenShift.
+    ```shell
+    osm install --set="OpenServiceMesh.enablePrivilegedInitContainer=true"
+    ```
+    - If you have already installed OSM without enabling privileged init containers, set `enable_privileged_init_container` to `true` in the [OSM ConfigMap](../osm_config_map.md) and restart any pods in the mesh.
+1. Add the `privileged` [security context constraint](https://docs.openshift.com/container-platform/4.7/authentication/managing-security-context-constraints.html) to each service account in the mesh.
+    - Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+    - Add the security context constraint to the service account
+       ```shell
+        oc adm policy add-scc-to-user privileged -z <service account name> -n <service account namespace>
+       ```
+
 ## Inspect OSM Components
 
 A few components will be installed by default into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:
