@@ -56,7 +56,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Register to Envoy global broadcast updates
 	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
-	// Register for ceriticate rotation updates
+	// Register for certificate rotation updates
 	certAnnouncement := events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
 
 	// Issues a send all response on a connecting envoy
