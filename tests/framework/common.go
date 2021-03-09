@@ -201,6 +201,7 @@ type OsmTestData struct {
 	ClusterName                    string // Kind cluster name (used if kindCluster)
 	CleanupKindClusterBetweenTests bool   // Clean and re-create kind cluster between tests
 	CleanupKindCluster             bool   // Cleanup kind cluster upon test finish
+	ClusterVersion                 string // Kind cluster version, ex. v1.20.2
 
 	// Cluster handles and rest config
 	Env             *cli.EnvSettings
@@ -225,6 +226,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.ClusterName, "kindClusterName", "osm-e2e", "Name of the Kind cluster to be created")
 	flag.BoolVar(&td.CleanupKindCluster, "cleanupKindCluster", true, "Cleanup kind cluster upon exit")
 	flag.BoolVar(&td.CleanupKindClusterBetweenTests, "cleanupKindClusterBetweenTests", false, "Cleanup kind cluster between tests")
+	flag.StringVar(&td.ClusterVersion, "kindClusterVersion", "", "Kind cluster version, ex. v.1.20.2")
 
 	flag.StringVar(&td.CtrRegistryServer, "ctrRegistry", os.Getenv("CTR_REGISTRY"), "Container registry")
 	flag.StringVar(&td.CtrRegistryUser, "ctrRegistryUser", os.Getenv("CTR_REGISTRY_USER"), "Container registry")
@@ -331,6 +333,9 @@ nodeRegistration:
 					},
 				},
 			},
+		}
+		if Td.ClusterVersion != "" {
+			clusterConfig.Nodes[0].Image = fmt.Sprintf("kindest/node:%s", td.ClusterVersion)
 		}
 		if err := td.ClusterProvider.Create(td.ClusterName, cluster.CreateWithV1Alpha4Config(clusterConfig)); err != nil {
 			return errors.Wrap(err, "failed to create kind cluster")
