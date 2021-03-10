@@ -92,3 +92,8 @@ func TestEnvVars(t *testing.T) {
 	env := New()
 	tassert.Equal(t, map[string]string{"OSM_NAMESPACE": "osm-system"}, env.EnvVars())
 }
+
+func TestRESTClientGetter(t *testing.T) {
+	env := New()
+	tassert.Same(t, env.config, env.RESTClientGetter())
+}
