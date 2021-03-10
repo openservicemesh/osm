@@ -29,22 +29,15 @@
 ### OpenShift
 If you are running the demo on an OpenShift cluster, there are additional prerequisites.
 
-1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
 1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
+    - This enables privileged init containers and links the image pull secrets to the service accounts. Privileged init containers are needed to program iptables on OpenShift.
 
 ## Run the Demo
 From the root of this repository execute:
 ```shell
 ./demo/run-osm-demo.sh
 ```
-
-### OpenShift
-To run the demo on OpenShift, you must enable privileged init containers.
-```shell
-./demo/run-osm-demo.sh --set="OpenServiceMesh.enablePrivilegedInitContainer=true"
-```
-
-If you already deployed the demo without enabling privileged init containers, set `enable_privileged_init_container` to `true` in the [OSM ConfigMap](../docs/content/docs/osm_config_map.md) and restart the demo deployments.
 
 ### Observability and tracing
 By default:
