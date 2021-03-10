@@ -27,11 +27,11 @@
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
 ### OpenShift
+If you are running the demo on an OpenShift cluster, there are additional prerequisites.
 
-If you are running the demo on an OpenShift cluster, there are additional prerequisites. 
-
-1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
 1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
+    - This enables privileged init containers and links the image pull secrets to the service accounts. Privileged init containers are needed to program iptables on OpenShift.
 
 ## Run the Demo
 From the root of this repository execute:

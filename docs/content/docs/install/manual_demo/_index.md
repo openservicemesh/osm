@@ -41,6 +41,9 @@ osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
 ```
 See the [observability documentation](../../patterns/observability/_index.md) for more details.
 
+### OpenShift
+For details on how to install OSM on OpenShift, refer to the [installation guide](../#openshift)
+
 ## Deploy the Bookstore Demo Applications
 
 The demo consists of the following resources:
