@@ -25,6 +25,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		enableDebugServer:              "true",
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
+		useHTTPSIngressKey:             "true",
+		enablePrivilegedInitContainer:  "true",
 		envoyLogLevel:                  testErrorEnvoyLogLevel,
 		serviceCertValidityDurationKey: "24h",
 	}
@@ -72,13 +74,15 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			<-confChannel
 
 			expectedConfig := &osmConfig{
-				PermissiveTrafficPolicyMode: false,
-				Egress:                      true,
-				EnableDebugServer:           true,
-				PrometheusScraping:          true,
-				TracingEnable:               true,
-				EnvoyLogLevel:               testErrorEnvoyLogLevel,
-				ServiceCertValidityDuration: "24h",
+				PermissiveTrafficPolicyMode:   false,
+				Egress:                        true,
+				EnableDebugServer:             true,
+				PrometheusScraping:            true,
+				TracingEnable:                 true,
+				UseHTTPSIngress:               true,
+				EnablePrivilegedInitContainer: true,
+				EnvoyLogLevel:                 testErrorEnvoyLogLevel,
+				ServiceCertValidityDuration:   "24h",
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -252,6 +256,28 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 			Expect(cfg.IsDebugServerEnabled()).To(BeTrue())
 		})
+
+		It("correctly identifies that the debug server is disabled", func() {
+			defaultConfigMap[enableDebugServer] = "false"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsDebugServerEnabled()).To(BeFalse())
+		})
 	})
 
 	Context("create OSM config for Prometheus scraping", func() {
@@ -384,6 +410,68 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetTracingHost()).To(Equal(constants.DefaultTracingHost + ".-test-osm-namespace-.svc.cluster.local"))
 			Expect(cfg.GetTracingPort()).To(Equal(constants.DefaultTracingPort))
 			Expect(cfg.GetTracingEndpoint()).To(Equal(constants.DefaultTracingEndpoint))
+		})
+	})
+
+	Context("create OSM config for useHTTPSIngress", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		var confChannel chan interface{}
+
+		BeforeEach(func() {
+			confChannel = events.GetPubSubInstance().Subscribe(
+				announcements.ConfigMapAdded,
+				announcements.ConfigMapDeleted,
+				announcements.ConfigMapUpdated)
+		})
+
+		AfterEach(func() {
+			events.GetPubSubInstance().Unsub(confChannel)
+		})
+
+		It("correctly identifies that useHTTPSIngress is enabled", func() {
+			Expect(cfg.UseHTTPSIngress()).To(BeFalse())
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.UseHTTPSIngress()).To(BeTrue())
+		})
+
+		It("correctly identifies that useHTTPSIngress is disabled", func() {
+			defaultConfigMap[useHTTPSIngressKey] = "false"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.UseHTTPSIngress()).To(BeFalse())
 		})
 	})
 
@@ -577,6 +665,68 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			actual := cfg.GetOutboundIPRangeExclusionList()
 			Expect(actual).Should(HaveLen(len(expected)))
 			Expect(actual).Should(ConsistOf(expected))
+		})
+	})
+
+	Context("create OSM config for privilegedInitContainer", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		var confChannel chan interface{}
+
+		BeforeEach(func() {
+			confChannel = events.GetPubSubInstance().Subscribe(
+				announcements.ConfigMapAdded,
+				announcements.ConfigMapDeleted,
+				announcements.ConfigMapUpdated)
+		})
+
+		AfterEach(func() {
+			events.GetPubSubInstance().Unsub(confChannel)
+		})
+
+		It("correctly identifies that privilegedInitContainer is enabled", func() {
+			Expect(cfg.IsPrivilegedInitContainer()).To(BeFalse())
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsPrivilegedInitContainer()).To(BeTrue())
+		})
+
+		It("correctly identifies that privilegedInitContainer is disabled", func() {
+			defaultConfigMap[enablePrivilegedInitContainer] = "false"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsPrivilegedInitContainer()).To(BeFalse())
 		})
 	})
 })
