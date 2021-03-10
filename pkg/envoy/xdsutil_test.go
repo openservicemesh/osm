@@ -1,18 +1,27 @@
 package envoy
 
 import (
+	"testing"
 	"time"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	tassert "github.com/stretchr/testify/assert"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/tests"
 )
+
+func TestGetLocalClusterNameForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	actual := GetLocalClusterNameForService(tests.BookbuyerService)
+	assert.Equal(actual, "default/bookbuyer-local")
+}
 
 var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetLocalClusterNameForServiceCluster", func() {
