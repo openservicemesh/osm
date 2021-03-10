@@ -267,6 +267,7 @@ type SimpleDeploymentAppDef struct {
 	Command      []string
 	Args         []string
 	Ports        []int
+	AppProtocol  string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
@@ -356,10 +357,25 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 				},
 			)
 
-			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, corev1.ServicePort{
+			svcPort := corev1.ServicePort{
 				Port:       int32(p),
 				TargetPort: intstr.FromInt(p),
-			})
+			}
+
+			if def.AppProtocol != "" {
+				if ver, err := td.getKubernetesServerVersionNumber(); err != nil {
+					svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+				} else {
+					// use appProtocol field in servicePort if k8s server version >= 1.19
+					if ver[0] >= 1 && ver[1] >= 19 {
+						svcPort.AppProtocol = &def.AppProtocol // set the appProtocol field
+					} else {
+						svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+					}
+				}
+			}
+
+			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
 		}
 	}
 
