@@ -61,6 +61,7 @@ func testTCPTraffic(permissiveMode bool) {
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 				Ports:       []int{destinationPort},
 				AppProtocol: AppProtocolTCP,
+				Labels:      map[string]string{"app": destName},
 			})
 
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)

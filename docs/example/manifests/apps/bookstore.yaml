@@ -1,9 +1,3 @@
-# Deploy bookstore Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookstore
----
 # Deploy bookstore Service
 apiVersion: v1
 kind: Service

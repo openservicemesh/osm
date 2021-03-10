@@ -57,6 +57,7 @@ func testTraffic(withSourceKubernetesService bool) {
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				Labels:    map[string]string{"app": destName},
 			})
 
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
@@ -147,6 +148,7 @@ func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 		Command:   []string{"sleep", "365d"},
 		Image:     "curlimages/curl",
 		Ports:     []int{80},
+		Labels:    map[string]string{"app": sourceName},
 	})
 
 	_, err := Td.CreateServiceAccount(sourceName, &svcAccDef)

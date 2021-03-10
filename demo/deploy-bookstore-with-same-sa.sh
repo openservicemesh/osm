@@ -51,7 +51,8 @@ spec:
     name: bookstore-port
 
   selector:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 EOF
 
 echo -e "Deploy $SVC Deployment"

@@ -6,13 +6,15 @@ metadata:
   name: bookstore-v2
   namespace: bookstore
   labels:
-    app: bookstore-v2
+    app: bookstore
+    version: v2
 spec:
   ports:
   - port: 14001
     name: bookstore-port
   selector:
-    app: bookstore-v2
+    app: bookstore
+    version: v2
 ---
 # Deploy bookstore-v2 Service Account
 apiVersion: v1

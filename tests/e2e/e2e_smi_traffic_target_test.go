@@ -45,6 +45,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 						Namespace: destName,
 						Image:     "kennethreitz/httpbin",
 						Ports:     []int{80},
+						Labels:    map[string]string{"app": destName},
 					})
 				_, err := Td.CreateServiceAccount(destName, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -60,6 +61,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 					Command:   []string{"sleep", "365d"},
 					Image:     "curlimages/curl",
 					Ports:     []int{80},
+					Labels:    map[string]string{"app": sourceOne},
 				})
 				_, err = Td.CreateServiceAccount(sourceOne, &allowedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -73,6 +75,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 					Command:   []string{"sleep", "365d"},
 					Image:     "curlimages/curl",
 					Ports:     []int{80},
+					Labels:    map[string]string{"app": sourceTwo},
 				})
 				_, err = Td.CreateServiceAccount(sourceTwo, &deniedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -95,9 +98,9 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// Deploy policies to allow 'sourceOne' to access destination at HTTP path '/anything'
 				anythingPath := "/anything"
 				httpRGOne, trafficTargetOne := createPolicyForRoutePath(sourceOne, destName, anythingPath)
-				_, err = Td.CreateHTTPRouteGroup(sourceOne, httpRGOne)
+				_, err = Td.CreateHTTPRouteGroup(destName, httpRGOne)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(sourceOne, trafficTargetOne)
+				_, err = Td.CreateTrafficTarget(destName, trafficTargetOne)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Deploy policies to allow 'sourceTwo' to access destination at HTTP path '/foo'
@@ -105,9 +108,9 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// path '/anything' which is used to demonstrate RBAC per route.
 				fooPath := "/foo"
 				httpRGTwo, trafficTargetTwo := createPolicyForRoutePath(sourceTwo, destName, fooPath)
-				_, err = Td.CreateHTTPRouteGroup(sourceTwo, httpRGTwo)
+				_, err = Td.CreateHTTPRouteGroup(destName, httpRGTwo)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(sourceTwo, trafficTargetTwo)
+				_, err = Td.CreateTrafficTarget(destName, trafficTargetTwo)
 				Expect(err).NotTo(HaveOccurred())
 
 				// HTTP request from 'sourceOne': http://<address>/anything

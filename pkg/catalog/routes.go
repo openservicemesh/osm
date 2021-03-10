@@ -51,26 +51,16 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sSe
 
 	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
 	inboundPoliciesFRomSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
-	inbound = trafficpolicy.MergeInboundPolicies(false, inbound, inboundPoliciesFRomSplits...)
+	inbound = trafficpolicy.MergeInboundPolicies(true, inbound, inboundPoliciesFRomSplits...)
 	return inbound
 }
 
 func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
 	outboundPoliciesFromSplits := []*trafficpolicy.OutboundTrafficPolicy{}
-
 	apexServices := mapset.NewSet()
-	for _, split := range mc.meshSpec.ListTrafficSplits() {
-		svc := service.MeshService{
-			Name:      split.Spec.Service,
-			Namespace: split.ObjectMeta.Namespace,
-		}
 
-		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", svc)
-			continue
-		}
-		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
+	for _, split := range mc.meshSpec.ListTrafficSplits() {
+		policy := trafficpolicy.NewOutboundTrafficPolicy(split.Name+"-"+split.Namespace, []string{split.Spec.Service})
 
 		rwc := trafficpolicy.RouteWeightedClusters{
 			HTTPRouteMatch:   wildCardRouteMatch,
@@ -86,11 +76,11 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		}
 		policy.Routes = []*trafficpolicy.RouteWeightedClusters{&rwc}
 
-		if apexServices.Contains(svc) {
-			log.Error().Msgf("Skipping Traffic Split policy %s in namespaces %s as there is already a traffic split policy for apex service %v", split.Name, split.Namespace, svc)
+		if apexServices.Contains(split.Spec.Service) {
+			log.Error().Msgf("Skipping Traffic Split policy %s in namespaces %s as there is already a traffic split policy for apex service %v", split.Name, split.Namespace, split.Spec.Service)
 		} else {
 			outboundPoliciesFromSplits = append(outboundPoliciesFromSplits, policy)
-			apexServices.Add(svc)
+			apexServices.Add(split.Spec.Service)
 		}
 	}
 	return outboundPoliciesFromSplits
@@ -124,15 +114,10 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 				continue
 			}
 
-			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
-			for _, apexService := range apexServices {
+			nameApexMap := mc.getApexServicesForBackendService(upstreamSvc)
+			for name, apexService := range nameApexMap {
 				// build an inbound policy for every apex service
-				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamIdentity.Namespace)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
-					continue
-				}
-				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(apexService, apexService.Namespace == upstreamIdentity.Namespace), hostnames)
+				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(name, []string{apexService})
 				weightedCluster := getDefaultWeightedClusterForService(upstreamSvc)
 
 				for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
@@ -140,7 +125,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
 					}
 				}
-				inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, servicePolicy)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(true, inboundPolicies, servicePolicy)
 			}
 		}
 	}

@@ -43,6 +43,7 @@ func testHTTPTrafficWithControllerRestart() {
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				Labels:    map[string]string{"app": destName},
 			})
 
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)

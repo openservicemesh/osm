@@ -50,14 +50,16 @@ metadata:
   name: $SVC
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 spec:
   ports:
   - port: 14001
     name: bookstore-port
 
   selector:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 EOF
 
 echo -e "Deploy $SVC Deployment"

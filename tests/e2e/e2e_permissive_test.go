@@ -55,6 +55,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 				Namespace: destNs,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				Labels:    map[string]string{"app": "server"},
 			})
 
 		_, err := Td.CreateServiceAccount(destNs, &svcAccDef)
@@ -74,6 +75,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 			Args:      []string{"while true; do sleep 30; done;"},
 			Image:     "songrgg/alpine-debug",
 			Ports:     []int{80},
+			Labels:    map[string]string{"app": "client"},
 		})
 
 		_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)

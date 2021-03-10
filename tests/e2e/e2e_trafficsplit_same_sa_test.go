@@ -76,11 +76,12 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				for _, serverApp := range serverServices {
 					_, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         serverApp,
-							Namespace:    serverNamespace,
-							ReplicaCount: int32(serverReplicaSet),
-							Image:        "simonkowallik/httpbin",
-							Ports:        []int{80},
+							Name:           serverApp,
+							Namespace:      serverNamespace,
+							ReplicaCount:   int32(serverReplicaSet),
+							Image:          "simonkowallik/httpbin",
+							Ports:          []int{80},
+							LabelSelectors: map[string]string{"app": "test", "version": serverApp},
 						})
 
 					// Expose an env variable such as XHTTPBIN_X_POD_NAME:
@@ -115,13 +116,14 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				for _, clientApp := range clientServices {
 					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         clientApp,
-							Namespace:    clientApp,
-							ReplicaCount: int32(clientReplicaSet),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{80},
+							Name:           clientApp,
+							Namespace:      clientApp,
+							ReplicaCount:   int32(clientReplicaSet),
+							Command:        []string{"/bin/bash", "-c", "--"},
+							Args:           []string{"while true; do sleep 30; done;"},
+							Image:          "songrgg/alpine-debug",
+							Ports:          []int{80},
+							LabelSelectors: map[string]string{"app": "test", "version": clientApp},
 						})
 
 					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
@@ -154,9 +156,9 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							DestinationSvcAccountName: svcAcc.Name,
 						})
 
-					_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
+					_, err := Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 				}
 
@@ -175,7 +177,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				trafficSplit := TrafficSplitDef{
 					Name:                    trafficSplitName,
 					Namespace:               serverNamespace,
-					TrafficSplitServiceName: trafficSplitName,
+					TrafficSplitServiceName: trafficSplitName + "." + serverNamespace,
 					Backends:                []TrafficSplitBackend{},
 				}
 				assignation := 100 / len(serverServices) // Spreading equitatively

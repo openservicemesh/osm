@@ -60,6 +60,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 					Args:      []string{"while true; do sleep 30; done;"},
 					Image:     "songrgg/alpine-debug",
 					Ports:     []int{80},
+					Labels:    map[string]string{"app": "client"},
 				})
 
 				_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)

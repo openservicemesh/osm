@@ -142,6 +142,7 @@ type SimplePodAppDef struct {
 	Args        []string
 	Ports       []int
 	AppProtocol string
+	Labels      map[string]string
 }
 
 // SimplePodApp creates returns a set of k8s typed definitions for a pod-based k8s definition.
@@ -155,10 +156,8 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 	podDefinition := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
-			Labels: map[string]string{
-				"app": def.Name,
-			},
+			Name:   def.Name,
+			Labels: def.Labels,
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: new(int64), // 0
@@ -195,15 +194,11 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 	serviceDefinition := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
-			Labels: map[string]string{
-				"app": def.Name,
-			},
+			Name:   def.Name,
+			Labels: def.Labels,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				"app": def.Name,
-			},
+			Selector: def.Labels,
 		},
 	}
 
@@ -260,13 +255,14 @@ func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
 
 // SimpleDeploymentAppDef defines some parametrization to create a deployment-based application from template
 type SimpleDeploymentAppDef struct {
-	Namespace    string
-	Name         string
-	Image        string
-	ReplicaCount int32
-	Command      []string
-	Args         []string
-	Ports        []int
+	Namespace      string
+	Name           string
+	Image          string
+	ReplicaCount   int32
+	Command        []string
+	Args           []string
+	Ports          []int
+	LabelSelectors map[string]string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
@@ -290,15 +286,11 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicaCountExplicitDeclaration,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": def.Name,
-				},
+				MatchLabels: def.LabelSelectors,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": def.Name,
-					},
+					Labels: def.LabelSelectors,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: new(int64), // 0
@@ -334,14 +326,10 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      def.Name,
 			Namespace: def.Namespace,
-			Labels: map[string]string{
-				"app": def.Name,
-			},
+			Labels:    def.LabelSelectors,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				"app": def.Name,
-			},
+			Selector: def.LabelSelectors,
 		},
 	}
 

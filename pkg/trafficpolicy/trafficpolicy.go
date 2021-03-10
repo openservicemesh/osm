@@ -122,7 +122,7 @@ func MergeOutboundPolicies(original []*OutboundTrafficPolicy, latest ...*Outboun
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
-			if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
+			if reflect.DeepEqual(or.Hostnames, l.Hostnames) || subset(or.Hostnames, l.Hostnames) {
 				foundHostnames = true
 				mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
 				or.Routes = mergedRoutes

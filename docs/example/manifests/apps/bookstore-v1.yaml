@@ -1,9 +1,3 @@
-# Deploy bookstore Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookstore
----
 # Deploy bookstore-v1 Service
 apiVersion: v1
 kind: Service
@@ -18,7 +12,8 @@ spec:
   - port: 14001
     name: bookstore-port
   selector:
-    app: bookstore-v1
+    app: bookstore
+    version: v1
 ---
 # Deploy bookstore-v1 Service Account
 apiVersion: v1
@@ -37,11 +32,13 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bookstore-v1
+      app: bookstore
+      version: v1
   template:
     metadata:
       labels:
-        app: bookstore-v1
+        app: bookstore
+        version: v1
     spec:
       serviceAccountName: bookstore-v1
       containers:

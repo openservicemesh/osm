@@ -68,11 +68,12 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 				for _, serverApp := range serverServices {
 					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         serverApp,
-							Namespace:    serverNamespace,
-							ReplicaCount: int32(serverReplicaSet),
-							Image:        "simonkowallik/httpbin",
-							Ports:        []int{80},
+							Name:           serverApp,
+							Namespace:      serverNamespace,
+							ReplicaCount:   int32(serverReplicaSet),
+							Image:          "simonkowallik/httpbin",
+							Ports:          []int{80},
+							LabelSelectors: map[string]string{"app": "test", "version": serverApp},
 						})
 
 					// Expose an env variable such as XHTTPBIN_X_POD_NAME:
@@ -107,13 +108,14 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 				for _, clientApp := range clientServices {
 					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         clientApp,
-							Namespace:    clientApp,
-							ReplicaCount: int32(clientReplicaSet),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{80},
+							Name:           clientApp,
+							Namespace:      clientApp,
+							ReplicaCount:   int32(clientReplicaSet),
+							Command:        []string{"/bin/bash", "-c", "--"},
+							Args:           []string{"while true; do sleep 30; done;"},
+							Image:          "songrgg/alpine-debug",
+							Ports:          []int{80},
+							LabelSelectors: map[string]string{"app": "test", "version": clientApp},
 						})
 
 					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
@@ -159,6 +161,7 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 					Name:      trafficSplitName,
 					Namespace: serverNamespace,
 					Ports:     []int{80},
+					Labels:    map[string]string{"app": "test"},
 				})
 
 				// Creating trafficsplit service in K8s
@@ -169,7 +172,7 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 				trafficSplit := TrafficSplitDef{
 					Name:                    trafficSplitName,
 					Namespace:               serverNamespace,
-					TrafficSplitServiceName: trafficSplitName,
+					TrafficSplitServiceName: trafficSplitName + "." + serverNamespace,
 					Backends:                []TrafficSplitBackend{},
 				}
 				assignation := 100 / len(serverServices) // Spreading equitatively

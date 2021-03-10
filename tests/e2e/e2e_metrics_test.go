@@ -46,11 +46,12 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			// Get simple pod definitions for the HTTP server
 			svcAccDef, depDef, svcDef := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
-					ReplicaCount: 1,
-					Name:         "server",
-					Namespace:    destNs,
-					Image:        "kennethreitz/httpbin",
-					Ports:        []int{80},
+					ReplicaCount:   1,
+					Name:           "server",
+					Namespace:      destNs,
+					Image:          "kennethreitz/httpbin",
+					Ports:          []int{80},
+					LabelSelectors: map[string]string{"app": "server"},
 				})
 
 			_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
@@ -65,13 +66,14 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 
 			// Get simple Pod definitions for the client
 			svcAccDef, depDef, svcDef = Td.SimpleDeploymentApp(SimpleDeploymentAppDef{
-				ReplicaCount: 1,
-				Name:         "client",
-				Namespace:    sourceNs,
-				Command:      []string{"/bin/bash", "-c", "--"},
-				Args:         []string{"while true; do sleep 30; done;"},
-				Image:        "songrgg/alpine-debug",
-				Ports:        []int{80},
+				ReplicaCount:   1,
+				Name:           "client",
+				Namespace:      sourceNs,
+				Command:        []string{"/bin/bash", "-c", "--"},
+				Args:           []string{"while true; do sleep 30; done;"},
+				Image:          "songrgg/alpine-debug",
+				Ports:          []int{80},
+				LabelSelectors: map[string]string{"app": "client"},
 			})
 
 			_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
