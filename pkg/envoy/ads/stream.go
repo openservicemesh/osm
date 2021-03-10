@@ -3,14 +3,19 @@ package ads
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -50,6 +55,9 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// Register to Envoy global broadcast updates
 	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
+
+	// Register for certificate rotation updates
+	certAnnouncement := events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
 
 	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,
@@ -162,6 +170,36 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		case <-broadcastUpdate:
 			log.Debug().Msgf("Broadcast update received for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			s.sendAllResponses(proxy, &server, s.cfg)
+
+		case certUpdateMsg := <-certAnnouncement:
+			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+			if isCNforProxy(proxy, certificate.GetCommonName()) {
+				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
+				// with this proxy, so update the secrets corresponding to this certificate via SDS.
+				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				s.sendSDSResponse(proxy, &server, s.cfg)
+			}
 		}
 	}
+}
+
+// isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.
+// Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
+// <svc-account>.<namespace>.<trust-domain>.
+func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		return false
+	}
+
+	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
+	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
+	if len(chunks) < 3 {
+		return false
+	}
+
+	identityForCN := service.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
+	return identityForCN == proxyIdentity
 }

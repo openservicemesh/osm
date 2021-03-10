@@ -73,6 +73,16 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 	}
 }
 
+// sendSDSResponse sends an SDS response to the given proxy containing all associated secrets
+func (s *Server) sendSDSResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
+	request := makeRequestForAllSecrets(proxy, s.catalog)
+
+	if err := s.sendTypeResponse(envoy.TypeSDS, proxy, server, request, cfg); err != nil {
+		log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
+			envoy.TypeSDS, proxy.GetCertificateCommonName())
+	}
+}
+
 // makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.
 // This request will result in the rest of the system creating an SDS response with the certificates
 // required by this proxy. The proxy itself did not ask for these. We know it needs them - so we send them.

@@ -3,7 +3,6 @@ package tresor
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
@@ -22,9 +21,8 @@ func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
 	}
 
 	return &CertManager{
-		ca:            ca.(*Certificate),
-		announcements: make(chan announcements.Announcement),
-		cfg:           cfg,
+		ca:  ca.(*Certificate),
+		cfg: cfg,
 	}
 }
 
