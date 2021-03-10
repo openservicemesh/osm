@@ -134,6 +134,9 @@ const (
 
 	// IngressUpdated is the type of announcement emitted when we observe an update to a Kubernetes Ingress
 	IngressUpdated AnnouncementType = "ingress-updated"
+
+	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
+	CertificateRotated AnnouncementType = "certificate-rotated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration
