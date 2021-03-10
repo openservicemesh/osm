@@ -8,12 +8,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+// Ingress does not depend on k8s service accounts, program a wildcard (empty struct) to indicate
+// to RDS that an inbound traffic policy for ingress should not enforce service account based RBAC policies.
+var wildcardServiceAccount = service.K8sServiceAccount{}
+
 // GetIngressPoliciesForService returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
 func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	inboundIngressPolicies := []*trafficpolicy.InboundTrafficPolicy{}
-	// Ingress does not depend on k8s service accounts, program a wildcard (empty struct) to indicate
-	// to RDS that an inbound traffic policy for ingress should not enforce service account based RBAC policies.
-	wildcardServiceAccount := service.K8sServiceAccount{}
 
 	ingresses, err := mc.ingressMonitor.GetIngressResources(svc)
 	if err != nil {
@@ -46,7 +47,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 					continue
 				}
 				routePolicy := wildCardRouteMatch
-				if routePolicy.PathRegex != "" {
+				if ingressPath.Path != "" {
 					routePolicy.PathRegex = ingressPath.Path
 				}
 				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, ingressWeightedCluster), wildcardServiceAccount)

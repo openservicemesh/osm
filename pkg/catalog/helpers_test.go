@@ -92,8 +92,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 		tests.BookstoreApexService.Namespace,
 	})
 
-	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
-
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
 		// play pretend this call queries a controller cache
