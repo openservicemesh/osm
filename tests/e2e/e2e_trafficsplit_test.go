@@ -149,9 +149,9 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 								DestinationSvcAccountName: dstServer,
 							})
 
-						_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
+						_, err := Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 						Expect(err).NotTo(HaveOccurred())
-						_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+						_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 						Expect(err).NotTo(HaveOccurred())
 					}
 				}

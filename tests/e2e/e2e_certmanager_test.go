@@ -89,9 +89,9 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 					})
 
 				// Configs have to be put into a monitored NS, and osm-system can't be by cli
-				_, err = Td.CreateHTTPRouteGroup(sourceNs, httpRG)
+				_, err = Td.CreateHTTPRouteGroup(destNs, httpRG)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(sourceNs, trafficTarget)
+				_, err = Td.CreateTrafficTarget(destNs, trafficTarget)
 				Expect(err).NotTo(HaveOccurred())
 
 				// All ready. Expect client to reach server
