@@ -396,5 +396,12 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(meta.WorkloadKind).To(Equal(""))
 			Expect(meta.WorkloadName).To(Equal(""))
 		})
+
+		It("should error when there are less than 5 chunks in the serviceNodeID string", func() {
+			// this 'serviceNodeID' will yield 2 chunks
+			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)"
+			_, err := ParseEnvoyServiceNodeID(serviceNodeID)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })
