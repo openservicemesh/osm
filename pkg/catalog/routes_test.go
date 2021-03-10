@@ -10,6 +10,7 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -436,6 +437,25 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 		},
 	}
 
+	testSplit4 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: tests.Namespace,
+		},
+		Spec: v1alpha2.TrafficSplitSpec{
+			Service: tests.BookstoreApexServiceName + "." + tests.Namespace,
+			Backends: []v1alpha2.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight90,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight10,
+				},
+			},
+		},
+	}
+
 	testSplit3NamespacedHostnames := []string{
 		"apex-split-1.baz",
 		"apex-split-1.baz.svc",
@@ -459,6 +479,32 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			name:            "single traffic split policy in different namespace",
 			sourceNamespace: "foo",
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex.default",
+					Hostnames: tests.BookstoreApexNamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:            "single traffic split policy in different namespace with namespaced root service",
+			sourceNamespace: "foo",
+			trafficsplits:   []*split.TrafficSplit{&testSplit4},
 			apexMeshServices: []service.MeshService{
 				{
 					Name:      tests.BookstoreApexServiceName,
@@ -1342,6 +1388,122 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				},
 				Spec: split.TrafficSplitSpec{
 					Service: "bookstore-apex",
+					Backends: []split.TrafficSplitBackend{
+						{
+							Service: "bookstore",
+							Weight:  tests.Weight90,
+						},
+						{
+							Service: tests.BookstoreV2ServiceName,
+							Weight:  tests.Weight10,
+						},
+					},
+				},
+			},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "bookstore-apex",
+					Hostnames: []string{
+						"bookstore-apex",
+						"bookstore-apex.default",
+						"bookstore-apex.default.svc",
+						"bookstore-apex.default.svc.cluster",
+						"bookstore-apex.default.svc.cluster.local",
+						"bookstore-apex:8888",
+						"bookstore-apex.default:8888",
+						"bookstore-apex.default.svc:8888",
+						"bookstore-apex.default.svc.cluster:8888",
+						"bookstore-apex.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inbound policies in same namespaces, with traffic split with namespaced root service",
+			downstreamSA: service.K8sServiceAccount{
+				Name:      "bookbuyer",
+				Namespace: "default",
+			},
+			upstreamSA: service.K8sServiceAccount{
+				Name:      "bookstore",
+				Namespace: "default",
+			},
+			upstreamServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}},
+			meshServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}, {
+				Name:      "bookstore-apex",
+				Namespace: "default",
+			}},
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			trafficSplit: split.TrafficSplit{
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: split.TrafficSplitSpec{
+					Service: "bookstore-apex.default",
 					Backends: []split.TrafficSplitBackend{
 						{
 							Service: "bookstore",
