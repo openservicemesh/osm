@@ -12,7 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based
@@ -31,10 +30,6 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 	if len(services) == 0 {
 		return nil, nil
 	}
-
-	// Remove services that have been split into other services.
-	// Filters out services referenced in TrafficSplit.spec.service
-	services = mc.filterTrafficSplitServices(services)
 
 	meshServices := kubernetesServicesToMeshServices(services)
 
@@ -60,34 +55,6 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 		serviceNames = append(serviceNames, fmt.Sprintf("%s/%s", meshService.Namespace, meshService.Name))
 	}
 	return serviceNames
-}
-
-// filterTrafficSplitServices takes a list of services and removes from it the ones
-// that have been split via an SMI TrafficSplit.
-func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
-	excludeTheseServices := make(map[service.MeshService]interface{})
-	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
-		svc := service.MeshService{
-			Namespace: trafficSplit.Namespace,
-			Name:      trafficSplit.Spec.Service,
-		}
-		excludeTheseServices[svc] = nil
-	}
-
-	log.Debug().Msgf("Filtered out apex services (no pods can belong to these): %+v", excludeTheseServices)
-
-	// These are the services except ones that are a root of a TrafficSplit policy
-	var filteredServices []v1.Service
-
-	for i, svc := range services {
-		nsSvc := utils.K8sSvcToMeshSvc(&services[i])
-		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
-			continue
-		}
-		filteredServices = append(filteredServices, svc)
-	}
-
-	return filteredServices
 }
 
 // GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
