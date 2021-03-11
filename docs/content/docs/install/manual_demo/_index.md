@@ -26,21 +26,15 @@ Use the [installation guide](../../install) to install the `osm` cli.
 
 ## Install OSM Control Plane
 
-For the purpose of this demo, install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled via the `--enable-permissive-traffic-policy` flag. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled. Also by default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as a part of control plane installation.
+For the purpose of this demo, install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled via the `--enable-permissive-traffic-policy` flag. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled. Also by default, `osm` CLI does not enable Prometheus, Grafana, and Jaeger as a part of control plane installation.
 
-Install OSM in permissive traffic policy mode:
-
-```bash
-osm install --enable-permissive-traffic-policy
-```
-
-For future reference, here are the flags to enable Prometheus, Grafana, and Jaeger:
+Install OSM in permissive traffic policy mode with these features enabled:
 
 ```bash
-osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
+osm install --enable-permissive-traffic-policy --deploy-prometheus --deploy-grafana --deploy-jaeger
 ```
 
-See the [observability documentation](../../patterns/observability/_index.md) for more details.
+See the [observability documentation](../../patterns/observability/_index.md) for more details about using Prometheus, Grafana, and Jaeger with OSM.
 
 ### OpenShift
 For details on how to install OSM on OpenShift, refer to the [installation guide](../#openshift)
