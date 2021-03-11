@@ -34,7 +34,7 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())
 			requests <- *request
 		} else {
-			log.Warn().Msgf("[grpc] Received a request for an unknown TypeURL: %+v", request.TypeUrl)
+			log.Warn().Msgf("[grpc] Received a request with an empty TypeURL: %v", request)
 		}
 	}
 }
