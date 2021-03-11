@@ -140,33 +140,10 @@ func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *Clus
 }
 
 func (wc *WitesandCatalog) UpdateAllPods(clusterId string, clusterPods *ClusterPods) {
-	//log.Info().Msgf("[UpdateClusterPods] clusterId:%s", clusterId)
-	//// checks to see if anything (pod or podip) has changed to trigger update
-	//triggerUpdate := false
-	//prevClusterPods, exists := wc.clusterPodMap[clusterId]
-	//if exists && clusterPods != nil && len(prevClusterPods.PodToIPMap) == len(clusterPods.PodToIPMap) {
-	//	log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
-	//	for pod, podip := range clusterPods.PodToIPMap {
-	//		prevPodIp, exists := prevClusterPods.PodToIPMap[pod]
-	//		if !exists || prevPodIp != podip {
-	//			triggerUpdate = true
-	//			break
-	//		}
-	//	}
-	//} else {
-	//	triggerUpdate = true
-	//}
-
-	// LOCK
-	//if triggerUpdate {
-	log.Info().Msgf("[UpdateClusterPods] triggering update")
+	log.Info().Msgf("[UpdateAllPods] clusterId:%s", clusterId)
 	if clusterPods == nil || len(clusterPods.PodToIPMap) == 0 {
 		delete(wc.allPodMap, clusterId)
 	} else {
 		wc.allPodMap[clusterId] = *clusterPods
 	}
-	// as pod/ips have changed, resolve apigroups again
-	//wc.ResolveAllApigroups()
-	//wc.updateEnvoy()
-	//}
 }
