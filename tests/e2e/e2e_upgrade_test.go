@@ -27,7 +27,7 @@ var _ = OSMDescribe("Upgrade from latest",
 
 		It("Tests upgrading the control plane", func() {
 			if Td.InstType == NoInstall {
-				Td.T.Skip("test requires fresh OSM install")
+				Skip("test requires fresh OSM install")
 			}
 
 			if _, err := exec.LookPath("kubectl"); err != nil {
