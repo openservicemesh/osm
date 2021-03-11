@@ -43,7 +43,12 @@ var _ = Describe("Test proxy methods", func() {
 	})
 
 	Context("test GetLastSentNonce()", func() {
-		It("returns correct values", func() {
+		It("returns empty if nonce doesn't exist", func() {
+			res := proxy.GetLastSentNonce(TypeCDS)
+			Expect(res).To(Equal(""))
+		})
+
+		It("returns correct values if nonce exists", func() {
 			proxy.SetNewNonce(TypeCDS)
 
 			firstNonce := proxy.GetLastSentNonce(TypeCDS)
