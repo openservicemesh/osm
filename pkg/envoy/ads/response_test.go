@@ -168,4 +168,63 @@ var _ = Describe("Test ADS response functions", func() {
 			}.String()))
 		})
 	})
+
+	Context("Test sendSDSResponse()", func() {
+
+		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certDuration := 1 * time.Hour
+		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
+		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
+
+		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
+		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
+
+		It("returns Aggregated Discovery Service response", func() {
+			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
+
+			Expect(s).ToNot(BeNil())
+
+			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
+			s.sendSDSResponse(proxy, &server, mockConfigurator)
+
+			Expect(actualResponses).ToNot(BeNil())
+			Expect(len(*actualResponses)).To(Equal(1))
+
+			sdsResponse := (*actualResponses)[0]
+
+			Expect(sdsResponse.VersionInfo).To(Equal("2")) // 2 because first update was by the previous test for the proxy
+			Expect(sdsResponse.TypeUrl).To(Equal(string(envoy.TypeSDS)))
+			Expect(len(sdsResponse.Resources)).To(Equal(3))
+
+			secretOne := xds_auth.Secret{}
+			firstSecret := sdsResponse.Resources[0]
+			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
+			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.ServiceCertType,
+			}.String()))
+
+			secretTwo := xds_auth.Secret{}
+			secondSecret := sdsResponse.Resources[1]
+			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
+			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.RootCertTypeForMTLSInbound,
+			}.String()))
+
+			secretThree := xds_auth.Secret{}
+			thirdSecret := sdsResponse.Resources[2]
+			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
+			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.RootCertTypeForHTTPS,
+			}.String()))
+		})
+	})
 })

@@ -61,8 +61,8 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
-			Name:      split.Spec.Service,
-			Namespace: split.ObjectMeta.Namespace,
+			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Namespace: split.Namespace,
 		}
 
 		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)

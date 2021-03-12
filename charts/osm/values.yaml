@@ -11,11 +11,11 @@ OpenServiceMesh:
     # -- `osm-controller` pod PullPolicy
     pullPolicy: IfNotPresent
     # -- `osm-controller` image tag
-    tag: v0.8.0-rc.1
+    tag: v0.8.0-rc.2
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.17.0
+  sidecarImage: envoyproxy/envoy-alpine:v1.17.1
   osmcontroller:
     resource:
       limits:
@@ -80,8 +80,6 @@ OpenServiceMesh:
     tag: 1.6.4
     # -- PullPolicy for Fluent Bit sidecar container
     pullPolicy: IfNotPresent
-    # -- Log level for Fluent Bit
-    logLevel: error
     # -- Fluent Bit output plugin
     outputPlugin: stdout
     # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
@@ -123,8 +121,8 @@ OpenServiceMesh:
     # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
     enable: false
 
-    # -- Tracing destination cluster (must contain the namespace)
-    address: "jaeger.osm-system.svc.cluster.local"
+    # -- Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
+    address: ""
 
     # -- Destination port for the listener
     port: 9411
@@ -146,6 +144,6 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
-  
+
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false

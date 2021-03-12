@@ -27,7 +27,7 @@ var _ = OSMDescribe("Upgrade from latest",
 
 		It("Tests upgrading the control plane", func() {
 			if Td.InstType == NoInstall {
-				Td.T.Skip("test requires fresh OSM install")
+				Skip("test requires fresh OSM install")
 			}
 
 			if _, err := exec.LookPath("kubectl"); err != nil {
@@ -59,6 +59,24 @@ var _ = OSMDescribe("Upgrade from latest",
 				"OpenServiceMesh": map[string]interface{}{
 					"deployPrometheus": true,
 					"deployJaeger":     false,
+
+					// Reduce CPU so CI (capped at 2 CPU) can handle standing
+					// up the new control plane before tearing the old one
+					// down.
+					"osmcontroller": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.3",
+							},
+						},
+					},
+					"injector": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu": "0.1",
+							},
+						},
+					},
 				},
 			}
 			chartPath, err := i.LocateChart("osm", helmEnv)

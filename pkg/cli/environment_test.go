@@ -52,6 +52,16 @@ func TestNew(t *testing.T) {
 			flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
 
 			for k, v := range test.envVars {
+				oldv, found := os.LookupEnv(k)
+				defer func(k string, oldv string, found bool) {
+					var err error
+					if found {
+						err = os.Setenv(k, oldv)
+					} else {
+						err = os.Unsetenv(k)
+					}
+					assert.Nil(err)
+				}(k, oldv, found)
 				err := os.Setenv(k, v)
 				assert.Nil(err)
 			}
@@ -63,4 +73,27 @@ func TestNew(t *testing.T) {
 			assert.Equal(settings.Namespace(), test.expectedNamespace)
 		})
 	}
+}
+
+func TestNamespaceErr(t *testing.T) {
+	env := New()
+
+	// Tell kube to load config from a file that doesn't exist. The exact error
+	// doesn't matter, this was just the simplest way to force an error to
+	// occur. Users of this package are not able to do this, but the resulting
+	// behavior is the same as if any other error had occurred.
+	kConfigPath := "This doesn't even look like a valid path name"
+	env.config.KubeConfig = &kConfigPath
+
+	tassert.Equal(t, env.Namespace(), "default")
+}
+
+func TestEnvVars(t *testing.T) {
+	env := New()
+	tassert.Equal(t, map[string]string{"OSM_NAMESPACE": "osm-system"}, env.EnvVars())
+}
+
+func TestRESTClientGetter(t *testing.T) {
+	env := New()
+	tassert.Same(t, env.config, env.RESTClientGetter())
 }

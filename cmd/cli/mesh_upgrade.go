@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	defaultUseHTTPSIngress = false
-	defaultEnableTracing   = true
+	defaultUseHTTPSIngress         = false
+	defaultEnableTracing           = true
+	defaultPrivilegedInitContainer = false
 )
 
 const upgradeDesc = `
@@ -68,6 +69,8 @@ type meshUpgradeCmd struct {
 	tracingAddress                string
 	tracingPort                   uint16
 	tracingEndpoint               string
+	outboundIPRangeExclusionList  []string
+	enablePrivilegedInitContainer *bool
 }
 
 func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -82,6 +85,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 		enablePrometheusScraping:      new(bool),
 		useHTTPSIngress:               new(bool),
 		enableTracing:                 new(bool),
+		enablePrivilegedInitContainer: new(bool),
 	}
 	var chartPath string
 
@@ -110,6 +114,9 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 			}
 			if !f.Changed("enable-tracing") {
 				upg.enableTracing = nil
+			}
+			if !f.Changed("enable-privileged-init-container") {
+				upg.enablePrivilegedInitContainer = nil
 			}
 
 			if chartPath != "" {
@@ -142,6 +149,8 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 	f.StringVar(&upg.tracingAddress, "tracing-address", "", "Tracing server hostname")
 	f.Uint16Var(&upg.tracingPort, "tracing-port", 0, "Tracing server port")
 	f.StringVar(&upg.tracingEndpoint, "tracing-endpoint", "", "Tracing server endpoint")
+	f.StringSliceVar(&upg.outboundIPRangeExclusionList, "outbound-ip-range-exclusion-list", nil, "A global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. Pass once per IP range or a single comma separated list of IP ranges of the form a.b.c.d/x")
+	f.BoolVar(upg.enablePrivilegedInitContainer, "enable-privileged-init-container", defaultPrivilegedInitContainer, "Run init container in privileged mode")
 
 	return cmd
 }
@@ -220,6 +229,12 @@ func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]i
 	}
 	if len(u.tracingEndpoint) > 0 {
 		setTracing("endpoint", u.tracingEndpoint)
+	}
+	if len(u.outboundIPRangeExclusionList) > 0 {
+		vals["outboundIPRangeExclusionList"] = u.outboundIPRangeExclusionList
+	}
+	if u.enablePrivilegedInitContainer != nil {
+		vals["enablePrivilegedInitContainer"] = *u.enablePrivilegedInitContainer
 	}
 
 	vals = map[string]interface{}{

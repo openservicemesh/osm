@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -34,9 +35,8 @@ const (
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
 func NewCertManager(vaultAddr, token string, role string, cfg configurator.Configurator) (*CertManager, error) {
 	c := &CertManager{
-		announcements: make(chan announcements.Announcement),
-		role:          vaultRole(role),
-		cfg:           cfg,
+		role: vaultRole(role),
+		cfg:  cfg,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -160,26 +160,31 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil
 }
 
-// GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
-}
-
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
-	if err != nil {
-		return cert, err
+	oldCert, ok := cm.cache.Load(cn)
+	if !ok {
+		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	cm.cache.Store(cn, cert)
-	cm.announcements <- announcements.Announcement{}
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if err != nil {
+		return nil, err
+	}
 
-	log.Trace().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
+	cm.cache.Store(cn, newCert)
 
-	return cert, nil
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           newCert,
+		OldObj:           oldCert.(certificate.Certificater),
+	})
+
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+
+	return newCert, nil
 }
 
 // Certificate implements certificate.Certificater

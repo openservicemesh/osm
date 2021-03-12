@@ -35,10 +35,11 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		for _, backend := range split.Spec.Backends {
 			if backend.Service == targetService.Name && split.Namespace == targetService.Namespace {
-				apexSet.Add(service.MeshService{
-					Name:      split.Spec.Service,
+				meshService := service.MeshService{
+					Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 					Namespace: split.Namespace,
-				})
+				}
+				apexSet.Add(meshService)
 				break
 			}
 		}

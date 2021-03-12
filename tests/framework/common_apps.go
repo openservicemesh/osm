@@ -267,6 +267,7 @@ type SimpleDeploymentAppDef struct {
 	Command      []string
 	Args         []string
 	Ports        []int
+	AppProtocol  string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
@@ -356,10 +357,25 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 				},
 			)
 
-			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, corev1.ServicePort{
+			svcPort := corev1.ServicePort{
 				Port:       int32(p),
 				TargetPort: intstr.FromInt(p),
-			})
+			}
+
+			if def.AppProtocol != "" {
+				if ver, err := td.getKubernetesServerVersionNumber(); err != nil {
+					svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+				} else {
+					// use appProtocol field in servicePort if k8s server version >= 1.19
+					if ver[0] >= 1 && ver[1] >= 19 {
+						svcPort.AppProtocol = &def.AppProtocol // set the appProtocol field
+					} else {
+						svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+					}
+				}
+			}
+
+			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
 		}
 	}
 
@@ -368,7 +384,11 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 
 // GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, port uint16) (*Grafana, error) {
-	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, grafanaPodName, ns, port, port)
+	dialer, err := k8s.DialerToPod(td.RestConfig, td.Client, grafanaPodName, ns)
+	if err != nil {
+		return nil, err
+	}
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
 	}
@@ -392,7 +412,11 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 
 // GetPrometheusPodHandle generic func to forward a prometheus pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName string, port uint16) (*Prometheus, error) {
-	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, prometheusPodName, ns, port, port)
+	dialer, err := k8s.DialerToPod(td.RestConfig, td.Client, prometheusPodName, ns)
+	if err != nil {
+		return nil, err
+	}
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
 	}

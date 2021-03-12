@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -55,6 +56,7 @@ var _ = OSMDescribe("HTTP ingress",
 			// Install nginx ingress controller
 			helm := &action.Configuration{}
 			Expect(helm.Init(Td.Env.RESTClientGetter(), Td.OsmNamespace, "secret", Td.T.Logf)).To(Succeed())
+			helm.KubeClient.(*kube.Client).Namespace = Td.OsmNamespace
 			install := action.NewInstall(helm)
 			install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
 			install.Namespace = Td.OsmNamespace

@@ -19,7 +19,10 @@ const (
 	RestockWarehouseURL = "restock-books"
 
 	// bookstorePort is the bookstore service's port
-	bookstorePort = 80
+	bookstorePort = 14001
+
+	// bookwarehousePort is the bookwarehouse service's port
+	bookwarehousePort = 14001
 
 	httpPrefix = "http://"
 
@@ -38,8 +41,8 @@ var (
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
-	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort) // FQDN
-	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace)               // FQDN
+	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)         // FQDN
+	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort) // FQDN
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)

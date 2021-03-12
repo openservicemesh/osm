@@ -2,73 +2,140 @@ package kubernetes
 
 import (
 	"fmt"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var _ = Describe("Hostnames for a kubernetes service", func() {
-	Context("Testing GethostnamesForService", func() {
-		It("Should correctly return a list of hostnames corresponding to a service in the same namespace", func() {
-			selectors := map[string]string{
-				tests.SelectorKey: tests.SelectorValue,
-			}
-			service := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			hostnames := GetHostnamesForService(service, true)
-			Expect(len(hostnames)).To(Equal(10))
-			Expect(tests.BookbuyerServiceName).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-		})
+func TestGetHostnamesForService(t *testing.T) {
+	assert := tassert.New(t)
 
-		It("Should correctly return a list of hostnames corresponding to a service not in the same namespace", func() {
-			selectors := map[string]string{
+	testCases := []struct {
+		name              string
+		service           *corev1.Service
+		isSameNamespace   bool
+		expectedHostnames []string
+	}{
+		{
+			name: "hostnames corresponding to a service in the same namespace",
+			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
 				tests.SelectorKey: tests.SelectorValue,
-			}
-			service := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			hostnames := GetHostnamesForService(service, false)
-			Expect(len(hostnames)).To(Equal(8))
-			Expect(fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
-			Expect(fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
-		})
-	})
+			}),
+			isSameNamespace: true,
+			expectedHostnames: []string{
+				tests.BookbuyerServiceName,
+				fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+		},
+		{
+			name: "hostnames corresponding to a service NOT in the same namespace",
+			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
+				tests.SelectorKey: tests.SelectorValue,
+			}),
+			isSameNamespace: false,
+			expectedHostnames: []string{
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+		},
+	}
 
-	Context("Testing GetServiceFromHostname", func() {
-		service := "test-service"
-		It("Returns the service name from its hostname", func() {
-			hostname := service
-			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := GetHostnamesForService(tc.service, tc.isSameNamespace)
+			assert.ElementsMatch(actual, tc.expectedHostnames)
+			assert.Len(actual, len(tc.expectedHostnames))
 		})
-		It("Returns the service name from its hostname", func() {
-			hostname := fmt.Sprintf("%s:%d", service, tests.ServicePort)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
+	}
+}
+
+func TestGetServiceFromHostname(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name            string
+		hostnames       []string
+		expectedService string
+	}{
+		{
+			name: "gets the service name from hostname",
+			hostnames: []string{
+				tests.BookbuyerServiceName,
+				fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			expectedService: tests.BookbuyerServiceName,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, hostname := range tc.hostnames {
+				actual := GetServiceFromHostname(hostname)
+				assert.Equal(actual, tc.expectedService)
+			}
 		})
-		It("Returns the service name from its hostname", func() {
-			hostname := fmt.Sprintf("%s.namespace", service)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
+	}
+}
+
+func TestGetAppProtocolFromPortName(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name             string
+		portName         string
+		expectedProtocal string
+	}{
+		{
+			name:             "tcp protocol",
+			portName:         "tcp-port-test",
+			expectedProtocal: "tcp",
+		},
+		{
+			name:             "http protocol",
+			portName:         "http-port-test",
+			expectedProtocal: "http",
+		},
+		{
+			name:             "grpc protocol",
+			portName:         "grpc-port-test",
+			expectedProtocal: "grpc",
+		},
+		{
+			name:             "default protocol",
+			portName:         "port-test",
+			expectedProtocal: "http",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := GetAppProtocolFromPortName(tc.portName)
+			assert.Equal(tc.expectedProtocal, actual)
 		})
-		It("Returns the service name from its hostname", func() {
-			hostname := fmt.Sprintf("%s.namespace.svc", service)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
-		})
-		It("Returns the service name from its hostname", func() {
-			hostname := fmt.Sprintf("%s.namespace.svc.cluster", service)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
-		})
-	})
-})
+	}
+}

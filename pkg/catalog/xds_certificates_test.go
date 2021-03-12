@@ -382,39 +382,6 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 	})
 
-	Context("Test filterTrafficSplitServices()", func() {
-		It("returns services except these to be traffic split", func() {
-
-			services := []v1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "A",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: tests.TrafficSplit.Namespace,
-						Name:      tests.TrafficSplit.Spec.Service,
-					},
-				},
-			}
-
-			expected := []v1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "A",
-					},
-				},
-			}
-
-			actual := mc.filterTrafficSplitServices(services)
-
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
 	Context("Test kubernetesServicesToMeshServices()", func() {
 		It("converts a list of Kubernetes Services to a list of OSM Mesh Services", func() {
 

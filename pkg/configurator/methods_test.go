@@ -12,6 +12,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
@@ -332,6 +333,10 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that the config is enabled", func() {
+			defaultConfigMap[tracingAddressKey] = "myjaeger"
+			defaultConfigMap[tracingPortKey] = "12121"
+			defaultConfigMap[tracingEndpointKey] = "/my/endpoint"
+
 			Expect(cfg.IsTracingEnabled()).To(BeFalse())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -351,6 +356,9 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cfg.IsTracingEnabled()).To(BeTrue())
+			Expect(cfg.GetTracingHost()).To(Equal("myjaeger"))
+			Expect(cfg.GetTracingPort()).To(Equal(uint32(12121)))
+			Expect(cfg.GetTracingEndpoint()).To(Equal("/my/endpoint"))
 		})
 
 		It("correctly identifies that the config is disabled", func() {
@@ -373,6 +381,9 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cfg.IsTracingEnabled()).To(BeFalse())
+			Expect(cfg.GetTracingHost()).To(Equal(constants.DefaultTracingHost + ".-test-osm-namespace-.svc.cluster.local"))
+			Expect(cfg.GetTracingPort()).To(Equal(constants.DefaultTracingPort))
+			Expect(cfg.GetTracingEndpoint()).To(Equal(constants.DefaultTracingEndpoint))
 		})
 	})
 

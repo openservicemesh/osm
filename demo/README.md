@@ -14,10 +14,10 @@
 
 ## Prerequisites
 1. Clone this repo on your workstation
-2. Setup `.env` environment variable file
+1. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
+1. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
@@ -25,6 +25,13 @@
 	- **Option 2:** A Kubernetes cluster - use an already provisioned cluster config, either in the default location ($HOME/.kube/config) or referenced by the $KUBECONFIG environment variable.
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
+
+### OpenShift
+If you are running the demo on an OpenShift cluster, there are additional prerequisites.
+
+1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
+    - This enables privileged init containers and links the image pull secrets to the service accounts. Privileged init containers are needed to program iptables on OpenShift.
 
 ## Run the Demo
 From the root of this repository execute:

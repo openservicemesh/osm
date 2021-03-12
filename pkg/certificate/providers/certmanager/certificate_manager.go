@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -89,7 +90,12 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	oldCert := cm.cache[cn]
 	cm.cache[cn] = newCert
 	cm.cacheLock.Unlock()
-	cm.announcements <- announcements.Announcement{}
+
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           newCert,
+		OldObj:           oldCert,
+	})
 
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
@@ -110,12 +116,6 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	}
 	cm.cacheLock.RUnlock()
 	return certs, nil
-}
-
-// GetAnnouncementsChannel returns a channel, which is used to announce when
-// changes have been made to the issued certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
 }
 
 // certificaterFromCertificateRequest will construct a certificate.Certificater
@@ -242,14 +242,13 @@ func NewCertManager(
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:            ca,
-		cache:         make(map[certificate.CommonName]certificate.Certificater),
-		announcements: make(chan announcements.Announcement),
-		namespace:     namespace,
-		client:        client.CertmanagerV1beta1().CertificateRequests(namespace),
-		issuerRef:     issuerRef,
-		crLister:      crLister,
-		cfg:           cfg,
+		ca:        ca,
+		cache:     make(map[certificate.CommonName]certificate.Certificater),
+		namespace: namespace,
+		client:    client.CertmanagerV1beta1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		cfg:       cfg,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

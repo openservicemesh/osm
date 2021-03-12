@@ -31,9 +31,9 @@ Egress can be configured using either of the following ways.
 
 2. Post OSM install
 
-	`osm-controller` retrieves the egress configuration from the `osm-config` ConfigMap in its namespace (`osm-system` by default). Patch the ConfigMap by setting `egress: "true"`.
+	`osm-controller` retrieves the egress configuration from the `osm-config` ConfigMap in its namespace (`osm-system` by default). Use `osm mesh upgrade` to set `egress: "true"` in the `osm-config` ConfigMap
 	```bash
-	kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"egress":"true"}}' --type=merge
+    osm mesh upgrade --enable-egress=true
 	```
 
 ### Disabling Egress
@@ -45,9 +45,9 @@ Similar to enabling egress, egress can be disabled during OSM install or post in
 	```
 
 2. Post OSM install
-	Patch the `osm-config` ConfigMap and set `egress: "false"`.
+	Use `osm mesh upgrade` to set `egress: "false"` in the `osm-config` ConfigMap
 	```bash
-	kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"egress":"false"}}' --type=merge
+    osm mesh upgrade --enable-egress=false
     ```
 
 With egress disabled, traffic from pods within the mesh will not be able to access external services outside the cluster.

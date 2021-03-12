@@ -11,6 +11,7 @@ CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  --ignore-not-found
 
@@ -21,9 +22,14 @@ kind: ServiceAccount
 metadata:
   name: bookthief
   namespace: $BOOKTHIEF_NAMESPACE
+EOF
 
----
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    oc adm policy add-scc-to-user privileged -z bookthief -n "$BOOKTHIEF_NAMESPACE"
+    oc secrets link bookthief "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKTHIEF_NAMESPACE"
+fi
 
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
