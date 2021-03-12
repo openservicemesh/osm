@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
@@ -62,7 +63,16 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,
 	// which will get triggered by the dispatcher anyway
-	s.sendAllResponses(proxy, &server, s.cfg)
+	err = s.sendResponse(mapset.NewSetWith(
+		envoy.TypeCDS,
+		envoy.TypeEDS,
+		envoy.TypeLDS,
+		envoy.TypeRDS,
+		envoy.TypeSDS),
+		proxy, &server, nil, s.cfg)
+	if err != nil {
+		log.Error().Err(err).Msgf("Initial sendResponse for proxy %s returned error", proxy.GetCertificateSerialNumber())
+	}
 
 	for {
 		select {
@@ -162,15 +172,27 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			log.Info().Msgf("Discovery request <%s> for resources (%v) from Envoy UID=<%s> with Nonce=%s",
 				xdsShortName, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 
-			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
+			err := s.sendResponse(mapset.NewSetWith(typeURL), proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to create and send %s update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
 					envoy.XDSShortURINames[typeURL], proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				continue
 			}
 
 		case <-broadcastUpdate:
 			log.Info().Msgf("Broadcast wake for Proxy SerialNumber=%s UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			s.sendAllResponses(proxy, &server, s.cfg)
+			err := s.sendResponse(mapset.NewSetWith(
+				envoy.TypeCDS,
+				envoy.TypeEDS,
+				envoy.TypeLDS,
+				envoy.TypeRDS,
+				envoy.TypeSDS),
+				proxy, &server, nil, s.cfg)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to create and send ADS update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
+					proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				continue
+			}
 
 		case certUpdateMsg := <-certAnnouncement:
 			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
@@ -178,7 +200,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
 				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-				s.sendSDSResponse(proxy, &server, s.cfg)
+				// Empty DiscoveryRequest should create the SDS specific request
+				err := s.sendResponse(mapset.NewSetWith(envoy.TypeSDS), proxy, &server, nil, s.cfg)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to create and send SDS update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
+						proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+					continue
+				}
 			}
 		}
 	}
