@@ -376,6 +376,23 @@ osm dashboard
 
 Simply navigate to http://localhost:3000 to access the Grafana dashboards. The default user name is `admin` and the default password is `admin`. On the Grafana homepage click on the **Home** icon, you will see a folders containing dashboards for both OSM Control Plan and OSM Data Plane.
 
+
+## Cleanup
+
+To cleanup all resources created for the demo, the OSM control plane, SMI resources, and the sample applications need to be deleted.
+
+To uninstall the sample applications and SMI resources, delete their namespaces with the following command:
+```bash
+kubectl delete ns bookbuyer bookthief bookstore bookwarehouse
+```
+
+To uninstall OSM, run
+```bash
+osm mesh uninstall
+```
+
+For more details about uninstalling OSM, see the [uninstallation guide](../uninstallation_guide/).
+
 [1]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha2/traffic-access.md
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md
 [3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md
