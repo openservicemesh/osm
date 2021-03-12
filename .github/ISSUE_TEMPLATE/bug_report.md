@@ -33,6 +33,7 @@ Be sure to not include any sensitive information. Sensitive information should _
 - Logging                    [ ]
 - Debugging                  [ ]
 - Tests                      [ ]
+- Demo                       [ ]
 - CI System                  [ ]
 
 **Expected behavior**:
