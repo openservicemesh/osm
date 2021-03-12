@@ -2,7 +2,7 @@ package rds
 
 import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -13,7 +13,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
 	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 
@@ -45,17 +45,10 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 	}
 
 	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
-	resp := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeRDS),
-	}
+	resp := []types.Resource{}
 
 	for _, config := range routeConfiguration {
-		marshalledRouteConfig, err := ptypes.MarshalAny(config)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledRouteConfig)
+		resp = append(resp, config)
 	}
 
 	return resp, nil

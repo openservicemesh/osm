@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
@@ -121,8 +122,14 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
-			s.sendAllResponses(proxy, &server, mockConfigurator)
-
+			err := s.sendResponse(mapset.NewSetWith(
+				envoy.TypeCDS,
+				envoy.TypeEDS,
+				envoy.TypeLDS,
+				envoy.TypeRDS,
+				envoy.TypeSDS),
+				proxy, &server, nil, mockConfigurator)
+			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))
 
@@ -146,6 +153,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretOne := xds_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
+			Expect(err).To(BeNil())
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.ServiceCertType,
@@ -154,6 +162,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretTwo := xds_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
+			Expect(err).To(BeNil())
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForMTLSInbound,
@@ -162,6 +171,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
+			Expect(err).To(BeNil())
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
@@ -191,8 +201,8 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
-			s.sendSDSResponse(proxy, &server, mockConfigurator)
-
+			err := s.sendResponse(mapset.NewSetWith(envoy.TypeSDS), proxy, &server, nil, mockConfigurator)
+			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(1))
 
@@ -205,6 +215,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretOne := xds_auth.Secret{}
 			firstSecret := sdsResponse.Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
+			Expect(err).To(BeNil())
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.ServiceCertType,
@@ -213,6 +224,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretTwo := xds_auth.Secret{}
 			secondSecret := sdsResponse.Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
+			Expect(err).To(BeNil())
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForMTLSInbound,
@@ -221,6 +233,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secretThree := xds_auth.Secret{}
 			thirdSecret := sdsResponse.Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
+			Expect(err).To(BeNil())
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,

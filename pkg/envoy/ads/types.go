@@ -6,6 +6,7 @@ import (
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -21,7 +22,7 @@ var (
 // Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
 	catalog        catalog.MeshCataloger
-	xdsHandlers    map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error)
+	xdsHandlers    map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) ([]types.Resource, error)
 	xdsLog         map[certificate.CommonName]map[envoy.TypeURI][]time.Time
 	xdsMapLogMutex sync.Mutex
 	osmNamespace   string

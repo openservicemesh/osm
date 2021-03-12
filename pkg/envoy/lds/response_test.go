@@ -8,7 +8,6 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -69,20 +68,18 @@ func TestListenerConfiguration(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 
-	actual, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 	assert.Empty(err)
-	assert.NotNil(actual)
+	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
 	// 1. Outbound listener (outbound-listener)
 	// 2. inbound listener (inbound-listener)
 	// 3. Prometheus listener (inbound-prometheus-listener)
-	assert.Len(actual.Resources, 3)
-
-	listener := xds_listener.Listener{}
+	assert.Len(resources, 3)
 
 	// validating outbound listener
-	err = ptypes.UnmarshalAny(actual.Resources[0], &listener)
-	assert.Empty(err)
+	listener, ok := resources[0].(*xds_listener.Listener)
+	assert.True(ok)
 	assert.Equal(listener.Name, outboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
 	assert.Len(listener.ListenerFilters, 1)
@@ -98,8 +95,8 @@ func TestListenerConfiguration(t *testing.T) {
 	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, wellknown.TCPProxy)
 
 	// validating inbound listener
-	err = ptypes.UnmarshalAny(actual.Resources[1], &listener)
-	assert.Empty(err)
+	listener, ok = resources[1].(*xds_listener.Listener)
+	assert.True(ok)
 	assert.Equal(listener.Name, inboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.Len(listener.ListenerFilters, 2)
@@ -111,8 +108,8 @@ func TestListenerConfiguration(t *testing.T) {
 	assert.Len(listener.FilterChains, 1)
 
 	// validating prometheus listener
-	err = ptypes.UnmarshalAny(actual.Resources[2], &listener)
-	assert.Empty(err)
+	listener, ok = resources[2].(*xds_listener.Listener)
+	assert.True(ok)
 	assert.Equal(listener.Name, prometheusListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.NotNil(listener.FilterChains)

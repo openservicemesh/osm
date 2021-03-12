@@ -64,13 +64,12 @@ func TestNewResponse(t *testing.T) {
 	// 4. Tracing cluster
 	// 5. Passthrough cluster for egress
 	numExpectedClusters := 6 // source and destination clusters
-	assert.Equal(numExpectedClusters, len((*resp).Resources))
+	assert.Equal(numExpectedClusters, len(resp))
 	actualClusters := []*xds_cluster.Cluster{}
-	for _, resource := range (*resp).Resources {
-		cl := xds_cluster.Cluster{}
-		err = ptypes.UnmarshalAny(resource, &cl)
-		require.Nil(err)
-		actualClusters = append(actualClusters, &cl)
+	for idx := range resp {
+		cl, ok := resp[idx].(*xds_cluster.Cluster)
+		require.True(ok)
+		actualClusters = append(actualClusters, cl)
 	}
 	expectedLocalCluster := &xds_cluster.Cluster{
 		TransportSocketMatches: nil,
