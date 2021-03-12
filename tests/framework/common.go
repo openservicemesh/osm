@@ -106,6 +106,8 @@ var (
 	defaultDeployFluentbit = false
 	// default envoy loglevel
 	defaultEnvoyLogLevel = "debug"
+	// default OSM loglevel
+	defaultOSMLogLevel = "trace"
 	// Test folder base default value
 	testFolderBase = "/tmp"
 )
@@ -399,6 +401,7 @@ type InstallOSMOpts struct {
 
 	EgressEnabled        bool
 	EnablePermissiveMode bool
+	OSMLogLevel          string
 	EnvoyLogLevel        string
 	EnableDebugServer    bool
 
@@ -427,6 +430,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
+		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      defaultEnableDebugServer,
 		SetOverrides:           []string{},
 	}
@@ -592,6 +596,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.DeployJaeger))
 	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.DeployFluentbit))
 	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))
+
+	td.T.Logf("Setting log OSM's log level through overrides to %s", instOpts.OSMLogLevel)
+	instOpts.SetOverrides = append(instOpts.SetOverrides,
+		fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", instOpts.OSMLogLevel))
 
 	if len(instOpts.SetOverrides) > 0 {
 		separator := "="
