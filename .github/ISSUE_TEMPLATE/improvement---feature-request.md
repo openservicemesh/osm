@@ -28,6 +28,7 @@ assignees: ''
 - Debugging                  [ ]
 - Tests                      [ ]
 - CI System                  [ ]
+- Demo                       [ ]
 - Project Release            [ ]
 
 **Possible use cases**
