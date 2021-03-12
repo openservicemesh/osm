@@ -87,6 +87,8 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 
 func (cmd *proxyGetCmd) run() error {
 	// Check if the pod belongs to a mesh
+
+	// TODO: Log namespace and mesh here
 	pod, err := cmd.clientSet.CoreV1().Pods(cmd.namespace).Get(context.TODO(), cmd.pod, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("Could not find pod %s in namespace %s", cmd.pod, cmd.namespace)
