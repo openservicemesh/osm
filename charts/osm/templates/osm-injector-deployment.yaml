@@ -20,6 +20,9 @@ spec:
         prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: osm-injector
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-injector:{{ .Values.OpenServiceMesh.image.tag }}"
