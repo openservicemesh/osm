@@ -55,6 +55,9 @@ For HTTPS ingress, additional annotations are required.
 - Specify the passing of TLS Server Name Indication (SNI) to proxied HTTPS backends using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-server-name`. This is optional.
 - Enable SSL verification of backend service using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-verify`.
 
+#### Prerequisites
+- Install [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/deploy/#installation-guide)
+
 #### Examples
 
 1. HTTP ingress resource with wildcard host:
