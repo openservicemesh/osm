@@ -2,9 +2,15 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"strings"
+
+	v1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 // confirm displays a prompt `s` to the user and returns a bool indicating yes / no
@@ -37,4 +43,14 @@ func confirm(stdin io.Reader, stdout io.Writer, s string, tries int) (bool, erro
 	}
 
 	return false, nil
+}
+
+func getMeshes(clientSet kubernetes.Interface, meshName string, namespace string) ([]v1.Deployment, error) {
+	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": meshName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
+	return osmControllerDeployments.Items, err
 }

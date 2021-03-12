@@ -79,6 +79,15 @@ func (a *namespaceAddCmd) run() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		meshes, err := getMeshes(a.clientSet, a.meshName, "")
+		if err != nil {
+			return errors.Errorf("Cannot list meshes: [%v]", err)
+
+		}
+		if len(meshes) == 0 {
+			return errMeshNotFound(a.meshName)
+		}
+
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 
@@ -132,4 +141,8 @@ func (a *namespaceAddCmd) run() error {
 	}
 
 	return nil
+}
+
+func errMeshNotFound(name string) error {
+	return errors.Errorf("Mesh %s does not exist. Please create the mesh or specify a new mesh name using --mesh-name", name)
 }
