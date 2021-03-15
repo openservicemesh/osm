@@ -44,6 +44,10 @@ The example configurations describe how to expose HTTP and HTTPS routes for the 
 Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers when using HTTPS ingress. With `Tresor` as the certificate provider, OSM stores the CA root certificate in a Kubernetes secret named `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default). When using other certificate providers such as `cert-manager.io` or `Hashicorp Vault`, the `osm-ca-bundle` secret must be created by the user with the base64 encoded root certificate stored as the value to the `ca.crt` attribute in the secret's data.
 
 ### Using Nginx Ingress Controller
+
+#### Prerequisites
+- Install [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/deploy/#installation-guide)
+
 An ingress configuration yaml with [Nginx Ingress Controller][2] for the `bookstore-v1` service described above would look as follows.
 
 - Specify the ingress controller as nginx using the annotation `kubernetes.io/ingress.class: nginx`.
@@ -54,9 +58,6 @@ For HTTPS ingress, additional annotations are required.
 - Specify the secret corresponding to the root certificate using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-secret`.
 - Specify the passing of TLS Server Name Indication (SNI) to proxied HTTPS backends using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-server-name`. This is optional.
 - Enable SSL verification of backend service using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-verify`.
-
-#### Prerequisites
-- Install [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/deploy/#installation-guide)
 
 #### Examples
 
