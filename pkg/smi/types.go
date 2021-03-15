@@ -5,7 +5,7 @@ package smi
 import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 
 	"k8s.io/client-go/tools/cache"
 

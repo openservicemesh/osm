@@ -14,7 +14,7 @@ import (
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	v1alpha40 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 )
 
 // MockCertificateManagerDebugger is a mock of CertificateManagerDebugger interface
@@ -134,10 +134,10 @@ func (mr *MockMeshCatalogDebuggerMockRecorder) ListMonitoredNamespaces() *gomock
 }
 
 // ListSMIPolicies mocks base method
-func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
+func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha40.TrafficSplit, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSMIPolicies")
-	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
+	ret0, _ := ret[0].([]*v1alpha40.TrafficSplit)
 	ret1, _ := ret[1].([]service.K8sServiceAccount)
 	ret2, _ := ret[2].([]*v1alpha4.HTTPRouteGroup)
 	ret3, _ := ret[3].([]*v1alpha3.TrafficTarget)

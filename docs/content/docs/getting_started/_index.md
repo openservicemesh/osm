@@ -21,7 +21,7 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 
 ## Features
 
-1. Easily and transparently configure [traffic shifting](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) for deployments
+1. Easily and transparently configure [traffic shifting](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha4/traffic-split.md) for deployments
 1. Secure service to service communication by [enabling mTLS](https://github.com/openservicemesh/osm/blob/main/docs/patterns/certificates.md)
 1. Define and execute fine grained [access control](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md) policies for services
 1. [Observability](https://github.com/openservicemesh/osm/blob/main/docs/patterns/observability/README.md) and insights into application metrics for debugging and monitoring services
@@ -42,5 +42,5 @@ OSM is under active development and is NOT ready for production workloads.
 | :---------------------- | :-----------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: |
 | Traffic Access Control  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  |                                                                                 |
 | Traffic Specs           |   [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md)   |                                                                                 |
-| Traffic Split           |   [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md)   |                                                                                 |
+| Traffic Split           |   [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha4/traffic-split.md)   |                                                                                 |
 | Traffic Metrics         | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |

@@ -7,7 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
