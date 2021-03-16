@@ -27,6 +27,11 @@ var _ = OSMDescribe("HTTP ingress",
 		const destNs = "server"
 
 		It("allows HTTP ingress traffic", func() {
+
+			if Td.InstType != KindCluster {
+				Skip("test requires Kind Cluster")
+			}
+
 			// Install OSM
 			installOpts := Td.GetOSMInstallOpts()
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
