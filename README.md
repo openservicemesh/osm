@@ -22,7 +22,7 @@ The OSM project builds on the ideas and implementations of many cloud native eco
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
-- [Demos](#demos)
+- [Demonstration](#demonstration)
 - [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
 - [Community](#community)
@@ -97,11 +97,9 @@ $ osm install
 
 See the [installation guide](docs/content/docs/install/_index.md) for more detailed options.
 
-## Demos
-We have provided two demos for you to experience OSM.
+## Demonstration
 
-- The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
-- The [manual demo](docs/content/docs/install/manual_demo/_index.md) is a step-by-step walkthrough set of instruction of the automated demo.
+The OSM [Bookstore demo](docs/content/docs/install/manual_demo/_index.md) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
 
 ## Using OSM
 
