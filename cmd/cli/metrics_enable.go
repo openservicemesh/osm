@@ -24,9 +24,10 @@ The command does not deploy a metrics collection service such as Prometheus.
 `
 
 type metricsEnableCmd struct {
-	out        io.Writer
-	namespaces []string
-	clientSet  kubernetes.Interface
+	out         io.Writer
+	namespaces  []string
+	azmonConfig bool
+	clientSet   kubernetes.Interface
 }
 
 func newMetricsEnable(out io.Writer) *cobra.Command {
@@ -50,7 +51,7 @@ func newMetricsEnable(out io.Writer) *cobra.Command {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			enableCmd.clientSet = clientset
-			return enableCmd.run()
+			return enableCmd.runMetricsEnable()
 		},
 	}
 
@@ -58,10 +59,24 @@ func newMetricsEnable(out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringSliceVar(&enableCmd.namespaces, "namespace", []string{}, "One or more namespaces to enable metrics on")
 
+	// Addon specific
+	f.BoolVar(&enableCmd.azmonConfig, "azmon", false, "Will also trigger additional Az Monitor configmap changes when set.")
+
 	return cmd
 }
 
-func (cmd *metricsEnableCmd) run() error {
+func (cmd *metricsEnableCmd) runMetricsEnable() error {
+	err := cmd.runOsmEnable()
+	if err != nil {
+		return err
+	}
+	if cmd.azmonConfig {
+		err = cmd.runAzmonEnable(settings.Namespace())
+	}
+	return err
+}
+
+func (cmd *metricsEnableCmd) runOsmEnable() error {
 	// Add metrics annotation on namespaces
 	for _, ns := range cmd.namespaces {
 		ns = strings.TrimSpace(ns)

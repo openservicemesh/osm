@@ -123,7 +123,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 			}
 		}
 
-		err := scenario.cmd.run()
+		err := scenario.cmd.runOsmEnable()
 		assert.Nil(err)
 
 		// Test expectation for scenario
@@ -193,7 +193,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 			}
 		}
 
-		err := scenario.cmd.run()
+		err := scenario.cmd.runOsmDisable()
 		assert.Nil(err)
 
 		// Test expectation for scenario

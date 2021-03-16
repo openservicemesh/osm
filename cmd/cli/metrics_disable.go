@@ -21,9 +21,10 @@ namespace or set of namespaces.
 `
 
 type metricsDisableCmd struct {
-	out        io.Writer
-	namespaces []string
-	clientSet  kubernetes.Interface
+	out         io.Writer
+	namespaces  []string
+	azmonConfig bool
+	clientSet   kubernetes.Interface
 }
 
 func newMetricsDisable(out io.Writer) *cobra.Command {
@@ -47,17 +48,31 @@ func newMetricsDisable(out io.Writer) *cobra.Command {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			disableCmd.clientSet = clientset
-			return disableCmd.run()
+			return disableCmd.runMetricsDisable()
 		},
 	}
 
 	f := cmd.Flags()
 	f.StringSliceVar(&disableCmd.namespaces, "namespace", []string{}, "One or more namespaces to disable metrics on")
 
+	// Addon specific
+	f.BoolVar(&disableCmd.azmonConfig, "azmon", false, "Will also trigger additional Az Monitor configmap changes when set.")
+
 	return cmd
 }
 
-func (cmd *metricsDisableCmd) run() error {
+func (cmd *metricsDisableCmd) runMetricsDisable() error {
+	err := cmd.runOsmDisable()
+	if err != nil {
+		return err
+	}
+	if cmd.azmonConfig {
+		err = cmd.runAzmonDisable(settings.Namespace())
+	}
+	return err
+}
+
+func (cmd *metricsDisableCmd) runOsmDisable() error {
 	// Add metrics annotation on namespaces
 	for _, ns := range cmd.namespaces {
 		ns = strings.TrimSpace(ns)
