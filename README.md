@@ -60,12 +60,14 @@ OSM is under active development and is **NOT** ready for production workloads.
 
 ### SMI Specification support
 
-|   Specification Component    |         Supported Release          |          Comments          |
-| :---------------------------- | :--------------------------------: |  :--------------------------------: |
-| Traffic Access Control  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  | |
-| Traffic Specs  |  [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md)  | |
-| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
-| Traffic Metrics  | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
+|   Kind    | SMI Resource |         Supported Version          |          Comments          |
+| :---------------------------- | - | :--------------------------------: |  :--------------------------------: |
+| TrafficTarget  | traffictargets.access.smi-spec.io |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  | |
+| HTTPRouteGroup | httproutegroups.specs.smi-spec.io | [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md#httproutegroup) | |
+| TCPRoute | tcproutes.specs.smi-spec.io | [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md#tcproute) | |
+| UDPRoute | udproutes.specs.smi-spec.io | _not supported_ | |
+| TrafficSplit | trafficsplits.split.smi-spec.io | [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
+| TrafficMetrics  | \*.metrics.smi-spec.io | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
 
 ## OSM Design
 
