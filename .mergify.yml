@@ -1,0 +1,72 @@
+pull_request_rules:
+  - name: Automatic merge for main branch
+    conditions:
+      - base=main
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Tidy"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=DCO"
+      - "check-success=netlify/osm-docs/deploy-preview"
+      - "#approved-reviews-by>=2"
+      - label=automerge
+      - -label=wip
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        method: merge
+        strict: true
+
+  - name: Automatic merge for release branch
+    conditions:
+      - base~=^release-
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Tidy"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=DCO"
+      - "check-success=netlify/osm-docs/deploy-preview"
+      - "#approved-reviews-by>=2"
+      - label=automerge
+      - -label=wip
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        method: merge
+        strict: true
+
+  - name: Automatic rebase for automerge label
+    conditions:
+      - label=automerge
+      - -conflict
+      - -draft
+    actions:
+      rebase:
+        bot_account: OSM-PR-bot
+
+  - name: Automatic rebase for autorebase label
+    conditions:
+      - label=autorebase
+      - -conflict
+      - -draft
+    actions:
+      rebase:
+        bot_account: OSM-PR-bot
