@@ -55,6 +55,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9158" -j ACCEPT # alertruled
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT # identityd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9083" -j ACCEPT # hive
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9092" -j ACCEPT # kafka
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9126" -j ACCEPT # nlp rest
@@ -121,6 +122,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "9158" -j RETURN  # alertruled
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN  # identityd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9083" -j RETURN  # hive
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9092" -j RETURN  # kafka
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9126" -j RETURN  # nlp rest
