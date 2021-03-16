@@ -39,6 +39,8 @@ type WitesandCatalog struct {
 	clusterId   string
 	masterOsmIP string
 
+	unicastEnabledSvcs []string
+
 	remoteK8s     map[string]RemoteK8s     // key = clusterId
 	clusterPodMap map[string]ClusterPods    // key = clusterId
 
@@ -94,4 +96,5 @@ type WitesandCataloger interface {
 	ListWavesPodIPs() ([]string, error)
 
 	IsWSGatewayService(svc service.MeshServicePort) bool
+	IsWSUnicastService(svc string) bool
 }

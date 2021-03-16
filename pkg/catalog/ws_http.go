@@ -96,9 +96,6 @@ func (mc *MeshCatalog) witesandHttpClient() {
 	ticker := time.NewTicker(15 * time.Second)
 	// run forever
 	for {
-		// read env to update Master OSM IP
-		wc.UpdateMasterOsmIP()
-
 		// learn local pods
 		localPods, err := wc.ListLocalGatewayPods()
 		if err == nil {
@@ -194,6 +191,7 @@ func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request)
 }
 
 func (mc *MeshCatalog) GetLocalEndpoints(w http.ResponseWriter, r *http.Request) {
+	log.Info().Msgf("[GetLocalEndpoints] invoked")
 	endpointMap, err := mc.ListLocalClusterEndpoints()
 	if err != nil {
 		log.Error().Msgf("err fetching endpoints %+v", err)

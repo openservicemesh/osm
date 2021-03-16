@@ -21,10 +21,10 @@ func NewWitesandCatalog(kubeClient kubernetes.Interface, clusterId string) *Wite
 		kubeClient:         kubeClient,
 		apigroupToPodMap:   make(map[string]ApigroupToPodMap),
 		apigroupToPodIPMap: make(map[string]ApigroupToPodIPMap),
-
 	}
 
 	wc.UpdateMasterOsmIP()
+	wc.UpdateUnicastSvcs()
 
 	return &wc
 }
@@ -41,12 +41,21 @@ func (wc *WitesandCatalog) GetMyIP() string {
 
 // read env to update masterOsmIP (in case master OSM restarted)
 func (wc *WitesandCatalog) UpdateMasterOsmIP() {
-	// TODO revisit: may not need complicated mechanism, env do not change
 	newIP := os.Getenv("MASTER_OSM_IP")
-	if newIP != wc.masterOsmIP {
+	if newIP != "" {
 		log.Info().Msgf("[RegisterMasterOsmIP] masterOsmIP:%s", newIP)
 		wc.UpdateRemoteK8s("master", newIP)
 		wc.masterOsmIP = newIP
+	}
+}
+
+func (wc *WitesandCatalog) UpdateUnicastSvcs() {
+	wc.unicastEnabledSvcs = make([]string, 0)
+	wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, "gateway") // by default add gw
+	unicastSvcsString := os.Getenv("UNICAST_ENABLED_SERVICES")
+	if unicastSvcsString != "" {
+		wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, strings.Split(unicastSvcsString, ",")...)
+		log.Info().Msgf("[UpdateUnicastSvcs] unicastEnabledSvcs:%+v", wc.unicastEnabledSvcs)
 	}
 }
 
@@ -103,6 +112,19 @@ func (wc *WitesandCatalog) ListRemoteK8s() map[string]RemoteK8s {
 
 func (wc *WitesandCatalog) IsWSGatewayService(svc service.MeshServicePort) bool {
 	return strings.HasPrefix(svc.Name, "gateway")
+}
+
+func (wc *WitesandCatalog) IsWSUnicastService(inputSvcName string) bool {
+	for _, prefix := range wc.unicastEnabledSvcs {
+		if prefix == "" {
+			// not needed, but safer
+			continue
+		}
+		if strings.HasPrefix(inputSvcName, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (wc *WitesandCatalog) updateEnvoy() {
