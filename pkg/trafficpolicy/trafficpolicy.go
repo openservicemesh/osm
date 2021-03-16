@@ -11,7 +11,6 @@ import (
 
 // NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
 func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.WeightedCluster) *RouteWeightedClusters {
-
 	weightedClusterSet := set.NewSet()
 	for _, wc := range weightedClusters {
 		weightedClusterSet.Add(wc)
