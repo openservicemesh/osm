@@ -12,7 +12,7 @@ Thank you for joining us on a journey to build an SMI-native lightweight service
 
 To understand _what_ Open Service Mesh does - take it for a spin and kick the tires by following [this manual demo guide](../install/manual_demo/).
 
-To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design_concepts/_index.md).
+To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design_concepts).
 
 When you are ready to jump in - [fork the repo](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and then [clone it](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on your workstation.
 
