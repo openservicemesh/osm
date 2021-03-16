@@ -18,6 +18,7 @@ func NewWitesandCatalog(kubeClient kubernetes.Interface, clusterId string) *Wite
 		clusterId:          clusterId,
 		remoteK8s:          make(map[string]RemoteK8s),
 		clusterPodMap:      make(map[string]ClusterPods),
+		allPodMap:          make(map[string]ClusterPods),
 		kubeClient:         kubeClient,
 		apigroupToPodMap:   make(map[string]ApigroupToPodMap),
 		apigroupToPodIPMap: make(map[string]ApigroupToPodIPMap),
@@ -74,10 +75,11 @@ func (wc *WitesandCatalog) UpdateRemoteK8s(remoteClusterId string, remoteIP stri
 		remoteK8, exists := wc.remoteK8s[remoteClusterId]
 		if exists {
 			remoteK8.failCount += 1
-			if  remoteK8.failCount >= 3 {
+			if remoteK8.failCount >= 3 {
 				log.Info().Msgf("[UpdateRemoteK8s] Delete clusterId:%s", remoteClusterId)
 				delete(wc.remoteK8s, remoteClusterId)
 				wc.UpdateClusterPods(remoteClusterId, nil)
+				wc.UpdateAllPods(remoteClusterId, nil)
 				return
 			}
 			wc.remoteK8s[remoteClusterId] = remoteK8

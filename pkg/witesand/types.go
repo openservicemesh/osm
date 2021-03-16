@@ -1,6 +1,6 @@
 package witesand
 
-import(
+import (
 	"net/http"
 
 	"k8s.io/client-go/kubernetes"
@@ -13,20 +13,20 @@ var (
 	log = logger.New("witesand")
 )
 
-const(
+const (
 	GatewayServiceName = "default/gateway"
 
 	// HTTP REST port for communication with WAVES and remote OSMes
-	HttpServerPort = "2500"
+	HttpServerPort  = "2500"
 	WavesServerPort = "9053"
 
 	// HTTP headers for remote OSMes
-	HttpRemoteAddrHeader = "X-Osm-Origin-Ip"
+	HttpRemoteAddrHeader      = "X-Osm-Origin-Ip"
 	HttpRemoteClusterIdHeader = "X-Osm-Cluster-Id"
 
 	// HTTP headers used by envoy to route traffic to gateway clusters
 	WSClusterHeader = "x-ws-dest-cluster"
-	WSHashHeader = "x-ws-hash-header"
+	WSHashHeader    = "x-ws-hash-header"
 
 	// Cluster name suffixes for ring-hash LB clusters
 	DeviceHashSuffix = "-device-hash"
@@ -40,9 +40,9 @@ type WitesandCatalog struct {
 	masterOsmIP string
 
 	unicastEnabledSvcs []string
-
-	remoteK8s     map[string]RemoteK8s     // key = clusterId
-	clusterPodMap map[string]ClusterPods    // key = clusterId
+	remoteK8s          map[string]RemoteK8s   // key = clusterId
+	clusterPodMap      map[string]ClusterPods // key = clusterId
+	allPodMap          map[string]ClusterPods // key = clusterId
 
 	kubeClient kubernetes.Interface
 
@@ -51,23 +51,23 @@ type WitesandCatalog struct {
 }
 
 type RemoteK8s struct {
-	OsmIP	  string
+	OsmIP     string
 	failCount int // how many times response not received
 }
 
 type ClusterPods struct {
-	PodToIPMap map[string]string  `json:"podtoipmap"`
+	PodToIPMap map[string]string `json:"podtoipmap"`
 }
 
 type ApigroupToPodMap struct {
-	Apigroup string      `json:"apigroup"`
-	Pods     []string    `json:"pods"`
-	Revision int         `json:"revision"`
+	Apigroup string   `json:"apigroup"`
+	Pods     []string `json:"pods"`
+	Revision int      `json:"revision"`
 }
 
 type ApigroupToPodIPMap struct {
-	Apigroup string      `json:"apigroup"`
-	PodIPs   []string    `json:"podips"`
+	Apigroup string   `json:"apigroup"`
+	PodIPs   []string `json:"podips"`
 }
 
 type WitesandCataloger interface {
@@ -79,6 +79,7 @@ type WitesandCataloger interface {
 
 	UpdateRemoteK8s(remoteClusterId string, remoteIP string)
 	UpdateClusterPods(remoteClusterId string, remotePods *ClusterPods)
+	UpdateAllPods(ClusterId string, Pods *ClusterPods)
 	ListRemoteK8s() map[string]RemoteK8s
 
 	UpdateApigroupMap(w http.ResponseWriter, r *http.Request)
@@ -92,7 +93,9 @@ type WitesandCataloger interface {
 	ListAllGatewayPodIPs() (*ClusterPods, error)
 
 	ListLocalGatewayPods() (*ClusterPods, error)
+	ListAllLocalPods() (*ClusterPods, error)
 	ListAllGatewayPods() ([]string, error)
+	ListAllPods() ([]string, error)
 	ListWavesPodIPs() ([]string, error)
 
 	IsWSGatewayService(svc service.MeshServicePort) bool
