@@ -72,19 +72,18 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		}
 		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
 
-		rwc := trafficpolicy.RouteWeightedClusters{
-			HTTPRouteMatch:   wildCardRouteMatch,
-			WeightedClusters: mapset.NewSet(),
-		}
+		weightedClusters := []service.WeightedCluster{}
 		for _, backend := range split.Spec.Backends {
 			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
 				Weight:      backend.Weight,
 			}
-			rwc.WeightedClusters.Add(wc)
+			weightedClusters = append(weightedClusters, wc)
 		}
-		policy.Routes = []*trafficpolicy.RouteWeightedClusters{&rwc}
+
+		rwc := trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, weightedClusters)
+		policy.Routes = []*trafficpolicy.RouteWeightedClusters{rwc}
 
 		if apexServices.Contains(svc) {
 			log.Error().Msgf("Skipping Traffic Split policy %s in namespaces %s as there is already a traffic split policy for apex service %v", split.Name, split.Namespace, svc)
@@ -137,7 +136,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 
 				for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
 					for _, routeMatch := range routeMatches {
-						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
+						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
 					}
 				}
 				inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, servicePolicy)
@@ -310,7 +309,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 
 	for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
 		for _, routeMatch := range routeMatches {
-			servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
+			servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
 		}
 	}
 
@@ -337,7 +336,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 	// Build a rule for every service account in the mesh
 	for _, svcAccount := range svcAccounts {
 		sa := utils.SvcAccountToK8sSvcAccount(svcAccount)
-		servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, weightedCluster), sa)
+		servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, []service.WeightedCluster{weightedCluster}), sa)
 	}
 
 	if len(servicePolicy.Rules) > 0 {
