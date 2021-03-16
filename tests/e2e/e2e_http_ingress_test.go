@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -54,6 +55,27 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1)).To(Succeed())
 
 			// Install nginx ingress controller
+			// Install Service as NodePort on kind, LoadBalancer elsewhere
+
+			// Check the node's provider so this works for preprovisioned kind clusters
+			nodes, err := Td.Client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			providerID := nodes.Items[0].Spec.ProviderID
+			isKind := strings.HasPrefix(providerID, "kind://")
+			var vals map[string]interface{}
+			if isKind {
+				vals = map[string]interface{}{
+					"controller": map[string]interface{}{
+						"hostPort": map[string]interface{}{
+							"enabled": true,
+						},
+						"service": map[string]interface{}{
+							"type": "NodePort",
+						},
+					},
+				}
+			}
+
 			helm := &action.Configuration{}
 			Expect(helm.Init(Td.Env.RESTClientGetter(), Td.OsmNamespace, "secret", Td.T.Logf)).To(Succeed())
 			helm.KubeClient.(*kube.Client).Namespace = Td.OsmNamespace
@@ -68,26 +90,34 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(err).NotTo(HaveOccurred())
 			chart, err := loader.Load(chartPath)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = install.Run(chart, map[string]interface{}{
-				"controller": map[string]interface{}{
-					"hostPort": map[string]interface{}{
-						"enabled": true,
-					},
-					"service": map[string]interface{}{
-						"type": "NodePort",
-					},
-				},
-			})
+			_, err = install.Run(chart, vals)
 			Expect(err).NotTo(HaveOccurred())
 
+			ingressAddr := "localhost"
+			if !isKind {
+				svc, err := Td.Client.CoreV1().Services(Td.OsmNamespace).Get(context.Background(), "ingress-nginx-controller", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP
+				if len(ingressAddr) == 0 {
+					ingressAddr = svc.Status.LoadBalancer.Ingress[0].Hostname
+				}
+			}
+
 			// Requests should fail when no ingress exists
+			url := "http://" + ingressAddr + "/status/200"
+			Td.T.Log("Checking requests to", url, "should fail")
 			cond := Td.WaitForRepeatedSuccess(func() bool {
-				resp, err := http.Get("http://localhost/status/200")
-				if err != nil || resp.StatusCode != 404 {
-					Td.T.Logf("> REST req failed unexpectedly (status: %d) %v", resp.StatusCode, err)
+				resp, err := http.Get(url)
+				status := 0
+				if resp != nil {
+					status = resp.StatusCode
+				}
+				if err != nil || status != 404 {
+					Td.T.Logf("> REST req failed unexpectedly (status: %d) %v", status, err)
 					return false
 				}
-				Td.T.Logf("> REST req failed expectedly: %d", resp.StatusCode)
+				Td.T.Logf("> REST req failed expectedly: %d", status)
 				return true
 			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
@@ -123,13 +153,18 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(err).NotTo(HaveOccurred())
 
 			// All ready. Expect client to reach server
+			Td.T.Log("Checking requests to", url, "should succeed")
 			cond = Td.WaitForRepeatedSuccess(func() bool {
-				resp, err := http.Get("http://localhost/status/200")
-				if err != nil || resp.StatusCode != 200 {
-					Td.T.Logf("> REST req failed (status: %d) %v", resp.StatusCode, err)
+				resp, err := http.Get(url)
+				status := 0
+				if resp != nil {
+					status = resp.StatusCode
+				}
+				if err != nil || status != 200 {
+					Td.T.Logf("> REST req failed (status: %d) %v", status, err)
 					return false
 				}
-				Td.T.Logf("> REST req succeeded: %d", resp.StatusCode)
+				Td.T.Logf("> REST req succeeded: %d", status)
 				return true
 			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
