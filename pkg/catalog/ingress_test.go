@@ -214,7 +214,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 					Rules: []*trafficpolicy.Rule{
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
-								HTTPRouteMatch: wildCardRouteMatch,
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
 									Weight:      100,

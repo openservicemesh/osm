@@ -7,8 +7,10 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // isTrafficSplitBackendService returns true if the given service is a backend service in any traffic split
@@ -133,4 +135,33 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 	}
 
 	return portToProtocolMap, nil
+}
+
+// listMeshServices returns all services in the mesh
+func (mc *MeshCatalog) listMeshServices() []service.MeshService {
+	services := []service.MeshService{}
+	for _, svc := range mc.kubeController.ListServices() {
+		services = append(services, utils.K8sSvcToMeshSvc(svc))
+	}
+	return services
+}
+
+// getServiceHostnames returns a list of hostnames corresponding to the service.
+// If the service is in the same namespace, it returns the shorthand hostname for the service that does not
+// include its namespace, ex: bookstore, bookstore:80
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+	svc := mc.kubeController.GetService(meshService)
+	if svc == nil {
+		return nil, errors.Errorf("Error fetching service %q", meshService)
+	}
+
+	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
+	return hostnames, nil
+}
+
+func getDefaultWeightedClusterForService(meshService service.MeshService) service.WeightedCluster {
+	return service.WeightedCluster{
+		ClusterName: service.ClusterName(meshService.String()),
+		Weight:      constants.ClusterWeightAcceptAll,
+	}
 }
