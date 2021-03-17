@@ -33,10 +33,10 @@ Errors will be logged with the `level` key in the log message set to `error`:
 
 ### 3. Confirm the Envoy configuration
 
-Confirm the Envoy proxy configuration on the client and server pods are allowing the client to access the server. Refer to the [sample configurations](https://github.com/openservicemesh/osm/blob/main/docs/content/docs/tasks_usage/traffic_management/permissive_traffic_policy_mode.md#envoy-configurations) to verify that the client has valid routes programmed to access the server.
+Confirm the Envoy proxy configuration on the client and server pods are allowing the client to access the server. Refer to the [sample configurations](../../../tasks_usage/traffic_management/permissive_traffic_policy_mode#envoy-configurations) to verify that the client has valid routes programmed to access the server.
 
 ## When the setting needs to be persisted across upgrades
 
 While the `osm-config` ConfigMap can be directly updated using the `kubectl patch` command, to persist configuration changes across upgrades, it is recommended to always use `osm mesh upgrade` CLI command to update the mesh configuration.
 
-Refer to the [configuring permissive traffic policy mode](https://github.com/openservicemesh/osm/blob/main/docs/content/docs/tasks_usage/traffic_management/permissive_traffic_policy_mode.md#configuring-permissive-traffic-policy-mode) section to enable or disable permissive traffic policy mode.
+Refer to the [configuring permissive traffic policy mode](../../../tasks_usage/traffic_management/permissive_traffic_policy_mode#configuring-permissive-traffic-policy-mode) section to enable or disable permissive traffic policy mode.
