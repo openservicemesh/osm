@@ -9,6 +9,7 @@ weight: 3
 ## Prerequisites
 
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
+- The [osm CLI](#set-up-the-osm-cli) or the [helm 3 CLI](https://helm.sh/docs/intro/install/)
 
 ## Set up the OSM CLI
 
@@ -33,6 +34,18 @@ $ make build-osm
 
 ## Install OSM
 
+### OSM Configuration
+By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured through flags when using the `osm CLI` flags or by editing the values file when using the `helm CLI`.
+
+The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage a mesh instance.
+
+The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
+
+### Using the OSM CLI
 Use the `osm` CLI to install the OSM control plane on to a Kubernetes cluster.
 
 Run `osm install`.
@@ -43,16 +56,29 @@ $ osm install
 OSM installed successfully in namespace [osm-system] with mesh name [osm]
 ```
 
-By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured with flags to the `osm install` command. Running `osm install --help` provides details on the various flags that can be configured.
+Run `osm install --help` for more options.
 
-The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage a mesh instance.
+### Using the Helm CLI
+#### Editing the Values File
+You can configure the OSM installation by overriding the values file.
+1. Create a copy of the [values file](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) (make sure to use the version for the chart you wish to install).
+1. Change any values you wish to customize. You can omit all other values.
+   - To see which values correspond to the ConfigMap settings, see the [OSM ConfigMap documentation](../osm_config_map)
 
-The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
+   - For example, to set the `envoy_log_level` field in the ConfigMap to `info`, save the following as `override.yaml`:
+     ```
+     OpenServiceMesh:
+       envoyLogLevel: info
+     ```
 
-- contain at most 63 characters
-- contain only lowercase alphanumeric characters or '-'
-- start with an alphanumeric character
-- end with an alphanumeric character
+#### Helm install
+Then run the following `helm install` command.
+```console
+$ helm install <mesh name> osm --repo https://openservicemesh.github.io/osm --version <chart version> --namespace <osm namespace> --values override.yaml
+```
+Omit the `--values` flag if you prefer to use the default settings.
+
+Run `helm install --help` for more options.
 
 ### OpenShift
 
@@ -61,7 +87,7 @@ To install OSM on OpenShift:
     ```shell
     osm install --set="OpenServiceMesh.enablePrivilegedInitContainer=true"
     ```
-    - If you have already installed OSM without enabling privileged init containers, set `enable_privileged_init_container` to `true` in the [OSM ConfigMap](../osm_config_map.md) and restart any pods in the mesh.
+    - If you have already installed OSM without enabling privileged init containers, set `enable_privileged_init_container` to `true` in the [OSM ConfigMap](../osm_config_map) and restart any pods in the mesh.
 1. Add the `privileged` [security context constraint](https://docs.openshift.com/container-platform/4.7/authentication/managing-security-context-constraints.html) to each service account in the mesh.
     - Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
     - Add the security context constraint to the service account
