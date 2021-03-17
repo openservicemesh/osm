@@ -74,8 +74,12 @@ latexDashes = true
 
 # Add your release versions here
 [[params.versions]]
-  version = "v0.7.0"
+  version = "v0.8.0"
   url = "https://docs.openservicemesh.io"
+
+[[params.versions]]
+  version = "v0.7.0"
+  url = "https://release-v0.7--osm-docs.netlify.app"
 
 
 # Theme Additional params
