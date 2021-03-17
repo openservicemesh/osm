@@ -283,7 +283,7 @@ EOF
 
 Take another look at the `bookbuyer` logs with:
 ```bash
-kubectl logs -n bookbuyer bookbuyer
+kubectl logs -n bookbuyer bookbuyer -c bookbuyer
 ```
 
 You will see the earlier error is gone and now `bookstore` is responding with `Status: 200 OK`.
