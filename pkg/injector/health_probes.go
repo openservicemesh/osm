@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	// TODO(draychev): Dynamically generate init/init-iptables.sh from these constants: https://github.com/openservicemesh/osm/issues/2243
 	livenessProbePort  = int32(15901)
 	readinessProbePort = int32(15902)
 	startupProbePort   = int32(15903)

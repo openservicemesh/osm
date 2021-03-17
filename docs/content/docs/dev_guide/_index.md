@@ -10,9 +10,9 @@ weight: 5
 Welcome to the Open Service Mesh development guide!
 Thank you for joining us on a journey to build an SMI-native lightweight service mesh. The first of our [core principles](https://github.com/openservicemesh/osm#core-principles) is to create a system, which is "simple to understand and contribute to." We hope that you would find the source code easy to understand. If not - we invite you to help us fulfill this principle. There is no PR too small!
 
-To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [this guide](./example/README.md).
+To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [this guide](../install/manual_demo/_index.md).
 
-To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design/).
+To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design_concepts).
 
 When you are ready to jump in - [fork the repo](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and then [clone it](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on your workstation.
 
@@ -263,7 +263,7 @@ For more information, please refer to [OSM's E2E Readme](https://github.com/open
 
 When we want to ensure that the entire system works correctly over time and
 transitions state as expected - we run
-[the demo included in the docs](https://github.com/openservicemesh/osm/blob/main/docs/example/README.md).
+[the demo included in the docs](https://github.com/openservicemesh/osm/blob/main/demo/README.md).
 This type of test is the slowest, but also most comprehensive. This test will ensure that your changes
 work with a real Kubernetes cluster, with real SMI policy, and real functions - no mocked or fake Go objects.
 

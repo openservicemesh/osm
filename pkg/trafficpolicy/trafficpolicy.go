@@ -6,14 +6,26 @@ import (
 	set "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+// WildCardRouteMatch represents a wildcard HTTP route match condition
+var WildCardRouteMatch HTTPRouteMatch = HTTPRouteMatch{
+	PathRegex: constants.RegexMatchAll,
+	Methods:   []string{constants.WildcardHTTPMethod},
+}
+
 // NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
-func NewRouteWeightedCluster(route HTTPRouteMatch, weightedCluster service.WeightedCluster) *RouteWeightedClusters {
+func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.WeightedCluster) *RouteWeightedClusters {
+	weightedClusterSet := set.NewSet()
+	for _, wc := range weightedClusters {
+		weightedClusterSet.Add(wc)
+	}
+
 	return &RouteWeightedClusters{
 		HTTPRouteMatch:   route,
-		WeightedClusters: set.NewSet(weightedCluster),
+		WeightedClusters: weightedClusterSet,
 	}
 }
 

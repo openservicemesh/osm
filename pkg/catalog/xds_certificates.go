@@ -71,10 +71,8 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 		if pod.Namespace != cnMeta.Namespace {
 			continue
 		}
-		for labelKey, labelValue := range pod.Labels {
-			if labelKey == constants.EnvoyUniqueIDLabelName && labelValue == cnMeta.ProxyUUID.String() {
-				pods = append(pods, *pod)
-			}
+		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == cnMeta.ProxyUUID.String() {
+			pods = append(pods, *pod)
 		}
 	}
 

@@ -31,7 +31,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
 			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
-			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, ingressWeightedCluster), wildcardServiceAccount)
+			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{ingressWeightedCluster}), wildcardServiceAccount)
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, wildcardIngressPolicy)
 		}
 
@@ -46,11 +46,11 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 				if ingressPath.Backend.ServiceName != svc.Name {
 					continue
 				}
-				routePolicy := wildCardRouteMatch
+				routePolicy := trafficpolicy.WildCardRouteMatch
 				if ingressPath.Path != "" {
 					routePolicy.PathRegex = ingressPath.Path
 				}
-				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, ingressWeightedCluster), wildcardServiceAccount)
+				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, []service.WeightedCluster{ingressWeightedCluster}), wildcardServiceAccount)
 			}
 
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, ingressPolicy)

@@ -100,6 +100,93 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 			} else {
 				assert.NotNil(httpFilterChain)
 				assert.Len(httpFilterChain.FilterChainMatch.PrefixRanges, len(tc.expectedEndpoints))
+
+				for _, filter := range httpFilterChain.Filters {
+					assert.Equal(wellknown.HTTPConnectionManager, filter.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestGetOutboundTCPFilterChainForService(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+
+	mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
+
+	lb := &listenerBuilder{
+		meshCatalog: mockCatalog,
+		cfg:         mockConfigurator,
+		svcAccount:  tests.BookbuyerServiceAccount,
+	}
+
+	testCases := []struct {
+		name                     string
+		expectedEndpoints        []endpoint.Endpoint
+		servicePort              uint32
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectError              bool
+	}{
+		{
+			name: "service with multiple endpoints",
+			expectedEndpoints: []endpoint.Endpoint{
+				{IP: net.ParseIP("1.1.1.1"), Port: 80},
+				{IP: net.ParseIP("2.2.2.2"), Port: 80},
+			},
+			servicePort: 80, // this can be different from the target port in the endpoints
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort: &wrapperspb.UInt32Value{Value: 80}, // same as 'servicePort'
+				PrefixRanges: []*xds_core.CidrRange{
+					// The order is guaranteed to be sorted
+					{
+						AddressPrefix: "1.1.1.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+					{
+						AddressPrefix: "2.2.2.2",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                     "service with no endpoints",
+			expectedEndpoints:        []endpoint.Endpoint{},
+			servicePort:              80,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.expectedEndpoints, nil)
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(nil).Times(1)
+
+			tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(tests.BookstoreApexService, tc.servicePort)
+
+			assert.Equal(err != nil, tc.expectError)
+
+			if err != nil {
+				assert.Nil(tcpFilterChain)
+			} else {
+				assert.NotNil(tcpFilterChain)
+				assert.Len(tcpFilterChain.FilterChainMatch.PrefixRanges, len(tc.expectedEndpoints))
+
+				for _, filter := range tcpFilterChain.Filters {
+					assert.Equal(wellknown.TCPProxy, filter.Name)
+				}
 			}
 		})
 	}
