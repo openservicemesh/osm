@@ -70,8 +70,8 @@ This installed OSM Controller in the `osm-system` namespace.
 
 ## Deploy Demo Applications
 In this section we will deploy 2 pods in 2 different namespaces:
-- `bookbuyer` - an HTTP client, which makes HTTP requests to a `bookstore`
-- `bookstore` - an HTTP server, which responds to HTTP requests from `bookbuyer`
+- `bookbuyer` - an HTTP client, which makes requests to a `bookstore`
+- `bookstore` - an HTTP server, which responds to `bookbuyer`
 
 
 ### Create the Namespaces
@@ -190,6 +190,8 @@ spec:
     env:
     - name: BOOKWAREHOUSE_NAMESPACE
       value: bookwarehouse
+    - name: IDENTITY
+      value: bookstore
 EOF
 ```
 
