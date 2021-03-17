@@ -231,7 +231,7 @@ To permit HTTP GET calls from `bookbuyer` to `bookstore` we need to apply an SMI
 With SMI policies we are going to:
 
 1. authorize access between pods (service accounts)
-2. define routing rules for granular access control
+2. define access control and routing rules for granular traffic management
 
 ### Access Control
 
