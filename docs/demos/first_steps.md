@@ -91,7 +91,7 @@ osm namespace add bookbuyer
 osm namespace add bookstore
 ```
 
-With this command each one of the four namespaces will be:
+With this command each one of the two namespaces will be:
   1. labelled with `openservicemesh.io/monitored-by: osm`
   2. annotated with `openservicemesh.io/sidecar-injection: enabled`
 
