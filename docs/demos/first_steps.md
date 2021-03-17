@@ -303,4 +303,4 @@ You will see the earlier error is gone and now `bookstore` is responding with `S
 
 
 # Next Steps
-`//TODO(draychev): add a link to the next demo`
+  - [Splitting Traffic](docs/content/docs/tasks_usage/traffic_management/demos/split.md): Learn how to deploy a second version of the `bookstore` service and split traffic equally between the two versions.
