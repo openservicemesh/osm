@@ -75,7 +75,7 @@ In this section we will deploy 2 pods in 2 different namespaces:
 
 
 ### Create the Namespaces
-Each application in this demo will reside in a separate namespaces. Create the namespaces with:
+Each application in this demo will reside in separate namespaces. Create the namespaces with:
 ```bash
 kubectl create namespace bookbuyer
 kubectl create namespace bookstore
