@@ -33,10 +33,10 @@ Errors will be logged with the `level` key in the log message set to `error`:
 
 ### 3. Confirm the Envoy configuration
 
-Confirm the Envoy proxy configuration on the client has a default egress filter chain on the outbound listener. Refer to the [sample configurations](https://github.com/openservicemesh/osm/blob/main/docs/content/docs/tasks_usage/traffic_management/egress.md#envoy-configurations) to verify that the client is configured to have outbound access to external destinations.
+Confirm the Envoy proxy configuration on the client has a default egress filter chain on the outbound listener. Refer to the [sample configurations](../../../tasks_usage/traffic_management/egress#envoy-configurations) to verify that the client is configured to have outbound access to external destinations.
 
 ## When the setting needs to be persisted across upgrades
 
 While the `osm-config` ConfigMap can be directly updated using the `kubectl patch` command, to persist configuration changes across upgrades, it is recommended to always use `osm mesh upgrade` CLI command to update the mesh configuration.
 
-Refer to the [configuring egress](https://github.com/openservicemesh/osm/blob/main/docs/content/docs/tasks_usage/traffic_management/egress.md#configuring-egress) section to enable or disable egress.
+Refer to the [configuring egress](../../../tasks_usage/traffic_management/egress#configuring-egress) section to enable or disable egress.
