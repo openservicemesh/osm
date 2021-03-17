@@ -195,12 +195,17 @@ spec:
 EOF
 ```
 
-To view the resources we created so far run the following commands:
+View the pods, services, and endponits created so far:
 
 ```bash
-kubectl get pods -A | grep -E '^book'
+kubectl get pods -n bookbuyer
+kubectl get pods -n bookstore
 
-kubectl get services -A | grep -E '^book'
+kubectl get services -n bookbuyer
+kubectl get services -n bookstore
+
+kubectl get endpoints -n bookbuyer
+kubectl get endpoints -n bookstore
 ```
 
 ## No Access, Yet!
