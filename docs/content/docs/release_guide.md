@@ -54,7 +54,9 @@ Create a new commit on the new branch to update the hardcoded version informatio
 * The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/main/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
 
-Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. Proceed to the next step once the pull request is approved and merged.
+Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. When creating your pull request, generate its description by adding `?expand=1&template=release_pull_request_template.md` to the PR URL or copy the raw template from [release_pull_request_template.md](https://raw.githubusercontent.com/openservicemesh/osm/main/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
+
+Proceed to the next step once the pull request is approved and merged.
 
 ## Create and push a Git tag
 
