@@ -1,11 +1,11 @@
 ---
-title: "Permissive traffic policy mode"
-description: "Permissive traffic policy mode"
+title: "Permissive Traffic Policy Mode"
+description: "Permissive Traffic Policy Mode"
 type: docs
 aliases: ["permissive_traffic_policy_mode.md"]
 ---
 
-# Permissive traffic policy mode
+# Permissive Traffic Policy Mode
 Permissive traffic policy mode in OSM is a mode where [SMI][1] traffic policy enforcement is bypassed. In this mode, OSM automatically discovers services that are a part of the service mesh and programs traffic policy rules on each Envoy proxy sidecar to be able to communicate with these services.
 
 ## When to use permissive traffic policy mode
