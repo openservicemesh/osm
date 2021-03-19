@@ -16,18 +16,27 @@ import (
 )
 
 const namespaceAddDescription = `
-This command will add a namespace or a set of namespaces
-to the mesh so that osm-controller can observe resources belonging
-to mesh namespaces, automatic sidecar injection is disabled by
-default. The namespaces will be configured for automatic sidecar,
-which can be optionally disabled.
+This command adds a namespace or set of namespaces to the mesh so that the osm
+control plane with the given mesh name can observe resources within that namespace
+or set of namespaces. It also enables automatic sidecar injection for all pods
+created within the given namespace. Automatic sidecar injection can be disabled
+via the --disable-sidecar-injection flag.
 `
 const namespaceAddExample = `
 # Add namespace 'test' to the mesh with automatic sidecar injection enabled.
 osm namespace add test
 
-# Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
-osm namespace add test --disable-sidecar-injection`
+# Add namespace 'test' to the mesh while disabling automatic sidecar injection.
+# If sidecar injection was previously enabled, it will be disabled by this command.
+osm namespace add test --disable-sidecar-injection
+
+# Add multiple namespaces (test, foo, bar, baz) to the mesh at the same time.
+osm namespace add test foo bar baz
+
+# Specify which mesh (osm control plane) to add the namespace if multiple control planes
+are present or mesh name was overridden at install time
+osm namespace add test --mesh-name=<my-mesh-name>
+`
 
 type namespaceAddCmd struct {
 	out                     io.Writer
