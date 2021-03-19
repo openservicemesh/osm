@@ -8,4 +8,5 @@ aliases: ["traffic management"]
 ## Table of Contents
 - [Egress](./egress.md)
 - [Ingress](./ingress.md)
-- [Permissive traffic policy mode](./permissive_traffic_policy_mode.md)
+- [Iptables Redirection](./iptables_redirection.md)
+- [Permissive Traffic Policy Mode](./permissive_traffic_policy_mode.md)
