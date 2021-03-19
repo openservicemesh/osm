@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/ticker"
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -32,6 +33,8 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 	mc.releaseCertificateHandler()
 
 	go mc.dispatcher()
+	ticker.InitTicker()
+
 	return &mc
 }
 
