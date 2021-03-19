@@ -75,20 +75,6 @@ pull_request_rules:
         # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
         strict_method: rebase
 
-  - name: Automatic rebase for automerge label
-    conditions:
-      # True if the PR has the automerge label
-      - label=automerge
-      # True when the PR is not conflicting with the base branch
-      - -conflict
-      # True if the PR is not in draft state
-      - -draft
-    actions:
-      rebase:
-        # bot_account is the account the rebase will be done under
-        # if not specified Mergify will use any user in OSM that's logged into Mergify
-        bot_account: OSM-PR-bot
-
   - name: Automatic rebase for autorebase label
     conditions:
       # True if the PR has the autorebase label
