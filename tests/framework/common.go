@@ -149,18 +149,34 @@ func verifyValidInstallType(t InstallType) error {
 	}
 }
 
+// CollectLogsType defines if/when to collect logs
+type CollectLogsType string
+
+const (
+	// CollectLogs is used to force log collection
+	CollectLogs CollectLogsType = "yes"
+	// CollectLogsIfErrorOnly will collect logs only when test errors out
+	CollectLogsIfErrorOnly CollectLogsType = "ifError"
+	// NoCollectLogs will not collect logs
+	NoCollectLogs CollectLogsType = "no"
+	// ControlPlaneOnly will collect logs only for control plane processes
+	ControlPlaneOnly CollectLogsType = "controlPlaneOnly"
+)
+
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
 	T              GinkgoTInterface // for common test logging
 	TestID         uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
 	TestFolderName string           // Test folder name, when overridden by test flags
 
-	CleanupTest    bool // Cleanup test-related resources once finished
-	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
-	IgnoreRestarts bool // Ignore control plane processes restarts, if any
+	CleanupTest          bool            // Cleanup test-related resources once finished
+	WaitForCleanup       bool            // Forces test to wait for effective deletion of resources upon cleanup
+	IgnoreRestarts       bool            // Ignore control plane processes restarts, if any
+	InstType             InstallType     // Install type
+	CollectLogs          CollectLogsType // Collect logs type
+	InitialRestartValues map[string]int  // Captures properly if an OSM instance have restarted during a NoInstall test
 
 	// OSM install-time variables
-	InstType          InstallType // Install type.
 	OsmNamespace      string
 	OsmImageTag       string
 	EnableNsMetricTag bool
@@ -458,7 +474,8 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
-		// TODO: Check there is a valid OSM instance running already in OsmNamespace
+		// Store current restart values for CTL processes
+		td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
 		// This resets supported dynamic configs expected by the caller
 		err := td.UpdateOSMConfig("egress",
@@ -560,6 +577,9 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		td.T.Logf("stderr:\n%s", stderr)
 		return errors.Wrap(err, "failed to run osm install")
 	}
+
+	// Store current restart values for CTL processes
+	td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
 	return nil
 }
@@ -1167,10 +1187,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 	// Verify no crashes/restarts of OSM and control plane components were observed during the test
 	// We will not inmediately call Fail() here to not disturb the cleanup process, and instead
 	// call it at the end of cleanup
-	restartSeen, err := td.VerifyComponentRestarts()
-	if err != nil {
-		Td.T.Log("Failed to verify component restarts: %v", err)
-	}
+	restartSeen := td.VerifyRestarts()
 
 	// The condition enters to cleanup K8s resources if
 	// - cleanup is enabled and it's not a kind cluster
@@ -1229,6 +1246,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		}
 	}
 
+	// Check restarts
 	if restartSeen && !td.IgnoreRestarts {
 		Fail("Unexpected restarts for control plane processes were observed")
 	}
@@ -1313,24 +1331,49 @@ func (td *OsmTestData) waitForCABundleSecret(ns string, timeout time.Duration) e
 	return fmt.Errorf("CA bundle secret not ready in NS %s after %s", ns, timeout)
 }
 
-// VerifyComponentRestarts ensure no crashes on osm-namespace instances
-func (td *OsmTestData) VerifyComponentRestarts() (bool, error) {
-	list, err := td.Client.CoreV1().Pods(td.OsmNamespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		td.T.Errorf("Error listing pods from osm Namespace: %v", err)
-		return false, err
-	}
+// VerifyRestarts ensure no crashes on osm-namespace instances for OSM CTL processes
+func (td *OsmTestData) VerifyRestarts() bool {
+	restartsAtTestEnd := td.GetOsmCtlComponentRestarts()
+	restartOccurred := false
 
-	restartSeen := false
-	for _, pod := range list.Items {
-		for _, contStatus := range pod.Status.ContainerStatuses {
-			if contStatus.RestartCount > 0 {
-				td.T.Logf("!! Restart observed for control plane pod/cont %s/%s : %d",
-					pod.Name, contStatus.ContainerID, contStatus.RestartCount)
-				restartSeen = true
+	for podContKey, endRestarts := range restartsAtTestEnd {
+		intitialRestarts, found := td.InitialRestartValues[podContKey]
+		if !found {
+			td.T.Logf("Pod/cont %s not found in initial map. Skipping.", podContKey)
+			continue
+		}
+
+		if intitialRestarts != endRestarts {
+			td.T.Logf("!! Restarts detected for pod/cont %s: Initial %d End %d", podContKey, intitialRestarts, endRestarts)
+			restartOccurred = true
+		}
+	}
+	return restartOccurred
+}
+
+// GetOsmCtlComponentRestarts gets the number of restarts of OSM CTL processes back in a map
+func (td *OsmTestData) GetOsmCtlComponentRestarts() map[string]int {
+	restartMap := make(map[string]int)
+
+	// Walks only OSM CTL control plane processes
+	for _, ctlAppLabel := range OsmCtlLabels {
+		pods, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": ctlAppLabel,
+			},
+		})
+		if err != nil {
+			td.T.Logf("Failed to get pods for applabel %s : %v", ctlAppLabel, err)
+			continue
+		}
+
+		for _, pod := range pods {
+			for _, contStatus := range pod.Status.ContainerStatuses {
+				td.T.Logf("Restarts for %s/%s : %d", pod.Name, contStatus.Name, contStatus.RestartCount)
+				restartMap[fmt.Sprintf("%s/%s", pod.Name, contStatus.Name)] = int(contStatus.RestartCount)
 			}
 		}
 	}
 
-	return restartSeen, nil
+	return restartMap
 }
