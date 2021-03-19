@@ -26,16 +26,12 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			log.Error().Err(recvErr).Msgf("[grpc] Connection error")
 			return
 		}
-		if request.TypeUrl != "" {
-			if !proxy.HasPodMetadata() {
-				// Set the Pod metadata on the given proxy only once. This could arrive with the first few XDS requests.
-				recordEnvoyPodMetadata(request, proxy, catalog)
-			}
-			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())
-			requests <- *request
-		} else {
-			log.Warn().Msgf("[grpc] Received a request with an empty TypeURL: %v", request)
+		if !proxy.HasPodMetadata() {
+			// Set the Pod metadata on the given proxy only once. This could arrive with the first few XDS requests.
+			recordEnvoyPodMetadata(request, proxy, catalog)
 		}
+		log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())
+		requests <- *request
 	}
 }
 

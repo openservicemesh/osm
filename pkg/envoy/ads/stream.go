@@ -172,7 +172,20 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			log.Info().Msgf("Discovery request <%s> for resources (%v) from Envoy UID=<%s> with Nonce=%s",
 				xdsShortName, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 
-			err := s.sendResponse(mapset.NewSetWith(typeURL), proxy, &server, &discoveryRequest, s.cfg)
+			var xdsUpdatePaths mapset.Set
+			switch typeURL {
+			case envoy.TypeWildcard:
+				xdsUpdatePaths = mapset.NewSetWith(
+					envoy.TypeCDS,
+					envoy.TypeEDS,
+					envoy.TypeLDS,
+					envoy.TypeRDS,
+					envoy.TypeSDS)
+			default:
+				xdsUpdatePaths = mapset.NewSetWith(typeURL)
+			}
+
+			err = s.sendResponse(xdsUpdatePaths, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to create and send %s update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
 					envoy.XDSShortURINames[typeURL], proxy.GetCertificateSerialNumber(), proxy.GetPodUID())

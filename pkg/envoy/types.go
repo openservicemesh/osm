@@ -23,6 +23,7 @@ func (t TypeURI) String() string {
 
 // ValidURI defines valid URIs
 var ValidURI = map[string]TypeURI{
+	string(TypeWildcard):           TypeWildcard,
 	string(TypeSDS):                TypeSDS,
 	string(TypeCDS):                TypeCDS,
 	string(TypeLDS):                TypeLDS,
@@ -42,6 +43,9 @@ var XDSShortURINames = map[TypeURI]string{
 }
 
 const (
+	// TypeWildcard is the Wildcard type URI.
+	TypeWildcard TypeURI = ""
+
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
 
