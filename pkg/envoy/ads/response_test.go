@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -43,7 +44,7 @@ var _ = Describe("Test ADS response functions", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
 	proxyUUID := tests.ProxyUUID
-	serviceName := tests.BookstoreV1ServiceName
+	proxyService := service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: namespace}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
@@ -57,7 +58,7 @@ var _ = Describe("Test ADS response functions", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	svc := tests.NewServiceFixture(serviceName, namespace, labels)
+	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels)
 	_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
@@ -82,16 +83,24 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
+						// Client certificate presented when this proxy is a downstream
 						Name:     proxySvcAccount.String(),
 						CertType: envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
+						// Validation certificate for mTLS when this proxy is an upstream
 						Name:     proxySvcAccount.String(),
 						CertType: envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
+						// Validation ceritificate for TLS when this proxy is an upstream
 						Name:     proxySvcAccount.String(),
 						CertType: envoy.RootCertTypeForHTTPS,
+					}.String(),
+					envoy.SDSCert{
+						// Server certificate presented when this proxy is an upstream
+						Name:     proxyService.String(),
+						CertType: envoy.ServiceCertType,
 					}.String(),
 				},
 			}
@@ -148,7 +157,13 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect((*actualResponses)[4].VersionInfo).To(Equal("1"))
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
 			log.Printf("%v", len((*actualResponses)[4].Resources))
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
+
+			// Expect 4 SDS certs:
+			// 1. client cert when this proxy is a downstream
+			// 2. mTLS validation cert when this proxy is an upstream
+			// 3. TLS validation cert when this proxy is an upstream
+			// 4. server cert when this proxy is an upstream
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
 
 			secretOne := xds_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
@@ -175,6 +190,15 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
+			}.String()))
+
+			secretFour := xds_auth.Secret{}
+			fourthSecret := (*actualResponses)[4].Resources[3]
+			err = ptypes.UnmarshalAny(fourthSecret, &secretFour)
+			Expect(err).To(BeNil())
+			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
+				Name:     proxyService.String(),
+				CertType: envoy.ServiceCertType,
 			}.String()))
 		})
 	})
@@ -210,7 +234,13 @@ var _ = Describe("Test ADS response functions", func() {
 
 			Expect(sdsResponse.VersionInfo).To(Equal("2")) // 2 because first update was by the previous test for the proxy
 			Expect(sdsResponse.TypeUrl).To(Equal(string(envoy.TypeSDS)))
-			Expect(len(sdsResponse.Resources)).To(Equal(3))
+
+			// Expect 4 SDS certs:
+			// 1. client cert when this proxy is a downstream
+			// 2. mTLS validation cert when this proxy is an upstream
+			// 3. TLS validation cert when this proxy is an upstream
+			// 4. server cert when this proxy is an upstream
+			Expect(len(sdsResponse.Resources)).To(Equal(4))
 
 			secretOne := xds_auth.Secret{}
 			firstSecret := sdsResponse.Resources[0]
@@ -237,6 +267,15 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
+			}.String()))
+
+			secretFour := xds_auth.Secret{}
+			fourthSecret := sdsResponse.Resources[3]
+			err = ptypes.UnmarshalAny(fourthSecret, &secretFour)
+			Expect(err).To(BeNil())
+			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
+				Name:     proxyService.String(),
+				CertType: envoy.ServiceCertType,
 			}.String()))
 		})
 	})

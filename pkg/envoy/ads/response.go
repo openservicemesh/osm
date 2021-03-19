@@ -118,7 +118,24 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 		TypeUrl: string(envoy.TypeSDS),
 	}
 
-	// There is an SDS validation cert corresponding to each upstream service.
+	// Create an SDS service cert for each service associated with this proxy.
+	// This service cert is referenced in the per service inbound filter chain's DownstreamTlsContext
+	// that is a part the proxy's inbound listener.
+	proxyServices, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		return nil
+	}
+	for _, proxySvc := range proxyServices {
+		proxySvcCert := envoy.SDSCert{
+			Name:     proxySvc.String(),
+			CertType: envoy.ServiceCertType,
+		}.String()
+		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, proxySvcCert)
+	}
+
+	// Create an SDS validation cert corresponding to each upstream service that this proxy can connect to.
 	// Each cert is used to validate the certificate presented by the corresponding upstream service.
 	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 	for _, upstream := range upstreamServices {
