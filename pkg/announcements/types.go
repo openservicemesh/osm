@@ -13,6 +13,12 @@ const (
 	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
 	ScheduleProxyBroadcast AnnouncementType = "schedule-proxy-broadcast"
 
+	// TickerStart starts Ticker to trigger time-based proxy updates
+	TickerStart AnnouncementType = "ticker-start"
+
+	// TickerStop stops Ticker to stop time-based proxy updates
+	TickerStop AnnouncementType = "ticker-stop"
+
 	// ProxyBroadcast is used to notify all Proxy streams that they need to trigger an update
 	ProxyBroadcast AnnouncementType = "proxy-broadcast"
 
