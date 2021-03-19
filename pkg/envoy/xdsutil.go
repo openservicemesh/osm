@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -198,25 +197,18 @@ func pbStringValue(v string) *structpb.Value {
 // 'tlsSDSCert' determines the SDS Secret config used to present the TLS certificate.
 // 'peerValidationSDSCert' determines the SDS Secret configs used to validate the peer TLS certificate.
 func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.CommonTlsContext {
-	sdsConfigSource := GetADSConfigSource()
-	// SDS secret fetch should never be skipped for TLS transport sockets.
-	// Disable the fetch timeout so that Envoy doesn't ignore fetching the TLS secrets after
-	// the default timeout interval. These secrets should always be available for the proxy
-	// to fetch from the controller.
-	sdsConfigSource.InitialFetchTimeout = ptypes.DurationProto(0 * time.Second)
-
 	return &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name:      tlsSDSCert.String(),
-			SdsConfig: sdsConfigSource,
+			SdsConfig: GetADSConfigSource(),
 		}},
 		ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name:      peerValidationSDSCert.String(),
-				SdsConfig: sdsConfigSource,
+				SdsConfig: GetADSConfigSource(),
 			},
 		},
 	}
