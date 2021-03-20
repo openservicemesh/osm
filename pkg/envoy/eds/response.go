@@ -17,13 +17,13 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil, err
 	}
 
 	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil, err
 	}
 
@@ -32,7 +32,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		loadAssignment := newClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 			continue
 		}
 		protos = append(protos, proto)

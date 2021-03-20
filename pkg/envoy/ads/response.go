@@ -26,16 +26,16 @@ func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	xdsShortName := envoy.XDSShortURINames[tURI]
 	defer xdsPathTimeTrack(time.Now(), log.Debug(), xdsShortName, proxy.GetCertificateSerialNumber().String(), &success)
 
-	log.Trace().Msgf("[%s] Creating response for proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Trace().Msgf("[%s] Creating response for proxy with SerialNumber=%s on %s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 
 	discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, cfg)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with SerialNumber=%s on %s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return err
 	}
 
 	if err := (*server).Send(discoveryResponse); err != nil {
-		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on %s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return err
 	}
 
@@ -95,8 +95,8 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on %s",
+			proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil
 	}
 
@@ -123,8 +123,8 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	// that is a part the proxy's inbound listener.
 	proxyServices, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on %s",
+			proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil
 	}
 	for _, proxySvc := range proxyServices {

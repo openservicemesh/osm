@@ -27,7 +27,7 @@ var _ = Describe("Test proxy methods", func() {
 
 	Context("test GetPodUID() with empty Pod Metadata field", func() {
 		It("returns correct values", func() {
-			Expect(proxy.GetPodUID()).To(Equal(""))
+			Expect(proxy.IdentifyForLog()).To(Equal(""))
 		})
 	})
 
@@ -125,8 +125,8 @@ var _ = Describe("Test proxy methods", func() {
 			}
 
 			Expect(proxy.HasPodMetadata()).To(BeTrue())
-			Expect(proxy.GetPodUID()).To(Equal(podUID))
-			Expect(proxy.String()).To(Equal(fmt.Sprintf("Proxy on Pod with UID=%s", podUID)))
+			Expect(proxy.IdentifyForLog()).To(Equal(podUID))
+			Expect(proxy.String()).To(Equal(fmt.Sprintf("Proxy on %s", podUID)))
 		})
 	})
 })

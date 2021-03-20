@@ -6,11 +6,13 @@ import (
 	"math/rand"
 	"net/http"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
+
 	v1 "k8s.io/api/core/v1"
 )
 
 func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
-	log.Debug().Msgf("Getting Envoy config on Pod with UID=%s", pod.ObjectMeta.UID)
+	log.Debug().Msgf("Getting Envoy config for %s", envoy.IdentifyPodForLog(pod))
 
 	minPort := 16000
 	maxPort := 18000
@@ -30,7 +32,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
 	client := &http.Client{}
 	resp, err := client.Get(fmt.Sprintf("http://%s:%d/%s", "localhost", portFwdRequest.LocalPort, url))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
+		log.Error().Err(err).Msgf("Error getting %s", envoy.IdentifyPodForLog(pod))
 		return fmt.Sprintf("Error: %s", err)
 	}
 
@@ -40,13 +42,13 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Msgf("Error getting Envoy config on Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
+		log.Error().Msgf("Error getting Envoy config on %s; HTTP Error %d", envoy.IdentifyPodForLog(pod), resp.StatusCode)
 		portFwdRequest.Stop <- struct{}{}
 		return fmt.Sprintf("Error: %s", err)
 	}
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
+		log.Error().Err(err).Msgf("Error getting %s", envoy.IdentifyPodForLog(pod))
 		return fmt.Sprintf("Error: %s", err)
 	}
 

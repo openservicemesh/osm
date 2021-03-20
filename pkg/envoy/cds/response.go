@@ -16,7 +16,7 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil, err
 	}
 
@@ -24,8 +24,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on %s",
+			proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil, err
 	}
 
@@ -33,8 +33,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
 		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on %s",
+				dstService.Name, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 			return nil, err
 		}
 
@@ -75,15 +75,15 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	alreadyAdded := mapset.NewSet()
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on %s",
+				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal cluster %s for Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Failed to marshal cluster %s for Envoy with XDS Certificate SerialNumber=%s on %s",
+				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)

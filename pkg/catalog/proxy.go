@@ -33,7 +33,7 @@ func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
 		// Create a PodUID to Cert Serial Number so we can easily look-up the SerialNumber of the cert issued to a proxy for a given Pod.
 		mc.podUIDToCertificateSerialNumber.Store(podUID, proxy.GetCertificateSerialNumber())
 	}
-	log.Debug().Msgf("Registered new proxy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Debug().Msgf("Registered new proxy with certificate SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
@@ -44,5 +44,5 @@ func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
 		lastSeen: time.Now(),
 	})
 
-	log.Debug().Msgf("Unregistered proxy with certificate SerialNumber=%v on Pod with UID=%s", p.GetCertificateSerialNumber(), p.GetPodUID())
+	log.Debug().Msgf("Unregistered proxy with certificate SerialNumber=%v on %s", p.GetCertificateSerialNumber(), p.IdentifyForLog())
 }
