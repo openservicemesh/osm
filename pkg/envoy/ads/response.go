@@ -6,7 +6,6 @@ import (
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
@@ -81,66 +80,6 @@ func (s *Server) sendSDSResponse(proxy *envoy.Proxy, server *xds_discovery.Aggre
 		log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
 			envoy.TypeSDS, proxy.GetCertificateCommonName())
 	}
-}
-
-// makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.
-// This request will result in the rest of the system creating an SDS response with the certificates
-// required by this proxy. The proxy itself did not ask for these. We know it needs them - so we send them.
-func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil
-	}
-
-	discoveryRequest := &xds_discovery.DiscoveryRequest{
-		ResourceNames: []string{
-			envoy.SDSCert{
-				Name:     proxyIdentity.String(),
-				CertType: envoy.ServiceCertType,
-			}.String(),
-			envoy.SDSCert{
-				Name:     proxyIdentity.String(),
-				CertType: envoy.RootCertTypeForMTLSInbound,
-			}.String(),
-			envoy.SDSCert{
-				Name:     proxyIdentity.String(),
-				CertType: envoy.RootCertTypeForHTTPS,
-			}.String(),
-		},
-		TypeUrl: string(envoy.TypeSDS),
-	}
-
-	// Create an SDS service cert for each service associated with this proxy.
-	// This service cert is referenced in the per service inbound filter chain's DownstreamTlsContext
-	// that is a part the proxy's inbound listener.
-	proxyServices, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil
-	}
-	for _, proxySvc := range proxyServices {
-		proxySvcCert := envoy.SDSCert{
-			Name:     proxySvc.String(),
-			CertType: envoy.ServiceCertType,
-		}.String()
-		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, proxySvcCert)
-	}
-
-	// Create an SDS validation cert corresponding to each upstream service that this proxy can connect to.
-	// Each cert is used to validate the certificate presented by the corresponding upstream service.
-	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
-	for _, upstream := range upstreamServices {
-		upstreamRootCertResource := envoy.SDSCert{
-			Name:     upstream.String(),
-			CertType: envoy.RootCertTypeForMTLSOutbound,
-		}.String()
-		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)
-	}
-
-	return discoveryRequest
 }
 
 func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
