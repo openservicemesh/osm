@@ -22,17 +22,17 @@ See how to use the OSM CLI to manage namespace monitoring below.
 Add a namespace for monitoring and sidecar injection to the mesh with the following command:
 
 ```bash
-osm namespace add <mesh-name>
+osm namespace add <namespace>
 ```
 
-Explicitly disable sidecar injection while adding the namespace using `--disable-sidecar-injection flag as show [here](../tasks_usage/sidecar_injection.md#Explicitly-Disabling-Automatic-Sidecar-Injection-on-Namespaces).
+Explicitly disable sidecar injection while adding the namespace using `--disable-sidecar-injection` flag as shown [here](../tasks_usage/sidecar_injection.md#Explicitly-Disabling-Automatic-Sidecar-Injection-on-Namespaces).
 
 ## Remove a Namespace from the OSM control plane
 
 Remove a namespace from being monitored by the mesh and disable sidecar injection with the following command:
 
 ```bash
-osm namespace remove <mesh-name>
+osm namespace remove <namespace>
 ```
 
 This command will remove the OSM specific labels and annotations on the namespace thus removing it from the mesh.
@@ -63,7 +63,7 @@ osm namespace list --mesh-name=<mesh-name>
 
 ### Policy Issues
 
-If you're not seeing changes in SMI policies being applied to a resources in a namespace, ensure the namespace is enrolled in the correct mesh:
+If you're not seeing changes in SMI policies being applied to resources in a namespace, ensure the namespace is enrolled in the correct mesh:
 
 ```bash
 osm namespace list --mesh-name=<mesh-name>
