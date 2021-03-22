@@ -294,7 +294,7 @@ jobs:
   images:
     name: Docker Images
     runs-on: ubuntu-latest
-    if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push' }}
+    if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')) && github.event_name == 'push' }}
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
