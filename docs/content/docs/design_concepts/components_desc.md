@@ -79,7 +79,7 @@ spec:
     app: bookstore
 
 ---
-apiVersion: split.smi-spec.io/v1alpha2
+apiVersion: split.smi-spec.io/v1alpha4
 kind: TrafficSplit
 metadata:
   name: bookstore-traffic-split
@@ -131,7 +131,7 @@ This certificate's Common Name leverages the DNS-1123 standard with the followin
 The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance, `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
 
 ```yaml
-apiVersion: split.smi-spec.io/v1alpha2
+apiVersion: split.smi-spec.io/v1alpha4
 kind: TrafficSplit
 metadata:
   name: bookstore-traffic-split

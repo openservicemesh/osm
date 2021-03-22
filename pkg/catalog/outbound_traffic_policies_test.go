@@ -7,8 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -377,9 +376,9 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Namespace: tests.Namespace,
 		},
-		Spec: v1alpha2.TrafficSplitSpec{
+		Spec: split.TrafficSplitSpec{
 			Service: tests.BookstoreApexServiceName + "." + tests.Namespace,
-			Backends: []v1alpha2.TrafficSplitBackend{
+			Backends: []split.TrafficSplitBackend{
 				{
 					Service: tests.BookstoreV1ServiceName,
 					Weight:  tests.Weight90,

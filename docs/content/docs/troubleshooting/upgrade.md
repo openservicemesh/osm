@@ -11,7 +11,7 @@ If the [upgrade CRD guide](../upgrade_guide.md##crd-upgrades) was not followed, 
 
 The OSM controller will then crash with errors similar to this:
 ```
-reflector.go:178] pkg/mod/k8s.io/client-go@v0.18.6/tools/cache/reflector.go:125: Failed to list *v1alpha2.TrafficTarget: the server could not find the requested resource (get traffictargets.access.smi-spec.io)
+reflector.go:178] pkg/mod/k8s.io/client-go@v0.18.6/tools/cache/reflector.go:125: Failed to list *v1alpha4.TrafficTarget: the server could not find the requested resource (get traffictargets.access.smi-spec.io)
 ```
 To resolve these errors:
 1. Checkout the correct release branch of the [repo](https://github.com/openservicemesh/osm) and run the following commands from the root. 

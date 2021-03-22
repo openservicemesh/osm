@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -73,7 +73,7 @@ func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarge
 
 // CreateTrafficSplit Creates an SMI TrafficSplit
 func (td *OsmTestData) CreateTrafficSplit(ns string, tar smiSplit.TrafficSplit) (*smiSplit.TrafficSplit, error) {
-	tt, err := td.SmiClients.SplitClient.SplitV1alpha2().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
+	tt, err := td.SmiClients.SplitClient.SplitV1alpha4().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrafficSplit")
 	}
