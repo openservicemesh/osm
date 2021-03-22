@@ -53,6 +53,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				enablePrivilegedInitContainer:  "true",
 				envoyLogLevel:                  "error",
 				serviceCertValidityDurationKey: "24h",
+				configResyncInterval:           "2m",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				expectedConfig := &osmConfig{
@@ -65,6 +66,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					EnablePrivilegedInitContainer: true,
 					EnvoyLogLevel:                 "error",
 					ServiceCertValidityDuration:   "24h",
+					ConfigResyncInterval:          "2m",
 				}
 				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
@@ -230,6 +232,36 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsPrivilegedInitContainer())
+			},
+		},
+		{
+			name:                 "GetResyncInterval",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
+			},
+			updatedConfigMapData: map[string]string{
+				configResyncInterval: "2m",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(time.Duration(2*time.Minute), interval)
+			},
+		},
+		{
+			name:                 "NegativeGetResyncInterval",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
+			},
+			updatedConfigMapData: map[string]string{
+				configResyncInterval: "Non-duration string",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
 			},
 		},
 	}
