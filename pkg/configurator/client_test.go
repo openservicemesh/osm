@@ -64,6 +64,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
+				"ConfigResyncInterval":          configResyncInterval,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
