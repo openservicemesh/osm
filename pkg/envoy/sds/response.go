@@ -67,10 +67,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []string, proxy *envoy.Proxy) (certs []*xds_auth.Secret) {
 	// requestedCerts is expected to be a list of either of the following:
-	// - "service-cert:namespace/service"
+	// - "service-cert:namespace/service-account"
 	// - "root-cert-for-mtls-outbound:namespace/service"
-	// - "root-cert-for-mtls-inbound:namespace/service"
-	// - "root-cert-for-https:namespace/service"
+	// - "root-cert-for-mtls-inbound:namespace/service-service-account"
+	// - "root-cert-for-https:namespace/service-service-account"
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
@@ -172,6 +172,19 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
 
 	case envoy.RootCertTypeForMTLSInbound:
+		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
+		// of this proxy. If it doesn't, then something is wrong in the system.
+		svcAccountInRequest, err := service.UnmarshalK8sServiceAccount(sdscert.Name)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
+			return nil, err
+		}
+
+		if *svcAccountInRequest != s.svcAccount {
+			log.Error().Err(errGotUnexpectedCertRequest).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert, s.svcAccount)
+			return nil, errGotUnexpectedCertRequest
+		}
+
 		// For the inbound certificate validation context, the SAN needs to match the list of all downstream
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities

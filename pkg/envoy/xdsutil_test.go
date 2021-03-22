@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -119,7 +120,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
+			tlsContext := GetDownstreamTLSContext(service.K8sServiceAccount{Name: "foo", Namespace: "test"}, true)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -129,7 +130,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookstore-v1",
+						Name: "service-cert:test/foo",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -140,7 +141,7 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
-								Name:     "default/bookstore-v1",
+								Name:     "test/foo",
 								CertType: RootCertTypeForMTLSInbound,
 							}.String(),
 							SdsConfig: &core.ConfigSource{
@@ -165,14 +166,14 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, true)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, false)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, false)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
