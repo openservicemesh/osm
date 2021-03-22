@@ -33,7 +33,7 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 	mc.releaseCertificateHandler()
 
 	go mc.dispatcher()
-	ticker.InitTicker()
+	ticker.InitTicker(cfg)
 
 	return &mc
 }
