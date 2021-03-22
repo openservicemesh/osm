@@ -11,7 +11,7 @@ OpenServiceMesh:
     # -- `osm-controller` pod PullPolicy
     pullPolicy: IfNotPresent
     # -- `osm-controller` image tag
-    tag: v0.8.0
+    tag: v0.8.1-rc.1
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
