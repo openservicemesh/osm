@@ -49,6 +49,20 @@ func (mr *MockConfiguratorMockRecorder) GetConfigMap() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigMap", reflect.TypeOf((*MockConfigurator)(nil).GetConfigMap))
 }
 
+// GetConfigResyncInterval mocks base method
+func (m *MockConfigurator) GetConfigResyncInterval() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigResyncInterval")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetConfigResyncInterval indicates an expected call of GetConfigResyncInterval
+func (mr *MockConfiguratorMockRecorder) GetConfigResyncInterval() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigResyncInterval", reflect.TypeOf((*MockConfigurator)(nil).GetConfigResyncInterval))
+}
+
 // GetEnvoyLogLevel mocks base method
 func (m *MockConfigurator) GetEnvoyLogLevel() string {
 	m.ctrl.T.Helper()
