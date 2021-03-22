@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -34,8 +35,8 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 	meshServices := kubernetesServicesToMeshServices(services)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
-	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
-		pod.ObjectMeta.UID, pod.Namespace, pod.Name, servicesForPod)
+	log.Trace().Msgf("Services associated with %s Name=%s/%s: %+v",
+		envoy.IdentifyPodForLog(pod), pod.Namespace, pod.Name, servicesForPod)
 
 	return meshServices, nil
 }
@@ -93,20 +94,20 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	}
 
 	pod := pods[0]
-	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, cnMeta.ProxyUUID)
+	log.Trace().Msgf("Found %s for proxyID %s", envoy.IdentifyPodForLog(&pod), cnMeta.ProxyUUID)
 
 	// Ensure the Namespace encoded in the certificate matches that of the Pod
 	if pod.Namespace != cnMeta.Namespace {
-		log.Warn().Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
-			pod.ObjectMeta.UID, pod.Namespace, cnMeta.Namespace)
+		log.Warn().Msgf("%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
+			envoy.IdentifyPodForLog(&pod), pod.Namespace, cnMeta.Namespace)
 		return nil, ErrNamespaceDoesNotMatchCertificate
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
 	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
-		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
-			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
+		log.Warn().Msgf("%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
+			envoy.IdentifyPodForLog(&pod), pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
 		return nil, ErrServiceAccountDoesNotMatchCertificate
 	}
 

@@ -17,12 +17,12 @@ import (
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	log.Info().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Info().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		return nil, err
 	}
 
@@ -40,7 +40,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
 
-	log.Info().Msgf("Creating SDS response for request for ResourceNames (certificates) %v from Envoy with certificate SerialNumber=%s on Pod with UID=%s", requestedCerts, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Info().Msgf("Creating SDS response for request for ResourceNames (certificates) %v from Envoy with certificate SerialNumber=%s on %s", requestedCerts, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 
 	// 1. Issue a service certificate for this proxy
 	// OSM currently relies on kubernetes ServiceAccount for service identity
@@ -56,7 +56,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, proxy) {
 		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on Pod with UID=%s", envoyProto.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on %s", envoyProto.Name, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 		}
 
 		discoveryResponse.Resources = append(discoveryResponse.Resources, marshalledSecret)
@@ -80,15 +80,15 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			continue
 		}
 
-		log.Debug().Msgf("Envoy with certificate SerialNumber=%s on Pod with UID=%s requested %s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), requestedCertificate)
+		log.Debug().Msgf("Envoy with certificate SerialNumber=%s on %s requested %s", proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog(), requestedCertificate)
 
 		switch sdsCert.CertType {
 		// A service certificate is requested
 		case envoy.ServiceCertType:
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on %s",
+					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 				continue
 			}
 			certs = append(certs, envoySecret)
@@ -97,8 +97,8 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
 			envoySecret, err := s.getRootCert(cert, *sdsCert)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on %s",
+					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.IdentifyForLog())
 				continue
 			}
 			certs = append(certs, envoySecret)
