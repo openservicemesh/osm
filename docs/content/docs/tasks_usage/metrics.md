@@ -5,33 +5,13 @@ type: docs
 aliases: ["metrics.md"]
 ---
 
-## Table of Contents
-<!-- toc -->
-- [Metrics Overview](#metrics-overview)
-- [Installing Metrics Components](#installing-metrics-components)
-  - [Automatic Provisioning of Metrics Components](#automatic-provisioning-of-metrics-components)
-- [Prometheus Integration](#prometheus-integration)
-  - [BYO Prometheus](#BYO-Prometheus)
-    - [List of Prerequisites for BYO Prometheus](#list-of-prerequisites-for-byo-prometheus)
-    - [Configuration](#configuration)
-  - [Metrics scraping](#metrics-scraping)
-  - [Custom Metrics](#custom-metrics)
-    - [Known Gaps](#known-gaps)
-  - [Querying metrics from Prometheus](#querying-metrics-from-prometheus)
-- [Grafana Integration](#grafana-integration)
-  - [Importing Dashboards on a BYO Grafana instance](#importing-dashboards-on-a-byo-grafana-instance)
-  - [Visualizing-Metrics-with-Grafana](#visualizing-metrics-with-grafana)
-    - [List of Prerequisites for Viewing Grafana Dashboards](#list-of-prerequisites-for-viewing-grafana-dashboards)
-    - [Viewing a Grafana dashboard for service to service metrics](#viewing-a-grafana-dashboard-for-service-to-service-metrics)
-<!-- /toc -->
-
 ## Metrics Overview
 
 Open Service Mesh (OSM) generates detailed metrics related to all traffic within the mesh. These metrics provide insights into the behavior of applications in the mesh helping users to troubleshoot, maintain and analyze their applications.
 
 As of today OSM collects metrics directly from the sidecar proxies (Envoy). OSM provides rich metrics for incoming and outgoing traffic for all services in the mesh. With these metrics the user can get information about the overall volume of traffic, errors within traffic and the response time for requests.
 
-OSM uses [Prometheus][1] to gather and store consistent traffic metrics and statistics for all applications running in the mesh. Prometheus is an open-source monitoring and alerting toolkit which is commonly used (but not limited to) on Kubernetes and Service Mesh environments.
+OSM uses [Prometheus][1] to gather and store consistent traffic metrics and statistics for all applications running in the mesh. Prometheus is an open-source monitoring and alerting toolkit which is commonly used on (but not limited to) Kubernetes and Service Mesh environments.
 
 Each application that is part of the mesh runs in a Pod which contains an Envoy sidecar that exposes metrics (proxy metrics) in the Prometheus format. Furthermore, every Pod that is a part of the mesh has Prometheus annotations, which makes it possible for the Prometheus server to scrape the application dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
 
@@ -52,7 +32,8 @@ By default, both Prometheus and Grafana are disabled.
 However, when configured with the `--deploy-grafana` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `deploy-grafana` flag to true when installing OSM using the `osm install` command.
 
 The automatic bring up can be overridden with the `osm install` option during install time:
-```
+
+```bash
 osm install --help
 
 This command installs an osm control plane on the Kubernetes...
@@ -66,7 +47,7 @@ This command installs an osm control plane on the Kubernetes...
 
 ### BYO Prometheus
 
-The following section will document the additional steps needed to allow an already running prometheus instance to poll the endpoints of an OSM mesh.
+The following section will document the additional steps needed to allow an already running Prometheus instance to poll the endpoints of an OSM mesh.
 
 #### List of Prerequisites for BYO Prometheus
 
@@ -79,7 +60,7 @@ The following section will document the additional steps needed to allow an alre
 
 - Make sure the Prometheus instance has appropriate RBAC rules to be able to reach both the pods and Kubernetes API - this might be dependent on specific requirements and situations for different deployments:
 
-```
+```yaml
 - apiGroups: [""]
    resources: ["nodes", "nodes/proxy",  "nodes/metrics", "services", "endpoints", "pods", "ingresses", "configmaps"]
    verbs: ["list", "get", "watch"]
@@ -91,15 +72,16 @@ The following section will document the additional steps needed to allow an alre
 ```
 
 - If desired, use the Prometheus Service definition to allow Prometheus to scrape itself:
-```
+
+```yaml
 annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '<API port for prometheus>' # Depends on deployment - OSM automatic deployment uses 7070 by default, controlled by `values.yaml`
 ```
 
-- Amend Prometheus' configmap to reach the pods/Envoy endpoints. OSM automatically appends the port annotations to the pods and takes care of
-pushing the listener configuration to the pods for Prometheus to reach:
-```
+- Amend Prometheus' configmap to reach the pods/Envoy endpoints. OSM automatically appends the port annotations to the pods and takes care of pushing the listener configuration to the pods for Prometheus to reach:
+
+```yaml
 - job_name: 'kubernetes-pods'
    kubernetes_sd_configs:
    - role: pod
@@ -151,18 +133,21 @@ pushing the listener configuration to the pods for Prometheus to reach:
 Metrics scraping can be configured using the `osm metrics` command. By default, OSM **does not** configure metrics scraping for pods in the mesh. Metrics scraping can be enabled or disabled at namespace scope such that pods belonging to configured namespaces can be enabled or disabled for scraping metrics.
 
 For metrics to be scraped, the following prerequisites must be met:
+
 - The namespace must be a part of the mesh, ie. it must be labeled with the `openservicemesh.io/monitored-by` label with an appropriate mesh name. This can be done using the `osm namespace add` command.
 - A running service able to scrap Prometheus endpoints. OSM provides configuration for an [automatic bringup of Prometheus](#automatic-bring-up); alternatively users can [bring their own Prometheus](#byo-bring-your-own).
 - The `prometheus_scraping` config key in osm-controller's `osm-config` ConfigMap must be set to `"true"`, which is the default configuration.
 
 
 To enable one or more namespaces for metrics scraping:
+
 ```bash
 osm metrics enable --namespace test
 osm metrics enable --namespace "test1, test2"
 ```
 
 To disable one or more namespaces for metrics scraping:
+
 ```bash
 osm metrics disable --namespace test
 osm metrics disable --namespace "test1, test2"
@@ -199,17 +184,17 @@ In addition, the `osm_request_total` metric has a `response_code` label represen
 #### Known Gaps
 
 - HTTP requests that invoke a local response from Envoy have "unknown" `destination_*` labels on metrics.
-    - In the demo, this includes requests from the bookthief to the bookstore.
+  - In the demo, this includes requests from the bookthief to the bookstore.
 - Metrics are only recorded for traffic where both endpoints are part of the mesh. Ingress and egress traffic do not have statistics recorded.
 - Metrics are recorded in Prometheus with all instances of '-' and '.' in tags converted to '\_'. This is because proxy-wasm adds tags to metrics through the name of the metric and Prometheus does not allow '-' or '.' in metric names, so Envoy converts them all to '\_' for the Prometheus format. This means a pod named 'abc-123' is labeled in Prometheus as 'abc\_123' and metrics for pods 'abc-123' and 'abc.123' would be tracked as a single pod 'abc\_123' and only distinguishable by the 'instance' label containing the pod's IP address.
 
 ### Querying metrics from Prometheus
 
-### Before you begin
+#### Before you begin
 
 Ensure that you have followed the steps to run [OSM Demo][2]
 
-### Querying proxy metrics for request count
+#### Querying proxy metrics for request count
 
 1. Verify that the Prometheus service is running in your cluster
     - In kubernetes, execute the following command: `kubectl get svc osm-prometheus -n osm-system`
