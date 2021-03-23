@@ -65,6 +65,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9200" -j ACCEPT # elastic
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9300" -j ACCEPT # elastic
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10080" -j ACCEPT # byod
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10500" -j ACCEPT # deviced/proxylistener
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT # sslport/apiserver
 
 
@@ -132,6 +133,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "9200" -j RETURN  # elastic
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9300" -j RETURN  # elastic
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10000" -j RETURN # radiusconfd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10080" -j RETURN # byod
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "10500" -j RETURN # deviced/proxylistener
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "32443" -j RETURN # sslpoort/apiserver
 
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
