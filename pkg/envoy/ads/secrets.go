@@ -30,13 +30,36 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 
 	discoveryRequest := &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{
-			// This cert is the client certificate presented by the proxy when it is connecting to
-			// an upstream service. This secret is referenced in the UpstreamTlsContext for any
-			// upstream TLS cluster configured for this proxy.
-			// The secret name is of the form <namespace>/<client-service-account>
+			// This cert is presented by the proxy to its peer (either upstream or downstream peer)
+			// during a mTLS or TLS handshake.
+			// It is referenced in the upstream cluster's UpstreamTlsContext and in the inbound
+			// listener's DownstreamTlsContext.
+			// The secret name is of the form <namespace>/<service-account>
 			envoy.SDSCert{
 				Name:     proxyIdentity.String(),
 				CertType: envoy.ServiceCertType,
+			}.String(),
+
+			// For each root validation cert referenced in the inbound filter chain's DownstreamTlsContext for this proxy,
+			// create an SDS resource with the same name.
+			// The DownstreamTlsContext on the inbound filter chain references the following validation cert types:
+			// 1. root-cert-for-mtls-inbound: root validation cert to validate the downstream's cert during mTLS handshake
+			// 2. root-cert-https: root validation cert to validate the downstream's cert during TLS (non-mTLS) handshake
+
+			// This cert is the upstream service's validation certificate used to validate certificates presented
+			// by downstream clients during mTLS handshake.
+			// The secret name is of the form <namespace>/<upstream-service>
+			envoy.SDSCert{
+				Name:     proxyIdentity.String(),
+				CertType: envoy.RootCertTypeForMTLSInbound,
+			}.String(),
+
+			// This cert is the upstream service's validation certificate used to validate certificates presented
+			// by downstream clients during TLS handshake.
+			// The secret name is of the form <namespace>/<upstream-service>
+			envoy.SDSCert{
+				Name:     proxyIdentity.String(),
+				CertType: envoy.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),
@@ -51,45 +74,6 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			CertType: envoy.RootCertTypeForMTLSOutbound,
 		}.String()
 		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)
-	}
-
-	// Create an SDS service cert and validation cert for each service associated with this proxy.
-	// The service cert and validation cert are referenced in the per service inbound filter chain's DownstreamTlsContext
-	// that is a part the proxy's inbound listener.
-	proxyServices, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil
-	}
-	for _, proxySvc := range proxyServices {
-		upstreamSecretResourceNames := []string{
-			// This cert is the upsteram service's service certificate that is presented to downstream
-			// clients during mTLS or TLS handshake.
-			// It is of the form <namespace>/<upstream-service>
-			envoy.SDSCert{
-				Name:     proxySvc.String(),
-				CertType: envoy.ServiceCertType,
-			}.String(),
-
-			// This cert is the upstream service's validation certificate used to validate certificates presented
-			// by downstream clients during mTLS handshake.
-			// The secret name is of the form <namespace>/<upstream-service>
-			envoy.SDSCert{
-				Name:     proxySvc.String(),
-				CertType: envoy.RootCertTypeForMTLSInbound,
-			}.String(),
-
-			// This cert is the upstream service's validation certificate used to validate certificates presented
-			// by downstream clients during TLS handshake.
-			// The secret name is of the form <namespace>/<upstream-service>
-			envoy.SDSCert{
-				Name:     proxySvc.String(),
-				CertType: envoy.RootCertTypeForHTTPS,
-			}.String(),
-		}
-
-		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamSecretResourceNames...)
 	}
 
 	return discoveryRequest

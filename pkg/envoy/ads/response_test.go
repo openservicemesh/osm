@@ -84,23 +84,18 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
-						// Client certificate presented when this proxy is a downstream
+						// Proxy's own cert to present to peer during mTLS/TLS handshake
 						Name:     proxySvcAccount.String(),
 						CertType: envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
-						// Server certificate presented when this proxy is an upstream
-						Name:     proxyService.String(),
-						CertType: envoy.ServiceCertType,
-					}.String(),
-					envoy.SDSCert{
 						// Validation certificate for mTLS when this proxy is an upstream
-						Name:     proxyService.String(),
+						Name:     proxySvcAccount.String(),
 						CertType: envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
 						// Validation ceritificate for TLS when this proxy is an upstream
-						Name:     proxyService.String(),
+						Name:     proxySvcAccount.String(),
 						CertType: envoy.RootCertTypeForHTTPS,
 					}.String(),
 				},
@@ -159,48 +154,38 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
 			log.Printf("%v", len((*actualResponses)[4].Resources))
 
-			// Expect 4 SDS certs:
-			// 1. client cert when this proxy is a downstream
+			// Expect 3 SDS certs:
+			// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 			// 2. mTLS validation cert when this proxy is an upstream
 			// 3. TLS validation cert when this proxy is an upstream
-			// 4. server cert when this proxy is an upstream
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
 
 			var tmpResource *any.Any
 
-			clientServiceCert := xds_auth.Secret{}
+			proxyServiceCert := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[0]
-			err = ptypes.UnmarshalAny(tmpResource, &clientServiceCert)
+			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(clientServiceCert.Name).To(Equal(envoy.SDSCert{
+			Expect(proxyServiceCert.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.ServiceCertType,
 			}.String()))
 
-			serverServiceCert := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverServiceCert)
-			Expect(err).To(BeNil())
-			Expect(serverServiceCert.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
-				CertType: envoy.ServiceCertType,
-			}.String()))
-
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[2]
+			tmpResource = (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
+				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[3]
+			tmpResource = (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
+				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})
@@ -238,48 +223,38 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(sdsResponse.VersionInfo).To(Equal("2")) // 2 because first update was by the previous test for the proxy
 			Expect(sdsResponse.TypeUrl).To(Equal(string(envoy.TypeSDS)))
 
-			// Expect 4 SDS certs:
-			// 1. client cert when this proxy is a downstream
+			// Expect 3 SDS certs:
+			// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 			// 2. mTLS validation cert when this proxy is an upstream
 			// 3. TLS validation cert when this proxy is an upstream
-			// 4. server cert when this proxy is an upstream
-			Expect(len(sdsResponse.Resources)).To(Equal(4))
+			Expect(len(sdsResponse.Resources)).To(Equal(3))
 
 			var tmpResource *any.Any
 
-			clientServiceCert := xds_auth.Secret{}
+			proxyServiceCert := xds_auth.Secret{}
 			tmpResource = sdsResponse.Resources[0]
-			err = ptypes.UnmarshalAny(tmpResource, &clientServiceCert)
+			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(clientServiceCert.Name).To(Equal(envoy.SDSCert{
+			Expect(proxyServiceCert.Name).To(Equal(envoy.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.ServiceCertType,
 			}.String()))
 
-			serverServiceCert := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverServiceCert)
-			Expect(err).To(BeNil())
-			Expect(serverServiceCert.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
-				CertType: envoy.ServiceCertType,
-			}.String()))
-
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[2]
+			tmpResource = sdsResponse.Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
+				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[3]
+			tmpResource = sdsResponse.Resources[2]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(envoy.SDSCert{
-				Name:     proxyService.String(),
+				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})

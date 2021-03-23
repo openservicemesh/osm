@@ -1,7 +1,10 @@
 // Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
@@ -46,4 +49,24 @@ func (c ClusterName) String() string {
 type WeightedCluster struct {
 	ClusterName ClusterName `json:"cluster_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
+}
+
+// UnmarshalK8sServiceAccount unmarshals a K8sServiceAccount type from a string
+func UnmarshalK8sServiceAccount(str string) (*K8sServiceAccount, error) {
+	slices := strings.Split(str, namespaceNameSeparator)
+	if len(slices) != 2 {
+		return nil, errInvalidMeshServiceFormat
+	}
+
+	// Make sure the slices are not empty. Split might actually leave empty slices.
+	for _, sep := range slices {
+		if len(sep) == 0 {
+			return nil, errInvalidMeshServiceFormat
+		}
+	}
+
+	return &K8sServiceAccount{
+		Namespace: slices[0],
+		Name:      slices[1],
+	}, nil
 }

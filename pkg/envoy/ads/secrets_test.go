@@ -49,19 +49,16 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					// 1. Client service cert
+					// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 					"service-cert:ns-1/test-sa",
 
 					// 2. Outbound validation certs to validate upstreams
 					"root-cert-for-mtls-outbound:ns-2/service-2",
 					"root-cert-for-mtls-outbound:ns-3/service-3",
 
-					// 3. Server service cert
-					"service-cert:ns-1/service-1",
-
-					// 4. Inbound validation certs to validate downstreams
-					"root-cert-for-mtls-inbound:ns-1/service-1",
-					"root-cert-https:ns-1/service-1",
+					// 3. Inbound validation certs to validate downstreams
+					"root-cert-for-mtls-inbound:ns-1/test-sa",
+					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -76,12 +73,16 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					// 1. Client service cert
+					// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 					"service-cert:ns-1/test-sa",
 
 					// 2. Outbound validation certs to validate upstreams
 					"root-cert-for-mtls-outbound:ns-2/service-2",
 					"root-cert-for-mtls-outbound:ns-3/service-3",
+
+					// 3. Inbound validation certs to validate downstreams
+					"root-cert-for-mtls-inbound:ns-1/test-sa",
+					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -95,15 +96,12 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					// 1. Client service cert
+					// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 					"service-cert:ns-1/test-sa",
 
-					// 3. Server service cert
-					"service-cert:ns-1/service-1",
-
 					// 4. Inbound validation certs to validate downstreams
-					"root-cert-for-mtls-inbound:ns-1/service-1",
-					"root-cert-https:ns-1/service-1",
+					"root-cert-for-mtls-inbound:ns-1/test-sa",
+					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -121,22 +119,16 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					// 1. Client service cert
+					// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 					"service-cert:ns-1/test-sa",
 
 					// 2. Outbound validation certs to validate upstreams
 					"root-cert-for-mtls-outbound:ns-2/service-2",
 					"root-cert-for-mtls-outbound:ns-3/service-3",
 
-					// 3. Server service cert
-					"service-cert:ns-1/service-1",
-					"service-cert:ns-4/service-4",
-
 					// 4. Inbound validation certs to validate downstreams
-					"root-cert-for-mtls-inbound:ns-1/service-1",
-					"root-cert-https:ns-1/service-1",
-					"root-cert-for-mtls-inbound:ns-4/service-4",
-					"root-cert-https:ns-4/service-4",
+					"root-cert-for-mtls-inbound:ns-1/test-sa",
+					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -144,7 +136,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return(tc.proxyServices, nil).Times(1)
+			mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return(tc.proxyServices, nil).Times(0)
 			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxySvcAccount).Return(tc.allowedOutboundServices).Times(1)
 
 			actual := makeRequestForAllSecrets(testProxy, mockCatalog)
