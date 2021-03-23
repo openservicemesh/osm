@@ -91,7 +91,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | `osm-controller` pod PullPolicy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
-| OpenServiceMesh.image.tag | string | `"v0.8.1-rc.2"` | `osm-controller` image tag |
+| OpenServiceMesh.image.tag | string | `"v0.8.1"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.injector | object | `{"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}}` | Sidecar injector configuration |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
