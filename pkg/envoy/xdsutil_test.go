@@ -116,6 +116,11 @@ var _ = Describe("Test Envoy tools", func() {
 			_, err := UnmarshalSDSCert("oot-cert-for-mtls-diagonalstream:blah/BlahBlahCert")
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("returns an error (empty slice)", func() {
+			_, err := UnmarshalSDSCert(":")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	Context("Test GetDownstreamTLSContext()", func() {
