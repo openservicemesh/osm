@@ -1,5 +1,5 @@
 pull_request_rules:
-  - name: Automatic merge for main branch
+  - name: Automatic merge to main branch
     conditions:
       # True if the base branch is main
       - base=main
@@ -37,7 +37,46 @@ pull_request_rules:
         # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
         strict_method: rebase
 
-  - name: Automatic merge for release branch
+  - name: Automatic squash to main branch
+    conditions:
+      # True if the base branch is main
+      - base=main
+      # check-success are true if the check ran successfully
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Tidy"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=DCO"
+      - "check-success=netlify/osm-docs/deploy-preview"
+      # True if the PR has at least 2 approving reviews
+      - "#approved-reviews-by>=2"
+      # True if the PR has the automerge label
+      - label=automerge-squash
+      # True if the PR does not have the wip label
+      - -label=wip
+      # True if the PR does not have the do-not-merge/hold label
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        # Squashes commits then merges PR
+        method: squash
+        # True enables Strict Merge i.e. the PR will only be merged when it's up-to-date with the base branch
+        strict: true
+        # strict_method is how the PR is updated with the base branch.
+        # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
+        strict_method: rebase
+
+
+  - name: Automatic merge to release branch
     conditions:
       # True if the base branch has release-
       - base~=^release-
