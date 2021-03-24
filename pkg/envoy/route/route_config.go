@@ -30,10 +30,10 @@ const (
 
 const (
 	//InboundRouteConfigName is the name of the route config that the envoy will identify
-	InboundRouteConfigName = "RDS_Inbound"
+	InboundRouteConfigName = "rds-inbound"
 
 	//OutboundRouteConfigName is the name of the route config that the envoy will identify
-	OutboundRouteConfigName = "RDS_Outbound"
+	OutboundRouteConfigName = "rds-outbound"
 
 	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
 	inboundVirtualHost = "inbound_virtual-host"

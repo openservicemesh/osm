@@ -61,7 +61,7 @@ var _ = Describe(``+
 			err = ptypes.UnmarshalAny(actual.Resources[0], &routeCfg)
 			It("returns a response that can be unmarshalled into an xds RouteConfiguration struct", func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(routeCfg.Name).To(Equal("RDS_Outbound"))
+				Expect(routeCfg.Name).To(Equal("rds-outbound"))
 			})
 
 			const (
