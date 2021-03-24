@@ -7,7 +7,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -100,7 +99,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	if cfg.IsPrometheusScrapingEnabled() {
 		// Build Prometheus listener config
-		prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
+		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
 			log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
