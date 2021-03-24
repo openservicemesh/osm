@@ -277,8 +277,8 @@ func TestNewResponse(t *testing.T) {
 			assert.NotNil(actual)
 
 			// The RDS response will have two route configurations
-			// 1. RDS_Inbound
-			// 2. RDS_Outbound
+			// 1. rds-inbound
+			// 2. rds-outbound
 			routeConfig := &xds_route.RouteConfiguration{}
 			assert.Equal(2, len(actual.GetResources()))
 
@@ -288,11 +288,11 @@ func TestNewResponse(t *testing.T) {
 				t.Fatal(unmarshallErr)
 			}
 
-			// The RDS_Inbound will have the following virtual hosts :
+			// The rds-inbound will have the following virtual hosts :
 			// inbound_virtual-host|bookstore-v1.default
 			// inbound_virtual-host|bookstore-apex
 			// inbound_virtual-host|bookstore-v1.default|*
-			assert.Equal("RDS_Inbound", routeConfig.Name)
+			assert.Equal("rds-inbound", routeConfig.Name)
 			assert.Equal(3, len(routeConfig.VirtualHosts))
 
 			assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
@@ -331,9 +331,9 @@ func TestNewResponse(t *testing.T) {
 				t.Fatal(unmarshallErr)
 			}
 
-			// The RDS_Outbound will have the following virtual hosts :
+			// The rds-outbound will have the following virtual hosts :
 			// outbound_virtual-host|bookstore-apex
-			assert.Equal("RDS_Outbound", routeConfig.Name)
+			assert.Equal("rds-outbound", routeConfig.Name)
 			assert.Equal(1, len(routeConfig.VirtualHosts))
 
 			assert.Equal("outbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[0].Name)
@@ -507,7 +507,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(unmarshallErr)
 	}
-	assert.Equal("RDS_Inbound", routeConfig.Name)
+	assert.Equal("rds-inbound", routeConfig.Name)
 	assert.Equal(2, len(routeConfig.VirtualHosts))
 
 	assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
@@ -526,7 +526,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(unmarshallErr)
 	}
-	assert.Equal("RDS_Outbound", routeConfig.Name)
+	assert.Equal("rds-outbound", routeConfig.Name)
 	assert.Equal(1, len(routeConfig.VirtualHosts))
 
 	assert.Equal("outbound_virtual-host|bookbuyer.default", routeConfig.VirtualHosts[0].Name)

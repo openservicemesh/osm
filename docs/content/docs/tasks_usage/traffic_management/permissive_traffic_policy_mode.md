@@ -168,7 +168,7 @@ In permissive mode, OSM controller programs wildcard routes for client applicati
           "ads": {},
           "resource_api_version": "V3"
          },
-         "route_config_name": "RDS_Outbound"
+         "route_config_name": "rds-outbound"
         },
         "http_filters": [
          {
@@ -189,7 +189,7 @@ In permissive mode, OSM controller programs wildcard routes for client applicati
     ```json
     "route_config": {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "RDS_Outbound",
+      "name": "rds-outbound",
       "virtual_hosts": [
        {
         "name": "outbound_virtual-host|httpbin.httpbin",
@@ -265,7 +265,7 @@ In permissive mode, OSM controller programs wildcard routes for client applicati
           "ads": {},
           "resource_api_version": "V3"
          },
-         "route_config_name": "RDS_Inbound"
+         "route_config_name": "rds-inbound"
         },
         "http_filters": [
          {
@@ -288,7 +288,7 @@ In permissive mode, OSM controller programs wildcard routes for client applicati
     ```json
     "route_config": {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "RDS_Inbound",
+      "name": "rds-inbound",
       "virtual_hosts": [
        {
         "name": "inbound_virtual-host|httpbin.httpbin",
