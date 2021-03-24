@@ -22,6 +22,13 @@ func TestGetLocalClusterNameForService(t *testing.T) {
 	assert.Equal(actual, "default/bookbuyer-local")
 }
 
+func TestGetAccessLog(t *testing.T) {
+	assert := tassert.New(t)
+
+	res := GetAccessLog()
+	assert.NotNil(res)
+}
+
 var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetLocalClusterNameForServiceCluster", func() {
 		It("", func() {
