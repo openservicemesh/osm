@@ -1,6 +1,8 @@
 package lds
 
 import (
+	"fmt"
+
 	envoy_config_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -16,14 +18,14 @@ import (
 )
 
 const (
-	statPrefix                          = "http"
+	meshHTTPConnManagerStatPrefix       = "mesh-http-conn-manager"
 	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
 )
 
 func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
 	connManager := &xds_hcm.HttpConnectionManager{
-		StatPrefix: statPrefix,
+		StatPrefix: fmt.Sprintf("%s.%s", meshHTTPConnManagerStatPrefix, routeName),
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
 		HttpFilters: []*xds_hcm.HttpFilter{
 			{
