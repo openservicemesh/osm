@@ -41,7 +41,7 @@ spec:
       serviceAccountName: bookbuyer
       containers:
         - name: bookbuyer
-          image: openservicemesh/bookbuyer:v0.8.0
+          image: openservicemesh/bookbuyer:v0.8.2
           imagePullPolicy: Always
           command: ["/bookbuyer"]
           env:
