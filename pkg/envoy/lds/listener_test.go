@@ -76,7 +76,7 @@ var _ = Describe("Construct inbound listeners", func() {
 
 	Context("Test creation of Prometheus listener", func() {
 		It("Tests the Prometheus listener config", func() {
-			connManager := getPrometheusConnectionManager("fake-prometheus", constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
+			connManager := getPrometheusConnectionManager()
 			listener, _ := buildPrometheusListener(connManager)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters

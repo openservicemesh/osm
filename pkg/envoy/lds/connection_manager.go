@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	statPrefix = "http"
+	statPrefix                          = "http"
+	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
+	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
 )
 
 func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
@@ -111,9 +113,9 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 	return connManager
 }
 
-func getPrometheusConnectionManager(listenerName string, routeName string, clusterName string) *xds_hcm.HttpConnectionManager {
+func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 	return &xds_hcm.HttpConnectionManager{
-		StatPrefix: listenerName,
+		StatPrefix: prometheusHTTPConnManagerStatPrefix,
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
 		HttpFilters: []*xds_hcm.HttpFilter{{
 			Name: wellknown.Router,
@@ -121,18 +123,18 @@ func getPrometheusConnectionManager(listenerName string, routeName string, clust
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_RouteConfig{
 			RouteConfig: &xds_route.RouteConfiguration{
 				VirtualHosts: []*xds_route.VirtualHost{{
-					Name:    "prometheus_envoy_admin",
-					Domains: []string{"*"},
+					Name:    prometheusInboundVirtualHostName,
+					Domains: []string{"*"}, // Match all domains
 					Routes: []*xds_route.Route{{
 						Match: &xds_route.RouteMatch{
 							PathSpecifier: &xds_route.RouteMatch_Prefix{
-								Prefix: routeName,
+								Prefix: constants.PrometheusScrapePath,
 							},
 						},
 						Action: &xds_route.Route_Route{
 							Route: &xds_route.RouteAction{
 								ClusterSpecifier: &xds_route.RouteAction_Cluster{
-									Cluster: clusterName,
+									Cluster: constants.EnvoyMetricsCluster,
 								},
 								PrefixRewrite: constants.PrometheusScrapePath,
 							},
