@@ -5,6 +5,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
@@ -238,6 +239,18 @@ var _ = Describe("Test Envoy tools", func() {
 			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service)
 			// To show the actual string for human comprehension
 			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
+		})
+	})
+
+	Context("Test pbStringValue()", func() {
+		It("returns structpb", func() {
+			exp := &structpb.Value{
+				Kind: &structpb.Value_StringValue{
+					StringValue: "apples",
+				},
+			}
+			res := pbStringValue("apples")
+			Expect(res).To(Equal(exp))
 		})
 	})
 
