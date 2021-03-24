@@ -323,6 +323,20 @@ func TestValidateFields(t *testing.T) {
 			},
 		},
 		{
+			testName: "Reject configmap with invalid syntax for IP range",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"outbound_ip_range_exclusion_list": "1.1.1.1", // invalid syntax, must be 1.1.1.1/32
+				},
+			},
+			expRes: &v1beta1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Reason: mustBeValidIPRange,
+				},
+			},
+		},
+		{
 			testName: "Reject configmap with invalid outbound IP range exclusions",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
