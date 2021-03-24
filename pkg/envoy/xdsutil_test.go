@@ -246,10 +246,10 @@ var _ = Describe("Test Envoy tools", func() {
 		It("returns structpb", func() {
 			exp := &structpb.Value{
 				Kind: &structpb.Value_StringValue{
-					StringValue: "apple",
+					StringValue: "apples",
 				},
 			}
-			res := pbStringValue("apple")
+			res := pbStringValue("apples")
 			Expect(res).To(Equal(exp))
 		})
 	})
