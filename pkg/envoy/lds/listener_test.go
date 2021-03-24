@@ -95,6 +95,16 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	Context("Test creation of HTTP connection manager", func() {
+		It("Should have the correct StatPrefix", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			connManager := getHTTPConnectionManager("foo", mockConfigurator, nil)
+			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.foo"))
+
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			connManager = getHTTPConnectionManager("bar", mockConfigurator, nil)
+			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.bar"))
+		})
+
 		It("Returns proper Zipkin config given when tracing is enabled", func() {
 			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).Times(1)
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
