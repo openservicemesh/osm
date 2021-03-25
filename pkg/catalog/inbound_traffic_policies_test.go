@@ -315,7 +315,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 								HTTPRouteMatch:   tests.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount),
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
 						},
 					},
 				},
@@ -971,13 +971,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
-								Name:      "bookstore",
-								Namespace: "bookstore-ns",
-							}, service.K8sServiceAccount{
-								Name:      "bookbuyer",
-								Namespace: "bookbuyer-ns",
-							}),
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
 						},
 					},
 				},
@@ -993,15 +987,9 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			k8sService := tests.NewServiceFixture(tc.meshService.Name, tc.meshService.Namespace, map[string]string{})
-			k8sServiceAccounts := []*corev1.ServiceAccount{}
-
-			for name, namespace := range tc.serviceAccounts {
-				k8sServiceAccounts = append(k8sServiceAccounts, tests.NewServiceAccountFixture(name, namespace))
-			}
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().GetService(tc.meshService).Return(k8sService)
-			mockKubeController.EXPECT().ListServiceAccounts().Return(k8sServiceAccounts)
 			actual := mc.buildInboundPermissiveModePolicies(tc.meshService)
 			assert.Len(actual, len(tc.expectedInboundPolicies))
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)

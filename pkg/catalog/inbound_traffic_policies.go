@@ -8,7 +8,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // ListInboundTrafficPolicies returns all inbound traffic policies
@@ -145,17 +144,12 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 
 	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(svc, false), hostnames)
 	weightedCluster := getDefaultWeightedClusterForService(svc)
-	svcAccounts := mc.kubeController.ListServiceAccounts()
 
-	// Build a rule for every service account in the mesh
-	for _, svcAccount := range svcAccounts {
-		sa := utils.SvcAccountToK8sSvcAccount(svcAccount)
-		servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{weightedCluster}), sa)
-	}
+	// Add a wildcard route to accept traffic from any service account (wildcard service account)
+	// A wildcard service account will program an RBAC policy for this rule that allows ANY downstream service account
+	servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{weightedCluster}), wildcardServiceAccount)
+	inboundPolicies = append(inboundPolicies, servicePolicy)
 
-	if len(servicePolicy.Rules) > 0 {
-		inboundPolicies = append(inboundPolicies, servicePolicy)
-	}
 	return inboundPolicies
 }
 
