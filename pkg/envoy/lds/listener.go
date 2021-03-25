@@ -1,6 +1,8 @@
 package lds
 
 import (
+	"fmt"
+
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -17,6 +19,7 @@ const (
 	outboundListenerName          = "outbound-listener"
 	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
+	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
 	singleIpv4Mask                = 32
 )
 
@@ -108,7 +111,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 
 func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       envoy.OutboundPassthroughCluster,
+		StatPrefix:       fmt.Sprintf("%s.%s", egressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
