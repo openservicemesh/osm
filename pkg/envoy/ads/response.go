@@ -109,7 +109,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	log.Trace().Msgf("Invoking handler for type %s; request from Envoy with Node ID %s", typeURL, nodeID)
 	response, err := handler(s.catalog, proxy, request, cfg, s.certManager)
 	if err != nil {
-		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
+		log.Error().Err(err).Msgf("Handler errored TypeURL: %s, proxy: %s", request.TypeUrl, proxy.GetCertificateSerialNumber())
 		return nil, errCreatingResponse
 	}
 
