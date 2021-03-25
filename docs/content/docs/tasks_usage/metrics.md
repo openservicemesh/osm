@@ -43,6 +43,8 @@ This command installs an osm control plane on the Kubernetes...
 ...
 ```
 
+Note that the Prometheus and Grafana instances deployed automatically by OSM have simple configurations that do not include high availability, persistent storage, or locked down security. If production-grade instances are required, pre-provision them and follow the BYO instructions on this page to integrate them with OSM.
+
 ## Prometheus Integration
 
 ### BYO Prometheus

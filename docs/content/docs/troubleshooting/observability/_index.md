@@ -5,4 +5,5 @@ type: docs
 ---
 
 ## Table of Contents
-- [Prometheus](./prometheus.md)
+- [Prometheus](./prometheus)
+- [Grafana](./grafana)
