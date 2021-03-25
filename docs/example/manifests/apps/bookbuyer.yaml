@@ -1,26 +1,13 @@
-# Deploy bookbuyer Service Account
+# Create bookbuyer Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookbuyer
   namespace: bookbuyer
+
 ---
-# Deploy bookbuyer Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookbuyer
-  namespace: bookbuyer
-  labels:
-    app: bookbuyer
-spec:
-  ports:
-  - port: 9999
-    name: dummy-unused-port
-  selector:
-    app: bookbuyer
----
-# Deploy bookbuyer Deployment
+
+# Create bookbuyer Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
