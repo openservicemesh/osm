@@ -22,11 +22,11 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ## Features
 
 1. Easily and transparently configure [traffic shifting](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) for deployments
-1. Secure service to service communication by [enabling mTLS](https://github.com/openservicemesh/osm/blob/main/docs/patterns/certificates.md)
+1. Secure service to service communication by [enabling mTLS](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/patterns/certificates.md)
 1. Define and execute fine grained [access control](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md) policies for services
-1. [Observability](https://github.com/openservicemesh/osm/blob/main/docs/patterns/observability/README.md) and insights into application metrics for debugging and monitoring services
-1. Integrate with [external certificate management](https://github.com/openservicemesh/osm/blob/main/docs/patterns/certificates.md) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://github.com/openservicemesh/osm/blob/main/docs/patterns/sidecar_injection.md) of Envoy proxy
+1. [Observability](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/patterns/observability/README.md) and insights into application metrics for debugging and monitoring services
+1. Integrate with [external certificate management](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/patterns/certificates.md) services/solutions with a pluggable interface
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/patterns/sidecar_injection.md) of Envoy proxy
 
 ## Project Status
 

@@ -47,14 +47,14 @@ If there are other commits on the `main` branch to be included in the release (s
 
 Create a new commit on the new branch to update the hardcoded version information in the following locations:
 
-* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml)
-* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml)
-* The default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go)
-* The image tags used in the [demo manifests](https://github.com/openservicemesh/osm/blob/main/docs/example/manifests/apps)
-* The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/main/charts/osm/README.md)
+* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/values.yaml)
+* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/Chart.yaml)
+* The default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/cli/install.go)
+* The image tags used in the [demo manifests](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps)
+* The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
 
-Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](https://raw.githubusercontent.com/openservicemesh/osm/main/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
+Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
 Proceed to the next step once the pull request is approved and merged.
 
@@ -71,7 +71,7 @@ $ git tag "$RELEASE_VERSION"
 $ git push upstream "$RELEASE_VERSION"
 ```
 
-A [GitHub Action](https://github.com/openservicemesh/osm/blob/main/.github/workflows/release.yml) is triggered when the tag is pushed.
+A [GitHub Action](https://github.com/openservicemesh/osm/blob/release-v0.8/.github/workflows/release.yml) is triggered when the tag is pushed.
 It will build the CLI binaries, publish a new GitHub release,
 upload the packaged binaries and checksums as release assets, build and push Docker images for OSM and the demo to the
 [`openservicemesh` organization](https://hub.docker.com/u/openservicemesh) on Docker Hub, and publish the Helm chart to the repo hosted at https://openservicemesh.github.io/osm.
@@ -93,4 +93,4 @@ Open a pull request against the `main` branch making the same version updates as
 
 ## Make version changes on docs.openservicemesh.io
 
-To add the new version to the 'Releases' dropdown menu on [docs.openservicemesh.io](https://docs.openservicemesh.io/), refer to [this section](https://github.com/openservicemesh/osm/tree/main/docs#versioning-the-docs-site) of the site Readme.
+To add the new version to the 'Releases' dropdown menu on [docs.openservicemesh.io](https://docs.openservicemesh.io/), refer to [this section](https://github.com/openservicemesh/osm/tree/release-v0.8/docs#versioning-the-docs-site) of the site Readme.

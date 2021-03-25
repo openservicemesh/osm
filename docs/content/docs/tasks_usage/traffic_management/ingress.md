@@ -290,7 +290,7 @@ At this point you can call your Ingress endpoint and get HTTPS traffic from the 
 glooctl proxy url --name ingress-proxy
 ```
 
-[1]: https://github.com/openservicemesh/osm/blob/main/README.md
+[1]: https://github.com/openservicemesh/osm/blob/release-v0.8/README.md
 [2]: https://kubernetes.github.io/ingress-nginx/
 [3]: https://azure.github.io/application-gateway-kubernetes-ingress/
 [4]: https://github.com/Azure/application-gateway-kubernetes-ingress/blob/master/docs/annotations.md#appgw-trusted-root-certificate

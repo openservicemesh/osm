@@ -43,4 +43,4 @@ sudo mv ./osm /usr/local/bin/osm
 $ osm install
 ```
 
-![OSM Install Demo](https://github.com/openservicemesh/osm/raw/main/img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
+![OSM Install Demo](https://github.com/openservicemesh/osm/raw/release-v0.8/img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
