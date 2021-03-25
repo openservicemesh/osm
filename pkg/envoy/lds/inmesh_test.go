@@ -532,7 +532,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream:      service.MeshService{Name: "foo", Namespace: "bar"},
 			trafficSplits: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-filter-chain:bar/foo",
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
 			},
 			expectError: false,
@@ -562,7 +562,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-filter-chain:bar/foo",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
@@ -605,7 +605,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-filter-chain:bar/foo",
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
 			},
 			expectError: false,
@@ -654,7 +654,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-filter-chain:bar/foo",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
@@ -697,7 +697,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-filter-chain:bar/foo",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
