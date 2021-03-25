@@ -52,44 +52,17 @@ If data appears to be missing from the Grafana dashboards, perform the following
 
     Start by opening the Grafana UI in a browser:
 
-    ```
+    ```console
     $ osm dashboard
     [+] Starting Dashboard forwarding
     [+] Issuing open browser http://localhost:3000
     ```
 
-    Login (default username/password is admin/admin) and navigate to the "Explore" page linked on the left side of the home page. Ensure "Prometheus" is selected as the data source at the top of the page. Then, issue any query, such as `envoy_cluster_upstream_rq_xx`.
+    Login (default username/password is admin/admin) and navigate to the [data source settings](http://localhost:3000/datasources). For each data source that may not be working, click it to see its configuration. At the bottom of the page is a  "Save & Test" button that will verify the settings.
 
-    If an error occurs, verify the Grafana configuration to ensure it is correctly pointing to the intended Prometheus instance. Specifically for the Grafana deployed by OSM, check the configured data source:
+    If an error occurs, verify the Grafana configuration to ensure it is correctly pointing to the intended Prometheus instance. Make changes in the Grafana settings as necessary until the "Save & Test" check shows no errors:
 
-    ```
-    $ # Assuming OSM is installed in the osm-system namespace
-    $ kubectl get configmaps -n osm-system osm-grafana-datasources -o jsonpath='{.data.prometheus\.yaml}'
-    # config file version
-    apiVersion: 1
-
-    # list of datasources that should be deleted from the database
-    deleteDatasources:
-      - name: Prometheus
-        orgId: 1
-
-    # list of datasources to insert/update depending
-    # whats available in the database
-    datasources:
-      # <string, required> name of the datasource. Required
-      - name: Prometheus
-        # <string, required> datasource type. Required
-        type: prometheus
-        # <string, required> access mode. direct or proxy. Required
-        access: proxy
-        # <int> org id. will default to orgId 1 if not specified
-        orgId: 1
-        # <string> url
-        url: http://osm-prometheus.osm-system.svc:7070
-        version: 1
-        # <bool> allow users to edit datasources from the UI.
-        editable: true
-    ```
+    ![Successful verification](https://user-images.githubusercontent.com/5503924/112394171-7e419e00-8cb9-11eb-99fc-3343c6b9fbbd.png)
 
     More details about configuring data sources can be found in [Grafana's docs](https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources).
 
