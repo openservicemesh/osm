@@ -71,10 +71,10 @@ osm namespace add bookstore bookbuyer bookthief bookwarehouse
 Deploy `bookbuyer`, `bookthief`, `bookstore`, `bookwarehouse` applications:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookbuyer.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookthief.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookstore.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookwarehouse.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookbuyer.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookthief.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookstore.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookwarehouse.yaml
 ```
 
 ### Checkpoint: What Got Installed?
@@ -160,7 +160,7 @@ osm mesh upgrade --enable-permissive-traffic-policy=true
 
 Before proceeding, [verify the traffic policy mode](#verify-the-traffic-policy-mode) and ensure the `permissive_traffic_policy_mode` key is set to `true` in the `osm-config` ConfigMap. Refer to the section above to enable permissive traffic policy mode.
 
-In step [Deploy the Bookstore Application](#deploy-the-bookstore-application), we have already deployed the applications needed to verify traffic flow in permissive traffic policy mode. The `bookstore` service we previously deployed is encoded with an identity of `bookstore-v1` for demo purpose, as can be seen in the [Deployment's manifest](https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookstore.yaml). The identity reflects which counter increments in the `bookbuyer` and `bookthief` UI, and the identity displayed in the `bookstore` UI.
+In step [Deploy the Bookstore Application](#deploy-the-bookstore-application), we have already deployed the applications needed to verify traffic flow in permissive traffic policy mode. The `bookstore` service we previously deployed is encoded with an identity of `bookstore-v1` for demo purpose, as can be seen in the [Deployment's manifest](https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookstore.yaml). The identity reflects which counter increments in the `bookbuyer` and `bookthief` UI, and the identity displayed in the `bookstore` UI.
 
 The counter in the `bookbuyer`, `bookthief` UI for the books bought and stolen respectively from `bookstore v1` should now be incrementing:
 
@@ -205,7 +205,7 @@ Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define
 
 ```bash
 # Deploy SMI TrafficTarget and HTTPRouteGroup policy
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/access/traffic-access-v1.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
 ```
 
 The counters should now be incrementing for the `bookbuyer`, and `bookstore` applications:
@@ -221,7 +221,7 @@ That is because the SMI Traffic Target SMI HTTPRouteGroup resources deployed onl
 
 #### Allowing the Bookthief Application to access the Mesh
 
-Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access-v1.yaml](https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/access/traffic-access-v1.yaml) to allow `bookthief` to communicate with `bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
+Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access-v1.yaml](https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml) to allow `bookthief` to communicate with `bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
 
 Current TrafficTarget spec with commented `bookthief` kind:
 
@@ -282,7 +282,7 @@ spec:
 Re-apply the access manifest with the updates.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/access/traffic-access-v1-allow-bookthief.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1-allow-bookthief.yaml
 ```
 
 The counter in the `bookthief` window will start incrementing.
@@ -293,7 +293,7 @@ Comment out the bookthief source lines in the Traffic Target object and re-apply
 
 ```bash
 # Re-apply original SMI TrafficTarget and HTTPRouteGroup resources
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/access/traffic-access-v1.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
 ```
 
 The counter in the `bookthief` window will start incrementing.
@@ -311,7 +311,7 @@ To demonstrate usage of SMI traffic access and split policies, we will deploy no
 ```bash
 # Contains the bookstore-v2 Kubernetes Service, Service Account, Deployment and SMI Traffic Target resource to allow
 # bookbuyer to communicate with `bookstore-v2` pods
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/apps/bookstore-v2.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookstore-v2.yaml
 ```
 
 Wait for the `bookstore-v2` pod to be running in the `bookstore` namespace. Next, exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of bookstore.
@@ -325,7 +325,7 @@ The counter should _not_ be incrementing because no traffic is flowing yet to th
 Deploy the SMI traffic split policy to direct 100 percent of the traffic sent to the root `bookstore` service to the `bookstore` service backend:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/split/traffic-split-v1.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v1.yaml
 ```
 
 _Note: The root service can be any Kubernetes service. It does not have any label selectors. It also doesn't need to overlap with any of the Backend services specified in the Traffic Split resource. The root service can be referred to in the SMI Traffic Split resource as the name of the service with or without the `.<namespace>` suffix._
@@ -341,7 +341,7 @@ kubectl describe trafficsplit bookstore-split -n bookstore
 Update the SMI Traffic Split policy to direct 50 percent of the traffic sent to the root `bookstore` service to the `bookstore` service and 50 perfect to `bookstore-v2` service by adding the `bookstore-v2` backend to the spec and modifying the weight fields.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/split/traffic-split-50-50.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-50-50.yaml
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore` and `bookstore-v2` in your browser windows. Both
@@ -355,7 +355,7 @@ counters should be incrementing:
 Update the SMI TrafficSplit policy for `bookstore` Service configuring all traffic to go to `bookstore-v2`:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/split/traffic-split-v2.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v2.yaml
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore-v2` and freeze for `bookstore` in your

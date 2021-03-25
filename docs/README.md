@@ -1,6 +1,6 @@
 # Open Service Mesh Docs
 
-> :book: This section contains the [OSM Docs](https://github.com/openservicemesh/osm/tree/main/docs/content)  
+> :book: This section contains the [OSM Docs](https://github.com/openservicemesh/osm/tree/release-v0.8/docs/content)  
 > :ship: Also the website config to generate [docs.openservicemesh.io](docs.openservicemesh.io)  
 > :link: Looking for the main OSM website? Visit [osm-www](https://github.com/openservicemesh/osm-www)  
 

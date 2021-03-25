@@ -27,7 +27,7 @@ Once you have tried out this basic setup, we recommend configuring log forwardin
 
 To customize log forwarding to your output, follow these steps and then reinstall OSM with Fluent Bit enabled.
 
-1. Find the output plugin you would like to forward your logs to in [Fluent Bit documentation](https://docs.fluentbit.io/manual/pipeline/outputs). Replace the `[OUTPUT]` section in [`fluentbit-configmap.yaml`](https://github.com/openservicemesh/osm/blob/main/charts/osm/templates/fluentbit-configmap.yaml) with appropriate values.
+1. Find the output plugin you would like to forward your logs to in [Fluent Bit documentation](https://docs.fluentbit.io/manual/pipeline/outputs). Replace the `[OUTPUT]` section in [`fluentbit-configmap.yaml`](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/templates/fluentbit-configmap.yaml) with appropriate values.
 
 1. The default configuration uses CRI log format parsing. If you are using a kubernetes distribution that causes your logs to be formatted differently, you may need to add a new parser to the `[PARSER]` section and change the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf).
 
@@ -98,4 +98,4 @@ Alternatively, you may change the values in the Helm chart by updating the follo
     ```console
     osm install --enable-fluentbit
     ```
-> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature. 
+> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature. 

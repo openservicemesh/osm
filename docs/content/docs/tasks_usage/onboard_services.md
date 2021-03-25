@@ -15,9 +15,9 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     OSM conforms to the SMI specification. By default, OSM denies all traffic communications between Kubernetes services unless explicitly allowed by SMI policies. This behavior can be overridden with the `--enable-permissive-traffic-policy` flag on the `osm install` command, allowing SMI policies not to be enforced while allowing traffic and services to still take advantage of features such as mTLS-encrypted traffic, metrics, and tracing.
 
     For example SMI policies, please see the following examples:
-    - [demo/deploy-traffic-specs.sh](https://github.com/openservicemesh/osm/blob/main/demo/deploy-traffic-specs.sh)
-    - [demo/deploy-traffic-split.sh](https://github.com/openservicemesh/osm/blob/main/demo/deploy-traffic-split.sh)
-    - [demo/deploy-traffic-target.sh](https://github.com/openservicemesh/osm/blob/main/demo/deploy-traffic-target.sh)
+    - [demo/deploy-traffic-specs.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/deploy-traffic-specs.sh)
+    - [demo/deploy-traffic-split.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/deploy-traffic-split.sh)
+    - [demo/deploy-traffic-target.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/deploy-traffic-target.sh)
 
 1. Onboard Kubernetes Namespaces to enable OSM
 
@@ -40,14 +40,14 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     Once a namespace has been onboarded, pods can be enrolled in the mesh by configuring automatic sidecar injection. See the [Sidecar Injection](../patterns/sidecar_injection) document for more details.
 
     For an example on how to onboard and join namespaces to the OSM mesh, please see the following example:
-    - [demo/join-namespaces.sh](https://github.com/openservicemesh/osm/blob/main/demo/join-namespaces.sh)
+    - [demo/join-namespaces.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/join-namespaces.sh)
 
 1.  Inject the Proxy Sidecars
 
     At the moment to onboard your Kubernetes services to OSM, a restart of the pods backing the services is needed. In the near future, manual sidecar injection will be supported no longer requiring this step.
 
     For an example on how to invoke a rolling restart of your services' pods, please see the following example:
-    - [demo/rolling-restart.sh](https://github.com/openservicemesh/osm/blob/main/demo/rolling-restart.sh)
+    - [demo/rolling-restart.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/rolling-restart.sh)
 
 1. Verify the new behavior
 

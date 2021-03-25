@@ -39,7 +39,7 @@ For details and code where this is used see [osm-controller.go](https://github.c
 ## Issuing Certificates
 
 Open Service Mesh supports 4 methods of issuing certificates:
-  - using an internal OSM package, called [Tresor](https://github.com/openservicemesh/osm/tree/main/pkg/certificate/providers/tresor). This is the default for a first time installation.
+  - using an internal OSM package, called [Tresor](https://github.com/openservicemesh/osm/tree/release-v0.8/pkg/certificate/providers/tresor). This is the default for a first time installation.
   - using [Hashicorp Vault](https://www.vaultproject.io/)
   - using [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/)
   - using [cert-manager](https://cert-manager.io)
@@ -47,7 +47,7 @@ Open Service Mesh supports 4 methods of issuing certificates:
 
 ### Using OSM's Tresor certificate issuer
 
-Open Service Mesh includes a package, [tresor](https://github.com/openservicemesh/osm/tree/main/pkg/certificate/providers/tresor). This is a minimal implementation of the `certificate.Manager` interface. It issues certificates leveraging the `crypto` Go library, and stores these certificates as Kubernetes secrets.
+Open Service Mesh includes a package, [tresor](https://github.com/openservicemesh/osm/tree/release-v0.8/pkg/certificate/providers/tresor). This is a minimal implementation of the `certificate.Manager` interface. It issues certificates leveraging the `crypto` Go library, and stores these certificates as Kubernetes secrets.
 
   - To use the `tresor` package during development set `export CERT_MANAGER=tresor` in the `.env` file of this repo.
 
@@ -82,7 +82,7 @@ Additionally:
 
 Installation of Hashi Vault is out of scope for the Open Service Mesh project. Typically this is the responsibility of dedicated security teams. Documentation on how to deploy Vault securely and make it highly available is available on [Vault's website](https://learn.hashicorp.com/vault/getting-started/install).
 
-This repository does contain a [script (deploy-vault.sh)](https://github.com/openservicemesh/osm/tree/main/demo/deploy-vault.sh), which is used to automate the deployment of Hashi Vault for continuous integration. This is strictly for development purposes only. Running the script will deploy Vault in a Kubernetes namespace defined by the `$K8S_NAMESPACE` environment variable in your [.env](https://github.com/openservicemesh/osm/blob/main/.env.example) file. This script can be used for demonstration purposes. It requires the following environment variables:
+This repository does contain a [script (deploy-vault.sh)](https://github.com/openservicemesh/osm/tree/release-v0.8/demo/deploy-vault.sh), which is used to automate the deployment of Hashi Vault for continuous integration. This is strictly for development purposes only. Running the script will deploy Vault in a Kubernetes namespace defined by the `$K8S_NAMESPACE` environment variable in your [.env](https://github.com/openservicemesh/osm/blob/release-v0.8/.env.example) file. This script can be used for demonstration purposes. It requires the following environment variables:
 ```
 export K8S_NAMESPACE=osm-system-ns
 export VAULT_TOKEN=xyz
