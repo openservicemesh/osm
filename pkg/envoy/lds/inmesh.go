@@ -26,6 +26,8 @@ const (
 	outboundMeshHTTPFilterChainPrefix = "outbound-mesh-http-filter-chain"
 	inboundMeshTCPFilterChainPrefix   = "inbound-mesh-tcp-filter-chain"
 	outboundMeshTCPFilterChainPrefix  = "outbound-mesh-tcp-filter-chain"
+	inboundMeshTCPProxyStatPrefix     = "inbound-mesh-tcp-proxy"
+	outboundMeshTCPProxyStatPrefix    = "outbound-mesh-tcp-proxy"
 	httpAppProtocol                   = "http"
 	tcpAppProtocol                    = "tcp"
 	gRPCAppProtocol                   = "grpc"
@@ -210,9 +212,10 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	}
 
 	// Apply the TCP Proxy Filter
+	localServiceCluster := envoy.GetLocalClusterNameForService(proxyService)
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       "inbound-mesh-tcp-proxy",
-		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.GetLocalClusterNameForService(proxyService)},
+		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, localServiceCluster),
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: localServiceCluster},
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
@@ -342,7 +345,7 @@ func (lb *listenerBuilder) getOutboundTCPFilterChainForService(upstream service.
 
 func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*xds_listener.Filter, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream),
+		StatPrefix:       fmt.Sprintf("%s.%s", outboundMeshTCPProxyStatPrefix, upstream),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: upstream.String()},
 	}
 
