@@ -1,17 +1,21 @@
-# Deploy bookwarehouse Namespace
+# Create bookwarehouse Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: bookwarehouse
+
 ---
-# Deploy bookwarehouse Service Account
+
+# Create bookwarehouse Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookwarehouse
   namespace: bookwarehouse
+
 ---
-# Deploy bookwarehouse Service
+
+# Create bookwarehouse Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -25,8 +29,10 @@ spec:
     name: bookwarehouse-port
   selector:
     app: bookwarehouse
+
 ---
-# Deploy bookwarehouse Deployment
+
+# Create bookwarehouse Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:

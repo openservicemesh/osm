@@ -1,10 +1,12 @@
-# Deploy bookstore Namespace
+# Create bookstore Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: bookstore
+
 ---
-# Deploy bookstore Service
+
+# Create bookstore Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -18,15 +20,19 @@ spec:
     name: bookstore-port
   selector:
     app: bookstore
+
 ---
-# Deploy bookstore Service Account
+
+# Create bookstore Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookstore
   namespace: bookstore
+
 ---
-# Deploy bookstore Deployment
+
+# Create bookstore Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
