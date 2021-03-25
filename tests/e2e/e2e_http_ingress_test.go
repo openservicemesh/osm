@@ -76,12 +76,15 @@ var _ = OSMDescribe("HTTP ingress",
 				}
 			}
 
+			ingressNs := "ingress-ns"
+			Expect(Td.CreateNs(ingressNs, nil)).To(BeNil())
+
 			helm := &action.Configuration{}
-			Expect(helm.Init(Td.Env.RESTClientGetter(), Td.OsmNamespace, "secret", Td.T.Logf)).To(Succeed())
-			helm.KubeClient.(*kube.Client).Namespace = Td.OsmNamespace
+			Expect(helm.Init(Td.Env.RESTClientGetter(), ingressNs, "secret", Td.T.Logf)).To(Succeed())
+			helm.KubeClient.(*kube.Client).Namespace = ingressNs
 			install := action.NewInstall(helm)
 			install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
-			install.Namespace = Td.OsmNamespace
+			install.Namespace = ingressNs
 			install.ReleaseName = "ingress-nginx"
 			install.Version = "3.23.0"
 			install.Wait = true
@@ -95,7 +98,7 @@ var _ = OSMDescribe("HTTP ingress",
 
 			ingressAddr := "localhost"
 			if !isKind {
-				svc, err := Td.Client.CoreV1().Services(Td.OsmNamespace).Get(context.Background(), "ingress-nginx-controller", metav1.GetOptions{})
+				svc, err := Td.Client.CoreV1().Services(ingressNs).Get(context.Background(), "ingress-nginx-controller", metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
 				ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP
