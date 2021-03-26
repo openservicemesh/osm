@@ -60,7 +60,7 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 
 	// Create an inbound RBAC policy that denies a request by default, unless a policy explicitly allows it
 	networkRBACPolicy := &xds_network_rbac.RBAC{
-		StatPrefix: "RBAC",
+		StatPrefix: "network-", // will be displayed as network-rbac.<path>
 		Rules: &xds_rbac.RBAC{
 			Action:   xds_rbac.RBAC_ALLOW, // Allows the request if and only if there is a policy that matches the request
 			Policies: rbacPolicies,
