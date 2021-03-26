@@ -114,7 +114,7 @@ Now each one of the four namespaces is labelled with `openservicemesh.io/monitor
 annotated with `openservicemesh.io/sidecar-injection: enabled`. The OSM Controller, noticing the label and annotation
 on these namespaces, will start injecting all **new** pods with Envoy sidecars.
 
-### Create the Pods and Services
+### Create Pods, Services, ServiceAccounts
 
 Create the service accounts:
 ```bash
