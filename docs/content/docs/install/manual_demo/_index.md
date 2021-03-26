@@ -21,7 +21,7 @@ The OSM Manual Install Demo Guide is a step by step set of instructions to quick
   - `cd osm`
 
 
-## Download the OSM command-line tool
+## Download and install the OSM command-line tool
 
 The `osm` command-line tool contains everything needed to install and configure Open Service Mesh.
 The binary is available on the [OSM GitHub releases page](https://github.com/openservicemesh/osm/releases/).
