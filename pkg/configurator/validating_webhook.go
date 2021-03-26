@@ -250,7 +250,7 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *v1bet
 		if field == "envoy_log_level" && !checkEnvoyLogLevels(field, value) {
 			reasonForDenial(resp, mustBeValidLogLvl, field)
 		}
-		if field == "service_cert_validity_duration" {
+		if field == "service_cert_validity_duration" || field == "config_resync_interval" {
 			_, err := time.ParseDuration(value)
 			if err != nil {
 				reasonForDenial(resp, mustBeValidTime, field)
