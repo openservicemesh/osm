@@ -101,7 +101,7 @@ kubectl create namespace bookthief
 kubectl create namespace bookwarehouse
 ```
 
-### Join the new namespaces to the service mesh
+### Add the new namespaces to the OSM control plane
 
 ```bash
 osm namespace add bookstore
