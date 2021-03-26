@@ -26,6 +26,8 @@ The OSM Manual Install Demo Guide is a step by step set of instructions to quick
 The `osm` command-line tool contains everything needed to install and configure Open Service Mesh.
 The binary is available on the [OSM GitHub releases page](https://github.com/openservicemesh/osm/releases/).
 
+### For GNU/Linux and macOS
+
 Download the 64-bit GNU/Linux or macOS binary of OSM v0.8.2:
 ```bash
 system=$(uname -s)
@@ -34,7 +36,9 @@ curl -L https://github.com/openservicemesh/osm/releases/download/${release}/osm-
 ./${system}-amd64/osm version
 ```
 
-Download the Windows OSM v0.8.2 binary via Powershell:
+### For Windows
+
+Download the 64-bit Windows OSM v0.8.2 binary via Powershell:
 ```powershell
 wget  https://github.com/openservicemesh/osm/releases/download/v0.8.2/osm-v0.8.2-windows-amd64.zip -o osm.zip
 unzip osm.zip
