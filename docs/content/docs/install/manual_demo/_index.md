@@ -87,7 +87,7 @@ state of allowed and blocked traffic between pods:
 
 To show SMI Traffic Split, we will deploy an additional application:
 
-- `bookstore-v2` - a server, which is a newer version of the existing `bookstore` application
+- `bookstore-v2` - this is the same container as the first `bookstore` we deployed, but for this demo we will assume that it is a new version of the app we need to upgrade to.
 
 The `bookbuyer`, `bookthief`, `bookstore`, and `bookwarehouse` Pods will be in separate Kubernetes Namespaces with
 the same names. Each new Pod in the service mesh will be injected with an Envoy sidecar container.
