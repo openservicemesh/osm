@@ -35,10 +35,10 @@ This command enables
 [Grafana](https://github.com/grafana/grafana), and
 [Jaeger](https://github.com/jaegertracing/jaeger) integrations.
 The `--enable-permissive-traffic-policy` options instructs OSM to ignore any policies and
-let traffic flow freely between the pods. New pods will be injected with Envoy, but traffic
-will flow through the proxy and will not be blocked. This is an important feature for brownfield
-deployments, where it may take some time to craft SMI policies, while existing services need
-to continue to operate the way they have been before OSM was installed.
+let traffic flow freely between the pods. With Permissive Traffic Policy mode enabled, new pods
+will be injected with Envoy, but traffic will flow through the proxy and will not be blocked.
+
+> Note: Permissive Traffic Policy mode is an important feature for brownfield deployments, where it may take some time to craft SMI policies. While operators design the SMI policies, existing services will to continue to operate as they have been before OSM was installed.
 
 ```bash
 osm install \
