@@ -20,9 +20,33 @@ The OSM Manual Install Demo Guide is a step by step set of instructions to quick
   - `git clone https://github.com/openservicemesh/osm.git`
   - `cd osm`
 
-## Build or Download the OSM CLI
 
-Use the [installation guide](../../install) to install the `osm` cli.
+## Download and install the OSM command-line tool
+
+The `osm` command-line tool contains everything needed to install and configure Open Service Mesh.
+The binary is available on the [OSM GitHub releases page](https://github.com/openservicemesh/osm/releases/).
+
+### For GNU/Linux and macOS
+
+Download the 64-bit GNU/Linux or macOS binary of OSM v0.8.2:
+```bash
+system=$(uname -s)
+release=v0.8.2
+curl -L https://github.com/openservicemesh/osm/releases/download/${release}/osm-${release}-${system}-amd64.tar.gz | tar -vxzf -
+./${system}-amd64/osm version
+```
+
+### For Windows
+
+Download the 64-bit Windows OSM v0.8.2 binary via Powershell:
+```powershell
+wget  https://github.com/openservicemesh/osm/releases/download/v0.8.2/osm-v0.8.2-windows-amd64.zip -o osm.zip
+unzip osm.zip
+.\windows-amd64\osm.exe version
+```
+
+The `osm` CLI can be compiled from source using [this guide](../../install/_index.md).
+
 
 ## Install OSM Control Plane
 
