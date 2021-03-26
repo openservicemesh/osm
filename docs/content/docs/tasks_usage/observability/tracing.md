@@ -35,14 +35,45 @@ The sections below outline how to make required updates depending on whether you
 
 If you already have OSM running, `tracing` values must be updated in the OSM ConfigMap using:
 
-```console
-# Replace osm-system with osm-controller's namespace if using a non default namespace
-kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"tracing_enable":"true", "tracing_address":"<tracing server hostname>", "tracing_port":"<tracing server port>", "tracing_endpoint":" <tracing server endpoint>"}}' --type=merge
+> Note: Replace `osm-system` in the commands below with osm-controller's namespace if using a non default namespace
+
+1. Enable tracing.
+```bash
+kubectl patch ConfigMap osm-config \
+  --namespace osm-system \
+  --type=merge \
+  --patch '{"data":{"tracing_enable": "true"}}'
 ```
+
+2. Provide the **address** of the Jaeger instance to the OSM Controller. (Example: `jaeger.osm-system.svc.cluster.local`)
+```bash
+kubectl patch ConfigMap osm-config \
+  --namespace osm-system \
+  --type=merge \
+  --patch '{"data":{"tracing_address": "<tracing server hostname>"}}'
+```
+
+3. Provide the **port** of the Jaeger instance to the OSM Controller. (Example: `9411`)
+```bash
+kubectl patch ConfigMap osm-config \
+  --namespace osm-system \
+  --type=merge \
+  --patch '{"data":{"tracing_port": "<tracing server port>"}}'
+```
+
+4. Provide the **endpoint** of the Jaeger instance to the OSM Controller. (Example: `/api/v2/spans`)
+```bash
+kubectl patch ConfigMap osm-config \
+  --namespace osm-system \
+  --type=merge \
+  --patch '{"data":{"tracing_endpoint": "<tracing server endpoint>"}}'
+```
+
+
 > Note: To make this change persistent between upgrades, see osm mesh upgrade --help.
 
 You can verify these changes have been deployed by inspecting `osm-config`:
-```console
+```bash
 kubectl get configmap osm-config -n osm-system -o yaml
 ```
 
@@ -50,6 +81,10 @@ kubectl get configmap osm-config -n osm-system -o yaml
 
 To deploy _your own instance of Jaeger_ during OSM installation, you can use the `--set` flag as shown below to update the values:
 
-```console
-osm install --set OpenServiceMesh.tracing.enable=true,OpenServiceMesh.tracing.address=<tracing server hostname>,OpenServiceMesh.tracing.port=<tracing server port>,OpenServiceMesh.tracing.endpoint=<tracing server endpoint>
+```bash
+osm install --set \
+    OpenServiceMesh.tracing.enable=true, \
+    OpenServiceMesh.tracing.address=<tracing server hostname>, \
+    OpenServiceMesh.tracing.port=<tracing server port>, \
+    OpenServiceMesh.tracing.endpoint=<tracing server endpoint>
 ```
