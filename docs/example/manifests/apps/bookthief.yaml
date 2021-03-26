@@ -1,32 +1,21 @@
-# Deploy bookthief Namespace
+# Create bookthief Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: bookthief
+
 ---
-# Deploy bookthief ServiceAccount
+
+# Create bookthief ServiceAccount
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookthief
   namespace: bookthief
+
 ---
-# Deploy bookthief Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookthief
-  namespace: bookthief
-  labels:
-    app: bookthief
-spec:
-  ports:
-  - port: 9999
-    name: dummy-unused-port
-  selector:
-    app: bookthief
----
-# Deploy bookthief Deployment
+
+# Create bookthief Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
