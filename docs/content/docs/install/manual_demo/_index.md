@@ -180,7 +180,7 @@ spec:
       serviceAccountName: bookbuyer
       containers:
       - name: bookbuyer
-        image: openservicemesh/bookbuyer:v0.8.0
+        image: openservicemesh/bookbuyer:v0.8.2
         imagePullPolicy: Always
         command: ["/bookbuyer"]
         env:
@@ -212,7 +212,7 @@ spec:
       serviceAccountName: bookthief
       containers:
       - name: bookthief
-        image: openservicemesh/bookthief:v0.8.0
+        image: openservicemesh/bookthief:v0.8.2
         imagePullPolicy: Always
         command: ["/bookthief"]
         env:
@@ -264,7 +264,7 @@ spec:
       serviceAccountName: bookstore
       containers:
       - name: bookstore
-        image: openservicemesh/bookstore:v0.8.0
+        image: openservicemesh/bookstore:v0.8.2
         imagePullPolicy: Always
         ports:
           - containerPort: 14001
@@ -320,7 +320,7 @@ spec:
       serviceAccountName: bookwarehouse
       containers:
       - name: bookwarehouse
-        image: openservicemesh/bookwarehouse:v0.8.0
+        image: openservicemesh/bookwarehouse:v0.8.2
         imagePullPolicy: Always
         command: ["/bookwarehouse"]
 EOF
