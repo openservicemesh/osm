@@ -24,20 +24,40 @@ The OSM Manual Install Demo Guide is a step by step set of instructions to quick
 
 Use the [installation guide](../../install) to install the `osm` cli.
 
-## Install OSM Control Plane
 
-For the purpose of this demo, install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled via the `--enable-permissive-traffic-policy` flag. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled. Also by default, `osm` CLI does not enable Prometheus, Grafana, and Jaeger as a part of control plane installation.
+## Installing OSM on Kubernetes
 
-Install OSM in permissive traffic policy mode with these features enabled:
+With the `osm` binary downloaded and unzipped, we are ready to install Open Service Mesh on a Kubernetes cluster:
+
+The command below shows how to install OSM on your Kubernetes cluster.
+This command enables
+[Prometheus](https://github.com/prometheus/prometheus),
+[Grafana](https://github.com/grafana/grafana), and
+[Jaeger](https://github.com/jaegertracing/jaeger) integrations.
+The `--enable-permissive-traffic-policy` options instructs OSM to ignore any policies and
+let traffic flow freely between the pods. New pods will be injected with Envoy, but traffic
+will flow through the proxy and will not be blocked. This is an important feature for brownfield
+deployments, where it may take some time to craft SMI policies, while existing services need
+to continue to operate the way they have been before OSM was installed.
 
 ```bash
-osm install --enable-permissive-traffic-policy --deploy-prometheus --deploy-grafana --deploy-jaeger
+osm install \
+    --enable-permissive-traffic-policy \
+    --deploy-prometheus \
+    --deploy-grafana \
+    --deploy-jaeger
 ```
 
-See the [observability documentation](../../patterns/observability/_index.md) for more details about using Prometheus, Grafana, and Jaeger with OSM.
+> Note: This document assumes you have already installed credentials for a Kubernetes cluster in ~/.kube/config and `kubectl cluster-info` executes successfully.
+
+This installed OSM Controller in the `osm-system` namespace.
+
+
+Read more on OSM's integrations with Prometheus, Grafana, and Jaeger in the [observability documentation](../../patterns/observability/_index.md).
 
 ### OpenShift
-For details on how to install OSM on OpenShift, refer to the [installation guide](../#openshift)
+For details on how to install OSM on OpenShift, refer to the [installation guide](../_index.md#openshift)
+
 
 ## Deploy the Bookstore Demo Applications
 
