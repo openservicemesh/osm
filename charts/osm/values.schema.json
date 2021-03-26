@@ -112,6 +112,15 @@
                                             "description": "The resources requests memory for the osmcontroller."
                                         }
                                     }
+                                },
+                                "podLabels": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/podLabels",
+                                    "type": "array",
+                                    "title": "The podLabels schema",
+                                    "description": "Labels for the osmcontroller pod.",
+                                    "items": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
