@@ -63,7 +63,6 @@ See the [observability documentation](../../patterns/observability/_index.md) fo
 ### OpenShift
 For details on how to install OSM on OpenShift, refer to the [installation guide](../#openshift)
 
----
 
 ## Deploy Applications
 
@@ -326,7 +325,6 @@ spec:
 EOF
 ```
 
----
 
 ### Checkpoint: What Got Installed?
 
