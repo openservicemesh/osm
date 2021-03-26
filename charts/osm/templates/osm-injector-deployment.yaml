@@ -15,6 +15,9 @@ spec:
     metadata:
       labels:
         app: osm-injector
+  {{- if .Values.OpenServiceMesh.injector.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.injector.podLabels | nindent 8 }}
+  {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'

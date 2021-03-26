@@ -24,6 +24,7 @@ OpenServiceMesh:
       requests:
         cpu: "0.5"
         memory: "128M"
+    podLabels: {}
   prometheus:
     # -- Prometheus port
     port: 7070
@@ -144,6 +145,7 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
+    podLabels: {}
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
