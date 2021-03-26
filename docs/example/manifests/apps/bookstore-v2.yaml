@@ -1,5 +1,4 @@
----
-# Deploy bookstore-v2 Service
+# Create bookstore-v2 Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,15 +12,19 @@ spec:
     name: bookstore-port
   selector:
     app: bookstore-v2
+
 ---
-# Deploy bookstore-v2 Service Account
+
+# Create bookstore-v2 Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookstore-v2
   namespace: bookstore
+
 ---
-# Deploy bookstore-v2 Deployment
+
+# Create bookstore-v2 Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -52,7 +55,9 @@ spec:
               value: bookwarehouse
             - name: IDENTITY
               value: bookstore-v2
+
 ---
+
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
 metadata:
