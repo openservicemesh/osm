@@ -320,7 +320,7 @@ Comment out the bookthief source lines in the Traffic Target object and re-apply
 kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
 ```
 
-The counter in the `bookthief` window will start incrementing.
+The counter in the `bookthief` window will stop incrementing.
 
 - [http://localhost:8083](http://localhost:8083) - **bookthief**
 
