@@ -44,6 +44,17 @@ func newMeshUninstall(config *action.Configuration, in io.Reader, out io.Writer)
 		Args:    cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, args []string) error {
 			uninstall.client = action.NewUninstall(config)
+
+			// get kubeconfig and initialize k8s client
+			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
+			if err != nil {
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
+			}
+			uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
+			if err != nil {
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+			}
+
 			return uninstall.run()
 		},
 	}
