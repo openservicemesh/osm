@@ -108,9 +108,16 @@ clean-osm:
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
 
-.PHONY: chart-checks
-chart-checks: chart-readme
+.PHONY: chart-check-readme
+chart-check-readme: chart-readme
 	@git diff --exit-code charts/osm/README.md || { echo "----- Please commit the changes made by 'make chart-readme' -----"; exit 1; }
+
+.PHONY: helm-lint
+helm-lint:
+	@helm lint charts/osm/ || { echo "----- Schema validation failed for OSM chart values -----"; exit 1; }
+
+.PHONY: chart-checks
+chart-checks: chart-check-readme helm-lint
 
 .PHONY: check-mocks
 check-mocks:
