@@ -97,7 +97,7 @@ func (d *meshUninstallCmd) run() error {
 
 	if d.deleteNamespace {
 		if err = d.clientSet.CoreV1().Namespaces().Delete(ctx, ns, v1.DeleteOptions{}); err != nil {
-			return errors.Errorf("Error occurred while deleting OSM namespace [%s]", ns)
+			return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", ns, err)
 		}
 		fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
 	}
