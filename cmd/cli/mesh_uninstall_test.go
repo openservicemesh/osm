@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -180,6 +181,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet := fake.NewSimpleClientset()
 			out := new(bytes.Buffer)
 			in := new(bytes.Buffer)
 			in.Write([]byte("n\n"))
@@ -190,6 +192,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				client:          helm.NewUninstall(testConfig),
 				meshName:        meshName,
 				deleteNamespace: deleteNamespace,
+				clientSet:       fakeClientSet,
 			}
 
 			err = uninstallCmd.run()
@@ -227,6 +230,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet := fake.NewSimpleClientset()
 			out := new(bytes.Buffer)
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
@@ -237,6 +241,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				client:          helm.NewUninstall(testConfig),
 				meshName:        meshName,
 				deleteNamespace: deleteNamespace,
+				clientSet:       fakeClientSet,
 			}
 
 			err = uninstallCmd.run()
