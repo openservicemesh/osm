@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
@@ -12,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -230,7 +232,12 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			// create namespace so that it can be deleted
 			fakeClientSet := fake.NewSimpleClientset()
+			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), createNamespaceSpec(settings.Namespace(),
+				meshName, true), v1.CreateOptions{})
+			Expect(err).To(BeNil())
+
 			out := new(bytes.Buffer)
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
