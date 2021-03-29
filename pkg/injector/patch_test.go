@@ -10,7 +10,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -59,7 +59,7 @@ var _ = Describe("Test all patch operations", func() {
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
 
-			req := &v1beta1.AdmissionRequest{Namespace: namespace}
+			req := &admissionv1.AdmissionRequest{Namespace: namespace}
 			jsonPatches, err := wh.createPatch(&pod, req, proxyUUID)
 
 			Expect(err).ToNot(HaveOccurred())

@@ -1,4 +1,4 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   labels:
@@ -26,3 +26,5 @@ webhooks:
         - UPDATE
       resources:
         - configmaps
+  sideEffects: None
+  admissionReviewVersions: ["v1"]
