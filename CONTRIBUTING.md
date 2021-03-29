@@ -90,7 +90,7 @@ git push -f
 ```
 
 ### Merging pull requests
-Pull requests by default must be merged by a core maintainer using the `Merge pull request` option.
+Pull requests by default must be merged by a core maintainer using the `Merge pull request` option as a `merge commit`.
 Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/content/docs/automerge.md).
 
 Pull requests will be merged based on the following criteria:
@@ -102,6 +102,7 @@ Pull requests will be merged based on the following criteria:
 - Does not have the `wip` label.
 - All status checks have succeeded.
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
+- Core maintainers are allowed to use the `squash and merge` option only for their own pull requests.
 
 ### Commit Style Guideline
 We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
