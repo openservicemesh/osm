@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	helmStorage "helm.sh/helm/v3/pkg/storage/driver"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const meshUninstallDescription = `
@@ -18,11 +21,13 @@ Only use this in non-production and test environments.
 `
 
 type meshUninstallCmd struct {
-	out      io.Writer
-	in       io.Reader
-	meshName string
-	force    bool
-	client   *action.Uninstall
+	out             io.Writer
+	in              io.Reader
+	meshName        string
+	force           bool
+	deleteNamespace bool
+	client          *action.Uninstall
+	clientSet       kubernetes.Interface
 }
 
 func newMeshUninstall(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
@@ -44,13 +49,22 @@ func newMeshUninstall(config *action.Configuration, in io.Reader, out io.Writer)
 	}
 
 	f := cmd.Flags()
+	//add mesh name flag
 	f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	//add force uninstall flag
 	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
+	//add uninstall namespace flag
+	f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
 
 	return cmd
 }
 
 func (d *meshUninstallCmd) run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ns := settings.Namespace()
+
 	if !d.force {
 		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Uninstall OSM [mesh name: %s] ?", d.meshName), 3)
 		if !confirm || err != nil {
@@ -63,11 +77,19 @@ func (d *meshUninstallCmd) run() error {
 		if d.force {
 			return nil
 		}
-		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.meshName, settings.Namespace())
+		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.meshName, ns)
 	}
 
 	if err == nil {
 		fmt.Fprintf(d.out, "OSM [mesh name: %s] uninstalled\n", d.meshName)
+	}
+
+	if d.deleteNamespace {
+		if err = d.clientSet.CoreV1().Namespaces().Delete(ctx, ns, v1.DeleteOptions{}); err != nil {
+			return errors.Errorf("Error occurred while deleting OSM namespace [%s]", ns)
+		} else {
+			fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
+		}
 	}
 
 	return err
