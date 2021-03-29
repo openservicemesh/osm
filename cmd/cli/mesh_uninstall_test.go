@@ -115,8 +115,9 @@ var _ = Describe("Running the mesh uninstall command", func() {
 	})
 	Context("custom parameters", func() {
 		var (
-			uninstallCmd *meshUninstallCmd
-			force        bool
+			uninstallCmd    *meshUninstallCmd
+			force           bool
+			deleteNamespace bool
 		)
 		When("force is true", func() {
 			store := storage.Init(driver.NewMemory())
@@ -159,6 +160,99 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] uninstalled\n"))
 			})
 
+		})
+
+		When("delete-namespace is true, but user enters no when prompted", func() {
+			store := storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			rel := release.Mock(&release.MockReleaseOptions{Name: "other-mesh"})
+			err := store.Create(rel)
+			Expect(err).To(BeNil())
+
+			testConfig := &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			out := new(bytes.Buffer)
+			in := new(bytes.Buffer)
+			in.Write([]byte("n\n"))
+			deleteNamespace = true
+			uninstallCmd = &meshUninstallCmd{
+				out:             out,
+				in:              in,
+				client:          helm.NewUninstall(testConfig),
+				meshName:        meshName,
+				deleteNamespace: deleteNamespace,
+			}
+
+			err = uninstallCmd.run()
+
+			It("should prompt for confirmation", func() {
+				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
+			})
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should not give a message confirming the uninstall of OSM", func() {
+				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: " + meshName + "] uninstalled\n"))
+			})
+			It("should not give a message confirming the deletion on namespace", func() {
+				Expect(out.String()).ToNot(ContainSubstring("OSM namespace [" + settings.Namespace() + "] deleted successfully\n"))
+			})
+
+		})
+
+		When("delete-namespace is true and user enters yes when prompted", func() {
+			store := storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			rel := release.Mock(&release.MockReleaseOptions{Name: meshName})
+			err := store.Create(rel)
+			Expect(err).To(BeNil())
+
+			testConfig := &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			out := new(bytes.Buffer)
+			in := new(bytes.Buffer)
+			in.Write([]byte("y\n"))
+			deleteNamespace = true
+			uninstallCmd = &meshUninstallCmd{
+				out:             out,
+				in:              in,
+				client:          helm.NewUninstall(testConfig),
+				meshName:        meshName,
+				deleteNamespace: deleteNamespace,
+			}
+
+			err = uninstallCmd.run()
+
+			It("should prompt for confirmation", func() {
+				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
+			})
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should give a message confirming the uninstall of OSM", func() {
+				Expect(out.String()).To(ContainSubstring("OSM [mesh name: " + meshName + "] uninstalled\n"))
+			})
+			It("should give a message confirming the deletion on namespace", func() {
+				Expect(out.String()).To(ContainSubstring("OSM namespace [" + settings.Namespace() + "] deleted successfully\n"))
+			})
 		})
 	})
 })
