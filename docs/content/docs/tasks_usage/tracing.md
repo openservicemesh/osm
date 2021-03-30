@@ -98,18 +98,18 @@ This section walks through the process of creating a simple Jaeger instance and 
         kind: Service
         apiVersion: v1
         metadata:
-        name: jaeger
-        namespace: osm-system
-        labels:
+          name: jaeger
+          namespace: osm-system
+          labels:
             app: jaeger
         spec:
-        selector:
+          selector:
             app: jaeger
-        ports:
-        - protocol: TCP
+          ports:
+          - protocol: TCP
             # Service port and target port are the same
             port: 9411
-        type: ClusterIP
+          type: ClusterIP
         EOF
         ```        
         
@@ -120,33 +120,33 @@ This section walks through the process of creating a simple Jaeger instance and 
         apiVersion: apps/v1
         kind: Deployment
         metadata:
-        name: jaeger
-        namespace: osm-system
-        labels:
+          name: jaeger
+          namespace: osm-system
+          labels:
             app: jaeger
         spec:
-        replicas: 1
-        selector:
+          replicas: 1
+          selector:
             matchLabels:
-            app: jaeger
-        template:
+              app: jaeger
+          template:
             metadata:
-            labels:
+              labels:
                 app: jaeger
             spec:
-            containers:
-            - name: jaeger
+              containers:
+              - name: jaeger
                 image: jaegertracing/all-in-one
                 args:
-                - --collector.zipkin.host-port=9411
+                  - --collector.zipkin.host-port=9411
                 imagePullPolicy: IfNotPresent
                 ports:
                 - containerPort: 9411
                 resources:
-                limits:
+                  limits:
                     cpu: 500m
                     memory: 512M
-                requests:
+                  requests:
                     cpu: 100m
                     memory: 256M
         EOF
