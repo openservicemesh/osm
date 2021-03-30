@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -26,7 +24,7 @@ func createReconciler(kubeClient *kubernetes.Clientset) error {
 		Client:       mgr.GetClient(),
 		KubeClient:   kubeClient,
 		Scheme:       mgr.GetScheme(),
-		OsmWebhook:   fmt.Sprintf("osm-webhook-%s", meshName),
+		OsmWebhook:   webhookConfigName,
 		OsmNamespace: osmNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error().Err(err).Msg("Error creating controller to reconcile MutatingWebhookConfiguration")
