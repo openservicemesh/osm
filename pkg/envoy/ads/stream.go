@@ -44,7 +44,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	defer s.catalog.UnregisterProxy(proxy)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(server.Context())
 	defer cancel()
 
 	quit := make(chan struct{})
