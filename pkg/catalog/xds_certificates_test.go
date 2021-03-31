@@ -64,7 +64,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			}
 			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
 
-			Expect(meshServices).To(Equal(expectedList))
+			Expect(meshServices).Should(HaveLen(len(expectedList)))
+			Expect(meshServices).Should(ConsistOf(expectedList))
 		})
 
 		It("returns an error with an invalid CN", func() {
