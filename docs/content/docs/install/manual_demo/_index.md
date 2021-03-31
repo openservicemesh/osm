@@ -136,7 +136,6 @@ In a browser, open up the following urls:
 - [http://localhost:8080](http://localhost:8080) - **bookbuyer**
 - [http://localhost:8083](http://localhost:8083) - **bookthief**
 - [http://localhost:8084](http://localhost:8084) - **bookstore**
-  - _Note: This page will not be available at this time in the demo. This will become available during the SMI Traffic Split configuration set up_
 - [http://localhost:8082](http://localhost:8082) - **bookstore-v2**
   - _Note: This page will not be available at this time in the demo. This will become available during the SMI Traffic Split configuration set up_
 
@@ -235,7 +234,7 @@ kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v
 The counters should now be incrementing for the `bookbuyer`, and `bookstore` applications:
 
 - [http://localhost:8080](http://localhost:8080) - **bookbuyer**
-- [http://localhost:8081](http://localhost:8084) - **bookstore**
+- [http://localhost:8084](http://localhost:8084) - **bookstore**
 
 Note that the counter is _not_ incrementing for the `bookthief` application:
 
@@ -386,7 +385,7 @@ Wait for the changes to propagate and observe the counters increment for `bookst
 browser windows:
 
 - [http://localhost:8082](http://localhost:8082) - **bookstore-v2**
-- [http://localhost:8083](http://localhost:8083) - **bookstore**
+- [http://localhost:8083](http://localhost:8084) - **bookstore**
 
 Now, all traffic directed to the `bookstore` service is flowing to `bookstore-v2`.
 
