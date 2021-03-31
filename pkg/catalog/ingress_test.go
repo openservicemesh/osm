@@ -703,7 +703,8 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockIngressMonitor.EXPECT().GetIngressResources(tc.svc).Return(tc.ingresses, nil).Times(1)
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingresses, nil).Times(1)
+			mockIngressMonitor.EXPECT().GetAPIVersion().Return(ingress.IngressNetworkingV1beta1).Times(1)
 
 			actualPolicies, err := meshCatalog.GetIngressPoliciesForService(tc.svc)
 
