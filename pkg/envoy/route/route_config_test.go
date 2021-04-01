@@ -47,8 +47,9 @@ func TestBuildRouteConfiguration(t *testing.T) {
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
 				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-					PathRegex: "/some-path",
-					Methods:   []string{"GET"},
+					Path:          "/some-path",
+					PathMatchType: trafficpolicy.PathMatchRegex,
+					Methods:       []string{"GET"},
 				},
 				WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 			},
@@ -176,9 +177,10 @@ func TestBuildInboundRoutes(t *testing.T) {
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-							PathRegex: "/hello",
-							Methods:   []string{"GET"},
-							Headers:   map[string]string{"hello": "world"},
+							Path:          "/hello",
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Methods:       []string{"GET"},
+							Headers:       map[string]string{"hello": "world"},
 						},
 						WeightedClusters: set.NewSet(testWeightedCluster),
 					},
@@ -204,9 +206,10 @@ func TestBuildInboundRoutes(t *testing.T) {
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-							PathRegex: "/hello",
-							Methods:   []string{"GET"},
-							Headers:   map[string]string{"hello": "world"},
+							Path:          "/hello",
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Methods:       []string{"GET"},
+							Headers:       map[string]string{"hello": "world"},
 						},
 						WeightedClusters: set.NewSet(testWeightedCluster),
 					},
@@ -237,9 +240,10 @@ func TestBuildOutboundRoutes(t *testing.T) {
 	input := []*trafficpolicy.RouteWeightedClusters{
 		{
 			HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-				PathRegex: "/hello",
-				Methods:   []string{"GET"},
-				Headers:   map[string]string{"hello": "world"},
+				Path:          "/hello",
+				PathMatchType: trafficpolicy.PathMatchRegex,
+				Methods:       []string{"GET"},
+				Headers:       map[string]string{"hello": "world"},
 			},
 			WeightedClusters: set.NewSet(testWeightedCluster),
 		},
@@ -531,8 +535,9 @@ func TestGetHeadersForRoute(t *testing.T) {
 
 	// Returns a list of HeaderMatcher for a route
 	routePolicy := trafficpolicy.HTTPRouteMatch{
-		PathRegex: "/books-bought",
-		Methods:   []string{"GET", "POST"},
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
 		Headers: map[string]string{
 			userAgentHeader: "This is a test header",
 		},
@@ -546,8 +551,9 @@ func TestGetHeadersForRoute(t *testing.T) {
 
 	// Returns only one HeaderMatcher for a route
 	routePolicy = trafficpolicy.HTTPRouteMatch{
-		PathRegex: "/books-bought",
-		Methods:   []string{"GET", "POST"},
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
 	}
 	actual = getHeadersForRoute(routePolicy.Methods[1], routePolicy.Headers)
 	assert.Equal(1, len(actual))
@@ -556,8 +562,9 @@ func TestGetHeadersForRoute(t *testing.T) {
 
 	// Returns only one HeaderMatcher for a route ignoring the host
 	routePolicy = trafficpolicy.HTTPRouteMatch{
-		PathRegex: "/books-bought",
-		Methods:   []string{"GET", "POST"},
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
 		Headers: map[string]string{
 			"user-agent": tests.HTTPUserAgent,
 		},

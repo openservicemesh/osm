@@ -186,8 +186,9 @@ var (
 
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
 	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
-		PathRegex: BookstoreBuyPath,
-		Methods:   []string{"GET"},
+		Path:          BookstoreBuyPath,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
 		},
@@ -195,8 +196,9 @@ var (
 
 	// BookstoreSellHTTPRoute is an HTTP route to sell books
 	BookstoreSellHTTPRoute = trafficpolicy.HTTPRouteMatch{
-		PathRegex: BookstoreSellPath,
-		Methods:   []string{"GET"},
+		Path:          BookstoreSellPath,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
 		},
@@ -388,8 +390,9 @@ var (
 
 	// WildCardRouteMatch is HTTPRouteMatch with wildcard path and method
 	WildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
-		PathRegex: constants.RegexMatchAll,
-		Methods:   []string{constants.WildcardHTTPMethod},
+		Path:          constants.RegexMatchAll,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{constants.WildcardHTTPMethod},
 	}
 )
 

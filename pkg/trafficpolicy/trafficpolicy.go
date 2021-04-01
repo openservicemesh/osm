@@ -12,8 +12,9 @@ import (
 
 // WildCardRouteMatch represents a wildcard HTTP route match condition
 var WildCardRouteMatch HTTPRouteMatch = HTTPRouteMatch{
-	PathRegex: constants.RegexMatchAll,
-	Methods:   []string{constants.WildcardHTTPMethod},
+	Path:          constants.RegexMatchAll,
+	PathMatchType: PathMatchRegex,
+	Methods:       []string{constants.WildcardHTTPMethod},
 }
 
 // NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
