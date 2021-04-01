@@ -6,6 +6,7 @@ import (
 
 	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
@@ -255,10 +256,7 @@ func TestBuildOutboundRoutes(t *testing.T) {
 
 func TestBuildRoute(t *testing.T) {
 	assert := tassert.New(t)
-	weightedClusters := set.NewSetFromSlice([]interface{}{
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
-	})
+
 	testCases := []struct {
 		name             string
 		weightedClusters set.Set
@@ -267,43 +265,157 @@ func TestBuildRoute(t *testing.T) {
 		pathRegex        string
 		method           string
 		headersMap       map[string]string
+		expectedRoute    *xds_route.Route
 	}{
 		{
-			name:             "default",
-			pathRegex:        "/somepath",
-			method:           "GET",
-			headersMap:       map[string]string{"hello": "goodbye", "header1": "another-header"},
-			totalWeight:      100,
-			direction:        OutboundRoute,
-			weightedClusters: weightedClusters,
+			name:        "outbound route",
+			pathRegex:   "/somepath",
+			method:      "GET",
+			headersMap:  map[string]string{"header1": "header1-val", "header2": "header2-val"},
+			totalWeight: 100,
+			direction:   OutboundRoute,
+			weightedClusters: set.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+						SafeRegex: &xds_matcher.RegexMatcher{
+							EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+							Regex:      "/somepath",
+						},
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+						{
+							Name: "header1",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header1-val",
+								},
+							},
+						},
+						{
+							Name: "header2",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header2-val",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1",
+										Weight: &wrappers.UInt32Value{Value: 30},
+									},
+									{
+										Name:   "osm/bookstore-2",
+										Weight: &wrappers.UInt32Value{Value: 70},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "inbound route",
+			pathRegex:   "/somepath",
+			method:      "GET",
+			headersMap:  map[string]string{"header1": "header1-val", "header2": "header2-val"},
+			totalWeight: 100,
+			direction:   InboundRoute,
+			weightedClusters: set.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+						SafeRegex: &xds_matcher.RegexMatcher{
+							EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+							Regex:      "/somepath",
+						},
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+						{
+							Name: "header1",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header1-val",
+								},
+							},
+						},
+						{
+							Name: "header2",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header2-val",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1-local",
+										Weight: &wrappers.UInt32Value{Value: 100},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := buildRoute(tc.pathRegex, tc.method, tc.headersMap, tc.weightedClusters, tc.totalWeight, tc.direction)
-			assert.EqualValues(tc.pathRegex, actual.Match.GetSafeRegex().Regex)
-			numFound := 0
-			for k, v := range tc.headersMap {
-				//assert that k is in actual.Match.Headers and the v is the same
-				for _, actualHeader := range actual.Match.Headers {
-					if actualHeader.Name == k {
-						assert.Equal(v, actualHeader.GetSafeRegexMatch().Regex)
-						numFound = numFound + 1
-					}
-				}
-			}
-			foundMethod := false
-			for _, actualHeader := range actual.Match.Headers {
-				if actualHeader.Name == ":method" {
-					assert.Equal(tc.method, actualHeader.GetSafeRegexMatch().Regex)
-					foundMethod = true
-					break
-				}
-			}
-			assert.Equal(true, foundMethod)
-			assert.Equal(len(tc.headersMap), numFound)
-			assert.Equal(2, len(actual.GetRoute().GetWeightedClusters().Clusters))
+
+			// Assert route.Match
+			assert.Equal(tc.expectedRoute.Match.PathSpecifier, actual.Match.PathSpecifier)
+			assert.ElementsMatch(tc.expectedRoute.Match.Headers, actual.Match.Headers)
+
+			// Assert route.Action
+			assert.Equal(tc.expectedRoute.Action, actual.Action)
 		})
 	}
 }
