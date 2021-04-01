@@ -163,6 +163,7 @@ func (c *Client) configMapListener() {
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingAddress != newConfigMap.TracingAddress)
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEndpoint != newConfigMap.TracingEndpoint)
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
+				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PrometheusScraping != newConfigMap.PrometheusScraping)
 
 				if triggerGlobalBroadcast {
 					log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
