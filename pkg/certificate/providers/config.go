@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
@@ -169,6 +170,10 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: ns,
+			Labels: map[string]string{
+				constants.OSMAppNameLabelKey:    constants.OSMAppNameLabelValue,
+				constants.OSMAppVersionLabelKey: version.Version,
+			},
 		},
 		Data: secretData,
 	}

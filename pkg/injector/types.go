@@ -25,6 +25,7 @@ type mutatingWebhook struct {
 	certManager    certificate.Manager
 	kubeController k8s.Controller
 	osmNamespace   string
+	meshName       string
 	cert           certificate.Certificater
 	configurator   configurator.Configurator
 

@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: osm-config
   namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
