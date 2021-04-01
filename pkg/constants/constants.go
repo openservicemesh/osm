@@ -163,3 +163,11 @@ const (
 	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on
 	PrometheusPathAnnotation = "prometheus.io/path"
 )
+
+// App labels as defined in the "osm.labels" template in _helpers.tpl of the Helm chart.
+const (
+	OSMAppNameLabelKey     = "app.kubernetes.io/name"
+	OSMAppNameLabelValue   = "openservicemesh.io"
+	OSMAppInstanceLabelKey = "app.kubernetes.io/instance"
+	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
+)
