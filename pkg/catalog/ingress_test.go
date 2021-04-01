@@ -106,8 +106,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake1-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake1-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -127,8 +128,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake2-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake2-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -233,8 +235,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake1-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake1-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -254,8 +257,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake2-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake2-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -348,8 +352,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake1-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake1-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -369,8 +374,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake2-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake2-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -463,8 +469,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake1-path1",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake1-path1",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",
@@ -476,8 +483,9 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									PathRegex: "/fake1-path2",
-									Methods:   []string{constants.WildcardHTTPMethod},
+									Path:          "/fake1-path2",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "testns/foo",

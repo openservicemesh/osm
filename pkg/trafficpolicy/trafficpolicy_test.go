@@ -11,15 +11,17 @@ import (
 
 var (
 	testHTTPRouteMatch = HTTPRouteMatch{
-		PathRegex: "/hello",
-		Methods:   []string{"GET"},
-		Headers:   map[string]string{"hello": "world"},
+		Path:          "/hello",
+		PathMatchType: PathMatchRegex,
+		Methods:       []string{"GET"},
+		Headers:       map[string]string{"hello": "world"},
 	}
 
 	testHTTPRouteMatch2 = HTTPRouteMatch{
-		PathRegex: "/goodbye",
-		Methods:   []string{"GET"},
-		Headers:   map[string]string{"later": "alligator"},
+		Path:          "/goodbye",
+		PathMatchType: PathMatchRegex,
+		Methods:       []string{"GET"},
+		Headers:       map[string]string{"later": "alligator"},
 	}
 
 	testHostnames = []string{"testHostname1", "testHostname2", "testHostname3"}
@@ -330,8 +332,9 @@ func TestMergeInboundPoliciesWithIngress(t *testing.T) {
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
 			HTTPRouteMatch: HTTPRouteMatch{
-				PathRegex: "/hello",
-				Methods:   []string{"*"},
+				Path:          "/hello",
+				PathMatchType: PathMatchRegex,
+				Methods:       []string{"*"},
 			},
 			WeightedClusters: set.NewSet(testWeightedCluster),
 		},

@@ -1188,22 +1188,25 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 	expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
 		specKey: {
 			trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
-				PathRegex: tests.BookstoreBuyPath,
-				Methods:   []string{"GET"},
+				Path:          tests.BookstoreBuyPath,
+				PathMatchType: trafficpolicy.PathMatchRegex,
+				Methods:       []string{"GET"},
 				Headers: map[string]string{
 					"user-agent": tests.HTTPUserAgent,
 				},
 			},
 			trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
-				PathRegex: tests.BookstoreSellPath,
-				Methods:   []string{"GET"},
+				Path:          tests.BookstoreSellPath,
+				PathMatchType: trafficpolicy.PathMatchRegex,
+				Methods:       []string{"GET"},
 				Headers: map[string]string{
 					"user-agent": tests.HTTPUserAgent,
 				},
 			},
 			trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
-				PathRegex: ".*",
-				Methods:   []string{"*"},
+				Path:          ".*",
+				PathMatchType: trafficpolicy.PathMatchRegex,
+				Methods:       []string{"*"},
 				Headers: map[string]string{
 					"user-agent": tests.HTTPUserAgent,
 				},

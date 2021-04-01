@@ -48,7 +48,8 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 				}
 				routePolicy := trafficpolicy.WildCardRouteMatch
 				if ingressPath.Path != "" {
-					routePolicy.PathRegex = ingressPath.Path
+					routePolicy.Path = ingressPath.Path
+					routePolicy.PathMatchType = trafficpolicy.PathMatchRegex
 				}
 				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, []service.WeightedCluster{ingressWeightedCluster}), wildcardServiceAccount)
 			}
