@@ -19,7 +19,7 @@ const (
 	// for Prefix path type, where the prefix must be an element wise prefix and not a string prefix.
 	// Ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
 	// It is used to regex match paths such that request /foo matches /foo and /foo/bar, but not /foobar.
-	prefixMatchPathElementsRegex = `(\/.*)?$`
+	prefixMatchPathElementsRegex = `(/.*)?$`
 
 	// commonRegexChars is a string comprising of characters commonly used in a regex
 	// It is used to guess whether a path specified appears as a regex.

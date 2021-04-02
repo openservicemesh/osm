@@ -240,7 +240,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									Path:          `/fake1-path1(\/.*)?$`,
+									Path:          `/fake1-path1(/.*)?$`,
 									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
@@ -262,7 +262,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									Path:          `/fake2-path1(\/.*)?$`,
+									Path:          `/fake2-path1(/.*)?$`,
 									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
@@ -451,7 +451,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 										Paths: []networkingV1beta1.HTTPIngressPath{
 											{
 												PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypeImplementationSpecific))),
-												Path:     `/fake1-path2(\/.*)?$`,
+												Path:     `/fake1-path2(/.*)?$`,
 												Backend: networkingV1beta1.IngressBackend{
 													ServiceName: "foo",
 													ServicePort: intstr.IntOrString{
@@ -492,7 +492,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-									Path:          `/fake1-path2(\/.*)?$`,
+									Path:          `/fake1-path2(/.*)?$`,
 									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
