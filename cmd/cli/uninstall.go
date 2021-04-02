@@ -92,7 +92,7 @@ func (d *uninstallCmd) run() error {
 	}
 
 	if err == nil {
-		fmt.Fprintf(d.out, "OSM [mesh name: %s] uninstalled\n", d.meshName)
+		fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", d.meshName, settings.Namespace())
 	}
 
 	if d.deleteNamespace {

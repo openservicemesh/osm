@@ -89,12 +89,12 @@ func (cmd *trafficPolicyCheckCmd) run() error {
 	// Validate input for options
 	srcNs, srcPodName, err := unmarshalNamespacedPod(cmd.sourcePod)
 	if err != nil {
-		return errors.Errorf("Invalid argument specified for the source pod: %s", err)
+		return errors.Errorf("Invalid argument specified for the source pod [%s/%s]: %s", srcNs, srcPodName, err)
 	}
 
 	dstNs, dstPodName, err := unmarshalNamespacedPod(cmd.destinationPod)
 	if err != nil {
-		return errors.Errorf("Invalid argument specified for the destination pod: %s", err)
+		return errors.Errorf("Invalid argument specified for the destination pod [%s/%s]: %s", dstNs, dstPodName, err)
 	}
 
 	srcPod, err := cmd.getMeshedPod(srcNs, srcPodName)
