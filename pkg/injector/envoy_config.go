@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
@@ -126,6 +127,11 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+				constants.OSMAppInstanceLabelKey: wh.meshName,
+				constants.OSMAppVersionLabelKey:  version.Version,
+			},
 		},
 		Data: map[string][]byte{
 			envoyBootstrapConfigFile: yamlContent,
