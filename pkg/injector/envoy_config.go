@@ -55,6 +55,7 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 				{
 					"name":                   config.XDSClusterName,
 					"connect_timeout":        "0.25s",
+					"dns_refresh_rate":       "30s",
 					"type":                   "LOGICAL_DNS",
 					"http2_protocol_options": map[string]string{},
 					"transport_socket": map[string]interface{}{

@@ -85,8 +85,8 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 		clusterName := apigroupName + ":" + strconv.Itoa(upstreamSvc.Port)
 
 		remoteCluster := &xds_cluster.Cluster{
-			Name:           clusterName,
-			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			Name:                 clusterName,
+			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		}
@@ -102,8 +102,8 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 		clusterName := apigroupName + witesand.DeviceHashSuffix + ":" + strconv.Itoa(upstreamSvc.Port)
 
 		remoteCluster := &xds_cluster.Cluster{
-			Name:           clusterName,
-			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			Name:                 clusterName,
+			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		}
@@ -119,8 +119,8 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 		clusterName := gatewayPodName + ":" + strconv.Itoa(upstreamSvc.Port)
 
 		remoteCluster := &xds_cluster.Cluster{
-			Name:           clusterName,
-			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			Name:                 clusterName,
+			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		}
@@ -147,8 +147,8 @@ func getWSUnicastUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 		clusterName := endpoint.PodName + ":" + strconv.Itoa(upstreamSvc.Port)
 
 		remoteCluster := &xds_cluster.Cluster{
-			Name:           clusterName,
-			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			Name:                 clusterName,
+			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		}
@@ -199,6 +199,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 				Type: xds_cluster.Cluster_STRICT_DNS,
 			},
+			DnsRefreshRate:  ptypes.DurationProto(time.Second * 30),
 			DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
 			LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 				// NOTE: results.MeshService is the top level service that is cURLed.
