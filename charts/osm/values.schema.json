@@ -28,6 +28,7 @@
                 "fluentBit",
                 "meshName",
                 "useHTTPSIngress",
+                "maxDataPlaneConnections",
                 "envoyLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
@@ -395,6 +396,15 @@
                     "description": "Indicates whether HTTPS Ingress should be enabled or not.",
                     "examples": [
                         false
+                    ]
+                },
+                "maxDataPlaneConnections": {
+                    "$id": "#/properties/OpenServiceMesh/properties/maxDataPlaneConnections",
+                    "type": "integer",
+                    "title": "The maxDataPlaneConnections schema",
+                    "description": "Sets the Max Data Plane Connections",
+                    "examples": [
+                        "1000"
                     ]
                 },
                 "envoyLogLevel": {

@@ -99,6 +99,8 @@ OpenServiceMesh:
   useHTTPSIngress: false
   # -- Envoy log level is used to specify the level of logs collected from envoy
   envoyLogLevel: error
+  # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
+  maxDataPlaneConnections: 0
   # -- Controller log verbosity
   controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster

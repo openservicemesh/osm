@@ -46,3 +46,8 @@ func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
 
 	log.Debug().Msgf("Unregistered proxy with certificate SerialNumber=%v on Pod with UID=%s", p.GetCertificateSerialNumber(), p.GetPodUID())
 }
+
+// GetConnectedProxyCount counts the number of connected proxies
+func (mc *MeshCatalog) GetConnectedProxyCount() int {
+	return len(mc.ListConnectedProxies())
+}

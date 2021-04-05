@@ -54,6 +54,20 @@ func (mr *MockMeshCatalogerMockRecorder) ExpectProxy(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpectProxy", reflect.TypeOf((*MockMeshCataloger)(nil).ExpectProxy), arg0)
 }
 
+// GetConnectedProxyCount mocks base method
+func (m *MockMeshCataloger) GetConnectedProxyCount() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConnectedProxyCount")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetConnectedProxyCount indicates an expected call of GetConnectedProxyCount
+func (mr *MockMeshCatalogerMockRecorder) GetConnectedProxyCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectedProxyCount", reflect.TypeOf((*MockMeshCataloger)(nil).GetConnectedProxyCount))
+}
+
 // GetIngressPoliciesForService mocks base method
 func (m *MockMeshCataloger) GetIngressPoliciesForService(arg0 service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	m.ctrl.T.Helper()

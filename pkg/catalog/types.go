@@ -114,6 +114,9 @@ type MeshCataloger interface {
 	// GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
 	GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
 
+	// GetConnectedProxyCount returns the number of connected proxies
+	GetConnectedProxyCount() int
+
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
 

@@ -30,7 +30,10 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
 	}
 
-	// TODO(draychev): check for envoy.ErrTooManyConnections; GitHub Issue https://github.com/openservicemesh/osm/issues/2332
+	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
+	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.catalog.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
+		return errTooManyConnections
+	}
 
 	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
