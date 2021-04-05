@@ -16,14 +16,30 @@ import (
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
+	// TODO(#2798): Dynamically retrieve configured version
+	// Currently, since only networking.k8s.io/v1beta1 is supported, hardcode this.
+	requestedAPIVersion := IngressNetworkingV1beta1
+
+	var informer cache.SharedIndexInformer
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
-	informer := informerFactory.Networking().V1beta1().Ingresses().Informer()
+
+	switch requestedAPIVersion {
+	case IngressNetworkingV1:
+		informer = informerFactory.Networking().V1().Ingresses().Informer()
+
+	case IngressNetworkingV1beta1:
+		informer = informerFactory.Networking().V1beta1().Ingresses().Informer()
+
+	default:
+		return nil, ErrUnsupportedAPIVersion
+	}
 
 	client := Client{
 		informer:       informer,
 		cache:          informer.GetStore(),
 		cacheSynced:    make(chan interface{}),
 		kubeController: kubeController,
+		apiVersion:     requestedAPIVersion,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
@@ -67,8 +83,17 @@ func (c *Client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-// GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(meshService service.MeshService) ([]*networkingV1beta1.Ingress, error) {
+// GetAPIVersion returns the ingress API version
+func (c Client) GetAPIVersion() APIVersion {
+	return c.apiVersion
+}
+
+// GetIngressNetworkingV1beta1 returns the ingress resources whose backends correspond to the service
+func (c Client) GetIngressNetworkingV1beta1(meshService service.MeshService) ([]*networkingV1beta1.Ingress, error) {
+	if c.GetAPIVersion() != IngressNetworkingV1beta1 {
+		return nil, errUnexpectedAPIVersion
+	}
+
 	var ingressResources []*networkingV1beta1.Ingress
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*networkingV1beta1.Ingress)

@@ -8,6 +8,7 @@ import (
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -36,9 +37,28 @@ var wildcardServiceAccount = service.K8sServiceAccount{}
 
 // GetIngressPoliciesForService returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
 func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
+	switch mc.ingressMonitor.GetAPIVersion() {
+	case ingress.IngressNetworkingV1:
+		// TODO: Implement this as a part of issue #2798
+		return nil, ingress.ErrUnsupportedAPIVersion
+
+	case ingress.IngressNetworkingV1beta1:
+		return mc.getIngressPoliciesNetworkingV1beta1(svc)
+	}
+
+	return nil, ingress.ErrUnsupportedAPIVersion
+}
+
+func buildIngressPolicyName(name, namespace, host string) string {
+	policyName := fmt.Sprintf("%s.%s|%s", name, namespace, host)
+	return policyName
+}
+
+// getIngressPoliciesNetworkingV1beta1 returns the list of inbound traffic policies associated with networking.k8s.io/v1beta1 ingress resources for the given service
+func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	inboundIngressPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 
-	ingresses, err := mc.ingressMonitor.GetIngressResources(svc)
+	ingresses, err := mc.ingressMonitor.GetIngressNetworkingV1beta1(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources for service %s", svc)
 		return inboundIngressPolicies, err
@@ -121,9 +141,4 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 		}
 	}
 	return inboundIngressPolicies, nil
-}
-
-func buildIngressPolicyName(name, namespace, host string) string {
-	policyName := fmt.Sprintf("%s.%s|%s", name, namespace, host)
-	return policyName
 }

@@ -5,6 +5,9 @@
 # pkg/smi
 smi; pkg/smi/mock_meshspec_generated.go; github.com/openservicemesh/osm/pkg/smi; MeshSpec
 
+# pkg/ingress
+ingress; pkg/ingress/mock_client_generated.go; github.com/openservicemesh/osm/pkg/ingress; Monitor
+
 # pkg/kubernetes
 kubernetes; pkg/kubernetes/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/kubernetes; Controller
 
@@ -13,9 +16,6 @@ debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/os
 
 # pkg/health
 health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes
-
-# pkg/ingress
-ingress; pkg/ingress/mock_client_generated.go; github.com/openservicemesh/osm/pkg/ingress; Monitor
 
 # pkg/endpoint
 endpoint; pkg/endpoint/mock_provider_generated.go; github.com/openservicemesh/osm/pkg/endpoint; Provider
