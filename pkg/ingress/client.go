@@ -3,6 +3,7 @@ package ingress
 import (
 	"reflect"
 
+	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -88,7 +89,7 @@ func (c Client) GetAPIVersion() APIVersion {
 	return c.apiVersion
 }
 
-// GetIngressNetworkingV1beta1 returns the ingress resources whose backends correspond to the service
+// GetIngressNetworkingV1beta1 returns the networking.k8s.io/v1beta1 ingress resources whose backends correspond to the service
 func (c Client) GetIngressNetworkingV1beta1(meshService service.MeshService) ([]*networkingV1beta1.Ingress, error) {
 	if c.GetAPIVersion() != IngressNetworkingV1beta1 {
 		return nil, errUnexpectedAPIVersion
@@ -122,6 +123,49 @@ func (c Client) GetIngressNetworkingV1beta1(meshService service.MeshService) ([]
 		for _, rule := range ingress.Spec.Rules {
 			for _, path := range rule.HTTP.Paths {
 				if path.Backend.ServiceName == meshService.Name {
+					ingressResources = append(ingressResources, ingress)
+					break ingressRule
+				}
+			}
+		}
+	}
+	return ingressResources, nil
+}
+
+// GetIngressNetworkingV1 returns the networking.k8s.io/v1 ingress resources whose backends correspond to the service
+func (c Client) GetIngressNetworkingV1(meshService service.MeshService) ([]*networkingV1.Ingress, error) {
+	if c.GetAPIVersion() != IngressNetworkingV1 {
+		return nil, errUnexpectedAPIVersion
+	}
+
+	var ingressResources []*networkingV1.Ingress
+	for _, ingressInterface := range c.cache.List() {
+		ingress, ok := ingressInterface.(*networkingV1.Ingress)
+		if !ok {
+			log.Error().Msg("Failed type assertion for Ingress in ingress cache")
+			continue
+		}
+
+		// Extra safety - make sure we do not pay attention to Ingresses outside of observed namespaces
+		if !c.kubeController.IsMonitoredNamespace(ingress.Namespace) {
+			continue
+		}
+
+		// Check if the ingress resource belongs to the same namespace as the service
+		if ingress.Namespace != meshService.Namespace {
+			// The ingress resource does not belong to the namespace of the service
+			continue
+		}
+		if backend := ingress.Spec.DefaultBackend; backend != nil && backend.Service.Name == meshService.Name {
+			// Default backend service
+			ingressResources = append(ingressResources, ingress)
+			continue
+		}
+
+	ingressRule:
+		for _, rule := range ingress.Spec.Rules {
+			for _, path := range rule.HTTP.Paths {
+				if path.Backend.Service.Name == meshService.Name {
 					ingressResources = append(ingressResources, ingress)
 					break ingressRule
 				}

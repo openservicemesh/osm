@@ -2,6 +2,7 @@
 package ingress
 
 import (
+	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
@@ -39,6 +40,9 @@ type Monitor interface {
 	// GetAPIVersion returns the ingress API version
 	GetAPIVersion() APIVersion
 
-	// GetIngressNetworkingV1beta1 returns the ingress resources whose backends correspond to the service
+	// GetIngressNetworkingV1beta1 returns the networking.k8s.io/v1beta1 ingress resources whose backends correspond to the service
 	GetIngressNetworkingV1beta1(service.MeshService) ([]*networkingV1beta1.Ingress, error)
+
+	// GetIngressNetworkingV1 returns the networking.k8s.io/v1 ingress resources whose backends correspond to the service
+	GetIngressNetworkingV1(service.MeshService) ([]*networkingV1.Ingress, error)
 }
