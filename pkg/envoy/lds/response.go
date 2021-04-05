@@ -2,7 +2,7 @@ package lds
 
 import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -17,7 +17,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -30,9 +30,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	resp := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeLDS),
-	}
+	ldsResources := []types.Resource{}
 
 	var statsHeaders map[string]string
 	if featureflags.IsWASMStatsEnabled() {
@@ -53,12 +51,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			log.Debug().Msgf("Not programming Outbound listener for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		} else {
-			if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
-				log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-					proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			} else {
-				resp.Resources = append(resp.Resources, marshalledOutbound)
-			}
+			ldsResources = append(ldsResources, outboundListener)
 		}
 	}
 
@@ -89,12 +82,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	if len(inboundListener.FilterChains) > 0 {
 		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configured.
 		// Configuring a listener without a filter chain is an error.
-		if marshalledInbound, err := ptypes.MarshalAny(inboundListener); err != nil {
-			log.Error().Err(err).Msgf("Error marshalling inbound listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		} else {
-			resp.Resources = append(resp.Resources, marshalledInbound)
-		}
+		ldsResources = append(ldsResources, inboundListener)
 	}
 
 	if cfg.IsPrometheusScrapingEnabled() {
@@ -104,16 +92,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		} else {
-			if marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener); err != nil {
-				log.Error().Err(err).Msgf("Error marshalling Prometheus listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-					proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			} else {
-				resp.Resources = append(resp.Resources, marshalledPrometheus)
-			}
+			ldsResources = append(ldsResources, prometheusListener)
 		}
 	}
 
-	return resp, nil
+	return ldsResources, nil
 }
 
 func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {

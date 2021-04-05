@@ -2,8 +2,7 @@ package eds
 
 import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -14,7 +13,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -27,22 +26,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	var protos []*any.Any
+	var rdsResources []types.Resource
 	for svc, endpoints := range allowedEndpoints {
 		loadAssignment := newClusterLoadAssignment(svc, endpoints)
-		proto, err := ptypes.MarshalAny(loadAssignment)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			continue
-		}
-		protos = append(protos, proto)
+		rdsResources = append(rdsResources, loadAssignment)
 	}
 
-	resp := &xds_discovery.DiscoveryResponse{
-		Resources: protos,
-		TypeUrl:   string(envoy.TypeEDS),
-	}
-	return resp, nil
+	return rdsResources, nil
 }
 
 // getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy
