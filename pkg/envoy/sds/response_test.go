@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
@@ -66,11 +67,12 @@ func TestNewResponse(t *testing.T) {
 	assert.Nil(actualSDSResponse)
 
 	// ----- Test with an properly configured proxy
-	actualSDSResponse, err = NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
+	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
-	assert.NotNil(actualSDSResponse)
-	assert.Equal(len(actualSDSResponse.Resources), 2) // service-cert and root-cert-https
-	assert.Equal(actualSDSResponse.TypeUrl, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+	assert.NotNil(resources)
+	assert.Equal(len(resources), 2)
+	_, ok := resources[0].(*xds_auth.Secret)
+	assert.True(ok)
 }
 
 func TestGetRootCert(t *testing.T) {
