@@ -18,6 +18,11 @@ webhooks:
   namespaceSelector:
     matchLabels:
       name: {{ include "osm.namespace" . }}
+  objectSelector:
+    matchLabels:
+      app.kubernetes.io/name: openservicemesh.io
+      app.kubernetes.io/instance: {{ .Values.OpenServiceMesh.meshName }}
+      app.kubernetes.io/version: {{ .Chart.AppVersion }}
   rules:
     - apiGroups:
         - ""
