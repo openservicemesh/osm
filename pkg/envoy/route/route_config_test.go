@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -27,16 +27,16 @@ func TestBuildRouteConfiguration(t *testing.T) {
 			{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 			},
 			{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 			},
 		},
 	}
@@ -51,7 +51,7 @@ func TestBuildRouteConfiguration(t *testing.T) {
 					PathMatchType: trafficpolicy.PathMatchRegex,
 					Methods:       []string{"GET"},
 				},
-				WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+				WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 			},
 		},
 	}
@@ -182,9 +182,9 @@ func TestBuildInboundRoutes(t *testing.T) {
 							Methods:       []string{"GET"},
 							Headers:       map[string]string{"hello": "world"},
 						},
-						WeightedClusters: set.NewSet(testWeightedCluster),
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceAccounts: set.NewSetFromSlice(
+					AllowedServiceAccounts: mapset.NewSetFromSlice(
 						[]interface{}{service.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
 					),
 				},
@@ -211,7 +211,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 							Methods:       []string{"GET"},
 							Headers:       map[string]string{"hello": "world"},
 						},
-						WeightedClusters: set.NewSet(testWeightedCluster),
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
 					AllowedServiceAccounts: nil,
 				},
@@ -245,7 +245,7 @@ func TestBuildOutboundRoutes(t *testing.T) {
 				Methods:       []string{"GET"},
 				Headers:       map[string]string{"hello": "world"},
 			},
-			WeightedClusters: set.NewSet(testWeightedCluster),
+			WeightedClusters: mapset.NewSet(testWeightedCluster),
 		},
 	}
 	actual := buildOutboundRoutes(input)
@@ -263,7 +263,7 @@ func TestBuildRoute(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		weightedClusters set.Set
+		weightedClusters mapset.Set
 		totalWeight      int
 		direction        Direction
 		path             string
@@ -280,7 +280,7 @@ func TestBuildRoute(t *testing.T) {
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
 			direction:     OutboundRoute,
-			weightedClusters: set.NewSetFromSlice([]interface{}{
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
 			}),
@@ -352,7 +352,7 @@ func TestBuildRoute(t *testing.T) {
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
 			direction:     InboundRoute,
-			weightedClusters: set.NewSetFromSlice([]interface{}{
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
 
@@ -419,7 +419,7 @@ func TestBuildRoute(t *testing.T) {
 			headersMap:    nil,
 			totalWeight:   100,
 			direction:     InboundRoute,
-			weightedClusters: set.NewSetFromSlice([]interface{}{
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
 
@@ -465,7 +465,7 @@ func TestBuildRoute(t *testing.T) {
 			headersMap:    nil,
 			totalWeight:   100,
 			direction:     InboundRoute,
-			weightedClusters: set.NewSetFromSlice([]interface{}{
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
 
@@ -522,14 +522,14 @@ func TestBuildRoute(t *testing.T) {
 func TestBuildWeightedCluster(t *testing.T) {
 	assert := tassert.New(t)
 
-	weightedClusters := set.NewSetFromSlice([]interface{}{
+	weightedClusters := mapset.NewSetFromSlice([]interface{}{
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
 	})
 
 	testCases := []struct {
 		name             string
-		weightedClusters set.Set
+		weightedClusters mapset.Set
 		totalWeight      int
 		direction        Direction
 	}{
