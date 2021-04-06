@@ -47,7 +47,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	certManager := tresor.NewFakeCertManager(cfg)
 
 	mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockIngressMonitor.EXPECT().GetAPIVersion().Return(ingress.IngressNetworkingV1beta1).AnyTimes()
+	mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {

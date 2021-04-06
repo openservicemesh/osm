@@ -1431,7 +1431,6 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 	type testCase struct {
 		name                    string
 		svc                     service.MeshService
-		apiVersion              ingress.APIVersion
 		ingressesV1beta1        []*networkingV1beta1.Ingress
 		ingressesV1             []*networkingV1.Ingress
 		expectedTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -1440,9 +1439,8 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:       "Ingress v1 with multiple rules",
-			svc:        service.MeshService{Name: "foo", Namespace: "testns"},
-			apiVersion: ingress.IngressNetworkingV1,
+			name: "Ingress v1 with multiple rules",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
 			ingressesV1: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1549,9 +1547,8 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			excpectError: false,
 		},
 		{
-			name:       "Ingress v1beta1 with with multiple rules",
-			svc:        service.MeshService{Name: "foo", Namespace: "testns"},
-			apiVersion: ingress.IngressNetworkingV1beta1,
+			name: "Ingress v1beta1 with with multiple rules",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
 			ingressesV1beta1: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1656,24 +1653,138 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			excpectError: false,
 		},
 		{
-			name:                    "Unsupported ingress version",
-			apiVersion:              ingress.APIVersion(99),
-			excpectError:            true,
+			name: "Ingress v1 and v1beta both present",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			ingressesV1: []*networkingV1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1.IngressSpec{
+						Rules: []networkingV1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1.IngressRuleValue{
+									HTTP: &networkingV1.HTTPIngressRuleValue{
+										Paths: []networkingV1.HTTPIngressPath{
+											{
+												Path:     "/fake1-path1",
+												PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypeImplementationSpecific))),
+												Backend: networkingV1.IngressBackend{
+													Service: &networkingV1.IngressServiceBackend{
+														Name: "foo",
+														Port: networkingV1.ServiceBackendPort{
+															Number: fakeIngressPort,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ingressesV1beta1: []*networkingV1beta1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-2",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1beta1.IngressSpec{
+						Rules: []networkingV1beta1.IngressRule{
+							{
+								Host: "fake2.com",
+								IngressRuleValue: networkingV1beta1.IngressRuleValue{
+									HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+										Paths: []networkingV1beta1.HTTPIngressPath{
+											{
+												PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypeExact))),
+												Path:     "/fake2-path1",
+												Backend: networkingV1beta1.IngressBackend{
+													ServiceName: "foo",
+													ServicePort: intstr.IntOrString{
+														Type:   intstr.Int,
+														IntVal: fakeIngressPort,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedTrafficPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "ingress-1.testns|fake1.com",
+					Hostnames: []string{
+						"fake1.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/fake1-path1",
+									PathMatchType: trafficpolicy.PathMatchPrefix,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+				{
+					Name: "ingress-2.testns|fake2.com",
+					Hostnames: []string{
+						"fake2.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/fake2-path1",
+									PathMatchType: trafficpolicy.PathMatchExact,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+			},
+			excpectError: false,
+		},
+		{
+			name:                    "No ingresses",
+			excpectError:            false,
 			expectedTrafficPolicies: nil,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockIngressMonitor.EXPECT().GetAPIVersion().Return(tc.apiVersion).Times(1)
-
-			switch tc.apiVersion {
-			case ingress.IngressNetworkingV1:
-				mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingressesV1, nil).Times(1)
-
-			case ingress.IngressNetworkingV1beta1:
-				mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingressesV1beta1, nil).Times(1)
-			}
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingressesV1, nil).Times(1)
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingressesV1beta1, nil).Times(1)
 
 			actualPolicies, err := meshCatalog.GetIngressPoliciesForService(tc.svc)
 
