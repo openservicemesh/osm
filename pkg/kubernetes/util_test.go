@@ -6,6 +6,10 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/version"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/kubernetes"
+	fakeclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -136,6 +140,53 @@ func TestGetAppProtocolFromPortName(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := GetAppProtocolFromPortName(tc.portName)
 			assert.Equal(tc.expectedProtocal, actual)
+		})
+	}
+}
+
+func TestGetKubernetesServerVersionNumber(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name            string
+		kubeClient      kubernetes.Interface
+		version         string
+		expectedVersion []int // of the form [1, 19, 0] for v1.19.0
+		expectError     bool
+	}{
+		{
+			name:            "invalid kubeClient should error",
+			kubeClient:      nil,
+			expectedVersion: nil,
+			expectError:     true,
+		},
+		{
+			name:            "invalid server version should error",
+			kubeClient:      fakeclient.NewSimpleClientset(),
+			version:         "foo",
+			expectedVersion: nil,
+			expectError:     true,
+		},
+		{
+			name:            "valid server version",
+			kubeClient:      fakeclient.NewSimpleClientset(),
+			version:         "v1.19.0",
+			expectedVersion: []int{1, 19, 0},
+			expectError:     false,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			if tc.kubeClient != nil {
+				tc.kubeClient.Discovery().(*fakediscovery.FakeDiscovery).FakedServerVersion = &version.Info{
+					GitVersion: tc.version,
+				}
+			}
+
+			version, err := GetKubernetesServerVersionNumber(tc.kubeClient)
+			assert.Equal(tc.expectError, err != nil)
+			assert.Equal(tc.expectedVersion, version)
 		})
 	}
 }
