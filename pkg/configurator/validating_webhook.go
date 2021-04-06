@@ -59,7 +59,7 @@ const (
 	mustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
 
 	// mustbeInt is the reason for denial for incorrect syntax for tracing_port field
-	mustbeInt = ": must be an integer"
+	mustBeInt = ": must be an integer"
 
 	// mustBeInPortRange is the reason for denial for tracing_port field
 	mustBeInPortRange = ": must be between 0 and 65535"
@@ -261,7 +261,7 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		if field == "tracing_port" {
 			portNum, err := strconv.Atoi(value)
 			if err != nil {
-				reasonForDenial(resp, mustbeInt, field)
+				reasonForDenial(resp, mustBeInt, field)
 			}
 			if portNum < 0 || portNum > maxPortNum {
 				reasonForDenial(resp, mustBeInPortRange, field)

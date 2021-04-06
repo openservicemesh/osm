@@ -191,9 +191,9 @@ func TestCheckDefaultFields(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName  string
-		configMap corev1.ConfigMap
-		expRes    *admissionv1.AdmissionResponse
+		testName         string
+		configMap        corev1.ConfigMap
+		expectedResponse *admissionv1.AdmissionResponse
 	}{
 		{
 			testName: "Contains all default fields",
@@ -213,7 +213,7 @@ func TestCheckDefaultFields(t *testing.T) {
 					"enable_privileged_init_container": "",
 				},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: true,
 				Result:  &metav1.Status{Reason: ""},
 			},
@@ -222,13 +222,19 @@ func TestCheckDefaultFields(t *testing.T) {
 			testName: "Does not have all default fields",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
-					"egress":              "",
-					"enable_debug_server": "",
+					"egress":                         "",
+					"enable_debug_server":            "",
+					"permissive_traffic_policy_mode": "",
+					"prometheus_scraping":            "",
+					"use_https_ingress":              "",
+					"envoy_log_level":                "",
+					"service_cert_validity_duration": "",
+					"tracing_enable":                 "",
 				},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
-				Result:  &metav1.Status{Reason: doesNotContainDef},
+				Result:  &metav1.Status{Reason: "\nenable_privileged_init_container" + doesNotContainDef},
 			},
 		},
 	}
@@ -236,8 +242,7 @@ func TestCheckDefaultFields(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
 			res := checkDefaultFields(tc.configMap, resp)
-			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
-			assert.Equal(tc.expRes.Allowed, res.Allowed)
+			assert.Equal(tc.expectedResponse, res)
 		})
 	}
 }
@@ -258,9 +263,9 @@ func TestValidateFields(t *testing.T) {
 	assert.Nil(err)
 
 	testCases := []struct {
-		testName  string
-		configMap corev1.ConfigMap
-		expRes    *admissionv1.AdmissionResponse
+		testName         string
+		configMap        corev1.ConfigMap
+		expectedResponse *admissionv1.AdmissionResponse
 	}{
 		{
 			testName: "Accept valid configMap update",
@@ -271,43 +276,83 @@ func TestValidateFields(t *testing.T) {
 					"service_cert_validity_duration": "24h",
 					"tracing_port":                   "9411"},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: true,
 				Result:  &metav1.Status{Reason: ""},
 			},
 		},
 		{
-			testName: "Reject invalid configMap update (error in boolean, envoy lvl, address, port fields and metadata)",
+			testName: "Reject change to metadata",
 			configMap: corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						"apple": "apple",
 					},
 				},
-				Data: map[string]string{
-					"egress":          "truie",
-					"envoy_log_level": "envoy",
-					"tracing_port":    "123456"},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
-				Result: &metav1.Status{
-					Reason: mustBeBool + mustBeValidLogLvl + mustBeInPortRange + cannotChangeMetadata,
-				},
+				Result:  &metav1.Status{Reason: "\napple" + cannotChangeMetadata},
 			},
 		},
 		{
-			testName: "Reject invalid configmap update (error in cert duration and port fields)",
+			testName: "Reject invalid boolean field update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"egress": "truie",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\negress" + mustBeBool},
+			},
+		},
+		{
+			testName: "Reject invalid envoy_log_level update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"envoy_log_level": "envoy",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\nenvoy_log_level" + mustBeValidLogLvl},
+			},
+		},
+		{
+			testName: "Reject invalid tracing_port update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"tracing_port": "123456",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\ntracing_port" + mustBeInPortRange},
+			},
+		},
+		{
+			testName: "Reject invalid service_cert_validity_duration update",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
 					"service_cert_validity_duration": "1hw",
-					"tracing_port":                   "1.00"},
-			},
-			expRes: &admissionv1.AdmissionResponse{
-				Allowed: false,
-				Result: &metav1.Status{
-					Reason: mustBeValidTime + mustbeInt,
 				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\nservice_cert_validity_duration" + mustBeValidTime},
+			},
+		},
+		{
+			testName: "Reject invalid tracing_port update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"tracing_port": "1.00",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\ntracing_port" + mustBeInt},
 			},
 		},
 		{
@@ -317,7 +362,7 @@ func TestValidateFields(t *testing.T) {
 					"outbound_ip_range_exclusion_list": "1.1.1.1/32, 2.2.2.2/24",
 				},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: true,
 				Result:  &metav1.Status{Reason: ""},
 			},
@@ -329,11 +374,9 @@ func TestValidateFields(t *testing.T) {
 					"outbound_ip_range_exclusion_list": "1.1.1.1", // invalid syntax, must be 1.1.1.1/32
 				},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
-				Result: &metav1.Status{
-					Reason: mustBeValidIPRange,
-				},
+				Result:  &metav1.Status{Reason: "\noutbound_ip_range_exclusion_list" + mustBeValidIPRange},
 			},
 		},
 		{
@@ -343,11 +386,9 @@ func TestValidateFields(t *testing.T) {
 					"outbound_ip_range_exclusion_list": "foobar",
 				},
 			},
-			expRes: &admissionv1.AdmissionResponse{
+			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
-				Result: &metav1.Status{
-					Reason: mustBeValidIPRange,
-				},
+				Result:  &metav1.Status{Reason: "\noutbound_ip_range_exclusion_list" + mustBeValidIPRange},
 			},
 		},
 	}
@@ -358,8 +399,7 @@ func TestValidateFields(t *testing.T) {
 				Result:  &metav1.Status{Reason: ""},
 			}
 			res := whc.validateFields(tc.configMap, resp)
-			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
-			assert.Equal(tc.expRes.Allowed, res.Allowed, res.Result.Reason)
+			assert.Equal(tc.expectedResponse, res)
 		})
 	}
 }
