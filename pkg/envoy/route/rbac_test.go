@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -31,9 +31,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSetFromSlice([]interface{}{
+				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
 					service.K8sServiceAccount{Name: "foo", Namespace: "ns-1"},
 					service.K8sServiceAccount{Name: "bar", Namespace: "ns-2"},
 				}),
@@ -72,9 +72,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSetFromSlice([]interface{}{
+				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
 					service.K8sServiceAccount{}, // setting an empty service account will result in all downstreams being allowed
 				}),
 			},
@@ -97,7 +97,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 				AllowedServiceAccounts: nil,
 			},
