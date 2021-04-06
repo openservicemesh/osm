@@ -129,14 +129,17 @@ func TestConfigMapEventTriggers(t *testing.T) {
 	assert := tassert.New(t)
 	kubeClient := testclient.NewSimpleClientset()
 
-	stop := make(<-chan struct{})
-	newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-
 	confChannel := events.GetPubSubInstance().Subscribe(
 		announcements.ConfigMapAdded,
 		announcements.ConfigMapDeleted,
 		announcements.ConfigMapUpdated)
 	defer events.GetPubSubInstance().Unsub(confChannel)
+
+	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
+	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
+
+	stop := make(<-chan struct{})
+	newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 	configMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -146,13 +149,14 @@ func TestConfigMapEventTriggers(t *testing.T) {
 		Data: make(map[string]string),
 		// All false
 	}
+
 	if _, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("[TEST] Error creating ConfigMap %s/%s/: %s", configMap.Namespace, configMap.Name, err.Error())
 	}
-	<-confChannel
 
-	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
-	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
+	// ConfigMap Create will generate a ConfigMap notification, and Configurator will issue a ProxyBroadcast for a Create as well
+	<-confChannel
+	<-proxyBroadcastChannel
 
 	tests := []struct {
 		deltaConfigMapContents map[string]string
@@ -184,7 +188,7 @@ func TestConfigMapEventTriggers(t *testing.T) {
 		},
 		{
 			deltaConfigMapContents: map[string]string{
-				tracingAddressKey: "true",
+				tracingAddressKey: "jaeger.jagnamespace.cluster.svc.local",
 			},
 			expectProxyBroadcast: true,
 		},
@@ -196,7 +200,7 @@ func TestConfigMapEventTriggers(t *testing.T) {
 		},
 		{
 			deltaConfigMapContents: map[string]string{
-				tracingPortKey: "true",
+				tracingPortKey: "3521",
 			},
 			expectProxyBroadcast: true,
 		},
