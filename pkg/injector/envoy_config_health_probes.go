@@ -1,5 +1,9 @@
 package injector
 
+import (
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+)
+
 const (
 	livenessCluster  = "liveness_cluster"
 	readinessCluster = "readiness_cluster"
@@ -81,6 +85,40 @@ func getStartupListener(originalProbe *healthProbe) map[string]interface{} {
 }
 
 func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *healthProbe) map[string]interface{} {
+	filters := []map[string]interface{}{
+		{
+			"name": "envoy.filters.network.http_connection_manager",
+			"typed_config": map[string]interface{}{
+				"@type":       "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+				"stat_prefix": "health_probes_http",
+				"access_log":  getHTTPAccessLog(),
+				"codec_type":  "AUTO",
+				"route_config": map[string]interface{}{
+					"name":          "local_route",
+					"virtual_hosts": getVirtualHosts(newPath, clusterName, originalProbe.path),
+				},
+				"http_filters": []map[string]interface{}{
+					{
+						"name": "envoy.filters.http.router",
+					},
+				},
+			},
+		},
+	}
+	if !originalProbe.isHTTP {
+		filters = []map[string]interface{}{
+			{
+				"name": wellknown.TCPProxy,
+				"typed_config": map[string]interface{}{
+					"@type":       "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+					"cluster":     clusterName,
+					"stat_prefix": "health_probes",
+					"access_log":  getTCPAccessLog(),
+				},
+			},
+		}
+	}
+
 	return map[string]interface{}{
 		"name": listenerName,
 		"address": map[string]interface{}{
@@ -91,26 +129,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		},
 		"filter_chains": []map[string]interface{}{
 			{
-				"filters": []map[string]interface{}{
-					{
-						"name": "envoy.filters.network.http_connection_manager",
-						"typed_config": map[string]interface{}{
-							"@type":       "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-							"stat_prefix": "health_probes_http",
-							"access_log":  getAccessLog(),
-							"codec_type":  "AUTO",
-							"route_config": map[string]interface{}{
-								"name":          "local_route",
-								"virtual_hosts": getVirtualHosts(newPath, clusterName, originalProbe.path),
-							},
-							"http_filters": []map[string]interface{}{
-								{
-									"name": "envoy.filters.http.router",
-								},
-							},
-						},
-					},
-				},
+				"filters": filters,
 			},
 		},
 	}
@@ -138,7 +157,7 @@ func getVirtualHosts(newPath, clusterName, originalProbePath string) []map[strin
 	}
 }
 
-func getAccessLog() []map[string]interface{} {
+func getHTTPAccessLog() []map[string]interface{} {
 	return []map[string]interface{}{
 		{
 			"name": "envoy.access_loggers.file",
@@ -164,6 +183,30 @@ func getAccessLog() []map[string]interface{} {
 						"x_forwarded_for":       "%REQ(X-FORWARDED-FOR)%",
 						"user_agent":            "%REQ(USER-AGENT)%",
 						"authority":             "%REQ(:AUTHORITY)%",
+						"start_time":            "%START_TIME%",
+						"bytes_sent":            "%BYTES_SENT%",
+					},
+				},
+			},
+		},
+	}
+}
+
+func getTCPAccessLog() []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"name": "envoy.access_loggers.file",
+			"typed_config": map[string]interface{}{
+				"@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+				"path":  "/dev/stdout",
+				"log_format": map[string]interface{}{
+					"json_format": map[string]interface{}{
+						"requested_server_name": "%REQUESTED_SERVER_NAME%",
+						"upstream_cluster":      "%UPSTREAM_CLUSTER%",
+						"response_flags":        "%RESPONSE_FLAGS%",
+						"bytes_received":        "%BYTES_RECEIVED%",
+						"duration":              "%DURATION%",
+						"upstream_host":         "%UPSTREAM_HOST%",
 						"start_time":            "%START_TIME%",
 						"bytes_sent":            "%BYTES_SENT%",
 					},

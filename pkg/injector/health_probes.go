@@ -22,6 +22,10 @@ var errNoMatchingPort = errors.New("no matching port")
 type healthProbe struct {
 	path string
 	port int32
+
+	// isHTTP corresponds to an httpGet probe with a scheme of HTTP or undefined.
+	// This helps inform what kind of Envoy config to add to the pod.
+	isHTTP bool
 }
 
 // healthProbes is to serve as an indication whether the given healthProbe has been rewritten
@@ -70,9 +74,12 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		log.Err(err).Msgf("Error finding a matching port for %+v on container %+v", probe.HTTPGet.Port, containerPorts)
 	}
 	originalPath := probe.HTTPGet.Path
+	isHTTP := len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
 
 	probe.HTTPGet.Port = intstr.IntOrString{Type: intstr.Int, IntVal: port}
-	probe.HTTPGet.Path = path
+	if isHTTP {
+		probe.HTTPGet.Path = path
+	}
 
 	log.Debug().Msgf(
 		"Rewriting %s probe (:%d%s) to :%d%s",
@@ -82,8 +89,9 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	)
 
 	return &healthProbe{
-		port: originalPort,
-		path: originalPath,
+		port:   originalPort,
+		path:   originalPath,
+		isHTTP: isHTTP,
 	}
 }
 

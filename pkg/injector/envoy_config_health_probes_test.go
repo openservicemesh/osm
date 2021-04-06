@@ -8,24 +8,27 @@ import (
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
 
-	liveness := &healthProbe{path: "/liveness", port: 81}
-	readiness := &healthProbe{path: "/readiness", port: 82}
-	startup := &healthProbe{path: "/startup", port: 83}
+	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true}
+	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false}
+	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true}
+	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true}
 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.
 	// The key (function name) is used to locate and load the YAML file with the expected return for this function.
 	functionsToTest := map[string]func() interface{}{
-		"getVirtualHosts":      func() interface{} { return getVirtualHosts("/some/path", "-cluster-name-", "/original/probe/path") },
-		"getProbeCluster":      func() interface{} { return getProbeCluster("cluster-name", 12341234) },
-		"getLivenessCluster":   func() interface{} { return getLivenessCluster(liveness) },
-		"getReadinessCluster":  func() interface{} { return getReadinessCluster(readiness) },
-		"getStartupCluster":    func() interface{} { return getStartupCluster(startup) },
-		"getAccessLog":         func() interface{} { return getAccessLog() },
-		"getProbeListener":     func() interface{} { return getProbeListener("a", "b", "c", 9, liveness) },
-		"getLivenessListener":  func() interface{} { return getLivenessListener(liveness) },
-		"getReadinessListener": func() interface{} { return getReadinessListener(readiness) },
-		"getStartupListener":   func() interface{} { return getStartupListener(startup) },
+		"getVirtualHosts":            func() interface{} { return getVirtualHosts("/some/path", "-cluster-name-", "/original/probe/path") },
+		"getProbeCluster":            func() interface{} { return getProbeCluster("cluster-name", 12341234) },
+		"getLivenessCluster":         func() interface{} { return getLivenessCluster(liveness) },
+		"getReadinessCluster":        func() interface{} { return getReadinessCluster(readiness) },
+		"getStartupCluster":          func() interface{} { return getStartupCluster(startup) },
+		"getHTTPAccessLog":           func() interface{} { return getHTTPAccessLog() },
+		"getTCPAccessLog":            func() interface{} { return getTCPAccessLog() },
+		"getProbeListener":           func() interface{} { return getProbeListener("a", "b", "c", 9, liveness) },
+		"getLivenessListener":        func() interface{} { return getLivenessListener(liveness) },
+		"getLivenessListenerNonHTTP": func() interface{} { return getLivenessListener(livenessNonHTTP) },
+		"getReadinessListener":       func() interface{} { return getReadinessListener(readiness) },
+		"getStartupListener":         func() interface{} { return getStartupListener(startup) },
 	}
 
 	for fnName, fn := range functionsToTest {
