@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -111,9 +111,9 @@ func TestNewResponse(t *testing.T) {
 									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
-								WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: set.NewSet(tests.BookstoreServiceAccount),
+							AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
 						},
 					},
 				},
@@ -128,9 +128,9 @@ func TestNewResponse(t *testing.T) {
 									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
-								WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: set.NewSet(tests.BookstoreServiceAccount),
+							AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
 						},
 					},
 				},
@@ -154,12 +154,12 @@ func TestNewResponse(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
-								WeightedClusters: set.NewSet(service.WeightedCluster{
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "default/bookstore-v1-local",
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: set.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -167,12 +167,12 @@ func TestNewResponse(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
-								WeightedClusters: set.NewSet(service.WeightedCluster{
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "default/bookstore-v1-local",
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: set.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -197,12 +197,12 @@ func TestNewResponse(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
-								WeightedClusters: set.NewSet(service.WeightedCluster{
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "default/bookstore-v1-local",
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: set.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -210,12 +210,12 @@ func TestNewResponse(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
-								WeightedClusters: set.NewSet(service.WeightedCluster{
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "default/bookstore-v1-local",
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: set.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -230,7 +230,7 @@ func TestNewResponse(t *testing.T) {
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
-							WeightedClusters: set.NewSetFromSlice([]interface{}{
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 0},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 100},
 							}),
@@ -421,9 +421,9 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 							PathMatchType: trafficpolicy.PathMatchRegex,
 							Methods:       []string{constants.WildcardHTTPMethod},
 						},
-						WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: set.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
 				},
 			},
 		},
@@ -449,7 +449,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 						PathMatchType: trafficpolicy.PathMatchRegex,
 						Methods:       []string{constants.WildcardHTTPMethod},
 					},
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 			},
 		},
@@ -467,9 +467,9 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 							PathMatchType: trafficpolicy.PathMatchRegex,
 							Methods:       []string{constants.WildcardHTTPMethod},
 						},
-						WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: set.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
 				},
 			},
 		},
@@ -484,9 +484,9 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 							PathMatchType: trafficpolicy.PathMatchRegex,
 							Methods:       []string{constants.WildcardHTTPMethod},
 						},
-						WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: set.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
 				},
 			},
 		},
