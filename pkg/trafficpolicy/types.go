@@ -3,7 +3,7 @@
 package trafficpolicy
 
 import (
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 )
@@ -44,7 +44,7 @@ type TCPRouteMatch struct {
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
 	HTTPRouteMatch   HTTPRouteMatch `json:"http_route_match:omitempty"`
-	WeightedClusters set.Set        `json:"weighted_clusters:omitempty"`
+	WeightedClusters mapset.Set     `json:"weighted_clusters:omitempty"`
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
@@ -57,7 +57,7 @@ type InboundTrafficPolicy struct {
 // Rule is a struct that represents which Service Accounts can access a Route
 type Rule struct {
 	Route                  RouteWeightedClusters `json:"route:omitempty"`
-	AllowedServiceAccounts set.Set               `json:"allowed_service_accounts:omitempty"`
+	AllowedServiceAccounts mapset.Set            `json:"allowed_service_accounts:omitempty"`
 }
 
 // OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames
