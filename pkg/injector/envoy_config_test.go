@@ -118,9 +118,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	}
 
 	probes := healthProbes{
-		liveness:  &healthProbe{path: "/liveness", port: 81},
-		readiness: &healthProbe{path: "/readiness", port: 82},
-		startup:   &healthProbe{path: "/startup", port: 83},
+		liveness:  &healthProbe{path: "/liveness", port: 81, isHTTP: true},
+		readiness: &healthProbe{path: "/readiness", port: 82, isHTTP: true},
+		startup:   &healthProbe{path: "/startup", port: 83, isHTTP: true},
 	}
 
 	config := envoyBootstrapConfigMeta{

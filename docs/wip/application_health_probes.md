@@ -8,11 +8,11 @@ type: "docs"
 
 Implementing [health probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) in your application is a great way for Kubernetes to automate some tasks to improve availability in the event of an error.
 
-Because OSM reconfigures application Pods to redirect all incoming and outgoing network traffic through the proxy sidecar, HTTP health probes invoked by the kubelet will fail due to the lack of any mTLS context required by the proxy.
+Because OSM reconfigures application Pods to redirect all incoming and outgoing network traffic through the proxy sidecar, HTTP(S) health probes invoked by the kubelet will fail due to the lack of any mTLS context required by the proxy.
 
-For health probes to continue to work as expected from within the mesh, OSM adds configuration to expose the probe endpoint via the proxy and rewrites the probe definitions for new Pods to refer to the proxy-exposed HTTP endpoint. All of the functionality of the original probe is still used, OSM simply fronts it with the proxy so the kubelet can communicate with it.
+For health probes to continue to work as expected from within the mesh, OSM adds configuration to expose the probe endpoint via the proxy and rewrites the probe definitions for new Pods to refer to the proxy-exposed endpoint. All of the functionality of the original probe is still used, OSM simply fronts it with the proxy so the kubelet can communicate with it.
 
-The following table shows the modified path and port for each of the available probe types.
+For HTTP probes, the following table shows the modified path and port for each probe type.
 
 Probe | Path | Port
 -|-|-
@@ -20,12 +20,15 @@ Liveness | /osm-liveness-probe | 15901
 Readiness | /osm-readiness-probe | 15902
 Startup | /osm-startup-probe | 15903
 
+HTTPS probes will have their ports modified the same way as HTTP probes, but the path is left unchanged.
 
-Only predefined HTTP probes are modified. If a probe is undefined, one will not be added in its place. `tcpSocket` and HTTPS probes are not yet supported in OSM ([#2543](https://github.com/openservicemesh/osm/issues/2543), [#2515](https://github.com/openservicemesh/osm/issues/2515)) and `exec` probes are not affected.
+Only predefined HTTP(S) probes are modified. If a probe is undefined, one will not be added in its place. `tcpSocket` probes are not yet supported in OSM ([#2543](https://github.com/openservicemesh/osm/issues/2543)) and `exec` probes (including those using `grpc_health_probe`) are not affected.
 
-## Example
+## Examples
 
-Here's an example to show how OSM handles health probes for Pods in a mesh.
+The following examples show how OSM handles health probes for Pods in a mesh.
+
+### HTTP
 
 Consider a Pod spec defining a container with the following `livenessProbe`:
 
@@ -134,6 +137,96 @@ A listener for the new proxy-exposed HTTP endpoint at `/osm-liveness-probe` on p
     ]
   },
   "last_updated": "2021-03-29T21:02:59.092Z"
+}
+```
+
+### HTTPS
+
+Consider a Pod spec defining a container with the following `livenessProbe`:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /liveness
+    port: 14001
+    scheme: HTTPS
+```
+
+When the Pod is created, OSM will modify the probe to be the following:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /liveness
+    port: 15901
+    scheme: HTTPS
+```
+
+The Pod's proxy will contain the following Envoy configuration.
+
+An Envoy cluster which maps to the original probe port 14001:
+
+```json
+{
+  "cluster": {
+    "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+    "name": "liveness_cluster",
+    "type": "STATIC",
+    "connect_timeout": "1s",
+    "load_assignment": {
+      "cluster_name": "liveness_cluster",
+      "endpoints": [
+        {
+          "lb_endpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socket_address": {
+                    "address": "0.0.0.0",
+                    "port_value": 14001
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "last_updated": "2021-03-29T21:02:59.086Z"
+}
+```
+
+A listener for the new proxy-exposed TCP endpoint on port 15901 mapping to the cluster above:
+
+```json
+{
+  "listener": {
+    "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+    "name": "liveness_listener",
+    "address": {
+      "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 15901
+      }
+    },
+    "filter_chains": [
+      {
+        "filters": [
+          {
+            "name": "envoy.filters.network.tcp_proxy",
+            "typed_config": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+              "stat_prefix": "health_probes",
+              "cluster": "liveness_cluster",
+              "access_log": [...]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "last_updated": "2021-04-07T15:09:22.704Z"
 }
 ```
 
@@ -250,41 +343,13 @@ server: envoy
 
 If any health probes are consistently failing, perform the following steps to identify the root cause:
 
-1. Verify HTTP probes on Pods in the mesh have been modified.
+1. Verify HTTP(S) probes on Pods in the mesh have been modified.
 
-    Startup, liveness, and readiness probes that perform HTTP requests must be modified by OSM in order to continue to function while in a mesh.
+    Startup, liveness, and readiness probes that perform HTTP(S) requests must be modified by OSM in order to continue to function while in a mesh. Ports must be modified to 15901, 15902, and 15903 for liveness, readiness, and startup probes, respectively. Only HTTP (not HTTPS) probes will have paths modified in addition to be `/osm-liveness-probe`, `/osm-readiness-probe`, or `/osm-startup-probe`.
 
-    Startup probes must look like the following:
+    Also, verify the Pod's Envoy configuration contains a listener for the modified endpoint.
 
-    ```yaml
-    startupProbe:
-      httpGet:
-        path: /osm-startup-probe
-        port: 15903
-        scheme: HTTP
-    ```
-
-    Liveness probes must look like the following:
-
-    ```yaml
-    livenessProbe:
-      httpGet:
-        path: /osm-liveness-probe
-        port: 15901
-        scheme: HTTP
-    ```
-
-    Readiness probes must look like the following:
-
-    ```yaml
-    readinessProbe:
-      httpGet:
-        path: /osm-readiness-probe
-        port: 15902
-        scheme: HTTP
-    ```
-
-    Also, verify the Pod's Envoy configuration contains a listener for the modified endpoint. An [example](#example) is shown above.
+    See the [examples above](#examples) for more details.
 
 1. Determine if Kubernetes encountered any other errors while scheduling or starting the Pod.
 

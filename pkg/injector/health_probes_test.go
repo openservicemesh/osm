@@ -17,7 +17,7 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 		}
 	}
 
-	makeProbe := func(path string, port int32) *v1.Probe {
+	makeProbe := func(path string, port int32, isHTTP bool) *v1.Probe {
 		return &v1.Probe{
 			Handler: v1.Handler{
 				HTTPGet: &v1.HTTPGetAction{
@@ -36,18 +36,18 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 	pod := &v1.Pod{
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{
-				ReadinessProbe: makeProbe("/a", 1),
-				LivenessProbe:  makeProbe("/b", 2),
-				StartupProbe:   makeProbe("/c", 3),
+				ReadinessProbe: makeProbe("/a", 1, true),
+				LivenessProbe:  makeProbe("/b", 2, true),
+				StartupProbe:   makeProbe("/c", 3, true),
 			}},
 		},
 	}
 	container := &v1.Container{
 		Name:           "-some-container-",
 		Image:          "-some-container-image-",
-		ReadinessProbe: makeProbe("/a/b/c", 1234),
-		StartupProbe:   makeProbe("/x/y/z", 3456),
-		LivenessProbe:  makeProbe("/k/l/m", 7890),
+		ReadinessProbe: makeProbe("/a/b/c", 1234, true),
+		StartupProbe:   makeProbe("/x/y/z", 3456, true),
+		LivenessProbe:  makeProbe("/k/l/m", 7890, true),
 	}
 
 	containerPorts := &[]v1.ContainerPort{{
@@ -63,15 +63,19 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 			actual := rewriteHealthProbes(pod)
 			expected := healthProbes{
 				liveness: &healthProbe{
-					path: "/b",
-					port: 2,
+					path:   "/b",
+					port:   2,
+					isHTTP: true,
 				},
 				readiness: &healthProbe{
-					path: "/a",
-					port: 1},
+					path:   "/a",
+					port:   1,
+					isHTTP: true,
+				},
 				startup: &healthProbe{
-					path: "/c",
-					port: 3,
+					path:   "/c",
+					port:   3,
+					isHTTP: true,
 				},
 			}
 			Expect(actual).To(Equal(expected))
@@ -82,8 +86,9 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 		It("returns the rewritten health probe", func() {
 			actual := rewriteLiveness(container)
 			expected := &healthProbe{
-				path: "/k/l/m",
-				port: 7890,
+				path:   "/k/l/m",
+				port:   7890,
+				isHTTP: true,
 			}
 			Expect(actual).To(Equal(expected))
 		})
@@ -93,8 +98,9 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 		It("returns the rewritten health probe", func() {
 			actual := rewriteReadiness(container)
 			expected := &healthProbe{
-				path: "/a/b/c",
-				port: 1234,
+				path:   "/a/b/c",
+				port:   1234,
+				isHTTP: true,
 			}
 			Expect(actual).To(Equal(expected))
 		})
@@ -104,8 +110,9 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 		It("returns the rewritten health probe", func() {
 			actual := rewriteStartup(container)
 			expected := &healthProbe{
-				path: "/x/y/z",
-				port: 3456,
+				path:   "/x/y/z",
+				port:   3456,
+				isHTTP: true,
 			}
 			Expect(actual).To(Equal(expected))
 		})
@@ -115,8 +122,9 @@ var _ = Describe("Test functions creating Envoy config and rewriting the Pod's h
 		It("returns the rewritten health probe", func() {
 			actual := rewriteProbe(container.StartupProbe, "startup", "/x", 3465, containerPorts)
 			expected := &healthProbe{
-				path: "/osm-startup-probe",
-				port: 15903,
+				path:   "/osm-startup-probe",
+				port:   15903,
+				isHTTP: true,
 			}
 			Expect(actual).To(Equal(expected))
 		})
