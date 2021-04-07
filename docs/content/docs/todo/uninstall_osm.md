@@ -47,14 +47,14 @@ Delete all Kubernetes resources associated with OSM control plane.
 ### Experience
 CLI command:
 ```bash
-osm mesh uninstall MESH_NAME
+osm uninstall MESH_NAME
 ```
 
 ### Solution
 The CLI command will uninstall the `osm-controller` Deployment, Service and any other resources associated with the OSM control plane with the given MESH_NAME.
 
 #### Implementation Details
-The `osm` CLI uses Helm libraries and a Helm chart under the hood to install an OSM control plane in a Kubernetes cluster. It also creates a namespace (`osm-system` by default) to house the Kubernetes resources defined in and installed using the Helm chart. The `osm mesh uninstall` command works by deleting the Helm release associated with the control plane. The Helm release lives in the same namespace as the OSM control plane installation. The namespace will not be deleted because we don't know what else for now the user has installed in that namespace. Because the SMI CRDs live in the chart's `crds/` directory, they are protected from any delete action in Helm.
+The `osm` CLI uses Helm libraries and a Helm chart under the hood to install an OSM control plane in a Kubernetes cluster. It also creates a namespace (`osm-system` by default) to house the Kubernetes resources defined in and installed using the Helm chart. The `osm uninstall` command works by deleting the Helm release associated with the control plane. The Helm release lives in the same namespace as the OSM control plane installation. The namespace will not be deleted because we don't know what else for now the user has installed in that namespace. Because the SMI CRDs live in the chart's `crds/` directory, they are protected from any delete action in Helm.
 
 ### Testing
 This command and all associated functionality should be unit tested. This command should be added to the simulations run by CI.
