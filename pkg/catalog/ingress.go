@@ -9,7 +9,6 @@ import (
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -38,15 +37,23 @@ var wildcardServiceAccount = service.K8sServiceAccount{}
 
 // GetIngressPoliciesForService returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
 func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
-	switch mc.ingressMonitor.GetAPIVersion() {
-	case ingress.IngressNetworkingV1:
-		return mc.getIngressPoliciesNetworkingV1(svc)
+	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	case ingress.IngressNetworkingV1beta1:
-		return mc.getIngressPoliciesNetworkingV1beta1(svc)
+	// Build policies for ingress v1
+	if v1Policies, err := mc.getIngressPoliciesNetworkingV1(svc); err != nil {
+		log.Error().Err(err).Msgf("Error building inbound ingress v1 inbound policies for service %s", svc)
+	} else {
+		inboundTrafficPolicies = append(inboundTrafficPolicies, v1Policies...)
 	}
 
-	return nil, ingress.ErrUnsupportedAPIVersion
+	// Build policies for ingress v1beta1
+	if v1beta1Policies, err := mc.getIngressPoliciesNetworkingV1beta1(svc); err != nil {
+		log.Error().Err(err).Msgf("Error building inbound ingress v1beta inbound policies for service %s", svc)
+	} else {
+		inboundTrafficPolicies = append(inboundTrafficPolicies, v1beta1Policies...)
+	}
+
+	return inboundTrafficPolicies, nil
 }
 
 func buildIngressPolicyName(name, namespace, host string) string {

@@ -36,20 +36,6 @@ func (m *MockMonitor) EXPECT() *MockMonitorMockRecorder {
 	return m.recorder
 }
 
-// GetAPIVersion mocks base method
-func (m *MockMonitor) GetAPIVersion() APIVersion {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAPIVersion")
-	ret0, _ := ret[0].(APIVersion)
-	return ret0
-}
-
-// GetAPIVersion indicates an expected call of GetAPIVersion
-func (mr *MockMonitorMockRecorder) GetAPIVersion() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIVersion", reflect.TypeOf((*MockMonitor)(nil).GetAPIVersion))
-}
-
 // GetIngressNetworkingV1 mocks base method
 func (m *MockMonitor) GetIngressNetworkingV1(arg0 service.MeshService) ([]*v1.Ingress, error) {
 	m.ctrl.T.Helper()
