@@ -5,6 +5,7 @@ import (
 
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -15,11 +16,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	// ingressKind denotes the Kind attribute of the Ingress k8s resource
+	ingressKind = "Ingress"
+)
+
+var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), networkingV1beta1.SchemeGroupVersion.String()}
+
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
-	k8sServerVersion, err := k8s.GetKubernetesServerVersionNumber(kubeClient)
+	supportedIngressVersions, err := getSupportedIngressVersions(kubeClient.Discovery())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving k8s server version required to initialize ingress client")
+		log.Error().Err(err).Msgf("Error retrieving ingress API versions supported by k8s API server")
 		return nil, err
 	}
 
@@ -41,17 +49,13 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		kubeController: kubeController,
 	}
 
-	// If k8s server version >= 1.19, initialize the v1 informer
-	// Ref: https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122
-	if k8sServerVersion[0] >= 1 && k8sServerVersion[1] >= 19 {
+	if v1Supported, ok := supportedIngressVersions[networkingV1.SchemeGroupVersion.String()]; ok && v1Supported {
 		client.informerV1 = informerFactory.Networking().V1().Ingresses().Informer()
 		client.cacheV1 = client.informerV1.GetStore()
 		client.informerV1.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressV1", "Kubernetes", shouldObserve, ingressEventTypes))
 	}
 
-	// If k8s server version is < 1.22, initialize the v1beta informer
-	// Ref: https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122
-	if k8sServerVersion[0] >= 1 && k8sServerVersion[1] < 22 {
+	if v1beta1Supported, ok := supportedIngressVersions[networkingV1beta1.SchemeGroupVersion.String()]; ok && v1beta1Supported {
 		client.informerV1beta1 = informerFactory.Networking().V1beta1().Ingresses().Informer()
 		client.cacheV1Beta1 = client.informerV1beta1.GetStore()
 		client.informerV1beta1.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressV1beta1", "Kubernetes", shouldObserve, ingressEventTypes))
@@ -70,6 +74,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	log.Info().Msg("Ingress client started")
 
 	if c.informerV1 == nil && c.informerV1beta1 == nil {
+		log.Error().Err(errInitInformers).Msgf("k8s API must support at least one of %v, but does not support any ingress API", candidateVersions)
 		return errInitInformers
 	}
 
@@ -187,4 +192,35 @@ func (c Client) GetIngressNetworkingV1(meshService service.MeshService) ([]*netw
 		}
 	}
 	return ingressResources, nil
+}
+
+// getSupportedIngressVersions returns a map comprising of keys matching candidate ingress API versions
+// and corresponding values indidicating if they are supported by the k8s API server or not. An error
+// is returned in case this cannot be determined.
+// Example return values:
+// - only networking.k8s.io/v1 is supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': false}, nil
+// - only networking.k8s.io/v1beta1 is supported: {'networking.k8s.io/v1': false, 'networking.k8s.io/v1beta1': true}, nil
+// - both networking.k8s.io/v1 and networking.k8s.io/v1beta1 are supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': true}, nil
+// - on error: nil, error
+func getSupportedIngressVersions(client discovery.ServerResourcesInterface) (map[string]bool, error) {
+	versions := make(map[string]bool)
+
+	for _, groupVersion := range candidateVersions {
+		// Initialize version support to false before checking with the k8s API server
+		versions[groupVersion] = false
+
+		list, err := client.ServerResourcesForGroupVersion(groupVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, elem := range list.APIResources {
+			if elem.Kind == ingressKind {
+				versions[groupVersion] = true
+				break
+			}
+		}
+	}
+
+	return versions, nil
 }
