@@ -5,6 +5,7 @@
 package catalog
 
 import (
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 
@@ -44,8 +45,6 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// GetSMISpec returns the SMI spec
-	GetSMISpec() smi.MeshSpec
 
 	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service identity and inbound services
 	ListInboundTrafficPolicies(identity.ServiceIdentity, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
@@ -92,6 +91,12 @@ type MeshCataloger interface {
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+
+	// ListMeshServiceForServiceAccount lists the services for a given service account
+	ListMeshServiceForServiceAccount(identity.ServiceIdentity) map[service.MeshService]struct{}
+
+	// GetWeightedClustersForUpstream lists the apex services from traffic split policies for a given upstream
+	GetWeightedClustersForUpstream(service.MeshService) []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate

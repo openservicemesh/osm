@@ -117,8 +117,6 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
-	mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
-
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
 		cfg:             mockConfigurator,
@@ -717,8 +715,6 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-
-			mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
 
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
 

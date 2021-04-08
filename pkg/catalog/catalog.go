@@ -34,8 +34,3 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 
 	return &mc
 }
-
-// GetSMISpec returns a MeshCatalog's SMI Spec
-func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
-	return mc.meshSpec
-}

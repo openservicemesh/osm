@@ -7,12 +7,12 @@ package catalog
 import (
 	reflect "reflect"
 
+	envoy_extensions_filters_network_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
-	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -84,20 +84,6 @@ func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableServiceEndpoints", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableServiceEndpoints), arg0)
 }
 
-// GetSMISpec mocks base method
-func (m *MockMeshCataloger) GetSMISpec() smi.MeshSpec {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSMISpec")
-	ret0, _ := ret[0].(smi.MeshSpec)
-	return ret0
-}
-
-// GetSMISpec indicates an expected call of GetSMISpec
-func (mr *MockMeshCatalogerMockRecorder) GetSMISpec() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSMISpec", reflect.TypeOf((*MockMeshCataloger)(nil).GetSMISpec))
-}
-
 // GetServicesFromEnvoyCertificate mocks base method
 func (m *MockMeshCataloger) GetServicesFromEnvoyCertificate(arg0 certificate.CommonName) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
@@ -126,6 +112,20 @@ func (m *MockMeshCataloger) GetTargetPortToProtocolMappingForService(arg0 servic
 func (mr *MockMeshCatalogerMockRecorder) GetTargetPortToProtocolMappingForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortToProtocolMappingForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetTargetPortToProtocolMappingForService), arg0)
+}
+
+// GetWeightedClustersForUpstream mocks base method
+func (m *MockMeshCataloger) GetWeightedClustersForUpstream(arg0 service.MeshService) []*envoy_extensions_filters_network_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWeightedClustersForUpstream", arg0)
+	ret0, _ := ret[0].([]*envoy_extensions_filters_network_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight)
+	return ret0
+}
+
+// GetWeightedClustersForUpstream indicates an expected call of GetWeightedClustersForUpstream
+func (mr *MockMeshCatalogerMockRecorder) GetWeightedClustersForUpstream(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWeightedClustersForUpstream", reflect.TypeOf((*MockMeshCataloger)(nil).GetWeightedClustersForUpstream), arg0)
 }
 
 // ListAllowedEndpointsForService mocks base method
@@ -214,6 +214,20 @@ func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 identity.Se
 func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInboundTrafficTargetsWithRoutes", reflect.TypeOf((*MockMeshCataloger)(nil).ListInboundTrafficTargetsWithRoutes), arg0)
+}
+
+// ListMeshServiceForServiceAccount mocks base method
+func (m *MockMeshCataloger) ListMeshServiceForServiceAccount(arg0 identity.ServiceIdentity) map[service.MeshService]struct{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMeshServiceForServiceAccount", arg0)
+	ret0, _ := ret[0].(map[service.MeshService]struct{})
+	return ret0
+}
+
+// ListMeshServiceForServiceAccount indicates an expected call of ListMeshServiceForServiceAccount
+func (mr *MockMeshCatalogerMockRecorder) ListMeshServiceForServiceAccount(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshServiceForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListMeshServiceForServiceAccount), arg0)
 }
 
 // ListOutboundTrafficPolicies mocks base method

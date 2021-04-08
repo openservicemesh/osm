@@ -17,7 +17,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -349,39 +348,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: upstream.String()},
 	}
 
-	var weightedClusters []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight
-	apexServices := mapset.NewSet()
-
-	for _, split := range lb.meshCatalog.GetSMISpec().ListTrafficSplits() {
-		// Split policy must be in the same namespace as the upstream service
-		if split.Namespace != upstream.Namespace {
-			continue
-		}
-		rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
-		if rootServiceName != upstream.Name {
-			// This split policy does not correspond to the upstream service
-			continue
-		}
-
-		if apexServices.Contains(split.Spec.Service) {
-			log.Error().Msgf("Skipping traffic split policy %s/%s as there is already a corresponding policy for apex service %s", split.Namespace, split.Name, split.Spec.Service)
-			continue
-		}
-
-		for _, backend := range split.Spec.Backends {
-			if backend.Weight == 0 {
-				// Skip backends with a weight of 0
-				log.Warn().Msgf("Skipping backend %s that has a weight of 0 in traffic split policy %s/%s", backend.Service, split.Namespace, split.Name)
-				continue
-			}
-			backendCluster := &xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
-				Name:   fmt.Sprintf("%s/%s", split.Namespace, backend.Service), // cluster <namespace>/<service>
-				Weight: uint32(backend.Weight),
-			}
-			weightedClusters = append(weightedClusters, backendCluster)
-		}
-		apexServices.Add(split.Spec.Service)
-	}
+	weightedClusters := lb.meshCatalog.GetWeightedClustersForUpstream(upstream)
 
 	if len(weightedClusters) == 0 {
 		// No weighted clusters implies a traffic split does not exist for this upstream, proxy it as is
@@ -417,37 +384,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 		return filterChains
 	}
 
-	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid duplicates
-	// Transform into set, when listing apex services we might face repetitions
-	for _, upstreamSvc := range upstreamServices {
-		dstServicesSet[upstreamSvc] = struct{}{}
-	}
-
-	// Getting apex services referring to the outbound services
-	// We get possible apexes which could traffic split to any of the possible
-	// outbound services
-	splitPolicy := lb.meshCatalog.GetSMISpec().ListTrafficSplits()
-
-	for upstreamSvc := range dstServicesSet {
-		for _, split := range splitPolicy {
-			// Split policy must be in the same namespace as the upstream service that is a backend
-			if split.Namespace != upstreamSvc.Namespace {
-				continue
-			}
-			for _, backend := range split.Spec.Backends {
-				if backend.Service == upstreamSvc.Name {
-					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
-					rootMeshService := service.MeshService{
-						Namespace: split.Namespace,
-						Name:      rootServiceName,
-					}
-
-					// Add this root service into the set
-					dstServicesSet[rootMeshService] = struct{}{}
-				}
-			}
-		}
-	}
+	dstServicesSet := lb.meshCatalog.ListMeshServiceForServiceAccount(lb.serviceIdentity)
 
 	// Iterate all destination services
 	for upstream := range dstServicesSet {
