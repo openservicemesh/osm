@@ -1,7 +1,6 @@
-{{- if .Values.OpenServiceMesh.useConfigCRD}}
 # Custom Resource Definition (CRD) for OSM's configuration specification.
 #
-# Copyright OSM for Go authors
+# Copyright Open Service Mesh authors.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -117,4 +116,3 @@ spec:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
                       default: "24h"
-{{- end }}
