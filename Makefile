@@ -104,6 +104,10 @@ build-osm: check-go-version
 clean-osm:
 	@rm -rf bin/osm
 
+.PHONY: codegen
+codegen:
+	./codegen/gen-crd-client.sh
+
 .PHONY: chart-readme
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
