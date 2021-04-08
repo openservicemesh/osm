@@ -19,7 +19,7 @@ go test -timeout 120s \
    -covermode count "${modules[@]}" | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
 # shellcheck disable=SC2002
-cat coverage.txt.with_generated_code | grep -v "_generated.go" | grep -v "fake.go" > coverage.txt
+cat coverage.txt.with_generated_code | grep -v "_generated.go" | grep -v "fake.go" | grep -v "pkg/gen" | grep -v "pkg/apis" > coverage.txt
 
 # shellcheck disable=SC2002
 cat testoutput.txt | go run github.com/jstemmer/go-junit-report > report.xml
