@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
 var (
@@ -29,4 +30,5 @@ type Server struct {
 	cfg            configurator.Configurator
 	certManager    certificate.Manager
 	ready          bool
+	workqueues     *workerpool.WorkerPool
 }

@@ -20,6 +20,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+var (
+	// allDS represents all xDS paths expressed as TypeURLs. Used to issue updates
+	// on all paths for a given proxy.
+	allDS = mapset.NewSetWith(
+		envoy.TypeCDS,
+		envoy.TypeEDS,
+		envoy.TypeLDS,
+		envoy.TypeRDS,
+		envoy.TypeSDS)
+)
+
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
 // This is evaluated once per new Envoy proxy connecting and remains running for the duration of the gRPC socket.
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
@@ -175,37 +186,43 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			var xdsUpdatePaths mapset.Set
 			switch typeURL {
 			case envoy.TypeWildcard:
-				xdsUpdatePaths = mapset.NewSetWith(
-					envoy.TypeCDS,
-					envoy.TypeEDS,
-					envoy.TypeLDS,
-					envoy.TypeRDS,
-					envoy.TypeSDS)
+				xdsUpdatePaths = allDS
 			default:
 				xdsUpdatePaths = mapset.NewSetWith(typeURL)
 			}
 
-			err = s.sendResponse(xdsUpdatePaths, proxy, &server, &discoveryRequest, s.cfg)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to create and send %s update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					envoy.XDSShortURINames[typeURL], proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-				continue
+			// Queue a response job for the request
+			job := proxyResponseJob{
+				typeurls:  xdsUpdatePaths,
+				proxy:     proxy,
+				cfg:       s.cfg,
+				adsStream: &server,
+				request:   &discoveryRequest,
+				xdsServer: s,
+				done:      make(chan struct{}),
 			}
+			s.workqueues.AddJob(&job)
+
+			// Wait for job to complete
+			<-job.done
 
 		case <-broadcastUpdate:
 			log.Info().Msgf("Broadcast wake for Proxy SerialNumber=%s UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			err := s.sendResponse(mapset.NewSetWith(
-				envoy.TypeCDS,
-				envoy.TypeEDS,
-				envoy.TypeLDS,
-				envoy.TypeRDS,
-				envoy.TypeSDS),
-				proxy, &server, nil, s.cfg)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to create and send ADS update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-				continue
+
+			// Queue a full configuration update
+			job := proxyResponseJob{
+				typeurls:  allDS,
+				proxy:     proxy,
+				cfg:       s.cfg,
+				adsStream: &server,
+				request:   nil,
+				xdsServer: s,
+				done:      make(chan struct{}),
 			}
+			s.workqueues.AddJob(&job)
+
+			// Wait for job to complete
+			<-job.done
 
 		case certUpdateMsg := <-certAnnouncement:
 			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
@@ -213,13 +230,22 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
 				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+
 				// Empty DiscoveryRequest should create the SDS specific request
-				err := s.sendResponse(mapset.NewSetWith(envoy.TypeSDS), proxy, &server, nil, s.cfg)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to create and send SDS update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-						proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-					continue
+				// Prepare to queue the SDS proxy response job on the workerpool
+				job := proxyResponseJob{
+					typeurls:  mapset.NewSetWith(envoy.TypeSDS),
+					proxy:     proxy,
+					cfg:       s.cfg,
+					adsStream: &server,
+					request:   nil,
+					xdsServer: s,
+					done:      make(chan struct{}),
 				}
+				s.workqueues.AddJob(&job)
+
+				// Wait for job to complete
+				<-job.done
 			}
 		}
 	}
