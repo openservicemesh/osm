@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	. "github.com/onsi/ginkgo"
 )
 
 const (
@@ -236,6 +237,7 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 
 		wg.Add(1)
 		go func(ns string, podname string, htReq HTTPRequestDef) {
+			defer GinkgoRecover()
 			defer wg.Done()
 			r := td.HTTPRequest(htReq)
 
