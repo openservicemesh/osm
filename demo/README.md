@@ -14,10 +14,10 @@
 
 ## Prerequisites
 1. Clone this repo on your workstation
-2. Setup `.env` environment variable file
+1. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
+1. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
@@ -25,6 +25,13 @@
 	- **Option 2:** A Kubernetes cluster - use an already provisioned cluster config, either in the default location ($HOME/.kube/config) or referenced by the $KUBECONFIG environment variable.
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
+
+### OpenShift
+If you are running the demo on an OpenShift cluster, there are additional prerequisites.
+
+1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Set `DEPLOY_ON_OPENSHIFT=true` in your `.env` file.
+    - This enables privileged init containers and links the image pull secrets to the service accounts. Privileged init containers are needed to program iptables on OpenShift.
 
 ## Run the Demo
 From the root of this repository execute:
@@ -36,7 +43,7 @@ From the root of this repository execute:
 By default:
 -  Prometheus is not deployed by the demo script. To enable prometheus deployment, set the variable `DEPLOY_PROMETHEUS` in your `.env` file to `true`.
 - Grafana is not deployed by the demo script. To enable Grafana deployment, set the variable `DEPLOY_GRAFANA` in your `.env` file to `true`.
-- Jaegar is not deployed by the demo script. To enable Jaegar deployment, set the variable `DEPLOY_JAEGER` in your `.env` file to `true`.
+- Jaeger is not deployed by the demo script. To enable Jaeger deployment, set the variable `DEPLOY_JAEGER` in your `.env` file to `true`. The section on Jaeger [below](#view-mesh-topology-with-jaeger) describes tracing with Jaeger.
 
 ### This script will:
   - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
@@ -59,7 +66,11 @@ To see the results of deploying the services and the service mesh - run the tail
   This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## View Mesh Topology with Jaeger
-The OSM demo will install a Jaeger pod, and configure all participating Envoys to send spans to it. Jaeger's UI is running on port 16686. To view the web UI, forward port 16686 from the Jaeger pod to the local workstation and navigate to http://localhost:16686/. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`
+When the demo is run with `DEPLOY_JAEGER` set to `true` in your `.env` file, OSM will install a Jaeger pod. To configure all participating Envoys to send spans to this Jaeger instance, you must additionally enable tracing using:
+```console
+osm mesh upgrade --enable-tracing
+```
+Jaeger's UI is running on port 16686 and can be viewed by forwarding port 16686 from the Jaeger pod to the local workstation. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`. After running this script, navigate to http://localhost:16686/ to examine traces from the various applications. 
 
 ## Demo Web UI
 The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.

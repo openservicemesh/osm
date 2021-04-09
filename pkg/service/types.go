@@ -2,6 +2,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -28,7 +29,7 @@ type K8sServiceAccount struct {
 
 // String returns the string representation of the service account object
 func (sa K8sServiceAccount) String() string {
-	return strings.Join([]string{sa.Namespace, namespaceNameSeparator, sa.Name}, "")
+	return fmt.Sprintf("%s%s%s", sa.Namespace, namespaceNameSeparator, sa.Name)
 }
 
 // IsEmpty returns true if the given service account object is empty
@@ -44,15 +45,28 @@ func (c ClusterName) String() string {
 	return string(c)
 }
 
-//WeightedService is a struct of a service name, its weight and its root service
-type WeightedService struct {
-	Service     MeshService `json:"service_name:omitempty"`
-	Weight      int         `json:"weight:omitempty"`
-	RootService string      `json:"root_service:omitempty"`
-}
-
 // WeightedCluster is a struct of a cluster and is weight that is backing a service
 type WeightedCluster struct {
 	ClusterName ClusterName `json:"cluster_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
+}
+
+// UnmarshalK8sServiceAccount unmarshals a K8sServiceAccount type from a string
+func UnmarshalK8sServiceAccount(str string) (*K8sServiceAccount, error) {
+	slices := strings.Split(str, namespaceNameSeparator)
+	if len(slices) != 2 {
+		return nil, errInvalidMeshServiceFormat
+	}
+
+	// Make sure the slices are not empty. Split might actually leave empty slices.
+	for _, sep := range slices {
+		if len(sep) == 0 {
+			return nil, errInvalidMeshServiceFormat
+		}
+	}
+
+	return &K8sServiceAccount{
+		Namespace: slices[0],
+		Name:      slices[1],
+	}, nil
 }

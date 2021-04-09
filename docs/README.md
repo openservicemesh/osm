@@ -1,6 +1,6 @@
 # Open Service Mesh Docs
 
-> :book: This section contains the [OSM Docs](https://github.com/openservicemesh/osm/tree/main/docs/content)  
+> :book: This section contains the [OSM Docs](https://github.com/openservicemesh/osm/tree/release-v0.8/docs/content)  
 > :ship: Also the website config to generate [docs.openservicemesh.io](docs.openservicemesh.io)  
 > :link: Looking for the main OSM website? Visit [osm-www](https://github.com/openservicemesh/osm-www)  
 
@@ -82,6 +82,7 @@ This is Bar. Go back to [Foo](./foo.md).
 
 Visit the Hugo docs for more information on [Alias](https://gohugo.io/content-management/urls/#aliases) setup.
 
+If embedding an image, using a relative link is necessary for the image to appear correctly on both GitHub and the website, and the page displaying the image needs to be an `_index.md` page with the expected level of `..` to reach the `/docs/images` directory.
 
 ## Versioning the Docs Site
 

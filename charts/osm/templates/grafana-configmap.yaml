@@ -5,6 +5,7 @@ metadata:
   name: osm-grafana-config
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 data:
   grafana.ini: |
@@ -28,6 +29,7 @@ metadata:
   name: osm-grafana-datasources
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 data:
   prometheus.yaml: |
@@ -64,6 +66,7 @@ metadata:
   name: osm-grafana-dashboard-definition-dataplane
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 data:
   osm-pod.json: |
@@ -81,6 +84,7 @@ metadata:
   name: osm-grafana-dashboard-definition-controlplane
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 data:
   osm-control-plane.json: |
@@ -96,6 +100,7 @@ metadata:
   name: osm-grafana-dashboards
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 data:
   dashboards.yaml: |

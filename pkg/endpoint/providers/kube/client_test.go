@@ -6,17 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -35,7 +33,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
 
-		fakeClientSet *fake.Clientset
+		fakeClientSet *testclient.Clientset
 		provider      endpoint.Provider
 		err           error
 	)
@@ -49,7 +47,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
+		fakeClientSet = testclient.NewSimpleClientset()
 		provider, err = NewProvider(fakeClientSet, mockKubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -64,14 +62,14 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: tests.BookbuyerService.Namespace,
 			},
-			Subsets: []v1.EndpointSubset{
+			Subsets: []corev1.EndpointSubset{
 				{
-					Addresses: []v1.EndpointAddress{
+					Addresses: []corev1.EndpointAddress{
 						{
 							IP: "8.8.8.8",
 						},
 					},
-					Ports: []v1.EndpointPort{
+					Ports: []corev1.EndpointPort{
 						{
 							Port: 88,
 						},
@@ -139,18 +137,18 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: tests.BookbuyerService.Namespace,
 			},
-			Subsets: []v1.EndpointSubset{
+			Subsets: []corev1.EndpointSubset{
 				{
-					Addresses: []v1.EndpointAddress{
+					Addresses: []corev1.EndpointAddress{
 						{
 							IP: "8.8.8.8",
 						},
 					},
-					Ports: []v1.EndpointPort{
+					Ports: []corev1.EndpointPort{
 						{
 							Name:     "port",
 							Port:     88,
-							Protocol: v1.ProtocolTCP,
+							Protocol: corev1.ProtocolTCP,
 						},
 					},
 				},
@@ -174,50 +172,50 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: tests.BookbuyerService.Namespace,
 			},
-			Subsets: []v1.EndpointSubset{
+			Subsets: []corev1.EndpointSubset{
 				{
-					Addresses: []v1.EndpointAddress{
+					Addresses: []corev1.EndpointAddress{
 						{
 							IP: "8.8.8.8",
 						},
 					},
-					Ports: []v1.EndpointPort{
+					Ports: []corev1.EndpointPort{
 						{
 							Name:        "port1", // appProtocol specified
 							Port:        70,
-							Protocol:    v1.ProtocolTCP,
+							Protocol:    corev1.ProtocolTCP,
 							AppProtocol: &appProtoTCP,
 						},
 						{
 							Name:        "port2", // appProtocol specified
 							Port:        80,
-							Protocol:    v1.ProtocolTCP,
+							Protocol:    corev1.ProtocolTCP,
 							AppProtocol: &appProtoHTTP,
 						},
 						{
 							Name:     "http-port3", // appProtocol derived from port name
 							Port:     90,
-							Protocol: v1.ProtocolTCP,
+							Protocol: corev1.ProtocolTCP,
 						},
 						{
 							Name:     "tcp-port4", // appProtocol derived from port name
 							Port:     100,
-							Protocol: v1.ProtocolTCP,
+							Protocol: corev1.ProtocolTCP,
 						},
 						{
 							Name:     "grpc-port5", // appProtocol derived from port name
 							Port:     110,
-							Protocol: v1.ProtocolTCP,
+							Protocol: corev1.ProtocolTCP,
 						},
 						{
 							Name:     "no-protocol-prefix", // appProtocol defaults to http
 							Port:     120,
-							Protocol: v1.ProtocolTCP,
+							Protocol: corev1.ProtocolTCP,
 						},
 						{
 							Name:        "http-prefix",
 							Port:        130,
-							Protocol:    v1.ProtocolTCP,
+							Protocol:    corev1.ProtocolTCP,
 							AppProtocol: &appProtoTCP, // AppProtocol takes precedence over Name
 						},
 					},
@@ -238,7 +236,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		mockCtrl         *gomock.Controller
 		kubeController   k8s.Controller
 		mockConfigurator *configurator.MockConfigurator
-		fakeClientSet    *fake.Clientset
+		fakeClientSet    *testclient.Clientset
 		provider         endpoint.Provider
 		err              error
 	)
@@ -251,7 +249,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	stop := make(chan struct{})
 
 	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
+		fakeClientSet = testclient.NewSimpleClientset()
 		kubeController, err = k8s.NewKubernetesController(fakeClientSet, meshName, stop)
 
 		// Add the monitored namespace
@@ -676,16 +674,16 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			provider, err := NewProvider(kubeClient, mockKubeController, providerID, mockConfigurator)
 			assert.Nil(err)
 
-			var pods []*v1.Pod
+			var pods []*corev1.Pod
 			for sa, endpoints := range tc.outboundServiceAccountEndpoints {
 				podlabels := map[string]string{
 					tests.SelectorKey:                tests.SelectorValue,
 					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 				}
 				pod := tests.NewPodFixture(sa.Namespace, sa.Name, sa.Name, podlabels)
-				var podIps []v1.PodIP
+				var podIps []corev1.PodIP
 				for _, ep := range endpoints {
-					podIps = append(podIps, v1.PodIP{IP: ep.IP.String()})
+					podIps = append(podIps, corev1.PodIP{IP: ep.IP.String()})
 				}
 				pod.Status.PodIPs = podIps
 				_, err := kubeClient.CoreV1().Pods(sa.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})

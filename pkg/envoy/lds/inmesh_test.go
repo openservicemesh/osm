@@ -10,13 +10,19 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -94,6 +100,93 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 			} else {
 				assert.NotNil(httpFilterChain)
 				assert.Len(httpFilterChain.FilterChainMatch.PrefixRanges, len(tc.expectedEndpoints))
+
+				for _, filter := range httpFilterChain.Filters {
+					assert.Equal(wellknown.HTTPConnectionManager, filter.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestGetOutboundTCPFilterChainForService(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+
+	mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
+
+	lb := &listenerBuilder{
+		meshCatalog: mockCatalog,
+		cfg:         mockConfigurator,
+		svcAccount:  tests.BookbuyerServiceAccount,
+	}
+
+	testCases := []struct {
+		name                     string
+		expectedEndpoints        []endpoint.Endpoint
+		servicePort              uint32
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectError              bool
+	}{
+		{
+			name: "service with multiple endpoints",
+			expectedEndpoints: []endpoint.Endpoint{
+				{IP: net.ParseIP("1.1.1.1"), Port: 80},
+				{IP: net.ParseIP("2.2.2.2"), Port: 80},
+			},
+			servicePort: 80, // this can be different from the target port in the endpoints
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort: &wrapperspb.UInt32Value{Value: 80}, // same as 'servicePort'
+				PrefixRanges: []*xds_core.CidrRange{
+					// The order is guaranteed to be sorted
+					{
+						AddressPrefix: "1.1.1.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+					{
+						AddressPrefix: "2.2.2.2",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                     "service with no endpoints",
+			expectedEndpoints:        []endpoint.Endpoint{},
+			servicePort:              80,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.expectedEndpoints, nil)
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(nil).Times(1)
+
+			tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(tests.BookstoreApexService, tc.servicePort)
+
+			assert.Equal(err != nil, tc.expectError)
+
+			if err != nil {
+				assert.Nil(tcpFilterChain)
+			} else {
+				assert.NotNil(tcpFilterChain)
+				assert.Len(tcpFilterChain.FilterChainMatch.PrefixRanges, len(tc.expectedEndpoints))
+
+				for _, filter := range tcpFilterChain.Filters {
+					assert.Equal(wellknown.TCPProxy, filter.Name)
+				}
 			}
 		})
 	}
@@ -416,6 +509,232 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tests.BookstoreApexService, tc.servicePort)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
+		})
+	}
+}
+
+func TestGetOutboundTCPFilter(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	type testCase struct {
+		name                   string
+		upstream               service.MeshService
+		trafficSplits          []*smiSplit.TrafficSplit
+		expectedTCPProxyConfig *xds_tcp_proxy.TcpProxy
+		expectError            bool
+	}
+
+	testCases := []testCase{
+		{
+			name:          "TCP filter for upstream without any traffic split policies",
+			upstream:      service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: nil,
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
+			},
+			expectError: false,
+		},
+		{
+			name:     "TCP filter for upstream with matching traffic split policy",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*smiSplit.TrafficSplit{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: smiSplit.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []smiSplit.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
+					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
+						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
+							{
+								Name:   "bar/foo-v1",
+								Weight: 10,
+							},
+							{
+								Name:   "bar/foo-v2",
+								Weight: 90,
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:     "TCP filter for upstream without matching traffic split policy",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*smiSplit.TrafficSplit{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: smiSplit.TrafficSplitSpec{
+						Service: "not-upstream.bar.svc.cluster.local", // Root service is not the upstream the filter is being built for
+						Backends: []smiSplit.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
+			},
+			expectError: false,
+		},
+		{
+			name:     "TCP filter for upstream with multiple matching policies, pick first",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*smiSplit.TrafficSplit{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: smiSplit.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []smiSplit.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: smiSplit.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []smiSplit.TrafficSplitBackend{
+							{
+								Service: "foo-v3",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v4",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
+					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
+						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
+							{
+								Name:   "bar/foo-v1",
+								Weight: 10,
+							},
+							{
+								Name:   "bar/foo-v2",
+								Weight: 90,
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:     "TCP filter for upstream with matching traffic split policy including a backend with 0 weight",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*smiSplit.TrafficSplit{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: smiSplit.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []smiSplit.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  100,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  0,
+							},
+						},
+					},
+				},
+			},
+			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
+					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
+						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
+							{
+								Name:   "bar/foo-v1",
+								Weight: 100,
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+
+			mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
+
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
+
+			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator, nil)
+			filter, err := lb.getOutboundTCPFilter(tc.upstream)
+
+			assert.Equal(tc.expectError, err != nil)
+
+			actualConfig := &xds_tcp_proxy.TcpProxy{}
+			err = ptypes.UnmarshalAny(filter.GetTypedConfig(), actualConfig)
+			assert.Nil(err)
+			assert.Equal(wellknown.TCPProxy, filter.Name)
+
+			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
+			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
 		})
 	}
 }

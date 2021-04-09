@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"k8s.io/api/admissionregistration/v1beta1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,6 +31,8 @@ const (
 	OsmGrafanaAppLabel = "osm-grafana"
 	// OsmPrometheusAppLabel is the OSM Prometheus deployment app label
 	OsmPrometheusAppLabel = "osm-prometheus"
+	// OsmInjectorAppLabel is the OSM injector deployment app label
+	OsmInjectorAppLabel = "osm-injector"
 
 	// OSM Grafana Dashboard specifics
 
@@ -48,6 +50,11 @@ const (
 
 	// AppProtocolTCP is the TCP application protocol
 	AppProtocolTCP = "tcp"
+)
+
+var (
+	// OsmCtlLabels is the list of app labels for OSM CTL
+	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel}
 )
 
 // CreateServiceAccount is a wrapper to create a service account
@@ -91,8 +98,8 @@ func (td *OsmTestData) CreateService(ns string, svc corev1.Service) (*corev1.Ser
 }
 
 // CreateMutatingWebhook is a wrapper to create a mutating webhook configuration
-func (td *OsmTestData) CreateMutatingWebhook(mwhc *v1beta1.MutatingWebhookConfiguration) (*v1beta1.MutatingWebhookConfiguration, error) {
-	mw, err := td.Client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), mwhc, metav1.CreateOptions{})
+func (td *OsmTestData) CreateMutatingWebhook(mwhc *admissionregv1.MutatingWebhookConfiguration) (*admissionregv1.MutatingWebhookConfiguration, error) {
+	mw, err := td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), mwhc, metav1.CreateOptions{})
 	if err != nil {
 		err := fmt.Errorf("Could not create MutatingWebhook: %v", err)
 		return nil, err
@@ -101,8 +108,8 @@ func (td *OsmTestData) CreateMutatingWebhook(mwhc *v1beta1.MutatingWebhookConfig
 }
 
 // GetMutatingWebhook is a wrapper to get a mutating webhook configuration
-func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*v1beta1.MutatingWebhookConfiguration, error) {
-	mwhc, err := td.Client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), mwhcName, metav1.GetOptions{})
+func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*admissionregv1.MutatingWebhookConfiguration, error) {
+	mwhc, err := td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhcName, metav1.GetOptions{})
 	if err != nil {
 		err := fmt.Errorf("Could not get MutatingWebhook: %v", err)
 		return nil, err
@@ -267,6 +274,7 @@ type SimpleDeploymentAppDef struct {
 	Command      []string
 	Args         []string
 	Ports        []int
+	AppProtocol  string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
@@ -356,10 +364,25 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 				},
 			)
 
-			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, corev1.ServicePort{
+			svcPort := corev1.ServicePort{
 				Port:       int32(p),
 				TargetPort: intstr.FromInt(p),
-			})
+			}
+
+			if def.AppProtocol != "" {
+				if ver, err := td.getKubernetesServerVersionNumber(); err != nil {
+					svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+				} else {
+					// use appProtocol field in servicePort if k8s server version >= 1.19
+					if ver[0] >= 1 && ver[1] >= 19 {
+						svcPort.AppProtocol = &def.AppProtocol // set the appProtocol field
+					} else {
+						svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+					}
+				}
+			}
+
+			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
 		}
 	}
 
@@ -368,7 +391,11 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 
 // GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, port uint16) (*Grafana, error) {
-	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, grafanaPodName, ns, port, port)
+	dialer, err := k8s.DialerToPod(td.RestConfig, td.Client, grafanaPodName, ns)
+	if err != nil {
+		return nil, err
+	}
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
 	}
@@ -392,7 +419,11 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 
 // GetPrometheusPodHandle generic func to forward a prometheus pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName string, port uint16) (*Prometheus, error) {
-	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, prometheusPodName, ns, port, port)
+	dialer, err := k8s.DialerToPod(td.RestConfig, td.Client, prometheusPodName, ns)
+	if err != nil {
+		return nil, err
+	}
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
 	}

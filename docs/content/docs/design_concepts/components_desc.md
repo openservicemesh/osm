@@ -72,8 +72,8 @@ metadata:
     app: bookstore
 spec:
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 14001
+      targetPort: 14001
       name: web-port
   selector:
     app: bookstore

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -67,7 +67,7 @@ func TestAdmissionError(t *testing.T) {
 	message := uuid.New().String()
 	err := errors.New(message)
 	actual := AdmissionError(err)
-	expected := v1beta1.AdmissionResponse{
+	expected := admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: message,
 		},

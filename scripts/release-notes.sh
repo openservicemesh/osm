@@ -14,7 +14,7 @@ set -euo pipefail
 
 tag=$1
 
-tags=$(git -c 'versionsort.suffix=-alpha,-beta,-rc' tag -l --sort=version:refname | sed "/^$tag$/q" )
+tags=$(git tag | tr - \~ | sort -V | tr \~ - | sed "/^$tag$/q" )
 ! [[ "$tag" =~ -(alpha|beta|rc) ]] && tags=$(grep -Eve '-(alpha|beta|rc)' <<< "$tags")
 prev=$(tail -2 <<< "$tags" | head -1)
 

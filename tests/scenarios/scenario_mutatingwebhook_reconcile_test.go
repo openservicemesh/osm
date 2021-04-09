@@ -8,13 +8,14 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/admissionregistration/v1beta1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -60,17 +61,23 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 				Expect((cert.GetCertificateChain())).NotTo(BeNil())
 				caBundle = cert.GetCertificateChain()
 
+				// Assume the certificate secret is created on kubernetes, as is required in regular execution
+				Expect(Td.CreateNs(testWebhookServiceNamespace, map[string]string{})).To(BeNil())
+				_, err = providers.GetCertificateFromSecret(testWebhookServiceNamespace, constants.WebhookCertificateSecretName, cert, Td.Client)
+				Expect(err).To(BeNil())
+
 				controller := &reconciler.MutatingWebhookConfigurationReconciler{
 					Client:       mgr.GetClient(),
+					KubeClient:   Td.Client,
 					Scheme:       scheme.Scheme,
 					OsmWebhook:   webhookName,
 					OsmNamespace: testWebhookServiceNamespace,
-					CertManager:  certManager,
 				}
 				err = controller.SetupWithManager(mgr)
 				Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 				go func() {
+					defer GinkgoRecover()
 					err := mgr.Start(stopCh)
 					Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 				}()
@@ -116,22 +123,27 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 		})
 	})
 
-func getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath string) *v1beta1.MutatingWebhookConfiguration {
-	return &v1beta1.MutatingWebhookConfiguration{
+func getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath string) *admissionregv1.MutatingWebhookConfiguration {
+	return &admissionregv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   webhookName,
 			Labels: Td.GetTestNamespaceSelectorMap(),
 		},
-		Webhooks: []v1beta1.MutatingWebhook{
+		Webhooks: []admissionregv1.MutatingWebhook{
 			{
 				Name: injector.MutatingWebhookName,
-				ClientConfig: v1beta1.WebhookClientConfig{
-					Service: &v1beta1.ServiceReference{
+				ClientConfig: admissionregv1.WebhookClientConfig{
+					Service: &admissionregv1.ServiceReference{
 						Namespace: testWebhookServiceNamespace,
 						Name:      testWebhookServiceName,
 						Path:      &testWebhookServicePath,
 					},
 				},
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				AdmissionReviewVersions: []string{"v1"},
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"some-key": "some-value",

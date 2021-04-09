@@ -19,6 +19,7 @@ import (
 
 var (
 	log                   = logger.NewPretty("tcp-client")
+	logLevel              = flag.String("logLevel", "debug", "Log output level")
 	serverAddress         = flag.String("server-address", "", "address (ip:port) to connect to")
 	requestPrefix         = "request:"
 	connectRetryDelay     = 3 * time.Second
@@ -28,6 +29,10 @@ var (
 
 func main() {
 	flag.Parse()
+	err := logger.SetLogLevel(*logLevel)
+	if err != nil {
+		log.Fatal().Msgf("Unknown log level: %s", *logLevel)
+	}
 
 	connectionCounter := 0
 
@@ -35,12 +40,12 @@ func main() {
 		connectionCounter++
 		conn, err := net.Dial("tcp", *serverAddress)
 		if err != nil {
-			fmt.Printf("Error connecting to %s: %s, retrying in %s time\n", *serverAddress, err, connectRetryDelay)
+			log.Error().Msgf("Error connecting to %s: %s, retrying in %s time", *serverAddress, err, connectRetryDelay)
 			time.Sleep(connectRetryDelay)
 			continue
 		}
 
-		fmt.Printf("Started connection #%d to %s -----------------------\n", connectionCounter, *serverAddress)
+		log.Info().Msgf("Started connection #%d to %s -----------------------", connectionCounter, *serverAddress)
 
 		// Send as many messages determined by 'msgCountPerConnection' before creating a new connection
 		response := bufio.NewReader(conn)
@@ -53,27 +58,25 @@ func main() {
 				log.Error().Err(writeErr).Msg("Write error")
 				continue
 			} else {
-				fmt.Printf("Wrote %d bytes, msg written: [%s]\n", bytesWritten, requestMsg)
+				log.Info().Msgf("Wrote %d bytes, msg written: [%s]\n", bytesWritten, requestMsg)
 			}
 
 			// read response from server
 			responseMsg, err := response.ReadString(byte('\n'))
 			switch err {
 			case nil:
-				fmt.Printf("Received response: [%s]\n", responseMsg)
+				log.Info().Msgf("Received response: [%s]", responseMsg)
 
 			case io.EOF:
-				fmt.Printf("Received EOF from server\n")
+				log.Info().Msgf("Received EOF from server")
 
 			default:
 				// unexpected error
-				fmt.Printf("Unexpected error: %s\n", err)
+				log.Error().Err(err).Msgf("Unexpected error")
 			}
-
-			fmt.Println()
 		}
 
 		conn.Close() //nolint: errcheck,gosec
-		fmt.Printf("Ended connection #%d ---------------------------\n\n", connectionCounter)
+		log.Info().Msgf("Ended connection #%d ---------------------------", connectionCounter)
 	}
 }

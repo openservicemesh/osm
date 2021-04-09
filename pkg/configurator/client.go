@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	a "github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
@@ -56,6 +55,9 @@ const (
 
 	// enablePrivilegedInitContainer is the key name used to specify whether init containers should be privileged in the ConfigMap
 	enablePrivilegedInitContainer = "enable_privileged_init_container"
+
+	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
+	configResyncInterval = "config_resync_interval"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -82,9 +84,9 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 	informerName := "ConfigMap"
 	providerName := "OSMConfigMap"
 	eventTypes := k8s.EventTypes{
-		Add:    a.ConfigMapAdded,
-		Update: a.ConfigMapUpdated,
-		Delete: a.ConfigMapDeleted,
+		Add:    announcements.ConfigMapAdded,
+		Update: announcements.ConfigMapUpdated,
+		Delete: announcements.ConfigMapDeleted,
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, nil, eventTypes))
 
@@ -161,6 +163,7 @@ func (c *Client) configMapListener() {
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingAddress != newConfigMap.TracingAddress)
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEndpoint != newConfigMap.TracingEndpoint)
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
+				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PrometheusScraping != newConfigMap.PrometheusScraping)
 
 				if triggerGlobalBroadcast {
 					log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
@@ -224,6 +227,9 @@ type osmConfig struct {
 	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
 
 	EnablePrivilegedInitContainer bool `yaml:"enable_privileged_init_container"`
+
+	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
+	ConfigResyncInterval string `yaml:"config_resync_interval"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -277,6 +283,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
 	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
 	osmConfigMap.EnablePrivilegedInitContainer, _ = GetBoolValueForKey(configMap, enablePrivilegedInitContainer)
+	osmConfigMap.ConfigResyncInterval, _ = GetStringValueForKey(configMap, configResyncInterval)
 
 	if osmConfigMap.TracingEnable {
 		osmConfigMap.TracingAddress, _ = GetStringValueForKey(configMap, tracingAddressKey)

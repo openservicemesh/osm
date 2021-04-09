@@ -5,6 +5,7 @@ metadata:
   name: osm-grafana
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 spec:
   ports:

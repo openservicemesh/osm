@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/golang/mock/gomock"
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/google/uuid"
+	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -64,7 +64,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			}
 			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
 
-			Expect(meshServices).To(Equal(expectedList))
+			Expect(meshServices).Should(HaveLen(len(expectedList)))
+			Expect(meshServices).Should(ConsistOf(expectedList))
 		})
 
 		It("returns an error with an invalid CN", func() {
@@ -379,39 +380,6 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			}
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actualMeta).To(Equal(&expectedMeta))
-		})
-	})
-
-	Context("Test filterTrafficSplitServices()", func() {
-		It("returns services except these to be traffic split", func() {
-
-			services := []v1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "A",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: tests.TrafficSplit.Namespace,
-						Name:      tests.TrafficSplit.Spec.Service,
-					},
-				},
-			}
-
-			expected := []v1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "A",
-					},
-				},
-			}
-
-			actual := mc.filterTrafficSplitServices(services)
-
-			Expect(actual).To(Equal(expected))
 		})
 	})
 

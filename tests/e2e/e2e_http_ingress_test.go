@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -10,9 +11,11 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -20,7 +23,7 @@ import (
 var _ = OSMDescribe("HTTP ingress",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 3,
 	},
 	func() {
 		const destNs = "server"
@@ -53,11 +56,36 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1)).To(Succeed())
 
 			// Install nginx ingress controller
+			// Install Service as NodePort on kind, LoadBalancer elsewhere
+
+			// Check the node's provider so this works for preprovisioned kind clusters
+			nodes, err := Td.Client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			providerID := nodes.Items[0].Spec.ProviderID
+			isKind := strings.HasPrefix(providerID, "kind://")
+			var vals map[string]interface{}
+			if isKind {
+				vals = map[string]interface{}{
+					"controller": map[string]interface{}{
+						"hostPort": map[string]interface{}{
+							"enabled": true,
+						},
+						"service": map[string]interface{}{
+							"type": "NodePort",
+						},
+					},
+				}
+			}
+
+			ingressNs := "ingress-ns"
+			Expect(Td.CreateNs(ingressNs, nil)).To(BeNil())
+
 			helm := &action.Configuration{}
-			Expect(helm.Init(Td.Env.RESTClientGetter(), Td.OsmNamespace, "secret", Td.T.Logf)).To(Succeed())
+			Expect(helm.Init(Td.Env.RESTClientGetter(), ingressNs, "secret", Td.T.Logf)).To(Succeed())
+			helm.KubeClient.(*kube.Client).Namespace = ingressNs
 			install := action.NewInstall(helm)
 			install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
-			install.Namespace = Td.OsmNamespace
+			install.Namespace = ingressNs
 			install.ReleaseName = "ingress-nginx"
 			install.Version = "3.23.0"
 			install.Wait = true
@@ -66,26 +94,34 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(err).NotTo(HaveOccurred())
 			chart, err := loader.Load(chartPath)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = install.Run(chart, map[string]interface{}{
-				"controller": map[string]interface{}{
-					"hostPort": map[string]interface{}{
-						"enabled": true,
-					},
-					"service": map[string]interface{}{
-						"type": "NodePort",
-					},
-				},
-			})
+			_, err = install.Run(chart, vals)
 			Expect(err).NotTo(HaveOccurred())
 
+			ingressAddr := "localhost"
+			if !isKind {
+				svc, err := Td.Client.CoreV1().Services(ingressNs).Get(context.Background(), "ingress-nginx-controller", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP
+				if len(ingressAddr) == 0 {
+					ingressAddr = svc.Status.LoadBalancer.Ingress[0].Hostname
+				}
+			}
+
 			// Requests should fail when no ingress exists
+			url := "http://" + ingressAddr + "/status/200"
+			Td.T.Log("Checking requests to", url, "should fail")
 			cond := Td.WaitForRepeatedSuccess(func() bool {
-				resp, err := http.Get("http://localhost/status/200")
-				if err != nil || resp.StatusCode != 404 {
-					Td.T.Logf("> REST req failed unexpectedly (status: %d) %v", resp.StatusCode, err)
+				resp, err := http.Get(url)
+				status := 0
+				if resp != nil {
+					status = resp.StatusCode
+				}
+				if err != nil || status != 404 {
+					Td.T.Logf("> REST req failed unexpectedly (status: %d) %v", status, err)
 					return false
 				}
-				Td.T.Logf("> REST req failed expectedly: %d", resp.StatusCode)
+				Td.T.Logf("> REST req failed expectedly: %d", status)
 				return true
 			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
@@ -93,18 +129,17 @@ var _ = OSMDescribe("HTTP ingress",
 			ing := &v1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: svcDef.Name,
-					Annotations: map[string]string{
-						"kubernetes.io/ingress.class": "nginx",
-					},
 				},
 				Spec: v1beta1.IngressSpec{
+					IngressClassName: pointer.StringPtr("nginx"),
 					Rules: []v1beta1.IngressRule{
 						{
 							IngressRuleValue: v1beta1.IngressRuleValue{
 								HTTP: &v1beta1.HTTPIngressRuleValue{
 									Paths: []v1beta1.HTTPIngressPath{
 										{
-											Path: "/status/200",
+											Path:     "/status/200",
+											PathType: (*v1beta1.PathType)(pointer.StringPtr(string(v1beta1.PathTypeImplementationSpecific))),
 											Backend: v1beta1.IngressBackend{
 												ServiceName: svcDef.Name,
 												ServicePort: intstr.FromInt(80),
@@ -121,13 +156,18 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(err).NotTo(HaveOccurred())
 
 			// All ready. Expect client to reach server
+			Td.T.Log("Checking requests to", url, "should succeed")
 			cond = Td.WaitForRepeatedSuccess(func() bool {
-				resp, err := http.Get("http://localhost/status/200")
-				if err != nil || resp.StatusCode != 200 {
-					Td.T.Logf("> REST req failed (status: %d) %v", resp.StatusCode, err)
+				resp, err := http.Get(url)
+				status := 0
+				if resp != nil {
+					status = resp.StatusCode
+				}
+				if err != nil || status != 200 {
+					Td.T.Logf("> REST req failed (status: %d) %v", status, err)
 					return false
 				}
-				Td.T.Logf("> REST req succeeded: %d", resp.StatusCode)
+				Td.T.Logf("> REST req succeeded: %d", status)
 				return true
 			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())

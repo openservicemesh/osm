@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +67,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
+				"ConfigResyncInterval":          configResyncInterval,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
@@ -119,3 +123,155 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 		})
 	})
 })
+
+// Tests config map event trigger routine
+func TestConfigMapEventTriggers(t *testing.T) {
+	assert := tassert.New(t)
+	kubeClient := testclient.NewSimpleClientset()
+
+	confChannel := events.GetPubSubInstance().Subscribe(
+		announcements.ConfigMapAdded,
+		announcements.ConfigMapDeleted,
+		announcements.ConfigMapUpdated)
+	defer events.GetPubSubInstance().Unsub(confChannel)
+
+	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
+	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
+
+	stop := make(<-chan struct{})
+	newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      osmConfigMapName,
+		},
+		Data: make(map[string]string),
+		// All false
+	}
+
+	if _, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("[TEST] Error creating ConfigMap %s/%s/: %s", configMap.Namespace, configMap.Name, err.Error())
+	}
+
+	// ConfigMap Create will generate a ConfigMap notification, and Configurator will issue a ProxyBroadcast for a Create as well
+	<-confChannel
+	<-proxyBroadcastChannel
+
+	tests := []struct {
+		deltaConfigMapContents map[string]string
+		expectProxyBroadcast   bool
+	}{
+		{
+			deltaConfigMapContents: map[string]string{
+				egressKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				PermissiveTrafficPolicyModeKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				useHTTPSIngressKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				tracingEnableKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				tracingAddressKey: "jaeger.jagnamespace.cluster.svc.local",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				tracingEndpointKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				tracingPortKey: "3521",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				prometheusScrapingKey: "true",
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				configResyncInterval: "24h",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				envoyLogLevel: "warn",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				enableDebugServer: "true",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				serviceCertValidityDurationKey: "30h",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				serviceCertValidityDurationKey: "30h",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				enablePrivilegedInitContainer: "true",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				outboundIPRangeExclusionListKey: "true",
+			},
+			expectProxyBroadcast: false,
+		},
+	}
+
+	for _, t := range tests {
+		// merge configmap
+		for mapKey, mapVal := range t.deltaConfigMapContents {
+			configMap.Data[mapKey] = mapVal
+		}
+
+		_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+		assert.NoError(err)
+		<-confChannel
+
+		proxyEventReceived := false
+		select {
+		case <-proxyBroadcastChannel:
+			proxyEventReceived = true
+
+		case <-time.NewTimer(300 * time.Millisecond).C:
+			// one third of a second should be plenty
+		}
+		assert.Equal(t.expectProxyBroadcast, proxyEventReceived)
+	}
+}

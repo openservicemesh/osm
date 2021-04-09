@@ -80,7 +80,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` | Enable proxy support toggle for Fluent Bit |
 | OpenServiceMesh.fluentBit.httpProxy | string | `""` | Optional HTTP proxy endpoint for Fluent Bit |
 | OpenServiceMesh.fluentBit.httpsProxy | string | `""` | Optional HTTPS proxy endpoint for Fluent Bit |
-| OpenServiceMesh.fluentBit.logLevel | string | `"error"` | Log level for Fluent Bit |
 | OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` | Fluent Bit sidecar container name |
 | OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` | Fluent Bit output plugin |
 | OpenServiceMesh.fluentBit.primaryKey | string | `""` | Primary Key for Fluent Bit output plugin to Log Analytics |
@@ -92,11 +91,12 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | `osm-controller` pod PullPolicy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
-| OpenServiceMesh.image.tag | string | `"v0.7.0"` | `osm-controller` image tag |
+| OpenServiceMesh.image.tag | string | `"v0.8.2"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
-| OpenServiceMesh.injector | object | `{"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}}` | Sidecar injector configuration |
+| OpenServiceMesh.injector | object | `{"podLabels":{},"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}}` | Sidecar injector configuration |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
 | OpenServiceMesh.osmNamespace | string | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |
+| OpenServiceMesh.osmcontroller.podLabels | object | `{}` |  |
 | OpenServiceMesh.osmcontroller.resource.limits.cpu | string | `"1.5"` |  |
 | OpenServiceMesh.osmcontroller.resource.limits.memory | string | `"512M"` |  |
 | OpenServiceMesh.osmcontroller.resource.requests.cpu | string | `"0.5"` |  |
@@ -106,8 +106,8 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus retention time |
 | OpenServiceMesh.replicaCount | int | `1` | `osm-controller` replicas |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Sets the service certificatevalidity duration |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.0"` | Envoy sidecar image |
-| OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` | Tracing destination cluster (must contain the namespace) |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.1"` | Envoy sidecar image |
+| OpenServiceMesh.tracing.address | string | `""` | Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Destination's API or collector endpoint where the spans will be sent to |
 | OpenServiceMesh.tracing.port | int | `9411` | Destination port for the listener |

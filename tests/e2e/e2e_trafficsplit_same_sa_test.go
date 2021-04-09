@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
@@ -19,7 +18,7 @@ import (
 var _ = OSMDescribe("Test TrafficSplit where each backend shares the same ServiceAccount",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 2,
+		Bucket: 4,
 	},
 	func() {
 		Context("ClientServerTrafficSplitSameSA", func() {
@@ -88,11 +87,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 					// This httpbin fork will pick certain env variable formats and reply the values as headers.
 					// We will expose pod name as one of these env variables, and will use it
 					// to identify the pod that replies to the request, and validate the test
-					deploymentDef.Spec.Template.Spec.Containers[0].Env = []v1.EnvVar{
+					deploymentDef.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
 						{
 							Name: fmt.Sprintf("XHTTPBIN_%s", HTTPHeaderName),
-							ValueFrom: &v1.EnvVarSource{
-								FieldRef: &v1.ObjectFieldSelector{
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
 									FieldPath: "metadata.name",
 								},
 							},

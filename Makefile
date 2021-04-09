@@ -47,23 +47,21 @@ MIN_REQUIRED_GO_VERSION_MAJOR = 1
 MIN_REQUIRED_GO_VERSION_MINOR = 15
 MIN_REQUIRED_GO_VERSION_PATCH = 7
 
-GO_VERSION_MESSAGE = Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH). OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!
+GO_VERSION_MESSAGE = "Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH).\n OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!\n\n"
 
 check-go-version: # Ensure the Go version used is what OSM requires
-	@echo -e "Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH)."
-	@echo -e "OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!\n\n"
 	@if [ $(GO_VERSION_MAJOR) -gt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
 		exit 0 ;\
 	elif [ $(GO_VERSION_MAJOR) -lt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
-		echo '$(GO_VERSION_MESSAGE)';\
+		@echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	elif [ $(GO_VERSION_MINOR) -gt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
 		exit 0; \
 	elif [ $(GO_VERSION_MINOR) -lt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
-		echo '$(GO_VERSION_MESSAGE)';\
+		@echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	elif [ $(GO_VERSION_PATCH) -lt $(MIN_REQUIRED_GO_VERSION_PATCH) ] ; then \
-		echo '$(GO_VERSION_MESSAGE)';\
+		@echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	fi
 
@@ -106,13 +104,24 @@ build-osm: check-go-version
 clean-osm:
 	@rm -rf bin/osm
 
+.PHONY: codegen
+codegen:
+	./codegen/gen-crd-client.sh
+
 .PHONY: chart-readme
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
 
-.PHONY: chart-checks
-chart-checks: chart-readme
+.PHONY: chart-check-readme
+chart-check-readme: chart-readme
 	@git diff --exit-code charts/osm/README.md || { echo "----- Please commit the changes made by 'make chart-readme' -----"; exit 1; }
+
+.PHONY: helm-lint
+helm-lint:
+	@helm lint charts/osm/ || { echo "----- Schema validation failed for OSM chart values -----"; exit 1; }
+
+.PHONY: chart-checks
+chart-checks: chart-check-readme helm-lint
 
 .PHONY: check-mocks
 check-mocks:

@@ -4,6 +4,7 @@ metadata:
   name: osm-controller
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
 spec:
   ports:
@@ -22,6 +23,7 @@ metadata:
   name: osm-config-validator
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
 spec:
   ports:

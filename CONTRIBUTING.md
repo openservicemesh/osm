@@ -90,7 +90,8 @@ git push -f
 ```
 
 ### Merging pull requests
-Pull requests by default must be merged by a core maintainer using the `Merge pull request` option.
+Pull requests by default must be merged by a core maintainer using the `Merge pull request` option as a `merge commit`.
+Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/content/docs/automerge.md).
 
 Pull requests will be merged based on the following criteria:
 
@@ -101,6 +102,7 @@ Pull requests will be merged based on the following criteria:
 - Does not have the `wip` label.
 - All status checks have succeeded.
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
+- Core maintainers are allowed to use the `squash and merge` option only for their own pull requests.
 
 ### Commit Style Guideline
 We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
@@ -206,6 +208,11 @@ Date:   Thu Feb 2 11:41:15 2018 -0800
 
 Notice the `Author` and `Signed-off-by` lines match. If they don't your PR will be rejected by the
 automated DCO check.
+
+## Contributing Documentation
+OSM's primary documentation is made available at https://docs.openservicemesh.io/. Any documentation content that needs to be visible on the website must be created in the `docs/content` folder. Content that should not be served on the website must be created outside the `docs/content` folder. Since it is hard to have links to markdown file references that are navigable both on the `docs.openservicemesh.io` website and Github, the project has prioritized the website experience over Github. This means it is okay for links to be navigable on the website but not on Github. Any content that is available on the website must be made navigable within the website and not redirect to Github.
+
+Refer to the [OSM documentation guide](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/README.md) for more details.
 
 ## Roadmap
 We use [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.

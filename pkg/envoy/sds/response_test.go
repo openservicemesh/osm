@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
@@ -66,11 +67,12 @@ func TestNewResponse(t *testing.T) {
 	assert.Nil(actualSDSResponse)
 
 	// ----- Test with an properly configured proxy
-	actualSDSResponse, err = NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
+	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
-	assert.NotNil(actualSDSResponse)
-	assert.Equal(len(actualSDSResponse.Resources), 3)
-	assert.Equal(actualSDSResponse.TypeUrl, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+	assert.NotNil(resources)
+	assert.Equal(len(resources), 2)
+	_, ok := resources[0].(*xds_auth.Secret)
+	assert.True(ok)
 }
 
 func TestGetRootCert(t *testing.T) {
@@ -103,7 +105,7 @@ func TestGetRootCert(t *testing.T) {
 		{
 			name: "test inbound MTLS certificate validation",
 			sdsCert: envoy.SDSCert{
-				Name:     "ns-1/service-1",
+				Name:     "ns-1/sa-1",
 				CertType: envoy.RootCertTypeForMTLSInbound,
 			},
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
@@ -168,6 +170,27 @@ func TestGetRootCert(t *testing.T) {
 			expectError:  false,
 		},
 		// Test case 3 end -------------------------------
+
+		// Test case 4: tests SDS secret for inbound TLS secret with unexpected service account ---------------
+		{
+			name: "test inbound MTLS certificate validation",
+			sdsCert: envoy.SDSCert{
+				Name:     "ns-1/sa-5", // this does not match the proxy's service account, so should error
+				CertType: envoy.RootCertTypeForMTLSInbound,
+			},
+			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
+
+			prepare: func(d *dynamicMock) {
+				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
+				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
+			},
+
+			// expectations
+			expectedSANs: nil,
+			expectError:  true,
+		},
+		// Test case 4 end -------------------------------
+
 	}
 
 	for i, tc := range testCases {
@@ -200,8 +223,10 @@ func TestGetRootCert(t *testing.T) {
 			sdsSecret, err := s.getRootCert(d.mockCertificater, tc.sdsCert)
 			assert.Equal(err != nil, tc.expectError)
 
-			actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
-			assert.ElementsMatch(actualSANs, tc.expectedSANs)
+			if err != nil {
+				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
+				assert.ElementsMatch(actualSANs, tc.expectedSANs)
+			}
 		})
 	}
 }
@@ -292,7 +317,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			},
 
 			sdsCertType:    envoy.RootCertTypeForMTLSInbound,
-			requestedCerts: []string{"root-cert-for-mtls-inbound:ns-1/service-1"}, // root-cert requested
+			requestedCerts: []string{"root-cert-for-mtls-inbound:ns-1/sa-1"}, // root-cert requested
 
 			// expectations
 			expectedSANs:        []string{"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local"},
@@ -346,7 +371,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 		// Test case 4: service-cert requested -------------------------------
 		{
-			name:            "test root-cert-https cert type request",
+			name:            "test service-cert cert type request",
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
 
 			prepare: func(d *dynamicMock) {
@@ -355,7 +380,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			},
 
 			sdsCertType:    envoy.ServiceCertType,
-			requestedCerts: []string{"service-cert:ns-1/service-1"}, // service-cert requested
+			requestedCerts: []string{"service-cert:ns-1/sa-1"}, // service-cert requested
 
 			// expectations
 			expectedSANs:        []string{},
@@ -365,7 +390,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 		// Test case 5: invalid cert type requested -------------------------------
 		{
-			name:            "test root-cert-https cert type request",
+			name:            "test invalid cert type request",
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
 
 			prepare: nil,

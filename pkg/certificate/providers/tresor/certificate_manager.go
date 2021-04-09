@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
@@ -146,17 +147,27 @@ func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Ce
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
-	if err != nil {
-		return cert, err
+	oldCert, ok := cm.cache.Load(cn)
+	if !ok {
+		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	cm.cache.Store(cn, cert)
-	cm.announcements <- announcements.Announcement{}
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if err != nil {
+		return nil, err
+	}
 
-	log.Debug().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
+	cm.cache.Store(cn, newCert)
 
-	return cert, nil
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           newCert,
+		OldObj:           oldCert.(certificate.Certificater),
+	})
+
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+
+	return newCert, nil
 }
 
 // ListCertificates lists all certificates issued
@@ -172,9 +183,4 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 // GetRootCertificate returns the root certificate.
 func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil
-}
-
-// GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
 }

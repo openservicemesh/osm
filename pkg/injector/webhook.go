@@ -12,17 +12,18 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"k8s.io/api/admission/v1beta1"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -66,12 +67,20 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
+	// The following function ensures to atomically create or get the certificate from Kubernetes
+	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	if err != nil {
+		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
+	}
+
 	wh := mutatingWebhook{
 		config:         config,
 		kubeClient:     kubeClient,
 		certManager:    certManager,
 		kubeController: kubeController,
 		osmNamespace:   osmNamespace,
+		meshName:       meshName,
 		cert:           webhookHandlerCert,
 		configurator:   cfg,
 
@@ -148,14 +157,16 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp v1beta1.AdmissionReview) {
-	var admissionReq v1beta1.AdmissionReview
+func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
+	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
 		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
 		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
+	admissionResp.TypeMeta = admissionReq.TypeMeta
+	admissionResp.Kind = admissionReq.Kind
 
 	return admissionReq.Request.Namespace, admissionResp
 }
@@ -210,7 +221,7 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 }
 
-func (wh *mutatingWebhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v1beta1.AdmissionResponse {
+func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) *admissionv1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission Request")
 		return webhook.AdmissionError(errNilAdmissionRequest)
@@ -224,7 +235,7 @@ func (wh *mutatingWebhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.
 	}
 
 	// Start building the response
-	resp := &v1beta1.AdmissionResponse{
+	resp := &admissionv1.AdmissionResponse{
 		Allowed: true,
 		UID:     req.UID,
 	}
@@ -321,24 +332,29 @@ func isAnnotatedForInjection(annotations map[string]string, objectKind string, o
 	return
 }
 
-func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) {
+func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []byte) {
 	resp.Patch = patchBytes
-	pt := v1beta1.PatchTypeJSONPatch
+	pt := admissionv1.PatchTypeJSONPatch
 	resp.PatchType = &pt
 }
 
 // getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
-func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionv1beta1.MutatingWebhookConfiguration {
-	return admissionv1beta1.MutatingWebhookConfiguration{
+func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionregv1.MutatingWebhookConfiguration {
+	return admissionregv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookConfigName,
 		},
-		Webhooks: []admissionv1beta1.MutatingWebhook{
+		Webhooks: []admissionregv1.MutatingWebhook{
 			{
 				Name: MutatingWebhookName,
-				ClientConfig: admissionv1beta1.WebhookClientConfig{
+				ClientConfig: admissionregv1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				AdmissionReviewVersions: []string{"v1"},
 			},
 		},
 	}
@@ -347,10 +363,7 @@ func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webho
 // updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
 // It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
 func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
-	mwc := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
-	if err := webhookExists(mwc, webhookName); err != nil {
-		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s; Will not update CA Bundle for webhook", webhookName)
-	}
+	mwc := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations()
 
 	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
 	if err != nil {

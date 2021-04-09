@@ -18,7 +18,7 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 ## Use Case
 
-*As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically*:
+*As an operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically*:
   - **Apply policies** governing TCP & HTTP access between peer services
   - **Encrypt traffic** between services leveraging mTLS and short-lived certificates with a custom CA
   - **Rotate certificates** as often as necessary to make these short-lived and remove the need for certificate revocation management
@@ -36,7 +36,7 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 
 ## OSM Components & Interactions
-![OSM Components & Interactions](./docs/content/images/osm-components-and-interactions.png)
+![OSM Components & Interactions](./docs/content/docs/images/osm-components-and-interactions.png)
 
 ### Containers
 When a new Pod creation is initiated, OSM's
@@ -137,8 +137,8 @@ metadata:
     app: bookstore
 spec:
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 14001
+    targetPort: 14001
     name: web-port
   selector:
     app: bookstore
@@ -312,7 +312,7 @@ type MeshCataloger interface {
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
@@ -332,17 +332,6 @@ type MeshCataloger interface {
 
 	// GetServicesForServiceAccount returns a list of services corresponding to a service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
-
-  // GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
-  // TODO : remove as a part of routes refactor (#2397)
-	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
-
-	//GetWeightedClusterForService returns the weighted cluster for a service
-	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
-
-  // GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
-  // TODO : remove as a part of routes refactor cleanup (#2397)
-  GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
 
   // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
   GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
@@ -455,9 +444,6 @@ The `MeshSpec` implementation **has no awareness** of:
 type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
-
-	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
-	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
@@ -577,14 +563,6 @@ The following types are referenced in the interfaces proposed in this document:
       ```go
       // ClusterName is a type for a service name
       type ClusterName string
-      ```
-  -  WeightedService
-      ```go
-      //WeightedService is a struct of a service name and its weight
-      type WeightedService struct {
-	   ServiceName MeshService `json:"service_name:omitempty"`
-	   Weight      int               `json:"weight:omitempty"`
-      }
       ```
 
   -  RoutePolicy

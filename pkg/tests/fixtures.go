@@ -4,7 +4,6 @@ package tests
 import (
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"net"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -28,9 +27,6 @@ var ErrDecodingPEMBlock = errors.New("failed to decode PEM block containing cert
 const (
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
-
-	// PodName is the name of the pod commonly used namespace.
-	PodName = "pod-name"
 
 	// BookstoreV1ServiceName is the name of the bookstore-v1 service.
 	BookstoreV1ServiceName = "bookstore-v1"
@@ -190,8 +186,9 @@ var (
 
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
 	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
-		PathRegex: BookstoreBuyPath,
-		Methods:   []string{"GET"},
+		Path:          BookstoreBuyPath,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
 		},
@@ -199,8 +196,9 @@ var (
 
 	// BookstoreSellHTTPRoute is an HTTP route to sell books
 	BookstoreSellHTTPRoute = trafficpolicy.HTTPRouteMatch{
-		PathRegex: BookstoreSellPath,
-		Methods:   []string{"GET"},
+		Path:          BookstoreSellPath,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
 		},
@@ -210,75 +208,6 @@ var (
 	Endpoint = endpoint.Endpoint{
 		IP:   net.ParseIP(ServiceIP),
 		Port: endpoint.Port(ServicePort),
-	}
-
-	// BookstoreV1TrafficPolicy is a traffic policy SMI object.
-	BookstoreV1TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
-		Destination: BookstoreV1Service,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
-	}
-
-	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
-	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", BookstoreV2TrafficTargetName),
-		Destination: BookstoreV2Service,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
-	}
-
-	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
-	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
-		Destination: BookstoreApexService,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
 	}
 
 	// TrafficSplit is a traffic split SMI object.
@@ -359,14 +288,6 @@ var (
 		},
 	}
 
-	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
-		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
-			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName):  BookstoreBuyHTTPRoute,
-			trafficpolicy.TrafficSpecMatchName(SellBooksMatchName): BookstoreSellHTTPRoute,
-		},
-	}
-
 	// BookstoreServiceAccount is a namespaced service account.
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
@@ -383,26 +304,6 @@ var (
 	BookbuyerServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookbuyerServiceAccountName,
-	}
-
-	// BookstoreV1WeightedService is a service with a weight used for traffic split.
-	BookstoreV1WeightedService = service.WeightedService{
-		Service: service.MeshService{
-			Namespace: Namespace,
-			Name:      BookstoreV1ServiceName,
-		},
-		Weight:      Weight90,
-		RootService: BookstoreApexServiceName,
-	}
-
-	// BookstoreV2WeightedService is a service with a weight used for traffic split.
-	BookstoreV2WeightedService = service.WeightedService{
-		Service: service.MeshService{
-			Namespace: Namespace,
-			Name:      BookstoreV2ServiceName,
-		},
-		Weight:      Weight10,
-		RootService: BookstoreApexServiceName,
 	}
 
 	// HTTPRouteGroup is the HTTP route group SMI object.
@@ -489,8 +390,9 @@ var (
 
 	// WildCardRouteMatch is HTTPRouteMatch with wildcard path and method
 	WildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
-		PathRegex: constants.RegexMatchAll,
-		Methods:   []string{constants.WildcardHTTPMethod},
+		Path:          constants.RegexMatchAll,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{constants.WildcardHTTPMethod},
 	}
 )
 

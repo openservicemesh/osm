@@ -3,17 +3,16 @@ package scenarios
 import (
 	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes"
-	testclient "k8s.io/client-go/kubernetes/fake"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
+	"github.com/onsi/ginkgo"
+	"k8s.io/client-go/kubernetes"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -48,20 +47,18 @@ var _ = Describe(``+
 			// ---[  Get the config from rds.NewResponse()  ]-------
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			actual, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 			It("did not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(actual).ToNot(BeNil())
-				Expect(len(actual.Resources)).To(Equal(1))
+				Expect(resources).ToNot(BeNil())
+				Expect(len(resources)).To(Equal(1))
 			})
 
 			// ---[  Prepare the config for testing  ]-------
-			routeCfg := xds_route.RouteConfiguration{}
-
-			err = ptypes.UnmarshalAny(actual.Resources[0], &routeCfg)
+			routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
 			It("returns a response that can be unmarshalled into an xds RouteConfiguration struct", func() {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(routeCfg.Name).To(Equal("RDS_Outbound"))
+				Expect(ok).To(BeTrue())
+				Expect(routeCfg.Name).To(Equal("rds-outbound"))
 			})
 
 			const (

@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -24,16 +27,16 @@ func TestBuildRouteConfiguration(t *testing.T) {
 			{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 			},
 			{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: set.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 			},
 		},
 	}
@@ -44,10 +47,11 @@ func TestBuildRouteConfiguration(t *testing.T) {
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
 				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-					PathRegex: "/some-path",
-					Methods:   []string{"GET"},
+					Path:          "/some-path",
+					PathMatchType: trafficpolicy.PathMatchRegex,
+					Methods:       []string{"GET"},
 				},
-				WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+				WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 			},
 		},
 	}
@@ -173,13 +177,14 @@ func TestBuildInboundRoutes(t *testing.T) {
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-							PathRegex: "/hello",
-							Methods:   []string{"GET"},
-							Headers:   map[string]string{"hello": "world"},
+							Path:          "/hello",
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Methods:       []string{"GET"},
+							Headers:       map[string]string{"hello": "world"},
 						},
-						WeightedClusters: set.NewSet(testWeightedCluster),
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceAccounts: set.NewSetFromSlice(
+					AllowedServiceAccounts: mapset.NewSetFromSlice(
 						[]interface{}{service.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
 					),
 				},
@@ -201,11 +206,12 @@ func TestBuildInboundRoutes(t *testing.T) {
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-							PathRegex: "/hello",
-							Methods:   []string{"GET"},
-							Headers:   map[string]string{"hello": "world"},
+							Path:          "/hello",
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Methods:       []string{"GET"},
+							Headers:       map[string]string{"hello": "world"},
 						},
-						WeightedClusters: set.NewSet(testWeightedCluster),
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
 					AllowedServiceAccounts: nil,
 				},
@@ -234,11 +240,12 @@ func TestBuildOutboundRoutes(t *testing.T) {
 	input := []*trafficpolicy.RouteWeightedClusters{
 		{
 			HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-				PathRegex: "/hello",
-				Methods:   []string{"GET"},
-				Headers:   map[string]string{"hello": "world"},
+				Path:          "/hello",
+				PathMatchType: trafficpolicy.PathMatchRegex,
+				Methods:       []string{"GET"},
+				Headers:       map[string]string{"hello": "world"},
 			},
-			WeightedClusters: set.NewSet(testWeightedCluster),
+			WeightedClusters: mapset.NewSet(testWeightedCluster),
 		},
 	}
 	actual := buildOutboundRoutes(input)
@@ -253,69 +260,276 @@ func TestBuildOutboundRoutes(t *testing.T) {
 
 func TestBuildRoute(t *testing.T) {
 	assert := tassert.New(t)
-	weightedClusters := set.NewSetFromSlice([]interface{}{
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
-	})
+
 	testCases := []struct {
 		name             string
-		weightedClusters set.Set
+		weightedClusters mapset.Set
 		totalWeight      int
 		direction        Direction
-		pathRegex        string
+		path             string
+		pathMatchType    trafficpolicy.PathMatchType
 		method           string
 		headersMap       map[string]string
+		expectedRoute    *xds_route.Route
 	}{
 		{
-			name:             "default",
-			pathRegex:        "/somepath",
-			method:           "GET",
-			headersMap:       map[string]string{"hello": "goodbye", "header1": "another-header"},
-			totalWeight:      100,
-			direction:        OutboundRoute,
-			weightedClusters: weightedClusters,
+			name:          "outbound route for regex path match",
+			path:          "/somepath",
+			pathMatchType: trafficpolicy.PathMatchRegex,
+			method:        "GET",
+			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
+			totalWeight:   100,
+			direction:     OutboundRoute,
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+						SafeRegex: &xds_matcher.RegexMatcher{
+							EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+							Regex:      "/somepath",
+						},
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+						{
+							Name: "header1",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header1-val",
+								},
+							},
+						},
+						{
+							Name: "header2",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header2-val",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1",
+										Weight: &wrappers.UInt32Value{Value: 30},
+									},
+									{
+										Name:   "osm/bookstore-2",
+										Weight: &wrappers.UInt32Value{Value: 70},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "inbound route for regex path match",
+			path:          "/somepath",
+			pathMatchType: trafficpolicy.PathMatchRegex,
+			method:        "GET",
+			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
+			totalWeight:   100,
+			direction:     InboundRoute,
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+						SafeRegex: &xds_matcher.RegexMatcher{
+							EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+							Regex:      "/somepath",
+						},
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+						{
+							Name: "header1",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header1-val",
+								},
+							},
+						},
+						{
+							Name: "header2",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "header2-val",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1-local",
+										Weight: &wrappers.UInt32Value{Value: 100},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "inbound route for exact path match",
+			path:          "/somepath",
+			pathMatchType: trafficpolicy.PathMatchExact,
+			method:        "GET",
+			headersMap:    nil,
+			totalWeight:   100,
+			direction:     InboundRoute,
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_Path{
+						Path: "/somepath",
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1-local",
+										Weight: &wrappers.UInt32Value{Value: 100},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "inbound route for prefix path match",
+			path:          "/somepath",
+			pathMatchType: trafficpolicy.PathMatchPrefix,
+			method:        "GET",
+			headersMap:    nil,
+			totalWeight:   100,
+			direction:     InboundRoute,
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+			}),
+
+			expectedRoute: &xds_route.Route{
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_Prefix{
+						Prefix: "/somepath",
+					},
+					Headers: []*xds_route.HeaderMatcher{
+						{
+							Name: ":method",
+							HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &xds_matcher.RegexMatcher{
+									EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+									Regex:      "GET",
+								},
+							},
+						},
+					},
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+							WeightedClusters: &xds_route.WeightedCluster{
+								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+									{
+										Name:   "osm/bookstore-1-local",
+										Weight: &wrappers.UInt32Value{Value: 100},
+									},
+								},
+								TotalWeight: &wrappers.UInt32Value{Value: 100},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := buildRoute(tc.pathRegex, tc.method, tc.headersMap, tc.weightedClusters, tc.totalWeight, tc.direction)
-			assert.EqualValues(tc.pathRegex, actual.Match.GetSafeRegex().Regex)
-			numFound := 0
-			for k, v := range tc.headersMap {
-				//assert that k is in actual.Match.Headers and the v is the same
-				for _, actualHeader := range actual.Match.Headers {
-					if actualHeader.Name == k {
-						assert.Equal(v, actualHeader.GetSafeRegexMatch().Regex)
-						numFound = numFound + 1
-					}
-				}
-			}
-			foundMethod := false
-			for _, actualHeader := range actual.Match.Headers {
-				if actualHeader.Name == ":method" {
-					assert.Equal(tc.method, actualHeader.GetSafeRegexMatch().Regex)
-					foundMethod = true
-					break
-				}
-			}
-			assert.Equal(true, foundMethod)
-			assert.Equal(len(tc.headersMap), numFound)
-			assert.Equal(2, len(actual.GetRoute().GetWeightedClusters().Clusters))
+			actual := buildRoute(tc.pathMatchType, tc.path, tc.method, tc.headersMap, tc.weightedClusters, tc.totalWeight, tc.direction)
+
+			// Assert route.Match
+			assert.Equal(tc.expectedRoute.Match.PathSpecifier, actual.Match.PathSpecifier)
+			assert.ElementsMatch(tc.expectedRoute.Match.Headers, actual.Match.Headers)
+
+			// Assert route.Action
+			assert.Equal(tc.expectedRoute.Action, actual.Action)
 		})
 	}
 }
+
 func TestBuildWeightedCluster(t *testing.T) {
 	assert := tassert.New(t)
 
-	weightedClusters := set.NewSetFromSlice([]interface{}{
+	weightedClusters := mapset.NewSetFromSlice([]interface{}{
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
 	})
 
 	testCases := []struct {
 		name             string
-		weightedClusters set.Set
+		weightedClusters mapset.Set
 		totalWeight      int
 		direction        Direction
 	}{
@@ -340,4 +554,202 @@ func TestBuildWeightedCluster(t *testing.T) {
 			assert.EqualValues(uint32(tc.totalWeight), actual.TotalWeight.GetValue())
 		})
 	}
+}
+
+func TestSanitizeHTTPMethods(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                   string
+		allowedMethods         []string
+		expectedAllowedMethods []string
+		direction              Direction
+	}{
+		{
+			name:                   "returns unique list of allowed methods",
+			allowedMethods:         []string{"GET", "POST", "PUT", "POST", "GET", "GET"},
+			expectedAllowedMethods: []string{"GET", "POST", "PUT"},
+		},
+		{
+			name:                   "returns wildcard allowed method (*)",
+			allowedMethods:         []string{"GET", "POST", "PUT", "POST", "GET", "GET", "*"},
+			expectedAllowedMethods: []string{"*"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := sanitizeHTTPMethods(tc.allowedMethods)
+			assert.Equal(tc.expectedAllowedMethods, actual)
+		})
+	}
+}
+
+func TestNewRouteConfigurationStub(t *testing.T) {
+	assert := tassert.New(t)
+
+	testName := "testing"
+	actual := NewRouteConfigurationStub(testName)
+
+	assert.Equal(testName, actual.Name)
+	assert.Nil(actual.VirtualHosts)
+	assert.False(actual.ValidateClusters.Value)
+}
+
+func TestGetRegexForMethod(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "wildcard HTTP method correctly translates to a match all regex",
+			input:    "*",
+			expected: constants.RegexMatchAll,
+		},
+		{
+			name:     "non wildcard HTTP method correctly translates to its corresponding regex",
+			input:    "GET",
+			expected: "GET",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getRegexForMethod(tc.input)
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetHeadersForRoute(t *testing.T) {
+	assert := tassert.New(t)
+
+	userAgentHeader := "user-agent"
+
+	// Returns a list of HeaderMatcher for a route
+	routePolicy := trafficpolicy.HTTPRouteMatch{
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
+		Headers: map[string]string{
+			userAgentHeader: "This is a test header",
+		},
+	}
+	actual := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+	assert.Equal(2, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
+	assert.Equal(userAgentHeader, actual[1].Name)
+	assert.Equal(routePolicy.Headers[userAgentHeader], actual[1].GetSafeRegexMatch().Regex)
+
+	// Returns only one HeaderMatcher for a route
+	routePolicy = trafficpolicy.HTTPRouteMatch{
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
+	}
+	actual = getHeadersForRoute(routePolicy.Methods[1], routePolicy.Headers)
+	assert.Equal(1, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[1], actual[0].GetSafeRegexMatch().Regex)
+
+	// Returns only one HeaderMatcher for a route ignoring the host
+	routePolicy = trafficpolicy.HTTPRouteMatch{
+		Path:          "/books-bought",
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET", "POST"},
+		Headers: map[string]string{
+			"user-agent": tests.HTTPUserAgent,
+		},
+	}
+	actual = getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+	assert.Equal(2, len(actual))
+	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
+}
+
+func TestLen(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+	})
+
+	actual := clusters.Len()
+	assert.Equal(2, actual)
+}
+
+func TestSwap(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "hello3",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+	})
+
+	expected := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "hello1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "hello3",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+		{
+			Name:   "hello2",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+	})
+
+	clusters.Swap(1, 2)
+	assert.Equal(expected, clusters)
+}
+
+func TestLess(t *testing.T) {
+	assert := tassert.New(t)
+
+	clusters := clusterWeightByName([]*xds_route.WeightedCluster_ClusterWeight{
+		{
+			Name:   "cluster1",
+			Weight: &wrappers.UInt32Value{Value: uint32(20)},
+		},
+		{
+			Name:   "cluster1",
+			Weight: &wrappers.UInt32Value{Value: uint32(50)},
+		},
+		{
+			Name:   "cluster2",
+			Weight: &wrappers.UInt32Value{Value: uint32(30)},
+		},
+	})
+
+	actual := clusters.Less(1, 2)
+	assert.True(actual)
+	actual = clusters.Less(2, 1)
+	assert.False(actual)
+	actual = clusters.Less(0, 1)
+	assert.True(actual)
+	actual = clusters.Less(1, 0)
+	assert.False(actual)
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,8 +38,8 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 }
 
 // AdmissionError wraps error as AdmissionResponse
-func AdmissionError(err error) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
+func AdmissionError(err error) *admissionv1.AdmissionResponse {
+	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},

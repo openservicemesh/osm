@@ -1,12 +1,12 @@
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
 spec:
   destination:
     kind: ServiceAccount
-    name: bookstore-v1
+    name: bookstore
     namespace: bookstore
   rules:
   - kind: HTTPRouteGroup

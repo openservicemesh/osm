@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -30,10 +30,10 @@ const (
 
 const (
 	//InboundRouteConfigName is the name of the route config that the envoy will identify
-	InboundRouteConfigName = "RDS_Inbound"
+	InboundRouteConfigName = "rds-inbound"
 
 	//OutboundRouteConfigName is the name of the route config that the envoy will identify
-	OutboundRouteConfigName = "RDS_Outbound"
+	OutboundRouteConfigName = "rds-outbound"
 
 	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
 	inboundVirtualHost = "inbound_virtual-host"
@@ -87,6 +87,19 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 	return routeConfiguration
 }
 
+//NewRouteConfigurationStub creates the route configuration placeholder
+func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
+	routeConfiguration := xds_route.RouteConfiguration{
+		Name: routeConfigName,
+		// ValidateClusters `true` causes RDS rejections if the CDS is not "warm" with the expected
+		// clusters RDS wants to use. This can happen when CDS and RDS updates are sent closely
+		// together. Setting it to false bypasses this check, and just assumes the cluster will
+		// be present when it needs to be checked by traffic (or 404 otherwise).
+		ValidateClusters: &wrappers.BoolValue{Value: false},
+	}
+	return &routeConfiguration
+}
+
 func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds_route.VirtualHost {
 	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
@@ -114,7 +127,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathRegex, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, InboundRoute)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, InboundRoute)
 			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
@@ -126,21 +139,14 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
-		// TODO: When implementing trafficsplit v1alpha4, buildRoute here should take in path, method, headers from trafficpolicy.HTTPRouteMatch
-		routes = append(routes, buildRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), OutboundRoute))
+		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), OutboundRoute))
 	}
 	return routes
 }
 
-func buildRoute(pathRegex, method string, headersMap map[string]string, weightedClusters set.Set, totalWeight int, direction Direction) *xds_route.Route {
+func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.Route {
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
-			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
-				SafeRegex: &xds_matcher.RegexMatcher{
-					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
-					Regex:      pathRegex,
-				},
-			},
 			Headers: getHeadersForRoute(method, headersMap),
 		},
 		Action: &xds_route.Route_Route{
@@ -151,10 +157,31 @@ func buildRoute(pathRegex, method string, headersMap map[string]string, weighted
 			},
 		},
 	}
+
+	switch pathMatchTypeType {
+	case trafficpolicy.PathMatchRegex:
+		route.Match.PathSpecifier = &xds_route.RouteMatch_SafeRegex{
+			SafeRegex: &xds_matcher.RegexMatcher{
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+				Regex:      path,
+			},
+		}
+
+	case trafficpolicy.PathMatchExact:
+		route.Match.PathSpecifier = &xds_route.RouteMatch_Path{
+			Path: path,
+		}
+
+	case trafficpolicy.PathMatchPrefix:
+		route.Match.PathSpecifier = &xds_route.RouteMatch_Prefix{
+			Prefix: path,
+		}
+	}
+
 	return &route
 }
 
-func buildWeightedCluster(weightedClusters set.Set, totalWeight int, direction Direction) *xds_route.WeightedCluster {
+func buildWeightedCluster(weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.WeightedCluster {
 	var wc xds_route.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
@@ -178,4 +205,78 @@ func buildWeightedCluster(weightedClusters set.Set, totalWeight int, direction D
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(wc.Clusters))
 	return &wc
+}
+
+// sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
+// the methods is a wildcard or sanitizes the input list to avoid duplicates.
+func sanitizeHTTPMethods(allowedMethods []string) []string {
+	var newAllowedMethods []string
+	keys := make(map[string]interface{})
+	for _, method := range allowedMethods {
+		if method != "" {
+			if method == constants.WildcardHTTPMethod {
+				newAllowedMethods = []string{constants.WildcardHTTPMethod}
+				return newAllowedMethods
+			}
+			if _, value := keys[method]; !value {
+				keys[method] = nil
+				newAllowedMethods = append(newAllowedMethods, method)
+			}
+		}
+	}
+	return newAllowedMethods
+}
+
+type clusterWeightByName []*xds_route.WeightedCluster_ClusterWeight
+
+func (c clusterWeightByName) Len() int      { return len(c) }
+func (c clusterWeightByName) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+func (c clusterWeightByName) Less(i, j int) bool {
+	if c[i].Name == c[j].Name {
+		return c[i].Weight.Value < c[j].Weight.Value
+	}
+	return c[i].Name < c[j].Name
+}
+
+func getHeadersForRoute(method string, headersMap map[string]string) []*xds_route.HeaderMatcher {
+	var headers []*xds_route.HeaderMatcher
+
+	// add methods header
+	methodsHeader := &xds_route.HeaderMatcher{
+		Name: MethodHeaderKey,
+		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+			SafeRegexMatch: &xds_matcher.RegexMatcher{
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+				Regex:      getRegexForMethod(method),
+			},
+		},
+	}
+	headers = append(headers, methodsHeader)
+
+	// add all other custom headers
+	for headerKey, headerValue := range headersMap {
+		// omit the host header as we have already configured this
+		if headerKey == httpHostHeader {
+			continue
+		}
+		header := xds_route.HeaderMatcher{
+			Name: headerKey,
+			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: &xds_matcher.RegexMatcher{
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+					Regex:      headerValue,
+				},
+			},
+		}
+		headers = append(headers, &header)
+	}
+	return headers
+}
+
+func getRegexForMethod(httpMethod string) string {
+	methodRegex := httpMethod
+	if httpMethod == constants.WildcardHTTPMethod {
+		methodRegex = constants.RegexMatchAll
+	}
+	return methodRegex
 }

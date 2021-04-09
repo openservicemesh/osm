@@ -93,20 +93,6 @@ func (mr *MockMeshSpecMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTCPTrafficSpecs", reflect.TypeOf((*MockMeshSpec)(nil).ListTCPTrafficSpecs))
 }
 
-// ListTrafficSplitServices mocks base method
-func (m *MockMeshSpec) ListTrafficSplitServices() []service.WeightedService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTrafficSplitServices")
-	ret0, _ := ret[0].([]service.WeightedService)
-	return ret0
-}
-
-// ListTrafficSplitServices indicates an expected call of ListTrafficSplitServices
-func (mr *MockMeshSpecMockRecorder) ListTrafficSplitServices() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplitServices", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficSplitServices))
-}
-
 // ListTrafficSplits mocks base method
 func (m *MockMeshSpec) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	m.ctrl.T.Helper()

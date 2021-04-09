@@ -4,6 +4,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
@@ -13,11 +15,11 @@ import (
 // Tests getMonitoredNamespaces through HTTP handler returns a the list of monitored namespaces
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mock := NewMockMeshCatalogDebugger(mockCtrl)
+
+	mockKubeController := k8s.NewMockController(gomock.NewController(t))
 
 	ds := DebugConfig{
-		meshCatalogDebugger: mock,
+		kubeController: mockKubeController,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 
@@ -26,7 +28,7 @@ func TestMonitoredNamespaceHandler(t *testing.T) {
 		tests.BookstoreV1Service.Namespace, // default
 	})
 
-	mock.EXPECT().ListMonitoredNamespaces().Return(uniqueNs)
+	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(uniqueNs, nil)
 
 	responseRecorder := httptest.NewRecorder()
 	monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)

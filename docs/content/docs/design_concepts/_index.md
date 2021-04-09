@@ -16,7 +16,7 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 ## Use Case
 
-_As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically_:
+_As an operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically_:
 
 - **Apply policies** governing TCP & HTTP access between peer services
 - **Encrypt traffic** between services leveraging mTLS and short-lived certificates with a custom CA

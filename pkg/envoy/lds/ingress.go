@@ -31,8 +31,8 @@ func getIngressTransportProtocol(forHTTPS bool) string {
 	return ""
 }
 
-func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svc, false /* TLS */))
+func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.svcAccount, false /* TLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
 		return nil
@@ -81,14 +81,14 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 			// Ingress filter chain for HTTP port
 			if lb.cfg.UseHTTPSIngress() {
 				// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
-				ingressFilterChainWithSNI := newIngressHTTPFilterChain(lb.cfg, svc, port)
+				ingressFilterChainWithSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
 				ingressFilterChainWithSNI.Name = fmt.Sprintf("%s:%d", inboundIngressHTTPSFilterChain, port)
 				ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.ServerName()}
 				ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
 			}
 
 			// Filter chain without SNI matching enabled for HTTP clients and HTTPS clients that don't set the SNI
-			ingressFilterChainWithoutSNI := newIngressHTTPFilterChain(lb.cfg, svc, port)
+			ingressFilterChainWithoutSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
 			ingressFilterChainWithoutSNI.Name = fmt.Sprintf("%s:%d", inboundIngressNonSNIFilterChain, port)
 			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 

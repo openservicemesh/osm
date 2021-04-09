@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 	OSMDescribeInfo{
 		Tier:   2, // experimental feature
-		Bucket: 1,
+		Bucket: 4,
 	},
 	func() {
 		const sourceNs = "clientns"
@@ -143,6 +143,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 
 			prometheus, err := Td.GetOSMPrometheusHandle()
 			Expect(err).NotTo(HaveOccurred())
+			defer prometheus.Stop()
 
 			dstPods, err := Td.Client.CoreV1().Pods(destNs).List(context.Background(), metav1.ListOptions{})
 			Expect(err).NotTo(HaveOccurred())

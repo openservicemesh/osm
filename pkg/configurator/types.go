@@ -68,4 +68,8 @@ type Configurator interface {
 
 	// IsPrivilegedInitContainer determines whether init containers should be privileged
 	IsPrivilegedInitContainer() bool
+
+	// GetConfigResyncInterval returns the duration for resync interval.
+	// If error or non-parsable value, returns 0 duration
+	GetConfigResyncInterval() time.Duration
 }

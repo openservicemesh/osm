@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	service "github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
@@ -20,7 +21,6 @@ type Proxy struct {
 	xDSCertificateSerialNumber certificate.SerialNumber
 
 	net.Addr
-	announcements chan announcements.Announcement
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -29,11 +29,18 @@ type Proxy struct {
 	lastAppliedVersion map[TypeURI]uint64
 	lastNonce          map[TypeURI]string
 
+	// hash is based on CommonName
+	hash uint64
+
 	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
 	// eventually be set when the metadata arrives via the xDS protocol.
 	PodMetadata *PodMetadata
+}
+
+func (p Proxy) String() string {
+	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -43,7 +50,7 @@ type PodMetadata struct {
 	Name           string
 	Namespace      string
 	IP             string
-	ServiceAccount string
+	ServiceAccount service.K8sServiceAccount
 	Cluster        string
 	EnvoyNodeID    string
 	WorkloadKind   string
@@ -156,6 +163,11 @@ func (p Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
 	return p.xDSCertificateSerialNumber
 }
 
+// GetHash returns the proxy hash based on its xDSCertificateCommonName
+func (p Proxy) GetHash() uint64 {
+	return p.hash
+}
+
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
 func (p Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
@@ -166,13 +178,14 @@ func (p Proxy) GetIP() net.Addr {
 	return p.Addr
 }
 
-// GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
-func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
-	return p.announcements
-}
-
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
+	// Get CommonName hash for this proxy
+	hash, err := utils.HashFromString(certCommonName.String())
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
+	}
+
 	return &Proxy{
 		xDSCertificateCommonName:   certCommonName,
 		xDSCertificateSerialNumber: certSerialNumber,
@@ -180,8 +193,8 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		Addr: ip,
 
 		connectedAt: time.Now(),
+		hash:        hash,
 
-		announcements:      make(chan announcements.Announcement),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),
 		lastAppliedVersion: make(map[TypeURI]uint64),

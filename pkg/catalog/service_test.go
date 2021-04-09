@@ -10,7 +10,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -28,7 +27,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testSplit2 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -47,7 +46,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 	}
 
 	testSplit3 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -116,7 +115,7 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testSplit2 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -135,7 +134,7 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 	}
 
 	testSplit3 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 		},
 		Spec: split.TrafficSplitSpec{
@@ -492,4 +491,107 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 			assert.Equal(tc.expectedPortToProtocolMap, actualPortToProtocolMap)
 		})
 	}
+}
+
+func TestListMeshServices(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mc := MeshCatalog{
+		kubeController: mockKubeController,
+	}
+
+	testCases := []struct {
+		name     string
+		services map[string]string // name: namespace
+	}{
+		{
+			name:     "services exist in mesh",
+			services: map[string]string{"bookstore": "bookstore-ns", "bookbuyer": "bookbuyer-ns", "bookwarehouse": "bookwarehouse"},
+		},
+		{
+			name:     "no services in mesh",
+			services: map[string]string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			k8sServices := []*corev1.Service{}
+			expectedMeshServices := []service.MeshService{}
+
+			for name, namespace := range tc.services {
+				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))
+				expectedMeshServices = append(expectedMeshServices, tests.NewMeshServiceFixture(name, namespace))
+			}
+
+			mockKubeController.EXPECT().ListServices().Return(k8sServices)
+			actual := mc.listMeshServices()
+			assert.Equal(expectedMeshServices, actual)
+		})
+	}
+}
+
+func TestGetServiceHostnames(t *testing.T) {
+	assert := tassert.New(t)
+
+	mc := newFakeMeshCatalog()
+
+	testCases := []struct {
+		svc           service.MeshService
+		sameNamespace bool
+		expected      []string
+	}{
+		{
+			tests.BookstoreV1Service,
+			true,
+			[]string{
+				"bookstore-v1",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1:8888",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+		},
+		{
+			tests.BookstoreV1Service,
+			false,
+			[]string{
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing hostnames for svc %s with sameNamespace=%t", tc.svc, tc.sameNamespace), func(t *testing.T) {
+			actual, err := mc.getServiceHostnames(tc.svc, tc.sameNamespace)
+			assert.Nil(err)
+			assert.ElementsMatch(actual, tc.expected)
+		})
+	}
+}
+
+func TestGetDefaultWeightedClusterForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	actual := getDefaultWeightedClusterForService(tests.BookstoreV1Service)
+	expected := service.WeightedCluster{
+		ClusterName: "default/bookstore-v1",
+		Weight:      100,
+	}
+	assert.Equal(actual, expected)
 }

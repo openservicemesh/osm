@@ -1,15 +1,76 @@
 package envoy
 
 import (
+	"testing"
+
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	tassert "github.com/stretchr/testify/assert"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
+
+func TestGetLocalClusterNameForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	actual := GetLocalClusterNameForService(tests.BookbuyerService)
+	assert.Equal(actual, "default/bookbuyer-local")
+}
+
+func TestGetAccessLog(t *testing.T) {
+	assert := tassert.New(t)
+
+	res := GetAccessLog()
+	assert.NotNil(res)
+}
+
+func TestGetFileAccessLog(t *testing.T) {
+	assert := tassert.New(t)
+
+	expAccessLogger := &xds_accesslog.FileAccessLog{
+		Path: accessLogPath,
+		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+			LogFormat: &xds_core.SubstitutionFormatString{
+				Format: &xds_core.SubstitutionFormatString_JsonFormat{
+					JsonFormat: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"start_time":            pbStringValue(`%START_TIME%`),
+							"method":                pbStringValue(`%REQ(:METHOD)%`),
+							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
+							"protocol":              pbStringValue(`%PROTOCOL%`),
+							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
+							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
+							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
+							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
+							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
+							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
+							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
+							"duration":              pbStringValue(`%DURATION%`),
+							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
+							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
+							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
+							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
+							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
+							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
+							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+						},
+					},
+				},
+			},
+		},
+	}
+	resAccessLogger := getFileAccessLog()
+
+	assert.Equal(resAccessLogger, expAccessLogger)
+}
 
 var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetLocalClusterNameForServiceCluster", func() {
@@ -105,11 +166,16 @@ var _ = Describe("Test Envoy tools", func() {
 			_, err := UnmarshalSDSCert("oot-cert-for-mtls-diagonalstream:blah/BlahBlahCert")
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("returns an error (empty slice)", func() {
+			_, err := UnmarshalSDSCert(":")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
+			tlsContext := GetDownstreamTLSContext(service.K8sServiceAccount{Name: "foo", Namespace: "test"}, true)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -119,7 +185,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookstore-v1",
+						Name: "service-cert:test/foo",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -130,7 +196,7 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
-								Name:     "default/bookstore-v1",
+								Name:     "test/foo",
 								CertType: RootCertTypeForMTLSInbound,
 							}.String(),
 							SdsConfig: &core.ConfigSource{
@@ -155,14 +221,14 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, true)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, false)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, false)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
@@ -222,6 +288,18 @@ var _ = Describe("Test Envoy tools", func() {
 			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service)
 			// To show the actual string for human comprehension
 			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
+		})
+	})
+
+	Context("Test pbStringValue()", func() {
+		It("returns structpb", func() {
+			exp := &structpb.Value{
+				Kind: &structpb.Value_StringValue{
+					StringValue: "apples",
+				},
+			}
+			res := pbStringValue("apples")
+			Expect(res).To(Equal(exp))
 		})
 	})
 
@@ -333,7 +411,8 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(meta.UID).To(Equal("$(POD_UID)"))
 			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
 			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
 			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
 			Expect(meta.Name).To(Equal("$(POD_NAME)"))
 			Expect(meta.WorkloadKind).To(Equal("-workload-kind-"))
@@ -347,11 +426,19 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(meta.UID).To(Equal("$(POD_UID)"))
 			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
 			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
 			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
 			Expect(meta.Name).To(Equal(""))
 			Expect(meta.WorkloadKind).To(Equal(""))
 			Expect(meta.WorkloadName).To(Equal(""))
+		})
+
+		It("should error when there are less than 5 chunks in the serviceNodeID string", func() {
+			// this 'serviceNodeID' will yield 2 chunks
+			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)"
+			_, err := ParseEnvoyServiceNodeID(serviceNodeID)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

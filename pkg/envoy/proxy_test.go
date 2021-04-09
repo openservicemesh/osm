@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 const (
@@ -22,7 +23,7 @@ var _ = Describe("Test proxy methods", func() {
 	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy1234566623211353.%s.%s.one.two.three.co.uk", svc, ns))
 	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
-	proxy := NewProxy(certCommonName, certSerialNumber, nil)
+	proxy := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
 
 	Context("test GetPodUID() with empty Pod Metadata field", func() {
 		It("returns correct values", func() {
@@ -30,15 +31,102 @@ var _ = Describe("Test proxy methods", func() {
 		})
 	})
 
+	Context("test GetLastAppliedVersion()", func() {
+		It("returns correct values", func() {
+			actual := proxy.GetLastAppliedVersion(TypeCDS)
+			Expect(actual).To(Equal(uint64(0)))
+
+			proxy.SetLastAppliedVersion(TypeCDS, uint64(345))
+
+			actual = proxy.GetLastAppliedVersion(TypeCDS)
+			Expect(actual).To(Equal(uint64(345)))
+		})
+	})
+
+	Context("test GetLastSentNonce()", func() {
+		It("returns empty if nonce doesn't exist", func() {
+			res := proxy.GetLastSentNonce(TypeCDS)
+			Expect(res).To(Equal(""))
+		})
+
+		It("returns correct values if nonce exists", func() {
+			proxy.SetNewNonce(TypeCDS)
+
+			firstNonce := proxy.GetLastSentNonce(TypeCDS)
+			Expect(firstNonce).ToNot(Equal(uint64(0)))
+
+			proxy.SetNewNonce(TypeCDS)
+
+			secondNonce := proxy.GetLastSentNonce(TypeCDS)
+			Expect(secondNonce).ToNot(Equal(firstNonce))
+		})
+	})
+
+	Context("test GetLastSentVersion()", func() {
+		It("returns correct values", func() {
+			actual := proxy.GetLastSentVersion(TypeCDS)
+			Expect(actual).To(Equal(uint64(0)))
+
+			newVersion := uint64(132)
+			proxy.SetLastSentVersion(TypeCDS, newVersion)
+
+			actual = proxy.GetLastSentVersion(TypeCDS)
+			Expect(actual).To(Equal(newVersion))
+
+			proxy.IncrementLastSentVersion(TypeCDS)
+			actual = proxy.GetLastSentVersion(TypeCDS)
+			Expect(actual).To(Equal(newVersion + 1))
+		})
+	})
+
+	Context("test GetConnectedAt()", func() {
+		It("returns correct values", func() {
+			actual := proxy.GetConnectedAt()
+			Expect(actual).ToNot(Equal(uint64(0)))
+		})
+	})
+
+	Context("test GetIP()", func() {
+		It("returns correct values", func() {
+			actual := proxy.GetIP()
+			Expect(actual.Network()).To(Equal("mockNetwork"))
+			Expect(actual.String()).To(Equal("1.2.3.4"))
+		})
+	})
+
+	Context("test HasPodMetadata()", func() {
+		It("returns correct values", func() {
+			actual := proxy.HasPodMetadata()
+			Expect(actual).To(BeFalse())
+		})
+	})
+
+	Context("test StatsHeaders()", func() {
+		It("returns correct values", func() {
+			actual := proxy.StatsHeaders()
+			expected := map[string]string{
+				"osm-stats-namespace": "unknown",
+				"osm-stats-kind":      "unknown",
+				"osm-stats-name":      "unknown",
+				"osm-stats-pod":       "unknown",
+			}
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
 	Context("test correctness proxy object creation", func() {
 		It("returns correct values", func() {
 			Expect(proxy.GetCertificateCommonName()).To(Equal(certCommonName))
 			Expect(proxy.GetCertificateSerialNumber()).To(Equal(certSerialNumber))
+			Expect(proxy.HasPodMetadata()).To(BeFalse())
 
 			proxy.PodMetadata = &PodMetadata{
 				UID: podUID,
 			}
+
+			Expect(proxy.HasPodMetadata()).To(BeTrue())
 			Expect(proxy.GetPodUID()).To(Equal(podUID))
+			Expect(proxy.String()).To(Equal(fmt.Sprintf("Proxy on Pod with UID=%s", podUID)))
 		})
 	})
 })

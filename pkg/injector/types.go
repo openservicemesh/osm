@@ -25,6 +25,7 @@ type mutatingWebhook struct {
 	certManager    certificate.Manager
 	kubeController k8s.Controller
 	osmNamespace   string
+	meshName       string
 	cert           certificate.Certificater
 	configurator   configurator.Configurator
 
@@ -39,14 +40,6 @@ type Config struct {
 	InitContainerImage string
 
 	SidecarImage string
-}
-
-// EnvoySidecarData is the type used to represent information about the Envoy sidecar
-type EnvoySidecarData struct {
-	Name           string
-	Image          string
-	EnvoyNodeID    string
-	EnvoyClusterID string
 }
 
 // Context needed to compose the Envoy bootstrap YAML.

@@ -18,6 +18,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
+var testWASM = "some bytes"
+
 // Tests TestGetFilterForService checks that a proper filter type is properly returned
 // for given config parameters and service
 func TestGetFilterForService(t *testing.T) {
@@ -74,7 +76,7 @@ var _ = Describe("Construct inbound listeners", func() {
 
 	Context("Test creation of Prometheus listener", func() {
 		It("Tests the Prometheus listener config", func() {
-			connManager := getPrometheusConnectionManager("fake-prometheus", constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
+			connManager := getPrometheusConnectionManager()
 			listener, _ := buildPrometheusListener(connManager)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
@@ -93,6 +95,16 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	Context("Test creation of HTTP connection manager", func() {
+		It("Should have the correct StatPrefix", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			connManager := getHTTPConnectionManager("foo", mockConfigurator, nil)
+			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.foo"))
+
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			connManager = getHTTPConnectionManager("bar", mockConfigurator, nil)
+			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.bar"))
+		})
+
 		It("Returns proper Zipkin config given when tracing is enabled", func() {
 			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).Times(1)
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
@@ -120,7 +132,7 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			featureflags.Features.WASMStats = false
 
 			oldStatsWASMBytes := statsWASMBytes
-			statsWASMBytes = "some bytes"
+			statsWASMBytes = testWASM
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
 
@@ -134,13 +146,54 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			featureflags.Features.WASMStats = oldWASMflag
 		})
 
+		It("Returns no stats config when WASM is disabled and no WASM is defined", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			oldWASMflag := featureflags.Features.WASMStats
+			featureflags.Features.WASMStats = true
+
+			oldStatsWASMBytes := statsWASMBytes
+			statsWASMBytes = ""
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
+
+			Expect(connManager.HttpFilters).To(HaveLen(2))
+			Expect(connManager.HttpFilters[0].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
+			Expect(connManager.HttpFilters[1].GetName()).To(Equal(wellknown.Router))
+			Expect(connManager.LocalReplyConfig).To(BeNil())
+
+			// reset global state
+			statsWASMBytes = oldStatsWASMBytes
+			featureflags.Features.WASMStats = oldWASMflag
+		})
+
+		It("Returns no Lua headers filter config when there are no headers to add", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			oldWASMflag := featureflags.Features.WASMStats
+			featureflags.Features.WASMStats = true
+
+			oldStatsWASMBytes := statsWASMBytes
+			statsWASMBytes = testWASM
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
+
+			Expect(connManager.HttpFilters).To(HaveLen(3))
+			Expect(connManager.HttpFilters[0].GetName()).To(Equal("envoy.filters.http.wasm"))
+			Expect(connManager.HttpFilters[1].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
+			Expect(connManager.HttpFilters[2].GetName()).To(Equal(wellknown.Router))
+			Expect(connManager.LocalReplyConfig).To(BeNil())
+
+			// reset global state
+			statsWASMBytes = oldStatsWASMBytes
+			featureflags.Features.WASMStats = oldWASMflag
+		})
+
 		It("Returns proper stats config when WASM is enabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
 			oldWASMflag := featureflags.Features.WASMStats
 			featureflags.Features.WASMStats = true
 
 			oldStatsWASMBytes := statsWASMBytes
-			statsWASMBytes = "some bytes"
+			statsWASMBytes = testWASM
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
 

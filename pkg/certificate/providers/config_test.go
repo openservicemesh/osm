@@ -12,7 +12,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -115,7 +114,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		{
 			// Valid cert, valid test
 			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: ns,
 				},
@@ -137,7 +136,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		{
 			// Error when CA key is missing
 			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: ns,
 				},
@@ -152,7 +151,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		{
 			// Error when Private Key is missing
 			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: ns,
 				},
@@ -167,7 +166,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		{
 			// Error when Expiration is missing
 			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: ns,
 				},
@@ -182,7 +181,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		{
 			// Error when Parsing expiration date
 			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: ns,
 				},
@@ -201,7 +200,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
 
 		if testElement.secret != nil {
-			_, err = kubeClient.CoreV1().Secrets(ns).Create(context.Background(), testElement.secret, v1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Secrets(ns).Create(context.Background(), testElement.secret, metav1.CreateOptions{})
 			assert.NoError(err)
 		}
 

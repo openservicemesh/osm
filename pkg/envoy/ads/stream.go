@@ -3,15 +3,32 @@ package ads
 import (
 	"context"
 	"strconv"
+	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
+)
+
+var (
+	// allDS represents all xDS paths expressed as TypeURLs. Used to issue updates
+	// on all paths for a given proxy.
+	allDS = mapset.NewSetWith(
+		envoy.TypeCDS,
+		envoy.TypeEDS,
+		envoy.TypeLDS,
+		envoy.TypeRDS,
+		envoy.TypeSDS)
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
@@ -38,7 +55,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	defer s.catalog.UnregisterProxy(proxy)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(server.Context())
 	defer cancel()
 
 	quit := make(chan struct{})
@@ -51,10 +68,22 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Register to Envoy global broadcast updates
 	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
+	// Register for certificate rotation updates
+	certAnnouncement := events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
+
 	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,
 	// which will get triggered by the dispatcher anyway
-	s.sendAllResponses(proxy, &server, s.cfg)
+	err = s.sendResponse(mapset.NewSetWith(
+		envoy.TypeCDS,
+		envoy.TypeEDS,
+		envoy.TypeLDS,
+		envoy.TypeRDS,
+		envoy.TypeSDS),
+		proxy, &server, nil, s.cfg)
+	if err != nil {
+		log.Error().Err(err).Msgf("Initial sendResponse for proxy %s returned error", proxy.GetCertificateSerialNumber())
+	}
 
 	for {
 		select {
@@ -150,22 +179,95 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				log.Debug().Msgf("Received discovery request with Nonce=%s from Envoy on Pod with UID=%s; matches=%t; proxy last Nonce=%s",
 					discoveryRequest.ResponseNonce, proxy.GetPodUID(), discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Debug().Msgf("Received discovery request <%s> for resources (%v) from Envoy on Pod with UID=<%s> with Nonce=%s",
-				discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
+			xdsShortName := envoy.XDSShortURINames[typeURL]
+			log.Info().Msgf("Discovery request <%s> for resources (%v) from Envoy UID=<%s> with Nonce=%s",
+				xdsShortName, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 
-			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to create and send %s update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					envoy.XDSShortURINames[typeURL], proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			var xdsUpdatePaths mapset.Set
+			switch typeURL {
+			case envoy.TypeWildcard:
+				xdsUpdatePaths = allDS
+			default:
+				xdsUpdatePaths = mapset.NewSetWith(typeURL)
 			}
 
-		case <-broadcastUpdate:
-			log.Debug().Msgf("Broadcast update received for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			s.sendAllResponses(proxy, &server, s.cfg)
+			// Queue a response job for the request
+			job := proxyResponseJob{
+				typeurls:  xdsUpdatePaths,
+				proxy:     proxy,
+				cfg:       s.cfg,
+				adsStream: &server,
+				request:   &discoveryRequest,
+				xdsServer: s,
+				done:      make(chan struct{}),
+			}
+			s.workqueues.AddJob(&job)
 
-		case <-proxy.GetAnnouncementsChannel():
-			log.Debug().Msgf("Individual update for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			s.sendAllResponses(proxy, &server, s.cfg)
+			// Wait for job to complete
+			<-job.done
+
+		case <-broadcastUpdate:
+			log.Info().Msgf("Broadcast wake for Proxy SerialNumber=%s UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+
+			// Queue a full configuration update
+			job := proxyResponseJob{
+				typeurls:  allDS,
+				proxy:     proxy,
+				cfg:       s.cfg,
+				adsStream: &server,
+				request:   nil,
+				xdsServer: s,
+				done:      make(chan struct{}),
+			}
+			s.workqueues.AddJob(&job)
+
+			// Wait for job to complete
+			<-job.done
+
+		case certUpdateMsg := <-certAnnouncement:
+			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+			if isCNforProxy(proxy, certificate.GetCommonName()) {
+				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
+				// with this proxy, so update the secrets corresponding to this certificate via SDS.
+				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+
+				// Empty DiscoveryRequest should create the SDS specific request
+				// Prepare to queue the SDS proxy response job on the workerpool
+				job := proxyResponseJob{
+					typeurls:  mapset.NewSetWith(envoy.TypeSDS),
+					proxy:     proxy,
+					cfg:       s.cfg,
+					adsStream: &server,
+					request:   nil,
+					xdsServer: s,
+					done:      make(chan struct{}),
+				}
+				s.workqueues.AddJob(&job)
+
+				// Wait for job to complete
+				<-job.done
+			}
 		}
 	}
+}
+
+// isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.
+// Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
+// <svc-account>.<namespace>.<trust-domain>.
+func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		return false
+	}
+
+	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
+	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
+	if len(chunks) < 3 {
+		return false
+	}
+
+	identityForCN := service.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
+	return identityForCN == proxyIdentity
 }

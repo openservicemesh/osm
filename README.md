@@ -22,7 +22,7 @@ The OSM project builds on the ideas and implementations of many cloud native eco
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
-- [Demos](#demos)
+- [Demonstration](#demonstration)
 - [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
 - [Community](#community)
@@ -56,16 +56,18 @@ OSM is under active development and is **NOT** ready for production workloads.
 
 ### Support
 
-OSM is an open source project that is [**not** covered by the Microsoft Azure support policy](https://support.microsoft.com/en-us/help/2941892/support-for-linux-and-open-source-technology-in-azure). [Please search open issues here](https://github.com/openservicemesh/osm/issues), and if your issue isn't already represented please [open a new one](https://github.com/openservicemesh/osm/issues/new/choose). The OSM project maintainers will respond to the best of their abilities.
+[Please search open issues on GitHub](https://github.com/openservicemesh/osm/issues), and if your issue isn't already represented please [open a new one](https://github.com/openservicemesh/osm/issues/new/choose). The OSM project maintainers will respond to the best of their abilities.
 
 ### SMI Specification support
 
-|   Specification Component    |         Supported Release          |          Comments          |
-| :---------------------------- | :--------------------------------: |  :--------------------------------: |
-| Traffic Access Control  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  | |
-| Traffic Specs  |  [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md)  | |
-| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
-| Traffic Metrics  | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
+|   Kind    | SMI Resource |         Supported Version          |          Comments          |
+| :---------------------------- | - | :--------------------------------: |  :--------------------------------: |
+| TrafficTarget  | traffictargets.access.smi-spec.io |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  | |
+| HTTPRouteGroup | httproutegroups.specs.smi-spec.io | [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md#httproutegroup) | |
+| TCPRoute | tcproutes.specs.smi-spec.io | [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md#tcproute) | |
+| UDPRoute | udproutes.specs.smi-spec.io | _not supported_ | |
+| TrafficSplit | trafficsplits.split.smi-spec.io | [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
+| TrafficMetrics  | \*.metrics.smi-spec.io | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
 
 ## OSM Design
 
@@ -95,11 +97,9 @@ $ osm install
 
 See the [installation guide](docs/content/docs/install/_index.md) for more detailed options.
 
-## Demos
-We have provided two demos for you to experience OSM.
+## Demonstration
 
-- The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
-- The [manual demo](docs/content/docs/install/manual_demo.md) is a step-by-step walkthrough set of instruction of the automated demo.
+The OSM [Bookstore demo](docs/content/docs/install/manual_demo/_index.md) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
 
 ## Using OSM
 
@@ -107,7 +107,7 @@ After installing OSM, [onboard a microservice application](docs/content/docs/tas
 
 ### OSM Usage Patterns
 
-1. [Ingress](docs/content/docs/tasks_usage/ingress.md) and [Egress](docs/content/docs/tasks_usage/egress.md)
+1. [Traffic Management](docs/content/docs/tasks_usage/traffic_management/_index.md)
 1. [Observability](docs/content/docs/patterns/observability/_index.md)
 1. [Certificates](docs/content/docs/tasks_usage/certificates.md)
 1. [Sidecar Injection](docs/content/docs/tasks_usage/sidecar_injection.md)

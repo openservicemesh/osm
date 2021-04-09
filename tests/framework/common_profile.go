@@ -92,7 +92,7 @@ func (sd *DataHandle) WrapUp() {
 	if sd.GrafHandle != nil {
 		for _, panel := range sd.GrafanaPanelsToSave {
 			minutesElapsed := int(math.Ceil(time.Since(sd.TestStartTime).Minutes()))
-			err := sd.GrafHandle.PanelPNGSnapshot(panel.Dashboard, panel.Panel, minutesElapsed, Td.GetTestFile(panel.Filename))
+			err := sd.GrafHandle.PanelPNGSnapshot(panel.Dashboard, panel.Panel, minutesElapsed, Td.GetTestFilePath(panel.Filename))
 			fmt.Printf("%v", err)
 		}
 	}

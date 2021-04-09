@@ -4,7 +4,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -13,7 +13,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -68,11 +68,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		clusters = append(clusters, getTracingCluster(cfg))
 	}
 
-	resp := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeCDS),
-	}
-
 	alreadyAdded := mapset.NewSet()
+	var cdsResources []types.Resource
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
 			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -80,14 +77,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)
-		marshalledClusters, err := ptypes.MarshalAny(cluster)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal cluster %s for Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledClusters)
+		cdsResources = append(cdsResources, cluster)
 	}
 
-	return resp, nil
+	return cdsResources, nil
 }

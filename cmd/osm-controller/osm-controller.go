@@ -1,6 +1,6 @@
 // Package main implements the main entrypoint for osm-controller and utility routines to
 // bootstrap the various internal components of osm-controller.
-// osm-controller is the core control plane componenent in OSM responsible for progamming sidecar proxies.
+// osm-controller is the core control plane component in OSM responsible for programming sidecar proxies.
 package main
 
 import (
@@ -15,7 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -104,7 +104,7 @@ func init() {
 	flags.BoolVar(&optionalFeatures.WASMStats, "stats-wasm-experimental", false, "Enable a WebAssembly module that generates additional Envoy statistics.")
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = v1beta1.AddToScheme(scheme)
+	_ = admissionv1.AddToScheme(scheme)
 }
 
 func main() {

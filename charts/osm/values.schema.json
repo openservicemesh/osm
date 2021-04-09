@@ -34,7 +34,8 @@
                 "tracing",
                 "webhookConfigNamePrefix",
                 "osmcontroller",
-                "enablePrivilegedInitContainer"
+                "enablePrivilegedInitContainer",
+                "injector"
             ],
             "properties": {
                 "replicaCount": {
@@ -114,6 +115,13 @@
                                     }
                                 }
                             }
+                        },
+                        "podLabels": {
+                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/podLabels",
+                            "type": "object",
+                            "title": "The podLabels schema",
+                            "description": "Labels for the osmcontroller pod.",
+                            "default": {}
                         }
                     },
                     "additionalProperties": true
@@ -173,7 +181,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.17.0"
+                        "envoyproxy/envoy-alpine:v1.17.1"
                     ]
                 },
                 "certificateManager": {
@@ -278,7 +286,6 @@
                             "registry": "fluent",
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
-                            "logLevel": "error",
                             "outputPlugin": "stdout",
                             "enableProxySupport": "false",
                             "httpProxy": "",
@@ -290,7 +297,6 @@
                         "registry",
                         "tag",
                         "pullPolicy",
-                        "logLevel",
                         "outputPlugin",
                         "enableProxySupport",
                         "httpProxy",
@@ -332,16 +338,6 @@
                             "pattern": "^(Always|Never|IfNotPresent)$",
                             "examples": [
                                 "IfNotPresent"
-                            ]
-                        },
-                        "logLevel": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/logLevel",
-                            "type": "string",
-                            "title": "The logLevel schema",
-                            "description": "The Fluent Bit log level.",
-                            "pattern": "^(debug|info|warn|error|fatal|panic|disabled|trace)$",
-                            "examples": [
-                                "error"
                             ]
                         },
                         "outputPlugin": {
@@ -490,6 +486,95 @@
                     "examples": [
                         false
                     ]
+                },
+                "injector": {
+                    "$id": "#/properties/OpenServiceMesh/properties/injector",
+                    "type": "object",
+                    "title": "The sidecar injector schema",
+                    "description": "Sidecar injector configurations",
+                    "required": [
+                        "replicaCount",
+                        "resource"
+                    ],
+                    "properties": {
+                        "replicaCount": {
+                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/replicaCount",
+                            "type": "integer",
+                            "title": "The replicaCount schema",
+                            "description": "The number of replicas of the osm-injector pod.",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "resource": {
+                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource",
+                            "type": "object",
+                            "title": "The resource schema",
+                            "description": "The resource configuration for osm-injector.",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits",
+                                    "type": "object",
+                                    "title": "The resource limits schema",
+                                    "description": "The resources limits for osm-injector",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits/properties/cpu",
+                                            "type": "string",
+                                            "title": "The resource limits cpu schema",
+                                            "description": "The resources limits cpu for osm-injector"
+                                        },
+                                        "memory": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits/properties/memory",
+                                            "type": "string",
+                                            "title": "The resource limits memory schema",
+                                            "description": "The resources limits cpu for osm-injector"
+                                        }
+                                    }
+                                },
+                                "requests": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests",
+                                    "type": "object",
+                                    "title": "The resource requests schema",
+                                    "description": "The resources requests for osm-injector",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests/properties/cpu",
+                                            "type": "string",
+                                            "title": "The resource requests cpu schema",
+                                            "description": "The resources requests cpu for osm-injector."
+                                        },
+                                        "memory": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests/properties/memory",
+                                            "type": "string",
+                                            "title": "The resource requests memory schema",
+                                            "description": "The resources requests memory for osm-injector."
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "podLabels": {
+                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/podLabels",
+                            "type": "object",
+                            "title": "The podLabels schema",
+                            "description": "Labels for the osm-injector pod.",
+                            "default": {}
+                        }
+                    },
+                    "additionalProperties": true
                 }
             },
             "additionalProperties": true

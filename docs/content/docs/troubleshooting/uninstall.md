@@ -1,22 +1,19 @@
 ---
 title: "Uninstall Troubleshooting"
-description: "OSM Uninstall Troubleshooting Guide"
+description: "OSM Mesh Uninstall Troubleshooting Guide"
 type: docs
 ---
 
-# OSM Uninstall Troubleshooting Guide
+# OSM Mesh Uninstall Troubleshooting Guide
 
-## Leaked Resources
-If the [uninstallation guide](../../uninstallation_guide) was not followed, it is possible that resources could be leaked.
+## Unsuccessful Uninstall
 
-If the Helm release, OSM controller, or their respective namespaces are deleted, then the `osm` CLI won't be able to uninstall any remaining resources, particularly if they are cluster scoped.
-
-These leaked resources result in an error when trying to install a new mesh with the same name but different namespace. 
-
-```
-Error: rendered manifests contain a resource that already exists. Unable to continue with install: ClusterRole "osm" in namespace "" exists and cannot be imported into the current release: invalid ownership metadata; annotation validation error: key "meta.helm.sh/release-namespace" must equal "osm-system2": current value is "osm-system"
-```
-
-In the `./scripts/cleanup` directory we have included a helper script to delete those leaked resources: `./scripts/cleanup/osm-cleanup.sh`
+If for any reason, `osm uninstall` is unsuccessful, run the [cleanup script](https://github.com/openservicemesh/osm/blob/release-v0.8/scripts/cleanup/osm-cleanup.sh) which will delete any OSM related resources.
 
 To run the script, create a `.env` environment variable file to set the values specified at the top of the script. These values should match the values used to deploy the mesh.
+
+In the root directory of the osm repository locally, run:
+
+```console
+./scripts/cleanup/osm-cleanup.sh
+```

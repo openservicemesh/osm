@@ -25,6 +25,7 @@ Please mark with X for applicable areas.
 - Security               [ ]
 - Tests                  [ ]
 - CI System              [ ]
+- Demo                   [ ]
 - Performance            [ ]
 - Other                  [ ]
 

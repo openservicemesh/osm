@@ -21,9 +21,6 @@ import (
 // SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.
 type SDSCertType string
 
-// SDSDirection is a type to identify TLS certificate connectivity direction.
-type SDSDirection bool
-
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
@@ -76,8 +73,11 @@ var validCertTypes = map[SDSCertType]interface{}{
 // It is set as a part of configuring the UpstreamTLSContext.
 var ALPNInMesh = []string{"osm"}
 
-// UnmarshalSDSCert parses and returns Certificate type and a service given a
-// correctly formatted string, otherwise returns error
+// UnmarshalSDSCert parses the SDS resource name and returns an SDSCert object and an error if any
+// Examples:
+// 1. Unmarshalling 'service-cert:foo/bar' returns SDSCert{CertType: service-cert, Name: foo/bar}, nil
+// 2. Unmarshalling 'root-cert-for-mtls-inbound:foo/bar' returns SDSCert{CertType: root-cert-for-mtls-inbound, Name: foo/bar}, nil
+// 3. Unmarshalling 'invalid-cert' returns nil, error
 func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	var ret SDSCert
 
@@ -217,10 +217,10 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 	}
 }
 
-// GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
+// GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
+func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := SDSCert{
-		Name:     upstreamSvc.String(),
+		Name:     upstreamIdentity.String(),
 		CertType: ServiceCertType,
 	}
 
@@ -232,13 +232,13 @@ func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_au
 		// TLS based cert validation (used for ingress)
 		downstreamPeerValidationCertType = RootCertTypeForHTTPS
 	}
-	// The downstream peer validation SDS cert points to a cert with the name 'upstreamSvc' only
-	// because we use a single DownstreamTlsContext for all inbound traffic to the given 'upstreamSvc'.
+	// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
+	// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
 	// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
 	downstreamPeerValidationSDSCert := SDSCert{
-		Name:     upstreamSvc.String(),
+		Name:     upstreamIdentity.String(),
 		CertType: downstreamPeerValidationCertType,
 	}
 
@@ -313,7 +313,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
-		ServiceAccount: chunks[3],
+		ServiceAccount: service.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
 		EnvoyNodeID:    chunks[4],
 	}
 

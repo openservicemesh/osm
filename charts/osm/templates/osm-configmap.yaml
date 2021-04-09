@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: osm-config
   namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
@@ -13,7 +15,7 @@ data:
 
   tracing_enable: {{ .Values.OpenServiceMesh.tracing.enable | quote }}
 {{- if .Values.OpenServiceMesh.tracing.enable }}
-  tracing_address: {{ .Values.OpenServiceMesh.tracing.address | quote }}
+  tracing_address: {{ include "osm.tracingAddress" . | quote }}
   tracing_port: {{ .Values.OpenServiceMesh.tracing.port | quote }}
   tracing_endpoint: {{ .Values.OpenServiceMesh.tracing.endpoint | quote }}
 {{- end }}

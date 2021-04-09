@@ -28,7 +28,7 @@ var (
 	booksBoughtV1     int64
 	booksBoughtV2     int64
 	log               = logger.NewPretty(participantName)
-	port              = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	port              = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 	path              = flag.String("path", ".", "path to the HTML template")
 	numConnectionsStr = utils.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
 )
