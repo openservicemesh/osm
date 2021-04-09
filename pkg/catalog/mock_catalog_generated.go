@@ -14,9 +14,6 @@ import (
 	service "github.com/openservicemesh/osm/pkg/service"
 	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
-	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface
@@ -275,20 +272,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInboundTrafficTargetsWithRoutes", reflect.TypeOf((*MockMeshCataloger)(nil).ListInboundTrafficTargetsWithRoutes), arg0)
 }
 
-// ListMonitoredNamespaces mocks base method
-func (m *MockMeshCataloger) ListMonitoredNamespaces() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMonitoredNamespaces")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// ListMonitoredNamespaces indicates an expected call of ListMonitoredNamespaces
-func (mr *MockMeshCatalogerMockRecorder) ListMonitoredNamespaces() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitoredNamespaces", reflect.TypeOf((*MockMeshCataloger)(nil).ListMonitoredNamespaces))
-}
-
 // ListOutboundTrafficPolicies mocks base method
 func (m *MockMeshCataloger) ListOutboundTrafficPolicies(arg0 service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	m.ctrl.T.Helper()
@@ -301,23 +284,6 @@ func (m *MockMeshCataloger) ListOutboundTrafficPolicies(arg0 service.K8sServiceA
 func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundTrafficPolicies), arg0)
-}
-
-// ListSMIPolicies mocks base method
-func (m *MockMeshCataloger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSMIPolicies")
-	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
-	ret1, _ := ret[1].([]service.K8sServiceAccount)
-	ret2, _ := ret[2].([]*v1alpha4.HTTPRouteGroup)
-	ret3, _ := ret[3].([]*v1alpha3.TrafficTarget)
-	return ret0, ret1, ret2, ret3
-}
-
-// ListSMIPolicies indicates an expected call of ListSMIPolicies
-func (mr *MockMeshCatalogerMockRecorder) ListSMIPolicies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSMIPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListSMIPolicies))
 }
 
 // ListServiceAccountsForService mocks base method

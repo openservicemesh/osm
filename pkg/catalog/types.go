@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -81,9 +78,6 @@ type MeshCataloger interface {
 	// ListServiceAccountsForService lists the service accounts associated with the given service
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
-	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
-
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
@@ -117,15 +111,12 @@ type MeshCataloger interface {
 	// GetConnectedProxyCount returns the number of connected proxies
 	GetConnectedProxyCount() int
 
-	// ListMonitoredNamespaces lists namespaces monitored by the control plane
-	ListMonitoredNamespaces() []string
-
 	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
 	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
 	// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
 	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
-	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
 	// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
