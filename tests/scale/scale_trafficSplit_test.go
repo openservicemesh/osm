@@ -29,6 +29,11 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
 			// Install OSM with all the requirements
 			var err error
+			// Prometheus scrapping is not scalable past a certain number of proxies given
+			// current configuration/constraints. We will disable getting proxy metrics
+			// while we focus on qualifying control plane.
+			// Note: this does not prevent osm metrics scraping.
+			Td.EnableNsMetricTag = false
 			sd, err = scaleOSMInstall()
 			Expect(err).To(BeNil())
 
