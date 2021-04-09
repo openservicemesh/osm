@@ -52,7 +52,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err = kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc2, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			meshServices, err := mc.GetServicesFromEnvoyCertificate(cn)
+			meshServices, err := service.GetServicesFromEnvoyCertificate(cn, mc.kubeController)
 			Expect(err).ToNot(HaveOccurred())
 			expectedSvc := service.MeshService{
 				Namespace: tests.Namespace,
@@ -70,7 +70,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 
 		It("returns an error with an invalid CN", func() {
-			service, err := mc.GetServicesFromEnvoyCertificate("getAllowedDirectionalServices")
+			service, err := service.GetServicesFromEnvoyCertificate("getAllowedDirectionalServices", mc.kubeController)
 			Expect(err).To(HaveOccurred())
 			Expect(service).To(BeNil())
 		})
@@ -97,7 +97,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, tests.BookstoreServiceAccountName, namespace))
-			meshServices, err := mc.GetServicesFromEnvoyCertificate(podCN)
+			meshServices, err := service.GetServicesFromEnvoyCertificate(podCN, mc.kubeController)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.MeshService{

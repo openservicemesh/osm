@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -24,7 +25,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 		return nil, err
 	}
 
-	services, err := cataloger.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
+	services, err := service.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName(), nil) // TODO: kubeController
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
