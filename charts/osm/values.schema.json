@@ -29,6 +29,7 @@
                 "meshName",
                 "useHTTPSIngress",
                 "envoyLogLevel",
+                "controllerLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
@@ -403,6 +404,16 @@
                     "title": "The envoyLogLevel schema",
                     "description": "Envoy log level.",
                     "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
+                    "examples": [
+                        "error"
+                    ]
+                },
+                "controllerLogLevel": {
+                    "$id": "#/properties/OpenServiceMesh/properties/controllerLogLevel",
+                    "type": "string",
+                    "title": "The controllerLogLevel schema",
+                    "description": "OSM Controller log level.",
+                    "pattern": "^(debug|info|warn|error|fatal|panic|disabled|trace)$",
                     "examples": [
                         "error"
                     ]
