@@ -10,15 +10,13 @@ weight: 2
 
 The OSM Manual Install Demo Guide is a step by step set of instructions to quickly demo OSM's key features.
 
-## Configure Prerequisites
 
-- Kubernetes cluster running Kubernetes v1.15.0 or greater
-- Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- kubectl current context is configured for the target cluster install
-  - `kubectl config current-context`
-- Have a local clone of the OSM GitHub Repo
-  - `git clone https://github.com/openservicemesh/osm.git`
-  - `cd osm`
+## Prerequisites
+This demo of OSM v0.8.2 requires:
+  - a cluster running Kubernetes v1.17 or greater
+  - a workstation capable of executing [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) scripts
+  - [The Kubernetes command-line tool](https://kubernetes.io/docs/tasks/tools/#kubectl) - `kubectl`
+
 
 
 ## Download and install the OSM command-line tool
