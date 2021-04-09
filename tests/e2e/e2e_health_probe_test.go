@@ -14,14 +14,14 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test HTTPS probes can succeed",
+var _ = OSMDescribe("Test health probes can succeed",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 3,
 	},
 	func() {
-		It("Configures Pods with HTTPS probes so they work as expected", func() {
-			const ns = "httpsprobe"
+		It("Configures Pods' probes so they work as expected", func() {
+			const ns = "healthprobe"
 			// Install OSM
 			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
@@ -124,6 +124,7 @@ ZRaHimUjXwDqCTKcz1ttlH6SRcfbhI5D
 				Data: map[string]string{
 					"default.conf": `
 server {
+    listen       80;
     listen       443 ssl;
     ssl_certificate /etc/nginx//tls/tls.crt;
     ssl_certificate_key /etc/nginx//tls/tls.key;
@@ -145,7 +146,17 @@ server {
 				},
 			}
 
-			probe := &corev1.Probe{
+			http := &corev1.Probe{
+				Handler: corev1.Handler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   "/",
+						Port:   intstr.FromInt(80),
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+			}
+
+			https := &corev1.Probe{
 				Handler: corev1.Handler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path:   "/",
@@ -155,64 +166,81 @@ server {
 				},
 			}
 
-			nginx := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "nginx",
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx:1.19-alpine",
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "tls",
-									MountPath: "/etc/nginx/tls",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "config",
-									MountPath: "/etc/nginx/conf.d",
-									ReadOnly:  true,
-								},
-							},
-							StartupProbe:   probe,
-							LivenessProbe:  probe,
-							ReadinessProbe: probe,
-						},
+			tcp := &corev1.Probe{
+				Handler: corev1.Handler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.FromInt(80),
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "tls",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "nginx-tls",
+				},
+			}
+
+			makePod := func(name string, probe *corev1.Probe) *corev1.Pod {
+				return &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: name,
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "nginx",
+								Image: "nginx:1.19-alpine",
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "tls",
+										MountPath: "/etc/nginx/tls",
+										ReadOnly:  true,
+									},
+									{
+										Name:      "config",
+										MountPath: "/etc/nginx/conf.d",
+										ReadOnly:  true,
+									},
 								},
+								StartupProbe:   probe,
+								LivenessProbe:  probe,
+								ReadinessProbe: probe,
 							},
 						},
-						{
-							Name: "config",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "nginx-conf",
+						Volumes: []corev1.Volume{
+							{
+								Name: "tls",
+								VolumeSource: corev1.VolumeSource{
+									Secret: &corev1.SecretVolumeSource{
+										SecretName: "nginx-tls",
+									},
+								},
+							},
+							{
+								Name: "config",
+								VolumeSource: corev1.VolumeSource{
+									ConfigMap: &corev1.ConfigMapVolumeSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "nginx-conf",
+										},
 									},
 								},
 							},
 						},
 					},
-				},
+				}
+			}
+			pods := []*corev1.Pod{
+				makePod("nginx-http", http),
+				makePod("nginx-https", https),
+				makePod("nginx-tcp", tcp),
 			}
 
 			_, err := Td.Client.CoreV1().Secrets(ns).Create(context.TODO(), tls, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.Client.CoreV1().ConfigMaps(ns).Create(context.TODO(), conf, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.Client.CoreV1().Pods(ns).Create(context.TODO(), nginx, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			for _, pod := range pods {
+				_, err = Td.Client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, 1)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, len(pods))).To(Succeed())
 		})
 	},
 )
