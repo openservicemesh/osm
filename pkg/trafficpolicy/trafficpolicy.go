@@ -3,7 +3,7 @@ package trafficpolicy
 import (
 	"reflect"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -12,13 +12,14 @@ import (
 
 // WildCardRouteMatch represents a wildcard HTTP route match condition
 var WildCardRouteMatch HTTPRouteMatch = HTTPRouteMatch{
-	PathRegex: constants.RegexMatchAll,
-	Methods:   []string{constants.WildcardHTTPMethod},
+	Path:          constants.RegexMatchAll,
+	PathMatchType: PathMatchRegex,
+	Methods:       []string{constants.WildcardHTTPMethod},
 }
 
 // NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
 func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.WeightedCluster) *RouteWeightedClusters {
-	weightedClusterSet := set.NewSet()
+	weightedClusterSet := mapset.NewSet()
 	for _, wc := range weightedClusters {
 		weightedClusterSet.Add(wc)
 	}
@@ -70,7 +71,7 @@ func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServ
 	if !routeExists {
 		in.Rules = append(in.Rules, &Rule{
 			Route:                  route,
-			AllowedServiceAccounts: set.NewSet(allowedServiceAccount),
+			AllowedServiceAccounts: mapset.NewSet(allowedServiceAccount),
 		})
 	}
 }
@@ -79,7 +80,7 @@ func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServ
 //	already exists, an error will be returned. If a Route with the given HTTP route match does not exist,
 //	a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
 func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weightedClusters ...service.WeightedCluster) error {
-	wc := set.NewSet()
+	wc := mapset.NewSet()
 	for _, c := range weightedClusters {
 		wc.Add(c)
 	}

@@ -95,13 +95,13 @@ func DeleteWebhookConfiguration(client *kubernetes.Clientset, webhookConfigName 
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
-	_, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookConfigName, metav1.GetOptions{})
+	_, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookConfigName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting mutatingwebhookconfiguration %s", webhookConfigName)
 		return
 	}
 
-	if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhookConfigName, deleteOptions); err != nil {
+	if err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.Background(), webhookConfigName, deleteOptions); err != nil {
 		log.Error().Err(err).Msgf("Error deleting mutatingwebhookconfiguration %s", webhookConfigName)
 	} else {
 		log.Info().Msgf("Deleted mutatingwebhookconfiguration: %s", webhookConfigName)

@@ -14,8 +14,8 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"k8s.io/api/admission/v1beta1"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -35,15 +35,15 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		testWebhookServiceNamespace := "test-namespace"
 		testWebhookServiceName := "test-service-name"
 		testWebhookServicePath := "/path"
-		kubeClient := fake.NewSimpleClientset(&admissionv1beta1.MutatingWebhookConfiguration{
+		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: webhookName,
 			},
-			Webhooks: []admissionv1beta1.MutatingWebhook{
+			Webhooks: []admissionregv1.MutatingWebhook{
 				{
 					Name: MutatingWebhookName,
-					ClientConfig: admissionv1beta1.WebhookClientConfig{
-						Service: &admissionv1beta1.ServiceReference{
+					ClientConfig: admissionregv1.WebhookClientConfig{
+						Service: &admissionregv1.ServiceReference{
 							Namespace: testWebhookServiceNamespace,
 							Name:      testWebhookServiceName,
 							Path:      &testWebhookServicePath,
@@ -58,7 +58,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 		})
 
-		mwc := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+		mwc := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations()
 
 		It("checks if the hook exists", func() {
 			err := webhookExists(mwc, webhookName)
@@ -78,7 +78,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		})
 
 		It("ensures webhook is configured correctly", func() {
-			webhooks, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
+			webhooks, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(webhooks.Items)).To(Equal(1))
 
@@ -442,7 +442,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 var _ = Describe("Testing Injector Functions", func() {
 	admissionRequestBody := `{
   "kind": "AdmissionReview",
-  "apiVersion": "admission.k8s.io/v1beta1",
+  "apiVersion": "admission.k8s.io/v1",
   "request": {
     "uid": "11111111-2222-3333-4444-555555555555",
     "kind": {
@@ -535,8 +535,9 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		resp := w.Result()
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		expected := "{\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
+		expected := "{\"kind\":\"AdmissionReview\",\"apiVersion\":\"admission.k8s.io/v1\",\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		log.Debug().Msgf("Actual: %s", string(bodyBytes))
 		Expect(string(bodyBytes)).To(Equal(expected))
 	})
 
@@ -559,10 +560,10 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		Expect(requestForNamespace).To(Equal("default"))
 
-		expectedAdmissionResponse := v1beta1.AdmissionReview{
-			TypeMeta: metav1.TypeMeta{Kind: "", APIVersion: ""},
+		expectedAdmissionResponse := admissionv1.AdmissionReview{
+			TypeMeta: metav1.TypeMeta{Kind: "AdmissionReview", APIVersion: "admission.k8s.io/v1"},
 			Request:  nil,
-			Response: &v1beta1.AdmissionResponse{
+			Response: &admissionv1.AdmissionResponse{
 				UID:              "11111111-2222-3333-4444-555555555555",
 				Allowed:          true,
 				Result:           nil,
@@ -605,7 +606,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		// Action !!
 		actual := wh.mutate(nil, proxyUUID)
 
-		expected := v1beta1.AdmissionResponse{
+		expected := admissionv1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: "nil admission request",
 			},
@@ -614,14 +615,14 @@ var _ = Describe("Testing Injector Functions", func() {
 	})
 
 	It("patches admission response", func() {
-		admRes := v1beta1.AdmissionResponse{
+		admRes := admissionv1.AdmissionResponse{
 			Patch: []byte(""),
 		}
 		patchBytes := []byte("abc")
 		patchAdmissionResponse(&admRes, patchBytes)
 
-		expectedPatchType := v1beta1.PatchTypeJSONPatch
-		expected := v1beta1.AdmissionResponse{
+		expectedPatchType := admissionv1.PatchTypeJSONPatch
+		expected := admissionv1.AdmissionResponse{
 			Patch:     []byte("abc"),
 			PatchType: &expectedPatchType,
 		}
@@ -634,16 +635,21 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		actual := getPartialMutatingWebhookConfiguration(cert, webhookConfigName)
 
-		expected := admissionv1beta1.MutatingWebhookConfiguration{
+		expected := admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "-webhook-config-name-",
 			},
-			Webhooks: []admissionv1beta1.MutatingWebhook{
+			Webhooks: []admissionregv1.MutatingWebhook{
 				{
 					Name: MutatingWebhookName,
-					ClientConfig: admissionv1beta1.WebhookClientConfig{
+					ClientConfig: admissionregv1.WebhookClientConfig{
 						CABundle: cert.GetCertificateChain(),
 					},
+					SideEffects: func() *admissionregv1.SideEffectClass {
+						sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+						return &sideEffect
+					}(),
+					AdmissionReviewVersions: []string{"v1"},
 				},
 			},
 		}

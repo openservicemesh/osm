@@ -31,7 +31,6 @@ var _ = OSMDescribe("Test traffic split where root service is same as backend se
 	})
 
 func testRecursiveTrafficSplit(appProtocol string) {
-	defer GinkgoRecover()
 	const (
 		// to name the header we will use to identify the server that replies
 		HTTPHeaderName = "podname"
@@ -108,6 +107,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 
 		wg.Add(1)
 		go func() {
+			defer GinkgoRecover()
 			defer wg.Done()
 			Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet)).To(Succeed())
 		}()
@@ -134,6 +134,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 
 			wg.Add(1)
 			go func(app string) {
+				defer GinkgoRecover()
 				defer wg.Done()
 				Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet)).To(Succeed())
 			}(clientApp)

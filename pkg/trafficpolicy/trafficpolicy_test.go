@@ -3,7 +3,7 @@ package trafficpolicy
 import (
 	"testing"
 
-	set "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/service"
@@ -11,15 +11,17 @@ import (
 
 var (
 	testHTTPRouteMatch = HTTPRouteMatch{
-		PathRegex: "/hello",
-		Methods:   []string{"GET"},
-		Headers:   map[string]string{"hello": "world"},
+		Path:          "/hello",
+		PathMatchType: PathMatchRegex,
+		Methods:       []string{"GET"},
+		Headers:       map[string]string{"hello": "world"},
 	}
 
 	testHTTPRouteMatch2 = HTTPRouteMatch{
-		PathRegex: "/goodbye",
-		Methods:   []string{"GET"},
-		Headers:   map[string]string{"later": "alligator"},
+		Path:          "/goodbye",
+		PathMatchType: PathMatchRegex,
+		Methods:       []string{"GET"},
+		Headers:       map[string]string{"later": "alligator"},
 	}
 
 	testHostnames = []string{"testHostname1", "testHostname2", "testHostname3"}
@@ -47,12 +49,12 @@ var (
 
 	testRoute = RouteWeightedClusters{
 		HTTPRouteMatch:   testHTTPRouteMatch,
-		WeightedClusters: set.NewSet(testWeightedCluster),
+		WeightedClusters: mapset.NewSet(testWeightedCluster),
 	}
 
 	testRoute2 = RouteWeightedClusters{
 		HTTPRouteMatch:   testHTTPRouteMatch2,
-		WeightedClusters: set.NewSet(testWeightedCluster),
+		WeightedClusters: mapset.NewSet(testWeightedCluster),
 	}
 )
 
@@ -74,7 +76,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 		},
@@ -83,7 +85,7 @@ func TestAddRule(t *testing.T) {
 			existingRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			allowedServiceAccount: testServiceAccount2,
@@ -91,7 +93,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1, testServiceAccount2),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1, testServiceAccount2),
 				},
 			},
 		},
@@ -100,7 +102,7 @@ func TestAddRule(t *testing.T) {
 			existingRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			allowedServiceAccount: testServiceAccount1,
@@ -108,7 +110,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 		},
@@ -142,7 +144,7 @@ func TestAddRoute(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			expectedErr: false,
@@ -152,7 +154,7 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
@@ -160,11 +162,11 @@ func TestAddRoute(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
-					WeightedClusters: set.NewSet(testWeightedCluster2),
+					WeightedClusters: mapset.NewSet(testWeightedCluster2),
 				},
 			},
 			expectedErr: false,
@@ -174,7 +176,7 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
@@ -182,11 +184,11 @@ func TestAddRoute(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
-					WeightedClusters: set.NewSet(testWeightedCluster, testWeightedCluster2),
+					WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
 				},
 			},
 			expectedErr: false,
@@ -196,7 +198,7 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
@@ -204,7 +206,7 @@ func TestAddRoute(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			expectedErr: false,
@@ -214,7 +216,7 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
@@ -222,7 +224,7 @@ func TestAddRoute(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
-					WeightedClusters: set.NewSet(testWeightedCluster),
+					WeightedClusters: mapset.NewSet(testWeightedCluster),
 				},
 			},
 			expectedErr: true,
@@ -248,11 +250,11 @@ func TestMergeInboundPolicies(t *testing.T) {
 
 	testRule1 := Rule{
 		Route:                  testRoute,
-		AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+		AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 	}
 	testRule2 := Rule{
 		Route:                  testRoute2,
-		AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+		AllowedServiceAccounts: mapset.NewSet(testServiceAccount2),
 	}
 	testCases := []struct {
 		name            string
@@ -321,19 +323,20 @@ func TestMergeInboundPoliciesWithIngress(t *testing.T) {
 
 	testRule1 := Rule{
 		Route:                  testRoute,
-		AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+		AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 	}
 	testRule2 := Rule{
 		Route:                  testRoute2,
-		AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+		AllowedServiceAccounts: mapset.NewSet(testServiceAccount2),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
 			HTTPRouteMatch: HTTPRouteMatch{
-				PathRegex: "/hello",
-				Methods:   []string{"*"},
+				Path:          "/hello",
+				PathMatchType: PathMatchRegex,
+				Methods:       []string{"*"},
 			},
-			WeightedClusters: set.NewSet(testWeightedCluster),
+			WeightedClusters: mapset.NewSet(testWeightedCluster),
 		},
 	}
 	testCases := []struct {
@@ -454,19 +457,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount2),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1, testServiceAccount2),
+					AllowedServiceAccounts: mapset.NewSetWith(testServiceAccount1, testServiceAccount2),
 				},
 			},
 		},
@@ -475,19 +478,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSetWith(testServiceAccount1),
 				},
 			},
 		},
@@ -496,23 +499,23 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                  testRoute2,
-					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                  testRoute,
-					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSetWith(testServiceAccount1),
 				},
 				{
 					Route:                  testRoute2,
-					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+					AllowedServiceAccounts: mapset.NewSetWith(testServiceAccount1),
 				},
 			},
 		},
@@ -613,7 +616,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Hostnames: testHostnames,
 					Routes: []*RouteWeightedClusters{{
 						HTTPRouteMatch:   testHTTPRouteMatch,
-						WeightedClusters: set.NewSet(testWeightedCluster2),
+						WeightedClusters: mapset.NewSet(testWeightedCluster2),
 					}},
 				},
 			},
@@ -657,11 +660,11 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 			originalRoutes: []*RouteWeightedClusters{&testRoute},
 			latestRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
-				WeightedClusters: set.NewSet(testWeightedCluster2),
+				WeightedClusters: mapset.NewSet(testWeightedCluster2),
 			}},
 			expectedRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
-				WeightedClusters: set.NewSet(testWeightedCluster2),
+				WeightedClusters: mapset.NewSet(testWeightedCluster2),
 			}},
 		},
 	}
@@ -696,7 +699,7 @@ func TestNewRouteWeightedCluster(t *testing.T) {
 			name:             "single weighted cluster in set",
 			route:            testHTTPRouteMatch,
 			weightedClusters: []service.WeightedCluster{testWeightedCluster},
-			expected:         &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: set.NewSet(testWeightedCluster)},
+			expected:         &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: mapset.NewSet(testWeightedCluster)},
 		},
 	}
 
@@ -736,7 +739,7 @@ func TestTotalClustersWeight(t *testing.T) {
 			name: "route with multiple clusters",
 			route: RouteWeightedClusters{
 				HTTPRouteMatch:   testHTTPRouteMatch2,
-				WeightedClusters: set.NewSetFromSlice([]interface{}{testWeightedCluster, testWeightedCluster2}),
+				WeightedClusters: mapset.NewSetFromSlice([]interface{}{testWeightedCluster, testWeightedCluster2}),
 			},
 			expectedWeight: 200,
 		},

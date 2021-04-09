@@ -1,0 +1,118 @@
+# Custom Resource Definition (CRD) for OSM's configuration specification.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: meshconfigs.config.openservicemesh.io
+spec:
+  group: config.openservicemesh.io
+  scope: Cluster
+  names:
+    kind: MeshConfig
+    listKind: MeshConfigList
+    shortNames:
+      - meshconfig
+    singular: meshconfig
+    plural: meshconfigs
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                sidecar:
+                  description: Configuration for Envoy sidecar
+                  type: object
+                  properties:
+                    enable_privileged_init_container:
+                      description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
+                      type: boolean
+                      default: false
+                    log_level:
+                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      type: string
+                      default: "error"
+                      enum:
+                        - trace
+                        - debug
+                        - info
+                        - warning
+                        - warn
+                        - error
+                        - critical
+                        - off
+                traffic:
+                  description: Configuration for traffic management
+                  type: object
+                  properties:
+                    enable_egress:
+                      description: Enables egress in the mesh
+                      type: boolean
+                      default: false
+                    outbound_ip_range_exclusion_list:
+                      description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
+                      type: string
+                      pattern: ((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2})(,((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2}))*$
+                    use_https_ingress:
+                      description: Enable HTTPS ingress on the mesh
+                      type: boolean
+                      default: false
+                    enable_permissive_traffic_policy_mode:
+                      description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
+                      type: boolean
+                      default: false
+                observability:
+                  description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
+                  type: object
+                  properties:
+                    enable_debug_server:
+                      description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                      default: true
+                    tracing:
+                      description: Configuration for distributed tracing
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables Jaeger tracing for the mesh.
+                          type: boolean
+                          default: false
+                        port:
+                          description: Port on which tracing is enabled.
+                          type: integer
+                          default: 9411
+                        address:
+                          description: Address of Jaeger tracing deployment, if tracing is enabled.
+                          type: string
+                          default: "jaeger.osm-system.svc.cluster.local"
+                        endpoint:
+                          description: Endpoint for tracing data, if tracing is enabled.
+                          type: string
+                          default: "/api/v2/spans"
+                certificate:
+                  description: Configuration for traffic management
+                  type: object
+                  properties:
+                    service_cert_validity_duration:
+                      description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+                      type: string
+                      default: "24h"

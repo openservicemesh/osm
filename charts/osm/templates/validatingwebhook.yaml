@@ -1,7 +1,8 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
@@ -17,6 +18,11 @@ webhooks:
   namespaceSelector:
     matchLabels:
       name: {{ include "osm.namespace" . }}
+  objectSelector:
+    matchLabels:
+      app.kubernetes.io/name: openservicemesh.io
+      app.kubernetes.io/instance: {{ .Values.OpenServiceMesh.meshName }}
+      app.kubernetes.io/version: {{ .Chart.AppVersion }}
   rules:
     - apiGroups:
         - ""
@@ -26,3 +32,5 @@ webhooks:
         - UPDATE
       resources:
         - configmaps
+  sideEffects: None
+  admissionReviewVersions: ["v1"]

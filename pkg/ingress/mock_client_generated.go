@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	service "github.com/openservicemesh/osm/pkg/service"
+	v1 "k8s.io/api/networking/v1"
 	v1beta1 "k8s.io/api/networking/v1beta1"
 )
 
@@ -35,17 +36,32 @@ func (m *MockMonitor) EXPECT() *MockMonitorMockRecorder {
 	return m.recorder
 }
 
-// GetIngressResources mocks base method
-func (m *MockMonitor) GetIngressResources(arg0 service.MeshService) ([]*v1beta1.Ingress, error) {
+// GetIngressNetworkingV1 mocks base method
+func (m *MockMonitor) GetIngressNetworkingV1(arg0 service.MeshService) ([]*v1.Ingress, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressResources", arg0)
+	ret := m.ctrl.Call(m, "GetIngressNetworkingV1", arg0)
+	ret0, _ := ret[0].([]*v1.Ingress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIngressNetworkingV1 indicates an expected call of GetIngressNetworkingV1
+func (mr *MockMonitorMockRecorder) GetIngressNetworkingV1(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1", reflect.TypeOf((*MockMonitor)(nil).GetIngressNetworkingV1), arg0)
+}
+
+// GetIngressNetworkingV1beta1 mocks base method
+func (m *MockMonitor) GetIngressNetworkingV1beta1(arg0 service.MeshService) ([]*v1beta1.Ingress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressNetworkingV1beta1", arg0)
 	ret0, _ := ret[0].([]*v1beta1.Ingress)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetIngressResources indicates an expected call of GetIngressResources
-func (mr *MockMonitorMockRecorder) GetIngressResources(arg0 interface{}) *gomock.Call {
+// GetIngressNetworkingV1beta1 indicates an expected call of GetIngressNetworkingV1beta1
+func (mr *MockMonitorMockRecorder) GetIngressNetworkingV1beta1(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressResources", reflect.TypeOf((*MockMonitor)(nil).GetIngressResources), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1beta1", reflect.TypeOf((*MockMonitor)(nil).GetIngressNetworkingV1beta1), arg0)
 }

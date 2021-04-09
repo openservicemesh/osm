@@ -44,7 +44,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.30
-          args: --timeout 5m
+          args: --timeout 5m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
   tidy:
     name: Tidy
@@ -196,18 +196,18 @@ jobs:
         run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Tier 1\]\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
         continue-on-error: true
       - name: Upload PR test logs
-        if: ${{ steps.pr_test.conclusion != 'skipped' }} 
+        if: ${{ steps.pr_test.conclusion != 'skipped' }}
         uses: actions/upload-artifact@v2
         with:
           name: pr_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
       - name: Check continue PR tests
-        if: ${{ steps.pr_test.conclusion != 'skipped' && steps.pr_test.outcome == 'failure'}}  
+        if: ${{ steps.pr_test.conclusion != 'skipped' && steps.pr_test.outcome == 'failure'}}
         run: exit 1
       - name: Clean PR tests
         if: ${{ steps.pr_test.conclusion != 'skipped' }}
         run: rm -rf /tmp/test*
-      
+
       # Push Tests
       - name: Run Push tests
         id: push_test
@@ -223,12 +223,12 @@ jobs:
           name: push_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
       - name: Check continue Push tests
-        if: ${{ steps.push_test.conclusion != 'skipped' && steps.push_test.outcome == 'failure'}}  
+        if: ${{ steps.push_test.conclusion != 'skipped' && steps.push_test.outcome == 'failure'}}
         run: exit 1
       - name: Clean Push tests logs
         if: ${{ steps.push_test.conclusion != 'skipped' }}
         run: rm -rf /tmp/test*
-     
+
       # Upgrade tests
       - name: Run Upgrade tests
         id: upgrade_tests

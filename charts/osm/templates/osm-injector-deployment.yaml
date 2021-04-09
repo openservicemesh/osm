@@ -4,6 +4,7 @@ metadata:
   name: osm-injector
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-injector
     meshName: {{ .Values.OpenServiceMesh.meshName }}
 spec:
@@ -14,12 +15,19 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "osm.labels" . | nindent 8 }}
         app: osm-injector
+  {{- if .Values.OpenServiceMesh.injector.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.injector.podLabels | nindent 8 }}
+  {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: osm-injector
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-injector:{{ .Values.OpenServiceMesh.image.tag }}"

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -17,16 +18,22 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
 	"github.com/openservicemesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
-// ServerType is the type identifier for the ADS server
-const ServerType = "ADS"
+const (
+	// ServerType is the type identifier for the ADS server
+	ServerType = "ADS"
+
+	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
+	workerPoolSize = 0
+)
 
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
 	server := Server{
 		catalog: meshCatalog,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) ([]types.Resource, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,
 			envoy.TypeRDS: rds.NewResponse,
@@ -38,6 +45,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 		certManager:    certManager,
 		xdsMapLogMutex: sync.Mutex{},
 		xdsLog:         make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time),
+		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
 	}
 
 	return &server

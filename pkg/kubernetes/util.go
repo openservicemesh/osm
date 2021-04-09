@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	goversion "github.com/hashicorp/go-version"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -76,4 +79,23 @@ func GetAppProtocolFromPortName(portName string) string {
 	default:
 		return defaultAppProtocol
 	}
+}
+
+// GetKubernetesServerVersionNumber returns the Kubernetes server version number in chunks, ex. v1.19.3 => [1, 19, 3]
+func GetKubernetesServerVersionNumber(kubeClient kubernetes.Interface) ([]int, error) {
+	if kubeClient == nil {
+		return nil, errors.Errorf("Kubernetes client is not initialized")
+	}
+
+	version, err := kubeClient.Discovery().ServerVersion()
+	if err != nil {
+		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+	}
+
+	ver, err := goversion.NewVersion(version.String())
+	if err != nil {
+		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version.String(), err)
+	}
+
+	return ver.Segments(), nil
 }

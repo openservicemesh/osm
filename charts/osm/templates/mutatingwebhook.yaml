@@ -1,7 +1,8 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-injector
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
@@ -39,3 +40,10 @@ webhooks:
         - CREATE
       resources:
         - pods
+  # Injector's mutating webhook has a side effect of creating k8s secret for the Envoy bootstrap config.
+  # For dry-run requests, this side effect is skipped.
+  # Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
+  sideEffects: NoneOnDryRun
+  # Default timeout is 10s. Set this to 20s to account for slowness in scale environments
+  timeoutSeconds: 20
+  admissionReviewVersions: ["v1"]

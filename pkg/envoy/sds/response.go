@@ -5,7 +5,7 @@ import (
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -16,7 +16,7 @@ import (
 )
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) ([]types.Resource, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
@@ -33,9 +33,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 		svcAccount:  svcAccount,
 	}
 
-	discoveryResponse := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeSDS),
-	}
+	sdsResources := []types.Resource{}
 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
@@ -54,15 +52,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	// 2. Create SDS secret resources based on the requested certs in the DiscoveryRequest
 	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
 	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, proxy) {
-		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on Pod with UID=%s", envoyProto.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		}
-
-		discoveryResponse.Resources = append(discoveryResponse.Resources, marshalledSecret)
+		sdsResources = append(sdsResources, envoyProto)
 	}
 
-	return discoveryResponse, nil
+	return sdsResources, nil
 }
 
 func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []string, proxy *envoy.Proxy) (certs []*xds_auth.Secret) {

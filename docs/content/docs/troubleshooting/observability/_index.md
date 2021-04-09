@@ -7,3 +7,4 @@ type: docs
 ## Table of Contents
 - [Prometheus](./prometheus)
 - [Grafana](./grafana)
+- [Tracing/Jaeger](./tracing)

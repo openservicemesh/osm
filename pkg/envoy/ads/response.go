@@ -6,6 +6,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -107,14 +108,26 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	}
 
 	log.Trace().Msgf("Invoking handler for type %s; request from Envoy with Node ID %s", typeURL, nodeID)
-	response, err := handler(s.catalog, proxy, request, cfg, s.certManager)
+	resources, err := handler(s.catalog, proxy, request, cfg, s.certManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Handler errored TypeURL: %s, proxy: %s", request.TypeUrl, proxy.GetCertificateSerialNumber())
 		return nil, errCreatingResponse
 	}
 
-	response.Nonce = proxy.SetNewNonce(typeURL)
-	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
+	response := &xds_discovery.DiscoveryResponse{
+		TypeUrl:     request.TypeUrl, // Request TypeURL
+		VersionInfo: strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10),
+		Nonce:       proxy.SetNewNonce(typeURL),
+	}
+
+	for _, res := range resources {
+		proto, err := ptypes.MarshalAny(res)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURL.String(), proxy.GetCertificateSerialNumber())
+			continue
+		}
+		response.Resources = append(response.Resources, proto)
+	}
 
 	// NOTE: Never log entire 'response' - will contain secrets!
 	log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)

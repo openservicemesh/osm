@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
 var _ = Describe("Test functions creating Envoy bootstrap configuration", func() {
@@ -117,9 +118,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	}
 
 	probes := healthProbes{
-		liveness:  &healthProbe{path: "/liveness", port: 81},
-		readiness: &healthProbe{path: "/readiness", port: 82},
-		startup:   &healthProbe{path: "/startup", port: 83},
+		liveness:  &healthProbe{path: "/liveness", port: 81, isHTTP: true},
+		readiness: &healthProbe{path: "/readiness", port: 82, isHTTP: true},
+		startup:   &healthProbe{path: "/startup", port: 83, isHTTP: true},
 	}
 
 	config := envoyBootstrapConfigMeta{
@@ -155,6 +156,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				kubeClient:          fake.NewSimpleClientset(),
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
+				meshName:            "some-mesh",
 			}
 			name := uuid.New().String()
 			namespace := "a"
@@ -167,6 +169,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
+					Labels: map[string]string{
+						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.OSMAppInstanceLabelKey: "some-mesh",
+						constants.OSMAppVersionLabelKey:  version.Version,
+					},
 				},
 				Data: map[string][]byte{
 					envoyBootstrapConfigFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),

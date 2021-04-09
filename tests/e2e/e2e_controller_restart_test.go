@@ -113,13 +113,13 @@ func testHTTPTrafficWithControllerRestart() {
 			result := Td.HTTPRequest(clientToServer)
 
 			if result.Err != nil || result.StatusCode != 200 {
-				Td.T.Logf("> (%s) HTTP Req failed %d %v",
-					srcToDestStr, result.StatusCode, result.Err)
+				Td.T.Logf("%s > (%s) HTTP Req failed %d %v",
+					time.Now(), srcToDestStr, result.StatusCode, result.Err)
 				return false
 			}
-			Td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
+			Td.T.Logf("%s > (%s) HTTP Req succeeded: %d", time.Now(), srcToDestStr, result.StatusCode)
 			return true
-		}, 20, 40*time.Second)
+		}, 20, 80*time.Second)
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s to destination service %s after osm-controller restart", srcPod.Name, dstSvc.Name)
 	})
 }

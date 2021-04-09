@@ -15,6 +15,7 @@ import (
 	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -128,18 +129,17 @@ var _ = OSMDescribe("HTTP ingress",
 			ing := &v1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: svcDef.Name,
-					Annotations: map[string]string{
-						"kubernetes.io/ingress.class": "nginx",
-					},
 				},
 				Spec: v1beta1.IngressSpec{
+					IngressClassName: pointer.StringPtr("nginx"),
 					Rules: []v1beta1.IngressRule{
 						{
 							IngressRuleValue: v1beta1.IngressRuleValue{
 								HTTP: &v1beta1.HTTPIngressRuleValue{
 									Paths: []v1beta1.HTTPIngressPath{
 										{
-											Path: "/status/200",
+											Path:     "/status/200",
+											PathType: (*v1beta1.PathType)(pointer.StringPtr(string(v1beta1.PathTypeImplementationSpecific))),
 											Backend: v1beta1.IngressBackend{
 												ServiceName: svcDef.Name,
 												ServicePort: intstr.FromInt(80),

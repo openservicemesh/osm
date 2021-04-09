@@ -5,6 +5,7 @@ metadata:
   name: osm-prometheus-server-conf
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     name: osm-prometheus-server-conf
 data:
   prometheus.yml: |

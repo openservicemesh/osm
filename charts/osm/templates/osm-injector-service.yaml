@@ -4,6 +4,7 @@ metadata:
   name: osm-injector
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-injector
 spec:
   ports:
