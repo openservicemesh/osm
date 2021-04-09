@@ -6,7 +6,7 @@ import (
 )
 
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service
-func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
 		ep := provider.ListEndpointsForService(svc)
@@ -40,7 +40,7 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 // ListAllowedEndpointsForService returns only those endpoints for a service that belong to the allowed outbound service accounts
 // for the given downstream identity
 func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
-	outboundEndpoints, err := mc.ListEndpointsForService(upstreamSvc)
+	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for upstream service %s", upstreamSvc)
 		return nil, err
