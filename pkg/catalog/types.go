@@ -78,9 +78,6 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
 	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 
-	// ListServiceAccountsForService lists the service accounts associated with the given service
-	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
-
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
 
@@ -129,6 +126,9 @@ type MeshCataloger interface {
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
 	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+
+	// GetServiceAccountsForCert gets service accounts for cert
+	GetServiceAccountsForCert(envoy.SDSCertType, string, service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 }
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on

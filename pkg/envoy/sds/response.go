@@ -146,52 +146,9 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		return secret, nil
 	}
 
-	// Program SAN matching based on SMI TrafficTarget policies
-	switch sdscert.CertType {
-	case envoy.RootCertTypeForMTLSOutbound:
-		// For the outbound certificate validation context, the SANs needs to match the list of service identities
-		// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
-		// the SANs for this certificate should correspond to the service identities of 'X'.
-		meshSvc, err := service.UnmarshalMeshService(sdscert.Name)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
-			return nil, err
-		}
-		svcAccounts, err := s.meshCatalog.ListServiceAccountsForService(*meshSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
-			return nil, err
-		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
-
-	case envoy.RootCertTypeForMTLSInbound:
-		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
-		// of this proxy. If it doesn't, then something is wrong in the system.
-		svcAccountInRequest, err := service.UnmarshalK8sServiceAccount(sdscert.Name)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
-			return nil, err
-		}
-
-		if *svcAccountInRequest != s.svcAccount {
-			log.Error().Err(errGotUnexpectedCertRequest).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert, s.svcAccount)
-			return nil, errGotUnexpectedCertRequest
-		}
-
-		// For the inbound certificate validation context, the SAN needs to match the list of all downstream
-		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
-		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
-		// allowed to access 'X'.
-		svcAccounts, err := s.meshCatalog.ListAllowedInboundServiceAccounts(s.svcAccount)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", s.svcAccount)
-			return nil, err
-		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
-
-	default:
-		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
-	}
+	// something happens here to the secret
+	svcAccounts, _ := s.meshCatalog.GetServiceAccountsForCert(sdscert.CertType, sdscert.Name, s.svcAccount)
+	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
 
 	return secret, nil
 }
