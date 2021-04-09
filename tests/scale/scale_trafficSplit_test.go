@@ -122,6 +122,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 				}
 				wg.Add(1)
 				go func() {
+					defer GinkgoRecover()
 					defer wg.Done()
 					Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet)).To(Succeed())
 				}()
@@ -148,6 +149,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 
 					wg.Add(1)
 					go func(app string) {
+						defer GinkgoRecover()
 						defer wg.Done()
 						Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet)).To(Succeed())
 					}(clientApp)
