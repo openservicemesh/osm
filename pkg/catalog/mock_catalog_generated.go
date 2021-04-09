@@ -97,21 +97,6 @@ func (mr *MockMeshCatalogerMockRecorder) GetSMISpec() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSMISpec", reflect.TypeOf((*MockMeshCataloger)(nil).GetSMISpec))
 }
 
-// GetServicesForServiceAccount mocks base method
-func (m *MockMeshCataloger) GetServicesForServiceAccount(arg0 service.K8sServiceAccount) ([]service.MeshService, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesForServiceAccount", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesForServiceAccount indicates an expected call of GetServicesForServiceAccount
-func (mr *MockMeshCatalogerMockRecorder) GetServicesForServiceAccount(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).GetServicesForServiceAccount), arg0)
-}
-
 // GetServicesFromEnvoyCertificate mocks base method
 func (m *MockMeshCataloger) GetServicesFromEnvoyCertificate(arg0 certificate.CommonName) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()

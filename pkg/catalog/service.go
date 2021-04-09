@@ -54,8 +54,8 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 	return apexList
 }
 
-// GetServicesForServiceAccount returns a list of services corresponding to a service account
-func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
+// getServicesForServiceAccount returns a list of services corresponding to a service account
+func (mc *MeshCatalog) getServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
 		providerServices, err := provider.GetServicesForServiceAccount(sa)

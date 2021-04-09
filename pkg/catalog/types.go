@@ -79,9 +79,6 @@ type MeshCataloger interface {
 	// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 	GetServicesFromEnvoyCertificate(certificate.CommonName) ([]service.MeshService, error)
 
-	// GetServicesForServiceAccount returns a list of services corresponding to a service account
-	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
-
 	// GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
 	GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
 
