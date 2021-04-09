@@ -28,7 +28,13 @@ Ingress allows you to easily establish rules for traffic routing without creatin
 
 ## What types of ingress are supported by OSM v0.8.0?
 
-Currently, OSM v0.8.0 supports HTTP ingress. HTTPS ingress support is experimental, with support for one-way TLS authentication to backend services.
+Currently, OSM supports HTTP ingress. HTTPS ingress support is experimental, with support for one-way TLS authentication to backend services.
+
+## Supported Kubernetes Ingress API versions
+
+Since OSM only supports Kubernetes cluster versions >= v1.18.0, the API version for the Kubernetes Ingress resource must be precisely one of `networking.k8s.io/v1` or `networking.k8s.io/v1beta1`. OSM controller dynamically negotiates the Ingress API versions served by the Kubernetes API server and enables the same versions to be served in OSM.
+
+> Note: If either of these versions are not served by the Kubernetes API server for some reason, OSM controller will exit on failing to initialize its ingress client. This likely indicates an unsupported Kubernetes version on the cluster.
 
 ## Ingress controller compatibility
 
@@ -86,7 +92,6 @@ A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes I
 
 Note:
 1. This behavior opens up HTTP-based access to any client that is not a part of the service mesh, not just ingress.
-
 1. The ingress resource that allows external HTTP access to a particular service must be in the same namespace as that service.
 
 ## Sample demo
