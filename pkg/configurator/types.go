@@ -22,6 +22,15 @@ type Client struct {
 	cacheSynced      chan interface{}
 }
 
+// CRDClient is the k8s client struct for the MeshConfig CRD. The feature is in experimental stage.
+type CRDClient struct {
+	// TODO: rename it to `client`
+	osmNamespace string
+	informer     cache.SharedIndexInformer
+	cache        cache.Store
+	cacheSynced  chan interface{}
+}
+
 // Configurator is the controller interface for K8s namespaces
 type Configurator interface {
 	// GetOSMNamespace returns the namespace in which OSM controller pod resides

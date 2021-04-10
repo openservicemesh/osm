@@ -143,6 +143,17 @@ const (
 
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
 	CertificateRotated AnnouncementType = "certificate-rotated"
+
+	// ---
+
+	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig
+	MeshConfigAdded AnnouncementType = "meshconfig-added"
+
+	// MeshConfigDeleted the type of announcement emitted when we observe the deletion of a Kubernetes MeshConfig
+	MeshConfigDeleted AnnouncementType = "meshconfig-deleted"
+
+	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
+	MeshConfigUpdated AnnouncementType = "meshconfig-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration

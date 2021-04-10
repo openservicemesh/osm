@@ -25,6 +25,7 @@ type MeshConfigSpec struct {
 type SidecarSpec struct {
 	EnablePrivilegedInitContainer bool   `json:"enable_privileged_init_container,omitempty"`
 	LogLevel                      string `json:"log_level,omitempty" default:"error"`
+	MaxDataPlaneConnections       int    `json:"max_data_plane_connections"`
 }
 
 // TrafficSpec is the spec for OSM's traffic management configuration
@@ -37,8 +38,9 @@ type TrafficSpec struct {
 
 // ObservabilitySpec is the spec for OSM's observability related configuration
 type ObservabilitySpec struct {
-	EnableDebugServer bool        `json:"enable_debug_server,omitempty" default:"true"`
-	Tracing           TracingSpec `json:"tracing,omitempty"`
+	EnableDebugServer  bool        `json:"enable_debug_server,omitempty" default:"true"`
+	PrometheusScraping bool        `json:"prometheus_scraping,omitempty" default:"true"`
+	Tracing            TracingSpec `json:"tracing,omitempty"`
 }
 
 // TracingSpec is the spec for OSM's tracing configuration
