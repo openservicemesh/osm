@@ -60,6 +60,10 @@ spec:
                         - error
                         - critical
                         - off
+                    max_data_plane_connections:
+                      description: Max allowed data plane sidecar connections
+                      type: integer
+                      default: 0
                 traffic:
                   description: Configuration for traffic management
                   type: object
@@ -86,6 +90,10 @@ spec:
                   properties:
                     enable_debug_server:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                      default: true
+                    prometheus_scraping:
+                      description: Enables Prometheus metrics scraping on sidecar proxies.
                       type: boolean
                       default: true
                     tracing:
