@@ -42,7 +42,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
-	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.catalog.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
+	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		return errTooManyConnections
 	}
 
@@ -54,9 +54,9 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
 	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
-	s.catalog.RegisterProxy(proxy) // First of Two invocations.  Second one will be during xDS hand-shake!
+	s.proxyRegistry.RegisterProxy(proxy) // First of Two invocations.  Second one will be during xDS hand-shake!
 
-	defer s.catalog.UnregisterProxy(proxy)
+	defer s.proxyRegistry.UnregisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(server.Context())
 	defer cancel()
@@ -66,7 +66,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
-	go receive(requests, &server, proxy, quit, s.catalog)
+	go receive(requests, &server, proxy, quit, s.proxyRegistry)
 
 	// Register to Envoy global broadcast updates
 	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)

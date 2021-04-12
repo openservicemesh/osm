@@ -24,6 +24,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -50,6 +51,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
+	proxyRegistry := registry.NewProxyRegistry()
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -122,7 +124,7 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 
@@ -208,7 +210,7 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 

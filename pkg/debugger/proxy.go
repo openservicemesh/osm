@@ -20,7 +20,7 @@ func (ds DebugConfig) getProxies() http.Handler {
 	// the type (map) required by the printProxies function.
 	listConnected := func() map[certificate.CommonName]time.Time {
 		proxies := make(map[certificate.CommonName]time.Time)
-		for cn, proxy := range ds.meshCatalogDebugger.ListConnectedProxies() {
+		for cn, proxy := range ds.proxyRegistry.ListConnectedProxies() {
 			proxies[cn] = (*proxy).GetConnectedAt()
 		}
 		return proxies
@@ -35,8 +35,7 @@ func (ds DebugConfig) getProxies() http.Handler {
 		} else {
 			printProxies(w, listConnected(), "Connected")
 			// TODO(#2481): Print expected proxies once #2481 is addressed
-			//printProxies(w, ds.meshCatalogDebugger.ListExpectedProxies(), "Expected")
-			printProxies(w, ds.meshCatalogDebugger.ListDisconnectedProxies(), "Disconnected")
+			printProxies(w, ds.proxyRegistry.ListDisconnectedProxies(), "Disconnected")
 		}
 	})
 }
