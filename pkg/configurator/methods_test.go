@@ -269,13 +269,18 @@ func TestCreateUpdateConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+			// Prepare the pubsub channel
 			confChannel := events.GetPubSubInstance().Subscribe(announcements.ConfigMapAdded, announcements.ConfigMapUpdated)
 			defer events.GetPubSubInstance().Unsub(confChannel)
 
+			// Create configurator
+			stop := make(chan struct{})
+			defer close(stop)
+			cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+			// Issue config map create
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
