@@ -29,17 +29,23 @@ const (
 )
 
 const (
-	//InboundRouteConfigName is the name of the route config that the envoy will identify
+	//InboundRouteConfigName is the name of the inbound mesh RDS route configuration
 	InboundRouteConfigName = "rds-inbound"
 
-	//OutboundRouteConfigName is the name of the route config that the envoy will identify
+	//OutboundRouteConfigName is the name of the outbound mesh RDS route configuration
 	OutboundRouteConfigName = "rds-outbound"
 
-	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
+	//IngressRouteConfigName is the name of the ingress RDS route configuration
+	IngressRouteConfigName = "rds-ingress"
+
+	// inboundVirtualHost is prefix for the virtual host's name in the inbound route configuration
 	inboundVirtualHost = "inbound_virtual-host"
 
-	// outboundVirtualHost is the name of the virtual host on the outbound route configuration
+	// outboundVirtualHost is the prefix for the virtual host's name in the outbound route configuration
 	outboundVirtualHost = "outbound_virtual-host"
+
+	// ingressVirtualHost is the prefix for the virtual host's name in the ingress route configuration
+	ingressVirtualHost = "ingress_virtual-host"
 
 	// MethodHeaderKey is the key of the header for HTTP methods
 	MethodHeaderKey = ":method"
@@ -85,6 +91,33 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 	}
 
 	return routeConfiguration
+}
+
+// BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
+func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy) *xds_route.RouteConfiguration {
+	if len(ingress) == 0 {
+		return nil
+	}
+
+	ingressRouteConfig := NewRouteConfigurationStub(IngressRouteConfigName)
+	for _, in := range ingress {
+		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
+		virtualHost.Routes = buildInboundRoutes(in.Rules)
+		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
+	}
+
+	if featureflags.IsWASMStatsEnabled() {
+		for k, v := range proxy.StatsHeaders() {
+			ingressRouteConfig.ResponseHeadersToAdd = append(ingressRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+				Header: &core.HeaderValue{
+					Key:   k,
+					Value: v,
+				},
+			})
+		}
+	}
+
+	return ingressRouteConfig
 }
 
 //NewRouteConfigurationStub creates the route configuration placeholder

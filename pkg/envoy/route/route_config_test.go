@@ -124,6 +124,104 @@ func TestBuildRouteConfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildIngressRouteConfiguration(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                      string
+		ingressPolicies           []*trafficpolicy.InboundTrafficPolicy
+		expectedRouteConfigFields *xds_route.RouteConfiguration
+	}{
+		{
+			name:                      "no ingress policies",
+			ingressPolicies:           nil,
+			expectedRouteConfigFields: nil,
+		},
+		{
+			name: "multiple ingress policies",
+			ingressPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name:      "bookstore-v1-default",
+					Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+						},
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+						},
+					},
+				},
+				{
+					Name:      "foo.com",
+					Hostnames: []string{"foo.com"},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+						},
+					},
+				},
+			},
+			expectedRouteConfigFields: &xds_route.RouteConfiguration{
+				Name: "rds-ingress",
+				VirtualHosts: []*xds_route.VirtualHost{
+					{
+						Name: "ingress_virtual-host|bookstore-v1.default.svc.cluster.local",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to ingressPolicies[0].Rules[0]
+							},
+							{
+								// corresponds to ingressPolicies[0].Rules[1]
+							},
+						},
+					},
+					{
+						Name: "ingress_virtual-host|foo.com",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to ingressPolicies[1].Rules[0]
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := BuildIngressConfiguration(tc.ingressPolicies, nil)
+
+			if tc.expectedRouteConfigFields == nil {
+				assert.Nil(actual)
+				return
+			}
+
+			assert.NotNil(actual)
+			assert.Equal(tc.expectedRouteConfigFields.Name, actual.Name)
+			assert.Len(actual.VirtualHosts, len(tc.expectedRouteConfigFields.VirtualHosts))
+
+			for i, vh := range actual.VirtualHosts {
+				assert.Len(vh.Routes, len(tc.expectedRouteConfigFields.VirtualHosts[i].Routes))
+			}
+		})
+	}
+}
+
 func TestBuildVirtualHostStub(t *testing.T) {
 	assert := tassert.New(t)
 
