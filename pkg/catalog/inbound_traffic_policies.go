@@ -10,6 +10,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+const (
+	// AllowPartialHostnamesMatch is used to allow a partial/subset match on hostnames in traffic policies
+	AllowPartialHostnamesMatch bool = true
+	// DisallowPartialHostnamesMatch is used to disallow a partial/subset match on hostnames in traffic policies
+	DisallowPartialHostnamesMatch bool = false
+)
+
 // ListInboundTrafficPolicies returns all inbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
@@ -17,14 +24,14 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sSe
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 		for _, svc := range upstreamServices {
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
 		}
 		return inboundPolicies
 	}
 
 	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
 	inboundPoliciesFRomSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
-	inbound = trafficpolicy.MergeInboundPolicies(false, inbound, inboundPoliciesFRomSplits...)
+	inbound = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inbound, inboundPoliciesFRomSplits...)
 	return inbound
 }
 
@@ -43,7 +50,7 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity se
 		}
 
 		for _, svc := range upstreamServices {
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPolicies(t, svc)...)
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPolicies(t, svc)...)
 		}
 	}
 
@@ -94,7 +101,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
 					}
 				}
-				inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, servicePolicy)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, servicePolicy)
 			}
 		}
 	}
