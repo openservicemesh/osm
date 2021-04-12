@@ -16,6 +16,7 @@ import (
 func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
 	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
+	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
@@ -34,21 +35,25 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity, services)
 	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity)
 
-	// Get Ingress inbound policies for the proxy
+	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
+	rdsResources := []types.Resource{}
+
+	for _, config := range routeConfiguration {
+		rdsResources = append(rdsResources, config)
+	}
+
+	// Build Ingress inbound policies for the services associated with this proxy
 	for _, svc := range services {
 		ingressInboundPolicies, err := cataloger.GetIngressPoliciesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc.String())
 			return nil, err
 		}
-		inboundTrafficPolicies = trafficpolicy.MergeInboundPolicies(true, inboundTrafficPolicies, ingressInboundPolicies...)
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(true, ingressTrafficPolicies, ingressInboundPolicies...)
 	}
-
-	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
-	rdsResources := []types.Resource{}
-
-	for _, config := range routeConfiguration {
-		rdsResources = append(rdsResources, config)
+	if len(ingressTrafficPolicies) > 0 {
+		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, proxy)
+		rdsResources = append(rdsResources, ingressRouteConfig)
 	}
 
 	return rdsResources, nil

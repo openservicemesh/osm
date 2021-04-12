@@ -38,10 +38,10 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 		return nil
 	}
 
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg, nil)
-	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
+	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil)
+	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager object for proxy %s", svc)
+		log.Error().Err(err).Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)
 		return nil
 	}
 
@@ -58,7 +58,7 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 			{
 				Name: wellknown.HTTPConnectionManager,
 				ConfigType: &xds_listener.Filter_TypedConfig{
-					TypedConfig: marshalledInboundConnManager,
+					TypedConfig: marshalledIngressConnManager,
 				},
 			},
 		},
@@ -74,7 +74,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 		return ingressFilterChains
 	}
 
-	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
+	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
 	for port, appProtocol := range protocolToPortMap {
 		switch appProtocol {
 		case httpAppProtocol:
@@ -93,7 +93,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 
 		default:
-			log.Error().Msgf("Cannot build inbound filter chain. Protocol %s is not supported for service %s on port %d",
+			log.Error().Msgf("Cannot build ingress filter chain. Protocol %s is not supported for service %s on port %d",
 				appProtocol, svc, port)
 		}
 	}
