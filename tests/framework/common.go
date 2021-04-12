@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -164,12 +165,14 @@ const (
 	CollectLogsIfErrorOnly CollectLogsType = "ifError"
 	// NoCollectLogs will not collect logs
 	NoCollectLogs CollectLogsType = "no"
+	// ControlPlaneOnly will collect logs only for control plane processes
+	ControlPlaneOnly CollectLogsType = "controlPlaneOnly"
 )
 
 // Verifies the instType string flag option is a valid enum type
 func verifyValidCollectLogs(t CollectLogsType) error {
 	switch t {
-	case CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs:
+	case CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs, ControlPlaneOnly:
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid CollectLogsType (%s, %s, %s)",
@@ -1237,7 +1240,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 
 	// If collect logs or
 	// (test failed, by either restarts were seen or because spec failed) and (collect logs on error)
-	if td.CollectLogs == CollectLogs ||
+	if td.CollectLogs == CollectLogs || td.CollectLogs == ControlPlaneOnly ||
 		((restartSeen && !td.IgnoreRestarts) || CurrentGinkgoTestDescription().Failed) && td.CollectLogs == CollectLogsIfErrorOnly {
 		// Grab logs. We will move this to use CLI when able.
 		if err := td.GrabLogs(); err != nil {
@@ -1456,6 +1459,21 @@ func (td *OsmTestData) GrabLogs() error {
 		td.T.Logf("error running get-osm-namespace-logs script")
 		td.T.Logf("stdout:\n%s", stdout)
 		td.T.Logf("stderr:\n%s", stderr)
+	}
+
+	stdout, stderr, err = td.RunLocal("kubectl", []string{"get", "events", "-A"})
+	if err != nil {
+		td.T.Logf("error running kubectl get events")
+		td.T.Logf("stdout:\n%s", stdout)
+		td.T.Logf("stderr:\n%s", stderr)
+	} else {
+		if err := ioutil.WriteFile(fmt.Sprintf("%s/%s", absTestDirPath, "events"), stdout.Bytes(), 0600); err != nil {
+			td.T.Logf("Failed to write file for events: %s", err)
+		}
+	}
+
+	if td.CollectLogs == ControlPlaneOnly {
+		return nil
 	}
 
 	if td.InstType == KindCluster {
