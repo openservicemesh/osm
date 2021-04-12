@@ -1,5 +1,5 @@
 ---
-title: "Application Health Probes"
+title: "Health Probes: Applications"
 description: "How OSM handles application health probes work and what to do if they fail"
 type: "docs"
 ---
