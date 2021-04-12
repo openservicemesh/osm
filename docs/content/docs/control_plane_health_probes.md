@@ -1,5 +1,5 @@
 ---
-title: "OSM Control Plane Health Probes"
+title: "Health Probes: OSM Control Plane"
 description: "How OSM's health probes work and what to do if they fail"
 type: "docs"
 ---
