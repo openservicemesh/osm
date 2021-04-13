@@ -62,6 +62,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"TracingPort":                   tracingPortKey,
 				"TracingEndpoint":               tracingEndpointKey,
 				"UseHTTPSIngress":               useHTTPSIngressKey,
+				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
 				"EnvoyLogLevel":                 envoyLogLevel,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,

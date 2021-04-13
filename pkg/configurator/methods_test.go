@@ -54,6 +54,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				envoyLogLevel:                  "error",
 				serviceCertValidityDurationKey: "24h",
 				configResyncInterval:           "2m",
+				maxDataPlaneConnectionsKey:     "0",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				expectedConfig := &osmConfig{
@@ -67,6 +68,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					EnvoyLogLevel:                 "error",
 					ServiceCertValidityDuration:   "24h",
 					ConfigResyncInterval:          "2m",
+					MaxDataPlaneConnections:       0,
 				}
 				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
@@ -262,6 +264,19 @@ func TestCreateUpdateConfig(t *testing.T) {
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				interval := cfg.GetConfigResyncInterval()
 				assert.Equal(interval, time.Duration(0))
+			},
+		},
+		{
+			name:                 "GetMaxDataplaneConnections",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(0, cfg.GetMaxDataPlaneConnections())
+			},
+			updatedConfigMapData: map[string]string{
+				maxDataPlaneConnectionsKey: "1000",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(1000, cfg.GetMaxDataPlaneConnections())
 			},
 		},
 	}

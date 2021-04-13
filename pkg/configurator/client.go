@@ -32,6 +32,9 @@ const (
 	// useHTTPSIngressKey is the key name used for HTTPS ingress in the ConfigMap
 	useHTTPSIngressKey = "use_https_ingress"
 
+	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the ConfigMap
+	maxDataPlaneConnectionsKey = "max_data_plane_connections"
+
 	// tracingEnableKey is the key name used for tracing in the ConfigMap
 	tracingEnableKey = "tracing_enable"
 
@@ -211,6 +214,9 @@ type osmConfig struct {
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
 
+	// MaxDataPlaneConnections indicates max allowed data plane connections
+	MaxDataPlaneConnections int `yaml:"max_data_plane_connections"`
+
 	// TracingEnabled is a bool toggle used to enable or disable tracing
 	TracingEnable bool `yaml:"tracing_enable"`
 
@@ -286,6 +292,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.EnableDebugServer, _ = GetBoolValueForKey(configMap, enableDebugServer)
 	osmConfigMap.PrometheusScraping, _ = GetBoolValueForKey(configMap, prometheusScrapingKey)
 	osmConfigMap.UseHTTPSIngress, _ = GetBoolValueForKey(configMap, useHTTPSIngressKey)
+	osmConfigMap.MaxDataPlaneConnections, _ = GetIntValueForKey(configMap, maxDataPlaneConnectionsKey)
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)

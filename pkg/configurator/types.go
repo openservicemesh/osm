@@ -57,6 +57,9 @@ type Configurator interface {
 	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
 	UseHTTPSIngress() bool
 
+	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
+	GetMaxDataPlaneConnections() int
+
 	// GetEnvoyLogLevel returns the envoy log level
 	GetEnvoyLogLevel() string
 

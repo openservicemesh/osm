@@ -211,6 +211,7 @@ func TestCheckDefaultFields(t *testing.T) {
 					"tracing_port":                     "",
 					"tracing_endpoint":                 "",
 					"enable_privileged_init_container": "",
+					"max_data_plane_connections":       "",
 				},
 			},
 			expectedResponse: &admissionv1.AdmissionResponse{
@@ -230,6 +231,7 @@ func TestCheckDefaultFields(t *testing.T) {
 					"envoy_log_level":                "",
 					"service_cert_validity_duration": "",
 					"tracing_enable":                 "",
+					"max_data_plane_connections":     "",
 				},
 			},
 			expectedResponse: &admissionv1.AdmissionResponse{
@@ -271,10 +273,13 @@ func TestValidateFields(t *testing.T) {
 			testName: "Accept valid configMap update",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
-					"egress":                         "true",
-					"envoy_log_level":                "debug",
-					"service_cert_validity_duration": "24h",
-					"tracing_port":                   "9411"},
+					"egress":                           "true",
+					"envoy_log_level":                  "debug",
+					"service_cert_validity_duration":   "24h",
+					"tracing_port":                     "9411",
+					"outbound_ip_range_exclusion_list": "1.1.1.1/32, 2.2.2.2/24",
+					"max_data_plane_connections":       "1000",
+				},
 			},
 			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: true,
@@ -356,18 +361,6 @@ func TestValidateFields(t *testing.T) {
 			},
 		},
 		{
-			testName: "Accept configmap with valid outbound IP range exclusions",
-			configMap: corev1.ConfigMap{
-				Data: map[string]string{
-					"outbound_ip_range_exclusion_list": "1.1.1.1/32, 2.2.2.2/24",
-				},
-			},
-			expectedResponse: &admissionv1.AdmissionResponse{
-				Allowed: true,
-				Result:  &metav1.Status{Reason: ""},
-			},
-		},
-		{
 			testName: "Reject configmap with invalid syntax for IP range",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
@@ -389,6 +382,30 @@ func TestValidateFields(t *testing.T) {
 			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
 				Result:  &metav1.Status{Reason: "\noutbound_ip_range_exclusion_list" + mustBeValidIPRange},
+			},
+		},
+		{
+			testName: "Reject invalid max_data_plane_connections update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"max_data_plane_connections": "foobar",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\nmax_data_plane_connections" + mustBePositiveInt},
+			},
+		},
+		{
+			testName: "Reject invalid max_data_plane_connections update",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"max_data_plane_connections": "-1",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\nmax_data_plane_connections" + mustBePositiveInt},
 			},
 		},
 	}

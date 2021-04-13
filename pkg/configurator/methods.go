@@ -95,6 +95,11 @@ func (c *Client) UseHTTPSIngress() bool {
 	return c.getConfigMap().UseHTTPSIngress
 }
 
+// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
+func (c *Client) GetMaxDataPlaneConnections() int {
+	return c.getConfigMap().MaxDataPlaneConnections
+}
+
 // GetEnvoyLogLevel returns the envoy log level
 func (c *Client) GetEnvoyLogLevel() string {
 	logLevel := c.getConfigMap().EnvoyLogLevel
