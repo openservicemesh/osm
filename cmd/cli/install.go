@@ -21,6 +21,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const installDesc = `
@@ -70,6 +71,7 @@ const (
 	defaultVaultToken                    = ""
 	defaultVaultRole                     = "openservicemesh"
 	defaultEnvoyLogLevel                 = "error"
+	defaultControllerLogLevel            = "info"
 	defaultServiceCertValidityDuration   = "24h"
 	defaultEnableDebugServer             = false
 	defaultEnableEgress                  = false
@@ -81,6 +83,9 @@ const (
 	defaultDeployJaeger                  = false
 	defaultEnforceSingleMesh             = false
 )
+
+// possibleEnvoyLogLevels referenced from : https://github.com/envoyproxy/envoy/blob/release/v1.15/test/server/options_impl_test.cc#L373
+var possibleEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
 // Its value is initialized at build time.
@@ -104,6 +109,7 @@ type installCmd struct {
 	vaultToken                    string
 	vaultRole                     string
 	envoyLogLevel                 string
+	controllerLogLevel            string
 	serviceCertValidityDuration   string
 	timeout                       time.Duration
 	enableDebugServer             bool
@@ -182,7 +188,10 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", defaultEnableFluentbit, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", defaultDeployJaeger, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel, "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
+	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel,
+		fmt.Sprintf("Envoy log level is the level of logs collected from envoy and needs to be one of: %s", strings.Join(possibleEnvoyLogLevels, ",")))
+	f.StringVar(&inst.controllerLogLevel, "controller-log-level", defaultControllerLogLevel,
+		fmt.Sprintf("Controller log level is the level of logs collected from envoy and needs to be one of these: %s", strings.Join(logger.AllowedLevels, ",")))
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
 	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
 	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
@@ -265,6 +274,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
 		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
+		fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", strings.ToLower(i.controllerLogLevel)),
 		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
 
@@ -337,6 +347,11 @@ func (i *installCmd) validateOptions() error {
 		return err
 	}
 
+	// validate the OSM Controller log level type
+	if err := isValidControllerLogLevel(i.controllerLogLevel); err != nil {
+		return err
+	}
+
 	// validate certificate validity duration
 	if _, err := time.ParseDuration(i.serviceCertValidityDuration); err != nil {
 		return err
@@ -359,7 +374,7 @@ func (i *installCmd) validateOptions() error {
 	// Enforce single mesh cluster if needed
 	if i.enforceSingleMesh {
 		if len(osmControllerDeployments.Items) != 0 {
-			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster.")
+			return errAlreadyExists
 		}
 	}
 
@@ -372,15 +387,22 @@ func (i *installCmd) validateOptions() error {
 	return nil
 }
 
+func isValidControllerLogLevel(controllerLogLevel string) error {
+	for _, logLevel := range logger.AllowedLevels {
+		if strings.EqualFold(controllerLogLevel, logLevel) {
+			return nil
+		}
+	}
+	return errors.Errorf("Invalid OSM Controller log level: %s. OSM Controller log level must be one of: %v", controllerLogLevel, logger.AllowedLevels)
+}
+
 func isValidEnvoyLogLevel(envoyLogLevel string) error {
-	// allowedLogLevels referenced from : https://github.com/envoyproxy/envoy/blob/release/v1.15/test/server/options_impl_test.cc#L373
-	allowedLogLevels := []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
-	for _, logLevel := range allowedLogLevels {
+	for _, logLevel := range possibleEnvoyLogLevels {
 		if strings.EqualFold(envoyLogLevel, logLevel) {
 			return nil
 		}
 	}
-	return errors.Errorf("Invalid envoy log level.\n A valid envoy log level must be one from the following : %v", allowedLogLevels)
+	return errors.Errorf("Invalid envoy log level: %s. Envoy log level must be one of: %v", envoyLogLevel, possibleEnvoyLogLevels)
 }
 
 func isValidMeshName(meshName string) error {
