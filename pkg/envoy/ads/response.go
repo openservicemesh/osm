@@ -67,11 +67,12 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
 	for _, typeURI := range typesToSend {
-		fullUpdateRequested := request != nil && envoy.TypeURI(request.TypeUrl).IsWildcard()
+		// A nil request indicates a request for all SDS responses
+		fullUpdateRequested := request == nil || envoy.TypeURI(request.TypeUrl).IsWildcard()
 
 		// Handle request when is not provided, and the SDS case
 		var finalReq *xds_discovery.DiscoveryRequest
-		if request == nil || fullUpdateRequested {
+		if fullUpdateRequested {
 			finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: typeURI.String()}
 			if typeURI == envoy.TypeSDS {
 				finalReq = makeRequestForAllSecrets(proxy, s.catalog)
