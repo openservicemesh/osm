@@ -29,9 +29,6 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		kubeController: kubeController,
 	}
 
-	// Run release certificate handler, which listens to podDelete events
-	mc.releaseCertificateHandler()
-
 	go mc.dispatcher()
 	ticker.InitTicker(cfg)
 

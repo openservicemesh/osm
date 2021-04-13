@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -25,6 +26,7 @@ type DebugConfig struct {
 	certDebugger        CertificateManagerDebugger
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
+	proxyRegistry       *registry.ProxyRegistry
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller
@@ -39,15 +41,6 @@ type CertificateManagerDebugger interface {
 
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
 type MeshCatalogDebugger interface {
-	// ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
-	ListExpectedProxies() map[certificate.CommonName]time.Time
-
-	// ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-	ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy
-
-	// ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
-	ListDisconnectedProxies() map[certificate.CommonName]time.Time
-
 	// ListSMIPolicies lists the SMI policies detected by OSM.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
 

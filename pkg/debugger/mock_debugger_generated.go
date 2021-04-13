@@ -77,48 +77,6 @@ func (m *MockMeshCatalogDebugger) EXPECT() *MockMeshCatalogDebuggerMockRecorder 
 	return m.recorder
 }
 
-// ListConnectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListConnectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]*envoy.Proxy)
-	return ret0
-}
-
-// ListConnectedProxies indicates an expected call of ListConnectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListConnectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConnectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListConnectedProxies))
-}
-
-// ListDisconnectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListDisconnectedProxies() map[certificate.CommonName]time.Time {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDisconnectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]time.Time)
-	return ret0
-}
-
-// ListDisconnectedProxies indicates an expected call of ListDisconnectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListDisconnectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDisconnectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListDisconnectedProxies))
-}
-
-// ListExpectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListExpectedProxies() map[certificate.CommonName]time.Time {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListExpectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]time.Time)
-	return ret0
-}
-
-// ListExpectedProxies indicates an expected call of ListExpectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListExpectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListExpectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListExpectedProxies))
-}
-
 // ListMonitoredNamespaces mocks base method
 func (m *MockMeshCatalogDebugger) ListMonitoredNamespaces() []string {
 	m.ctrl.T.Helper()

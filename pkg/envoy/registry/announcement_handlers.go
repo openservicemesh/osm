@@ -1,4 +1,4 @@
-package catalog
+package registry
 
 import (
 	v1 "k8s.io/api/core/v1"
@@ -8,9 +8,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
-// releaseCertificateHandler releases certificates based on podDelete events
+// ReleaseCertificateHandler releases certificates based on podDelete events
 // returns a stop channel which can be used to stop the inner handler
-func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
+func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manager) chan struct{} {
 	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
 	stop := make(chan struct{})
 
@@ -34,10 +34,10 @@ func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 				}
 
 				podUID := deletedPodObj.GetObjectMeta().GetUID()
-				if podIface, ok := mc.podUIDToCN.Load(podUID); ok {
+				if podIface, ok := pr.podUIDToCN.Load(podUID); ok {
 					endpointCN := podIface.(certificate.CommonName)
 					log.Warn().Msgf("Pod with UID %s found in Mesh Catalog; Releasing certificate %s", podUID, endpointCN)
-					mc.certManager.ReleaseCertificate(endpointCN)
+					certManager.ReleaseCertificate(endpointCN)
 
 					// Request a broadcast update, just for security.
 					// Dispatcher code also handles PodDelete, so probably the two will get coalesced.

@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/eds"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -30,9 +31,10 @@ const (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
+func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
 	server := Server{
-		catalog: meshCatalog,
+		catalog:       meshCatalog,
+		proxyRegistry: proxyRegistry,
 		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) ([]types.Resource, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,

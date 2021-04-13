@@ -8,6 +8,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
@@ -22,10 +23,12 @@ func TestGetHandlers(t *testing.T) {
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
+	proxyRegistry := registry.NewProxyRegistry()
 
 	ds := NewDebugConfig(mockCertDebugger,
 		mockXdsDebugger,
 		mockCatalogDebugger,
+		proxyRegistry,
 		nil,
 		client,
 		mockConfig,

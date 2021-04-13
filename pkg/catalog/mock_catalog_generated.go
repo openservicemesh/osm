@@ -10,7 +10,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	service "github.com/openservicemesh/osm/pkg/service"
 	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -37,32 +36,6 @@ func NewMockMeshCataloger(ctrl *gomock.Controller) *MockMeshCataloger {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 	return m.recorder
-}
-
-// ExpectProxy mocks base method
-func (m *MockMeshCataloger) ExpectProxy(arg0 certificate.CommonName) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ExpectProxy", arg0)
-}
-
-// ExpectProxy indicates an expected call of ExpectProxy
-func (mr *MockMeshCatalogerMockRecorder) ExpectProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpectProxy", reflect.TypeOf((*MockMeshCataloger)(nil).ExpectProxy), arg0)
-}
-
-// GetConnectedProxyCount mocks base method
-func (m *MockMeshCataloger) GetConnectedProxyCount() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConnectedProxyCount")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// GetConnectedProxyCount indicates an expected call of GetConnectedProxyCount
-func (mr *MockMeshCatalogerMockRecorder) GetConnectedProxyCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectedProxyCount", reflect.TypeOf((*MockMeshCataloger)(nil).GetConnectedProxyCount))
 }
 
 // GetIngressPoliciesForService mocks base method
@@ -299,28 +272,4 @@ func (m *MockMeshCataloger) ListServiceAccountsForService(arg0 service.MeshServi
 func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsForService), arg0)
-}
-
-// RegisterProxy mocks base method
-func (m *MockMeshCataloger) RegisterProxy(arg0 *envoy.Proxy) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterProxy", arg0)
-}
-
-// RegisterProxy indicates an expected call of RegisterProxy
-func (mr *MockMeshCatalogerMockRecorder) RegisterProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterProxy", reflect.TypeOf((*MockMeshCataloger)(nil).RegisterProxy), arg0)
-}
-
-// UnregisterProxy mocks base method
-func (m *MockMeshCataloger) UnregisterProxy(arg0 *envoy.Proxy) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UnregisterProxy", arg0)
-}
-
-// UnregisterProxy indicates an expected call of UnregisterProxy
-func (mr *MockMeshCatalogerMockRecorder) UnregisterProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterProxy", reflect.TypeOf((*MockMeshCataloger)(nil).UnregisterProxy), arg0)
 }
