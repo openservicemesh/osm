@@ -94,6 +94,20 @@ Note:
 1. This behavior opens up HTTP-based access to any client that is not a part of the service mesh, not just ingress.
 1. The ingress resource that allows external HTTP access to a particular service must be in the same namespace as that service.
 
+### HTTP path matching semantics
+
+The Kubernetes Ingress API allows specifying a [pathType](https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types) for each HTTP `path` specified in an ingress rule. OSM enforces different HTTP path matching semantics depending on the `pathType` attribute specified. This allows OSM to operate with a number of different ingress controllers.
+
+The following path matching semantics correspond to the value of the `pathType` attribute:
+
+- `Exact`: With this path type, the `:path` header in the HTTP request is matched exactly to the `path` specified in the ingress rule.
+
+- `Prefix`: With this path type, the `:path` header in the HTTP request is matched as an element wise prefix of the `path` specified in the ingress rule, as defined in the [Kubernetes ingress API specification](https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types).
+
+- `ImplementationSpecific`: With this path type, the `:path` header in the HTTP request is matched differently depending on the `path` specified in the ingress rule. If the specified `path` ~looks like a regex~ (has one of the following characters: `^$*+[]%|`), the `:path` header in the HTTP request is matched against the `path` specified in the ingress rule as a regex match using the [Google RE2 regex syntax](https://github.com/google/re2/wiki/Syntax). If the specified `path` ~does not look like a regex~, the `:path` header in the HTTP request is matched as a string prefix of the specified `path` in the ingress rule.
+
+By default, if the `pathType` attribute is not set for a `path` in an ingress rule, OSM will default the `pathType` as `ImplementationSpecific`.
+
 ## Sample demo
 
 ### HTTP traffic with ingress
