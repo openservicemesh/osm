@@ -16,6 +16,8 @@ const (
 	AllowPartialHostnamesMatch bool = true
 	// DisallowPartialHostnamesMatch is used to disallow a partial/subset match on hostnames in traffic policies
 	DisallowPartialHostnamesMatch bool = false
+	// hostHeaderHey is a string to represent the header key 'host'
+	hostHeaderKey string = "host"
 )
 
 // ListInboundTrafficPolicies returns all inbound traffic policies
@@ -32,8 +34,8 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.Serv
 	}
 
 	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
-	inboundPoliciesFRomSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
-	inbound = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inbound, inboundPoliciesFRomSplits...)
+	inboundPoliciesFromSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
+	inbound = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inbound, inboundPoliciesFromSplits...)
 	return inbound
 }
 
@@ -106,10 +108,19 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 
 				for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
 					for _, routeMatch := range routeMatches {
-						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+						// If the traffic target has a route with host headers
+						// we need to create a new inbound traffic policy with the host header as the required hostnames
+						// else the hosnames will be hostnames corresponding to the service
+						if _, ok := routeMatch.Headers[hostHeaderKey]; !ok {
+							servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+						} else {
+							servicePolicyWithHostHeader := trafficpolicy.NewInboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
+							servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+							inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicyWithHostHeader)
+						}
 					}
 				}
-				inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, servicePolicy)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicy)
 			}
 		}
 	}
@@ -137,13 +148,20 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 
 	for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
 		for _, routeMatch := range routeMatches {
-			servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+			// If the traffic target has a route with host headers
+			// we need to create a new inbound traffic policy with the host header as the required hostnames
+			// else the hosnames will be hostnames corresponding to the service
+			if _, ok := routeMatch.Headers[hostHeaderKey]; !ok {
+				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+			} else {
+				servicePolicyWithHostHeader := trafficpolicy.NewInboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
+				servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicyWithHostHeader)
+			}
 		}
 	}
 
-	if len(servicePolicy.Rules) > 0 {
-		inboundPolicies = append(inboundPolicies, servicePolicy)
-	}
+	inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicy)
 
 	return inboundPolicies
 }
