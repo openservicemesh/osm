@@ -203,14 +203,12 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 				Headers:       trafficSpecsMatches.Headers,
 			}
 
-			if len(serviceRoute.Headers) != 0 {
-				// When pathRegex and methods are not defined, the header filters are applied to any path and all HTTP methods
-				if serviceRoute.Path == "" {
-					serviceRoute.Path = constants.RegexMatchAll
-				}
-				if serviceRoute.Methods == nil {
-					serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
-				}
+			// When pathRegex or/and methods are not defined, they will be wildcarded
+			if serviceRoute.Path == "" {
+				serviceRoute.Path = constants.RegexMatchAll
+			}
+			if len(serviceRoute.Methods) == 0 {
+				serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
 			}
 			routePolicies[specKey][trafficpolicy.TrafficSpecMatchName(trafficSpecsMatches.Name)] = serviceRoute
 		}

@@ -373,18 +373,6 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 
 func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		meshSpec:           mockMeshSpec,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-	}
 
 	testCases := []struct {
 		name                    string
@@ -683,6 +671,19 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
@@ -703,18 +704,6 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 
 func TestBuildInboundPolicies(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		meshSpec:           mockMeshSpec,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-	}
 
 	testCases := []struct {
 		name                    string
@@ -909,6 +898,19 @@ func TestBuildInboundPolicies(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
 			destK8sService := tests.NewServiceFixture(tc.inboundService.Name, tc.inboundService.Namespace, map[string]string{})
 			mockKubeController.EXPECT().GetService(tc.inboundService).Return(destK8sService).AnyTimes()
 
@@ -926,18 +928,6 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		meshSpec:           mockMeshSpec,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-	}
 
 	testCases := []struct {
 		name                    string
@@ -986,6 +976,19 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
 			k8sService := tests.NewServiceFixture(tc.meshService.Name, tc.meshService.Namespace, map[string]string{})
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
@@ -999,18 +1002,6 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 
 func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		meshSpec:           mockMeshSpec,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-	}
 
 	testCases := []struct {
 		name                    string
@@ -1114,6 +1105,19 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
 			for _, destMeshSvc := range tc.upstreamServices {
 				destK8sService := tests.NewServiceFixture(destMeshSvc.Name, destMeshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(destMeshSvc).Return(destK8sService).AnyTimes()
@@ -1180,41 +1184,195 @@ func TestRoutesFromRules(t *testing.T) {
 func TestGetHTTPPathsPerRoute(t *testing.T) {
 	assert := tassert.New(t)
 
-	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
-	actual, err := mc.getHTTPPathsPerRoute()
-	assert.Nil(err)
+	testCases := []struct {
+		name                      string
+		trafficSpec               spec.HTTPRouteGroup
+		expectedHTTPPathsPerRoute map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch
+	}{
+		{
+			name: "HTTP route with path, method and headers",
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
 
-	specKey := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
-	expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
-		specKey: {
-			trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
-				Path:          tests.BookstoreBuyPath,
-				PathMatchType: trafficpolicy.PathMatchRegex,
-				Methods:       []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": tests.HTTPUserAgent,
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
 				},
 			},
-			trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
-				Path:          tests.BookstoreSellPath,
-				PathMatchType: trafficpolicy.PathMatchRegex,
-				Methods:       []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": tests.HTTPUserAgent,
+			expectedHTTPPathsPerRoute: map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
+				"HTTPRouteGroup/default/bookstore-service-routes": {
+					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
+						Path:          tests.BookstoreBuyPath,
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       []string{"GET"},
+						Headers: map[string]string{
+							"user-agent": tests.HTTPUserAgent,
+						},
+					},
+					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
+						Path:          tests.BookstoreSellPath,
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       []string{"GET"},
+						Headers: map[string]string{
+							"user-agent": tests.HTTPUserAgent,
+						},
+					},
 				},
 			},
-			trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
-				Path:          ".*",
-				PathMatchType: trafficpolicy.PathMatchRegex,
-				Methods:       []string{"*"},
-				Headers: map[string]string{
-					"user-agent": tests.HTTPUserAgent,
+		},
+		{
+			name: "HTTP route with only path",
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   nil,
+						},
+					},
+				},
+			},
+			expectedHTTPPathsPerRoute: map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
+				"HTTPRouteGroup/default/bookstore-service-routes": {
+					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
+						Path:          tests.BookstoreBuyPath,
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       []string{"*"},
+					},
+					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
+						Path:          tests.BookstoreSellPath,
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       []string{"*"},
+					},
+				},
+			},
+		},
+		{
+			name: "HTTP route with only method",
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:    tests.BuyBooksMatchName,
+							Methods: []string{"GET"},
+						},
+					},
+				},
+			},
+			expectedHTTPPathsPerRoute: map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
+				"HTTPRouteGroup/default/bookstore-service-routes": {
+					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
+						Path:    ".*",
+						Methods: []string{"GET"},
+					},
+				},
+			},
+		},
+		{
+			name: "HTTP route with only headers",
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name: tests.WildcardWithHeadersMatchName,
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			expectedHTTPPathsPerRoute: map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
+				"HTTPRouteGroup/default/bookstore-service-routes": {
+					trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
+						Path:          ".*",
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       []string{"*"},
+						Headers: map[string]string{
+							"user-agent": tests.HTTPUserAgent,
+						},
+					},
 				},
 			},
 		},
 	}
 
-	assert.True(reflect.DeepEqual(actual, expected))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			actual, err := mc.getHTTPPathsPerRoute()
+			assert.Nil(err)
+			assert.True(reflect.DeepEqual(actual, tc.expectedHTTPPathsPerRoute))
+		})
+	}
 }
 
 func TestGetTrafficSpecName(t *testing.T) {
