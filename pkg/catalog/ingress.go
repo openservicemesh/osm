@@ -81,7 +81,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
 			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
 			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{ingressWeightedCluster}), wildcardServiceAccount)
-			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, wildcardIngressPolicy)
+			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, wildcardIngressPolicy)
 		}
 
 		for _, rule := range ingress.Spec.Rules {
@@ -143,7 +143,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 
 			// Only create an ingress policy if the ingress policy resulted in valid rules
 			if len(ingressPolicy.Rules) > 0 {
-				inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, ingressPolicy)
+				inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, ingressPolicy)
 			}
 		}
 	}
@@ -170,7 +170,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 		if ingress.Spec.DefaultBackend != nil && ingress.Spec.DefaultBackend.Service.Name == svc.Name {
 			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
 			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{ingressWeightedCluster}), wildcardServiceAccount)
-			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, wildcardIngressPolicy)
+			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, wildcardIngressPolicy)
 		}
 
 		for _, rule := range ingress.Spec.Rules {
@@ -232,7 +232,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 
 			// Only create an ingress policy if the ingress policy resulted in valid rules
 			if len(ingressPolicy.Rules) > 0 {
-				inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, ingressPolicy)
+				inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, ingressPolicy)
 			}
 		}
 	}

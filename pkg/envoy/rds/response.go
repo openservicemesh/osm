@@ -49,7 +49,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc.String())
 			return nil, err
 		}
-		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(true, ingressTrafficPolicies, ingressInboundPolicies...)
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressInboundPolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
 		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, proxy)
