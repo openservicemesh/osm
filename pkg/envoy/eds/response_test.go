@@ -216,7 +216,6 @@ func TestGetEndpointsForProxy(t *testing.T) {
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {
 				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
-				mockCatalog.EXPECT().ListEndpointsForService(svc).Return(endpoints, nil).AnyTimes()
 			}
 
 			mockCatalog.EXPECT().ListAllowedOutboundServiceAccounts(tc.proxyIdentity).Return(tc.allowedServiceAccounts, nil).AnyTimes()
