@@ -147,7 +147,32 @@ The following demo sends a request from an external IP to a httpbin service insi
     httpbin   ClusterIP   10.0.22.196   <none>        14001/TCP   11h
     ```
 
-1. Apply an ingress configuration yaml to expose the HTTP path `/status/200` on the `httpbin` service with `kubectl apply -f`
+1. Apply an ingress configuration yaml to expose the HTTP path `/status/200` on the `httpbin` service with `kubectl apply -f`:
+
+    > Note: Use the appropriate ingress resource based on the desired API version.
+
+    Ingress v1 resource:
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: httpbin-ingress
+      namespace: httpbin
+    spec:
+      ingressClassName: nginx
+      rules:
+      - http:
+          paths:
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 14001
+    ```
+
+    Ingress v1beta1 resource:
     ```yaml
     apiVersion: networking.k8s.io/v1beta1
     kind: Ingress
@@ -160,7 +185,8 @@ The following demo sends a request from an external IP to a httpbin service insi
       rules:
       - http:
           paths:
-          - path: "/status/200"
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
             backend:
               serviceName: httpbin
               servicePort: 14001
@@ -182,6 +208,31 @@ The following demo sends a request from an external IP to a httpbin service insi
 
 1. Update the existing ingress with a host specified by applying the following yaml, and confirm that the request succeeds:
 
+    > Note: Use the appropriate ingress resource based on the desired API version.
+
+    Ingress v1 resource:
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: httpbin-ingress
+      namespace: httpbin
+    spec:
+      ingressClassName: nginx
+      rules:
+      - host: httpbin.com
+        http:
+          paths:
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 14001
+    ```
+
+    Ingress v1beta1 resource:
     ```yaml
     apiVersion: networking.k8s.io/v1beta1
     kind: Ingress
@@ -196,6 +247,7 @@ The following demo sends a request from an external IP to a httpbin service insi
         http:
           paths:
           - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
             backend:
               serviceName: httpbin
               servicePort: 14001
