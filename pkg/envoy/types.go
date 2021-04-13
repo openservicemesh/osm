@@ -4,6 +4,7 @@ package envoy
 
 import (
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var (
@@ -19,6 +20,16 @@ type TypeURI string
 
 func (t TypeURI) String() string {
 	return string(t)
+}
+
+// Short returns an abbreviated version of the TypeURI, which is easier to spot in logs and metrics.
+func (t TypeURI) Short() string {
+	return utils.GetLastChunkOfSlashed(t.String())
+}
+
+// IsWildcard returns true when the TypeURI is the one requesting ALL discovery types.
+func (t TypeURI) IsWildcard() bool {
+	return t == TypeWildcard
 }
 
 // ValidURI defines valid URIs
@@ -42,6 +53,7 @@ var XDSShortURINames = map[TypeURI]string{
 	TypeEDS: "EDS",
 }
 
+// Envoy TypeURIs
 const (
 	// TypeWildcard is the Wildcard type URI.
 	TypeWildcard TypeURI = ""
@@ -67,6 +79,11 @@ const (
 	// TypeZipkinConfig is an Envoy type URI.
 	TypeZipkinConfig TypeURI = "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig"
 
+	// TypeADS is not actually used by Envoy - but useful within OSM for logging
+	TypeADS TypeURI = "ADS"
+)
+
+const (
 	accessLogPath = "/dev/stdout"
 
 	// localClusterSuffix is the tag to append to the local cluster name corresponding to a service cluster.
