@@ -8,6 +8,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
+
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,6 +124,11 @@ func (sd *DataHandle) Iterate(f func()) {
 		fmt.Printf("-- Successfully completed iteration %d - took %v\n", sd.Iterations, diff)
 		sd.OutputIteration(sd.Iterations, os.Stdout)
 		fmt.Println("--------")
+
+		restarts := Td.VerifyRestarts()
+		if restarts {
+			Fail("Failed at iteration %d, seen restarts", sd.Iterations)
+		}
 
 		// Increase iterations done
 		sd.Iterations++

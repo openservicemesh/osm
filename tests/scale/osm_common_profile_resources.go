@@ -16,7 +16,26 @@ const (
 // Convenience function that wraps usual installation requirements for
 // initializing a scale test (OSM install, prometheus/grafana deployment /w rendering, scale handle, etc.)
 func scaleOSMInstall() (*DataHandle, error) {
+	// Prometheus scrapping is not scalable past a certain number of proxies given
+	// current configuration/constraints. We will disable getting proxy metrics
+	// while we focus on qualifying control plane.
+	// Note: this does not prevent osm metrics scraping.
+	Td.EnableNsMetricTag = false
+
+	// Only Collect logs for control plane processess
+	Td.CollectLogs = ControlPlaneOnly
+
 	t := Td.GetOSMInstallOpts()
+	// To avoid logging become a burden, use error logging as a regular setup would
+	t.EnvoyLogLevel = "error"
+	t.OSMLogLevel = "error"
+
+	// Override Memory available, both requested and limit to 1G to guarantee the memory available
+	// for OSM will not depend on the Node's load.
+	t.SetOverrides = append(t.SetOverrides,
+		"OpenServiceMesh.osmcontroller.resource.requests=1G")
+	t.SetOverrides = append(t.SetOverrides,
+		"OpenServiceMesh.osmcontroller.resource.limits=1G")
 
 	// enable Prometheus and Grafana, plus remote rendering
 	t.DeployGrafana = true
