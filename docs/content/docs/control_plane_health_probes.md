@@ -122,9 +122,9 @@ If any health probes are consistently failing, perform the following steps to id
     ```console
     $ osm mesh list
     
-    MESH NAME   NAMESPACE      CONTROLLER PODS
-    osm         osm-system     osm-controller-5494bcffb6-qpjdv
-    osm2        osm-system-2   osm-controller-48fd3c810d-sornc
+    MESH NAME   NAMESPACE      CONTROLLER PODS                   VERSION
+    osm         osm-system     osm-controller-5494bcffb6-qpjdv   v0.8.2
+    osm2        osm-system-2   osm-controller-48fd3c810d-sornc   v0.8.2
     ```
 
     Note how `osm-system` is present in the following list:

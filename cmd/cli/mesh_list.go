@@ -64,12 +64,13 @@ func (l *meshListCmd) run() error {
 
 	w := newTabWriter(l.out)
 
-	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS")
+	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION")
 	for _, elem := range list.Items {
 		m := elem.ObjectMeta.Labels["meshName"]
 		ns := elem.ObjectMeta.Namespace
 		x := getNamespacePods(l.clientSet, m, ns)
-		fmt.Fprintf(w, "%s\t%s\t%s\n", m, ns, strings.Join(x["Pods"], ","))
+		v := elem.ObjectMeta.Labels[constants.OSMAppVersionLabelKey]
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m, ns, strings.Join(x["Pods"], ","), v)
 	}
 	_ = w.Flush()
 

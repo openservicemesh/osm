@@ -27,8 +27,8 @@ var _ = Describe("Running the mesh list command", func() {
 		)
 
 		// helper function that adds deployment to the clientset
-		addDeployment := func(depName, meshName, namespace string, isMesh bool) {
-			dep := createDeployment(depName, meshName, isMesh)
+		addDeployment := func(depName, meshName, namespace string, osmVersion string, isMesh bool) {
+			dep := createDeployment(depName, meshName, osmVersion, isMesh)
 			_, err := fakeClientSet.AppsV1().Deployments(namespace).Create(context.TODO(), dep, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -47,9 +47,9 @@ var _ = Describe("Running the mesh list command", func() {
 		}
 
 		It("should print only correct meshes", func() {
-			addDeployment("osm-controller-1", "testMesh1", "testNs1", true)
-			addDeployment("osm-controller-2", "testMesh2", "testNs2", true)
-			addDeployment("not-osm-controller", "", "testNs3", false)
+			addDeployment("osm-controller-1", "testMesh1", "testNs1", "testVersion0.1.2", true)
+			addDeployment("osm-controller-2", "testMesh2", "testNs2", "testVersion0.1.3", true)
+			addDeployment("not-osm-controller", "", "testNs3", "", false)
 
 			deployments, err = getControllerDeployments(listCmd.clientSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -58,8 +58,9 @@ var _ = Describe("Running the mesh list command", func() {
 					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 						"Namespace": Equal("testNs1"),
 						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
-							"app":      Equal(constants.OSMControllerName),
-							"meshName": Equal("testMesh1"),
+							"app":                           Equal(constants.OSMControllerName),
+							"meshName":                      Equal("testMesh1"),
+							constants.OSMAppVersionLabelKey: Equal("testVersion0.1.2"),
 						}),
 					}),
 				}),
@@ -67,8 +68,9 @@ var _ = Describe("Running the mesh list command", func() {
 					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 						"Namespace": Equal("testNs2"),
 						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
-							"app":      Equal(constants.OSMControllerName),
-							"meshName": Equal("testMesh2"),
+							"app":                           Equal(constants.OSMControllerName),
+							"meshName":                      Equal("testMesh2"),
+							constants.OSMAppVersionLabelKey: Equal("testVersion0.1.3"),
 						}),
 					}),
 				}),
@@ -118,11 +120,12 @@ var _ = Describe("Running the mesh list command", func() {
 	})
 })
 
-func createDeployment(deploymentName, meshName string, isMesh bool) *v1.Deployment {
+func createDeployment(deploymentName, meshName string, osmVersion string, isMesh bool) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if isMesh {
 		labelMap["app"] = constants.OSMControllerName
 		labelMap["meshName"] = meshName
+		labelMap[constants.OSMAppVersionLabelKey] = osmVersion
 	} else {
 		labelMap["app"] = "non-mesh-app"
 	}
