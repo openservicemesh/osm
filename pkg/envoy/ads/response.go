@@ -73,14 +73,13 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 		// Handle request when is not provided, and the SDS case
 		var finalReq *xds_discovery.DiscoveryRequest
 		if fullUpdateRequested {
-			finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: typeURI.String()}
 			if typeURI == envoy.TypeSDS {
 				finalReq = makeRequestForAllSecrets(proxy, s.catalog)
 				if finalReq == nil {
 					continue
 				}
 			} else {
-				finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: string(typeURI)}
+				finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: typeURI.String()}
 			}
 		} else {
 			finalReq = request
