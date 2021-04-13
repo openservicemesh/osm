@@ -66,6 +66,9 @@ spec:
           image: "${CTR_REGISTRY}/bookwarehouse:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookwarehouse"]
+          env:
+            - name: IDENTITY
+              value: bookwarehouse
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

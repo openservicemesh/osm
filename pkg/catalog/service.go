@@ -30,6 +30,20 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 	return false
 }
 
+// isTrafficSplitApexService returns true if the given service is an apex service in any traffic split
+func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
+	for _, split := range mc.meshSpec.ListTrafficSplits() {
+		apexService := service.MeshService{
+			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Namespace: split.Namespace,
+		}
+		if svc.Equals(apexService) {
+			return true
+		}
+	}
+	return false
+}
+
 // getApexServicesForBackendService returns a list of services that serve as the apex service in a traffic split where the
 // given service is a backend
 func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.MeshService) []service.MeshService {

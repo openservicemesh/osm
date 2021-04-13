@@ -27,7 +27,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.S
 
 	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
 	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamServiceAccount.Namespace)
-	outbound = trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outbound, outboundPoliciesFromSplits...)
+	outbound = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outbound, outboundPoliciesFromSplits...)
 
 	return outbound
 }
@@ -47,7 +47,7 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		for _, source := range t.Spec.Sources {
 			// TODO(draychev): must check for the correct type of ServiceIdentity as well
 			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
-				mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
+				mergedPolicies := trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				outboundPolicies = mergedPolicies
 				break
 			}
@@ -161,33 +161,62 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.ServiceIdentity, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
 	source := sourceServiceIdentity.ToK8sServiceAccount()
-	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
+	var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error resolving destination from traffic target %s (%s)", t.Name, t.Namespace)
-		return outPolicies
+		return outboundPolicies
+	}
+
+	// fetch all routes referenced in traffic target
+	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
+		return outboundPolicies
 	}
 
 	// build an outbound traffic policy for each destination service
 	for _, destService := range destServices {
-		hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
-			continue
-		}
-		weightedCluster := getDefaultWeightedClusterForService(destService)
+		// Do not build an outbound policy if the destination service is an apex service in a traffic target
+		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
+		if !mc.isTrafficSplitApexService(destService) {
+			hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
+				continue
+			}
+			weightedCluster := getDefaultWeightedClusterForService(destService)
 
-		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, source.Namespace == destService.Namespace), hostnames)
-		if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-			log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
-			continue
-		}
+			policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, source.Namespace == destService.Namespace), hostnames)
+			needWildCardRoute := false
+			for _, routeMatch := range routeMatches {
+				// If the traffic target has a route with host headers
+				// we need to create a new outbound traffic policy with the host header as the required hostnames
+				// else the hosnames will be hostnames corresponding to the service
+				if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
+					policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
+					if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+						log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s) with host header %s", source.Name, source.Namespace, destService.Name, destService.Namespace, routeMatch.Headers[hostHeaderKey])
+						continue
+					}
+					outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
+				} else {
+					needWildCardRoute = true
+				}
+			}
+			if needWildCardRoute {
+				if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+					log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
+					continue
+				}
+			}
 
-		outPolicies = append(outPolicies, policy)
+			outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
+		}
 	}
-	return outPolicies
+	return outboundPolicies
 }
 
 func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) ([]service.MeshService, error) {

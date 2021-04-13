@@ -177,6 +177,7 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 }
 
 func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.Route {
+	hostHeader := headersMap[httpHostHeader]
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			Headers: getHeadersForRoute(method, headersMap),
@@ -185,6 +186,9 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: buildWeightedCluster(weightedClusters, totalWeight, direction),
+				},
+				HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
+					HostRewriteLiteral: hostHeader,
 				},
 			},
 		},
@@ -287,7 +291,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 
 	// add all other custom headers
 	for headerKey, headerValue := range headersMap {
-		// omit the host header as we have already configured this
+		// omit the host header as this is configured in the HostRewriteSpecifier
 		if headerKey == httpHostHeader {
 			continue
 		}
