@@ -70,7 +70,7 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 		fullUpdateRequested := request != nil && envoy.TypeURI(request.TypeUrl).IsWildcard()
 
 		// Handle request when is not provided, and the SDS case
-		finalReq := request
+		var finalReq *xds_discovery.DiscoveryRequest
 		if request == nil || fullUpdateRequested {
 			finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: typeURI.String()}
 			if typeURI == envoy.TypeSDS {
@@ -78,7 +78,11 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 				if finalReq == nil {
 					continue
 				}
+			} else {
+				finalReq = &xds_discovery.DiscoveryRequest{TypeUrl: string(typeURI)}
 			}
+		} else {
+			finalReq = request
 		}
 
 		if err := s.sendTypeResponse(typeURI, proxy, server, finalReq, cfg); err != nil {
