@@ -2,9 +2,11 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
+
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -14,7 +16,7 @@ import (
 // ListOutboundTrafficPolicies returns all outbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account from SMI Traffic Target and Traffic Split
-func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
@@ -31,7 +33,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8
 
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
 // when the given service account matches a source in the Traffic Target resource
-func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
@@ -91,7 +93,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 }
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
-func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
+func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(ident identity.K8sServiceAccount) []service.MeshService {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
@@ -99,8 +101,8 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 	serviceSet := mapset.NewSet()
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
-			if source.Name == identity.Name && source.Namespace == identity.Namespace { // found outbound
-				destServices, err := mc.getServicesForServiceAccount(service.K8sServiceAccount{
+			if source.Name == ident.Name && source.Namespace == ident.Namespace { // found outbound
+				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
 				})
@@ -150,7 +152,7 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	return outPolicies
 }
 
-func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) buildOutboundPolicies(source identity.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
 	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	// fetch services running workloads with destination service account
@@ -181,7 +183,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t
 }
 
 func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) ([]service.MeshService, error) {
-	sa := service.K8sServiceAccount{
+	sa := identity.K8sServiceAccount{
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}

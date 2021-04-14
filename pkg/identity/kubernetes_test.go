@@ -5,25 +5,23 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 func TestGetKubernetesServiceIdentity(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
-		svcAccount              service.K8sServiceAccount
+		svcAccount              K8sServiceAccount
 		trustDomain             string
 		expectedServiceIdentity ServiceIdentity
 	}{
 		{
-			service.K8sServiceAccount{Name: "foo", Namespace: "bar"},
+			K8sServiceAccount{Name: "foo", Namespace: "bar"},
 			"cluster.local",
 			ServiceIdentity("foo.bar.cluster.local"),
 		},
 		{
-			service.K8sServiceAccount{Name: "foo", Namespace: "bar"},
+			K8sServiceAccount{Name: "foo", Namespace: "bar"},
 			"cluster.baz",
 			ServiceIdentity("foo.bar.cluster.baz"),
 		},

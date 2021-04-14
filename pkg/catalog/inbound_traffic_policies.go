@@ -6,6 +6,7 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -20,7 +21,7 @@ const (
 // ListInboundTrafficPolicies returns all inbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
-func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 		for _, svc := range upstreamServices {
@@ -37,7 +38,7 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sSe
 
 // listInboundPoliciesFromTrafficTargets builds inbound traffic policies for all inbound services
 // when the given service account matches a destination in the Traffic Target resource
-func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity identity.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
@@ -60,7 +61,7 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity se
 // listInboundPoliciesForTrafficSplits loops through all SMI TrafficTarget resources and returns inbound policies for apex services based on the following conditions:
 // 1. the given upstream identity matches the destination specified in a TrafficTarget resource
 // 2. the given list of upstream services are backends specified in a TrafficSplit resource
-func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity identity.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets

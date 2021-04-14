@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -95,7 +96,7 @@ type Controller interface {
 	ListPods() []*corev1.Pod
 
 	// ListServiceAccountsForService lists ServiceAccounts associated with the given service
-	ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error)
+	ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)

@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -93,13 +94,13 @@ func TestGetEndpointsForProxy(t *testing.T) {
 
 	testCases := []struct {
 		name                            string
-		proxyIdentity                   service.K8sServiceAccount
+		proxyIdentity                   identity.K8sServiceAccount
 		trafficTargets                  []*access.TrafficTarget
-		allowedServiceAccounts          []service.K8sServiceAccount
+		allowedServiceAccounts          []identity.K8sServiceAccount
 		services                        []service.MeshService
-		outboundServices                map[service.K8sServiceAccount][]service.MeshService
+		outboundServices                map[identity.K8sServiceAccount][]service.MeshService
 		outboundServiceEndpoints        map[service.MeshService][]endpoint.Endpoint
-		outboundServiceAccountEndpoints map[service.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint
+		outboundServiceAccountEndpoints map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints               map[service.MeshService][]endpoint.Endpoint
 	}{
 		{
@@ -108,15 +109,15 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			Hence one endpoint for bookstore-v1 should be in the expected list`,
 			proxyIdentity:          tests.BookbuyerServiceAccount,
 			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget},
-			allowedServiceAccounts: []service.K8sServiceAccount{tests.BookstoreServiceAccount},
+			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount},
 			services:               []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
 			},
-			outboundServiceAccountEndpoints: map[service.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
+			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
@@ -130,9 +131,9 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			Hence this endpoint (9.9.9.9) shouldn't be in bookstore-v1's expected list`,
 			proxyIdentity:          tests.BookbuyerServiceAccount,
 			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget},
-			allowedServiceAccounts: []service.K8sServiceAccount{tests.BookstoreServiceAccount},
+			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount},
 			services:               []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
@@ -141,7 +142,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
-			outboundServiceAccountEndpoints: map[service.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
+			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
@@ -153,9 +154,9 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			Hence one endpoint should be in bookstore-v1's and bookstore-v2's expected list`,
 			proxyIdentity:          tests.BookbuyerServiceAccount,
 			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
-			allowedServiceAccounts: []service.K8sServiceAccount{tests.BookstoreServiceAccount, tests.BookstoreV2ServiceAccount},
+			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount, tests.BookstoreV2ServiceAccount},
 			services:               []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
 				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
 			},
@@ -166,7 +167,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
-			outboundServiceAccountEndpoints: map[service.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
+			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
 				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service: {endpoint.Endpoint{
 					IP:   net.ParseIP("9.9.9.9"),

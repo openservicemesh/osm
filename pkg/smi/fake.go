@@ -6,7 +6,7 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -15,7 +15,7 @@ type fakeMeshSpec struct {
 	httpRouteGroups []*spec.HTTPRouteGroup
 	tcpRoutes       []*spec.TCPRoute
 	trafficTargets  []*access.TrafficTarget
-	serviceAccounts []service.K8sServiceAccount
+	serviceAccounts []identity.K8sServiceAccount
 }
 
 // NewFakeMeshSpecClient creates a fake Mesh Spec used for testing.
@@ -25,7 +25,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		httpRouteGroups: []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		tcpRoutes:       []*spec.TCPRoute{&tests.TCPRoute},
 		trafficTargets:  []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
-		serviceAccounts: []service.K8sServiceAccount{
+		serviceAccounts: []identity.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
 			tests.BookstoreV2ServiceAccount,
 			tests.BookbuyerServiceAccount,
@@ -39,7 +39,7 @@ func (f fakeMeshSpec) ListTrafficSplits() []*split.TrafficSplit {
 }
 
 // ListServiceAccounts fetches all service accounts declared with SMI Spec for the fake Mesh Spec.
-func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
+func (f fakeMeshSpec) ListServiceAccounts() []identity.K8sServiceAccount {
 	return f.serviceAccounts
 }
 

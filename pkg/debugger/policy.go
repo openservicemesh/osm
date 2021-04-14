@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 type policies struct {
-	TrafficSplits   []*split.TrafficSplit       `json:"traffic_splits"`
-	ServiceAccounts []service.K8sServiceAccount `json:"service_accounts"`
-	RouteGroups     []*spec.HTTPRouteGroup      `json:"route_groups"`
-	TrafficTargets  []*access.TrafficTarget     `json:"traffic_targets"`
+	TrafficSplits   []*split.TrafficSplit        `json:"traffic_splits"`
+	ServiceAccounts []identity.K8sServiceAccount `json:"service_accounts"`
+	RouteGroups     []*spec.HTTPRouteGroup       `json:"route_groups"`
+	TrafficTargets  []*access.TrafficTarget      `json:"traffic_targets"`
 }
 
 func (ds DebugConfig) getOSMConfigHandler() http.Handler {

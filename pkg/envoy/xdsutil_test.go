@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -175,7 +175,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(service.K8sServiceAccount{Name: "foo", Namespace: "test"}, true)
+			tlsContext := GetDownstreamTLSContext(identity.K8sServiceAccount{Name: "foo", Namespace: "test"}, true)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{

@@ -14,9 +14,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var log = logger.New("debugger")
@@ -42,7 +42,7 @@ type CertificateManagerDebugger interface {
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
 type MeshCatalogDebugger interface {
 	// ListSMIPolicies lists the SMI policies detected by OSM.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []identity.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
 
 	// ListMonitoredNamespaces lists the namespaces that the control plan knows about.
 	ListMonitoredNamespaces() []string

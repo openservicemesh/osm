@@ -12,8 +12,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
+
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -154,7 +154,7 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
 
 	lb := &listenerBuilder{
 		meshCatalog: mockCatalog,
@@ -241,7 +241,7 @@ func TestBuildRBACFilter(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
 
 	lb := &listenerBuilder{
 		meshCatalog: mockCatalog,

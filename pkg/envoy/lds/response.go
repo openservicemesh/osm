@@ -9,7 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 // NewResponse creates a new Listener Discovery Response.
@@ -99,7 +99,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return ldsResources, nil
 }
 
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount identity.K8sServiceAccount, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
 	return &listenerBuilder{
 		meshCatalog:  meshCatalog,
 		svcAccount:   svcAccount,

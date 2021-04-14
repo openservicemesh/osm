@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -39,7 +40,7 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 
 // ListAllowedEndpointsForService returns only those endpoints for a service that belong to the allowed outbound service accounts
 // for the given downstream identity
-func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
+func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identity.K8sServiceAccount, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
 	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for upstream service %s", upstreamSvc)
@@ -69,7 +70,7 @@ func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity service
 }
 
 // listEndpointsforIdentity retrieves the list of endpoints for the given service account
-func (mc *MeshCatalog) listEndpointsforIdentity(sa service.K8sServiceAccount) []endpoint.Endpoint {
+func (mc *MeshCatalog) listEndpointsforIdentity(sa identity.K8sServiceAccount) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
 		ep := provider.ListEndpointsForIdentity(sa)

@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -218,7 +219,7 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
-func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bool) *xds_auth.DownstreamTlsContext {
+func GetDownstreamTLSContext(upstreamIdentity identity.K8sServiceAccount, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := SDSCert{
 		Name:     upstreamIdentity.String(),
 		CertType: ServiceCertType,
@@ -251,7 +252,7 @@ func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bo
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
-func GetUpstreamTLSContext(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(downstreamIdentity identity.K8sServiceAccount, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
 	downstreamSDSCert := SDSCert{
 		Name:     downstreamIdentity.String(),
 		CertType: ServiceCertType,
@@ -313,7 +314,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
-		ServiceAccount: service.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
+		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
 		EnvoyNodeID:    chunks[4],
 	}
 

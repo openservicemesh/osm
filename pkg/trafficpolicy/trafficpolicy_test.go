@@ -6,6 +6,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -37,12 +38,12 @@ var (
 		Weight:      100,
 	}
 
-	testServiceAccount1 = service.K8sServiceAccount{
+	testServiceAccount1 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount1",
 		Namespace: "testNamespace1",
 	}
 
-	testServiceAccount2 = service.K8sServiceAccount{
+	testServiceAccount2 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount2",
 		Namespace: "testNamespace2",
 	}
@@ -64,7 +65,7 @@ func TestAddRule(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		existingRules         []*Rule
-		allowedServiceAccount service.K8sServiceAccount
+		allowedServiceAccount identity.K8sServiceAccount
 		route                 RouteWeightedClusters
 		expectedRules         []*Rule
 	}{

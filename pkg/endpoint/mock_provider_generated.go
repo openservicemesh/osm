@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -64,7 +65,7 @@ func (mr *MockProviderMockRecorder) GetResolvableEndpointsForService(arg0 interf
 }
 
 // GetServicesForServiceAccount mocks base method
-func (m *MockProvider) GetServicesForServiceAccount(arg0 service.K8sServiceAccount) ([]service.MeshService, error) {
+func (m *MockProvider) GetServicesForServiceAccount(arg0 identity.K8sServiceAccount) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServicesForServiceAccount", arg0)
 	ret0, _ := ret[0].([]service.MeshService)
@@ -94,7 +95,7 @@ func (mr *MockProviderMockRecorder) GetTargetPortToProtocolMappingForService(arg
 }
 
 // ListEndpointsForIdentity mocks base method
-func (m *MockProvider) ListEndpointsForIdentity(arg0 service.K8sServiceAccount) []Endpoint {
+func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.K8sServiceAccount) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEndpointsForIdentity", arg0)
 	ret0, _ := ret[0].([]Endpoint)
