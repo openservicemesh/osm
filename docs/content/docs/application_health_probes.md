@@ -22,7 +22,7 @@ Startup | /osm-startup-probe | 15903
 
 HTTPS and `tcpSocket` probes will have their ports modified the same way as HTTP probes. For HTTPS probes, the path is left unchanged.
 
-Only predefined `httpGet` and `tcpSocket` probes are modified. If a probe is undefined, one will not be added in its place. `exec` probes (including those using `grpc_health_probe`) are not affected.
+Only predefined `httpGet` and `tcpSocket` probes are modified. If a probe is undefined, one will not be added in its place. `exec` probes (including those using `grpc_health_probe`) are never modified and will continue to function as expected as long as the command does not require network access outside of `localhost`.
 
 ## Examples
 
