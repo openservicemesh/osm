@@ -15,10 +15,6 @@ func (ms MeshService) ServerName() string {
 	return strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, ".")
 }
 
-func (ms MeshService) String() string {
-	return strings.Join([]string{ms.Namespace, namespaceNameSeparator, ms.Name}, "")
-}
-
 // UnmarshalMeshService unmarshals a NamespaceService type from a string
 func UnmarshalMeshService(str string) (*MeshService, error) {
 	slices := strings.Split(str, namespaceNameSeparator)

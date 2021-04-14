@@ -1,6 +1,8 @@
 // Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
+import "fmt"
+
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
 	// or viceversa
@@ -14,6 +16,10 @@ type MeshService struct {
 
 	// The name of the service
 	Name string
+}
+
+func (ms MeshService) String() string {
+	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
 // ClusterName is a type for a service name
