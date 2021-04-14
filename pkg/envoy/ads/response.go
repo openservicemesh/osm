@@ -134,7 +134,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	for _, res := range resources {
 		proto, err := ptypes.MarshalAny(res)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURL.String(), proxy.GetCertificateSerialNumber())
+			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURL, proxy.GetCertificateSerialNumber())
 			continue
 		}
 		response.Resources = append(response.Resources, proto)

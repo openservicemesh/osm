@@ -208,7 +208,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
-		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc.String())
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
 		return nil, errServiceNotFound
 	}
 

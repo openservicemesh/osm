@@ -38,20 +38,20 @@ type fakeClient struct {
 	svcAccountEndpoints map[service.K8sServiceAccount][]endpoint.Endpoint
 }
 
-// Retrieve the IP addresses comprising the given service.
+// ListEndpointsForService retrieves the IP addresses comprising the given service.
 func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	if svc, ok := f.endpoints[svc.String()]; ok {
 		return svc
 	}
-	panic(fmt.Sprintf("You are asking for MeshService=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc.String(), f.endpoints))
+	panic(fmt.Sprintf("You are asking for MeshService=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc, f.endpoints))
 }
 
-// Retrieve the IP addresses comprising the given service account.
+// ListEndpointsForIdentity retrieves the IP addresses comprising the given service account.
 func (f fakeClient) ListEndpointsForIdentity(sa service.K8sServiceAccount) []endpoint.Endpoint {
 	if ep, ok := f.svcAccountEndpoints[sa]; ok {
 		return ep
 	}
-	panic(fmt.Sprintf("You are asking for K8sServiceAccount=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", sa.String(), f.svcAccountEndpoints))
+	panic(fmt.Sprintf("You are asking for K8sServiceAccount=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", sa, f.svcAccountEndpoints))
 }
 
 func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
