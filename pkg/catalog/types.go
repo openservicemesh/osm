@@ -64,9 +64,6 @@ type MeshCataloger interface {
 	// ListServiceAccountsForService lists the service accounts associated with the given service
 	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 
-	// ListEndpointsForService returns the list of individual instance endpoint backing a service
-	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
-
 	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
 	ListAllowedEndpointsForService(service.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
 

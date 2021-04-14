@@ -29,7 +29,7 @@ var _ = Describe("Test catalog functions", func() {
 	mc := newFakeMeshCatalog()
 	Context("Testing ListEndpointsForService()", func() {
 		It("lists endpoints for a given service", func() {
-			actual, err := mc.ListEndpointsForService(tests.BookstoreV1Service)
+			actual, err := mc.listEndpointsForService(tests.BookstoreV1Service)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []endpoint.Endpoint{
@@ -83,7 +83,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			expectedEndpoints: []endpoint.Endpoint{tests.Endpoint},
 		},
 		{
-			name: `Traffic target defined for bookstore ServiceAccount. 
+			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 bookstore-v2 services,
 			but bookstore-v2 pod has service account bookstore-v2.
 			Hence no endpoints returned for bookstore-v2`,
@@ -104,7 +104,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			expectedEndpoints: []endpoint.Endpoint{},
 		},
 		{
-			name: `Traffic target defined for bookstore ServiceAccount. 
+			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 bookstore-v2 services,
 			since bookstore-v2 pod has service account bookstore-v2 which is allowed in the traffic target.
 			Hence endpoints returned for bookstore-v2`,
