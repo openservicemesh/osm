@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/openservicemesh/osm/pkg/identity"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 // SvcAccountToK8sSvcAccount converts a Kubernetes service to a MeshService.
