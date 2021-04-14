@@ -8,6 +8,9 @@ smi; pkg/smi/mock_meshspec_generated.go; github.com/openservicemesh/osm/pkg/smi;
 # pkg/ingress
 ingress; pkg/ingress/mock_client_generated.go; github.com/openservicemesh/osm/pkg/ingress; Monitor
 
+# pkg/policy
+policy; pkg/policy/mock_client_generated.go; github.com/openservicemesh/osm/pkg/policy; Controller
+
 # pkg/kubernetes
 kubernetes; pkg/kubernetes/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/kubernetes; Controller
 
