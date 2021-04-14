@@ -362,75 +362,9 @@ For HTTPS ingress, additional annotations are required.
     curl http://<external-ingress-ip>/status/200 -H "Host: httpbin.com"
     ```
 
-### Using Gloo API Gateway (experimental)
+## Other Ingress configurations
 
-[Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo.
-
-Install Gloo in `Ingress` mode:
-
-```bash
-glooctl install ingress
-```
-
-For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc).
-
-To prepare the root certificate, we must do something similar to what we do for the Azure Application Gateway.
-
-```bash
-kubectl get secret/osm-ca-bundle -n osm-system -o jsonpath="{.data['ca\.crt']}" | base64 -d > osm-c-bundlea.pem
-
-glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem
-```
-
-Next we could use an Ingress file like this:
-
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: httpbin-ingress
-  namespace: httpbin
-  annotations:
-    kubernetes.io/ingress.class: gloo
-spec:
-  rules:
-  - host: httpbin.httpbin.svc.cluster.local
-    http:
-      paths:
-      - path: /status/200
-        backend:
-          serviceName: httpbin
-          servicePort: 14001
-```
-
-Lastly, we configure the `Upstream` object to use OSM's root ca bundle:
-
-```yaml
-apiVersion: gloo.solo.io/v1
-kind: Upstream
-metadata:
-  name: httpbin-httpbin-14001
-  namespace: gloo-system
-spec:
-  sslConfig:
-    sni: "httpbin.httpbin.svc.cluster.local"
-    secretRef:
-      name: osm-ca-bundle
-      namespace: gloo-system
-  kube:
-    selector:
-      app: httpbin
-    serviceName: httpbin
-    serviceNamespace: httpbin
-    servicePort: 14001
-
-```
-
-At this point you can call your Ingress endpoint and get HTTPS traffic from the edge to your OSM service. As a convenience, you can run the following to get your ingress hostname/IP:
-
-```bash
-glooctl proxy url --name ingress-proxy
-```
+Demos for using OSM with other Ingress resources, such as Azure Application Gateway and Gloo Edge, can be found in the [demos folder](https://github.com/openservicemesh/osm/tree/main/docs/content/docs/tasks_usage/traffic_management/demos)
 
 [1]: https://github.com/openservicemesh/osm/blob/release-v0.8/README.md
 [2]: https://kubernetes.github.io/ingress-nginx/
