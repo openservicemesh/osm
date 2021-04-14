@@ -4,11 +4,11 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestNewWorkerPool(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	wp := NewWorkerPool(0)
 
 	assert.Equal(wp.GetWorkerNumber(), runtime.GOMAXPROCS(-1))
@@ -23,6 +23,10 @@ func TestNewWorkerPool(t *testing.T) {
 type testJob struct {
 	jobDone chan struct{}
 	hash    uint64
+}
+
+func (tj *testJob) GetDoneCh() <-chan struct{} {
+	return tj.jobDone
 }
 
 func (tj *testJob) Run() {
@@ -40,7 +44,7 @@ func (tj *testJob) Hash() uint64 {
 
 // Uses AddJob, which relies on job hash for queue assignment
 func TestAddJob(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	njobs := 10 // also worker routines
 	wp := NewWorkerPool(njobs)
@@ -56,7 +60,7 @@ func TestAddJob(t *testing.T) {
 		wp.AddJob(&joblist[i])
 	}
 
-	// Verifiy all jobs ran through the workers
+	// Verify all jobs ran through the workers
 	for i := 0; i < njobs; i++ {
 		<-joblist[i].jobDone
 	}
@@ -71,7 +75,7 @@ func TestAddJob(t *testing.T) {
 
 // Uses AddJobRoundRobin, which relies on round robin for queue assignment
 func TestAddJobRoundRobin(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	njobs := 10 // also worker routines
 	wp := NewWorkerPool(njobs)
@@ -87,7 +91,7 @@ func TestAddJobRoundRobin(t *testing.T) {
 		wp.AddJobRoundRobin(&joblist[i])
 	}
 
-	// Verifiy all jobs ran through the workers
+	// Verify all jobs ran through the workers
 	for i := 0; i < njobs; i++ {
 		<-joblist[i].jobDone
 	}

@@ -4,18 +4,11 @@ import (
 	"strconv"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
-)
-
-const (
-	// ADSUpdateStr is a constant string value to identify full XDS update times on metric labels
-	ADSUpdateStr = "ADS"
 )
 
 // Wrapper to create and send a discovery response to an envoy server
@@ -42,31 +35,12 @@ func (s *Server) sendTypeResponse(typeURI envoy.TypeURI, proxy *envoy.Proxy, ser
 // for, and will have them sent to the proxy server.
 // If no DiscoveryRequest is passed, an empty one for the TypeURI is created
 // TODO(draychev): Convert to variadic function: https://github.com/openservicemesh/osm/issues/3127
-func (s *Server) sendResponse(typeURIsToSend mapset.Set,
-	proxy *envoy.Proxy,
-	server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer,
-	request *xds_discovery.DiscoveryRequest,
-	cfg configurator.Configurator) error {
-	// Order is important: CDS, EDS, LDS, RDS
-	// See: https://github.com/envoyproxy/go-control-plane/issues/59
-	var typesToSend []envoy.TypeURI
-	for _, typeURI := range envoy.XDSResponseOrder {
-		if typeURIsToSend.Contains(typeURI) {
-			typesToSend = append(typesToSend, typeURI)
-		}
-	}
-
-	if len(typesToSend) < 1 {
-		// This should never happen.
-		log.Error().Msg("The list of discovery responses passed to sendResponse() is empty. This is an invalid invocation of sendResponse().")
-		return errors.New("list of discovery responses is empty")
-	}
-
+func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, typeURIsToSend ...envoy.TypeURI) error {
 	thereWereErrors := false
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
-	for _, typeURI := range typesToSend {
+	for _, typeURI := range typeURIsToSend {
 		// A nil request indicates a request for all SDS responses
 		fullUpdateRequested := request == nil || envoy.TypeURI(request.TypeUrl).IsWildcard()
 
@@ -91,7 +65,7 @@ func (s *Server) sendResponse(typeURIsToSend mapset.Set,
 		}
 	}
 
-	isFullUpdate := len(typesToSend) == len(envoy.XDSResponseOrder)
+	isFullUpdate := len(typeURIsToSend) == len(envoy.XDSResponseOrder)
 	if isFullUpdate {
 		success := !thereWereErrors
 		xdsPathTimeTrack(time.Now(), log.Info(), envoy.TypeADS, proxy, success)

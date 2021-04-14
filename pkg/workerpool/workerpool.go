@@ -37,9 +37,17 @@ type WorkerPool struct {
 
 // Job is a runnable interface to queue jobs on a WorkerPool
 type Job interface {
-	JobName() string // Returns name for a job
-	Hash() uint64    // Returns a uint64 hash for a job.
-	Run()            // Executes the job
+	// JobName returns the name of the job.
+	JobName() string
+
+	// Hash returns a uint64 hash for a job.
+	Hash() uint64
+
+	// Run executes the job.
+	Run()
+
+	// GetDoneCh returns the channel, which when closed, indicates that the job was finished.
+	GetDoneCh() <-chan struct{}
 }
 
 // NewWorkerPool creates a new work group.
@@ -76,8 +84,9 @@ func NewWorkerPool(nWorkers int) *WorkerPool {
 
 // AddJob posts the job on a worker queue
 // Uses Hash underneath to choose worker to post the job to
-func (wp *WorkerPool) AddJob(jobs Job) {
-	wp.workerContext[jobs.Hash()%wp.nWorkers].jobs <- jobs
+func (wp *WorkerPool) AddJob(job Job) <-chan struct{} {
+	wp.workerContext[job.Hash()%wp.nWorkers].jobs <- job
+	return job.GetDoneCh()
 }
 
 // AddJobRoundRobin adds a job in round robin to the queues
