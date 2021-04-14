@@ -112,14 +112,19 @@ After installing OSM, [onboard a microservice application](docs/content/docs/tas
 1. [Certificates](docs/content/docs/tasks_usage/certificates.md)
 1. [Sidecar Injection](docs/content/docs/tasks_usage/sidecar_injection.md)
 
+
 ## Community
 
 Connect with the Open Service Mesh community:
 
 - GitHub [issues](https://github.com/openservicemesh/osm/issues) and [pull requests](https://github.com/openservicemesh/osm/pulls) in this repo
 - OSM Slack: <a href="https://slack.cncf.io/">Join</a> the CNCF Slack for related discussions in <a href="https://cloud-native.slack.com/archives/C018794NV1C">#openservicemesh</a>
-- Public Community Call: OSM Community calls take place on the [second Tuesday of each month, 10:30am-11am Pacific](https://calendar.google.com/calendar?cid=Y181dXJwY3F0NWd2OW5ldXE2c2IxM2hvcnN2Z0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t) in the [CNCF OSM Zoom room](https://zoom.us/my/cncfosm?pwd=aXdkaGU3OWRjUllyaHZEZkh0ZjFwUT09) - notes available in [Open Service Mesh (OSM) Community Meeting Notes](https://docs.google.com/document/d/1da-XIqthmyG7zQyFAV1Kt-Qvq4NoNNBX7hZ_sM_kM98/edit?usp=sharing)
+- OSM Community meetings take place on the second Tuesday of each month, 10:30am-11am Pacific in the [CNCF OSM Zoom room](https://zoom.us/my/cncfosm?pwd=aXdkaGU3OWRjUllyaHZEZkh0ZjFwUT09)
+  - [Calendar invite](https://calendar.google.com/calendar?cid=Y181dXJwY3F0NWd2OW5ldXE2c2IxM2hvcnN2Z0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t)
+  - [Meeting notes](https://docs.google.com/document/d/1da-XIqthmyG7zQyFAV1Kt-Qvq4NoNNBX7hZ_sM_kM98/edit?usp=sharing)
+  - [CNCF YouTube Playlist for OSM community meetings](https://www.youtube.com/playlist?list=PLMy1gNP8pzh53-ScOG8i1BQW5cvAGkF0X)
 - [Mailing list](https://groups.google.com/g/openservicemesh)
+
 
 ## Development Guide
 
