@@ -12,7 +12,7 @@ func TestWhichNotEqual(t *testing.T) {
 	listOfAlpha := Which{"a", "a"}
 	listOfStuff := Which{"a", "b"}
 
-	assertion.Equal(listOfAlpha.NotEqual("a"), []string{})
+	assertion.Nil(listOfAlpha.NotEqual("a"))
 	assertion.Equal(listOfAlpha.NotEqual("b"), []string{"a", "a"})
 	assertion.Equal(listOfStuff.NotEqual("a"), []string{"b"})
 }
