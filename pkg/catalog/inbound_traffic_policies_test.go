@@ -1168,7 +1168,7 @@ func TestRoutesFromRules(t *testing.T) {
 				},
 			},
 			namespace:      tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRouteMatch{},
+			expectedRoutes: nil,
 		},
 	}
 
