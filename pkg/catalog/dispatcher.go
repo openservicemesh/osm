@@ -64,10 +64,8 @@ func (mc *MeshCatalog) dispatcher() {
 	for {
 		select {
 		case message := <-subChannel:
-
-			// New message from pubsub
-			psubMessage, castOk := message.(events.PubSubMessage)
-			if !castOk {
+			psubMessage, ok := message.(events.PubSubMessage)
+			if !ok {
 				log.Error().Msgf("Error casting PubSubMessage: %v", psubMessage)
 				continue
 			}
