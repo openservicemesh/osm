@@ -2,6 +2,7 @@
 package identity
 
 // ServiceIdentity is the type used to represent the identity for a service
+// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
 type ServiceIdentity string
 
 // String returns the ServiceIdentity as a string
