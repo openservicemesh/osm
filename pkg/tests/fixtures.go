@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"

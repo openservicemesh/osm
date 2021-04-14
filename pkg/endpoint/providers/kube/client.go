@@ -3,6 +3,8 @@ package kube
 import (
 	"net"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

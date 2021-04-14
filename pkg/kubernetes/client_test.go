@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"

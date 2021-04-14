@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"

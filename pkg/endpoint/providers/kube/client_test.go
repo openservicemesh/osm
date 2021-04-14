@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"

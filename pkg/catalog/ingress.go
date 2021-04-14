@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 

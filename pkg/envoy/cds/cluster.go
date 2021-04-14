@@ -3,6 +3,8 @@ package cds
 import (
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"

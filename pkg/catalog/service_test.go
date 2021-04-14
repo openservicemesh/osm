@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"

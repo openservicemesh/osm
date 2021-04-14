@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"

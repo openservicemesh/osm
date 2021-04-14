@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

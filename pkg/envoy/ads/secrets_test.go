@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"

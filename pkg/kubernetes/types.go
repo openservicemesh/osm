@@ -5,6 +5,8 @@ package kubernetes
 import (
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"

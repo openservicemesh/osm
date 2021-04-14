@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/onsi/ginkgo"
