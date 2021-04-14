@@ -11,8 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -29,8 +29,8 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 
 	testCases := []struct {
 		trafficTargets             []*smiAccess.TrafficTarget
-		svcAccount                 service.K8sServiceAccount
-		expectedInboundSvcAccounts []service.K8sServiceAccount
+		svcAccount                 identity.K8sServiceAccount
+		expectedInboundSvcAccounts []identity.K8sServiceAccount
 		expectError                bool
 	}{
 		// Test case 1 begin ------------------------------------
@@ -84,13 +84,13 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
 
 			// allowed inbound service accounts: 1 match
-			[]service.K8sServiceAccount{
+			[]identity.K8sServiceAccount{
 				{
 					Name:      "sa-1",
 					Namespace: "ns-1",
@@ -130,7 +130,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
@@ -171,7 +171,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
@@ -208,8 +208,8 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 
 	testCases := []struct {
 		trafficTargets              []*smiAccess.TrafficTarget
-		svcAccount                  service.K8sServiceAccount
-		expectedOutboundSvcAccounts []service.K8sServiceAccount
+		svcAccount                  identity.K8sServiceAccount
+		expectedOutboundSvcAccounts []identity.K8sServiceAccount
 		expectError                 bool
 	}{
 		// Test case 1 begin ------------------------------------
@@ -263,13 +263,13 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
 
 			// allowed inbound service accounts: 2 matches
-			[]service.K8sServiceAccount{
+			[]identity.K8sServiceAccount{
 				{
 					Name:      "sa-2",
 					Namespace: "ns-2",
@@ -313,7 +313,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
@@ -354,7 +354,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
@@ -384,7 +384,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 
 	testCases := []struct {
 		identity               smiAccess.IdentityBindingSubject
-		expectedServiceAccount service.K8sServiceAccount
+		expectedServiceAccount identity.K8sServiceAccount
 	}{
 		{
 			smiAccess.IdentityBindingSubject{
@@ -392,7 +392,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
@@ -403,7 +403,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
@@ -433,7 +433,7 @@ func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 		},
 	}
 
-	expected := []service.K8sServiceAccount{
+	expected := []identity.K8sServiceAccount{
 		{
 			Name:      "example1",
 			Namespace: "default1",
@@ -457,7 +457,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 		name               string
 		trafficTargets     []*smiAccess.TrafficTarget
 		tcpRoutes          map[string]*smiSpecs.TCPRoute
-		upstreamSvcAccount service.K8sServiceAccount
+		upstreamSvcAccount identity.K8sServiceAccount
 
 		expectedTrafficTargets []trafficpolicy.TrafficTargetWithRoutes
 		expectError            bool
@@ -512,7 +512,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamSvcAccount: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -599,7 +599,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamSvcAccount: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -747,7 +747,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamSvcAccount: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -834,7 +834,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamSvcAccount: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{

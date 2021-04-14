@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	service "github.com/openservicemesh/osm/pkg/service"
+	identity "github.com/openservicemesh/osm/pkg/identity"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -66,10 +66,10 @@ func (mr *MockMeshSpecMockRecorder) ListHTTPTrafficSpecs() *gomock.Call {
 }
 
 // ListServiceAccounts mocks base method
-func (m *MockMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
+func (m *MockMeshSpec) ListServiceAccounts() []identity.K8sServiceAccount {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceAccounts")
-	ret0, _ := ret[0].([]service.K8sServiceAccount)
+	ret0, _ := ret[0].([]identity.K8sServiceAccount)
 	return ret0
 }
 

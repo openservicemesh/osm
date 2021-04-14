@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
+
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -32,7 +32,7 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 	var principalRuleList []rbac.RulesList
 	for downstream := range rule.AllowedServiceAccounts.Iter() {
 		var principalRule rbac.RulesList
-		downstreamIdentity := downstream.(service.K8sServiceAccount)
+		downstreamIdentity := downstream.(identity.K8sServiceAccount)
 
 		if downstreamIdentity.IsEmpty() {
 			// When the downstream identity in a traffic policy rule is set to be empty, it implies

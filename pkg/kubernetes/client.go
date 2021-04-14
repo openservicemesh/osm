@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -266,8 +267,8 @@ func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 }
 
 // ListServiceAccountsForService lists ServiceAccounts associated with the given service
-func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error) {
-	var svcAccounts []service.K8sServiceAccount
+func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+	var svcAccounts []identity.K8sServiceAccount
 
 	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
@@ -284,7 +285,7 @@ func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]servic
 			continue
 		}
 		if selector.Matches(labels.Set(pod.Labels)) {
-			podSvcAccount := service.K8sServiceAccount{
+			podSvcAccount := identity.K8sServiceAccount{
 				Name:      pod.Spec.ServiceAccountName,
 				Namespace: pod.Namespace, // ServiceAccount must belong to the same namespace as the pod
 			}
@@ -293,7 +294,7 @@ func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]servic
 	}
 
 	for svcAcc := range svcAccountsSet.Iter() {
-		svcAccounts = append(svcAccounts, svcAcc.(service.K8sServiceAccount))
+		svcAccounts = append(svcAccounts, svcAcc.(identity.K8sServiceAccount))
 	}
 	return svcAccounts, nil
 }

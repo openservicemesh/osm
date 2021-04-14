@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -58,11 +59,11 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		proxyIdentity            service.K8sServiceAccount
+		proxyIdentity            identity.K8sServiceAccount
 		upstreamSvc              service.MeshService
 		trafficTargets           []*access.TrafficTarget
 		services                 []service.MeshService
-		outboundServices         map[service.K8sServiceAccount][]service.MeshService
+		outboundServices         map[identity.K8sServiceAccount][]service.MeshService
 		outboundServiceEndpoints map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints        []endpoint.Endpoint
 	}{
@@ -74,7 +75,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV1Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
@@ -91,7 +92,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
@@ -112,7 +113,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
+			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
 				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
 				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
 			},

@@ -14,9 +14,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -271,6 +271,6 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 		return false
 	}
 
-	identityForCN := service.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
+	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
 	return identityForCN == proxyIdentity
 }

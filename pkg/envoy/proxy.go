@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	service "github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -50,7 +50,7 @@ type PodMetadata struct {
 	Name           string
 	Namespace      string
 	IP             string
-	ServiceAccount service.K8sServiceAccount
+	ServiceAccount identity.K8sServiceAccount
 	Cluster        string
 	EnvoyNodeID    string
 	WorkloadKind   string

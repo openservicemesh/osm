@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -160,8 +161,8 @@ func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace
 }
 
 // GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
-func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (service.K8sServiceAccount, error) {
-	var svcAccount service.K8sServiceAccount
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (identity.K8sServiceAccount, error) {
+	var svcAccount identity.K8sServiceAccount
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return svcAccount, err
