@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const (
@@ -18,15 +20,49 @@ var (
 )
 
 // ServiceIdentity is the type used to represent the identity for a service
-// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
-type ServiceIdentity string
+type ServiceIdentity struct {
+	kind ServiceIdentityKind
 
-// String returns the ServiceIdentity as a string
-func (si ServiceIdentity) String() string {
-	return string(si)
+	// serviceAccount is only used when the kind of ServiceIdentity is KubernetesServiceAccount
+	serviceAccount K8sServiceAccount
+	trustDomain    string
 }
 
-// K8sServiceAccount is a type for a namespaced service account
+type ServiceIdentityKind string
+
+const (
+	// KubernetesServiceAccount is a ServiceIdentity derived from a Kubernetes Service Account on a specific cluster
+	KubernetesServiceAccount ServiceIdentityKind = "kubernetes-service-account"
+)
+
+// String returns the ServiceIdentity as a string
+// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
+func (si ServiceIdentity) String() string {
+	if si.kind != KubernetesServiceAccount {
+		panic(fmt.Sprintf("ServiceIdentity kind %q is not implemented", si.kind))
+	}
+	return fmt.Sprintf("%s.%s.%s", si.serviceAccount.Name, si.serviceAccount.Namespace, si.trustDomain)
+}
+
+// GetCertificateCommonName returns a certificate CommonName compliant with RFC-1123 (https://tools.ietf.org/html/rfc1123) DNS name.
+func (si ServiceIdentity) GetCertificateCommonName() certificate.CommonName {
+	return certificate.CommonName(si.String())
+}
+
+// Deprecated:ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
+func (si ServiceIdentity) ToK8sServiceAccount() K8sServiceAccount {
+	// By convention as of release-v0.8 ServiceIdentity is in the format: <ServiceAccount>.<Namespace>.cluster.local
+	// We can split by "." and will have service account in the first position and namespace in the second.
+	chunks := strings.Split(si.String(), ".")
+	name := chunks[0]
+	namespace := chunks[1]
+	return K8sServiceAccount{
+		Namespace: namespace,
+		Name:      name,
+	}
+}
+
+// Deprecated:K8sServiceAccount is a type for a namespaced service account
 type K8sServiceAccount struct {
 	Namespace string
 	Name      string
@@ -40,6 +76,18 @@ func (sa K8sServiceAccount) String() string {
 // IsEmpty returns true if the given service account object is empty
 func (sa K8sServiceAccount) IsEmpty() bool {
 	return (K8sServiceAccount{}) == sa
+}
+
+// ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
+func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
+	return ServiceIdentity{
+		kind: KubernetesServiceAccount,
+		serviceAccount: K8sServiceAccount{
+			Name:      sa.Name,
+			Namespace: sa.Namespace,
+		},
+		trustDomain: ClusterLocalTrustDomain,
+	}
 }
 
 // UnmarshalK8sServiceAccount unmarshals a K8sServiceAccount type from a string

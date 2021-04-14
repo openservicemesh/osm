@@ -31,6 +31,17 @@ var _ = Describe("Test pkg/service functions", func() {
 			Expect(sa.IsEmpty()).To(BeFalse())
 			Expect(K8sServiceAccount{}.IsEmpty()).To(BeTrue())
 		})
+
+		It("implements ToServiceIdentity() correctly", func() {
+			expected := ServiceIdentity(fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace))
+			Expect(sa.ToServiceIdentity()).To(Equal(expected))
+		})
+
+		It("implements ServiceIdentity.ToK8sServiceAccount() correctly", func() {
+			serviceIdent := ServiceIdentity(fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace))
+			expectedServiceAccount := sa
+			Expect(serviceIdent.ToK8sServiceAccount()).To(Equal(expectedServiceAccount))
+		})
 	})
 })
 
