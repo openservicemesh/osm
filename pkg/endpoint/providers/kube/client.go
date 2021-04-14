@@ -69,8 +69,14 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 }
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-func (c Client) ListEndpointsForIdentity(sa identity.K8sServiceAccount) []endpoint.Endpoint {
-	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
+func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+	sa, err := serviceIdentity.GetKubernetesServiceAccount()
+	if err != nil {
+		log.Err(err).Msgf("Error getting the Kubernetes Service Account for Service Identity %s", serviceIdentity)
+		return nil
+	}
+
+	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, serviceIdentity)
 	var endpoints []endpoint.Endpoint
 
 	podList := c.kubeController.ListPods()

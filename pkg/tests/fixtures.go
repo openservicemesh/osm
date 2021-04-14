@@ -295,11 +295,15 @@ var (
 		Name:      BookstoreServiceAccountName,
 	}
 
+	BookstoreServiceIdentity = BookstoreServiceAccount.ToServiceIdentity()
+
 	// BookstoreV2ServiceAccount is a namespaced service account.
 	BookstoreV2ServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreV2ServiceAccountName,
 	}
+
+	BookstoreV2ServiceIdentity = BookstoreV2ServiceAccount.ToServiceIdentity()
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
 	BookbuyerServiceAccount = identity.K8sServiceAccount{

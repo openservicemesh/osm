@@ -63,7 +63,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 		upstreamSvc              service.MeshService
 		trafficTargets           []*access.TrafficTarget
 		services                 []service.MeshService
-		outboundServices         map[identity.K8sServiceAccount][]service.MeshService
+		outboundServices         map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints        []endpoint.Endpoint
 	}{
@@ -75,8 +75,8 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV1Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -92,8 +92,8 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service, tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -113,9 +113,9 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
-				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},

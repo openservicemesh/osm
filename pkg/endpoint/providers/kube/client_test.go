@@ -693,7 +693,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			}
 			mockKubeController.EXPECT().ListPods().Return(pods).AnyTimes()
 
-			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
+			actual := provider.ListEndpointsForIdentity(tc.serviceAccount.ToServiceIdentity())
 			assert.NotNil(actual)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})

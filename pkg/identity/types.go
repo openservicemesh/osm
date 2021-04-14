@@ -2,7 +2,6 @@
 package identity
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -11,16 +10,11 @@ import (
 )
 
 const (
-	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string or vice versa
+	// namespaceNameSeparator used for marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
 )
 
 var log = logger.New("identity")
-
-var (
-	// ErrInvalidServiceAccountStringFormat is an error returned when the K8sServiceAccount string cannot be parsed (is invalid for some reason)
-	ErrInvalidServiceAccountStringFormat = errors.New("invalid namespaced service string format")
-)
 
 // ServiceIdentity is the type used to represent the identity for a service
 type ServiceIdentity struct {
@@ -97,13 +91,13 @@ func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
 func UnmarshalK8sServiceAccount(str string) (*K8sServiceAccount, error) {
 	slices := strings.Split(str, namespaceNameSeparator)
 	if len(slices) != 2 {
-		return nil, ErrInvalidServiceAccountStringFormat
+		return nil, ErrInvalidNamespacedServiceStringFormat
 	}
 
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
-			return nil, ErrInvalidServiceAccountStringFormat
+			return nil, ErrInvalidNamespacedServiceStringFormat
 		}
 	}
 

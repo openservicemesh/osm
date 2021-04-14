@@ -16,3 +16,10 @@ func NewFromKubernetesServiceAccount(svcAccount K8sServiceAccount, trustDomain s
 		trustDomain: trustDomain,
 	}
 }
+
+func (si ServiceIdentity) GetKubernetesServiceAccount() (K8sServiceAccount, error) {
+	if si.kind != KubernetesServiceAccount {
+		return K8sServiceAccount{}, ErrNotAKubernetesServiceAccount
+	}
+	return si.serviceAccount, nil
+}
