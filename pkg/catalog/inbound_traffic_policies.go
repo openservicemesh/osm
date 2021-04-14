@@ -22,7 +22,7 @@ const (
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		for _, svc := range upstreamServices {
 			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
 		}
@@ -38,7 +38,7 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sSe
 // listInboundPoliciesFromTrafficTargets builds inbound traffic policies for all inbound services
 // when the given service account matches a destination in the Traffic Target resource
 func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
@@ -61,7 +61,7 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity se
 // 1. the given upstream identity matches the destination specified in a TrafficTarget resource
 // 2. the given list of upstream services are backends specified in a TrafficSplit resource
 func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
@@ -109,7 +109,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 }
 
 func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
@@ -141,7 +141,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 }
 
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	hostnames, err := mc.getServiceHostnames(svc, true)
 	if err != nil {
@@ -163,7 +163,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
 //	http route matches (trafficpolicy.HTTPRouteMatch)
 func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
-	routes := []trafficpolicy.HTTPRouteMatch{}
+	var routes []trafficpolicy.HTTPRouteMatch
 
 	specMatchRoute, err := mc.getHTTPPathsPerRoute() // returns map[traffic_spec_name]map[match_name]trafficpolicy.HTTPRoute
 	if err != nil {

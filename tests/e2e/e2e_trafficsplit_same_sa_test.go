@@ -38,9 +38,9 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 			numberOfServerServices := 5
 			serverReplicaSet := 2
 
-			clientServices := []string{}
-			serverServices := []string{}
-			allNamespaces := []string{}
+			var clientServices []string
+			var serverServices []string
+			var allNamespaces []string
 
 			for i := 0; i < numberOfClientServices; i++ {
 				clientServices = append(clientServices, fmt.Sprintf("%s%d", clientAppBaseName, i))

@@ -63,7 +63,7 @@ func buildIngressPolicyName(name, namespace, host string) string {
 
 // getIngressPoliciesNetworkingV1beta1 returns the list of inbound traffic policies associated with networking.k8s.io/v1beta1 ingress resources for the given service
 func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
-	inboundIngressPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundIngressPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	ingresses, err := mc.ingressMonitor.GetIngressNetworkingV1beta1(svc)
 	if err != nil {
@@ -152,7 +152,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 
 // getIngressPoliciesNetworkingV1 returns the list of inbound traffic policies associated with networking.k8s.io/v1 ingress resources for the given service
 func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
-	inboundIngressPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundIngressPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	ingresses, err := mc.ingressMonitor.GetIngressNetworkingV1(svc)
 	if err != nil {

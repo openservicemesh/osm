@@ -30,7 +30,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	ldsResources := []types.Resource{}
+	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
 	if featureflags.IsWASMStatsEnabled() {

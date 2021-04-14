@@ -33,7 +33,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 		svcAccount:  svcAccount,
 	}
 
-	sdsResources := []types.Resource{}
+	var sdsResources []types.Resource
 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames

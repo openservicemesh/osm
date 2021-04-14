@@ -184,7 +184,7 @@ func (sd *DataHandle) OutputIteration(iterNumber int, f *os.File) {
 
 	sd.IterateTrackedPods(func(pod *corev1.Pod) {
 		for _, cont := range pod.Spec.Containers {
-			tableRow := []string{}
+			var tableRow []string
 
 			resSeen := Resource{
 				Namespace:     pod.Namespace,
@@ -229,7 +229,7 @@ func (sd *DataHandle) OutputIterationTable(f *os.File) {
 	// Print all iteration information for all seen resources
 	table := tablewriter.NewWriter(f)
 	header := []string{"It", "Duration", "NPods"}
-	rows := [][]string{}
+	var rows [][]string
 
 	// Set up columns "It", "Duration", "NPods"
 	var prevItDuration time.Duration

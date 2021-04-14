@@ -16,7 +16,7 @@ import (
 // 2. for the given service account from SMI Traffic Target and Traffic Split
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
 		outboundPolicies = mergedPolicies
 		return outboundPolicies
@@ -32,7 +32,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
 // when the given service account matches a source in the Traffic Target resource
 func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
-	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
@@ -51,7 +51,7 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 }
 
 func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
-	outboundPoliciesFromSplits := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outboundPoliciesFromSplits []*trafficpolicy.OutboundTrafficPolicy
 
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
@@ -67,7 +67,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		}
 		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
 
-		weightedClusters := []service.WeightedCluster{}
+		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
 			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
 			wc := service.WeightedCluster{
@@ -124,7 +124,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 }
 
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
-	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	k8sServices := mc.kubeController.ListServices()
 	var destServices []service.MeshService
@@ -151,7 +151,7 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 }
 
 func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
-	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)

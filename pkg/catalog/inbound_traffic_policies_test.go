@@ -340,7 +340,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				configurator:       mockConfigurator,
 			}
 
-			services := []*corev1.Service{}
+			var services []*corev1.Service
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
@@ -350,7 +350,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			if tc.permissiveMode {
-				serviceAccounts := []*corev1.ServiceAccount{}
+				var serviceAccounts []*corev1.ServiceAccount
 				for _, sa := range tc.meshServiceAccounts {
 					k8sSvcAccount := tests.NewServiceAccountFixture(sa.Name, sa.Namespace)
 					serviceAccounts = append(serviceAccounts, k8sSvcAccount)

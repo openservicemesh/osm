@@ -265,7 +265,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
 			}
 
-			services := []*corev1.Service{}
+			var services []*corev1.Service
 			for _, ms := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(ms).Return(k8sService).AnyTimes()
@@ -273,7 +273,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			}
 
 			if tc.permissiveMode {
-				serviceAccounts := []*corev1.ServiceAccount{}
+				var serviceAccounts []*corev1.ServiceAccount
 				for _, sa := range tc.meshServiceAccounts {
 					k8sSvcAccount := tests.NewServiceAccountFixture(sa.Name, sa.Namespace)
 					serviceAccounts = append(serviceAccounts, k8sSvcAccount)
@@ -761,7 +761,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k8sServices := []*corev1.Service{}
+			var k8sServices []*corev1.Service
 
 			for name, namespace := range tc.services {
 				svcFixture := tests.NewServiceFixture(name, namespace, map[string]string{})

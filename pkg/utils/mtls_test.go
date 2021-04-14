@@ -37,7 +37,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	goodCertPem := adsCert.GetCertificateChain()
 	goodKeyPem := adsCert.GetPrivateKey()
 	goodCA := adsCert.GetIssuingCA()
-	emptyByteArray := []byte{}
+	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{
 		{emptyByteArray, goodKeyPem, goodCA, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key "},

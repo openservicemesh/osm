@@ -544,7 +544,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedSvcAccounts := []service.K8sServiceAccount{}
+			var expectedSvcAccounts []service.K8sServiceAccount
 			Expect(svcAccounts).Should(HaveLen(0))
 			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
 		})
