@@ -43,8 +43,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 	// 1. Issue a service certificate for this proxy
 	// OSM currently relies on kubernetes ServiceAccount for service identity
-	si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
-	cert, err := certManager.IssueCertificate(certificate.CommonName(si), cfg.GetServiceCertValidityPeriod())
+	si := identity.NewFromKubernetesServiceAccount(svcAccount, identity.ClusterLocalTrustDomain)
+	cert, err := certManager.IssueCertificate(si.GetCertificateCommonName(), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing a certificate for proxy with certificate SerialNumber=%s", proxy.GetCertificateSerialNumber())
 		return nil, err
@@ -202,7 +202,7 @@ func getSubjectAltNamesFromSvcAccount(svcAccounts []identity.K8sServiceAccount) 
 
 	for _, svcAccount := range svcAccounts {
 		// OSM currently relies on kubernetes ServiceAccount for service identity
-		si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+		si := identity.NewFromKubernetesServiceAccount(svcAccount, identity.ClusterLocalTrustDomain)
 		match := xds_matcher.StringMatcher{
 			MatchPattern: &xds_matcher.StringMatcher_Exact{
 				Exact: si.String(),

@@ -33,12 +33,14 @@ var _ = Describe("Test pkg/service functions", func() {
 		})
 
 		It("implements ToServiceIdentity() correctly", func() {
-			expected := ServiceIdentity(fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace))
+			fqdn := fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace)
+			expected, _ := NewFromRFC1123(fqdn, KubernetesServiceAccount)
 			Expect(sa.ToServiceIdentity()).To(Equal(expected))
 		})
 
 		It("implements ServiceIdentity.ToK8sServiceAccount() correctly", func() {
-			serviceIdent := ServiceIdentity(fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace))
+			fqdn := fmt.Sprintf("%s.%s.cluster.local", serviceAccountName, namespace)
+			serviceIdent, _ := NewFromRFC1123(fqdn, KubernetesServiceAccount)
 			expectedServiceAccount := sa
 			Expect(serviceIdent.ToK8sServiceAccount()).To(Equal(expectedServiceAccount))
 		})

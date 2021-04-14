@@ -10,7 +10,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -39,7 +38,7 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 
 // buildInboundRBACPolicies builds the RBAC policies based on allowed principals
 func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, error) {
-	proxyIdentity := identity.ServiceIdentity(lb.svcAccount.String())
+	proxyIdentity := lb.svcAccount.ToServiceIdentity()
 	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.svcAccount)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)

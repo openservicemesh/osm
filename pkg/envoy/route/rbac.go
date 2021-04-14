@@ -43,7 +43,7 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 			// The downstream principal in an RBAC policy is an authenticated principal type, which
 			// means the principal must correspond to the fully qualified SAN in the certificate presented
 			// by the downstream.
-			downstreamPrincipal := identity.GetKubernetesServiceIdentity(downstreamIdentity, identity.ClusterLocalTrustDomain)
+			downstreamPrincipal := identity.NewFromKubernetesServiceAccount(downstreamIdentity, identity.ClusterLocalTrustDomain)
 			principalRule = rbac.RulesList{
 				OrRules: []rbac.Rule{
 					{Attribute: rbac.DownstreamAuthPrincipal, Value: downstreamPrincipal.String()},

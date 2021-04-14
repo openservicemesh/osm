@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
-	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -32,10 +30,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target without TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+					identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 				},
 				TCPRouteMatches: nil,
 			},
@@ -75,10 +73,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target with TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+					identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
@@ -174,10 +172,10 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -194,17 +192,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-4.ns-2.cluster.local"),
 					},
 				},
 			},
@@ -260,10 +258,10 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -278,17 +276,17 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.NewFromServiceAccountString("sa-2.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-3.ns-3.cluster.local"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.NewFromServiceAccountString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.NewFromServiceAccountString("sa-4.ns-2.cluster.local"),
 					},
 				},
 			},

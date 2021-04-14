@@ -7,12 +7,15 @@ import (
 	"strings"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
 )
+
+var log = logger.New("identity")
 
 var (
 	// ErrInvalidServiceAccountStringFormat is an error returned when the K8sServiceAccount string cannot be parsed (is invalid for some reason)
