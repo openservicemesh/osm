@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"

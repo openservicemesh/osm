@@ -7,8 +7,6 @@ package catalog
 import (
 	reflect "reflect"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"

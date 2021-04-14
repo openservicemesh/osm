@@ -6,8 +6,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"

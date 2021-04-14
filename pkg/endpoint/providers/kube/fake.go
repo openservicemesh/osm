@@ -3,8 +3,6 @@ package kube
 import (
 	"fmt"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"

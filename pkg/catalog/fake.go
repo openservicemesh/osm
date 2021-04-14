@@ -3,8 +3,6 @@ package catalog
 import (
 	"context"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"

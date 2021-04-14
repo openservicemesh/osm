@@ -3,8 +3,6 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"

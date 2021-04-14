@@ -2,7 +2,6 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"istio.io/pkg/log"
 
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"

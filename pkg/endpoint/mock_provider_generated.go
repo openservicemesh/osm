@@ -7,8 +7,6 @@ package endpoint
 import (
 	reflect "reflect"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	gomock "github.com/golang/mock/gomock"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"

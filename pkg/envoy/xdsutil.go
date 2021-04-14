@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"

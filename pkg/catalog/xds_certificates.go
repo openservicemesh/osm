@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"

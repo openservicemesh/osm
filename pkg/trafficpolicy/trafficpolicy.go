@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 

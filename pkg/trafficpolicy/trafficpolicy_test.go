@@ -3,8 +3,6 @@ package trafficpolicy
 import (
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
 
