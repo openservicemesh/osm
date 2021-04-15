@@ -35,8 +35,8 @@ type cacheCollection struct {
 	TrafficTarget  cache.Store
 }
 
-// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
-type Client struct {
+// client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
+type client struct {
 	caches         *cacheCollection
 	cacheSynced    chan interface{}
 	providerIdent  string
