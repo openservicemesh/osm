@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
@@ -18,17 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/utils"
-)
-
-var (
-	// allDS represents all xDS paths expressed as TypeURLs. Used to issue updates
-	// on all paths for a given proxy.
-	allDS = mapset.NewSetWith(
-		envoy.TypeCDS,
-		envoy.TypeEDS,
-		envoy.TypeLDS,
-		envoy.TypeRDS,
-		envoy.TypeSDS)
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
@@ -77,15 +65,19 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,
 	// which will get triggered by the dispatcher anyway
-	err = s.sendResponse(mapset.NewSetWith(
-		envoy.TypeCDS,
-		envoy.TypeEDS,
-		envoy.TypeLDS,
-		envoy.TypeRDS,
-		envoy.TypeSDS),
-		proxy, &server, nil, s.cfg)
-	if err != nil {
+	if err = s.sendResponse(proxy, &server, nil, s.cfg, envoy.XDSResponseOrder...); err != nil {
 		log.Error().Err(err).Msgf("Initial sendResponse for proxy %s returned error", proxy.GetCertificateSerialNumber())
+	}
+
+	newJob := func(typeURIs []envoy.TypeURI, discoveryRequest *xds_discovery.DiscoveryRequest) *proxyResponseJob {
+		return &proxyResponseJob{
+			typeURIs:  typeURIs,
+			proxy:     proxy,
+			adsStream: &server,
+			request:   discoveryRequest,
+			xdsServer: s,
+			done:      make(chan struct{}),
+		}
 	}
 
 	for {
@@ -186,69 +178,28 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			log.Info().Msgf("Discovery request <%s> for resources (%v) from Envoy UID=<%s> with Nonce=%s",
 				xdsShortName, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 
-			var xdsUpdatePaths mapset.Set
-			switch typeURL {
-			case envoy.TypeWildcard:
-				xdsUpdatePaths = allDS
-			default:
-				xdsUpdatePaths = mapset.NewSetWith(typeURL)
+			ds := []envoy.TypeURI{typeURL}
+			if typeURL == envoy.TypeWildcard {
+				ds = envoy.XDSResponseOrder
 			}
-
-			// Queue a response job for the request
-			job := proxyResponseJob{
-				typeurls:  xdsUpdatePaths,
-				proxy:     proxy,
-				cfg:       s.cfg,
-				adsStream: &server,
-				request:   &discoveryRequest,
-				xdsServer: s,
-				done:      make(chan struct{}),
-			}
-			s.workqueues.AddJob(&job)
-
-			// Wait for job to complete
-			<-job.done
+			<-s.workqueues.AddJob(newJob(ds, &discoveryRequest))
 
 		case <-broadcastUpdate:
 			log.Info().Msgf("Broadcast wake for Proxy SerialNumber=%s UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 			// Queue a full configuration update
-			job := proxyResponseJob{
-				typeurls:  allDS,
-				proxy:     proxy,
-				cfg:       s.cfg,
-				adsStream: &server,
-				request:   nil,
-				xdsServer: s,
-				done:      make(chan struct{}),
-			}
-			s.workqueues.AddJob(&job)
-
-			// Wait for job to complete
-			<-job.done
+			<-s.workqueues.AddJob(newJob(envoy.XDSResponseOrder, nil))
 
 		case certUpdateMsg := <-certAnnouncement:
-			certificate := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
-			if isCNforProxy(proxy, certificate.GetCommonName()) {
+			cert := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+			if isCNforProxy(proxy, cert.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
 				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 				// Empty DiscoveryRequest should create the SDS specific request
-				// Prepare to queue the SDS proxy response job on the workerpool
-				job := proxyResponseJob{
-					typeurls:  mapset.NewSetWith(envoy.TypeSDS),
-					proxy:     proxy,
-					cfg:       s.cfg,
-					adsStream: &server,
-					request:   nil,
-					xdsServer: s,
-					done:      make(chan struct{}),
-				}
-				s.workqueues.AddJob(&job)
-
-				// Wait for job to complete
-				<-job.done
+				// Prepare to queue the SDS proxy response job on the worker pool
+				<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeSDS}, nil))
 			}
 		}
 	}
