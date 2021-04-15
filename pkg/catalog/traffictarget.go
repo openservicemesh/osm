@@ -26,8 +26,8 @@ func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream identity.K8sSe
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
-// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given downstream service account can connect to
-func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
+// ListAllowedOutboundServiceIdentities lists the upstream service identities the given downstream service account can connect to
+func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
