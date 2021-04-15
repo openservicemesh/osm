@@ -19,8 +19,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	a "github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // We have a few different k8s clients. This identifies these in logs.
@@ -229,8 +229,8 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 }
 
 // ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
-func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
-	var serviceAccounts []service.K8sServiceAccount
+func (c *Client) ListServiceAccounts() []identity.K8sServiceAccount {
+	var serviceAccounts []identity.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
@@ -240,7 +240,7 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
-			namespacedServiceAccount := service.K8sServiceAccount{
+			namespacedServiceAccount := identity.K8sServiceAccount{
 				Namespace: sources.Namespace,
 				Name:      sources.Name,
 			}
@@ -252,7 +252,7 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
-		namespacedServiceAccount := service.K8sServiceAccount{
+		namespacedServiceAccount := identity.K8sServiceAccount{
 			Namespace: trafficTarget.Spec.Destination.Namespace,
 			Name:      trafficTarget.Spec.Destination.Name,
 		}

@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -60,7 +61,7 @@ func (rwc *RouteWeightedClusters) TotalClustersWeight() int {
 // AddRule adds a Rule to an InboundTrafficPolicy based on the given HTTP route match, weighted cluster, and allowed service account
 //	parameters. If a Rule for the given HTTP route match exists, it will add the given service account to the Rule. If the the given route
 //	match is not already associated with a Rule, it will create a Rule for the given route and service account.
-func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServiceAccount service.K8sServiceAccount) {
+func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServiceAccount identity.K8sServiceAccount) {
 	routeExists := false
 	for _, rule := range in.Rules {
 		if reflect.DeepEqual(rule.Route, route) {
@@ -211,7 +212,7 @@ func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedCl
 // slicesUnionIfSubset returns the union of the two slices if either slices is a subset of the other
 func slicesUnionIfSubset(first, second []string) []string {
 	areSubsets := false
-	unionSlice := []string{}
+	var unionSlice []string
 	firstIntf := convertToInterface(first)
 	secondIntf := convertToInterface(second)
 

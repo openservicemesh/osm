@@ -23,7 +23,7 @@ type osmPubsub struct {
 
 // Subscribe is the Subscribe implementation for PubSub
 func (c *osmPubsub) Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
-	subTypes := []string{}
+	var subTypes []string
 	for _, v := range aTypes {
 		subTypes = append(subTypes, string(v))
 	}

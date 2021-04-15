@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -225,17 +226,17 @@ func TestListServiceAccountsForService(t *testing.T) {
 
 	testCases := []struct {
 		svc                 service.MeshService
-		expectedSvcAccounts []service.K8sServiceAccount
+		expectedSvcAccounts []identity.K8sServiceAccount
 		expectedError       error
 	}{
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
-			[]service.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
+			[]identity.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
 			nil,
 		},
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
-			[]service.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
+			[]identity.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
 			nil,
 		},
 		{
@@ -519,8 +520,8 @@ func TestListMeshServices(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k8sServices := []*corev1.Service{}
-			expectedMeshServices := []service.MeshService{}
+			var k8sServices []*corev1.Service
+			var expectedMeshServices []service.MeshService
 
 			for name, namespace := range tc.services {
 				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))

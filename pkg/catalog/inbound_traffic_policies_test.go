@@ -16,6 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -28,11 +29,11 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		downstreamSA            service.K8sServiceAccount
-		upstreamSA              service.K8sServiceAccount
+		downstreamSA            identity.K8sServiceAccount
+		upstreamSA              identity.K8sServiceAccount
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
-		meshServiceAccounts     []service.K8sServiceAccount
+		meshServiceAccounts     []identity.K8sServiceAccount
 		trafficSpec             spec.HTTPRouteGroup
 		trafficSplit            split.TrafficSplit
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -50,7 +51,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				Name:      "bookstore",
 				Namespace: "default",
 			}},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -107,7 +108,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -120,7 +121,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -145,7 +146,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				Name:      "bookstore-apex",
 				Namespace: "default",
 			}},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -219,7 +220,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -232,7 +233,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -262,7 +263,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -275,7 +276,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -291,7 +292,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			upstreamSA:          tests.BookbuyerServiceAccount,
 			upstreamServices:    []service.MeshService{tests.BookbuyerService},
 			meshServices:        []service.MeshService{tests.BookbuyerService, tests.BookstoreV1Service, tests.BookstoreV2Service},
-			meshServiceAccounts: []service.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
+			meshServiceAccounts: []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
 			trafficSpec:         spec.HTTPRouteGroup{},
 			trafficSplit:        split.TrafficSplit{},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
@@ -340,7 +341,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				configurator:       mockConfigurator,
 			}
 
-			services := []*corev1.Service{}
+			var services []*corev1.Service
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
@@ -350,7 +351,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			if tc.permissiveMode {
-				serviceAccounts := []*corev1.ServiceAccount{}
+				var serviceAccounts []*corev1.ServiceAccount
 				for _, sa := range tc.meshServiceAccounts {
 					k8sSvcAccount := tests.NewServiceAccountFixture(sa.Name, sa.Namespace)
 					serviceAccounts = append(serviceAccounts, k8sSvcAccount)
@@ -376,8 +377,8 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		downstreamSA            service.K8sServiceAccount
-		upstreamSA              service.K8sServiceAccount
+		downstreamSA            identity.K8sServiceAccount
+		upstreamSA              identity.K8sServiceAccount
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
 		trafficSpec             spec.HTTPRouteGroup
@@ -386,11 +387,11 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 	}{
 		{
 			name: "inbound policies in same namespaces, without traffic split",
-			downstreamSA: service.K8sServiceAccount{
+			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
 			},
-			upstreamSA: service.K8sServiceAccount{
+			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
 			},
@@ -438,11 +439,11 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 		},
 		{
 			name: "inbound policies in same namespaces, with traffic split",
-			downstreamSA: service.K8sServiceAccount{
+			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
 			},
-			upstreamSA: service.K8sServiceAccount{
+			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
 			},
@@ -530,7 +531,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -543,7 +544,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -554,11 +555,11 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 		},
 		{
 			name: "inbound policies in same namespaces, with traffic split with namespaced root service",
-			downstreamSA: service.K8sServiceAccount{
+			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
 			},
-			upstreamSA: service.K8sServiceAccount{
+			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
 			},
@@ -646,7 +647,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -659,7 +660,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -707,19 +708,19 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		sourceSA                service.K8sServiceAccount
-		destSA                  service.K8sServiceAccount
+		sourceSA                identity.K8sServiceAccount
+		destSA                  identity.K8sServiceAccount
 		inboundService          service.MeshService
 		trafficSpec             spec.HTTPRouteGroup
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
 		{
 			name: "inbound policies in different namespaces",
-			sourceSA: service.K8sServiceAccount{
+			sourceSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "bookbuyer-ns",
 			},
-			destSA: service.K8sServiceAccount{
+			destSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
 			},
@@ -782,7 +783,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "bookbuyer-ns",
 							}),
@@ -795,7 +796,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "bookbuyer-ns",
 							}),
@@ -806,11 +807,11 @@ func TestBuildInboundPolicies(t *testing.T) {
 		},
 		{
 			name: "inbound policies in same namespaces",
-			sourceSA: service.K8sServiceAccount{
+			sourceSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
 			},
-			destSA: service.K8sServiceAccount{
+			destSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
 			},
@@ -873,7 +874,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -886,7 +887,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -1005,19 +1006,19 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		downstreamSA            service.K8sServiceAccount
-		upstreamSA              service.K8sServiceAccount
+		downstreamSA            identity.K8sServiceAccount
+		upstreamSA              identity.K8sServiceAccount
 		upstreamServices        []service.MeshService
 		trafficSpec             spec.HTTPRouteGroup
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
 		{
 			name: "inbound policies in same namespaces",
-			downstreamSA: service.K8sServiceAccount{
+			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
 			},
-			upstreamSA: service.K8sServiceAccount{
+			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
 			},
@@ -1080,7 +1081,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -1093,7 +1094,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
 							}),
@@ -1168,7 +1169,7 @@ func TestRoutesFromRules(t *testing.T) {
 				},
 			},
 			namespace:      tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRouteMatch{},
+			expectedRoutes: nil,
 		},
 	}
 

@@ -278,7 +278,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 	}
 
 	// For deterministic ordering
-	sortedEndpoints := []string{}
+	var sortedEndpoints []string
 	endpointSet.Each(func(elem interface{}) bool {
 		sortedEndpoints = append(sortedEndpoints, elem.(string))
 		return false

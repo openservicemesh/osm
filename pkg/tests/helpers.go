@@ -12,7 +12,7 @@ import (
 func GetUnique(slice []string) []string {
 	// Map as a set
 	uniqueSet := make(map[string]struct{})
-	uniqueList := []string{}
+	var uniqueList []string
 
 	for _, item := range slice {
 		uniqueSet[item] = struct{}{}

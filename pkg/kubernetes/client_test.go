@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -295,7 +296,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				announcements.ServiceAccountDeleted,
 				announcements.ServiceAccountUpdated)
 			defer events.GetPubSubInstance().Unsub(serviceChannel)
-			testSvcAccounts := []service.K8sServiceAccount{
+			testSvcAccounts := []identity.K8sServiceAccount{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
 			}
@@ -448,7 +449,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedSvcAccounts := []service.K8sServiceAccount{
+			expectedSvcAccounts := []identity.K8sServiceAccount{
 				{Name: pod1.Spec.ServiceAccountName, Namespace: pod1.Namespace},
 				{Name: pod2.Spec.ServiceAccountName, Namespace: pod2.Namespace},
 			}
@@ -544,7 +545,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedSvcAccounts := []service.K8sServiceAccount{}
+			var expectedSvcAccounts []identity.K8sServiceAccount
 			Expect(svcAccounts).Should(HaveLen(0))
 			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
 		})

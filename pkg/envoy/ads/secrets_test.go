@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -24,13 +25,13 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	type testCase struct {
 		name                     string
-		proxySvcAccount          service.K8sServiceAccount
+		proxySvcAccount          identity.K8sServiceAccount
 		proxyServices            []service.MeshService
 		allowedOutboundServices  []service.MeshService
 		expectedDiscoveryRequest *xds_discovery.DiscoveryRequest
 	}
 
-	proxySvcAccount := service.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}
+	proxySvcAccount := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
 	testProxy := envoy.NewProxy(proxyXDSCertCN, certSerialNumber, nil)

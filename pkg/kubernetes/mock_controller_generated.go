@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 )
@@ -136,10 +137,10 @@ func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
 }
 
 // ListServiceAccountsForService mocks base method
-func (m *MockController) ListServiceAccountsForService(arg0 service.MeshService) ([]service.K8sServiceAccount, error) {
+func (m *MockController) ListServiceAccountsForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceAccountsForService", arg0)
-	ret0, _ := ret[0].([]service.K8sServiceAccount)
+	ret0, _ := ret[0].([]identity.K8sServiceAccount)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

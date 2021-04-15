@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -150,14 +151,14 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
 						},
 					},
 				},
@@ -170,7 +171,7 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{}),
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
 						},
 					},
 				},
@@ -283,7 +284,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
 					AllowedServiceAccounts: mapset.NewSetFromSlice(
-						[]interface{}{service.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
+						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
 					),
 				},
 			},

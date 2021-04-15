@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -17,10 +18,10 @@ type Provider interface {
 	ListEndpointsForService(service.MeshService) []Endpoint
 
 	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-	ListEndpointsForIdentity(service.K8sServiceAccount) []Endpoint
+	ListEndpointsForIdentity(identity.K8sServiceAccount) []Endpoint
 
 	// Retrieve the namespaced services for a given service account
-	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
+	GetServicesForServiceAccount(identity.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)

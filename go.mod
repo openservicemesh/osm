@@ -27,9 +27,8 @@ require (
 	github.com/matm/gocov-html v0.0.0-20200509184451-71874e2e203b
 	github.com/mitchellh/gox v1.0.1
 	github.com/norwoodj/helm-docs v1.4.0
-	github.com/nxadm/tail v1.4.5 // indirect
 	github.com/olekukonko/tablewriter v0.0.2
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pkg/errors v0.9.1
@@ -41,6 +40,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
+	golang.org/x/sys v0.0.0-20210414055047-fe65e336abe0 // indirect
 	golang.org/x/tools v0.1.1-0.20210319172145-bda8f5cee399 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.0.1
 	google.golang.org/grpc v1.27.1

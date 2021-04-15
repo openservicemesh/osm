@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -32,7 +33,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 // getApexServicesForBackendService returns a list of services that serve as the apex service in a traffic split where the
 // given service is a backend
 func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.MeshService) []service.MeshService {
-	apexList := []service.MeshService{}
+	var apexList []service.MeshService
 	apexSet := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		for _, backend := range split.Spec.Backends {
@@ -55,7 +56,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 }
 
 // getServicesForServiceAccount returns a list of services corresponding to a service account
-func (mc *MeshCatalog) getServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
+func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
 		providerServices, err := provider.GetServicesForServiceAccount(sa)
@@ -80,7 +81,7 @@ func (mc *MeshCatalog) getServicesForServiceAccount(sa service.K8sServiceAccount
 }
 
 // ListServiceAccountsForService lists the service accounts associated with the given service
-func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error) {
+func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	// Currently OSM uses kubernetes service accounts as service identities
 	return mc.kubeController.ListServiceAccountsForService(svc)
 }
@@ -139,7 +140,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 
 // listMeshServices returns all services in the mesh
 func (mc *MeshCatalog) listMeshServices() []service.MeshService {
-	services := []service.MeshService{}
+	var services []service.MeshService
 	for _, svc := range mc.kubeController.ListServices() {
 		services = append(services, utils.K8sSvcToMeshSvc(svc))
 	}

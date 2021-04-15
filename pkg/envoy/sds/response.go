@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -33,7 +34,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 		svcAccount:  svcAccount,
 	}
 
-	sdsResources := []types.Resource{}
+	var sdsResources []types.Resource
 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
@@ -167,7 +168,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	case envoy.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
 		// of this proxy. If it doesn't, then something is wrong in the system.
-		svcAccountInRequest, err := service.UnmarshalK8sServiceAccount(sdscert.Name)
+		svcAccountInRequest, err := identity.UnmarshalK8sServiceAccount(sdscert.Name)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
 			return nil, err
@@ -196,7 +197,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	return secret, nil
 }
 
-func getSubjectAltNamesFromSvcAccount(svcAccounts []service.K8sServiceAccount) []*xds_matcher.StringMatcher {
+func getSubjectAltNamesFromSvcAccount(svcAccounts []identity.K8sServiceAccount) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 
 	for _, svcAccount := range svcAccounts {

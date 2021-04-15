@@ -255,14 +255,14 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 // PrettyPrintHTTPResults prints pod results per namespace
 func (td *OsmTestData) PrettyPrintHTTPResults(results *HTTPMultipleResults) {
 	// We sort the keys to always walk the maps deterministically.
-	namespaceKeys := []string{}
+	var namespaceKeys []string
 	for nsKey := range *results {
 		namespaceKeys = append(namespaceKeys, nsKey)
 	}
 	sort.Strings(namespaceKeys)
 
 	for _, ns := range namespaceKeys {
-		podKeys := []string{}
+		var podKeys []string
 		for podKey := range (*results)[ns] {
 			podKeys = append(podKeys, podKey)
 		}
