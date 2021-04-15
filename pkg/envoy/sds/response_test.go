@@ -423,7 +423,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1"))
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), "sa-1", "ns-1"))
 			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				svcAccount:  tc.proxySvcAccount,

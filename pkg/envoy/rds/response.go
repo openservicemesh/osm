@@ -46,7 +46,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 	for _, svc := range services {
 		ingressInboundPolicies, err := cataloger.GetIngressPoliciesForService(svc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc.String())
+			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc)
 			return nil, err
 		}
 		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressInboundPolicies...)

@@ -33,7 +33,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	proxySvcAccount := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), proxySvcAccount.Name, proxySvcAccount.Namespace))
+	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
 	testProxy := envoy.NewProxy(proxyXDSCertCN, certSerialNumber, nil)
 
 	testCases := []testCase{
