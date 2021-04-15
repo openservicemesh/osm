@@ -80,10 +80,10 @@ func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccoun
 	return services, nil
 }
 
-// ListServiceAccountsForService lists the service accounts associated with the given service
-func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+// ListServiceIdentitiesForService lists the service identities associated with the given service
+func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	// Currently OSM uses kubernetes service accounts as service identities
-	return mc.kubeController.ListServiceAccountsForService(svc)
+	return mc.kubeController.ListServiceIdentitiesForService(svc)
 }
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
