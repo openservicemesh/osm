@@ -17,7 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func TestListAllowedInboundServiceAccounts(t *testing.T) {
+func TestListAllowedInboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -189,7 +189,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedInboundServiceAccounts(tc.svcAccount)
+			actual, err := meshCatalog.ListAllowedInboundServiceIdentities(tc.svcAccount)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(actual, tc.expectedInboundSvcAccounts)
 		})

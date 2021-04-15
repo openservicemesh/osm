@@ -117,7 +117,7 @@ func TestGetRootCert(t *testing.T) {
 					{Name: "sa-2", Namespace: "ns-2"},
 					{Name: "sa-3", Namespace: "ns-3"},
 				}
-				d.mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}).Return(allowedInboundSvcAccounts, nil).Times(1)
+				d.mockCatalog.EXPECT().ListAllowedInboundServiceIdentities(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}).Return(allowedInboundSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
@@ -313,7 +313,7 @@ func TestGetSDSSecrets(t *testing.T) {
 					{Name: "sa-2", Namespace: "ns-2"},
 					{Name: "sa-3", Namespace: "ns-3"},
 				}
-				d.mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}).Return(allowedInboundSvcAccounts, nil).Times(1)
+				d.mockCatalog.EXPECT().ListAllowedInboundServiceIdentities(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}).Return(allowedInboundSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 

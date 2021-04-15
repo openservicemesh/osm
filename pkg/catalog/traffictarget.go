@@ -21,8 +21,8 @@ const (
 	httpRouteGroupKind = "HTTPRouteGroup"
 )
 
-// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given upstream service account
-func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
+// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given upstream service account
+func (mc *MeshCatalog) ListAllowedInboundServiceIdentities(upstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 

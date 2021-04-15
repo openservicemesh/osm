@@ -57,8 +57,8 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 	ListAllowedOutboundServicesForIdentity(identity.K8sServiceAccount) []service.MeshService
 
-	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
-	ListAllowedInboundServiceAccounts(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
+	// ListAllowedInboundServiceIdentities lists the downstream service accounts that can connect to the given service account
+	ListAllowedInboundServiceIdentities(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
 
 	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
 	ListAllowedOutboundServiceAccounts(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)

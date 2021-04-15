@@ -143,19 +143,19 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedEndpointsForService(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedEndpointsForService), arg0, arg1)
 }
 
-// ListAllowedInboundServiceAccounts mocks base method
-func (m *MockMeshCataloger) ListAllowedInboundServiceAccounts(arg0 identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
+// ListAllowedInboundServiceIdentities mocks base method
+func (m *MockMeshCataloger) ListAllowedInboundServiceIdentities(arg0 identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAllowedInboundServiceAccounts", arg0)
+	ret := m.ctrl.Call(m, "ListAllowedInboundServiceIdentities", arg0)
 	ret0, _ := ret[0].([]identity.K8sServiceAccount)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListAllowedInboundServiceAccounts indicates an expected call of ListAllowedInboundServiceAccounts
-func (mr *MockMeshCatalogerMockRecorder) ListAllowedInboundServiceAccounts(arg0 interface{}) *gomock.Call {
+// ListAllowedInboundServiceIdentities indicates an expected call of ListAllowedInboundServiceIdentities
+func (mr *MockMeshCatalogerMockRecorder) ListAllowedInboundServiceIdentities(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedInboundServiceAccounts", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedInboundServiceAccounts), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedInboundServiceIdentities", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedInboundServiceIdentities), arg0)
 }
 
 // ListAllowedOutboundServiceAccounts mocks base method
