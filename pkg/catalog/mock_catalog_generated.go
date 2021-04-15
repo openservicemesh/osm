@@ -230,17 +230,17 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundTrafficPolicies), arg0)
 }
 
-// ListServiceAccountsForService mocks base method
-func (m *MockMeshCataloger) ListServiceAccountsForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
+// ListServiceIdentitiesForService mocks base method
+func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccountsForService", arg0)
+	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
 	ret0, _ := ret[0].([]identity.K8sServiceAccount)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListServiceAccountsForService indicates an expected call of ListServiceAccountsForService
-func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsForService(arg0 interface{}) *gomock.Call {
+// ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService
+func (mr *MockMeshCatalogerMockRecorder) ListServiceIdentitiesForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsForService), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceIdentitiesForService), arg0)
 }

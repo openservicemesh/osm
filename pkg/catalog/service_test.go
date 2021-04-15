@@ -214,7 +214,7 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 	}
 }
 
-func TestListServiceAccountsForService(t *testing.T) {
+func TestListServiceIdentitiesForService(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -248,9 +248,9 @@ func TestListServiceAccountsForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			mockKubeController.EXPECT().ListServiceAccountsForService(tc.svc).Return(tc.expectedSvcAccounts, tc.expectedError).Times(1)
+			mockKubeController.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(tc.expectedSvcAccounts, tc.expectedError).Times(1)
 
-			svcAccounts, err := mc.ListServiceAccountsForService(tc.svc)
+			svcAccounts, err := mc.ListServiceIdentitiesForService(tc.svc)
 			assert.ElementsMatch(svcAccounts, tc.expectedSvcAccounts)
 			assert.Equal(err, tc.expectedError)
 		})

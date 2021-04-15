@@ -63,8 +63,8 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
 	ListAllowedOutboundServiceAccounts(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
 
-	// ListServiceAccountsForService lists the service accounts associated with the given service
-	ListServiceAccountsForService(service.MeshService) ([]identity.K8sServiceAccount, error)
+	// ListServiceIdentitiesForService lists the service identities associated with the given service
+	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
 	ListAllowedEndpointsForService(identity.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)

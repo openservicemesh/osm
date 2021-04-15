@@ -158,7 +158,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcAccounts, err := s.meshCatalog.ListServiceAccountsForService(*meshSvc)
+		svcAccounts, err := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
 			return nil, err
