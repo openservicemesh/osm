@@ -32,11 +32,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: 500m
-            memory: 2G
+            cpu: {{.Values.OpenServiceMesh.prometheus.resources.limits.cpu}}
+            memory: {{.Values.OpenServiceMesh.prometheus.resources.limits.memory}}
           requests:
-            cpu: 100m
-            memory: 256M
+            cpu: {{.Values.OpenServiceMesh.prometheus.resources.requests.cpu}}
+            memory: {{.Values.OpenServiceMesh.prometheus.resources.requests.memory}}
         volumeMounts:
         - mountPath: /etc/prometheus/
           name: prometheus-config-volume
