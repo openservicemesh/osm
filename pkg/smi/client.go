@@ -2,7 +2,6 @@ package smi
 
 import (
 	"reflect"
-	"strings"
 
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -73,7 +72,7 @@ func (c *client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	log.Info().Msgf("[SMI client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
+	log.Info().Msgf("Waiting for informers %v caches to sync", names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -81,7 +80,7 @@ func (c *client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	log.Info().Msgf("[SMI client] Cache sync finished for %+v", names)
+	log.Info().Msgf("Cache sync finished for informers %v", names)
 	return nil
 }
 

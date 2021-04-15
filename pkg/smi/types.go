@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	log = logger.New("mesh-spec")
+	log = logger.New("smi-mesh-spec")
 )
 
 // informerCollection is a struct of the Kubernetes informers used for SMI resources
