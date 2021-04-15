@@ -34,7 +34,6 @@ func (si ServiceIdentity) GetSDSCSecretName() string {
 }
 
 // GetCertificateCommonName returns a certificate CommonName compliant with RFC-1123 (https://tools.ietf.org/html/rfc1123) DNS name.
-// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
 func (si ServiceIdentity) GetCertificateCommonName() certificate.CommonName {
 	return certificate.CommonName(si)
 }
@@ -85,6 +84,7 @@ func UnmarshalK8sServiceAccount(svcAccount string) (*K8sServiceAccount, error) {
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
+			log.Error().Msgf("Error converting Service Account %s from string to K8sServiceAccount", svcAccount)
 			return nil, ErrInvalidNamespacedServiceStringFormat
 		}
 	}
