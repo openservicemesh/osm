@@ -44,7 +44,7 @@ func TestNewResponse(t *testing.T) {
 	proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
 	mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(xdsCertificate).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
-	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
+	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
@@ -114,7 +114,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service))
+	upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service))
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
@@ -145,7 +145,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV2Service))
+	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches: nil,

@@ -14,19 +14,19 @@ import (
 
 // Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Provider interface {
-	// Retrieve the IP addresses comprising the given service.
+	// ListEndpointsForService retrieves the IP addresses comprising the given service.
 	ListEndpointsForService(service.MeshService) []Endpoint
 
 	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-	ListEndpointsForIdentity(identity.K8sServiceAccount) []Endpoint
+	ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []Endpoint
 
-	// Retrieve the namespaced services for a given service account
+	// GetServicesForServiceAccount retrieves the namespaced services for a given service account
 	GetServicesForServiceAccount(identity.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
-	// Returns the expected endpoints that are to be reached when the service FQDN is resolved under
+	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
 	// the scope of the provider
 	GetResolvableEndpointsForService(service.MeshService) ([]Endpoint, error)
 

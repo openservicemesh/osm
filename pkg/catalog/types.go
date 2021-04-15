@@ -6,7 +6,6 @@ package catalog
 
 import (
 	"github.com/google/uuid"
-
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -48,26 +47,26 @@ type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
-	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and inbound services
-	ListInboundTrafficPolicies(identity.K8sServiceAccount, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
+	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service identity and inbound services
+	ListInboundTrafficPolicies(identity.ServiceIdentity, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
 
-	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service account
-	ListOutboundTrafficPolicies(identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy
+	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service identity
+	ListOutboundTrafficPolicies(identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy
 
-	// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
-	ListAllowedOutboundServicesForIdentity(identity.K8sServiceAccount) []service.MeshService
+	// ListAllowedOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
+	ListAllowedOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// ListAllowedInboundServiceIdentities lists the downstream service accounts that can connect to the given service account
-	ListAllowedInboundServiceIdentities(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
+	// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given service identity
+	ListAllowedInboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
 
-	// ListAllowedOutboundServiceIdentities lists the upstream service identities the given service account can connect to
-	ListAllowedOutboundServiceIdentities(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
+	// ListAllowedOutboundServiceIdentities lists the upstream service identities the given service identity can connect to
+	ListAllowedOutboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
 
 	// ListServiceIdentitiesForService lists the service identities associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
+	ListServiceIdentitiesForService(service.MeshService) ([]identity.ServiceIdentity, error)
 
-	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
-	ListAllowedEndpointsForService(identity.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
+	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service identities
+	ListAllowedEndpointsForService(identity.ServiceIdentity, service.MeshService) ([]endpoint.Endpoint, error)
 
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attempting to
@@ -91,13 +90,14 @@ type MeshCataloger interface {
 	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
-	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
-	ListInboundTrafficTargetsWithRoutes(identity.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
+	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
 type certificateCommonNameMeta struct {
-	ProxyUUID      uuid.UUID
+	ProxyUUID uuid.UUID
+	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
 	ServiceAccount string
 	Namespace      string
 }

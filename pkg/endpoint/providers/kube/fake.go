@@ -48,7 +48,8 @@ func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.
 }
 
 // ListEndpointsForIdentity retrieves the IP addresses comprising the given service account.
-func (f fakeClient) ListEndpointsForIdentity(sa identity.K8sServiceAccount) []endpoint.Endpoint {
+func (f fakeClient) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+	sa := serviceIdentity.ToK8sServiceAccount()
 	if ep, ok := f.svcAccountEndpoints[sa]; ok {
 		return ep
 	}

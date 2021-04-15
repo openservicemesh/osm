@@ -129,7 +129,7 @@ func (mr *MockMeshCatalogerMockRecorder) GetTargetPortToProtocolMappingForServic
 }
 
 // ListAllowedEndpointsForService mocks base method
-func (m *MockMeshCataloger) ListAllowedEndpointsForService(arg0 identity.K8sServiceAccount, arg1 service.MeshService) ([]endpoint.Endpoint, error) {
+func (m *MockMeshCataloger) ListAllowedEndpointsForService(arg0 identity.ServiceIdentity, arg1 service.MeshService) ([]endpoint.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllowedEndpointsForService", arg0, arg1)
 	ret0, _ := ret[0].([]endpoint.Endpoint)
@@ -144,10 +144,10 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedEndpointsForService(arg0, ar
 }
 
 // ListAllowedInboundServiceIdentities mocks base method
-func (m *MockMeshCataloger) ListAllowedInboundServiceIdentities(arg0 identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
+func (m *MockMeshCataloger) ListAllowedInboundServiceIdentities(arg0 identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllowedInboundServiceIdentities", arg0)
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
+	ret0, _ := ret[0].([]identity.ServiceIdentity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -159,10 +159,10 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedInboundServiceIdentities(arg
 }
 
 // ListAllowedOutboundServiceIdentities mocks base method
-func (m *MockMeshCataloger) ListAllowedOutboundServiceIdentities(arg0 identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
+func (m *MockMeshCataloger) ListAllowedOutboundServiceIdentities(arg0 identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllowedOutboundServiceIdentities", arg0)
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
+	ret0, _ := ret[0].([]identity.ServiceIdentity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -174,7 +174,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedOutboundServiceIdentities(ar
 }
 
 // ListAllowedOutboundServicesForIdentity mocks base method
-func (m *MockMeshCataloger) ListAllowedOutboundServicesForIdentity(arg0 identity.K8sServiceAccount) []service.MeshService {
+func (m *MockMeshCataloger) ListAllowedOutboundServicesForIdentity(arg0 identity.ServiceIdentity) []service.MeshService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllowedOutboundServicesForIdentity", arg0)
 	ret0, _ := ret[0].([]service.MeshService)
@@ -188,7 +188,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedOutboundServicesForIdentity(
 }
 
 // ListInboundTrafficPolicies mocks base method
-func (m *MockMeshCataloger) ListInboundTrafficPolicies(arg0 identity.K8sServiceAccount, arg1 []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+func (m *MockMeshCataloger) ListInboundTrafficPolicies(arg0 identity.ServiceIdentity, arg1 []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListInboundTrafficPolicies", arg0, arg1)
 	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
@@ -202,7 +202,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficPolicies(arg0, arg1 i
 }
 
 // ListInboundTrafficTargetsWithRoutes mocks base method
-func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 identity.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListInboundTrafficTargetsWithRoutes", arg0)
 	ret0, _ := ret[0].([]trafficpolicy.TrafficTargetWithRoutes)
@@ -217,7 +217,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg
 }
 
 // ListOutboundTrafficPolicies mocks base method
-func (m *MockMeshCataloger) ListOutboundTrafficPolicies(arg0 identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+func (m *MockMeshCataloger) ListOutboundTrafficPolicies(arg0 identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOutboundTrafficPolicies", arg0)
 	ret0, _ := ret[0].([]*trafficpolicy.OutboundTrafficPolicy)
@@ -231,10 +231,10 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interf
 }
 
 // ListServiceIdentitiesForService mocks base method
-func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
+func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
+	ret0, _ := ret[0].([]identity.ServiceIdentity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

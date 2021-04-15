@@ -32,8 +32,8 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 
 	// Build traffic policies from  either SMI Traffic Target and Traffic Split or service discovery
 	// depending on whether permissive mode is enabled or not
-	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity, services)
-	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity)
+	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity.ToServiceIdentity(), services)
+	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity.ToServiceIdentity())
 
 	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
 	var rdsResources []types.Resource

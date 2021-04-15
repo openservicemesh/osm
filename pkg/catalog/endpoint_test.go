@@ -59,11 +59,11 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		proxyIdentity            identity.K8sServiceAccount
+		proxyIdentity            identity.ServiceIdentity
 		upstreamSvc              service.MeshService
 		trafficTargets           []*access.TrafficTarget
 		services                 []service.MeshService
-		outboundServices         map[identity.K8sServiceAccount][]service.MeshService
+		outboundServices         map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints        []endpoint.Endpoint
 	}{
@@ -71,12 +71,12 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has only bookstore-v1 service on it.
 			Hence endpoints returned for bookstore-v1`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV1Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -88,12 +88,12 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			This service account has bookstore-v1 bookstore-v2 services,
 			but bookstore-v2 pod has service account bookstore-v2.
 			Hence no endpoints returned for bookstore-v2`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service, tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -109,13 +109,13 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			This service account has bookstore-v1 bookstore-v2 services,
 			since bookstore-v2 pod has service account bookstore-v2 which is allowed in the traffic target.
 			Hence endpoints returned for bookstore-v2`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
-				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -165,7 +165,9 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			}
 
 			var pods []*v1.Pod
-			for sa, services := range tc.outboundServices {
+			for serviceIdentity, services := range tc.outboundServices {
+				// TODO(draychev): use ServiceIdentity in the rest of the tests [https://github.com/openservicemesh/osm/issues/2218]
+				sa := serviceIdentity.ToK8sServiceAccount()
 				for _, svc := range services {
 					podlabels := map[string]string{
 						tests.SelectorKey:                tests.SelectorValue,

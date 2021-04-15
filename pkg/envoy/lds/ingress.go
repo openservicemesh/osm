@@ -32,7 +32,7 @@ func getIngressTransportProtocol(forHTTPS bool) string {
 }
 
 func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.svcAccount, false /* TLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, false /* TLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
 		return nil

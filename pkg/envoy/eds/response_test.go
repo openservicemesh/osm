@@ -94,31 +94,31 @@ func TestGetEndpointsForProxy(t *testing.T) {
 
 	testCases := []struct {
 		name                            string
-		proxyIdentity                   identity.K8sServiceAccount
+		proxyIdentity                   identity.ServiceIdentity
 		trafficTargets                  []*access.TrafficTarget
-		allowedServiceAccounts          []identity.K8sServiceAccount
+		allowedServiceIdentities        []identity.ServiceIdentity
 		services                        []service.MeshService
-		outboundServices                map[identity.K8sServiceAccount][]service.MeshService
+		outboundServices                map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints        map[service.MeshService][]endpoint.Endpoint
-		outboundServiceAccountEndpoints map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint
+		outboundServiceAccountEndpoints map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints               map[service.MeshService][]endpoint.Endpoint
 	}{
 		{
 			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 service which has one endpoint.
 			Hence one endpoint for bookstore-v1 should be in the expected list`,
-			proxyIdentity:          tests.BookbuyerServiceAccount,
-			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget},
-			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount},
-			services:               []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
+			proxyIdentity:            tests.BookbuyerServiceIdentity,
+			trafficTargets:           []*access.TrafficTarget{&tests.TrafficTarget},
+			allowedServiceIdentities: []identity.ServiceIdentity{tests.BookstoreServiceIdentity},
+			services:                 []service.MeshService{tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
 			},
-			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -129,12 +129,12 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			This service account has bookstore-v1 service which has two endpoints,
 			but endpoint 9.9.9.9 is associated with a pod having service account bookstore-v2.
 			Hence this endpoint (9.9.9.9) shouldn't be in bookstore-v1's expected list`,
-			proxyIdentity:          tests.BookbuyerServiceAccount,
-			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget},
-			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount},
-			services:               []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
+			proxyIdentity:            tests.BookbuyerServiceIdentity,
+			trafficTargets:           []*access.TrafficTarget{&tests.TrafficTarget},
+			allowedServiceIdentities: []identity.ServiceIdentity{tests.BookstoreServiceIdentity},
+			services:                 []service.MeshService{tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint, {
@@ -142,8 +142,8 @@ func TestGetEndpointsForProxy(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
-			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -152,13 +152,13 @@ func TestGetEndpointsForProxy(t *testing.T) {
 		{
 			name: `Traffic target defined for bookstore and bookstore-v2 ServiceAccount.
 			Hence one endpoint should be in bookstore-v1's and bookstore-v2's expected list`,
-			proxyIdentity:          tests.BookbuyerServiceAccount,
-			trafficTargets:         []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
-			allowedServiceAccounts: []identity.K8sServiceAccount{tests.BookstoreServiceAccount, tests.BookstoreV2ServiceAccount},
-			services:               []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[identity.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
-				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
+			proxyIdentity:            tests.BookbuyerServiceIdentity,
+			trafficTargets:           []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
+			allowedServiceIdentities: []identity.ServiceIdentity{tests.BookstoreServiceIdentity, tests.BookstoreV2ServiceIdentity},
+			services:                 []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -167,9 +167,9 @@ func TestGetEndpointsForProxy(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
-			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount]map[service.MeshService][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service: {tests.Endpoint}},
-				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service: {endpoint.Endpoint{
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service: {endpoint.Endpoint{
 					IP:   net.ParseIP("9.9.9.9"),
 					Port: endpoint.Port(tests.ServicePort),
 				}}},
@@ -219,17 +219,18 @@ func TestGetEndpointsForProxy(t *testing.T) {
 				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
-			mockCatalog.EXPECT().ListAllowedOutboundServiceIdentities(tc.proxyIdentity).Return(tc.allowedServiceAccounts, nil).AnyTimes()
+			mockCatalog.EXPECT().ListAllowedOutboundServiceIdentities(tc.proxyIdentity).Return(tc.allowedServiceIdentities, nil).AnyTimes()
 
 			var pods []*v1.Pod
-			for sa, services := range tc.outboundServices {
+			for serviceIdentity, services := range tc.outboundServices {
+				sa := serviceIdentity.ToK8sServiceAccount()
 				for _, svc := range services {
 					podlabels := map[string]string{
 						tests.SelectorKey:                tests.SelectorValue,
 						constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 					}
 					pod := tests.NewPodFixture(tests.Namespace, svc.Name, sa.Name, podlabels)
-					svcPodEndpoints := tc.outboundServiceAccountEndpoints[sa]
+					svcPodEndpoints := tc.outboundServiceAccountEndpoints[serviceIdentity]
 					var podIps []v1.PodIP
 					for _, podEndpoints := range svcPodEndpoints {
 						for _, ep := range podEndpoints {

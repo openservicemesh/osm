@@ -27,7 +27,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-	downstreamSvcAccount := tests.BookbuyerServiceAccount
+	downstreamSvcAccount := tests.BookbuyerServiceIdentity
 	upstreamSvc := tests.BookstoreV1Service
 
 	testCases := []struct {

@@ -79,7 +79,7 @@ type Controller interface {
 	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
 	ListServiceAccounts() []*corev1.ServiceAccount
 
-	// Returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
+	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(svc service.MeshService) *corev1.Service
 
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored

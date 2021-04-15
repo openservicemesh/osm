@@ -21,7 +21,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity)
+	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity.ToServiceIdentity())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
@@ -37,7 +37,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 }
 
 // getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy
-func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.K8sServiceAccount) (map[service.MeshService][]endpoint.Endpoint, error) {
+func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) (map[service.MeshService][]endpoint.Endpoint, error) {
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {

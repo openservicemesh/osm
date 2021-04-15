@@ -295,17 +295,26 @@ var (
 		Name:      BookstoreServiceAccountName,
 	}
 
+	// BookstoreServiceIdentity is the ServiceIdentity for the Bookstore service.
+	BookstoreServiceIdentity = BookstoreServiceAccount.ToServiceIdentity()
+
 	// BookstoreV2ServiceAccount is a namespaced service account.
 	BookstoreV2ServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreV2ServiceAccountName,
 	}
 
+	// BookstoreV2ServiceIdentity is the ServiceIdentity for the Bokstore v2 service.
+	BookstoreV2ServiceIdentity = BookstoreV2ServiceAccount.ToServiceIdentity()
+
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
 	BookbuyerServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookbuyerServiceAccountName,
 	}
+
+	// BookbuyerServiceIdentity is the ServiceIdentity for the Bookbuyer service.
+	BookbuyerServiceIdentity = BookbuyerServiceAccount.ToServiceIdentity()
 
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{
@@ -452,7 +461,14 @@ func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 }
 
 // NewSMITrafficTarget creates a new SMI Traffic Target
-func NewSMITrafficTarget(sourceName, sourceNamespace, destName, destNamespace string) access.TrafficTarget {
+func NewSMITrafficTarget(source identity.ServiceIdentity, destination identity.ServiceIdentity) access.TrafficTarget {
+	sourceSA := source.ToK8sServiceAccount()
+	destinationSA := destination.ToK8sServiceAccount()
+	sourceName := sourceSA.Name
+	sourceNamespace := sourceSA.Namespace
+	destName := destinationSA.Name
+	destNamespace := destinationSA.Namespace
+
 	return access.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "access.smi-spec.io/v1alpha3",

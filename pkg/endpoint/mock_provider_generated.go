@@ -95,7 +95,7 @@ func (mr *MockProviderMockRecorder) GetTargetPortToProtocolMappingForService(arg
 }
 
 // ListEndpointsForIdentity mocks base method
-func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.K8sServiceAccount) []Endpoint {
+func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.ServiceIdentity) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEndpointsForIdentity", arg0)
 	ret0, _ := ret[0].([]Endpoint)

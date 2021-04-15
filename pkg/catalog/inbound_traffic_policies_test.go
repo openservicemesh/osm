@@ -29,8 +29,8 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		downstreamSA            identity.K8sServiceAccount
-		upstreamSA              identity.K8sServiceAccount
+		downstreamSA            identity.ServiceIdentity
+		upstreamSA              identity.ServiceIdentity
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
 		meshServiceAccounts     []identity.K8sServiceAccount
@@ -41,8 +41,8 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 	}{
 		{
 			name:         "inbound policies in same namespaces, without traffic split",
-			downstreamSA: tests.BookbuyerServiceAccount,
-			upstreamSA:   tests.BookstoreServiceAccount,
+			downstreamSA: tests.BookbuyerServiceIdentity,
+			upstreamSA:   tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -133,8 +133,8 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:         "inbound policies in same namespaces, with traffic split",
-			downstreamSA: tests.BookbuyerServiceAccount,
-			upstreamSA:   tests.BookstoreServiceAccount,
+			downstreamSA: tests.BookbuyerServiceIdentity,
+			upstreamSA:   tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -288,8 +288,8 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:                "permissive mode",
-			downstreamSA:        tests.BookstoreServiceAccount,
-			upstreamSA:          tests.BookbuyerServiceAccount,
+			downstreamSA:        tests.BookstoreServiceIdentity,
+			upstreamSA:          tests.BookbuyerServiceIdentity,
 			upstreamServices:    []service.MeshService{tests.BookbuyerService},
 			meshServices:        []service.MeshService{tests.BookbuyerService, tests.BookstoreV1Service, tests.BookstoreV2Service},
 			meshServiceAccounts: []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
@@ -361,7 +361,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			} else {
 				mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
-				trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
+				trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 				mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 			}
 
@@ -377,24 +377,25 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		downstreamSA            identity.K8sServiceAccount
-		upstreamSA              identity.K8sServiceAccount
+		downstreamSA            identity.ServiceIdentity
+		upstreamSA              identity.ServiceIdentity
 		upstreamServices        []service.MeshService
 		meshServices            []service.MeshService
 		trafficSpec             spec.HTTPRouteGroup
 		trafficSplit            split.TrafficSplit
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
 	}{
+		// TODO(draychev): use ServiceIdentity in the rest of the tests [https://github.com/openservicemesh/osm/issues/2218]
 		{
 			name: "inbound policies in same namespaces, without traffic split",
 			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -442,11 +443,11 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -558,11 +559,11 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			downstreamSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -694,7 +695,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
+			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
 			actual := mc.listInboundPoliciesForTrafficSplits(tc.upstreamSA, tc.upstreamServices)
@@ -708,8 +709,8 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		sourceSA                identity.K8sServiceAccount
-		destSA                  identity.K8sServiceAccount
+		sourceSA                identity.ServiceIdentity
+		destSA                  identity.ServiceIdentity
 		inboundService          service.MeshService
 		trafficSpec             spec.HTTPRouteGroup
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -719,11 +720,11 @@ func TestBuildInboundPolicies(t *testing.T) {
 			sourceSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "bookbuyer-ns",
-			},
+			}.ToServiceIdentity(),
 			destSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
-			},
+			}.ToServiceIdentity(),
 			inboundService: service.MeshService{
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
@@ -810,11 +811,11 @@ func TestBuildInboundPolicies(t *testing.T) {
 			sourceSA: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			destSA: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			inboundService: service.MeshService{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -919,7 +920,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
 
-			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA.Name, tc.sourceSA.Namespace, tc.destSA.Name, tc.destSA.Namespace)
+			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA, tc.destSA)
 
 			actual := mc.buildInboundPolicies(&trafficTarget, tc.inboundService)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
@@ -1004,24 +1005,26 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 	assert := tassert.New(t)
 
-	testCases := []struct {
-		name                    string
-		downstreamSA            identity.K8sServiceAccount
-		upstreamSA              identity.K8sServiceAccount
-		upstreamServices        []service.MeshService
-		trafficSpec             spec.HTTPRouteGroup
-		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
-	}{
+	type testCase struct {
+		name                      string
+		downstreamServiceIdentity identity.ServiceIdentity
+		upstreamServiceIdentity   identity.ServiceIdentity
+		upstreamServices          []service.MeshService
+		trafficSpec               spec.HTTPRouteGroup
+		expectedInboundPolicies   []*trafficpolicy.InboundTrafficPolicy
+	}
+
+	testCases := []testCase{
 		{
 			name: "inbound policies in same namespaces",
-			downstreamSA: identity.K8sServiceAccount{
+			downstreamServiceIdentity: identity.K8sServiceAccount{
 				Name:      "bookbuyer",
 				Namespace: "default",
-			},
-			upstreamSA: identity.K8sServiceAccount{
+			}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{
 				Name:      "bookstore",
 				Namespace: "default",
-			},
+			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
@@ -1126,13 +1129,13 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.upstreamSA).Return(tc.upstreamServices, nil).AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.upstreamServiceIdentity).Return(tc.upstreamServices, nil).AnyTimes()
 
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
+			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamServiceIdentity, tc.upstreamServiceIdentity)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			actual := mc.listInboundPoliciesFromTrafficTargets(tc.upstreamSA, tc.upstreamServices)
-			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
+			actual := mc.listInboundPoliciesFromTrafficTargets(tc.upstreamServiceIdentity, tc.upstreamServices)
+			assert.ElementsMatch(tc.expectedInboundPolicies, actual, "The expected and actual do not match!")
 		})
 	}
 }

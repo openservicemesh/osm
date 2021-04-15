@@ -175,7 +175,8 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(identity.K8sServiceAccount{Name: "foo", Namespace: "test"}, true)
+			svcAccount := identity.K8sServiceAccount{Name: "foo", Namespace: "test"}
+			tlsContext := GetDownstreamTLSContext(svcAccount.ToServiceIdentity(), true)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -221,14 +222,14 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, true)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceAccount, false)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, false)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
@@ -236,7 +237,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
 			sni := "bookstore-v1.default.svc.cluster.local"
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service)
 
 			expectedTLSContext := &auth.UpstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -285,7 +286,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("creates correct UpstreamTlsContext.Sni field", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service)
 			// To show the actual string for human comprehension
 			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
 		})

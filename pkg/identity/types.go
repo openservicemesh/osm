@@ -34,6 +34,7 @@ func (si ServiceIdentity) GetSDSCSecretName() string {
 }
 
 // GetCertificateCommonName returns a certificate CommonName compliant with RFC-1123 (https://tools.ietf.org/html/rfc1123) DNS name.
+// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
 func (si ServiceIdentity) GetCertificateCommonName() certificate.CommonName {
 	return certificate.CommonName(si)
 }
