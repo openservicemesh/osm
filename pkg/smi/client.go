@@ -46,8 +46,8 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 	return client, err
 }
 
-func (c *Client) run(stop <-chan struct{}) error {
-	log.Info().Msg("SMI Client started")
+func (c *client) run(stop <-chan struct{}) error {
+	log.Info().Msg("SMI client started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -73,7 +73,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	log.Info().Msgf("[SMI Client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
+	log.Info().Msgf("[SMI client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -81,17 +81,17 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	log.Info().Msgf("[SMI Client] Cache sync finished for %+v", names)
+	log.Info().Msgf("[SMI client] Cache sync finished for %+v", names)
 	return nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *Client) GetAnnouncementsChannel() <-chan a.Announcement {
+func (c *client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{}) (*Client, error) {
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{}) (*client, error) {
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, k8s.DefaultKubeEventResyncInterval)
@@ -110,7 +110,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		TrafficTarget:  informerCollection.TrafficTarget.GetStore(),
 	}
 
-	client := Client{
+	client := client{
 		providerIdent:  providerIdent,
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
@@ -162,7 +162,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
-func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
+func (c *client) ListTrafficSplits() []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
@@ -176,7 +176,7 @@ func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
 }
 
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
-func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
+func (c *client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 	var httpTrafficSpec []*smiSpecs.HTTPRouteGroup
 	for _, specIface := range c.caches.HTTPRouteGroup.List() {
 		routeGroup := specIface.(*smiSpecs.HTTPRouteGroup)
@@ -190,7 +190,7 @@ func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 }
 
 // ListTCPTrafficSpecs lists SMI TCPRoute resources
-func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
+func (c *client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	var tcpRouteSpec []*smiSpecs.TCPRoute
 	for _, specIface := range c.caches.TCPRoute.List() {
 		tcpRoute := specIface.(*smiSpecs.TCPRoute)
@@ -204,7 +204,7 @@ func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 }
 
 // GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
-func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
+func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 	// client-go cache uses <namespace>/<name> as key
 	routeIf, exists, err := c.caches.TCPRoute.GetByKey(namespacedName)
 	if exists && err == nil {
@@ -215,7 +215,7 @@ func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
-func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
+func (c *client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
@@ -229,7 +229,7 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 }
 
 // ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
-func (c *Client) ListServiceAccounts() []identity.K8sServiceAccount {
+func (c *client) ListServiceAccounts() []identity.K8sServiceAccount {
 	var serviceAccounts []identity.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
