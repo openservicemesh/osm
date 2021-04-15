@@ -38,12 +38,12 @@ func (s *Server) sendTypeResponse(typeURI envoy.TypeURI, proxy *envoy.Proxy, ser
 func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, typeURIsToSend ...envoy.TypeURI) error {
 	thereWereErrors := false
 
+	// A nil request indicates a request for all SDS responses
+	fullUpdateRequested := request == nil || envoy.TypeURI(request.TypeUrl).IsWildcard()
+
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
 	for _, typeURI := range typeURIsToSend {
-		// A nil request indicates a request for all SDS responses
-		fullUpdateRequested := request == nil || envoy.TypeURI(request.TypeUrl).IsWildcard()
-
 		// Handle request when is not provided, and the SDS case
 		var finalReq *xds_discovery.DiscoveryRequest
 		if fullUpdateRequested {
