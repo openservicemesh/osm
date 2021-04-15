@@ -20,7 +20,7 @@ metadata:
   name: meshconfigs.config.openservicemesh.io
 spec:
   group: config.openservicemesh.io
-  scope: Cluster
+  scope: Namespaced
   names:
     kind: MeshConfig
     listKind: MeshConfigList
