@@ -219,7 +219,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
-			mockCatalog.EXPECT().ListAllowedOutboundServiceAccounts(tc.proxyIdentity).Return(tc.allowedServiceAccounts, nil).AnyTimes()
+			mockCatalog.EXPECT().ListAllowedOutboundServiceIdentities(tc.proxyIdentity).Return(tc.allowedServiceAccounts, nil).AnyTimes()
 
 			var pods []*v1.Pod
 			for sa, services := range tc.outboundServices {

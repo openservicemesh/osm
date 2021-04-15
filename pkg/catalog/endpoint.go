@@ -47,7 +47,7 @@ func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identit
 		return nil, err
 	}
 
-	destSvcAccounts, err := mc.ListAllowedOutboundServiceAccounts(downstreamIdentity)
+	destSvcAccounts, err := mc.ListAllowedOutboundServiceIdentities(downstreamIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up outbound service accounts for downstream identity %s", downstreamIdentity)
 		return nil, err

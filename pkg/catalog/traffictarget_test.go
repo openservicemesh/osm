@@ -196,7 +196,7 @@ func TestListAllowedInboundServiceIdentities(t *testing.T) {
 	}
 }
 
-func TestListAllowedOutboundServiceAccounts(t *testing.T) {
+func TestListAllowedOutboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -372,7 +372,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedOutboundServiceAccounts(tc.svcAccount)
+			actual, err := meshCatalog.ListAllowedOutboundServiceIdentities(tc.svcAccount)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(actual, tc.expectedOutboundSvcAccounts)
 		})
