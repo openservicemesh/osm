@@ -26,6 +26,7 @@ func (si ServiceIdentity) String() string {
 }
 
 // GetSDSCSecretName returns a string key used as the name of Certificate in all SDS structs.
+// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
 func (si ServiceIdentity) GetSDSCSecretName() string {
 	// TODO(draychev): The cert names can be redone to move away from using "namespace/name" format [https://github.com/openservicemesh/osm/issues/2218]
 	// Currently this will be: "service-cert:default/bookbuyer"
@@ -33,6 +34,7 @@ func (si ServiceIdentity) GetSDSCSecretName() string {
 }
 
 // GetCertificateCommonName returns a certificate CommonName compliant with RFC-1123 (https://tools.ietf.org/html/rfc1123) DNS name.
+// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
 func (si ServiceIdentity) GetCertificateCommonName() certificate.CommonName {
 	return certificate.CommonName(si)
 }
