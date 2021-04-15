@@ -520,8 +520,8 @@ func TestListMeshServices(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k8sServices := []*corev1.Service{}
-			expectedMeshServices := []service.MeshService{}
+			var k8sServices []*corev1.Service
+			var expectedMeshServices []service.MeshService
 
 			for name, namespace := range tc.services {
 				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))

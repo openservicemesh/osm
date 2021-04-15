@@ -33,7 +33,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 // getApexServicesForBackendService returns a list of services that serve as the apex service in a traffic split where the
 // given service is a backend
 func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.MeshService) []service.MeshService {
-	apexList := []service.MeshService{}
+	var apexList []service.MeshService
 	apexSet := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		for _, backend := range split.Spec.Backends {
@@ -140,7 +140,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 
 // listMeshServices returns all services in the mesh
 func (mc *MeshCatalog) listMeshServices() []service.MeshService {
-	services := []service.MeshService{}
+	var services []service.MeshService
 	for _, svc := range mc.kubeController.ListServices() {
 		services = append(services, utils.K8sSvcToMeshSvc(svc))
 	}

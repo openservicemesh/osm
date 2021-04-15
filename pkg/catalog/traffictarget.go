@@ -157,7 +157,7 @@ func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBinding
 		serviceAccountsMap[sa] = true
 	}
 
-	serviceAccounts := []identity.K8sServiceAccount{}
+	var serviceAccounts []identity.K8sServiceAccount
 	for k := range serviceAccountsMap {
 		serviceAccounts = append(serviceAccounts, k)
 	}

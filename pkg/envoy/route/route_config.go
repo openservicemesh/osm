@@ -56,7 +56,7 @@ const (
 
 // BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
 func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy) []*xds_route.RouteConfiguration {
-	routeConfiguration := []*xds_route.RouteConfiguration{}
+	var routeConfiguration []*xds_route.RouteConfiguration
 
 	if len(inbound) > 0 {
 		inboundRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)

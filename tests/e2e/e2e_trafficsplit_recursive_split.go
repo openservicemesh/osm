@@ -50,9 +50,9 @@ func testRecursiveTrafficSplit(appProtocol string) {
 	numberOfServerServices := 1
 	serverReplicaSet := 1
 
-	clientServices := []string{}
+	var clientServices []string
 	serverServices := []string{trafficSplitName}
-	allNamespaces := []string{}
+	var allNamespaces []string
 
 	for i := 0; i < numberOfClientServices; i++ {
 		clientServices = append(clientServices, fmt.Sprintf("%s%d", clientAppBaseName, i))

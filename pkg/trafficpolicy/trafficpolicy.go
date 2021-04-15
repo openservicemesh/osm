@@ -212,7 +212,7 @@ func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedCl
 // slicesUnionIfSubset returns the union of the two slices if either slices is a subset of the other
 func slicesUnionIfSubset(first, second []string) []string {
 	areSubsets := false
-	unionSlice := []string{}
+	var unionSlice []string
 	firstIntf := convertToInterface(first)
 	secondIntf := convertToInterface(second)
 

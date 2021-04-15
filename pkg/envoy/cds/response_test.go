@@ -65,7 +65,7 @@ func TestNewResponse(t *testing.T) {
 	// 5. Passthrough cluster for egress
 	numExpectedClusters := 6 // source and destination clusters
 	assert.Equal(numExpectedClusters, len(resp))
-	actualClusters := []*xds_cluster.Cluster{}
+	var actualClusters []*xds_cluster.Cluster
 	for idx := range resp {
 		cl, ok := resp[idx].(*xds_cluster.Cluster)
 		require.True(ok)
@@ -283,7 +283,7 @@ func TestNewResponse(t *testing.T) {
 		"envoy-tracing-cluster",
 	}
 
-	foundClusters := []string{}
+	var foundClusters []string
 
 	for _, a := range actualClusters {
 		fmt.Println(a.Name)
