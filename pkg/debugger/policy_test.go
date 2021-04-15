@@ -11,7 +11,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -34,7 +34,7 @@ func TestGetSMIPolicies(t *testing.T) {
 					Name:      "bar",
 				}},
 		},
-		[]service.K8sServiceAccount{
+		[]identity.K8sServiceAccount{
 			tests.BookbuyerServiceAccount,
 		},
 		[]*spec.HTTPRouteGroup{

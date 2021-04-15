@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -35,8 +36,8 @@ func TestNewResponse(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		downstreamSA             service.K8sServiceAccount
-		upstreamSA               service.K8sServiceAccount
+		downstreamSA             identity.K8sServiceAccount
+		upstreamSA               identity.K8sServiceAccount
 		upstreamServices         []service.MeshService
 		meshServices             []service.MeshService
 		trafficSpec              spec.HTTPRouteGroup
@@ -159,7 +160,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -172,7 +173,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -202,7 +203,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -215,7 +216,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),

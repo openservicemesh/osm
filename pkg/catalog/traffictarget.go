@@ -7,7 +7,6 @@ import (
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -23,17 +22,17 @@ const (
 )
 
 // ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given upstream service account
-func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
+func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
 // ListAllowedOutboundServiceAccounts lists the upstream service accounts the given downstream service account can connect to
-func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
+func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
 // ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
-func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
@@ -79,8 +78,8 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sS
 	return trafficTargets, nil
 }
 
-func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K8sServiceAccount, direction trafficDirection) ([]service.K8sServiceAccount, error) {
-	var allowedSvcAccounts []service.K8sServiceAccount
+func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount identity.K8sServiceAccount, direction trafficDirection) ([]identity.K8sServiceAccount, error) {
+	var allowedSvcAccounts []identity.K8sServiceAccount
 	allowed := mapset.NewSet()
 
 	allTrafficTargets := mc.meshSpec.ListTrafficTargets()
@@ -130,14 +129,14 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K
 	}
 
 	for svcAccount := range allowed.Iter() {
-		allowedSvcAccounts = append(allowedSvcAccounts, svcAccount.(service.K8sServiceAccount))
+		allowedSvcAccounts = append(allowedSvcAccounts, svcAccount.(identity.K8sServiceAccount))
 	}
 
 	return allowedSvcAccounts, nil
 }
 
-func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) service.K8sServiceAccount {
-	return service.K8sServiceAccount{
+func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) identity.K8sServiceAccount {
+	return identity.K8sServiceAccount{
 		Name:      identitySubject.Name,
 		Namespace: identitySubject.Namespace,
 	}
@@ -150,15 +149,15 @@ func trafficTargetIdentityToServiceIdentity(identitySubject smiAccess.IdentityBi
 }
 
 // trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target
-func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBindingSubject) []service.K8sServiceAccount {
-	serviceAccountsMap := map[service.K8sServiceAccount]bool{}
+func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBindingSubject) []identity.K8sServiceAccount {
+	serviceAccountsMap := map[identity.K8sServiceAccount]bool{}
 
 	for _, id := range identities {
 		sa := trafficTargetIdentityToSvcAccount(id)
 		serviceAccountsMap[sa] = true
 	}
 
-	var serviceAccounts []service.K8sServiceAccount
+	var serviceAccounts []identity.K8sServiceAccount
 	for k := range serviceAccountsMap {
 		serviceAccounts = append(serviceAccounts, k)
 	}

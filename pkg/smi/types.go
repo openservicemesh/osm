@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -52,7 +52,7 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
-	ListServiceAccounts() []service.K8sServiceAccount
+	ListServiceAccounts() []identity.K8sServiceAccount
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup

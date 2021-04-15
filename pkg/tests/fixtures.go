@@ -16,6 +16,7 @@ import (
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests/certificates"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -289,19 +290,19 @@ var (
 	}
 
 	// BookstoreServiceAccount is a namespaced service account.
-	BookstoreServiceAccount = service.K8sServiceAccount{
+	BookstoreServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreServiceAccountName,
 	}
 
 	// BookstoreV2ServiceAccount is a namespaced service account.
-	BookstoreV2ServiceAccount = service.K8sServiceAccount{
+	BookstoreV2ServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreV2ServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
-	BookbuyerServiceAccount = service.K8sServiceAccount{
+	BookbuyerServiceAccount = identity.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookbuyerServiceAccountName,
 	}

@@ -12,7 +12,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -34,8 +34,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
-					service.K8sServiceAccount{Name: "foo", Namespace: "ns-1"},
-					service.K8sServiceAccount{Name: "bar", Namespace: "ns-2"},
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"},
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"},
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
@@ -75,7 +75,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
-					service.K8sServiceAccount{}, // setting an empty service account will result in all downstreams being allowed
+					identity.K8sServiceAccount{}, // setting an empty service account will result in all downstreams being allowed
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{

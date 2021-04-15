@@ -6,11 +6,13 @@ package catalog
 
 import (
 	"github.com/google/uuid"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -47,25 +49,25 @@ type MeshCataloger interface {
 	GetSMISpec() smi.MeshSpec
 
 	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and inbound services
-	ListInboundTrafficPolicies(service.K8sServiceAccount, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
+	ListInboundTrafficPolicies(identity.K8sServiceAccount, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
 
 	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service account
-	ListOutboundTrafficPolicies(service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy
+	ListOutboundTrafficPolicies(identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy
 
 	// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
-	ListAllowedOutboundServicesForIdentity(service.K8sServiceAccount) []service.MeshService
+	ListAllowedOutboundServicesForIdentity(identity.K8sServiceAccount) []service.MeshService
 
 	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
-	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+	ListAllowedInboundServiceAccounts(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
 
 	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
-	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+	ListAllowedOutboundServiceAccounts(identity.K8sServiceAccount) ([]identity.K8sServiceAccount, error)
 
 	// ListServiceAccountsForService lists the service accounts associated with the given service
-	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
+	ListServiceAccountsForService(service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
-	ListAllowedEndpointsForService(service.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
+	ListAllowedEndpointsForService(identity.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
 
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attempting to
@@ -90,7 +92,7 @@ type MeshCataloger interface {
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
-	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+	ListInboundTrafficTargetsWithRoutes(identity.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
