@@ -56,7 +56,7 @@ If Prometheus is found not to be scraping metrics for any Pods, perform the foll
 
     ```console
     $ kubectl get po -n <pod namespace> <pod name> -o jsonpath='{.spec.containers[*].image}'
-    mynamespace/myapp:v1.0.0 envoyproxy/envoy-alpine:v1.17.1
+    mynamespace/myapp:v1.0.0 envoyproxy/envoy-alpine:v1.17.2
     ```
 1. Verify the proxy's endpoint being scraped by Prometheus is working as expected.
 

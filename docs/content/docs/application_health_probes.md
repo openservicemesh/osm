@@ -332,12 +332,12 @@ Events:
   Normal   Created    16s              kubelet            Created container osm-init
   Normal   Started    16s              kubelet            Started container osm-init
   Normal   Pulling    16s              kubelet            Pulling image "openservicemesh/init:v0.8.2"
-  Normal   Pulling    15s              kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.1"
+  Normal   Pulling    15s              kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
   Normal   Pulling    15s              kubelet            Pulling image "openservicemesh/bookstore:v0.8.2"
   Normal   Pulled     15s              kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 319.9863ms
   Normal   Started    15s              kubelet            Started container bookstore-v1
   Normal   Created    15s              kubelet            Created container bookstore-v1
-  Normal   Pulled     14s              kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.1" in 755.2666ms
+  Normal   Pulled     14s              kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 755.2666ms
   Normal   Created    14s              kubelet            Created container envoy
   Normal   Started    14s              kubelet            Started container envoy
   Warning  Unhealthy  13s              kubelet            Startup probe failed: Get "http://10.244.0.23:15903/osm-startup-probe": dial tcp 10.244.0.23:15903: connect: connection refused
@@ -356,10 +356,10 @@ Events:
   Normal   Created    58s                kubelet            Created container osm-init
   Normal   Started    58s                kubelet            Started container osm-init
   Normal   Pulled     58s                kubelet            Successfully pulled image "openservicemesh/init:v0.8.2" in 23.415ms
-  Normal   Pulled     57s                kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.1" in 678.1391ms
+  Normal   Pulled     57s                kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 678.1391ms
   Normal   Pulled     57s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 230.3681ms
   Normal   Created    57s                kubelet            Created container envoy
-  Normal   Pulling    57s                kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.1"
+  Normal   Pulling    57s                kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
   Normal   Started    56s                kubelet            Started container envoy
   Normal   Pulled     44s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 20.6731ms
   Normal   Created    44s (x2 over 57s)  kubelet            Created container bookstore-v1
@@ -385,8 +385,8 @@ Events:
   Normal   Pulled     30s               kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 314.3628ms
   Normal   Pulling    30s               kubelet            Pulling image "openservicemesh/bookstore:v0.8.2"
   Normal   Started    30s               kubelet            Started container bookstore-v1
-  Normal   Pulling    30s               kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.1"
-  Normal   Pulled     29s               kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.1" in 739.3931ms
+  Normal   Pulling    30s               kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
+  Normal   Pulled     29s               kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 739.3931ms
   Normal   Created    29s               kubelet            Created container envoy
   Normal   Started    29s               kubelet            Started container envoy
   Warning  Unhealthy  0s (x3 over 20s)  kubelet            Readiness probe failed: HTTP probe failed with statuscode: 503

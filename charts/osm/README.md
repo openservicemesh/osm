@@ -104,10 +104,11 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.osmcontroller.resource.requests.memory | string | `"128M"` |  |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | OpenServiceMesh.prometheus.port | int | `7070` | Prometheus port |
+| OpenServiceMesh.prometheus.resources | object | `{"limits":{"cpu":1,"memory":"2G"},"requests":{"cpu":0.5,"memory":"512M"}}` | Resource limits for prometheus instance |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus retention time |
 | OpenServiceMesh.replicaCount | int | `1` | `osm-controller` replicas |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Sets the service certificatevalidity duration |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.1"` | Envoy sidecar image |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.2"` | Envoy sidecar image |
 | OpenServiceMesh.tracing.address | string | `""` | Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Destination's API or collector endpoint where the spans will be sent to |

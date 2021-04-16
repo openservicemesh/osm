@@ -15,7 +15,7 @@ OpenServiceMesh:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.17.1
+  sidecarImage: envoyproxy/envoy-alpine:v1.17.2
   osmcontroller:
     resource:
       limits:
@@ -26,6 +26,14 @@ OpenServiceMesh:
         memory: "128M"
     podLabels: {}
   prometheus:
+    # -- Resource limits for prometheus instance
+    resources:
+      limits:
+        cpu: 1
+        memory: 2G
+      requests:
+        cpu: 0.5
+        memory: 512M
     # -- Prometheus port
     port: 7070
     retention:
