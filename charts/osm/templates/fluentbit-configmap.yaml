@@ -4,6 +4,8 @@ kind: ConfigMap
 metadata:
   name: fluentbit-configmap
   namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 data:
   fluent-bit.conf: |-
     [SERVICE]

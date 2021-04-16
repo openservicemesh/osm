@@ -4,6 +4,8 @@ kind: Secret
 metadata:
   name: proxy-config
   namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 stringData:
   HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy | quote }}
   HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy | quote }}

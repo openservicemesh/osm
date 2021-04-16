@@ -80,6 +80,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		certManager:    certManager,
 		kubeController: kubeController,
 		osmNamespace:   osmNamespace,
+		meshName:       meshName,
 		cert:           webhookHandlerCert,
 		configurator:   cfg,
 

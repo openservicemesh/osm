@@ -112,6 +112,15 @@
                                             "description": "The resources requests memory for the osmcontroller."
                                         }
                                     }
+                                },
+                                "podLabels": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/podLabels",
+                                    "type": "array",
+                                    "title": "The podLabels schema",
+                                    "description": "Labels for the osmcontroller pod.",
+                                    "items": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
@@ -173,7 +182,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.17.1"
+                        "envoyproxy/envoy-alpine:v1.17.2"
                     ]
                 },
                 "certificateManager": {

@@ -4,6 +4,7 @@ metadata:
   name: osm-controller
   namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
     meshName: {{ .Values.OpenServiceMesh.meshName }}
     {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
@@ -15,12 +16,19 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "osm.labels" . | nindent 8 }}
         app: osm-controller
+  {{- if .Values.OpenServiceMesh.osmcontroller.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.osmcontroller.podLabels | nindent 8 }}
+  {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: osm-controller
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"
