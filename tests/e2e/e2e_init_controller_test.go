@@ -7,8 +7,6 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-const meshConfigName = "osm-mesh-config"
-
 var _ = OSMDescribe("Test init-osm-controller functionalities",
 	OSMDescribeInfo{
 		Tier:   2,
@@ -18,11 +16,10 @@ var _ = OSMDescribe("Test init-osm-controller functionalities",
 		Context("When osm-controller starts in fresh environment", func() {
 			It("creates default MeshConfig resource", func() {
 				instOpts := Td.GetOSMInstallOpts()
-				namespace := instOpts.ControlPlaneNS
 
 				// Install OSM
 				Expect(Td.InstallOSM(instOpts)).To(Succeed())
-				meshConfig, err := Td.GetMeshConfig(meshConfigName, namespace)
+				meshConfig, err := Td.GetMeshConfig()
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// validate osm MeshConfig

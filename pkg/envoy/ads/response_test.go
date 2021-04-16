@@ -17,6 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
@@ -43,13 +45,15 @@ var _ = Describe("Test ADS response functions", func() {
 
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
+	configClient := configFake.NewSimpleClientset()
+
 	namespace := tests.Namespace
 	proxyUUID := tests.ProxyUUID
 	proxyService := service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: namespace}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
-	mc := catalog.NewFakeMeshCatalog(kubeClient)
+	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry()
 
 	// Create a Pod

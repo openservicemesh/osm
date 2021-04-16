@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/version"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -55,11 +54,11 @@ func validateCLIParams() error {
 
 func createDefaultMeshConfig() *v1alpha1.MeshConfig {
 	return &v1alpha1.MeshConfig{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
 			APIVersion: "config.openservicemesh.io/v1alpha1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,
 		},
 		Spec: v1alpha1.MeshConfigSpec{
