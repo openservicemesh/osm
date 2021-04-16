@@ -195,6 +195,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	return secret, nil
 }
 
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func getSubjectAltNamesFromSvcAccount(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 

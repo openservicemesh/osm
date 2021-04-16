@@ -40,6 +40,7 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 
 // ListAllowedEndpointsForService returns only those endpoints for a service that belong to the allowed outbound service accounts
 // for the given downstream identity
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
 	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
 	if err != nil {
@@ -69,6 +70,7 @@ func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identit
 	return allowedEndpoints, nil
 }
 
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) listEndpointsForServiceIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {

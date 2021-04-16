@@ -21,6 +21,7 @@ const (
 // ListInboundTrafficPolicies returns all inbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -38,6 +39,7 @@ func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.Serv
 
 // listInboundPoliciesFromTrafficTargets builds inbound traffic policies for all inbound services
 // when the given service account matches a destination in the Traffic Target resource
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	upstreamServiceAccount := upstreamIdentity.ToK8sServiceAccount()
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -63,6 +65,7 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity id
 // listInboundPoliciesForTrafficSplits loops through all SMI TrafficTarget resources and returns inbound policies for apex services based on the following conditions:
 // 1. the given upstream identity matches the destination specified in a TrafficTarget resource
 // 2. the given list of upstream services are backends specified in a TrafficSplit resource
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	upstreamServiceAccount := upstreamIdentity.ToK8sServiceAccount()
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy

@@ -461,6 +461,7 @@ func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 }
 
 // NewSMITrafficTarget creates a new SMI Traffic Target
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func NewSMITrafficTarget(source identity.ServiceIdentity, destination identity.ServiceIdentity) access.TrafficTarget {
 	sourceSA := source.ToK8sServiceAccount()
 	destinationSA := destination.ToK8sServiceAccount()

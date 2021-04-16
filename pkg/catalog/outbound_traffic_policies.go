@@ -15,6 +15,7 @@ import (
 // ListOutboundTrafficPolicies returns all outbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account from SMI Traffic Target and Traffic Split
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
@@ -33,6 +34,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.S
 
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
 // when the given service account matches a source in the Traffic Target resource
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
@@ -95,6 +97,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 }
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
@@ -155,6 +158,7 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	return outPolicies
 }
 
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.ServiceIdentity, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
 	source := sourceServiceIdentity.ToK8sServiceAccount()
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy

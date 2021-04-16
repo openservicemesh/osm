@@ -22,16 +22,19 @@ const (
 )
 
 // ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given upstream service account
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
 // ListAllowedOutboundServiceIdentities lists the upstream service identities the given downstream service account can connect to
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
 // ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
@@ -78,6 +81,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 	return trafficTargets, nil
 }
 
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity.ServiceIdentity, direction trafficDirection) ([]identity.ServiceIdentity, error) {
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()

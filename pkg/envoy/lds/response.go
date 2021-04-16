@@ -99,10 +99,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return ldsResources, nil
 }
 
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
 	return &listenerBuilder{
 		meshCatalog:     meshCatalog,
-		serviceIdentity: svcAccount,
+		serviceIdentity: svcIdentity,
 		cfg:             cfg,
 		statsHeaders:    statsHeaders,
 	}

@@ -48,6 +48,7 @@ func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.
 }
 
 // ListEndpointsForIdentity retrieves the IP addresses comprising the given service account.
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (f fakeClient) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
 	if ep, ok := f.svcAccountEndpoints[sa]; ok {
