@@ -67,7 +67,7 @@ var _ = Describe("Running the uninstall command", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 			It("should give a message confirming the successful uninstall", func() {
-				Expect(out.String()).To(ContainSubstring("OSM [mesh name: testing] uninstalled\n"))
+				Expect(out.String()).To(ContainSubstring("OSM [mesh name: testing] in namespace [osm-system] uninstalled\n"))
 			})
 
 		})
@@ -260,7 +260,7 @@ var _ = Describe("Running the uninstall command", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 			It("should give a message confirming the uninstall of OSM", func() {
-				Expect(out.String()).To(ContainSubstring("OSM [mesh name: " + meshName + "] uninstalled\n"))
+				Expect(out.String()).To(ContainSubstring("OSM [mesh name: " + meshName + "] in namespace [" + settings.Namespace() + "] uninstalled\n"))
 			})
 			It("should give a message confirming the deletion on namespace", func() {
 				Expect(out.String()).To(ContainSubstring("OSM namespace [" + settings.Namespace() + "] deleted successfully\n"))

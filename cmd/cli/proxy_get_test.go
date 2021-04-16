@@ -46,3 +46,33 @@ func TestIsMeshedPod(t *testing.T) {
 		})
 	}
 }
+
+func TestAnnotateErrMsgWithPodNamespaceMsg(t *testing.T) {
+	assert := tassert.New(t)
+
+	type test struct {
+		errorMsg     string
+		podName      string
+		podNamespace string
+		annotatedMsg string
+	}
+
+	podNamespaceActionableMsg := "Note: Use the flag --namespace to modify the intended pod namespace."
+
+	testCases := []test{
+		{
+			"Proxy get command error for pod name [%s] in pod namespace [%s]",
+			"test-pod-name",
+			"test-namespace",
+			"Proxy get command error for pod name [test-pod-name] in pod namespace [test-namespace]\n\n" + podNamespaceActionableMsg,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing annotated error message for pod name [%s] in pod namespace [%s]", tc.podName, tc.podNamespace), func(t *testing.T) {
+			assert.Equal(
+				tc.annotatedMsg,
+				annotateErrMsgWithPodNamespaceMsg(tc.errorMsg, tc.podName, tc.podNamespace).Error())
+		})
+	}
+}

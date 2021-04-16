@@ -339,7 +339,7 @@ func (i *installCmd) validateOptions() error {
 	if osmControllerDeployments != nil && len(osmControllerDeployments.Items) > 0 {
 		return errNamespaceAlreadyHasController(settings.Namespace())
 	} else if err != nil {
-		return fmt.Errorf("Error ensuring no osm-controller running in namespace %s:%s", settings.Namespace(), err)
+		return annotateErrorMessageWithOsmNamespace("Error ensuring no osm-controller running in OSM namespace [%s]: %s", settings.Namespace(), err)
 	}
 
 	// validate the envoy log level type
@@ -418,5 +418,5 @@ func errMeshAlreadyExists(name string) error {
 }
 
 func errNamespaceAlreadyHasController(namespace string) error {
-	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --osm-namespace", namespace)
+	return annotateErrorMessageWithOsmNamespace("Namespace [%s] already has an osm controller.", namespace)
 }
