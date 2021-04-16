@@ -25,7 +25,8 @@ type MeshConfigSpec struct {
 type SidecarSpec struct {
 	EnablePrivilegedInitContainer bool   `json:"enable_privileged_init_container,omitempty"`
 	LogLevel                      string `json:"log_level,omitempty" default:"error"`
-	MaxDataPlaneConnections       int    `json:"max_data_plane_connections"`
+	MaxDataPlaneConnections       int    `json:"max_data_plane_connections,omitempty"`
+	ConfigResyncInterval          string `json:"config_resync_interval,omitempty"`
 }
 
 // TrafficSpec is the spec for OSM's traffic management configuration

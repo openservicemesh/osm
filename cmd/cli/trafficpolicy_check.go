@@ -13,8 +13,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	osmConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/signals"
 )
 
 const trafficPolicyCheckDescription = `
@@ -34,7 +37,7 @@ osm policy check-pods bookbuyer-client bookstore-server
 
 const (
 	namespaceSeparator = "/"
-	osmConfigMapName   = "osm-config"
+	osmConfigName      = "osm-config"
 	serviceAccountKind = "ServiceAccount"
 )
 
@@ -44,6 +47,8 @@ type trafficPolicyCheckCmd struct {
 	destinationPod  string
 	clientSet       kubernetes.Interface
 	smiAccessClient smiAccessClient.Interface
+	configClient    osmConfigClient.Interface
+	restConfig      *rest.Config
 }
 
 func newTrafficPolicyCheck(out io.Writer) *cobra.Command {
@@ -55,7 +60,7 @@ func newTrafficPolicyCheck(out io.Writer) *cobra.Command {
 		Use:   "check-pods SOURCE_POD DESTINATION_POD",
 		Short: "check-pods traffic policy",
 		Long:  trafficPolicyCheckDescription,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.MinimumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			trafficPolicyCheckCmd.sourcePod = args[0]
 			trafficPolicyCheckCmd.destinationPod = args[1]
@@ -65,17 +70,25 @@ func newTrafficPolicyCheck(out io.Writer) *cobra.Command {
 				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 
+			trafficPolicyCheckCmd.restConfig = config
+
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			trafficPolicyCheckCmd.clientSet = clientset
 
-			accessCliemt, err := smiAccessClient.NewForConfig(config)
+			accessClient, err := smiAccessClient.NewForConfig(config)
 			if err != nil {
 				return errors.Errorf("Could not initialize SMI Access client: %s", err)
 			}
-			trafficPolicyCheckCmd.smiAccessClient = accessCliemt
+			trafficPolicyCheckCmd.smiAccessClient = accessClient
+
+			configClient, err := osmConfigClient.NewForConfig(config)
+			if err != nil {
+				return errors.Errorf("Could not initialize OSM Config client: %s", err)
+			}
+			trafficPolicyCheckCmd.configClient = configClient
 
 			return trafficPolicyCheckCmd.run()
 		},
@@ -184,16 +197,9 @@ func (cmd *trafficPolicyCheckCmd) getMeshedPod(namespace, podName string) (*core
 
 func (cmd *trafficPolicyCheckCmd) isPermissiveModeEnabled() (bool, error) {
 	osmNamespace := settings.Namespace()
-	configMap, err := cmd.clientSet.CoreV1().ConfigMaps(osmNamespace).Get(context.TODO(), osmConfigMapName, metav1.GetOptions{})
-	if err != nil {
-		return false, errors.Errorf("Error checking if permissive mode is enabled: %s", err)
-	}
-
-	configVal, err := configurator.GetBoolValueForKey(configMap, configurator.PermissiveTrafficPolicyModeKey)
-	if err != nil {
-		return false, errors.Errorf("Invalid value for key %q in %s/%s ConfigMap: %s", configurator.PermissiveTrafficPolicyModeKey, configMap.Namespace, configMap.Name, err)
-	}
-	return configVal, nil
+	stop := signals.RegisterExitHandlers()
+	cfg := configurator.NewConfiguratorWithCRDClient(cmd.configClient, stop, osmNamespace, osmConfigName)
+	return cfg.GetPermissiveTrafficPolicyMode(), nil
 }
 
 func unmarshalNamespacedPod(namespacedPod string) (namespace string, podName string, err error) {

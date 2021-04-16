@@ -34,6 +34,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
@@ -57,7 +58,7 @@ var (
 	osmNamespace       string
 	webhookConfigName  string
 	caBundleSecretName string
-	osmConfigMapName   string
+	osmConfigName      string
 
 	certProviderKind string
 
@@ -83,7 +84,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
-	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
+	flags.StringVar(&osmConfigName, "osm-config-name", "osm-config", "Name of the OSM MeshConfig")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -158,12 +159,12 @@ func main() {
 
 	// This component will be watching the OSM ConfigMap and will make it
 	// to the rest of the components.
-	cfg := configurator.NewConfigurator(kubernetes.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigMapName)
-	configMap, err := cfg.GetConfigMap()
+	cfg := configurator.NewConfiguratorWithCRDClient(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigName)
+	meshConfig, err := cfg.GetMeshConfig()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing ConfigMap %s", osmConfigMapName)
+		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmConfigName)
 	}
-	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
+	log.Info().Msgf("Initial MeshConfig %s: %v", osmConfigName, meshConfig)
 
 	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {

@@ -5,10 +5,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	testclientVersioned "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
 
 var _ = Describe("Test catalog functions", func() {
-	mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+	mc := NewFakeMeshCatalog(testclient.NewSimpleClientset(), testclientVersioned.NewSimpleClientset())
 
 	Context("Test GetSMISpec()", func() {
 		It("provides the SMI Spec component via Mesh Catalog", func() {

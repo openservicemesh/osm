@@ -11,7 +11,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/fake"
+
+	testclientVersioned "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -33,10 +34,11 @@ var _ = Describe("Test Announcement Handlers", func() {
 		podUID = uuid.New().String()
 
 		stop := make(<-chan struct{})
-		kubeClient := fake.NewSimpleClientset()
+		versionedClient := testclientVersioned.NewSimpleClientset()
+
 		osmNamespace := "-test-osm-namespace-"
 		osmConfigMapName := "-test-osm-config-map-"
-		cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		cfg := configurator.NewConfiguratorWithCRDClient(versionedClient, stop, osmNamespace, osmConfigMapName)
 		certManager = tresor.NewFakeCertManager(cfg)
 
 		_, err := certManager.IssueCertificate(envoyCN, 5*time.Second)

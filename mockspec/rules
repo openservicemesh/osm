@@ -26,5 +26,5 @@ configurator; pkg/configurator/mock_client_generated.go; github.com/openservicem
 # pkg/catalog
 catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
 
-# pkg/certificate
+# pkg/CertificateManagerDebugger
 certificate; pkg/certificate/mock_certificate_generated.go; github.com/openservicemesh/osm/pkg/certificate; Certificater,Manager

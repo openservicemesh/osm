@@ -1,6 +1,7 @@
 package configurator
 
 import (
+	"fmt"
 	"strings"
 
 	"k8s.io/client-go/tools/cache"
@@ -16,9 +17,64 @@ import (
 const (
 	meshConfigInformerName = "MeshConfig"
 	meshConfigProviderName = "OSM"
+
+	// DefaultMeshConfigName is the default name of MeshConfig object
+	DefaultMeshConfigName = "osm-mesh-config"
 )
 
-func newConfiguratorWithCRDClient(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string) *CRDClient {
+const (
+	// PermissiveTrafficPolicyModeKey is the key name used for permissive mode in the ConfigMap
+	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
+
+	// egressKey is the key name used for egress in the ConfigMap
+	egressKey = "egress"
+
+	// enableDebugServer is the key name used for the debug server in the ConfigMap
+	enableDebugServer = "enable_debug_server"
+
+	// prometheusScrapingKey is the key name used for prometheus scraping in the ConfigMap
+	prometheusScrapingKey = "prometheus_scraping"
+
+	// useHTTPSIngressKey is the key name used for HTTPS ingress in the ConfigMap
+	useHTTPSIngressKey = "use_https_ingress"
+
+	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the ConfigMap
+	maxDataPlaneConnectionsKey = "max_data_plane_connections"
+
+	// tracingEnableKey is the key name used for tracing in the ConfigMap
+	tracingEnableKey = "tracing_enable"
+
+	// tracingAddressKey is the key name used to specify the tracing address in the ConfigMap
+	tracingAddressKey = "tracing_address"
+
+	// tracingPortKey is the key name used to specify the tracing port in the ConfigMap
+	tracingPortKey = "tracing_port"
+
+	// tracingEndpointKey is the key name used to specify the tracing endpoint in the ConfigMap
+	tracingEndpointKey = "tracing_endpoint"
+
+	// envoyLogLevel is the key name used to specify the log level of Envoy proxy in the ConfigMap
+	envoyLogLevel = "envoy_log_level"
+
+	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
+	serviceCertValidityDurationKey = "service_cert_validity_duration"
+
+	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
+	outboundIPRangeExclusionListKey = "outbound_ip_range_exclusion_list"
+
+	// enablePrivilegedInitContainerKey is the key name used to specify whether init containers should be privileged in the ConfigMap
+	enablePrivilegedInitContainerKey = "enable_privileged_init_container"
+
+	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
+	configResyncIntervalKey = "config_resync_interval"
+)
+
+// NewConfiguratorWithCRDClient implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
+func NewConfiguratorWithCRDClient(kubeClient versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string) Configurator {
+	return newConfiguratorWithCRDClient(kubeClient, stop, osmNamespace, meshConfigName)
+}
+
+func newConfiguratorWithCRDClient(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string) *CRDClient {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
 		meshConfigClientSet,
 		k8s.DefaultKubeEventResyncInterval,
@@ -26,10 +82,11 @@ func newConfiguratorWithCRDClient(meshConfigClientSet versioned.Interface, stop 
 	)
 	informer := informerFactory.Config().V1alpha1().MeshConfigs().Informer()
 	crdClient := CRDClient{
-		informer:     informer,
-		cache:        informer.GetStore(),
-		cacheSynced:  make(chan interface{}),
-		osmNamespace: osmNamespace,
+		informer:       informer,
+		cache:          informer.GetStore(),
+		cacheSynced:    make(chan interface{}),
+		osmNamespace:   osmNamespace,
+		meshConfigName: meshConfigName,
 	}
 
 	// configure listener
@@ -43,8 +100,7 @@ func newConfiguratorWithCRDClient(meshConfigClientSet versioned.Interface, stop 
 	// start listener
 	go crdClient.runMeshConfigListener(stop)
 
-	// start informer
-	go informer.Run(stop)
+	crdClient.run(stop)
 
 	return &crdClient
 }
@@ -86,8 +142,7 @@ func (c *CRDClient) runMeshConfigListener(stop <-chan struct{}) {
 	}
 }
 
-// TODO: remove nolint after invocation implemented
-func (c *CRDClient) run(stop <-chan struct{}) { //nolint:golint,unused
+func (c *CRDClient) run(stop <-chan struct{}) {
 	go c.informer.Run(stop) // run the informer synchronization
 	log.Debug().Msgf("Started OSM MeshConfig informer")
 	log.Debug().Msg("[MeshConfig Client] Waiting for MeshConfig informer's cache to sync")
@@ -105,10 +160,6 @@ func (c *CRDClient) run(stop <-chan struct{}) { //nolint:golint,unused
 func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 	// Invalid values should be prevented once https://github.com/openservicemesh/osm/issues/1788
 	// is implemented.
-	//
-	// Unsupported fields in MeshConfig CRD:
-	// * PrometheusScraping
-	// * ConfigResyncInterval
 
 	osmConfig := osmConfig{}
 	osmConfig.PermissiveTrafficPolicyMode = meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode
@@ -120,6 +171,9 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 	osmConfig.ServiceCertValidityDuration = meshConfig.Spec.Certificate.ServiceCertValidityDuration
 	osmConfig.OutboundIPRangeExclusionList = strings.Join(meshConfig.Spec.Traffic.OutboundIPRangeExclusionList, ",")
 	osmConfig.EnablePrivilegedInitContainer = meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer
+	osmConfig.PrometheusScraping = meshConfig.Spec.Observability.PrometheusScraping
+	osmConfig.ConfigResyncInterval = meshConfig.Spec.Sidecar.ConfigResyncInterval
+	osmConfig.MaxDataPlaneConnections = meshConfig.Spec.Sidecar.MaxDataPlaneConnections
 
 	if osmConfig.TracingEnable {
 		osmConfig.TracingAddress = meshConfig.Spec.Observability.Tracing.Address
@@ -188,4 +242,79 @@ func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
 		log.Trace().Msgf("[%s] OSM MeshConfig update, NOT triggering global proxy broadcast",
 			psubMsg.AnnouncementType)
 	}
+}
+
+func (c *CRDClient) getMeshConfigCacheKey() string {
+	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
+}
+
+// Returns the current ConfigMap
+func (c *CRDClient) getMeshConfig() *osmConfig {
+	meshConfigCacheKey := c.getMeshConfigCacheKey()
+	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting MeshConfig from cache with key %s", meshConfigCacheKey)
+		return &osmConfig{}
+	}
+
+	if !exists {
+		log.Warn().Msgf("MeshConfig %s does not exist. Default config values will be used.", meshConfigCacheKey)
+		return &osmConfig{}
+	}
+	meshConfig := item.(*v1alpha1.MeshConfig)
+
+	return parseOSMMeshConfig(meshConfig)
+}
+
+// This struct must match the shape of the "osm-config" ConfigMap
+// which was created in the OSM namespace.
+type osmConfig struct {
+	// PermissiveTrafficPolicyMode is a bool toggle, which when TRUE ignores SMI policies and
+	// allows existing Kubernetes services to communicate with each other uninterrupted.
+	// This is useful whet set TRUE in brownfield configurations, where we first want to observe
+	// existing traffic patterns.
+	PermissiveTrafficPolicyMode bool `yaml:"permissive_traffic_policy_mode"`
+
+	// Egress is a bool toggle used to enable or disable egress globally within the mesh
+	Egress bool `yaml:"egress"`
+
+	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
+	EnableDebugServer bool `yaml:"enable_debug_server"`
+
+	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
+	PrometheusScraping bool `yaml:"prometheus_scraping"`
+
+	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
+	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
+	// MaxDataPlaneConnections indicates max allowed data plane connections
+	MaxDataPlaneConnections int `yaml:"max_data_plane_connections"`
+
+	// TracingEnabled is a bool toggle used to enable or disable tracing
+	TracingEnable bool `yaml:"tracing_enable"`
+
+	// TracingAddress is the address of the listener cluster
+	TracingAddress string `yaml:"tracing_address"`
+
+	// TracingPort remote port for the listener
+	TracingPort int `yaml:"tracing_port"`
+
+	// TracingEndpoint is the collector endpoint on the listener
+	TracingEndpoint string `yaml:"tracing_endpoint"`
+
+	// EnvoyLogLevel is a string that defines the log level for envoy proxies
+	EnvoyLogLevel string `yaml:"envoy_log_level"`
+
+	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
+	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
+	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
+
+	// OutboundIPRangeExclusionList is the list of outbound IP ranges to exclude from sidecar interception
+	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
+
+	EnablePrivilegedInitContainer bool `yaml:"enable_privileged_init_container"`
+
+	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
+	ConfigResyncInterval string `yaml:"config_resync_interval"`
 }

@@ -11,6 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	testclientVersioned "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -29,8 +31,9 @@ const (
 var _ = Describe("Test XDS certificate tooling", func() {
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	kubeClient := testclient.NewSimpleClientset()
+	versionedClient := testclientVersioned.NewSimpleClientset()
 
-	mc := NewFakeMeshCatalog(kubeClient)
+	mc := NewFakeMeshCatalog(kubeClient, versionedClient)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
 	Context("Test GetServicesFromEnvoyCertificate()", func() {

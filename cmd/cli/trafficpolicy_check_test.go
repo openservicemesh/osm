@@ -13,6 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -45,56 +48,49 @@ func TestUnmarshalNamespacedPod(t *testing.T) {
 func TestIsPermissiveModeEnabled(t *testing.T) {
 	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
+	fakeConfigClient := fakeConfig.NewSimpleClientset()
 	out := new(bytes.Buffer)
 
 	cmd := trafficPolicyCheckCmd{
-		clientSet: fakeClient,
-		out:       out,
+		clientSet:    fakeClient,
+		configClient: fakeConfigClient,
+		out:          out,
 	}
 
 	testCases := []struct {
-		configMap   corev1.ConfigMap
+		meshConfig  v1alpha1.MeshConfig
 		enabled     bool
 		expectError bool
 	}{
 		{
-			corev1.ConfigMap{
+			v1alpha1.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
-					Name:      osmConfigMapName,
+					Name:      osmConfigName,
 				},
-				Data: map[string]string{
-					configurator.PermissiveTrafficPolicyModeKey: "true",
+				Spec: v1alpha1.MeshConfigSpec{
+					Traffic: v1alpha1.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: true,
+					},
 				},
 			},
 			true,
 			false,
 		},
 		{
-			corev1.ConfigMap{
+			v1alpha1.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
-					Name:      osmConfigMapName,
+					Name:      osmConfigName,
 				},
-				Data: map[string]string{
-					configurator.PermissiveTrafficPolicyModeKey: "false",
+				Spec: v1alpha1.MeshConfigSpec{
+					Traffic: v1alpha1.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: false,
+					},
 				},
 			},
 			false,
 			false,
-		},
-		{
-			corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "osm-system",
-					Name:      osmConfigMapName,
-				},
-				Data: map[string]string{
-					configurator.PermissiveTrafficPolicyModeKey: "invalid-value",
-				},
-			},
-			false,
-			true,
 		},
 	}
 
@@ -109,16 +105,16 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing testcase %d", i), func(t *testing.T) {
-			// create the configMap
-			_, err := fakeClient.CoreV1().ConfigMaps(osmNamespace.Name).Create(context.TODO(), &tc.configMap, metav1.CreateOptions{})
+			// create the MeshConfig
+			_, err := fakeConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
 			assert.Nil(err)
 
 			enabled, err := cmd.isPermissiveModeEnabled()
 			assert.Equal(enabled, tc.enabled)
 			assert.Equal(err != nil, tc.expectError)
 
-			// delete the configMap for the next test case using the same ConfigMap
-			err = fakeClient.CoreV1().ConfigMaps(osmNamespace.Name).Delete(context.TODO(), tc.configMap.Name, metav1.DeleteOptions{})
+			// delete the MeshConfig for the next test case using the same MeshConfig
+			err = fakeConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace.Name).Delete(context.TODO(), tc.meshConfig.Name, metav1.DeleteOptions{})
 			assert.Nil(err)
 		})
 	}
@@ -128,11 +124,14 @@ func TestCheckTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 	fakeAccessClient := fakeAccessClient.NewSimpleClientset()
+	fakeConfigClient := fakeConfig.NewSimpleClientset()
+
 	out := new(bytes.Buffer)
 
 	cmd := trafficPolicyCheckCmd{
 		clientSet:       fakeClient,
 		smiAccessClient: fakeAccessClient,
+		configClient:    fakeConfigClient,
 		out:             out,
 	}
 
@@ -191,7 +190,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
-					Name:      osmConfigMapName,
+					Name:      osmConfigName,
 				},
 				Data: map[string]string{
 					configurator.PermissiveTrafficPolicyModeKey: "false",
@@ -247,7 +246,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
-					Name:      osmConfigMapName,
+					Name:      osmConfigName,
 				},
 				Data: map[string]string{
 					configurator.PermissiveTrafficPolicyModeKey: "false",
@@ -304,7 +303,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
-					Name:      osmConfigMapName,
+					Name:      osmConfigName,
 				},
 				Data: map[string]string{
 					configurator.PermissiveTrafficPolicyModeKey: "true",
