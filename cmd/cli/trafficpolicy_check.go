@@ -22,6 +22,8 @@ const trafficPolicyCheckDescription = `
 This command will check whether a given source pod is allowed to communicate
 (send traffic) to a given destination pod by an SMI TrafficTarget policy or
 in lieu of the mesh operating in permissive traffic policy mode.
+
+MESH_CONFIG_NAME is optional. The default value is "osm-mesh-config".
 `
 
 const trafficPolicyCheckExample = `
@@ -55,13 +57,17 @@ func newTrafficPolicyCheck(out io.Writer) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "check-pods SOURCE_POD DESTINATION_POD",
+		Use:   "check-pods SOURCE_POD DESTINATION_POD [MESH_CONFIG_NAME]",
 		Short: "check-pods traffic policy",
 		Long:  trafficPolicyCheckDescription,
 		Args:  cobra.MinimumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			trafficPolicyCheckCmd.sourcePod = args[0]
 			trafficPolicyCheckCmd.destinationPod = args[1]
+			trafficPolicyCheckCmd.osmMeshConfigName = defaultOsmMeshConfigName
+			if len(args) > 2 {
+				trafficPolicyCheckCmd.osmMeshConfigName = args[2]
+			}
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {

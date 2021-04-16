@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -92,6 +92,8 @@ var possibleEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn
 // Its value is initialized at build time.
 var chartTGZSource string
 
+var log = logger.NewPretty("osm-install")
+
 type installCmd struct {
 	out                           io.Writer
 	certificateManager            string
@@ -117,6 +119,7 @@ type installCmd struct {
 	enableEgress                  bool
 	enablePermissiveTrafficPolicy bool
 	clientSet                     kubernetes.Interface
+	configClient                  *configClientset.Clientset
 	chartRequested                *chart.Chart
 	setOptions                    []string
 	atomic                        bool
@@ -203,6 +206,8 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
+	log.Info().Msgf("run(): start check validateOptions")
+
 	if err := i.validateOptions(); err != nil {
 		return err
 	}
@@ -214,6 +219,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
+	log.Info().Msgf("run(): start installation")
 	installClient := helm.NewInstall(config)
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
@@ -296,6 +302,8 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 }
 
 func (i *installCmd) validateOptions() error {
+	log.Info().Msgf("Start validateOptions: loadOSMChart")
+
 	if err := i.loadOSMChart(); err != nil {
 		return err
 	}

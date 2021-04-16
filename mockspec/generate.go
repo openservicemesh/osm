@@ -72,6 +72,7 @@ func genMock(ruleStr string) {
 		"-w", ruleOptions[1],
 	}
 	cmd = exec.Command("go", cmdList...) // nolint gosec
+	log.Printf("command: go %v\n", cmdList)
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Error generating mocks for rule: %v, err: %s", ruleOptions, err)
 	}

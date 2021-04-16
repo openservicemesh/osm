@@ -12,6 +12,7 @@ import (
 	informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/rs/zerolog/log"
 )
 
 const (
