@@ -43,7 +43,7 @@ spec:
                   description: Configuration for Envoy sidecar
                   type: object
                   properties:
-                    enablePriviledgedInitContainer:
+                    enablePrivilegedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
                       default: false

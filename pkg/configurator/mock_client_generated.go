@@ -34,21 +34,6 @@ func (m *MockConfigurator) EXPECT() *MockConfiguratorMockRecorder {
 	return m.recorder
 }
 
-// GetConfigMap mocks base method
-func (m *MockConfigurator) GetConfigMap() ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigMap")
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetConfigMap indicates an expected call of GetConfigMap
-func (mr *MockConfiguratorMockRecorder) GetConfigMap() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigMap", reflect.TypeOf((*MockConfigurator)(nil).GetConfigMap))
-}
-
 // GetConfigResyncInterval mocks base method
 func (m *MockConfigurator) GetConfigResyncInterval() time.Duration {
 	m.ctrl.T.Helper()
@@ -105,6 +90,21 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxDataPlaneConnections", reflect.TypeOf((*MockConfigurator)(nil).GetMaxDataPlaneConnections))
 }
 
+// GetMeshConfigJSON mocks base method
+func (m *MockConfigurator) GetMeshConfigJSON() ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshConfigJSON")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMeshConfigJSON indicates an expected call of GetMeshConfigJSON
+func (mr *MockConfiguratorMockRecorder) GetMeshConfigJSON() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfigJSON", reflect.TypeOf((*MockConfigurator)(nil).GetMeshConfigJSON))
+}
+
 // GetOSMNamespace mocks base method
 func (m *MockConfigurator) GetOSMNamespace() string {
 	m.ctrl.T.Helper()
@@ -145,6 +145,20 @@ func (m *MockConfigurator) GetOutboundPortExclusionList() []string {
 func (mr *MockConfiguratorMockRecorder) GetOutboundPortExclusionList() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundPortExclusionList))
+}
+
+// GetPermissiveTrafficPolicyMode mocks base method
+func (m *MockConfigurator) GetPermissiveTrafficPolicyMode() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPermissiveTrafficPolicyMode")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetPermissiveTrafficPolicyMode indicates an expected call of GetPermissiveTrafficPolicyMode
+func (mr *MockConfiguratorMockRecorder) GetPermissiveTrafficPolicyMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissiveTrafficPolicyMode", reflect.TypeOf((*MockConfigurator)(nil).GetPermissiveTrafficPolicyMode))
 }
 
 // GetServiceCertValidityPeriod mocks base method

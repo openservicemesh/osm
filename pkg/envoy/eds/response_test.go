@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -65,7 +67,9 @@ func TestEndpointConfiguration(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	kubeClient := testclient.NewSimpleClientset()
-	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient)
+	configClient := configFake.NewSimpleClientset()
+
+	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)

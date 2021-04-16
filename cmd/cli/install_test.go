@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
+
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -24,6 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	yaml "k8s.io/apimachinery/pkg/util/yaml"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -794,6 +799,40 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 	err = install.run(config)
 	assert.NotNil(err)
 	assert.Equal(err, errAlreadyExists)
+}
+
+func TestReadMeshConfigFile(t *testing.T) {
+	assert := tassert.New(t)
+
+	meshConfigContent := `
+apiVersion: config.openservicemesh.io/v1alpha1
+kind: MeshConfig
+metadata:
+  name: test-osm-mesh-config
+spec:
+  sidecar:
+    enable_privileged_init_container: false
+    log_level: error
+    max_data_plane_connections: 0
+  traffic:
+    egress: false
+    use_https_ingress: false
+    enable_permissive_traffic_policy_mode: false
+  observability:
+    enable_debug_server: true
+    prometheus_scraping: True
+    tracing:
+      enable: false
+  certificate:
+    service_cert_validity_duration: 24h
+`
+
+	var meshConfig v1alpha1.MeshConfig
+
+	err := yaml.NewYAMLOrJSONDecoder(strings.NewReader(meshConfigContent), 1024).Decode(&meshConfig)
+
+	assert.Equal(meshConfig.Name, "test-osm-mesh-config")
+	assert.Nil(err)
 }
 
 func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
