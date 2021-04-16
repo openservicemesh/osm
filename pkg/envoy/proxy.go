@@ -39,7 +39,7 @@ type Proxy struct {
 	PodMetadata *PodMetadata
 }
 
-func (p Proxy) String() string {
+func (p *Proxy) String() string {
 	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
 }
 
@@ -109,12 +109,12 @@ func (p *Proxy) SetLastAppliedVersion(typeURI TypeURI, version uint64) {
 }
 
 // GetLastAppliedVersion returns the last version successfully applied to the given Envoy proxy.
-func (p Proxy) GetLastAppliedVersion(typeURI TypeURI) uint64 {
+func (p *Proxy) GetLastAppliedVersion(typeURI TypeURI) uint64 {
 	return p.lastAppliedVersion[typeURI]
 }
 
 // GetLastSentVersion returns the last sent version.
-func (p Proxy) GetLastSentVersion(typeURI TypeURI) uint64 {
+func (p *Proxy) GetLastSentVersion(typeURI TypeURI) uint64 {
 	return p.lastSentVersion[typeURI]
 }
 
@@ -146,7 +146,7 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 }
 
 // GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
-func (p Proxy) GetPodUID() string {
+func (p *Proxy) GetPodUID() string {
 	if p.PodMetadata == nil {
 		return ""
 	}
@@ -154,27 +154,27 @@ func (p Proxy) GetPodUID() string {
 }
 
 // GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
-func (p Proxy) GetCertificateCommonName() certificate.CommonName {
+func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
 	return p.xDSCertificateCommonName
 }
 
 // GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
-func (p Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
+func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
 	return p.xDSCertificateSerialNumber
 }
 
 // GetHash returns the proxy hash based on its xDSCertificateCommonName
-func (p Proxy) GetHash() uint64 {
+func (p *Proxy) GetHash() uint64 {
 	return p.hash
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
-func (p Proxy) GetConnectedAt() time.Time {
+func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
 // GetIP returns the IP address of the Envoy proxy connected to xDS.
-func (p Proxy) GetIP() net.Addr {
+func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
 }
 
