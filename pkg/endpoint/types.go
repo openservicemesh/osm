@@ -18,7 +18,7 @@ type Provider interface {
 	ListEndpointsForService(service.MeshService) []Endpoint
 
 	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-	ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []Endpoint
+	ListEndpointsForIdentity(identity.ServiceIdentity) []Endpoint
 
 	// GetServicesForServiceAccount retrieves the namespaced services for a given service account
 	GetServicesForServiceAccount(identity.K8sServiceAccount) ([]service.MeshService, error)
