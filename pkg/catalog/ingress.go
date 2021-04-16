@@ -29,7 +29,7 @@ const (
 	commonRegexChars = `^$*+[]%|`
 )
 
-// Ensure the regex patteren for prefix matching for path elements compiles
+// Ensure the regex pattern for prefix matching for path elements compiles
 var _ = regexp.MustCompile(prefixMatchPathElementsRegex)
 
 // Ingress does not depend on k8s service accounts, program a wildcard (empty struct) to indicate
