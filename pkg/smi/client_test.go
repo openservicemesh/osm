@@ -2,7 +2,10 @@ package smi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -458,5 +461,65 @@ var _ = Describe("When getting an HTTP route by its namespaced name", func() {
 		route := meshSpec.GetHTTPRouteGroup(fmt.Sprintf("%s/%s", routeSpec.Namespace, routeSpec.Name))
 		Expect(route).ToNot(BeNil())
 		Expect(route).To(Equal(routeSpec))
+	})
+})
+
+var _ = Describe("Test httpserver with probes", func() {
+	var (
+		testServer         *httptest.Server
+		url                = "http://localhost"
+		testHTTPServerPort = 8888
+		smiVerionPath      = constants.HTTPServerSmiVersionPath
+		recordCall         = func(ts *httptest.Server, path string) *http.Response {
+			req := httptest.NewRequest("GET", path, nil)
+			w := httptest.NewRecorder()
+
+			ts.Config.Handler.ServeHTTP(w, req)
+
+			return w.Result()
+		}
+	)
+
+	BeforeEach(func() {
+		handlers := map[string]http.Handler{
+			smiVerionPath: GetSmiClientVersionHTTPHandler(),
+		}
+
+		router := http.NewServeMux()
+		for path, handler := range handlers {
+			router.Handle(path, handler)
+		}
+
+		testServer = &httptest.Server{
+			Config: &http.Server{
+				Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
+				Handler: router,
+			},
+		}
+	})
+
+	It("should result in a successful smi version probe", func() {
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, smiVerionPath))
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	})
+
+	It("should result in probe response body with smi version info", func() {
+		expectedSmiVersionInfo := map[string]string{
+			"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
+			"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
+			"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
+			"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
+		}
+		var actualSmiVersionInfo map[string]string
+
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, smiVerionPath))
+
+		if err := json.NewDecoder(resp.Body).Decode(&actualSmiVersionInfo); err != nil {
+			Fail("Error json decoding smi version info from response body")
+		}
+
+		for k, expectedValue := range expectedSmiVersionInfo {
+			Expect(expectedValue).To(Equal(actualSmiVersionInfo[k]))
+		}
 	})
 })

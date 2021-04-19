@@ -171,3 +171,8 @@ const (
 	OSMAppInstanceLabelKey = "app.kubernetes.io/instance"
 	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
 )
+
+// OSM HTTP Server Paths
+const (
+	HTTPServerSmiVersionPath = "/smi/version"
+)

@@ -237,6 +237,8 @@ func main() {
 	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler("/version", version.GetVersionHandler())
+	// Supported SMI Versions
+	httpServer.AddHandler(constants.HTTPServerSmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
 
 	// Start HTTP server
 	err = httpServer.Start()
