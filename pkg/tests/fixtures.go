@@ -207,8 +207,9 @@ var (
 
 	// Endpoint is an endpoint object.
 	Endpoint = endpoint.Endpoint{
-		IP:   net.ParseIP(ServiceIP),
-		Port: endpoint.Port(ServicePort),
+		IP:       net.ParseIP(ServiceIP),
+		Port:     endpoint.Port(ServicePort),
+		ProxyUID: ProxyUUID,
 	}
 
 	// TrafficSplit is a traffic split SMI object.

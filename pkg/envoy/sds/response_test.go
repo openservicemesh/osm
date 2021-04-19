@@ -63,12 +63,12 @@ func TestNewResponse(t *testing.T) {
 	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient)
 
 	// ----- Test with a rogue proxy (does not belong to the mesh)
-	actualSDSResponse, err := NewResponse(meshCatalog, badProxy, request, cfg, certManager)
+	actualSDSResponse, err := NewResponse(meshCatalog, badProxy, request, cfg, certManager, nil)
 	assert.Equal(err, catalog.ErrInvalidCertificateCN, "Expected a different error!")
 	assert.Nil(actualSDSResponse)
 
 	// ----- Test with an properly configured proxy
-	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
+	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager, nil)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 	assert.NotNil(resources)
 	assert.Equal(len(resources), 2)

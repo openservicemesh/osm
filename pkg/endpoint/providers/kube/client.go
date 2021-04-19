@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -51,15 +52,25 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 		for _, address := range kubernetesEndpoint.Addresses {
-			for _, port := range kubernetesEndpoint.Ports {
-				ip := net.ParseIP(address.IP)
-				if ip == nil {
-					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
-					break
+			ip := net.ParseIP(address.IP)
+			if ip == nil {
+				log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+				break
+			}
+			var proxyUID string
+			if address.TargetRef != nil && address.TargetRef.Kind == "Pod" {
+				// A GetPod() method would speed this up
+				for _, pod := range c.kubeController.ListPods() {
+					if pod.Name == address.TargetRef.Name && pod.Namespace == address.TargetRef.Namespace {
+						proxyUID = pod.Labels[constants.EnvoyUniqueIDLabelName]
+					}
 				}
+			}
+			for _, port := range kubernetesEndpoint.Ports {
 				ept := endpoint.Endpoint{
-					IP:   ip,
-					Port: endpoint.Port(port.Port),
+					IP:       ip,
+					Port:     endpoint.Port(port.Port),
+					ProxyUID: proxyUID,
 				}
 				endpoints = append(endpoints, ept)
 			}

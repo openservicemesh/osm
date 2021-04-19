@@ -8,12 +8,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy

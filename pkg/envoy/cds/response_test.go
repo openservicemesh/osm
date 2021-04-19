@@ -53,7 +53,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil)
+	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, nil)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)

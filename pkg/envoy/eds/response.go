@@ -1,6 +1,8 @@
 package eds
 
 import (
+	"strings"
+
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
@@ -9,19 +11,20 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
-	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity.ToServiceIdentity())
+	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity.ToServiceIdentity(), proxyRegistry)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
@@ -37,8 +40,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 }
 
 // getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) (map[service.MeshService][]endpoint.Endpoint, error) {
+func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, proxyRegistry *registry.ProxyRegistry) (map[service.MeshService][]endpoint.Endpoint, error) {
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
@@ -47,7 +49,19 @@ func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity ident
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)
 			continue
 		}
-		allowedServicesEndpoints[dstSvc] = endpoints
+		var availableEndpoints []endpoint.Endpoint
+		for _, endpoint := range endpoints {
+			// A GetProxy method would speed this up
+			for cn := range proxyRegistry.ListConnectedProxies() {
+				if strings.HasPrefix(cn.String(), endpoint.ProxyUID+".") {
+					availableEndpoints = append(availableEndpoints, endpoint)
+					break
+				}
+			}
+		}
+		if len(availableEndpoints) > 0 {
+			allowedServicesEndpoints[dstSvc] = availableEndpoints
+		}
 	}
 	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
 	return allowedServicesEndpoints, nil

@@ -68,7 +68,7 @@ func TestListenerConfiguration(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, nil)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:

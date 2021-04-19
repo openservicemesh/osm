@@ -47,7 +47,7 @@ var _ = Describe(``+
 			// ---[  Get the config from rds.NewResponse()  ]-------
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, nil)
 			It("did not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resources).ToNot(BeNil())

@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -72,7 +73,10 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+	proxyRegistry := registry.NewProxyRegistry()
+	proxyRegistry.RegisterProxy(proxy)
+
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
 	assert.NotNil(resources)
 
@@ -90,7 +94,7 @@ func TestEndpointConfiguration(t *testing.T) {
 }
 
 func TestGetEndpointsForProxy(t *testing.T) {
-	assert := tassert.New(t)
+	bookstoreV1Proxy := envoy.NewProxy(tests.ProxyUUID+"."+tests.BookstoreV1ServiceName+"."+tests.Namespace, "", nil)
 
 	testCases := []struct {
 		name                            string
@@ -101,8 +105,27 @@ func TestGetEndpointsForProxy(t *testing.T) {
 		outboundServices                map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints        map[service.MeshService][]endpoint.Endpoint
 		outboundServiceAccountEndpoints map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint
+		connectedProxies                []*envoy.Proxy
 		expectedEndpoints               map[service.MeshService][]endpoint.Endpoint
 	}{
+		{
+			name:                     "unconnected proxy mapped to service gets no endpoint",
+			proxyIdentity:            tests.BookbuyerServiceIdentity,
+			trafficTargets:           []*access.TrafficTarget{&tests.TrafficTarget},
+			allowedServiceIdentities: []identity.ServiceIdentity{tests.BookstoreServiceIdentity},
+			services:                 []service.MeshService{tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
+			},
+			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreV1Service: {tests.Endpoint},
+			},
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
+			},
+			connectedProxies:  nil,
+			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{},
+		},
 		{
 			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 service which has one endpoint.
@@ -119,6 +142,9 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			},
 			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
+			},
+			connectedProxies: []*envoy.Proxy{
+				bookstoreV1Proxy,
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -145,6 +171,9 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
 			},
+			connectedProxies: []*envoy.Proxy{
+				bookstoreV1Proxy,
+			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
 			},
@@ -170,21 +199,28 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			outboundServiceAccountEndpoints: map[identity.ServiceIdentity]map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service: {tests.Endpoint}},
 				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service: {endpoint.Endpoint{
-					IP:   net.ParseIP("9.9.9.9"),
-					Port: endpoint.Port(tests.ServicePort),
+					IP:       net.ParseIP("9.9.9.9"),
+					Port:     endpoint.Port(tests.ServicePort),
+					ProxyUID: "bookstore-v2-uid",
 				}}},
+			},
+			connectedProxies: []*envoy.Proxy{
+				bookstoreV1Proxy,
+				envoy.NewProxy("bookstore-v2-uid."+tests.BookstoreV2ServiceName+"."+tests.Namespace, "", nil),
 			},
 			expectedEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
 				tests.BookstoreV2Service: {endpoint.Endpoint{
-					IP:   net.ParseIP("9.9.9.9"),
-					Port: endpoint.Port(tests.ServicePort),
+					IP:       net.ParseIP("9.9.9.9"),
+					Port:     endpoint.Port(tests.ServicePort),
+					ProxyUID: "bookstore-v2-uid",
 				}},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
 			mockCtrl := gomock.NewController(t)
 			kubeClient := testclient.NewSimpleClientset()
 			defer mockCtrl.Finish()
@@ -202,6 +238,11 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			assert.Empty(err)
 			assert.NotNil(mockCatalog)
 			assert.NotNil(proxy)
+
+			proxyRegistry := registry.NewProxyRegistry()
+			for _, proxy := range tc.connectedProxies {
+				proxyRegistry.RegisterProxy(proxy)
+			}
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
@@ -253,7 +294,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 				}
 			}
 
-			actual, err := getEndpointsForProxy(mockCatalog, tc.proxyIdentity)
+			actual, err := getEndpointsForProxy(mockCatalog, tc.proxyIdentity, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(actual)
 
