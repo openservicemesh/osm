@@ -77,8 +77,17 @@ var _ = OSMDescribe("Upgrade from latest",
 							},
 						},
 					},
+					"prometheus": map[string]interface{}{
+						"resource": map[string]interface{}{
+							"requests": map[string]interface{}{
+								"cpu":    "0.1",
+								"memory": "256M",
+							},
+						},
+					},
 				},
 			}
+
 			chartPath, err := i.LocateChart("osm", helmEnv)
 			Expect(err).NotTo(HaveOccurred())
 			ch, err := loader.Load(chartPath)
