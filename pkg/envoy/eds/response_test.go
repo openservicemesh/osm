@@ -74,7 +74,14 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(proxy)
 
 	proxyRegistry := registry.NewProxyRegistry()
-	proxyRegistry.RegisterProxy(proxy)
+	proxies := []*envoy.Proxy{
+		envoy.NewProxy(tests.ProxyUUID+"."+tests.BookstoreApexServiceName+"."+tests.Namespace, "", nil),
+		envoy.NewProxy(tests.ProxyUUID+"."+tests.BookstoreV1ServiceName+"."+tests.Namespace, "", nil),
+		envoy.NewProxy(tests.ProxyUUID+"."+tests.BookstoreV2ServiceName+"."+tests.Namespace, "", nil),
+	}
+	for _, proxy := range proxies {
+		proxyRegistry.RegisterProxy(proxy)
+	}
 
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)

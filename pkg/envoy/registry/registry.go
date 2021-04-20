@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
@@ -47,4 +48,11 @@ func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
 // GetConnectedProxyCount counts the number of connected proxies
 func (pr *ProxyRegistry) GetConnectedProxyCount() int {
 	return len(pr.ListConnectedProxies())
+}
+
+// IsProxyConnected returns whether or not the proxy identified by the given
+// certificate common name has connected to this registry instance.
+func (pr *ProxyRegistry) IsProxyConnected(cn certificate.CommonName) bool {
+	_, found := pr.connectedProxies.Load(cn)
+	return found
 }

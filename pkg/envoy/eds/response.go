@@ -1,8 +1,6 @@
 package eds
 
 import (
-	"strings"
-
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
@@ -51,12 +49,8 @@ func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity ident
 		}
 		var availableEndpoints []endpoint.Endpoint
 		for _, endpoint := range endpoints {
-			// A GetProxy method would speed this up
-			for cn := range proxyRegistry.ListConnectedProxies() {
-				if strings.HasPrefix(cn.String(), endpoint.ProxyUID+".") {
-					availableEndpoints = append(availableEndpoints, endpoint)
-					break
-				}
+			if proxyRegistry.IsProxyConnected(certificate.CommonName(endpoint.ProxyUID + "." + dstSvc.Name + "." + dstSvc.Namespace)) {
+				availableEndpoints = append(availableEndpoints, endpoint)
 			}
 		}
 		if len(availableEndpoints) > 0 {
