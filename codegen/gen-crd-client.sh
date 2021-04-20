@@ -73,3 +73,6 @@ function generate_client() {
 
 echo "##### Generating config.openservicemesh.io client ######"
 generate_client "config" "v1alpha1"
+
+echo "##### Generating policy.openservicemesh.io client ######"
+generate_client "policy" "v1alpha1"
