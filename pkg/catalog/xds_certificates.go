@@ -104,6 +104,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
+	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
 	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
 		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
@@ -149,7 +150,8 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	}
 
 	return &certificateCommonNameMeta{
-		ProxyUUID:      proxyUUID,
+		ProxyUUID: proxyUUID,
+		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
 		ServiceAccount: chunks[1],
 		Namespace:      chunks[2],
 	}, nil

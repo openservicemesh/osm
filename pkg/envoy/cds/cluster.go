@@ -24,7 +24,8 @@ const (
 )
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
-func getUpstreamServiceCluster(downstreamIdentity identity.K8sServiceAccount, upstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := upstreamSvc.String()
 	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
 		envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))

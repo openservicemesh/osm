@@ -28,10 +28,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	}
 
 	s := &sdsImpl{
-		meshCatalog: meshCatalog,
-		certManager: certManager,
-		cfg:         cfg,
-		svcAccount:  svcAccount,
+		meshCatalog:     meshCatalog,
+		certManager:     certManager,
+		cfg:             cfg,
+		serviceIdentity: svcAccount.ToServiceIdentity(),
 	}
 
 	var sdsResources []types.Resource
@@ -42,9 +42,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Msgf("Creating SDS response for request for ResourceNames (certificates) %v from Envoy with certificate SerialNumber=%s on Pod with UID=%s", requestedCerts, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	// 1. Issue a service certificate for this proxy
-	// OSM currently relies on kubernetes ServiceAccount for service identity
-	si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
-	cert, err := certManager.IssueCertificate(certificate.CommonName(si), cfg.GetServiceCertValidityPeriod())
+	cert, err := certManager.IssueCertificate(s.serviceIdentity.GetCertificateCommonName(), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing a certificate for proxy with certificate SerialNumber=%s", proxy.GetCertificateSerialNumber())
 		return nil, err
@@ -158,12 +156,12 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcAccounts, err := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
+		svcIdentities, err := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
 			return nil, err
 		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
+		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcIdentities)
 
 	case envoy.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
@@ -174,8 +172,8 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			return nil, err
 		}
 
-		if *svcAccountInRequest != s.svcAccount {
-			log.Error().Err(errGotUnexpectedCertRequest).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert, s.svcAccount)
+		if svcAccountInRequest.ToServiceIdentity() != s.serviceIdentity {
+			log.Error().Err(errGotUnexpectedCertRequest).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert, s.serviceIdentity)
 			return nil, errGotUnexpectedCertRequest
 		}
 
@@ -183,12 +181,12 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
-		svcAccounts, err := s.meshCatalog.ListAllowedInboundServiceIdentities(s.svcAccount)
+		svcIdentities, err := s.meshCatalog.ListAllowedInboundServiceIdentities(s.serviceIdentity)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", s.svcAccount)
+			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", s.serviceIdentity)
 			return nil, err
 		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
+		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcIdentities)
 
 	default:
 		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
@@ -197,12 +195,11 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	return secret, nil
 }
 
-func getSubjectAltNamesFromSvcAccount(svcAccounts []identity.K8sServiceAccount) []*xds_matcher.StringMatcher {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func getSubjectAltNamesFromSvcAccount(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 
-	for _, svcAccount := range svcAccounts {
-		// OSM currently relies on kubernetes ServiceAccount for service identity
-		si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+	for _, si := range serviceIdentities {
 		match := xds_matcher.StringMatcher{
 			MatchPattern: &xds_matcher.StringMatcher_Exact{
 				Exact: si.String(),

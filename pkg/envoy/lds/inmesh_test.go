@@ -5,15 +5,14 @@ import (
 	"net"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	tassert "github.com/stretchr/testify/assert"
-
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,9 +39,9 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		cfg:         mockConfigurator,
-		svcAccount:  tests.BookbuyerServiceAccount,
+		meshCatalog:     mockCatalog,
+		cfg:             mockConfigurator,
+		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	testCases := []struct {
@@ -121,9 +120,9 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 	mockCatalog.EXPECT().GetSMISpec().Return(mockMeshSpec).AnyTimes()
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		cfg:         mockConfigurator,
-		svcAccount:  tests.BookbuyerServiceAccount,
+		meshCatalog:     mockCatalog,
+		cfg:             mockConfigurator,
+		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	testCases := []struct {
@@ -205,9 +204,9 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		cfg:         mockConfigurator,
-		svcAccount:  tests.BookbuyerServiceAccount,
+		meshCatalog:     mockCatalog,
+		cfg:             mockConfigurator,
+		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	proxyService := tests.BookbuyerService
@@ -267,7 +266,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.svcAccount).Return(trafficTargets, nil).Times(1)
+				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
 			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService, tc.port)
@@ -295,9 +294,9 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		cfg:         mockConfigurator,
-		svcAccount:  tests.BookbuyerServiceAccount,
+		meshCatalog:     mockCatalog,
+		cfg:             mockConfigurator,
+		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	proxyService := tests.BookbuyerService
@@ -357,7 +356,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.svcAccount).Return(trafficTargets, nil).Times(1)
+				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
 			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService, tc.port)
@@ -380,7 +379,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator, nil)
+	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
 
 	testCases := []struct {
 		name        string
@@ -723,7 +722,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
 
-			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator, nil)
+			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
 			filter, err := lb.getOutboundTCPFilter(tc.upstream)
 
 			assert.Equal(tc.expectError, err != nil)

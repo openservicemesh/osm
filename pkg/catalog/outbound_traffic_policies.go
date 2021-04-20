@@ -2,7 +2,6 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
@@ -16,7 +15,9 @@ import (
 // ListOutboundTrafficPolicies returns all outbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account from SMI Traffic Target and Traffic Split
-func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
+	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
@@ -25,7 +26,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.K
 	}
 
 	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
-	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamIdentity.Namespace)
+	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamServiceAccount.Namespace)
 	outbound = trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outbound, outboundPoliciesFromSplits...)
 
 	return outbound
@@ -33,7 +34,9 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.K
 
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
 // when the given service account matches a source in the Traffic Target resource
-func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity identity.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
+	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
@@ -42,7 +45,8 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		}
 
 		for _, source := range t.Spec.Sources {
-			if source.Name == downstreamIdentity.Name && source.Namespace == downstreamIdentity.Namespace { // found outbound
+			// TODO(draychev): must check for the correct type of ServiceIdentity as well
+			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
 				mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				outboundPolicies = mergedPolicies
 				break
@@ -93,7 +97,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 }
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
-func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(ident identity.K8sServiceAccount) []service.MeshService {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
+	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
@@ -152,7 +158,9 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	return outPolicies
 }
 
-func (mc *MeshCatalog) buildOutboundPolicies(source identity.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.ServiceIdentity, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+	source := sourceServiceIdentity.ToK8sServiceAccount()
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	// fetch services running workloads with destination service account

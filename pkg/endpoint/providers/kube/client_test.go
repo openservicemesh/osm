@@ -624,15 +624,15 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 	testCases := []struct {
 		name                            string
-		serviceAccount                  identity.K8sServiceAccount
-		outboundServiceAccountEndpoints map[identity.K8sServiceAccount][]endpoint.Endpoint
+		serviceAccount                  identity.ServiceIdentity
+		outboundServiceAccountEndpoints map[identity.ServiceIdentity][]endpoint.Endpoint
 		expectedEndpoints               []endpoint.Endpoint
 	}{
 		{
 			name:           "get endpoints for pod with only one ip",
-			serviceAccount: tests.BookstoreServiceAccount,
-			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {{
+			serviceAccount: tests.BookstoreServiceIdentity,
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {{
 					IP: net.ParseIP(tests.ServiceIP),
 				}},
 			},
@@ -642,9 +642,9 @@ func TestListEndpointsForIdentity(t *testing.T) {
 		},
 		{
 			name:           "get endpoints for pod with multiple ips",
-			serviceAccount: tests.BookstoreServiceAccount,
-			outboundServiceAccountEndpoints: map[identity.K8sServiceAccount][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {
+			serviceAccount: tests.BookstoreServiceIdentity,
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {
 					endpoint.Endpoint{
 						IP: net.ParseIP(tests.ServiceIP),
 					},
@@ -676,11 +676,12 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			assert.Nil(err)
 
 			var pods []*corev1.Pod
-			for sa, endpoints := range tc.outboundServiceAccountEndpoints {
+			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
 				podlabels := map[string]string{
 					tests.SelectorKey:                tests.SelectorValue,
 					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 				}
+				sa := serviceIdentity.ToK8sServiceAccount()
 				pod := tests.NewPodFixture(sa.Namespace, sa.Name, sa.Name, podlabels)
 				var podIps []corev1.PodIP
 				for _, ep := range endpoints {

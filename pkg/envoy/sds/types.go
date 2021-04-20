@@ -5,7 +5,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -16,8 +15,8 @@ var (
 
 // sdsImpl is the type that implements the internal functionality of SDS
 type sdsImpl struct {
-	svcAccount  identity.K8sServiceAccount
-	meshCatalog catalog.MeshCataloger
-	cfg         configurator.Configurator
-	certManager certificate.Manager
+	serviceIdentity identity.ServiceIdentity
+	meshCatalog     catalog.MeshCataloger
+	cfg             configurator.Configurator
+	certManager     certificate.Manager
 }

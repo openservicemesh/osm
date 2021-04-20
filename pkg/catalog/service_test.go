@@ -226,17 +226,23 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 
 	testCases := []struct {
 		svc                 service.MeshService
-		expectedSvcAccounts []identity.K8sServiceAccount
+		expectedSvcAccounts []identity.ServiceIdentity
 		expectedError       error
 	}{
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
-			[]identity.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
+			[]identity.ServiceIdentity{
+				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
+			},
 			nil,
 		},
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
-			[]identity.K8sServiceAccount{{Name: "sa-1", Namespace: "ns-1"}, {Name: "sa-2", Namespace: "ns-1"}},
+			[]identity.ServiceIdentity{
+				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
+			},
 			nil,
 		},
 		{
@@ -248,10 +254,15 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			mockKubeController.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(tc.expectedSvcAccounts, tc.expectedError).Times(1)
+			// Create a list of K8sServiceAccounts, from the ServiceIdentities to serve as a return for the mock below.
+			var serviceAccountsToReturn []identity.K8sServiceAccount
+			for _, svcAccount := range tc.expectedSvcAccounts {
+				serviceAccountsToReturn = append(serviceAccountsToReturn, svcAccount.ToK8sServiceAccount())
+			}
+			mockKubeController.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(serviceAccountsToReturn, tc.expectedError).Times(1)
 
-			svcAccounts, err := mc.ListServiceIdentitiesForService(tc.svc)
-			assert.ElementsMatch(svcAccounts, tc.expectedSvcAccounts)
+			serviceIdentities, err := mc.ListServiceIdentitiesForService(tc.svc)
+			assert.ElementsMatch(serviceIdentities, tc.expectedSvcAccounts)
 			assert.Equal(err, tc.expectedError)
 		})
 	}

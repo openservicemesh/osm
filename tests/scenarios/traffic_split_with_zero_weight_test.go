@@ -37,8 +37,8 @@ func TestRDSRespose(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		downstreamSA             identity.K8sServiceAccount
-		upstreamSA               identity.K8sServiceAccount
+		downstreamSA             identity.ServiceIdentity
+		upstreamSA               identity.ServiceIdentity
 		upstreamServices         []service.MeshService
 		meshServices             []service.MeshService
 		trafficSpec              spec.HTTPRouteGroup
@@ -48,8 +48,8 @@ func TestRDSRespose(t *testing.T) {
 	}{
 		{
 			name:             "Test RDS response with a traffic split having zero weight",
-			downstreamSA:     tests.BookbuyerServiceAccount,
-			upstreamSA:       tests.BookstoreServiceAccount,
+			downstreamSA:     tests.BookbuyerServiceIdentity,
+			upstreamSA:       tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
 			meshServices:     []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -228,7 +228,7 @@ func TestRDSRespose(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
+			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
@@ -344,7 +344,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccount, tests.Namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceIdentity, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 	return proxy, nil

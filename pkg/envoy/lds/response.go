@@ -37,7 +37,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	lb := newListenerBuilder(meshCatalog, svcAccount, cfg, statsHeaders)
+	lb := newListenerBuilder(meshCatalog, svcAccount.ToServiceIdentity(), cfg, statsHeaders)
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
@@ -99,11 +99,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return ldsResources, nil
 }
 
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount identity.K8sServiceAccount, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
 	return &listenerBuilder{
-		meshCatalog:  meshCatalog,
-		svcAccount:   svcAccount,
-		cfg:          cfg,
-		statsHeaders: statsHeaders,
+		meshCatalog:     meshCatalog,
+		serviceIdentity: svcIdentity,
+		cfg:             cfg,
+		statsHeaders:    statsHeaders,
 	}
 }

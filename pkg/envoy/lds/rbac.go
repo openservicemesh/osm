@@ -19,7 +19,7 @@ import (
 func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 	networkRBACPolicy, err := lb.buildInboundRBACPolicies()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building inbound RBAC policies for principal %q", lb.svcAccount)
+		log.Error().Err(err).Msgf("Error building inbound RBAC policies for principal %q", lb.serviceIdentity)
 		return nil, err
 	}
 
@@ -39,8 +39,8 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 
 // buildInboundRBACPolicies builds the RBAC policies based on allowed principals
 func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, error) {
-	proxyIdentity := identity.ServiceIdentity(lb.svcAccount.String())
-	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.svcAccount)
+	proxyIdentity := identity.ServiceIdentity(lb.serviceIdentity.String())
+	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)
 		return nil, err

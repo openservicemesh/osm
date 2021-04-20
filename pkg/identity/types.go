@@ -85,6 +85,7 @@ func UnmarshalK8sServiceAccount(svcAccount string) (*K8sServiceAccount, error) {
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
+			log.Error().Msgf("Error converting Service Account %s from string to K8sServiceAccount", svcAccount)
 			return nil, ErrInvalidNamespacedServiceStringFormat
 		}
 	}
