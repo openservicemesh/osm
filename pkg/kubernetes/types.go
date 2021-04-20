@@ -95,6 +95,9 @@ type Controller interface {
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
 
+	// GetPod returns the Pod with the given namespace and name.
+	GetPod(namespace string, name string) *corev1.Pod
+
 	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 	ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
 

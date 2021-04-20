@@ -3,12 +3,15 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -28,6 +31,40 @@ var (
 const (
 	nsInformerSyncTimeout = 3 * time.Second
 )
+
+func TestGetPod(t *testing.T) {
+	assert := tassert.New(t)
+	kubeClient := testclient.NewSimpleClientset()
+	stop := make(chan struct{})
+	kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+	assert.NoError(err)
+	assert.NotNil(kubeController)
+
+	// Create a test pod
+	testNamespaceName := "get-pod-" + tests.Namespace
+	podName := "my-pod"
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+	}
+	createdPod, err := kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod, metav1.CreateOptions{})
+	assert.NoError(err)
+
+	// Check it is present
+	assert.Eventually(func() bool {
+		return reflect.DeepEqual(kubeController.GetPod(testNamespaceName, podName), createdPod)
+	}, nsInformerSyncTimeout, 50*time.Millisecond)
+
+	// Delete it
+	err = kubeClient.CoreV1().Pods(testNamespaceName).Delete(context.TODO(), podName, metav1.DeleteOptions{})
+	assert.NoError(err)
+
+	// Check it is gone
+	assert.Eventually(func() bool {
+		return kubeController.GetPod(testNamespaceName, podName) == nil
+	}, nsInformerSyncTimeout, 50*time.Millisecond)
+}
 
 var _ = Describe("Test Namespace KubeController Methods", func() {
 	Context("Testing ListMonitoredNamespaces", func() {

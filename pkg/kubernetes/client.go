@@ -253,6 +253,17 @@ func (c Client) ListPods() []*corev1.Pod {
 	return pods
 }
 
+// GetPod returns a Pod resource if found, nil otherwise.
+func (c Client) GetPod(namespace, name string) *corev1.Pod {
+	// client-go cache uses <namespace>/<name> as key
+	podIf, exists, err := c.informers[Pods].GetStore().GetByKey(namespace + "/" + name)
+	if exists && err == nil {
+		pod := podIf.(*corev1.Pod)
+		return pod
+	}
+	return nil
+}
+
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {

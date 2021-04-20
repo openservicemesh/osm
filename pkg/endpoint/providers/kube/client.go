@@ -59,11 +59,9 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 			}
 			var proxyUID string
 			if address.TargetRef != nil && address.TargetRef.Kind == "Pod" {
-				// A GetPod() method would speed this up
-				for _, pod := range c.kubeController.ListPods() {
-					if pod.Name == address.TargetRef.Name && pod.Namespace == address.TargetRef.Namespace {
-						proxyUID = pod.Labels[constants.EnvoyUniqueIDLabelName]
-					}
+				pod := c.kubeController.GetPod(address.TargetRef.Namespace, address.TargetRef.Name)
+				if pod != nil {
+					proxyUID = pod.Labels[constants.EnvoyUniqueIDLabelName]
 				}
 			}
 			for _, port := range kubernetesEndpoint.Ports {

@@ -65,6 +65,20 @@ func (mr *MockControllerMockRecorder) GetNamespace(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockController)(nil).GetNamespace), arg0)
 }
 
+// GetPod mocks base method
+func (m *MockController) GetPod(arg0, arg1 string) *v1.Pod {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPod", arg0, arg1)
+	ret0, _ := ret[0].(*v1.Pod)
+	return ret0
+}
+
+// GetPod indicates an expected call of GetPod
+func (mr *MockControllerMockRecorder) GetPod(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPod", reflect.TypeOf((*MockController)(nil).GetPod), arg0, arg1)
+}
+
 // GetService mocks base method
 func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
 	m.ctrl.T.Helper()
