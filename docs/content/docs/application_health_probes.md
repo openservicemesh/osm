@@ -328,13 +328,13 @@ Events:
   Type     Reason     Age              From               Message
   ----     ------     ----             ----               -------
   Normal   Scheduled  17s              default-scheduler  Successfully assigned bookstore/bookstore-v1-699c79b9dc-5g8zn to osm-control-plane
-  Normal   Pulled     16s              kubelet            Successfully pulled image "openservicemesh/init:v0.8.2" in 26.5835ms
+  Normal   Pulled     16s              kubelet            Successfully pulled image "openservicemesh/init:v0.8.3" in 26.5835ms
   Normal   Created    16s              kubelet            Created container osm-init
   Normal   Started    16s              kubelet            Started container osm-init
-  Normal   Pulling    16s              kubelet            Pulling image "openservicemesh/init:v0.8.2"
+  Normal   Pulling    16s              kubelet            Pulling image "openservicemesh/init:v0.8.3"
   Normal   Pulling    15s              kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
-  Normal   Pulling    15s              kubelet            Pulling image "openservicemesh/bookstore:v0.8.2"
-  Normal   Pulled     15s              kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 319.9863ms
+  Normal   Pulling    15s              kubelet            Pulling image "openservicemesh/bookstore:v0.8.3"
+  Normal   Pulled     15s              kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.3" in 319.9863ms
   Normal   Started    15s              kubelet            Started container bookstore-v1
   Normal   Created    15s              kubelet            Created container bookstore-v1
   Normal   Pulled     14s              kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 755.2666ms
@@ -352,19 +352,19 @@ Events:
   Type     Reason     Age                From               Message
   ----     ------     ----               ----               -------
   Normal   Scheduled  59s                default-scheduler  Successfully assigned bookstore/bookstore-v1-746977967c-jqjt4 to osm-control-plane
-  Normal   Pulling    58s                kubelet            Pulling image "openservicemesh/init:v0.8.2"
+  Normal   Pulling    58s                kubelet            Pulling image "openservicemesh/init:v0.8.3"
   Normal   Created    58s                kubelet            Created container osm-init
   Normal   Started    58s                kubelet            Started container osm-init
-  Normal   Pulled     58s                kubelet            Successfully pulled image "openservicemesh/init:v0.8.2" in 23.415ms
+  Normal   Pulled     58s                kubelet            Successfully pulled image "openservicemesh/init:v0.8.3" in 23.415ms
   Normal   Pulled     57s                kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 678.1391ms
-  Normal   Pulled     57s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 230.3681ms
+  Normal   Pulled     57s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.3" in 230.3681ms
   Normal   Created    57s                kubelet            Created container envoy
   Normal   Pulling    57s                kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
   Normal   Started    56s                kubelet            Started container envoy
-  Normal   Pulled     44s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 20.6731ms
+  Normal   Pulled     44s                kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.3" in 20.6731ms
   Normal   Created    44s (x2 over 57s)  kubelet            Created container bookstore-v1
   Normal   Started    43s (x2 over 57s)  kubelet            Started container bookstore-v1
-  Normal   Pulling    32s (x3 over 58s)  kubelet            Pulling image "openservicemesh/bookstore:v0.8.2"
+  Normal   Pulling    32s (x3 over 58s)  kubelet            Pulling image "openservicemesh/bookstore:v0.8.3"
   Warning  Unhealthy  32s (x6 over 50s)  kubelet            Liveness probe failed: HTTP probe failed with statuscode: 503
   Normal   Killing    32s (x2 over 44s)  kubelet            Container bookstore-v1 failed liveness probe, will be restarted
 ```
@@ -377,13 +377,13 @@ Events:
   Type     Reason     Age               From               Message
   ----     ------     ----              ----               -------
   Normal   Scheduled  32s               default-scheduler  Successfully assigned bookstore/bookstore-v1-5848999cb6-hp6qg to osm-control-plane
-  Normal   Pulling    31s               kubelet            Pulling image "openservicemesh/init:v0.8.2"
-  Normal   Pulled     31s               kubelet            Successfully pulled image "openservicemesh/init:v0.8.2" in 19.8726ms
+  Normal   Pulling    31s               kubelet            Pulling image "openservicemesh/init:v0.8.3"
+  Normal   Pulled     31s               kubelet            Successfully pulled image "openservicemesh/init:v0.8.3" in 19.8726ms
   Normal   Created    31s               kubelet            Created container osm-init
   Normal   Started    31s               kubelet            Started container osm-init
   Normal   Created    30s               kubelet            Created container bookstore-v1
-  Normal   Pulled     30s               kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.2" in 314.3628ms
-  Normal   Pulling    30s               kubelet            Pulling image "openservicemesh/bookstore:v0.8.2"
+  Normal   Pulled     30s               kubelet            Successfully pulled image "openservicemesh/bookstore:v0.8.3" in 314.3628ms
+  Normal   Pulling    30s               kubelet            Pulling image "openservicemesh/bookstore:v0.8.3"
   Normal   Started    30s               kubelet            Started container bookstore-v1
   Normal   Pulling    30s               kubelet            Pulling image "envoyproxy/envoy-alpine:v1.17.2"
   Normal   Pulled     29s               kubelet            Successfully pulled image "envoyproxy/envoy-alpine:v1.17.2" in 739.3931ms
