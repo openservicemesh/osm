@@ -92,97 +92,27 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			if !ok {
 				log.Error().Msgf("Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s closed gRPC!", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
 
-			if discoveryRequest.ErrorDetail != nil {
-				log.Error().Msgf("[NACK] DiscoveryRequest error from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s: %s",
-					proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ErrorDetail)
-				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
+			// This function call runs xDS proto state machine given DiscoveryRequest as input.
+			// It's output is the decision to reply or not to this request.
+			if !respondToRequest(proxy, &discoveryRequest) {
 				continue
 			}
 
-			typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
-			if !ok {
-				log.Error().Err(err).Msgf("Unknown/Unsupported URI: %s", discoveryRequest.TypeUrl)
-				continue
-			}
-
-			// It is possible for Envoy to return an empty VersionInfo.
-			// When that's the case - start with 0
-			ackVersion := uint64(0)
-			if discoveryRequest.VersionInfo != "" {
-				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
-					// It is probable that Envoy responded with a VersionInfo we did not understand
-					// We log this and continue. The ackVersion will be 0 in this state.
-					log.Error().Err(err).Msgf("Error parsing DiscoveryRequest with TypeURL=%s VersionInfo=%s from Envoy with Certificate SerialNumber=%s on Pod with UID=%s",
-						typeURL, discoveryRequest.VersionInfo, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-				}
-			}
-
-			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s; last applied version: %d",
-				discoveryRequest.TypeUrl,
-				discoveryRequest.ResponseNonce,
-				ackVersion,
-				proxy.GetCertificateSerialNumber(),
-				proxy.GetPodUID(),
-				proxy.GetLastAppliedVersion(typeURL))
-
-			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-				proxy.GetLastSentNonce(typeURL),
-				proxy.GetLastSentVersion(typeURL),
-				proxy.GetCertificateSerialNumber(),
-				proxy.GetPodUID())
-
-			proxy.SetLastAppliedVersion(typeURL, ackVersion)
-
-			// In the DiscoveryRequest we have a VersionInfo field.
-			// When this is smaller or equal to what we last sent to this proxy - it is
-			// interpreted as an acknowledgement of a previously sent request.
-			// Such DiscoveryRequest requires no further action.
-			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("Skipping request of type %s from Envoy on Pod with UID=%s for resources (%v),  VersionInfo (%d) <= last sent VersionInfo (%d); ACK",
-					typeURL, proxy.GetPodUID(), discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
-				continue
-			}
-
-			// The version of the config received along with the DiscoveryRequest (ackVersion)
-			// is what the Envoy proxy may be acknowledging. It is acknowledging
-			// and not requesting when the ackVersion is <= what we last sent.
-			// It is possible however for a proxy to have a version that is higher
-			// than what we last sent. (Perhaps the control plane restarted.)
-			// In that case we want to make sure that we send new responses with
-			// VersionInfo incremented starting with the version which the proxy last had.
-			if ackVersion > proxy.GetLastSentVersion(typeURL) {
-				proxy.SetLastSentVersion(typeURL, ackVersion)
-			}
-
-			lastNonce := proxy.GetLastSentNonce(typeURL)
-			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
-				log.Debug().Msgf("Nothing changed for Envoy on Pod with UID=%s since Nonce=%s", proxy.GetPodUID(), discoveryRequest.ResponseNonce)
-				continue
-			}
-
-			if discoveryRequest.ResponseNonce != "" {
-				log.Debug().Msgf("Received discovery request with Nonce=%s from Envoy on Pod with UID=%s; matches=%t; proxy last Nonce=%s",
-					discoveryRequest.ResponseNonce, proxy.GetPodUID(), discoveryRequest.ResponseNonce == lastNonce, lastNonce)
-			}
-			xdsShortName := envoy.XDSShortURINames[typeURL]
-			log.Info().Msgf("Discovery request <%s> for resources (%v) from Envoy UID=<%s> with Nonce=%s",
-				xdsShortName, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
-
-			ds := []envoy.TypeURI{typeURL}
+			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
+			var typesRequest []envoy.TypeURI
 			if typeURL == envoy.TypeWildcard {
-				ds = envoy.XDSResponseOrder
+				typesRequest = envoy.XDSResponseOrder
+			} else {
+				typesRequest = []envoy.TypeURI{typeURL}
 			}
-			<-s.workqueues.AddJob(newJob(ds, &discoveryRequest))
+
+			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
 		case <-broadcastUpdate:
 			log.Info().Msgf("Broadcast wake for Proxy SerialNumber=%s UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -203,6 +133,80 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 		}
 	}
+}
+
+// respondToRequest assesses if a given DiscoveryRequest for a given proxy should be responded with
+// an xDS DiscoveryResponse.
+func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.DiscoveryRequest) bool {
+	var err error
+	var ackVersion uint64
+
+	log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Request %s [nonce=%s; version=%s; resources=%v] last sent [nonce=%s; version=%d]",
+		proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl,
+		discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames,
+		proxy.GetLastSentNonce(envoy.TypeURI(discoveryRequest.TypeUrl)), proxy.GetLastSentVersion(envoy.TypeURI(discoveryRequest.TypeUrl)))
+
+	if discoveryRequest.ErrorDetail != nil {
+		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: [NACK] err: \"%s\" for nonce %s, last version applied on request %s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ErrorDetail, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo)
+		return false
+	}
+
+	typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
+	if !ok {
+		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: Unknown/Unsupported URI: %s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl)
+		return false
+	}
+
+	// It is possible for Envoy to return an empty VersionInfo.
+	// When that's the case - start with 0
+	if discoveryRequest.VersionInfo != "" {
+		if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
+			// It is probable that Envoy responded with a VersionInfo we did not understand
+			log.Error().Err(err).Msgf("Proxy SerialNumber=%s PodUID=%s: Error parsing DiscoveryRequest with TypeURL=%s VersionInfo=%s (%v)",
+				proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.VersionInfo, err)
+			return false
+		}
+	}
+
+	// Set last version applied
+	proxy.SetLastAppliedVersion(typeURL, ackVersion)
+
+	// In the DiscoveryRequest we have a VersionInfo field.
+	// When this is smaller or equal to what we last sent to this proxy - it is
+	// interpreted as an acknowledgement of a previously sent request.
+	// Such DiscoveryRequest requires no further action.
+	if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Skipping request of type %s for resources [%v],  VersionInfo (%d) <= last sent VersionInfo (%d); ACK",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL, discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
+		return false
+	}
+
+	// The version of the config received along with the DiscoveryRequest (ackVersion)
+	// is what the Envoy proxy may be acknowledging. It is acknowledging
+	// and not requesting when the ackVersion is <= what we last sent.
+	// It is possible however for a proxy to have a version that is higher
+	// than what we last sent. (Perhaps the control plane restarted.)
+	// In that case we want to make sure that we send new responses with
+	// VersionInfo incremented starting with the version which the proxy last had.
+	if ackVersion > proxy.GetLastSentVersion(typeURL) {
+		proxy.SetLastSentVersion(typeURL, ackVersion)
+	}
+
+	lastNonce := proxy.GetLastSentNonce(typeURL)
+	if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Nothing changed for Envoy on Pod since Nonce=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ResponseNonce)
+		return false
+	}
+
+	if discoveryRequest.ResponseNonce != "" {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Received discovery request with Nonce=%s matches=%t; proxy last Nonce=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+	}
+
+	return true
 }
 
 // isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.
