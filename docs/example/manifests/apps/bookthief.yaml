@@ -27,7 +27,7 @@ spec:
       serviceAccountName: bookthief
       containers:
         - name: bookthief
-          image: openservicemesh/bookthief:v0.8.2
+          image: openservicemesh/bookthief:v0.8.3
           imagePullPolicy: Always
           command: ["/bookthief"]
           env:
