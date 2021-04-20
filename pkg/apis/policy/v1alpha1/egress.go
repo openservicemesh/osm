@@ -34,6 +34,10 @@ type EgressSpec struct {
 	// +optional
 	Hosts []string `json:"hosts,omitempty"`
 
+	// IPAddresses defines the list of external IP addresses the Egress policy is applicable to
+	// +optional
+	IPAddresses []string `json:"ipAddresses,omitempty"`
+
 	// Ports defines the list of ports the Egress policy is applicable to
 	Ports []PortSpec `json:"ports"`
 
