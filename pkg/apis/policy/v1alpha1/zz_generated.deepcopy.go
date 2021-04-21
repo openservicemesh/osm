@@ -95,6 +95,11 @@ func (in *EgressSpec) DeepCopyInto(out *EgressSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.IPAddresses != nil {
+		in, out := &in.IPAddresses, &out.IPAddresses
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
 		*out = make([]PortSpec, len(*in))
