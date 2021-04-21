@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
@@ -139,7 +140,10 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 // an xDS DiscoveryResponse.
 func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.DiscoveryRequest) bool {
 	var err error
-	var ackVersion uint64
+	var requestVersion uint64
+	var requestNonce string
+	var lastVersion uint64
+	var lastNonce string
 
 	log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Request %s [nonce=%s; version=%s; resources=%v] last sent [nonce=%s; version=%d]",
 		proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl,
@@ -162,7 +166,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// It is possible for Envoy to return an empty VersionInfo.
 	// When that's the case - start with 0
 	if discoveryRequest.VersionInfo != "" {
-		if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
+		if requestVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
 			// It is probable that Envoy responded with a VersionInfo we did not understand
 			log.Error().Err(err).Msgf("Proxy SerialNumber=%s PodUID=%s: Error parsing DiscoveryRequest with TypeURL=%s VersionInfo=%s (%v)",
 				proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.VersionInfo, err)
@@ -171,16 +175,15 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	}
 
 	// Set last version applied
-	proxy.SetLastAppliedVersion(typeURL, ackVersion)
+	proxy.SetLastAppliedVersion(typeURL, requestVersion)
 
-	// In the DiscoveryRequest we have a VersionInfo field.
-	// When this is smaller or equal to what we last sent to this proxy - it is
-	// interpreted as an acknowledgement of a previously sent request.
-	// Such DiscoveryRequest requires no further action.
-	if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Skipping request of type %s for resources [%v],  VersionInfo (%d) <= last sent VersionInfo (%d); ACK",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL, discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
-		return false
+	requestNonce = discoveryRequest.ResponseNonce
+	// Handle first request on stream, should always reply to empty nonce
+	if requestNonce == "" {
+		// Wildcard mode for LDS/CDS can only happen in this context
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Empty nonce for %s, should be first message on stream (req resources: %v)",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.ResourceNames)
+		return true
 	}
 
 	// The version of the config received along with the DiscoveryRequest (ackVersion)
@@ -190,23 +193,58 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// than what we last sent. (Perhaps the control plane restarted.)
 	// In that case we want to make sure that we send new responses with
 	// VersionInfo incremented starting with the version which the proxy last had.
-	if ackVersion > proxy.GetLastSentVersion(typeURL) {
-		proxy.SetLastSentVersion(typeURL, ackVersion)
+	lastVersion = proxy.GetLastSentVersion(typeURL)
+	if requestVersion > lastVersion {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Higher version on request %s, req ver: %d - last ver: %d. Updating to match latest.",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestVersion, lastVersion)
+		proxy.SetLastSentVersion(typeURL, requestVersion)
+		return true
 	}
 
-	lastNonce := proxy.GetLastSentNonce(typeURL)
-	if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Nothing changed for Envoy on Pod since Nonce=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ResponseNonce)
+	// Compare Nonces
+	// As per protocol, we can ignore any request on the TypeURL stream that has not caught up with last sent nonce, if the
+	// nonce is non-empty.
+	lastNonce = proxy.GetLastSentNonce(typeURL)
+	if requestNonce != lastNonce {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Ignoring request for %s non-latest nonce (request: %s, current: %s)",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestNonce, lastNonce)
 		return false
 	}
 
-	if discoveryRequest.ResponseNonce != "" {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Received discovery request with Nonce=%s matches=%t; proxy last Nonce=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+	// ----
+	// At this point, there is no error and nonces match, it is guaranteed an ACK with last version.
+	// What's left is to check if the resources listed are the same. If they are not, we must respond
+	// with the new resources requested
+	// This part of the code was inspired by Istio's `shouldRespond` handling of request resource difference
+	// https://github.com/istio/istio/blob/da6178604559bdf2c707a57f452d16bee0de90c8/pilot/pkg/xds/ads.go#L347
+	// ----
+	resourcesLastSent := proxy.GetLastResourcesSent(typeURL)
+	resourcesRequested := getRequestedResourceNamesSet(discoveryRequest)
+
+	// If what we last sent is a superset of what the
+	// requests resources subscribes to, it's ACK and nothing needs to be done.
+	// Otherwise, envoy might be asking us for additional resources that have to be sent along last time.
+	// Difference returns elemenets of <requested> that are not part of elements of <last sent>
+
+	requestedResourcesDifference := resourcesRequested.Difference(resourcesLastSent)
+	if requestedResourcesDifference.Cardinality() != 0 {
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: request difference in v:%d - requested: %v lastSent: %v (diff: %v), triggering update",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), requestVersion, resourcesRequested, resourcesLastSent, requestedResourcesDifference)
+		return true
 	}
 
-	return true
+	log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: ACK received for %s, version: %d nonce: %s resources ACKd: %v",
+		proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestVersion, requestNonce, resourcesRequested)
+	return false
+}
+
+// Helper to turn the resource names on a discovery request to a Set for later efficient intersection
+func getRequestedResourceNamesSet(discoveryRequest *xds_discovery.DiscoveryRequest) mapset.Set {
+	resourcesRequested := mapset.NewSet()
+	for idx := range discoveryRequest.ResourceNames {
+		resourcesRequested.Add(discoveryRequest.ResourceNames[idx])
+	}
+	return resourcesRequested
 }
 
 // isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.

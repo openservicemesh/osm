@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -28,6 +30,9 @@ type Proxy struct {
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64
 	lastNonce          map[TypeURI]string
+
+	// Contains the last resource names sent for a given proxy and TypeURL
+	lastxDSResourcesSent map[TypeURI]mapset.Set
 
 	// hash is based on CommonName
 	hash uint64
@@ -178,6 +183,21 @@ func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
 }
 
+// GetLastResourcesSent returns a set of resources last sent for a proxy givne a TypeURL
+// If none were sent, empty set is returned
+func (p *Proxy) GetLastResourcesSent(typeURI TypeURI) mapset.Set {
+	sentResources, ok := p.lastxDSResourcesSent[typeURI]
+	if !ok {
+		return mapset.NewSet()
+	}
+	return sentResources
+}
+
+// SetLastResourcesSent sets the last sent resources given a proxy for a TypeURL
+func (p *Proxy) SetLastResourcesSent(typeURI TypeURI, resourcesSet mapset.Set) {
+	p.lastxDSResourcesSent[typeURI] = resourcesSet
+}
+
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
 	// Get CommonName hash for this proxy
@@ -195,8 +215,9 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		connectedAt: time.Now(),
 		hash:        hash,
 
-		lastNonce:          make(map[TypeURI]string),
-		lastSentVersion:    make(map[TypeURI]uint64),
-		lastAppliedVersion: make(map[TypeURI]uint64),
+		lastNonce:            make(map[TypeURI]string),
+		lastSentVersion:      make(map[TypeURI]uint64),
+		lastAppliedVersion:   make(map[TypeURI]uint64),
+		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 	}
 }
