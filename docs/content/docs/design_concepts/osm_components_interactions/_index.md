@@ -1,6 +1,6 @@
 ---
-title: "OSM Components & Interations"
-description: "OSM Components & Interations"
+title: "OSM Components & Interactions"
+description: "OSM Components & Interactions"
 type: docs
 weight: 1
 ---
