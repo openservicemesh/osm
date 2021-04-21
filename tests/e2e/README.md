@@ -87,8 +87,8 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 ```
 
 ### Flags
-#### (TODO) Kubeconf selection
-Currently, test init will load a `Kubeconf` based on default Kubeconf Loading rules.
+#### (TODO) Kubeconfig selection
+Currently, test init will load a `Kubeconf` based on default kubeconfig loading rules.
 If Kind is used, the kubeconf is temporarily replaced and Kind's kubeconf is used instead.
 
 #### Container registry
@@ -167,4 +167,6 @@ To set a specific time limit, a unit must be specified along with a number. For 
 #### OpenShift:
 OpenShift compatibility is still a WIP for the e2e tests.
 
-To run these tests on OpenShift, include `-deployOnOpenShift=true` with your `go test` command.
+To run these tests on OpenShift
+1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Include `-deployOnOpenShift=true` with your `go test` command.
