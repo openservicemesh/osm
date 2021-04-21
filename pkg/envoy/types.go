@@ -24,6 +24,9 @@ func (t TypeURI) String() string {
 
 // Short returns an abbreviated version of the TypeURI, which is easier to spot in logs and metrics.
 func (t TypeURI) Short() string {
+	if t == TypeWildcard {
+		return Wildcard
+	}
 	return utils.GetLastChunkOfSlashed(t.String())
 }
 
@@ -81,6 +84,9 @@ const (
 
 	// TypeADS is not actually used by Envoy - but useful within OSM for logging
 	TypeADS TypeURI = "ADS"
+
+	// Wildcard short name for empty TypeURL
+	Wildcard string = "Wildcard"
 )
 
 const (
