@@ -23,6 +23,8 @@
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
 	- **Option 2:** A Kubernetes cluster - use an already provisioned cluster config, either in the default location ($HOME/.kube/config) or referenced by the $KUBECONFIG environment variable.
+      - Set `CTR_REGISTRY` in your `.env` file to a container registry you have permission to push and pull from. 
+      - Ensure you are logged into the container registry using: `docker login <registry url>`
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
