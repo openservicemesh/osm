@@ -43,7 +43,7 @@ func TestNewResponse(t *testing.T) {
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
-	mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(xdsCertificate).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
+	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()

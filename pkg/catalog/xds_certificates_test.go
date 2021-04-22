@@ -16,6 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -31,9 +32,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	kubeClient := testclient.NewSimpleClientset()
 
 	mc := NewFakeMeshCatalog(kubeClient)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
-	Context("Test GetServicesFromEnvoyCertificate()", func() {
+	Context("Test GetServicesForProxy()", func() {
 		It("works as expected", func() {
 			pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
@@ -52,7 +52,10 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err = kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc2, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			meshServices, err := mc.GetServicesFromEnvoyCertificate(cn)
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
+			certSerialNumber := certificate.SerialNumber("123456")
+			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			meshServices, err := mc.GetServicesForProxy(proxy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedSvc := service.MeshService{
 				Namespace: tests.Namespace,
@@ -70,7 +73,10 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 
 		It("returns an error with an invalid CN", func() {
-			service, err := mc.GetServicesFromEnvoyCertificate("getAllowedDirectionalServices")
+			certCommonName := certificate.CommonName("getAllowedDirectionalServices")
+			certSerialNumber := certificate.SerialNumber("123456")
+			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			service, err := mc.GetServicesForProxy(proxy)
 			Expect(err).To(HaveOccurred())
 			Expect(service).To(BeNil())
 		})
@@ -97,7 +103,9 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, tests.BookstoreServiceAccountName, namespace))
-			meshServices, err := mc.GetServicesFromEnvoyCertificate(podCN)
+			certSerialNumber := certificate.SerialNumber("123456")
+			newProxy := envoy.NewProxy(podCN, certSerialNumber, nil)
+			meshServices, err := mc.GetServicesForProxy(newProxy)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.MeshService{
