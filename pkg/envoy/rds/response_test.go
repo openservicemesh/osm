@@ -274,7 +274,7 @@ func TestNewResponse(t *testing.T) {
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(tc.ingressInboundPolicies, nil).AnyTimes()
 
-			resources, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil)
+			resources, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -510,7 +510,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
 
-	resources, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
+	resources, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil, nil)
 	assert.Nil(err)
 
 	// Test rds-inbound route config

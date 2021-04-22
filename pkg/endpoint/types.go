@@ -36,12 +36,13 @@ type Provider interface {
 
 // Endpoint is a tuple of IP and Port representing an instance of a service
 type Endpoint struct {
-	net.IP `json:"ip"`
-	Port   `json:"port"`
+	net.IP   `json:"ip"`
+	Port     `json:"port"`
+	ProxyUID string `json:"proxy_uid"`
 }
 
 func (ep Endpoint) String() string {
-	return fmt.Sprintf("(ip=%s, port=%d)", ep.IP, ep.Port)
+	return fmt.Sprintf("(ip=%s, port=%d, proxy UID=%s)", ep.IP, ep.Port, ep.ProxyUID)
 }
 
 // Port is a numerical type representing a port on which a service is exposed

@@ -25,7 +25,7 @@ var (
 type Server struct {
 	catalog        catalog.MeshCataloger
 	proxyRegistry  *registry.ProxyRegistry
-	xdsHandlers    map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) ([]types.Resource, error)
+	xdsHandlers    map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
 	xdsLog         map[certificate.CommonName]map[envoy.TypeURI][]time.Time
 	xdsMapLogMutex sync.Mutex
 	osmNamespace   string
