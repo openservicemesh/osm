@@ -48,11 +48,6 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 					})
 				_, err := Td.CreateServiceAccount(destName, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
-				if Td.DeployOnOpenShift {
-					err = Td.AddOpenShiftSCC("privileged", svcAccDef.Name, svcAccDef.Namespace)
-					Expect(err).NotTo(HaveOccurred())
-				}
-
 				_, err = Td.CreatePod(destName, podDef)
 				Expect(err).NotTo(HaveOccurred())
 				dstSvc, err := Td.CreateService(destName, svcDef)
@@ -68,11 +63,6 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				})
 				_, err = Td.CreateServiceAccount(sourceOne, &allowedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
-				if Td.DeployOnOpenShift {
-					err = Td.AddOpenShiftSCC("privileged", allowedSvcAccDef.Name, allowedSvcAccDef.Namespace)
-					Expect(err).NotTo(HaveOccurred())
-				}
-
 				allowedSrcPod, err := Td.CreatePod(sourceOne, allowedSrcPodDef)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -86,11 +76,6 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				})
 				_, err = Td.CreateServiceAccount(sourceTwo, &deniedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
-				if Td.DeployOnOpenShift {
-					err = Td.AddOpenShiftSCC("privileged", deniedSvcAccDef.Name, deniedSvcAccDef.Namespace)
-					Expect(err).NotTo(HaveOccurred())
-				}
-
 				deniedSrcPod, err := Td.CreatePod(sourceTwo, deniedSrcPodDef)
 				Expect(err).NotTo(HaveOccurred())
 
