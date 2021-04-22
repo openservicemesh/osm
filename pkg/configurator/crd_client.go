@@ -112,7 +112,7 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 
 	osmConfig := osmConfig{}
 	osmConfig.PermissiveTrafficPolicyMode = meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode
-	osmConfig.Egress = meshConfig.Spec.Traffic.Egress
+	osmConfig.Egress = meshConfig.Spec.Traffic.EnableEgress
 	osmConfig.EnableDebugServer = meshConfig.Spec.Observability.EnableDebugServer
 	osmConfig.UseHTTPSIngress = meshConfig.Spec.Traffic.UseHTTPSIngress
 	osmConfig.TracingEnable = meshConfig.Spec.Observability.Tracing.Enable

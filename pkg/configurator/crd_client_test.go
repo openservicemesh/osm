@@ -215,7 +215,7 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		for mapKey, mapVal := range tc.deltaMeshConfigContents {
 			switch mapKey {
 			case egressKey:
-				meshConfig.Spec.Traffic.Egress, _ = strconv.ParseBool(mapVal)
+				meshConfig.Spec.Traffic.EnableEgress, _ = strconv.ParseBool(mapVal)
 			case PermissiveTrafficPolicyModeKey:
 				meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode, _ = strconv.ParseBool(mapVal)
 			case useHTTPSIngressKey:
