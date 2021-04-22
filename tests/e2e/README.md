@@ -40,6 +40,7 @@ Independent of tiers, tests are also organized into buckets. Each bucket runs in
 | e2e_trafficsplit_same_sa_test.go | 1 | 4
 | e2e_pod_client_server_test.go | 1 | 4
 | e2e_helm_install_test.go | 2 | 1
+| e2e_init_controller_test.go | 2 | 1
 | e2e_controller_restart_test.go | 2 | 1
 | e2e_k8s_version_test.go | 2 | 1
 | e2e_hashivault_test.go| 2 | 2

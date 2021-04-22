@@ -29,6 +29,14 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      initContainers:
+        - name: init-osm-controller
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/init-osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          command: ['/init-osm-controller']
+          args: [
+            "--osm-namespace", "{{ include "osm.namespace" . }}"
+          ]
       containers:
         - name: osm-controller
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"
@@ -137,7 +145,7 @@ spec:
       - name: var-lib-containers
         hostPath:
           path: /var/lib/docker/containers
-     {{- end }}
+    {{- end }}
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
