@@ -24,7 +24,7 @@ type MeshConfigSpec struct {
 // SidecarSpec is the spec for OSM's sidecar configuration
 type SidecarSpec struct {
 	EnablePrivilegedInitContainer bool   `json:"enablePrivilegedInitContainer,omitempty" yaml:"enablePrivilegedInitContainer,omitempty"`
-	LogLevel                      string `json:"logLevel,omitempty" yaml:"logLevel,omitempty" default:"error"`
+	LogLevel                      string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 	MaxDataPlaneConnections       int    `json:"maxMaxPlaneConnections,omitempty" yaml:"max_data_plane_connections,omitempty"`
 	ConfigResyncInterval          string `json:"configResyncInterval,omitempty" yaml:"config_resync_interval,omitempty"`
 }
@@ -39,8 +39,8 @@ type TrafficSpec struct {
 
 // ObservabilitySpec is the spec for OSM's observability related configuration
 type ObservabilitySpec struct {
-	EnableDebugServer  bool        `json:"enableDebugServer,omitempty" yaml:"enableDebugServer,omitempty" default:"true"`
-	PrometheusScraping bool        `json:"prometheusScraping,omitempty" yaml:"prometheusScraping,omitempty" default:"true"`
+	EnableDebugServer  bool        `json:"enableDebugServer,omitempty" yaml:"enableDebugServer,omitempty"`
+	PrometheusScraping bool        `json:"prometheusScraping,omitempty" yaml:"prometheusScraping,omitempty"`
 	Tracing            TracingSpec `json:"tracing,omitempty" yaml:"tracing,omitempty"`
 }
 
@@ -54,7 +54,7 @@ type TracingSpec struct {
 
 // CertificateSpec is the spec for OSM's certificate management configuration
 type CertificateSpec struct {
-	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty" yaml:"serviceCertValidityDuration,omitempty" default:"24h"`
+	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty" yaml:"serviceCertValidityDuration,omitempty"`
 }
 
 // MeshConfigList lists the MeshConfig objects
