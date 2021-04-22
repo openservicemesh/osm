@@ -215,6 +215,8 @@ type OsmTestData struct {
 	Client          *kubernetes.Clientset
 	SmiClients      *smiClients
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
+
+	DeployOnOpenShift bool // Determines whether to configure tests for OpenShift
 }
 
 // Function to run at init before Ginkgo has called parseFlags
@@ -242,6 +244,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.OsmNamespace, "OsmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
 
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable tagging Namespaces for metrics collection")
+	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 }
 
 // ValidateStringParams validates input string parametres are valid
@@ -1542,6 +1545,22 @@ func (td *OsmTestData) GrabLogs() error {
 				td.T.Logf("stderr:\n%s", stderr)
 			}
 		}
+	}
+
+	return nil
+}
+
+// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
+	if !td.DeployOnOpenShift {
+		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
+	}
+	//oc adm policy add-scc-to-user privileged -z bookbuyer -n "$BOOKBUYER_NAMESPACE"
+	args := []string{"adm", "policy", "add-scc-to-user", scc, "-z", serviceAccount, "-n", namespace}
+	stdout, stderr, err := td.RunLocal("oc", args)
+	if err != nil {
+		td.T.Logf("stdout:\n%s", stdout)
+		return errors.Errorf("failed to add SCC %s to %s/%s: %s", scc, namespace, serviceAccount, stderr)
 	}
 
 	return nil
