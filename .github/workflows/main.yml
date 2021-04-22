@@ -186,7 +186,7 @@ jobs:
         with:
           go-version: 1.15
       - name: Build test dependencies
-        run: make docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
+        run: make docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
       # PR Tests
       - name: Run PR tests
         id: pr_test
