@@ -33,6 +33,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,6 +47,9 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -213,6 +217,7 @@ type OsmTestData struct {
 	Env             *cli.EnvSettings
 	RestConfig      *rest.Config
 	Client          *kubernetes.Clientset
+	ConfigClient    *configClientset.Clientset
 	SmiClients      *smiClients
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
 
@@ -366,8 +371,15 @@ nodeRegistration:
 		return errors.Wrap(err, "failed to create Kubernetes client")
 	}
 
+	configClient, err := configClientset.NewForConfig(kubeConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create v1alpha config client")
+	}
+
 	td.RestConfig = kubeConfig
 	td.Client = clientset
+	td.ConfigClient = configClient
+
 	td.Env = cli.New()
 
 	if err := td.InitSMIClients(); err != nil {
@@ -669,9 +681,20 @@ func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, 
 	return configmap, nil
 }
 
+// GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
+func (td *OsmTestData) GetMeshConfig(name, namespace string) (*v1alpha1.MeshConfig, error) {
+	meshConfig, err := td.ConfigClient.ConfigV1alpha1().MeshConfigs(namespace).Get(context.TODO(), name, v1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+	return meshConfig, nil
+}
+
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
+		"init-osm-controller",
 		"osm-controller",
 		"osm-injector",
 		"init",
