@@ -81,43 +81,268 @@ Read more on OSM's integrations with Prometheus, Grafana, and Jaeger in the [obs
 For details on how to install OSM on OpenShift, refer to the [installation guide](../_index.md#openshift)
 
 
-## Deploy the Bookstore Demo Applications
 
-This demo consists of the following applications:
+## Deploy Applications
 
-- `bookbuyer` application that makes requests to `bookstore` to buy books
-- `bookthief` application that makes requests to `bookstore` to steal books
-- `bookstore` application that receives requests from clients to purchase books and makes requests to `bookwarehouse` to restock books
-- `bookwarehouse` application that receives requests from `bookstore` to restock books
+In this section we will deploy 4 different Pods, and we will apply policies to control the traffic between them.
 
-When we demonstrate traffic splitting using SMI Traffic Split, we will deploy an additional application:
+- `bookbuyer` is an HTTP client makeing requests to `bookstore`. This traffic is **permitted**.
+- `bookthief` is an HTTP client and much like `bookbuyer` also makes HTTP requests to `bookstore`. This traffic should be **blocked**.
+- `bookstore` is a server, which responds to HTTP requests. It is also a client making requests to the `bookwarehouse` service.
+- `bookwarehouse` is a server and should respond only to `bookstore`. Both `bookbuyer` and `bookthief` should be blocked.
 
-- `bookstore-v2` application representing version v2 of the `bookstore` application
 
-The `bookbuyer`, `bookthief`, `bookstore`, and `bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. For OSM to work, each application Pod must contain an Envoy proxy as a sidecar container. OSM can automatically inject an Envoy proxy sidecar into application Pods. Use the `osm` CLI to add Kubernetes Namespaces to monitor and inject proxies into using the `osm namespace add` command. Once the Namespace is added, OSM will monitor the Namespace for new Pods and automatically inject the Envoy proxy as a sidecar into each Pod created in the Namespace.
+We are going to craft SMI policies, which will bring us to this final desired
+state of allowed and blocked traffic between pods:
 
-### Create the Bookstore Application Namespaces
+| from  /   to: | bookbuyer | bookthief | bookstore | bookwarehouse |
+|---------------|-----------|-----------|-----------|---------------|
+| bookbuyer     |     \     |     ❌     |     ✔    |       ❌       |
+| bookthief     |     ❌     |     \     |     ❌     |       ❌       |
+| bookstore     |     ❌     |     ❌     |     \     |       ✔      |
+| bookwarehouse |     ❌     |     ❌     |     ❌     |      \        |
+
+
+To show SMI Traffic Split, we will deploy an additional application:
+
+- `bookstore-v2` - this is the same container as the first `bookstore` we deployed, but for this demo we will assume that it is a new version of the app we need to upgrade to.
+
+The `bookbuyer`, `bookthief`, `bookstore`, and `bookwarehouse` Pods will be in separate Kubernetes Namespaces with
+the same names. Each new Pod in the service mesh will be injected with an Envoy sidecar container.
+
+### Create the Namespaces
 
 ```bash
-for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
+kubectl create namespace bookstore
+kubectl create namespace bookbuyer
+kubectl create namespace bookthief
+kubectl create namespace bookwarehouse
 ```
 
-### Onboard the Namespaces to the OSM Mesh and enable sidecar injection on the namespaces
+### Add the new namespaces to the OSM control plane
 
 ```bash
-osm namespace add bookstore bookbuyer bookthief bookwarehouse
+osm namespace add bookstore
+osm namespace add bookbuyer
+osm namespace add bookthief
+osm namespace add bookwarehouse
 ```
 
-### Create the Kubernetes resources for the bookstore demo applications
+Now each one of the four namespaces is labelled with `openservicemesh.io/monitored-by: osm` and also
+annotated with `openservicemesh.io/sidecar-injection: enabled`. The OSM Controller, noticing the label and annotation
+on these namespaces, will start injecting all **new** pods with Envoy sidecars.
 
-Deploy `bookbuyer`, `bookthief`, `bookstore`, `bookwarehouse` applications:
+### Create Pods, Services, ServiceAccounts
 
+Create the service accounts:
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookbuyer.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookthief.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookstore.yaml
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookwarehouse.yaml
+kubectl apply -f - <<EOF
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookbuyer
+  namespace: bookbuyer
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookthief
+  namespace: bookthief
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookstore
+  namespace: bookstore
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+
+EOF
 ```
+
+
+Create the `bookbuyer` deployment:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookbuyer
+  namespace: bookbuyer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookbuyer
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: bookbuyer
+        version: v1
+    spec:
+      serviceAccountName: bookbuyer
+      containers:
+      - name: bookbuyer
+        image: openservicemesh/bookbuyer:v0.8.2
+        imagePullPolicy: Always
+        command: ["/bookbuyer"]
+        env:
+        - name: "BOOKSTORE_NAMESPACE"
+          value: bookstore
+EOF
+```
+
+Create the `bookthief` deployment:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookthief
+  namespace: bookthief
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookthief
+  template:
+    metadata:
+      labels:
+        app: bookthief
+        version: v1
+    spec:
+      serviceAccountName: bookthief
+      containers:
+      - name: bookthief
+        image: openservicemesh/bookthief:v0.8.2
+        imagePullPolicy: Always
+        command: ["/bookthief"]
+        env:
+        - name: "BOOKSTORE_NAMESPACE"
+          value: bookstore
+EOF
+```
+
+
+Create bookstore service:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore
+  namespace: bookstore
+  labels:
+    app: bookstore
+spec:
+  selector:
+    app: bookstore
+  ports:
+  - port: 14001
+    name: bookstore-port
+EOF
+```
+
+Create bookstore deployment:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookstore
+  namespace: bookstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore
+  template:
+    metadata:
+      labels:
+        app: bookstore
+    spec:
+      serviceAccountName: bookstore
+      containers:
+      - name: bookstore
+        image: openservicemesh/bookstore:v0.8.2
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 14001
+        command: ["/bookstore"]
+        args: ["--path", "./", "--port", "14001"]
+        env:
+        - name: BOOKWAREHOUSE_NAMESPACE
+          value: bookwarehouse
+        - name: IDENTITY
+          value: bookstore-v1
+EOF
+```
+
+Create the `bookwarehouse` service:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+  labels:
+    app: bookwarehouse
+spec:
+  selector:
+    app: bookwarehouse
+  ports:
+  - port: 14001
+EOF
+```
+
+Create the `bookwarehouse` deployment:
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookwarehouse
+  template:
+    metadata:
+      labels:
+        app: bookwarehouse
+        version: v1
+    spec:
+      serviceAccountName: bookwarehouse
+      containers:
+      - name: bookwarehouse
+        image: openservicemesh/bookwarehouse:v0.8.2
+        imagePullPolicy: Always
+        command: ["/bookwarehouse"]
+EOF
+```
+
 
 ### Checkpoint: What Got Installed?
 
