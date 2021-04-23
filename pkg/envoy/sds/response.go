@@ -153,7 +153,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdsCert envoy.SDSCe
 	return secret, nil
 }
 
-func getServiceIdentitiesFromCert(sdsCert envoy.SDSCert, svcIdentity identity.ServiceIdentity, mc catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
+func getServiceIdentitiesFromCert(sdsCert envoy.SDSCert, svcIdentity identity.ServiceIdentity, cataloger catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
 	// Configure SAN matching based on SMI TrafficTarget policies
 	if sdsCert.CertType == envoy.RootCertTypeForMTLSOutbound {
 		// For the outbound certificate validation context, the SANs needs to match the list of service identities
