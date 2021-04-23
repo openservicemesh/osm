@@ -498,7 +498,7 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			actual := getSubjectAltNamesFromSvcAccount(tc.serviceIdentities)
+			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities)
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
 	}

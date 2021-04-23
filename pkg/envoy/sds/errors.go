@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	errGotUnexpectedCertRequest = errors.New("got unexpected certificate request")
+	errCertMismatch = errors.New("certificate mismatch")
 )
