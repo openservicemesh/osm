@@ -144,7 +144,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdsCert envoy.SDSCe
 		return secret, nil
 	}
 
-	svcIdentities, err := getServiceIdentitiesFromCert(sdsCert, s.serviceIdentity, s.meshCatalog)
+	svcIdentitiesInCertRequest, err := getServiceIdentitiesFromCert(sdsCert, s.serviceIdentity, s.meshCatalog)
 	if err != nil {
 		return nil, err
 	}
