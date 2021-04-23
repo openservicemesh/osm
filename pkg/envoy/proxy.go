@@ -7,8 +7,10 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -142,6 +144,36 @@ func (p *Proxy) GetLastSentNonce(typeURI TypeURI) string {
 		return ""
 	}
 	return nonce
+}
+
+// This is a **sample** variable, which switches from sanitized log lines to more verbose output
+var verboseLogLines = true
+
+// IdentifyForLog returns a human readable message, which identifies a Pod uniquely.
+// This is for the purpose of creating useful logs. This also offers the opportunity
+// to log different metadata about the pod depending on the security level of the
+// OSM Controller.
+func (p Proxy) IdentifyForLog() string {
+	if verboseLogLines {
+		return fmt.Sprintf("Pod with IP=%s, ServiceAccount=%s, UID=%s, and CN=%s",
+			p.PodMetadata.IP, p.PodMetadata.ServiceAccount, p.GetPodUID(), p.GetCertificateCommonName())
+	}
+	return fmt.Sprintf("Pod with UID=%s", p.GetPodUID())
+}
+
+// IdentifyPodForLog returns a human readable message, the content of which depend on the security level
+// of the OSM Control plane. This is a mirror image of IdentifyForLog.
+func IdentifyPodForLog(pod *v1.Pod) string {
+	if verboseLogLines {
+		return fmt.Sprintf("Pod %s/%s with IP=%s, ServiceAccount=%s, UID=%s, OSM Pod UID=%s",
+			pod.Namespace, pod.Name,
+			pod.Status.PodIP,
+			pod.Spec.ServiceAccountName,
+			pod.ObjectMeta.UID,
+			pod.Labels[constants.EnvoyUniqueIDLabelName],
+		)
+	}
+	return fmt.Sprintf("Pod with UID=%s", pod.ObjectMeta.UID)
 }
 
 // SetNewNonce sets and returns a new nonce.

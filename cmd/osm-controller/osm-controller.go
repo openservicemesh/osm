@@ -103,6 +103,7 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.WASMStats, "stats-wasm-experimental", false, "Enable a WebAssembly module that generates additional Envoy statistics.")
+	flags.BoolVar(&optionalFeatures.VerboseLogging, "verbose-logging", false, "Enable VerboseLogging to log more metadata on Pods (UID vs Name), Certificates (SerialNumber vs CommonName) etc.")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
