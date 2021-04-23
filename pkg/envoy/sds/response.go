@@ -153,7 +153,8 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	return secret, nil
 }
 
-// given a requested SDS Cert, this function returns the Service Identities, which match that SDS Cert
+// Given a requested SDS Cert, this function returns the Service Identities, which match that SDS Cert
+// Example: given "service-cert:namespace/service-account", this will return ServiceIdentity("namespace.service-account.cluster.local")
 func getServiceIdentitiesFromCert(sdscert envoy.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
 	// Program SAN matching based on SMI TrafficTarget policies
 	switch sdscert.CertType {
