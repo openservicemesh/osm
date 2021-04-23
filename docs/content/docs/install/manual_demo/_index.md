@@ -6,7 +6,6 @@ aliases: ["OSM Manaual Demo"]
 weight: 2
 ---
 
-
 # OSM Manual Demo Guide
 
 The OSM Manual Install Demo Guide is a step by step set of instructions to quickly demo OSM's key features.
@@ -352,38 +351,69 @@ A Kubernetes Service, Deployment, and Service Account for applications `bookbuye
 To view these resources on your cluster, run the following commands:
 
 ```bash
-kubectl get svc --all-namespaces
-kubectl get deployment --all-namespaces
+kubectl get deployments -n bookbuyer
+kubectl get deployments -n bookthief
+kubectl get deployments -n bookstore
+kubectl get deployments -n bookwarehouse
+
+kubectl get pods -n bookbuyer
+kubectl get pods -n bookthief
+kubectl get pods -n bookstore
+kubectl get pods -n bookwarehouse
+
+kubectl get services -n bookbuyer
+kubectl get services -n bookthief
+kubectl get services -n bookstore
+kubectl get services -n bookwarehouse
+
+kubectl get endpoints -n bookbuyer
+kubectl get endpoints -n bookthief
+kubectl get endpoints -n bookstore
+kubectl get endpoints -n bookwarehouse
 ```
 
 In addition to Kubernetes Services and Deployments, a [Kubernetes Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) was also created for each Deployment. The Service Account services as the application's identity which will be used later in the demo to create service to service access control policies.
 
 ### View the Application UIs
 
-Set up client port forwarding with the following steps to access the applications in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a `.env` file for environment variables needed to run the script. The `.env` creates the necessary variables that target the previously created namespaces. We will use the reference `.env.example` file and then run the port forwarding script.
+Set up client port forwarding with the following steps to access the applications in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands.
 
 In a new terminal session, run the following commands to enable port forwarding into the Kubernetes cluster from the root of the project directory.
 
+
+### View the Application UIs
+
+The `bookbuyer` and `bookstore` pods have a web UI.
+In this section we will use `kubectl port-forward` to view these.
+
 ```bash
-cp .env.example .env
-./scripts/port-forward-all.sh
+POD=$(kubectl get pods -n bookbuyer --selector app=bookbuyer --no-headers | cut -f1 -d' ')
+
+kubectl port-forward $POD -n bookbuyer 8080:14001
 ```
 
-_Note: To override the default ports, prefix the `BOOKBUYER_LOCAL_PORT`, `BOOKSTORE_LOCAL_PORT`, `BOOKSTOREv1_LOCAL_PORT`, `BOOKSTOREv2_LOCAL_PORT`, and/or `BOOKTHIEF_LOCAL_PORT` variable assignments to the `port-forward` scripts. For example:_
-
 ```bash
-BOOKBUYER_LOCAL_PORT=7070 BOOKSTOREv1_LOCAL_PORT=7071 BOOKSTOREv2_LOCAL_PORT=7072 BOOKTHIEF_LOCAL_PORT=7073 BOOKSTORE_LOCAL_PORT=7074 ./scripts/port-forward-all.sh
+POD=$(kubectl get pods -n bookthief --selector app=bookthief --no-headers | cut -f1 -d' ')
+
+kubectl port-forward $POD -n bookthief 8081:14001
 ```
 
-In a browser, open up the following urls:
+```bash
+POD=$(kubectl get pods -n bookstore --selector app=bookstore --no-headers | cut -f1 -d' ')
 
-- [http://localhost:8080](http://localhost:8080) - **bookbuyer**
-- [http://localhost:8083](http://localhost:8083) - **bookthief**
-- [http://localhost:8084](http://localhost:8084) - **bookstore**
-- [http://localhost:8082](http://localhost:8082) - **bookstore-v2**
-  - _Note: This page will not be available at this time in the demo. This will become available during the SMI Traffic Split configuration set up_
+kubectl port-forward $POD -n bookstore 8082:14001
+```
 
-Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version.
+Open the following URLs in a web browser:
+
+- http://localhost:8080
+- http://localhost:8081
+- http://localhost:8082
+
+
+You can arrange 4 browser windows, one with each URL, so that you can see
+all four at the same time. The header at the top of the web page indicates
+the application and version.
 
 ## Traffic Encryption
 
@@ -395,15 +425,17 @@ Once the applications are up and running, they can interact with each other usin
 
 ### How to Check Traffic Policy Mode
 
-Check whether permissive traffic policy mode is enabled or not by retrieving the value for the `permissive_traffic_policy_mode` key in the `osm-config` ConfigMap.
+Check whether permissive traffic policy mode is enabled - view the `permissive_traffic_policy_mode` key in the `osm-config` ConfigMap.
 
 ```bash
-# Replace osm-system with osm-controller's namespace if using a non default namespace
-kubectl get configmap -n osm-system osm-config -o json | jq -r '.data["permissive_traffic_policy_mode"]'
-# Output:
-# false: permissive traffic policy mode is disabled, SMI policy mode is enabled
-# true: permissive traffic policy mode is enabled, SMI policy mode is disabled
+kubectl get configmap osm-config \
+    -n osm-system \
+    -o json | jq -r '.data["permissive_traffic_policy_mode"]'
 ```
+
+Output:
+  - `true` - permissive traffic policy mode is enabled and SMI policies are ignored
+  - `false` - permissive traffic policy mode is disabled and SMI policies are in effect
 
 The following sections demonstrate using OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) and [SMI Traffic Policy Mode](#smi-traffic-policy-mode).
 
@@ -468,35 +500,20 @@ osm mesh upgrade --enable-permissive-traffic-policy=false
 
 At this point, applications do not have access to each other because no access control policies have been applied. Confirm this by verifying that none of the counters in the `bookbuyer`, `bookthief`, `bookstore`, and `bookstore-v2` UI are incrementing.
 
-Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control and routing policies for the applications to communicate:
+Apply the
+[SMI Traffic Target](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha2/traffic-access.md)
+and
+[SMI Traffic Specs](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md)
+resources to define access control and routing policies for the applications to communicate:
 
+Deploy SMI TrafficTarget
 ```bash
-# Deploy SMI TrafficTarget and HTTPRouteGroup policy
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
-```
-
-The counters should now be incrementing for the `bookbuyer`, and `bookstore` applications:
-
-- [http://localhost:8080](http://localhost:8080) - **bookbuyer**
-- [http://localhost:8084](http://localhost:8084) - **bookstore**
-
-Note that the counter is _not_ incrementing for the `bookthief` application:
-
-- [http://localhost:8083](http://localhost:8083) - **bookthief**
-
-That is because the SMI Traffic Target SMI HTTPRouteGroup resources deployed only allow `bookbuyer` to communicate with the `bookstore`.
-
-#### Allowing the Bookthief Application to access the Mesh
-
-Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access-v1.yaml](https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml) to allow `bookthief` to communicate with `bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
-
-Current TrafficTarget spec with commented `bookthief` kind:
-
-```yaml
+kubectl apply -f - <<EOF
+---
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
 spec:
   destination:
@@ -513,59 +530,97 @@ spec:
   - kind: ServiceAccount
     name: bookbuyer
     namespace: bookbuyer
-  #- kind: ServiceAccount
-    #name: bookthief
-    #namespace: bookthief
+
+# Bookthief is NOT allowed to talk to Bookstore
+#  - kind: ServiceAccount
+#    name: bookthief
+#    namespace: bookthief
+EOF
 ```
 
-Updated TrafficTarget spec with uncommented `bookthief` kind:
+Deploy HTTPRouteGroup policy
+```bash
+kubectl apply -f - <<EOF
+---
 
-```yaml
+apiVersion: specs.smi-spec.io/v1alpha4
+kind: HTTPRouteGroup
+metadata:
+  name: bookstore-service-routes
+  namespace: bookstore
+spec:
+  matches:
+  - name: books-bought
+    pathRegex: /books-bought
+    methods:
+    - GET
+    headers:
+    - host: "bookstore.bookstore"
+    - "user-agent": ".*-http-client/*.*"
+    - "client-app": "bookbuyer"
+  - name: buy-a-book
+    pathRegex: ".*a-book.*new"
+    methods:
+    - GET
+    headers:
+    - host: "bookstore.bookstore"
+EOF
+```
+
+The counters should now be incrementing for the `bookbuyer`, and `bookstore` applications:
+
+- [http://localhost:8080](http://localhost:8080) - **bookbuyer**
+- [http://localhost:8081](http://localhost:8084) - **bookstore**
+
+Note that the counter is _not_ incrementing for the `bookthief` application:
+
+- [http://localhost:8083](http://localhost:8083) - **bookthief**
+
+That is because the SMI Traffic Target SMI HTTPRouteGroup resources deployed only allow `bookbuyer` to communicate with the `bookstore`.
+
+#### Allowing the Bookthief Application to access the Mesh
+
+Currently the Bookthief application has not been authorized to participate in the service
+mesh communication. We will add `bookthief` in the list of sources and reapply the policy
+to allow `bookthief` to communicate with `bookstore`.
+
+Reapply the TrafficTarget policy with `bookthief` now uncommented:
+
+```bash
+kubectl apply -f - <<EOF
+---
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
 metadata:
- name: bookstore-v1
- namespace: bookstore
+  name: bookstore
+  namespace: bookstore
 spec:
- destination:
-   kind: ServiceAccount
-   name: bookstore
-   namespace: bookstore
- rules:
- - kind: HTTPRouteGroup
-   name: bookstore-service-routes
-   matches:
-   - buy-a-book
-   - books-bought
- sources:
- - kind: ServiceAccount
-   name: bookbuyer
-   namespace: bookbuyer
- - kind: ServiceAccount
-   name: bookthief
-   namespace: bookthief
-```
+  destination:
+    kind: ServiceAccount
+    name: bookstore
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
 
-Re-apply the access manifest with the updates.
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1-allow-bookthief.yaml
+  # Bookthief IS allowed to talk to Bookstore
+  - kind: ServiceAccount
+    name: bookthief
+    namespace: bookthief
+EOF
 ```
 
 The counter in the `bookthief` window will start incrementing.
 
 - [http://localhost:8083](http://localhost:8083) - **bookthief**
 
-Comment out the bookthief source lines in the Traffic Target object and re-apply the Traffic Access policies:
-
-```bash
-# Re-apply original SMI TrafficTarget and HTTPRouteGroup resources
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
-```
-
-The counter in the `bookthief` window will stop incrementing.
-
-- [http://localhost:8083](http://localhost:8083) - **bookthief**
 
 ### Configure Traffic Split between Two Services
 
@@ -575,15 +630,111 @@ We will now demonstrate how to balance traffic between two Kubernetes services, 
 
 To demonstrate usage of SMI traffic access and split policies, we will deploy now deploy version v2 of the bookstore application (`bookstore-v2`):
 
+
+Contains the bookstore-v2 Kubernetes Service, Service Account, Deployment and SMI Traffic Target resource to allow
+bookbuyer to communicate with `bookstore-v2` pods
+
+
 ```bash
-# Contains the bookstore-v2 Kubernetes Service, Service Account, Deployment and SMI Traffic Target resource to allow
-# bookbuyer to communicate with `bookstore-v2` pods
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/apps/bookstore-v2.yaml
+kubectl apply -f - <<EOF
+---
+
+# Deploy bookstore-v2 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore-v2
+  namespace: bookstore
+  labels:
+    app: bookstore-v2
+spec:
+  selector:
+    app: bookstore-v2
+  ports:
+  - port: 14001
+
+---
+
+# Deploy bookstore-v2 Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookstore-v2
+  namespace: bookstore
+
+---
+
+# Deploy bookstore-v2 Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookstore-v2
+  namespace: bookstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore-v2
+  template:
+    metadata:
+      labels:
+        app: bookstore-v2
+    spec:
+      serviceAccountName: bookstore-v2
+      containers:
+        - name: bookstore
+          image: openservicemesh/bookstore:v0.8.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 14001
+              name: web
+          command: ["/bookstore"]
+          args: ["--path", "./", "--port", "14001"]
+          env:
+            - name: BOOKWAREHOUSE_NAMESPACE
+              value: bookwarehouse
+            - name: IDENTITY
+              value: bookstore-v2
+
+---
+
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha3
+metadata:
+  name: bookstore-v2
+  namespace: bookstore
+spec:
+  destination:
+    kind: ServiceAccount
+    name: bookstore-v2
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
+EOF
 ```
 
-Wait for the `bookstore-v2` pod to be running in the `bookstore` namespace. Next, exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of bookstore.
+View the resources created:
+```bash
+kubectl get pods -n bookstore
+kubectl get endpoints -n bookstore
+```
+Wait for the `bookstore-v2` pod to be running in the `bookstore` namespace.
+Next enable port-forwarding to the new `bookstore-v2` pod:
 
-- [http://localhost:8082](http://localhost:8082) - **bookstore-v2**
+```bash
+POD=$(kubectl get pods -n bookstore --selector app=bookstore-v2 --no-headers | cut -f1 -d' ')
+kubectl port-forward $POD -n bookstore 8084:14001
+```
+
+- [http://localhost:8084](http://localhost:8084) - **bookstore-v2**
 
 The counter should _not_ be incrementing because no traffic is flowing yet to the `bookstore-v2` service.
 
@@ -592,7 +743,19 @@ The counter should _not_ be incrementing because no traffic is flowing yet to th
 Deploy the SMI traffic split policy to direct 100 percent of the traffic sent to the root `bookstore` service to the `bookstore` service backend:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v1.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 100
+EOF
 ```
 
 _Note: The root service can be any Kubernetes service. It does not have any label selectors. It also doesn't need to overlap with any of the Backend services specified in the Traffic Split resource. The root service can be referred to in the SMI Traffic Split resource as the name of the service with or without the `.<namespace>` suffix._
@@ -608,7 +771,21 @@ kubectl describe trafficsplit bookstore-split -n bookstore
 Update the SMI Traffic Split policy to direct 50 percent of the traffic sent to the root `bookstore` service to the `bookstore` service and 50 perfect to `bookstore-v2` service by adding the `bookstore-v2` backend to the spec and modifying the weight fields.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-50-50.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 50
+  - service: bookstore-v2
+    weight: 50
+EOF
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore` and `bookstore-v2` in your browser windows. Both
@@ -622,26 +799,42 @@ counters should be incrementing:
 Update the SMI TrafficSplit policy for `bookstore` Service configuring all traffic to go to `bookstore-v2`:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v2.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 0
+  - service: bookstore-v2
+    weight: 100
+EOF
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore-v2` and freeze for `bookstore` in your
 browser windows:
 
 - [http://localhost:8082](http://localhost:8082) - **bookstore-v2**
-- [http://localhost:8083](http://localhost:8084) - **bookstore**
+- [http://localhost:8083](http://localhost:8083) - **bookstore**
 
 Now, all traffic directed to the `bookstore` service is flowing to `bookstore-v2`.
 
 ## Inspect Dashboards
 
-OSM can be configured to deploy Grafana dashboards using the `--deploy-grafana` flag in `osm install`. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. The `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
+OSM can be configured to deploy Grafana dashboards.
+Use the `--deploy-grafana` flag with `osm install`.
+Launch the Grafana UI with:
 
 ```bash
 osm dashboard
 ```
 
-Simply navigate to http://localhost:3000 to access the Grafana dashboards. The default user name is `admin` and the default password is `admin`. On the Grafana homepage click on the **Home** icon, you will see a folders containing dashboards for both OSM Control Plan and OSM Data Plane.
+Navigate to http://localhost:3000 to access the Grafana dashboards. The default user name is `admin` and the default password is `admin`. On the Grafana homepage click on the **Home** icon, you will see a folders containing dashboards for both OSM Control Plan and OSM Data Plane.
 
 
 ## Cleanup
@@ -650,16 +843,12 @@ To cleanup all resources created for the demo, the OSM control plane, SMI resour
 
 To uninstall the sample applications and SMI resources, delete their namespaces with the following command:
 ```bash
-kubectl delete ns bookbuyer bookthief bookstore bookwarehouse
+kubectl delete namespace bookbuyer bookthief bookstore bookwarehouse
 ```
 
-To uninstall OSM, run
+To uninstall OSM run:
 ```bash
-osm uninstall
+osm mesh uninstall
 ```
 
 For more details about uninstalling OSM, see the [uninstallation guide](../uninstallation_guide/).
-
-[1]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha2/traffic-access.md
-[2]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md
-[3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md
