@@ -591,7 +591,19 @@ The counter should _not_ be incrementing because no traffic is flowing yet to th
 Deploy the SMI traffic split policy to direct 100 percent of the traffic sent to the root `bookstore` service to the `bookstore` service backend:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v1.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 100
+EOF
 ```
 
 _Note: The root service can be any Kubernetes service. It does not have any label selectors. It also doesn't need to overlap with any of the Backend services specified in the Traffic Split resource. The root service can be referred to in the SMI Traffic Split resource as the name of the service with or without the `.<namespace>` suffix._
@@ -607,7 +619,21 @@ kubectl describe trafficsplit bookstore-split -n bookstore
 Update the SMI Traffic Split policy to direct 50 percent of the traffic sent to the root `bookstore` service to the `bookstore` service and 50 perfect to `bookstore-v2` service by adding the `bookstore-v2` backend to the spec and modifying the weight fields.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-50-50.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 50
+  - service: bookstore-v2
+    weight: 50
+EOF
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore` and `bookstore-v2` in your browser windows. Both
@@ -621,7 +647,21 @@ counters should be incrementing:
 Update the SMI TrafficSplit policy for `bookstore` Service configuring all traffic to go to `bookstore-v2`:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/split/traffic-split-v2.yaml
+kubectl apply -f - <<EOF
+---
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 0
+  - service: bookstore-v2
+    weight: 100
+EOF
 ```
 
 Wait for the changes to propagate and observe the counters increment for `bookstore-v2` and freeze for `bookstore` in your
