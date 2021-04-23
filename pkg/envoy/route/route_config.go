@@ -58,37 +58,36 @@ const (
 func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy) []*xds_route.RouteConfiguration {
 	var routeConfiguration []*xds_route.RouteConfiguration
 
-	if len(inbound) > 0 {
-		inboundRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
-		for _, in := range inbound {
-			virtualHost := buildVirtualHostStub(inboundVirtualHost, in.Name, in.Hostnames)
-			virtualHost.Routes = buildInboundRoutes(in.Rules)
-			inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
-		}
-
-		if featureflags.IsWASMStatsEnabled() {
-			for k, v := range proxy.StatsHeaders() {
-				inboundRouteConfig.ResponseHeadersToAdd = append(inboundRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
-					Header: &core.HeaderValue{
-						Key:   k,
-						Value: v,
-					},
-				})
-			}
-		}
-
-		routeConfiguration = append(routeConfiguration, inboundRouteConfig)
+	// For both Inbound and Outbound routes, we will always generate the route resource stubs and send them even when empty,
+	// as it's a guarantee to be consistent with potential references from LDS.
+	// If envoy is not requesting these, they will just be ignored.
+	inboundRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
+	for _, in := range inbound {
+		virtualHost := buildVirtualHostStub(inboundVirtualHost, in.Name, in.Hostnames)
+		virtualHost.Routes = buildInboundRoutes(in.Rules)
+		inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
 	}
-	if len(outbound) > 0 {
-		outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
 
-		for _, out := range outbound {
-			virtualHost := buildVirtualHostStub(outboundVirtualHost, out.Name, out.Hostnames)
-			virtualHost.Routes = buildOutboundRoutes(out.Routes)
-			outboundRouteConfig.VirtualHosts = append(outboundRouteConfig.VirtualHosts, virtualHost)
+	if featureflags.IsWASMStatsEnabled() {
+		for k, v := range proxy.StatsHeaders() {
+			inboundRouteConfig.ResponseHeadersToAdd = append(inboundRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+				Header: &core.HeaderValue{
+					Key:   k,
+					Value: v,
+				},
+			})
 		}
-		routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 	}
+
+	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
+	outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
+
+	for _, out := range outbound {
+		virtualHost := buildVirtualHostStub(outboundVirtualHost, out.Name, out.Hostnames)
+		virtualHost.Routes = buildOutboundRoutes(out.Routes)
+		outboundRouteConfig.VirtualHosts = append(outboundRouteConfig.VirtualHosts, virtualHost)
+	}
+	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 
 	return routeConfiguration
 }
