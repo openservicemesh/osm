@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -145,6 +144,18 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		return secret, nil
 	}
 
+	svcIdentitiesInCertRequest, err := getServiceIdentitiesFromCert(sdscert, s.serviceIdentity, s.meshCatalog)
+	if err != nil {
+		return nil, err
+	}
+
+	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest)
+	return secret, nil
+}
+
+// Given a requested SDS Cert, this function returns the Service Identities, which match that SDS Cert
+// Example: given "service-cert:namespace/service-account", this will return ServiceIdentity("namespace.service-account.cluster.local")
+func getServiceIdentitiesFromCert(sdscert envoy.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
 	// Program SAN matching based on SMI TrafficTarget policies
 	switch sdscert.CertType {
 	case envoy.RootCertTypeForMTLSOutbound:
@@ -156,12 +167,12 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcIdentities, err := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
+		svcIdentities, err := meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
 			return nil, err
 		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcIdentities)
+		return svcIdentities, nil
 
 	case envoy.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
@@ -172,31 +183,31 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			return nil, err
 		}
 
-		if svcAccountInRequest.ToServiceIdentity() != s.serviceIdentity {
-			log.Error().Err(errGotUnexpectedCertRequest).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert, s.serviceIdentity)
-			return nil, errGotUnexpectedCertRequest
+		if svcAccountInRequest.ToServiceIdentity() != serviceIdentity {
+			log.Error().Err(errCertMismatch).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert.Name, serviceIdentity)
+			return nil, errCertMismatch
 		}
 
 		// For the inbound certificate validation context, the SAN needs to match the list of all downstream
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
-		svcIdentities, err := s.meshCatalog.ListAllowedInboundServiceIdentities(s.serviceIdentity)
+		svcIdentities, err := meshCatalog.ListAllowedInboundServiceIdentities(serviceIdentity)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", s.serviceIdentity)
+			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", serviceIdentity)
 			return nil, err
 		}
-		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcIdentities)
+		return svcIdentities, nil
 
 	default:
 		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
 	}
 
-	return secret, nil
+	return nil, nil
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getSubjectAltNamesFromSvcAccount(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
+func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 
 	for _, si := range serviceIdentities {
