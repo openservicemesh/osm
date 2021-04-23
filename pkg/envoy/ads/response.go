@@ -4,7 +4,9 @@ import (
 	"strconv"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -105,6 +107,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 		Nonce:       proxy.SetNewNonce(typeURL),
 	}
 
+	resourcesSent := mapset.NewSet()
 	for _, res := range resources {
 		proto, err := ptypes.MarshalAny(res)
 		if err != nil {
@@ -112,7 +115,11 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 			continue
 		}
 		response.Resources = append(response.Resources, proto)
+		resourcesSent.Add(cache.GetResourceName(res))
 	}
+
+	// TODO: Move updating resources sent, version, and nonce after "server.Send()" has succeeded
+	proxy.SetLastResourcesSent(typeURL, resourcesSent)
 
 	// NOTE: Never log entire 'response' - will contain secrets!
 	log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
