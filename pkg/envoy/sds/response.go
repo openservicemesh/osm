@@ -123,10 +123,10 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth
 	return secret, nil
 }
 
-func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdsCert envoy.SDSCert) (*xds_auth.Secret, error) {
+func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
-		Name: sdsCert.String(),
+		Name: sdscert.String(),
 		Type: &xds_auth.Secret_ValidationContext{
 			ValidationContext: &xds_auth.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
@@ -144,45 +144,45 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdsCert envoy.SDSCe
 		return secret, nil
 	}
 
-	svcIdentitiesInCertRequest, err := getServiceIdentitiesFromCert(sdsCert, s.serviceIdentity, s.meshCatalog)
+	svcIdentitiesInCertRequest, err := getServiceIdentitiesFromCert(sdscert, s.serviceIdentity, s.meshCatalog)
 	if err != nil {
 		return nil, err
 	}
 
-	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentities)
+	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest)
 	return secret, nil
 }
 
-func getServiceIdentitiesFromCert(sdsCert envoy.SDSCert, svcIdentity identity.ServiceIdentity, cataloger catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
-	// Configure SAN matching based on SMI TrafficTarget policies
-	if sdsCert.CertType == envoy.RootCertTypeForMTLSOutbound {
+func getServiceIdentitiesFromCert(sdscert envoy.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
+	// Program SAN matching based on SMI TrafficTarget policies
+	switch sdscert.CertType {
+	case envoy.RootCertTypeForMTLSOutbound:
 		// For the outbound certificate validation context, the SANs needs to match the list of service identities
-		// corresponding to the upstream service. This means, if the sdsCert.Name points to service 'X',
+		// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
 		// the SANs for this certificate should correspond to the service identities of 'X'.
-		meshSvc, err := service.UnmarshalMeshService(sdsCert.Name)
+		meshSvc, err := service.UnmarshalMeshService(sdscert.Name)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdsCert.Name)
+			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcIdentities, err := mc.ListServiceIdentitiesForService(*meshSvc)
+		svcIdentities, err := meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
 			return nil, err
 		}
 		return svcIdentities, nil
-	}
 
-	if sdsCert.CertType == envoy.RootCertTypeForMTLSInbound {
+	case envoy.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
 		// of this proxy. If it doesn't, then something is wrong in the system.
-		svcAccountInRequest, err := identity.UnmarshalK8sServiceAccount(sdsCert.Name)
+		svcAccountInRequest, err := identity.UnmarshalK8sServiceAccount(sdscert.Name)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdsCert.Name)
+			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
 			return nil, err
 		}
 
-		if svcAccountInRequest.ToServiceIdentity() != svcIdentity {
-			log.Error().Err(errCertMismatch).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdsCert.Name, svcIdentity)
+		if svcAccountInRequest.ToServiceIdentity() != serviceIdentity {
+			log.Error().Err(errCertMismatch).Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert.Name, serviceIdentity)
 			return nil, errCertMismatch
 		}
 
@@ -190,15 +190,17 @@ func getServiceIdentitiesFromCert(sdsCert envoy.SDSCert, svcIdentity identity.Se
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
-		svcIdentities, err := mc.ListAllowedInboundServiceIdentities(svcIdentity)
+		svcIdentities, err := meshCatalog.ListAllowedInboundServiceIdentities(serviceIdentity)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", svcIdentity)
+			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", serviceIdentity)
 			return nil, err
 		}
 		return svcIdentities, nil
+
+	default:
+		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
 	}
 
-	log.Debug().Msgf("SAN matching not needed for cert %s", sdsCert.Name)
 	return nil, nil
 }
 
