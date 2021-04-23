@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -218,9 +219,10 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
-func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bool) *xds_auth.DownstreamTlsContext {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := SDSCert{
-		Name:     upstreamIdentity.String(),
+		Name:     upstreamIdentity.GetSDSCSecretName(),
 		CertType: ServiceCertType,
 	}
 
@@ -238,7 +240,7 @@ func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bo
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
 	downstreamPeerValidationSDSCert := SDSCert{
-		Name:     upstreamIdentity.String(),
+		Name:     upstreamIdentity.GetSDSCSecretName(),
 		CertType: downstreamPeerValidationCertType,
 	}
 
@@ -251,9 +253,10 @@ func GetDownstreamTLSContext(upstreamIdentity service.K8sServiceAccount, mTLS bo
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
-func GetUpstreamTLSContext(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
 	downstreamSDSCert := SDSCert{
-		Name:     downstreamIdentity.String(),
+		Name:     downstreamIdentity.GetSDSCSecretName(),
 		CertType: ServiceCertType,
 	}
 	upstreamPeerValidationSDSCert := SDSCert{
@@ -313,7 +316,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
-		ServiceAccount: service.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
+		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
 		EnvoyNodeID:    chunks[4],
 	}
 

@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -24,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -50,6 +50,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
+	proxyRegistry := registry.NewProxyRegistry()
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -122,18 +123,12 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
-			err := s.sendResponse(mapset.NewSetWith(
-				envoy.TypeCDS,
-				envoy.TypeEDS,
-				envoy.TypeLDS,
-				envoy.TypeRDS,
-				envoy.TypeSDS),
-				proxy, &server, nil, mockConfigurator)
+			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))
@@ -208,12 +203,12 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
-			err := s.sendResponse(mapset.NewSetWith(envoy.TypeSDS), proxy, &server, nil, mockConfigurator)
+			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.TypeSDS)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(1))

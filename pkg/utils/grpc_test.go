@@ -19,7 +19,7 @@ func TestNewGrpc(t *testing.T) {
 	certPem := adsCert.GetCertificateChain()
 	keyPem := adsCert.GetPrivateKey()
 	rootPem := adsCert.GetIssuingCA()
-	emptyByteArray := []byte{}
+	var emptyByteArray []byte
 
 	type newGrpcTest struct {
 		serverType    string

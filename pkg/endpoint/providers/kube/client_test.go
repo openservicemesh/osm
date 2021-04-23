@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -367,7 +368,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		Expect(err).ToNot(HaveOccurred())
 		<-podsAndServiceChannel
 
-		givenSvcAccount := service.K8sServiceAccount{
+		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
 			Name:      "test-service-account", // Should match the service account in the Pod spec above
 		}
@@ -442,7 +443,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		Expect(err).ToNot(HaveOccurred())
 		<-podsChannel
 
-		givenSvcAccount := service.K8sServiceAccount{
+		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
@@ -510,7 +511,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		Expect(err).ToNot(HaveOccurred())
 		<-podsChannel
 
-		givenSvcAccount := service.K8sServiceAccount{
+		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
@@ -597,7 +598,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		Expect(err).ToNot(HaveOccurred())
 		<-podsAndServiceChannel
 
-		givenSvcAccount := service.K8sServiceAccount{
+		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
@@ -623,15 +624,15 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 	testCases := []struct {
 		name                            string
-		serviceAccount                  service.K8sServiceAccount
-		outboundServiceAccountEndpoints map[service.K8sServiceAccount][]endpoint.Endpoint
+		serviceAccount                  identity.ServiceIdentity
+		outboundServiceAccountEndpoints map[identity.ServiceIdentity][]endpoint.Endpoint
 		expectedEndpoints               []endpoint.Endpoint
 	}{
 		{
 			name:           "get endpoints for pod with only one ip",
-			serviceAccount: tests.BookstoreServiceAccount,
-			outboundServiceAccountEndpoints: map[service.K8sServiceAccount][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {{
+			serviceAccount: tests.BookstoreServiceIdentity,
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {{
 					IP: net.ParseIP(tests.ServiceIP),
 				}},
 			},
@@ -641,9 +642,9 @@ func TestListEndpointsForIdentity(t *testing.T) {
 		},
 		{
 			name:           "get endpoints for pod with multiple ips",
-			serviceAccount: tests.BookstoreServiceAccount,
-			outboundServiceAccountEndpoints: map[service.K8sServiceAccount][]endpoint.Endpoint{
-				tests.BookstoreServiceAccount: {
+			serviceAccount: tests.BookstoreServiceIdentity,
+			outboundServiceAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{
+				tests.BookstoreServiceIdentity: {
 					endpoint.Endpoint{
 						IP: net.ParseIP(tests.ServiceIP),
 					},
@@ -675,11 +676,12 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			assert.Nil(err)
 
 			var pods []*corev1.Pod
-			for sa, endpoints := range tc.outboundServiceAccountEndpoints {
+			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
 				podlabels := map[string]string{
 					tests.SelectorKey:                tests.SelectorValue,
 					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 				}
+				sa := serviceIdentity.ToK8sServiceAccount()
 				pod := tests.NewPodFixture(sa.Namespace, sa.Name, sa.Name, podlabels)
 				var podIps []corev1.PodIP
 				for _, ep := range endpoints {

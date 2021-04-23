@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -14,25 +15,29 @@ import (
 // ListOutboundTrafficPolicies returns all outbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account from SMI Traffic Target and Traffic Split
-func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
+	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
-		mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
+		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
+		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
 		outboundPolicies = mergedPolicies
 		return outboundPolicies
 	}
 
 	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
-	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamIdentity.Namespace)
-	outbound = trafficpolicy.MergeOutboundPolicies(outbound, outboundPoliciesFromSplits...)
+	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamServiceAccount.Namespace)
+	outbound = trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outbound, outboundPoliciesFromSplits...)
 
 	return outbound
 }
 
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
 // when the given service account matches a source in the Traffic Target resource
-func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
-	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
+	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
+	var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
@@ -40,8 +45,9 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		}
 
 		for _, source := range t.Spec.Sources {
-			if source.Name == downstreamIdentity.Name && source.Namespace == downstreamIdentity.Namespace { // found outbound
-				mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
+			// TODO(draychev): must check for the correct type of ServiceIdentity as well
+			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
+				mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				outboundPolicies = mergedPolicies
 				break
 			}
@@ -51,7 +57,7 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 }
 
 func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
-	outboundPoliciesFromSplits := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outboundPoliciesFromSplits []*trafficpolicy.OutboundTrafficPolicy
 
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
@@ -67,7 +73,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		}
 		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
 
-		weightedClusters := []service.WeightedCluster{}
+		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
 			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
 			wc := service.WeightedCluster{
@@ -91,7 +97,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 }
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
-func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
+	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
@@ -99,8 +107,8 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 	serviceSet := mapset.NewSet()
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
-			if source.Name == identity.Name && source.Namespace == identity.Namespace { // found outbound
-				destServices, err := mc.GetServicesForServiceAccount(service.K8sServiceAccount{
+			if source.Name == ident.Name && source.Namespace == ident.Namespace { // found outbound
+				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
 				})
@@ -124,7 +132,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 }
 
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
-	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	k8sServices := mc.kubeController.ListServices()
 	var destServices []service.MeshService
@@ -150,8 +158,10 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	return outPolicies
 }
 
-func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
-	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.ServiceIdentity, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+	source := sourceServiceIdentity.ToK8sServiceAccount()
+	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
@@ -181,11 +191,11 @@ func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t
 }
 
 func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) ([]service.MeshService, error) {
-	sa := service.K8sServiceAccount{
+	sa := identity.K8sServiceAccount{
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	destServices, err := mc.GetServicesForServiceAccount(sa)
+	destServices, err := mc.getServicesForServiceAccount(sa)
 	if err != nil {
 		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
 	}

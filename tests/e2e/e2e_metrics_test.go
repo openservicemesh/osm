@@ -16,8 +16,8 @@ import (
 
 var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 	OSMDescribeInfo{
-		Tier:   2, // experimental feature
-		Bucket: 4,
+		Tier:   2,  // experimental feature
+		Bucket: 14, // disabled due to #3199
 	},
 	func() {
 		const sourceNs = "clientns"
@@ -28,7 +28,12 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			// Install OSM
 			installOpts := Td.GetOSMInstallOpts()
 			installOpts.DeployPrometheus = true
-			installOpts.SetOverrides = []string{"OpenServiceMesh.enableWASMStatsExperimental=true"}
+			installOpts.SetOverrides = []string{
+				"OpenServiceMesh.enableWASMStatsExperimental=true",
+				// These values are based on successful runs on OSM's CI values
+				"OpenServiceMesh.osmcontroller.resource.requests.cpu=100m",
+				"OpenServiceMesh.osmcontroller.resource.requests.memory=256M",
+			}
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 			// Create Test NS

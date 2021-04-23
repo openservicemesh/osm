@@ -10,13 +10,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
-	log = logger.New("mesh-spec")
+	log = logger.New("smi-mesh-spec")
 )
 
 // informerCollection is a struct of the Kubernetes informers used for SMI resources
@@ -35,8 +35,8 @@ type cacheCollection struct {
 	TrafficTarget  cache.Store
 }
 
-// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
-type Client struct {
+// client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
+type client struct {
 	caches         *cacheCollection
 	cacheSynced    chan interface{}
 	providerIdent  string
@@ -52,7 +52,7 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
-	ListServiceAccounts() []service.K8sServiceAccount
+	ListServiceAccounts() []identity.K8sServiceAccount
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup

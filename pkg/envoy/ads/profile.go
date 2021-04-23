@@ -16,16 +16,13 @@ const (
 	MaxXdsLogsPerProxy = 20
 )
 
-func xdsPathTimeTrack(t time.Time, log *zerolog.Event, tURIStr string, proxyXdsCertSerialNum string, success *bool) {
-	elapsed := time.Since(t)
+func xdsPathTimeTrack(startedAt time.Time, log *zerolog.Event, typeURI envoy.TypeURI, proxy *envoy.Proxy, success bool) {
+	elapsed := time.Since(startedAt)
 
-	log.Msgf("[%s] processing for Proxy Serial=%s took %s",
-		tURIStr,
-		proxyXdsCertSerialNum,
-		elapsed)
+	log.Msgf("[%s] processing for Proxy with Certificate SerialNumber=%s took %s", typeURI, proxy.GetCertificateSerialNumber(), elapsed)
 
 	metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime.
-		WithLabelValues(tURIStr, fmt.Sprintf("%t", *success)).
+		WithLabelValues(typeURI.String(), fmt.Sprintf("%t", success)).
 		Observe(elapsed.Seconds())
 }
 

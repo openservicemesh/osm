@@ -8,6 +8,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
+
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -123,6 +125,11 @@ func (sd *DataHandle) Iterate(f func()) {
 		sd.OutputIteration(sd.Iterations, os.Stdout)
 		fmt.Println("--------")
 
+		restarts := Td.VerifyRestarts()
+		if restarts {
+			Fail("Failed at iteration %d, seen restarts", sd.Iterations)
+		}
+
 		// Increase iterations done
 		sd.Iterations++
 	}
@@ -177,7 +184,7 @@ func (sd *DataHandle) OutputIteration(iterNumber int, f *os.File) {
 
 	sd.IterateTrackedPods(func(pod *corev1.Pod) {
 		for _, cont := range pod.Spec.Containers {
-			tableRow := []string{}
+			var tableRow []string
 
 			resSeen := Resource{
 				Namespace:     pod.Namespace,
@@ -222,7 +229,7 @@ func (sd *DataHandle) OutputIterationTable(f *os.File) {
 	// Print all iteration information for all seen resources
 	table := tablewriter.NewWriter(f)
 	header := []string{"It", "Duration", "NPods"}
-	rows := [][]string{}
+	var rows [][]string
 
 	// Set up columns "It", "Duration", "NPods"
 	var prevItDuration time.Duration

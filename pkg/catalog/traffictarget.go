@@ -7,7 +7,6 @@ import (
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -22,18 +21,21 @@ const (
 	httpRouteGroupKind = "HTTPRouteGroup"
 )
 
-// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given upstream service account
-func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
+// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given upstream service account
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListAllowedInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
-// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given downstream service account can connect to
-func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
+// ListAllowedOutboundServiceIdentities lists the upstream service identities the given downstream service account can connect to
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
 // ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
-func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
@@ -45,8 +47,8 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sS
 			continue
 		}
 
-		destinationSvcAccount := trafficTargetIdentityToSvcAccount(t.Spec.Destination)
-		if destinationSvcAccount != upstream {
+		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity()
+		if destinationSvcIdentity != upstream {
 			continue
 		}
 
@@ -79,8 +81,9 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sS
 	return trafficTargets, nil
 }
 
-func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K8sServiceAccount, direction trafficDirection) ([]service.K8sServiceAccount, error) {
-	var allowedSvcAccounts []service.K8sServiceAccount
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity.ServiceIdentity, direction trafficDirection) ([]identity.ServiceIdentity, error) {
+	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()
 
 	allTrafficTargets := mc.meshSpec.ListTrafficTargets()
@@ -129,15 +132,16 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K
 		}
 	}
 
+	var allowedSvcIdentities []identity.ServiceIdentity
 	for svcAccount := range allowed.Iter() {
-		allowedSvcAccounts = append(allowedSvcAccounts, svcAccount.(service.K8sServiceAccount))
+		allowedSvcIdentities = append(allowedSvcIdentities, svcAccount.(identity.K8sServiceAccount).ToServiceIdentity())
 	}
 
-	return allowedSvcAccounts, nil
+	return allowedSvcIdentities, nil
 }
 
-func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) service.K8sServiceAccount {
-	return service.K8sServiceAccount{
+func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) identity.K8sServiceAccount {
+	return identity.K8sServiceAccount{
 		Name:      identitySubject.Name,
 		Namespace: identitySubject.Namespace,
 	}
@@ -150,15 +154,15 @@ func trafficTargetIdentityToServiceIdentity(identitySubject smiAccess.IdentityBi
 }
 
 // trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target
-func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBindingSubject) []service.K8sServiceAccount {
-	serviceAccountsMap := map[service.K8sServiceAccount]bool{}
+func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBindingSubject) []identity.K8sServiceAccount {
+	serviceAccountsMap := map[identity.K8sServiceAccount]bool{}
 
 	for _, id := range identities {
 		sa := trafficTargetIdentityToSvcAccount(id)
 		serviceAccountsMap[sa] = true
 	}
 
-	serviceAccounts := []service.K8sServiceAccount{}
+	var serviceAccounts []identity.K8sServiceAccount
 	for k := range serviceAccountsMap {
 		serviceAccounts = append(serviceAccounts, k)
 	}

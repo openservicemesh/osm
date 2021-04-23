@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -24,21 +25,22 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	type testCase struct {
 		name                     string
-		proxySvcAccount          service.K8sServiceAccount
+		proxySvcAccount          identity.ServiceIdentity
 		proxyServices            []service.MeshService
 		allowedOutboundServices  []service.MeshService
 		expectedDiscoveryRequest *xds_discovery.DiscoveryRequest
 	}
 
-	proxySvcAccount := service.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}
+	proxyServiceIdentity := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}.ToServiceIdentity()
+	proxySvcAccount := proxyServiceIdentity.ToK8sServiceAccount()
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), proxySvcAccount.Name, proxySvcAccount.Namespace))
+	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
 	testProxy := envoy.NewProxy(proxyXDSCertCN, certSerialNumber, nil)
 
 	testCases := []testCase{
 		{
 			name:            "scenario where proxy is both downstream and upstream",
-			proxySvcAccount: proxySvcAccount,
+			proxySvcAccount: proxyServiceIdentity,
 			proxyServices: []service.MeshService{
 				{Name: "service-1", Namespace: "ns-1"},
 			},
@@ -64,7 +66,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		},
 		{
 			name:            "scenario where proxy is only a downsteam (no service)",
-			proxySvcAccount: proxySvcAccount,
+			proxySvcAccount: proxyServiceIdentity,
 			proxyServices:   nil,
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2"},
@@ -88,7 +90,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		},
 		{
 			name:            "scenario where proxy does not have allowed upstreams to connect to",
-			proxySvcAccount: proxySvcAccount,
+			proxySvcAccount: proxyServiceIdentity,
 			proxyServices: []service.MeshService{
 				{Name: "service-1", Namespace: "ns-1"},
 			},
@@ -107,7 +109,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		},
 		{
 			name:            "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
-			proxySvcAccount: proxySvcAccount,
+			proxySvcAccount: proxyServiceIdentity,
 			proxyServices: []service.MeshService{
 				{Name: "service-1", Namespace: "ns-1"},
 				{Name: "service-4", Namespace: "ns-4"},

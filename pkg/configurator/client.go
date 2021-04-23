@@ -32,6 +32,9 @@ const (
 	// useHTTPSIngressKey is the key name used for HTTPS ingress in the ConfigMap
 	useHTTPSIngressKey = "use_https_ingress"
 
+	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the ConfigMap
+	maxDataPlaneConnectionsKey = "max_data_plane_connections"
+
 	// tracingEnableKey is the key name used for tracing in the ConfigMap
 	tracingEnableKey = "tracing_enable"
 
@@ -91,7 +94,7 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, nil, eventTypes))
 
 	// Start listener
-	go client.configMapListener()
+	go client.configMapListener(stop)
 
 	client.run(stop)
 
@@ -99,87 +102,95 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 }
 
 // Listens to ConfigMap events and notifies dispatcher to issue config updates to the envoys based
-// on config seen on the configmap
-func (c *Client) configMapListener() {
-	// Subscribe to configuration updates
+// on config seen on the configmap.
+// It is guaranteed upon return that the listener routine is ready to receive events.
+func (c *Client) configMapListener(stop <-chan struct{}) {
+	// Create the subscription channel synchronously
 	cfgSubChannel := events.GetPubSubInstance().Subscribe(
 		announcements.ConfigMapAdded,
 		announcements.ConfigMapDeleted,
 		announcements.ConfigMapUpdated,
 	)
 
-	// run the listener
-	go func(cfgSubChannel chan interface{}, cf *Client) {
+	go func() {
+		// Defer unsubscription on async routine exit
+		defer events.GetPubSubInstance().Unsub(cfgSubChannel)
+
 		for {
-			msg := <-cfgSubChannel
-
-			psubMsg, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Could not cast pubsub message")
-				continue
-			}
-
-			switch psubMsg.AnnouncementType {
-			case announcements.ConfigMapAdded:
-				log.Debug().Msgf("[%s] OSM ConfigMap added event triggered a global proxy broadcast",
-					psubMsg.AnnouncementType)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
-					OldObj:           nil,
-					NewObj:           nil,
-				})
-
-			case announcements.ConfigMapDeleted:
-				// Ignore deletion. We expect config to be present
-				log.Debug().Msgf("[%s] OSM ConfigMap deleted event triggered a global proxy broadcast",
-					psubMsg.AnnouncementType)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
-					OldObj:           nil,
-					NewObj:           nil,
-				})
-
-			case announcements.ConfigMapUpdated:
-				// Get config map
-				prevConfigMapObj, okPrevCast := psubMsg.OldObj.(*v1.ConfigMap)
-				newConfigMapObj, okNewCast := psubMsg.NewObj.(*v1.ConfigMap)
-				if !okPrevCast || !okNewCast {
-					log.Error().Msgf("[%s] Error casting old/new ConfigMaps objects (%v %v)",
-						psubMsg.AnnouncementType, okPrevCast, okNewCast)
+			select {
+			case msg := <-cfgSubChannel:
+				psubMsg, ok := msg.(events.PubSubMessage)
+				if !ok {
+					log.Error().Msgf("Could not cast pubsub message")
 					continue
 				}
 
-				// Parse old and new configs
-				prevConfigMap := parseOSMConfigMap(prevConfigMapObj)
-				newConfigMap := parseOSMConfigMap(newConfigMapObj)
-
-				// Determine if we should issue new global config update to all envoys
-				triggerGlobalBroadcast := false
-
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.Egress != newConfigMap.Egress)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PermissiveTrafficPolicyMode != newConfigMap.PermissiveTrafficPolicyMode)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.UseHTTPSIngress != newConfigMap.UseHTTPSIngress)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEnable != newConfigMap.TracingEnable)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingAddress != newConfigMap.TracingAddress)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEndpoint != newConfigMap.TracingEndpoint)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
-				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PrometheusScraping != newConfigMap.PrometheusScraping)
-
-				if triggerGlobalBroadcast {
-					log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
+				switch psubMsg.AnnouncementType {
+				case announcements.ConfigMapAdded:
+					log.Debug().Msgf("[%s] OSM ConfigMap added event triggered a global proxy broadcast",
 						psubMsg.AnnouncementType)
 					events.GetPubSubInstance().Publish(events.PubSubMessage{
 						AnnouncementType: announcements.ScheduleProxyBroadcast,
 						OldObj:           nil,
 						NewObj:           nil,
 					})
-				} else {
-					log.Trace().Msgf("[%s] configmap update, NOT triggering global proxy broadcast",
+
+				case announcements.ConfigMapDeleted:
+					// Ignore deletion. We expect config to be present
+					log.Debug().Msgf("[%s] OSM ConfigMap deleted event triggered a global proxy broadcast",
 						psubMsg.AnnouncementType)
+					events.GetPubSubInstance().Publish(events.PubSubMessage{
+						AnnouncementType: announcements.ScheduleProxyBroadcast,
+						OldObj:           nil,
+						NewObj:           nil,
+					})
+
+				case announcements.ConfigMapUpdated:
+					// Get config map
+					prevConfigMapObj, okPrevCast := psubMsg.OldObj.(*v1.ConfigMap)
+					newConfigMapObj, okNewCast := psubMsg.NewObj.(*v1.ConfigMap)
+					if !okPrevCast || !okNewCast {
+						log.Error().Msgf("[%s] Error casting old/new ConfigMaps objects (%v %v)",
+							psubMsg.AnnouncementType, okPrevCast, okNewCast)
+						continue
+					}
+
+					// Parse old and new configs
+					prevConfigMap := parseOSMConfigMap(prevConfigMapObj)
+					newConfigMap := parseOSMConfigMap(newConfigMapObj)
+
+					// Determine if we should issue new global config update to all envoys
+					triggerGlobalBroadcast := false
+
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.Egress != newConfigMap.Egress)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PermissiveTrafficPolicyMode != newConfigMap.PermissiveTrafficPolicyMode)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.UseHTTPSIngress != newConfigMap.UseHTTPSIngress)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEnable != newConfigMap.TracingEnable)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingAddress != newConfigMap.TracingAddress)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEndpoint != newConfigMap.TracingEndpoint)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PrometheusScraping != newConfigMap.PrometheusScraping)
+
+					if triggerGlobalBroadcast {
+						log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
+							psubMsg.AnnouncementType)
+						events.GetPubSubInstance().Publish(events.PubSubMessage{
+							AnnouncementType: announcements.ScheduleProxyBroadcast,
+							OldObj:           nil,
+							NewObj:           nil,
+						})
+					} else {
+						log.Trace().Msgf("[%s] configmap update, NOT triggering global proxy broadcast",
+							psubMsg.AnnouncementType)
+					}
 				}
+
+			case <-stop:
+				log.Trace().Msgf("Configmap event listener exiting")
+				return
 			}
 		}
-	}(cfgSubChannel, c)
+	}()
 }
 
 // This struct must match the shape of the "osm-config" ConfigMap
@@ -202,6 +213,9 @@ type osmConfig struct {
 
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
+	// MaxDataPlaneConnections indicates max allowed data plane connections
+	MaxDataPlaneConnections int `yaml:"max_data_plane_connections"`
 
 	// TracingEnabled is a bool toggle used to enable or disable tracing
 	TracingEnable bool `yaml:"tracing_enable"`
@@ -278,6 +292,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.EnableDebugServer, _ = GetBoolValueForKey(configMap, enableDebugServer)
 	osmConfigMap.PrometheusScraping, _ = GetBoolValueForKey(configMap, prometheusScrapingKey)
 	osmConfigMap.UseHTTPSIngress, _ = GetBoolValueForKey(configMap, useHTTPSIngressKey)
+	osmConfigMap.MaxDataPlaneConnections, _ = GetIntValueForKey(configMap, maxDataPlaneConnectionsKey)
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)

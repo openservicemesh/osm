@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -60,10 +61,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                string
-		downstreamSA        service.K8sServiceAccount
+		downstreamSA        identity.ServiceIdentity
 		apexMeshServices    []service.MeshService
 		meshServices        []service.MeshService
-		meshServiceAccounts []service.K8sServiceAccount
+		meshServiceAccounts []identity.K8sServiceAccount
 		trafficsplits       []*split.TrafficSplit
 		traffictargets      []*access.TrafficTarget
 		trafficspecs        []*spec.HTTPRouteGroup
@@ -72,10 +73,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 	}{
 		{
 			name:                "only traffic targets",
-			downstreamSA:        tests.BookbuyerServiceAccount,
+			downstreamSA:        tests.BookbuyerServiceIdentity,
 			apexMeshServices:    []service.MeshService{},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{&tests.TrafficTarget},
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
@@ -84,7 +85,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:         "traffic targets and traffic splits",
-			downstreamSA: tests.BookbuyerServiceAccount,
+			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
 					Name:      tests.BookstoreApexServiceName,
@@ -92,7 +93,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{&tests.TrafficSplit},
 			traffictargets:      []*access.TrafficTarget{&tests.TrafficTarget},
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
@@ -135,7 +136,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:         "only traffic splits, no traffic targets",
-			downstreamSA: tests.BookbuyerServiceAccount,
+			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
 					Name:      tests.BookstoreApexServiceName,
@@ -143,7 +144,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{&tests.TrafficSplit},
 			traffictargets:      []*access.TrafficTarget{},
 			trafficspecs:        []*spec.HTTPRouteGroup{},
@@ -166,10 +167,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:                "no traffic targets and no traffic splits",
-			downstreamSA:        tests.BookbuyerServiceAccount,
+			downstreamSA:        tests.BookbuyerServiceIdentity,
 			apexMeshServices:    []service.MeshService{},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			meshServiceAccounts: []service.K8sServiceAccount{},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{},
 			trafficspecs:        []*spec.HTTPRouteGroup{},
@@ -178,10 +179,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 		},
 		{
 			name:                "permissive mode",
-			downstreamSA:        tests.BookbuyerServiceAccount,
+			downstreamSA:        tests.BookbuyerServiceIdentity,
 			apexMeshServices:    []service.MeshService{},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookbuyerService},
-			meshServiceAccounts: []service.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
+			meshServiceAccounts: []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
 			trafficsplits:       []*split.TrafficSplit{},
 			traffictargets:      []*access.TrafficTarget{},
 			trafficspecs:        []*spec.HTTPRouteGroup{},
@@ -265,7 +266,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
 			}
 
-			services := []*corev1.Service{}
+			var services []*corev1.Service
 			for _, ms := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(ms).Return(k8sService).AnyTimes()
@@ -273,7 +274,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			}
 
 			if tc.permissiveMode {
-				serviceAccounts := []*corev1.ServiceAccount{}
+				var serviceAccounts []*corev1.ServiceAccount
 				for _, sa := range tc.meshServiceAccounts {
 					k8sSvcAccount := tests.NewServiceAccountFixture(sa.Name, sa.Namespace)
 					serviceAccounts = append(serviceAccounts, k8sSvcAccount)
@@ -636,28 +637,28 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		serviceAccount service.K8sServiceAccount
+		svcIdentity    identity.ServiceIdentity
 		expectedList   []service.MeshService
 		permissiveMode bool
 	}{
 		{
 			name:           "traffic targets configured for service account",
-			serviceAccount: tests.BookbuyerServiceAccount,
+			svcIdentity:    tests.BookbuyerServiceIdentity,
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			permissiveMode: false,
 		},
 		{
 			name: "traffic targets not configured for service account",
-			serviceAccount: service.K8sServiceAccount{
+			svcIdentity: identity.K8sServiceAccount{
 				Name:      "some-name",
 				Namespace: "some-ns",
-			},
+			}.ToServiceIdentity(),
 			expectedList:   nil,
 			permissiveMode: false,
 		},
 		{
 			name:           "permissive mode enabled",
-			serviceAccount: tests.BookstoreServiceAccount,
+			svcIdentity:    tests.BookstoreServiceIdentity,
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -668,7 +669,7 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 			mc := newFakeMeshCatalogForRoutes(t, testParams{
 				permissiveMode: tc.permissiveMode,
 			})
-			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.serviceAccount)
+			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.svcIdentity)
 			assert.ElementsMatch(actualList, tc.expectedList)
 		})
 	}
@@ -761,7 +762,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k8sServices := []*corev1.Service{}
+			var k8sServices []*corev1.Service
 
 			for name, namespace := range tc.services {
 				svcFixture := tests.NewServiceFixture(name, namespace, map[string]string{})
@@ -794,11 +795,11 @@ func TestBuildOutboundPolicies(t *testing.T) {
 		meshSpec:           mockMeshSpec,
 		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 	}
-	sourceSA := service.K8sServiceAccount{
+	sourceSA := identity.K8sServiceAccount{
 		Name:      "bookbuyer",
 		Namespace: "bookbuyer-ns",
-	}
-	destSA := service.K8sServiceAccount{
+	}.ToServiceIdentity()
+	destSA := identity.K8sServiceAccount{
 		Name:      "bookstore",
 		Namespace: "bookstore-ns",
 	}
@@ -846,7 +847,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
 
-	trafficTarget := tests.NewSMITrafficTarget(sourceSA.Name, sourceSA.Namespace, destSA.Name, destSA.Namespace)
+	trafficTarget := tests.NewSMITrafficTarget(sourceSA, destSA.ToServiceIdentity())
 	hostnames := []string{
 		"bookstore.bookstore-ns",
 		"bookstore.bookstore-ns.svc",
@@ -882,7 +883,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		serviceAccount   service.K8sServiceAccount
+		serviceIdentity  identity.ServiceIdentity
 		apexMeshServices []service.MeshService
 		traffictargets   []*access.TrafficTarget
 		trafficspecs     []*spec.HTTPRouteGroup
@@ -890,7 +891,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 	}{
 		{
 			name:             "only traffic targets",
-			serviceAccount:   tests.BookbuyerServiceAccount,
+			serviceIdentity:  tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{},
 			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
 			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
@@ -898,7 +899,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 		},
 		{
 			name:             "no traffic targets and no traffic splits",
-			serviceAccount:   tests.BookbuyerServiceAccount,
+			serviceIdentity:  tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{},
 			traffictargets:   []*access.TrafficTarget{},
 			trafficspecs:     []*spec.HTTPRouteGroup{},
@@ -933,7 +934,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 			}
 
-			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceAccount)
+			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceIdentity)
 			assert.ElementsMatch(tc.expectedOutbound, outbound)
 		})
 	}
@@ -952,7 +953,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 	}
 
-	destSA := service.K8sServiceAccount{
+	destSA := identity.K8sServiceAccount{
 		Name:      "bookstore",
 		Namespace: "bookstore-ns",
 	}

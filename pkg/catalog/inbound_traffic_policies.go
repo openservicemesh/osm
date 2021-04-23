@@ -6,44 +6,56 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+)
+
+const (
+	// AllowPartialHostnamesMatch is used to allow a partial/subset match on hostnames in traffic policies
+	AllowPartialHostnamesMatch bool = true
+	// DisallowPartialHostnamesMatch is used to disallow a partial/subset match on hostnames in traffic policies
+	DisallowPartialHostnamesMatch bool = false
 )
 
 // ListInboundTrafficPolicies returns all inbound traffic policies
 // 1. from service discovery for permissive mode
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
-func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		for _, svc := range upstreamServices {
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
 		}
 		return inboundPolicies
 	}
 
 	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
 	inboundPoliciesFRomSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
-	inbound = trafficpolicy.MergeInboundPolicies(false, inbound, inboundPoliciesFRomSplits...)
+	inbound = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inbound, inboundPoliciesFRomSplits...)
 	return inbound
 }
 
 // listInboundPoliciesFromTrafficTargets builds inbound traffic policies for all inbound services
 // when the given service account matches a destination in the Traffic Target resource
-func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	upstreamServiceAccount := upstreamIdentity.ToK8sServiceAccount()
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
 			continue
 		}
 
-		if t.Spec.Destination.Name != upstreamIdentity.Name { // not an inbound policy for the upstream services
+		// TODO(draychev): Add a check to ensure that ServiceIdentities are of the same kind! [https://github.com/openservicemesh/osm/issues/3173]
+		if t.Spec.Destination.Name != upstreamServiceAccount.Name { // not an inbound policy for the upstream services
 			continue
 		}
 
 		for _, svc := range upstreamServices {
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPolicies(t, svc)...)
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPolicies(t, svc)...)
 		}
 	}
 
@@ -53,15 +65,18 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity se
 // listInboundPoliciesForTrafficSplits loops through all SMI TrafficTarget resources and returns inbound policies for apex services based on the following conditions:
 // 1. the given upstream identity matches the destination specified in a TrafficTarget resource
 // 2. the given list of upstream services are backends specified in a TrafficSplit resource
-func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	upstreamServiceAccount := upstreamIdentity.ToK8sServiceAccount()
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {
 			continue
 		}
 
-		if t.Spec.Destination.Name != upstreamIdentity.Name { // not an inbound policy for the upstream identity
+		// TODO(draychev): Add a check to ensure that ServiceIdentities are of the same kind! [https://github.com/openservicemesh/osm/issues/3173]
+		if t.Spec.Destination.Name != upstreamServiceAccount.Name { // not an inbound policy for the upstream identity
 			continue
 		}
 
@@ -81,12 +96,12 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
 			for _, apexService := range apexServices {
 				// build an inbound policy for every apex service
-				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamIdentity.Namespace)
+				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
 				}
-				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(apexService, apexService.Namespace == upstreamIdentity.Namespace), hostnames)
+				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(apexService, apexService.Namespace == upstreamServiceAccount.Namespace), hostnames)
 				weightedCluster := getDefaultWeightedClusterForService(upstreamSvc)
 
 				for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
@@ -94,7 +109,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 						servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
 					}
 				}
-				inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, servicePolicy)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, servicePolicy)
 			}
 		}
 	}
@@ -102,7 +117,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity serv
 }
 
 func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
@@ -134,7 +149,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 }
 
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	hostnames, err := mc.getServiceHostnames(svc, true)
 	if err != nil {
@@ -156,7 +171,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
 //	http route matches (trafficpolicy.HTTPRouteMatch)
 func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
-	routes := []trafficpolicy.HTTPRouteMatch{}
+	var routes []trafficpolicy.HTTPRouteMatch
 
 	specMatchRoute, err := mc.getHTTPPathsPerRoute() // returns map[traffic_spec_name]map[match_name]trafficpolicy.HTTPRoute
 	if err != nil {
@@ -203,14 +218,12 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 				Headers:       trafficSpecsMatches.Headers,
 			}
 
-			if len(serviceRoute.Headers) != 0 {
-				// When pathRegex and methods are not defined, the header filters are applied to any path and all HTTP methods
-				if serviceRoute.Path == "" {
-					serviceRoute.Path = constants.RegexMatchAll
-				}
-				if serviceRoute.Methods == nil {
-					serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
-				}
+			// When pathRegex or/and methods are not defined, they will be wildcarded
+			if serviceRoute.Path == "" {
+				serviceRoute.Path = constants.RegexMatchAll
+			}
+			if len(serviceRoute.Methods) == 0 {
+				serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
 			}
 			routePolicies[specKey][trafficpolicy.TrafficSpecMatchName(trafficSpecsMatches.Name)] = serviceRoute
 		}

@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -29,7 +30,7 @@ var _ = Describe("Test catalog functions", func() {
 	mc := newFakeMeshCatalog()
 	Context("Testing ListEndpointsForService()", func() {
 		It("lists endpoints for a given service", func() {
-			actual, err := mc.ListEndpointsForService(tests.BookstoreV1Service)
+			actual, err := mc.listEndpointsForService(tests.BookstoreV1Service)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []endpoint.Endpoint{
@@ -58,11 +59,11 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		proxyIdentity            service.K8sServiceAccount
+		proxyIdentity            identity.ServiceIdentity
 		upstreamSvc              service.MeshService
 		trafficTargets           []*access.TrafficTarget
 		services                 []service.MeshService
-		outboundServices         map[service.K8sServiceAccount][]service.MeshService
+		outboundServices         map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints map[service.MeshService][]endpoint.Endpoint
 		expectedEndpoints        []endpoint.Endpoint
 	}{
@@ -70,12 +71,12 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has only bookstore-v1 service on it.
 			Hence endpoints returned for bookstore-v1`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV1Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -83,16 +84,16 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			expectedEndpoints: []endpoint.Endpoint{tests.Endpoint},
 		},
 		{
-			name: `Traffic target defined for bookstore ServiceAccount. 
+			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 bookstore-v2 services,
 			but bookstore-v2 pod has service account bookstore-v2.
 			Hence no endpoints returned for bookstore-v2`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity: {tests.BookstoreV1Service, tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -104,17 +105,17 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			expectedEndpoints: []endpoint.Endpoint{},
 		},
 		{
-			name: `Traffic target defined for bookstore ServiceAccount. 
+			name: `Traffic target defined for bookstore ServiceAccount.
 			This service account has bookstore-v1 bookstore-v2 services,
 			since bookstore-v2 pod has service account bookstore-v2 which is allowed in the traffic target.
 			Hence endpoints returned for bookstore-v2`,
-			proxyIdentity:  tests.BookbuyerServiceAccount,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
 			upstreamSvc:    tests.BookstoreV2Service,
 			trafficTargets: []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
 			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-			outboundServices: map[service.K8sServiceAccount][]service.MeshService{
-				tests.BookstoreServiceAccount:   {tests.BookstoreV1Service},
-				tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
 			},
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
@@ -164,7 +165,9 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			}
 
 			var pods []*v1.Pod
-			for sa, services := range tc.outboundServices {
+			for serviceIdentity, services := range tc.outboundServices {
+				// TODO(draychev): use ServiceIdentity in the rest of the tests [https://github.com/openservicemesh/osm/issues/2218]
+				sa := serviceIdentity.ToK8sServiceAccount()
 				for _, svc := range services {
 					podlabels := map[string]string{
 						tests.SelectorKey:                tests.SelectorValue,

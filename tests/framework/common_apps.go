@@ -58,11 +58,16 @@ var (
 )
 
 // CreateServiceAccount is a wrapper to create a service account
+// If creating on OpenShift, add privileged SCC
 func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
 	svcAc, err := td.Client.CoreV1().ServiceAccounts(ns).Create(context.Background(), svcAccount, metav1.CreateOptions{})
 	if err != nil {
 		err := fmt.Errorf("Could not create Service Account: %v", err)
 		return nil, err
+	}
+	if Td.DeployOnOpenShift {
+		err = Td.AddOpenShiftSCC("privileged", svcAc.Name, svcAc.Namespace)
+		return svcAc, err
 	}
 	return svcAc, nil
 }
@@ -259,7 +264,7 @@ func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
 
 	ver, err := goversion.NewVersion(version.String())
 	if err != nil {
-		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version.String(), err)
+		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version, err)
 	}
 
 	return ver.Segments(), nil

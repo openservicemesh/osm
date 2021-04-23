@@ -112,7 +112,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	}
 
 	// Construct downstream TLS context
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.svcAccount, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
@@ -161,7 +161,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	}
 
 	// Construct downstream TLS context
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.svcAccount, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
@@ -278,7 +278,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 	}
 
 	// For deterministic ordering
-	sortedEndpoints := []string{}
+	var sortedEndpoints []string
 	endpointSet.Each(func(elem interface{}) bool {
 		sortedEndpoints = append(sortedEndpoints, elem.(string))
 		return false
@@ -411,9 +411,9 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
+	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.serviceIdentity)
 	if len(upstreamServices) == 0 {
-		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.svcAccount)
+		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
 		return filterChains
 	}
 
@@ -451,7 +451,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 
 	// Iterate all destination services
 	for upstream := range dstServicesSet {
-		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstream, lb.svcAccount)
+		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstream, lb.serviceIdentity)
 		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstream)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for upstream service %s", upstream)
@@ -464,7 +464,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 			case httpAppProtocol, gRPCAppProtocol:
 				// Construct HTTP filter chain
 				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
+					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)
 				} else {
 					filterChains = append(filterChains, httpFilterChain)
 				}
@@ -472,7 +472,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 			case tcpAppProtocol:
 				// Construct TCP filter chain
 				if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
+					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)
 				} else {
 					filterChains = append(filterChains, tcpFilterChain)
 				}

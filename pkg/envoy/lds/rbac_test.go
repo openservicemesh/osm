@@ -12,8 +12,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
+
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -154,11 +154,11 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		svcAccount:  proxySvcAccount,
+		meshCatalog:     mockCatalog,
+		serviceIdentity: proxySvcAccount.ToServiceIdentity(),
 	}
 
 	testCases := []struct {
@@ -217,7 +217,7 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			// Mock catalog calls
-			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount).Return(tc.trafficTargets, nil).Times(1)
+			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount.ToServiceIdentity()).Return(tc.trafficTargets, nil).Times(1)
 
 			// Test the RBAC policies
 			policy, err := lb.buildInboundRBACPolicies()
@@ -241,11 +241,11 @@ func TestBuildRBACFilter(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()
 
 	lb := &listenerBuilder{
-		meshCatalog: mockCatalog,
-		svcAccount:  proxySvcAccount,
+		meshCatalog:     mockCatalog,
+		serviceIdentity: proxySvcAccount,
 	}
 
 	testCases := []struct {

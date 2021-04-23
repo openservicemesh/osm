@@ -77,6 +77,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetMaxDataPlaneConnections mocks base method
+func (m *MockConfigurator) GetMaxDataPlaneConnections() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMaxDataPlaneConnections")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetMaxDataPlaneConnections indicates an expected call of GetMaxDataPlaneConnections
+func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxDataPlaneConnections", reflect.TypeOf((*MockConfigurator)(nil).GetMaxDataPlaneConnections))
+}
+
 // GetOSMNamespace mocks base method
 func (m *MockConfigurator) GetOSMNamespace() string {
 	m.ctrl.T.Helper()

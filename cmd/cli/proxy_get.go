@@ -89,13 +89,13 @@ func (cmd *proxyGetCmd) run() error {
 	// Check if the pod belongs to a mesh
 	pod, err := cmd.clientSet.CoreV1().Pods(cmd.namespace).Get(context.TODO(), cmd.pod, metav1.GetOptions{})
 	if err != nil {
-		return errors.Errorf("Could not find pod %s in namespace %s", cmd.pod, cmd.namespace)
+		return annotateErrMsgWithPodNamespaceMsg("Could not find pod %s in namespace %s", cmd.pod, cmd.namespace)
 	}
 	if !isMeshedPod(*pod) {
-		return errors.Errorf("Pod %s in namespace %s is not a part of a mesh", cmd.pod, cmd.namespace)
+		return annotateErrMsgWithPodNamespaceMsg("Pod %s in namespace %s is not a part of a mesh", cmd.pod, cmd.namespace)
 	}
 	if pod.Status.Phase != corev1.PodRunning {
-		return errors.Errorf("Pod %s in namespace %s is not running", cmd.pod, cmd.namespace)
+		return annotateErrMsgWithPodNamespaceMsg("Pod %s in namespace %s is not running", cmd.pod, cmd.namespace)
 	}
 
 	dialer, err := k8s.DialerToPod(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace)
@@ -134,7 +134,7 @@ func (cmd *proxyGetCmd) run() error {
 		return nil
 	})
 	if err != nil {
-		return errors.Errorf("Error retrieving proxy config for pod %s in namespace %s: %s", cmd.pod, cmd.namespace, err)
+		return annotateErrMsgWithPodNamespaceMsg("Error retrieving proxy config for pod %s in namespace %s: %s", cmd.pod, cmd.namespace, err)
 	}
 
 	return nil
@@ -145,4 +145,9 @@ func isMeshedPod(pod corev1.Pod) bool {
 	// osm-controller adds a unique label to each pod that belongs to a mesh
 	_, proxyLabelSet := pod.Labels[constants.EnvoyUniqueIDLabelName]
 	return proxyLabelSet
+}
+
+// annotateProxyGetErrorMessage returns a formatted err msg with an actionable message regarding pod details
+func annotateErrMsgWithPodNamespaceMsg(errMsgFormat string, args ...interface{}) error {
+	return annotateErrorMessageWithActionableMessage("Note: Use the flag --namespace to modify the intended pod namespace.", errMsgFormat, args...)
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -103,6 +104,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
+	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
 	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
 		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
@@ -148,7 +150,8 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	}
 
 	return &certificateCommonNameMeta{
-		ProxyUUID:      proxyUUID,
+		ProxyUUID: proxyUUID,
+		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
 		ServiceAccount: chunks[1],
 		Namespace:      chunks[2],
 	}, nil
@@ -160,8 +163,8 @@ func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace
 }
 
 // GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
-func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (service.K8sServiceAccount, error) {
-	var svcAccount service.K8sServiceAccount
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (identity.K8sServiceAccount, error) {
+	var svcAccount identity.K8sServiceAccount
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return svcAccount, err

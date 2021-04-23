@@ -36,7 +36,7 @@ var (
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 	// defaultFields are the default fields in osm-config
-	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable", "enable_privileged_init_container"}
+	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable", "enable_privileged_init_container", "max_data_plane_connections"}
 )
 
 const (
@@ -58,8 +58,11 @@ const (
 	// mustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
 	mustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
 
-	// mustbeInt is the reason for denial for incorrect syntax for tracing_port field
+	// mustBeInt is the reason for denial for incorrect syntax for tracing_port field
 	mustBeInt = ": must be an integer"
+
+	// mustBePositiveInt is the reason for denial for max_data_plane_connections field
+	mustBePositiveInt = ": must be a positive integer"
 
 	// mustBeInPortRange is the reason for denial for tracing_port field
 	mustBeInPortRange = ": must be between 0 and 65535"
@@ -249,16 +252,16 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		if !checkBoolFields(field, value, boolFields) {
 			reasonForDenial(resp, mustBeBool, field)
 		}
-		if field == "envoy_log_level" && !checkEnvoyLogLevels(field, value) {
+		if field == envoyLogLevel && !checkEnvoyLogLevels(field, value) {
 			reasonForDenial(resp, mustBeValidLogLvl, field)
 		}
-		if field == "service_cert_validity_duration" || field == "config_resync_interval" {
+		if field == serviceCertValidityDurationKey || field == configResyncInterval {
 			_, err := time.ParseDuration(value)
 			if err != nil {
 				reasonForDenial(resp, mustBeValidTime, field)
 			}
 		}
-		if field == "tracing_port" {
+		if field == tracingPortKey {
 			portNum, err := strconv.Atoi(value)
 			if err != nil {
 				reasonForDenial(resp, mustBeInt, field)
@@ -269,6 +272,12 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		}
 		if field == outboundIPRangeExclusionListKey && !checkOutboundIPRangeExclusionList(value) {
 			reasonForDenial(resp, mustBeValidIPRange, field)
+		}
+		if field == maxDataPlaneConnectionsKey {
+			maxNum, err := strconv.Atoi(value)
+			if err != nil || maxNum < 0 {
+				reasonForDenial(resp, mustBePositiveInt, field)
+			}
 		}
 	}
 

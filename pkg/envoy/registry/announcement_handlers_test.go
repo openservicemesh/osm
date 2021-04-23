@@ -1,4 +1,4 @@
-package catalog
+package registry
 
 import (
 	"time"
@@ -11,24 +11,35 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var _ = Describe("Test Announcement Handlers", func() {
-	var mc *MeshCatalog
+	var proxyRegistry *ProxyRegistry
 	var podUID string
 	var proxy *envoy.Proxy
 	var envoyCN certificate.CommonName
+	var certManager certificate.Manager
 
 	BeforeEach(func() {
-		mc = NewFakeMeshCatalog(testclient.NewSimpleClientset())
+		proxyRegistry = NewProxyRegistry()
 		podUID = uuid.New().String()
-		_, err := mc.certManager.IssueCertificate(envoyCN, 5*time.Second)
+
+		stop := make(<-chan struct{})
+		kubeClient := fake.NewSimpleClientset()
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		certManager = tresor.NewFakeCertManager(cfg)
+
+		_, err := certManager.IssueCertificate(envoyCN, 5*time.Second)
 		Expect(err).ToNot(HaveOccurred())
 
 		proxy = envoy.NewProxy(envoyCN, "-cert-serial-number-", nil)
@@ -36,13 +47,13 @@ var _ = Describe("Test Announcement Handlers", func() {
 			UID: podUID,
 		}
 
-		mc.RegisterProxy(proxy)
+		proxyRegistry.RegisterProxy(proxy)
 	})
 
 	Context("test releaseCertificate()", func() {
 		var stopChannel chan struct{}
 		BeforeEach(func() {
-			stopChannel = mc.releaseCertificateHandler()
+			stopChannel = proxyRegistry.ReleaseCertificateHandler(certManager)
 		})
 
 		AfterEach(func() {
@@ -52,7 +63,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 		It("deletes certificate when Pod is terminated", func() {
 			// Ensure setup is correct
 			{
-				certs, err := mc.certManager.ListCertificates()
+				certs, err := certManager.ListCertificates()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(certs)).To(Equal(1))
 			}
@@ -74,7 +85,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Expect the certificate to eventually be gone for the deleted Pod
 			Eventually(func() int {
-				certs, err := mc.certManager.ListCertificates()
+				certs, err := certManager.ListCertificates()
 				Expect(err).ToNot(HaveOccurred())
 				return len(certs)
 			}).Should(Equal(0))
@@ -89,7 +100,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 		It("ignores events other than pod-deleted", func() {
 			var connectedProxies []envoy.Proxy
-			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
+			proxyRegistry.connectedProxies.Range(func(key interface{}, value interface{}) bool {
 				connectedProxy := value.(connectedProxy)
 				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
 				return true // continue the iteration
@@ -113,7 +124,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 			time.Sleep(500 * time.Millisecond)
 
 			// Ensure it was not deleted due to an unrelated event
-			certs, err := mc.certManager.ListCertificates()
+			certs, err := certManager.ListCertificates()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(certs)).To(Equal(1))
 		})

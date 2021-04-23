@@ -54,6 +54,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				envoyLogLevel:                  "error",
 				serviceCertValidityDurationKey: "24h",
 				configResyncInterval:           "2m",
+				maxDataPlaneConnectionsKey:     "0",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				expectedConfig := &osmConfig{
@@ -67,6 +68,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					EnvoyLogLevel:                 "error",
 					ServiceCertValidityDuration:   "24h",
 					ConfigResyncInterval:          "2m",
+					MaxDataPlaneConnections:       0,
 				}
 				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
@@ -264,18 +266,36 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(interval, time.Duration(0))
 			},
 		},
+		{
+			name:                 "GetMaxDataplaneConnections",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(0, cfg.GetMaxDataPlaneConnections())
+			},
+			updatedConfigMapData: map[string]string{
+				maxDataPlaneConnectionsKey: "1000",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(1000, cfg.GetMaxDataPlaneConnections())
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+			// Prepare the pubsub channel
 			confChannel := events.GetPubSubInstance().Subscribe(announcements.ConfigMapAdded, announcements.ConfigMapUpdated)
 			defer events.GetPubSubInstance().Unsub(confChannel)
 
+			// Create configurator
+			stop := make(chan struct{})
+			defer close(stop)
+			cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+			// Issue config map create
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,

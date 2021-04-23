@@ -64,17 +64,15 @@ func (mc *MeshCatalog) dispatcher() {
 	for {
 		select {
 		case message := <-subChannel:
-
-			// New message from pubsub
-			psubMessage, castOk := message.(events.PubSubMessage)
-			if !castOk {
+			psubMessage, ok := message.(events.PubSubMessage)
+			if !ok {
 				log.Error().Msgf("Error casting PubSubMessage: %v", psubMessage)
 				continue
 			}
 
 			// Identify if this is an actual delta, or just resync
 			delta := isDeltaUpdate(psubMessage)
-			log.Debug().Msgf("[Pubsub] %s - delta: %v", psubMessage.AnnouncementType.String(), delta)
+			log.Debug().Msgf("[Pubsub] %s - delta: %v", psubMessage.AnnouncementType, delta)
 
 			// Schedule an envoy broadcast update if we either:
 			// - detected a config delta

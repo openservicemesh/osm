@@ -91,9 +91,10 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | `osm-controller` pod PullPolicy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
-| OpenServiceMesh.image.tag | string | `"v0.8.2"` | `osm-controller` image tag |
+| OpenServiceMesh.image.tag | string | `"v0.8.3"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.injector | object | `{"podLabels":{},"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}}` | Sidecar injector configuration |
+| OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
 | OpenServiceMesh.osmNamespace | string | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |
 | OpenServiceMesh.osmcontroller.podLabels | object | `{}` |  |
@@ -103,10 +104,11 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.osmcontroller.resource.requests.memory | string | `"128M"` |  |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | OpenServiceMesh.prometheus.port | int | `7070` | Prometheus port |
+| OpenServiceMesh.prometheus.resources | object | `{"limits":{"cpu":1,"memory":"2G"},"requests":{"cpu":0.5,"memory":"512M"}}` | Resource limits for prometheus instance |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus retention time |
 | OpenServiceMesh.replicaCount | int | `1` | `osm-controller` replicas |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Sets the service certificatevalidity duration |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.1"` | Envoy sidecar image |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.2"` | Envoy sidecar image |
 | OpenServiceMesh.tracing.address | string | `""` | Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Destination's API or collector endpoint where the spans will be sent to |

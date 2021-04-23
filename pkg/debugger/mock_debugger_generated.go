@@ -11,7 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
-	service "github.com/openservicemesh/osm/pkg/service"
+	identity "github.com/openservicemesh/osm/pkg/identity"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -77,48 +77,6 @@ func (m *MockMeshCatalogDebugger) EXPECT() *MockMeshCatalogDebuggerMockRecorder 
 	return m.recorder
 }
 
-// ListConnectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListConnectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]*envoy.Proxy)
-	return ret0
-}
-
-// ListConnectedProxies indicates an expected call of ListConnectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListConnectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConnectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListConnectedProxies))
-}
-
-// ListDisconnectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListDisconnectedProxies() map[certificate.CommonName]time.Time {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDisconnectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]time.Time)
-	return ret0
-}
-
-// ListDisconnectedProxies indicates an expected call of ListDisconnectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListDisconnectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDisconnectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListDisconnectedProxies))
-}
-
-// ListExpectedProxies mocks base method
-func (m *MockMeshCatalogDebugger) ListExpectedProxies() map[certificate.CommonName]time.Time {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListExpectedProxies")
-	ret0, _ := ret[0].(map[certificate.CommonName]time.Time)
-	return ret0
-}
-
-// ListExpectedProxies indicates an expected call of ListExpectedProxies
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListExpectedProxies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListExpectedProxies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListExpectedProxies))
-}
-
 // ListMonitoredNamespaces mocks base method
 func (m *MockMeshCatalogDebugger) ListMonitoredNamespaces() []string {
 	m.ctrl.T.Helper()
@@ -134,11 +92,11 @@ func (mr *MockMeshCatalogDebuggerMockRecorder) ListMonitoredNamespaces() *gomock
 }
 
 // ListSMIPolicies mocks base method
-func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
+func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []identity.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSMIPolicies")
 	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
-	ret1, _ := ret[1].([]service.K8sServiceAccount)
+	ret1, _ := ret[1].([]identity.K8sServiceAccount)
 	ret2, _ := ret[2].([]*v1alpha4.HTTPRouteGroup)
 	ret3, _ := ret[3].([]*v1alpha3.TrafficTarget)
 	return ret0, ret1, ret2, ret3

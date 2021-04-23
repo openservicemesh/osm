@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -68,7 +69,9 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 }
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-func (c Client) ListEndpointsForIdentity(sa service.K8sServiceAccount) []endpoint.Endpoint {
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+	sa := serviceIdentity.ToK8sServiceAccount()
 	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 	var endpoints []endpoint.Endpoint
 
@@ -95,7 +98,7 @@ func (c Client) ListEndpointsForIdentity(sa service.K8sServiceAccount) []endpoin
 }
 
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
-func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
+func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
 	for _, pod := range c.kubeController.ListPods() {
@@ -208,7 +211,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
-		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc.String())
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
 		return nil, errServiceNotFound
 	}
 

@@ -94,6 +94,20 @@ Note:
 1. This behavior opens up HTTP-based access to any client that is not a part of the service mesh, not just ingress.
 1. The ingress resource that allows external HTTP access to a particular service must be in the same namespace as that service.
 
+### HTTP path matching semantics
+
+The Kubernetes Ingress API allows specifying a [pathType](https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types) for each HTTP `path` specified in an ingress rule. OSM enforces different HTTP path matching semantics depending on the `pathType` attribute specified. This allows OSM to operate with a number of different ingress controllers.
+
+The following path matching semantics correspond to the value of the `pathType` attribute:
+
+- `Exact`: With this path type, the `:path` header in the HTTP request is matched exactly to the `path` specified in the ingress rule.
+
+- `Prefix`: With this path type, the `:path` header in the HTTP request is matched as an element wise prefix of the `path` specified in the ingress rule, as defined in the [Kubernetes ingress API specification](https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types).
+
+- `ImplementationSpecific`: With this path type, the `:path` header in the HTTP request is matched differently depending on the `path` specified in the ingress rule. If the specified `path` ~looks like a regex~ (has one of the following characters: `^$*+[]%|`), the `:path` header in the HTTP request is matched against the `path` specified in the ingress rule as a regex match using the [Google RE2 regex syntax](https://github.com/google/re2/wiki/Syntax). If the specified `path` ~does not look like a regex~, the `:path` header in the HTTP request is matched as a string prefix of the specified `path` in the ingress rule.
+
+By default, if the `pathType` attribute is not set for a `path` in an ingress rule, OSM will default the `pathType` as `ImplementationSpecific`.
+
 ## Sample demo
 
 ### HTTP traffic with ingress
@@ -133,7 +147,32 @@ The following demo sends a request from an external IP to a httpbin service insi
     httpbin   ClusterIP   10.0.22.196   <none>        14001/TCP   11h
     ```
 
-1. Apply an ingress configuration yaml to expose the HTTP path `/status/200` on the `httpbin` service with `kubectl apply -f`
+1. Apply an ingress configuration yaml to expose the HTTP path `/status/200` on the `httpbin` service with `kubectl apply -f`:
+
+    > Note: Use the appropriate ingress resource based on the desired API version.
+
+    Ingress v1 resource:
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: httpbin-ingress
+      namespace: httpbin
+    spec:
+      ingressClassName: nginx
+      rules:
+      - http:
+          paths:
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 14001
+    ```
+
+    Ingress v1beta1 resource:
     ```yaml
     apiVersion: networking.k8s.io/v1beta1
     kind: Ingress
@@ -146,7 +185,8 @@ The following demo sends a request from an external IP to a httpbin service insi
       rules:
       - http:
           paths:
-          - path: "/status/200"
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
             backend:
               serviceName: httpbin
               servicePort: 14001
@@ -168,6 +208,31 @@ The following demo sends a request from an external IP to a httpbin service insi
 
 1. Update the existing ingress with a host specified by applying the following yaml, and confirm that the request succeeds:
 
+    > Note: Use the appropriate ingress resource based on the desired API version.
+
+    Ingress v1 resource:
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: httpbin-ingress
+      namespace: httpbin
+    spec:
+      ingressClassName: nginx
+      rules:
+      - host: httpbin.com
+        http:
+          paths:
+          - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 14001
+    ```
+
+    Ingress v1beta1 resource:
     ```yaml
     apiVersion: networking.k8s.io/v1beta1
     kind: Ingress
@@ -182,6 +247,7 @@ The following demo sends a request from an external IP to a httpbin service insi
         http:
           paths:
           - path: /status/200
+            pathType: ImplementationSpecific # Must be one of: Exact, Prefix, ImplementationSpecific
             backend:
               serviceName: httpbin
               servicePort: 14001
@@ -296,75 +362,9 @@ For HTTPS ingress, additional annotations are required.
     curl http://<external-ingress-ip>/status/200 -H "Host: httpbin.com"
     ```
 
-### Using Gloo API Gateway (experimental)
+## Other Ingress configurations
 
-[Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo.
-
-Install Gloo in `Ingress` mode:
-
-```bash
-glooctl install ingress
-```
-
-For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc).
-
-To prepare the root certificate, we must do something similar to what we do for the Azure Application Gateway.
-
-```bash
-kubectl get secret/osm-ca-bundle -n osm-system -o jsonpath="{.data['ca\.crt']}" | base64 -d > osm-c-bundlea.pem
-
-glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem
-```
-
-Next we could use an Ingress file like this:
-
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: httpbin-ingress
-  namespace: httpbin
-  annotations:
-    kubernetes.io/ingress.class: gloo
-spec:
-  rules:
-  - host: httpbin.httpbin.svc.cluster.local
-    http:
-      paths:
-      - path: /status/200
-        backend:
-          serviceName: httpbin
-          servicePort: 14001
-```
-
-Lastly, we configure the `Upstream` object to use OSM's root ca bundle:
-
-```yaml
-apiVersion: gloo.solo.io/v1
-kind: Upstream
-metadata:
-  name: httpbin-httpbin-14001
-  namespace: gloo-system
-spec:
-  sslConfig:
-    sni: "httpbin.httpbin.svc.cluster.local"
-    secretRef:
-      name: osm-ca-bundle
-      namespace: gloo-system
-  kube:
-    selector:
-      app: httpbin
-    serviceName: httpbin
-    serviceNamespace: httpbin
-    servicePort: 14001
-
-```
-
-At this point you can call your Ingress endpoint and get HTTPS traffic from the edge to your OSM service. As a convenience, you can run the following to get your ingress hostname/IP:
-
-```bash
-glooctl proxy url --name ingress-proxy
-```
+Demos for using OSM with other Ingress resources, such as Azure Application Gateway and Gloo Edge, can be found in the [demos folder](https://github.com/openservicemesh/osm/tree/main/docs/content/docs/tasks_usage/traffic_management/demos)
 
 [1]: https://github.com/openservicemesh/osm/blob/release-v0.8/README.md
 [2]: https://kubernetes.github.io/ingress-nginx/

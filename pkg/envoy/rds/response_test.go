@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -35,8 +36,8 @@ func TestNewResponse(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
-		downstreamSA             service.K8sServiceAccount
-		upstreamSA               service.K8sServiceAccount
+		downstreamSA             identity.ServiceIdentity
+		upstreamSA               identity.ServiceIdentity
 		upstreamServices         []service.MeshService
 		meshServices             []service.MeshService
 		trafficSpec              spec.HTTPRouteGroup
@@ -47,8 +48,8 @@ func TestNewResponse(t *testing.T) {
 	}{
 		{
 			name:             "Test RDS NewResponse",
-			downstreamSA:     tests.BookbuyerServiceAccount,
-			upstreamSA:       tests.BookstoreServiceAccount,
+			downstreamSA:     tests.BookbuyerServiceIdentity,
+			upstreamSA:       tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
 			meshServices:     []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -159,7 +160,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -172,7 +173,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -202,7 +203,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -215,7 +216,7 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
 							}),
@@ -263,7 +264,7 @@ func TestNewResponse(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA.Name, tc.downstreamSA.Namespace, tc.upstreamSA.Name, tc.upstreamSA.Namespace)
+			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
@@ -280,7 +281,8 @@ func TestNewResponse(t *testing.T) {
 			// The RDS response will have two route configurations
 			// 1. rds-inbound
 			// 2. rds-outbound
-			assert.Equal(2, len(resources))
+			// 3. rds-ingress
+			assert.Equal(3, len(resources))
 
 			// Check the inbound route configuration
 			routeConfig, ok := resources[0].(*xds_route.RouteConfiguration)
@@ -289,22 +291,18 @@ func TestNewResponse(t *testing.T) {
 			// The rds-inbound will have the following virtual hosts :
 			// inbound_virtual-host|bookstore-v1.default
 			// inbound_virtual-host|bookstore-apex
-			// inbound_virtual-host|bookstore-v1.default|*
 			assert.Equal("rds-inbound", routeConfig.Name)
-			assert.Equal(3, len(routeConfig.VirtualHosts))
+			assert.Equal(2, len(routeConfig.VirtualHosts))
 
 			assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
 			assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
-			assert.Equal(3, len(routeConfig.VirtualHosts[0].Routes))
+			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 			assert.Equal(tests.BookstoreSellHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[1].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
-			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[2].GetMatch().GetSafeRegex().Regex)
-			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[2].GetRoute().GetWeightedClusters().Clusters))
-			assert.Equal(routeConfig.VirtualHosts[0].Routes[2].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
 			assert.Equal("inbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[1].Name)
 			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[1].Domains)
@@ -315,13 +313,6 @@ func TestNewResponse(t *testing.T) {
 			assert.Equal(tests.BookstoreSellHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[1].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes[1].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[1].Routes[1].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
-
-			assert.Equal("inbound_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[2].Name)
-			assert.Equal([]string{"*"}, routeConfig.VirtualHosts[2].Domains)
-			assert.Equal(1, len(routeConfig.VirtualHosts[2].Routes))
-			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[2].Routes[0].GetMatch().GetSafeRegex().Regex)
-			assert.Equal(1, len(routeConfig.VirtualHosts[2].Routes[0].GetRoute().GetWeightedClusters().Clusters))
-			assert.Equal(routeConfig.VirtualHosts[2].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
 			// Check the outbound route configuration
 			routeConfig, ok = resources[1].(*xds_route.RouteConfiguration)
@@ -338,6 +329,26 @@ func TestNewResponse(t *testing.T) {
 			assert.Equal(tests.WildCardRouteMatch.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
+
+			// Check the ingress route configuration
+			routeConfig, ok = resources[2].(*xds_route.RouteConfiguration)
+			assert.True(ok)
+
+			// ingress_virtual-host|bookstore-v1-default-bookstore-v1.default.svc.cluster.local
+			assert.Equal("ingress_virtual-host|bookstore-v1-default-bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
+			assert.Equal([]string{"bookstore-v1.default.svc.cluster.local"}, routeConfig.VirtualHosts[0].Domains)
+			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
+			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
+			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
+			assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
+
+			// inbound_virtual-host|bookstore-v1.default|*
+			assert.Equal("ingress_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
+			assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
+			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
+			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
+			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().Clusters))
+			assert.Equal(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 		})
 	}
 }
@@ -390,7 +401,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccount, tests.Namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceIdentity, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 	return proxy, nil
@@ -502,23 +513,19 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	resources, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
 	assert.Nil(err)
 
+	// Test rds-inbound route config
 	routeConfig, ok := resources[0].(*xds_route.RouteConfiguration)
 	assert.True(ok)
 
 	assert.Equal("rds-inbound", routeConfig.Name)
-	assert.Equal(2, len(routeConfig.VirtualHosts))
+	assert.Equal(1, len(routeConfig.VirtualHosts))
 
 	assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
 	assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
-	assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
+	assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 	assert.Equal(constants.RegexMatchAll, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
-	assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[1].GetMatch().GetSafeRegex().Regex)
 
-	assert.Equal("inbound_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
-	assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
-	assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
-	assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
-
+	// Test rds-outbound route config
 	routeConfig, ok = resources[1].(*xds_route.RouteConfiguration)
 	assert.True(ok)
 
@@ -528,4 +535,18 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	assert.Equal("outbound_virtual-host|bookbuyer.default", routeConfig.VirtualHosts[0].Name)
 	assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 	assert.Equal(constants.RegexMatchAll, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
+
+	// Test ingress route config
+	routeConfig, ok = resources[2].(*xds_route.RouteConfiguration)
+	assert.True(ok)
+
+	assert.Equal("ingress_virtual-host|bookstore-v1-default-bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
+	assert.Equal([]string{"bookstore-v1.default.svc.cluster.local"}, routeConfig.VirtualHosts[0].Domains)
+	assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
+	assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
+
+	assert.Equal("ingress_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
+	assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
+	assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
+	assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
 }

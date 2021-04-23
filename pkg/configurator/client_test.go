@@ -25,11 +25,10 @@ const (
 )
 
 var _ = Describe("Test OSM ConfigMap parsing", func() {
-	defer GinkgoRecover()
-
 	kubeClient := testclient.NewSimpleClientset()
 
-	stop := make(<-chan struct{})
+	stop := make(chan struct{})
+	defer close(stop)
 	cfg := newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 	Expect(cfg).ToNot(BeNil())
 
@@ -63,6 +62,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"TracingPort":                   tracingPortKey,
 				"TracingEndpoint":               tracingEndpointKey,
 				"UseHTTPSIngress":               useHTTPSIngressKey,
+				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
 				"EnvoyLogLevel":                 envoyLogLevel,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
@@ -138,7 +138,8 @@ func TestConfigMapEventTriggers(t *testing.T) {
 	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
 	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
 
-	stop := make(<-chan struct{})
+	stop := make(chan struct{})
+	defer close(stop)
 	newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 	configMap := v1.ConfigMap{

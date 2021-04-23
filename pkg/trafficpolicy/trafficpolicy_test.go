@@ -6,6 +6,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -37,12 +38,12 @@ var (
 		Weight:      100,
 	}
 
-	testServiceAccount1 = service.K8sServiceAccount{
+	testServiceAccount1 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount1",
 		Namespace: "testNamespace1",
 	}
 
-	testServiceAccount2 = service.K8sServiceAccount{
+	testServiceAccount2 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount2",
 		Namespace: "testNamespace2",
 	}
@@ -64,7 +65,7 @@ func TestAddRule(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		existingRules         []*Rule
-		allowedServiceAccount service.K8sServiceAccount
+		allowedServiceAccount identity.K8sServiceAccount
 		route                 RouteWeightedClusters
 		expectedRules         []*Rule
 	}{
@@ -256,6 +257,16 @@ func TestMergeInboundPolicies(t *testing.T) {
 		Route:                  testRoute2,
 		AllowedServiceAccounts: mapset.NewSet(testServiceAccount2),
 	}
+	testRule1Modified := Rule{
+		Route: RouteWeightedClusters{
+			HTTPRouteMatch: HTTPRouteMatch{
+				Path:          "/hello",
+				PathMatchType: PathMatchRegex,
+				Methods:       []string{"*"},
+			},
+			WeightedClusters: mapset.NewSet(testWeightedCluster),
+		},
+	}
 	testCases := []struct {
 		name            string
 		originalInbound []*InboundTrafficPolicy
@@ -308,6 +319,27 @@ func TestMergeInboundPolicies(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "hostnames match but rules differ",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1Modified},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2, &testRule1Modified},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -318,7 +350,7 @@ func TestMergeInboundPolicies(t *testing.T) {
 	}
 }
 
-func TestMergeInboundPoliciesWithIngress(t *testing.T) {
+func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 	assert := tassert.New(t)
 
 	testRule1 := Rule{
@@ -340,66 +372,20 @@ func TestMergeInboundPoliciesWithIngress(t *testing.T) {
 		},
 	}
 	testCases := []struct {
-		name              string
-		originalInbound   []*InboundTrafficPolicy
-		newIngressInbound []*InboundTrafficPolicy
-		expectedInbound   []*InboundTrafficPolicy
+		name            string
+		originalInbound []*InboundTrafficPolicy
+		newInbound      []*InboundTrafficPolicy
+		expectedInbound []*InboundTrafficPolicy
 	}{
 		{
-			name: "hostnames match",
+			name: "hostnames is a subset",
 			originalInbound: []*InboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
 					Rules:     []*Rule{&testRule1, &testRule2},
 				},
 			},
-			newIngressInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames do not match",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newIngressInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames in ingress is a subset",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newIngressInbound: []*InboundTrafficPolicy{
+			newInbound: []*InboundTrafficPolicy{
 				{
 					Hostnames: []string{"testHostname1"},
 					Rules:     []*Rule{&testRule2},
@@ -413,14 +399,14 @@ func TestMergeInboundPoliciesWithIngress(t *testing.T) {
 			},
 		},
 		{
-			name: "hostnames in ingress is a subset but rules differ",
+			name: "hostnames is a subset but rules differ",
 			originalInbound: []*InboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
 					Rules:     []*Rule{&testRule1, &testRule2},
 				},
 			},
-			newIngressInbound: []*InboundTrafficPolicy{
+			newInbound: []*InboundTrafficPolicy{
 				{
 					Hostnames: []string{"testHostname1"},
 					Rules:     []*Rule{&testRule1Modified},
@@ -437,8 +423,8 @@ func TestMergeInboundPoliciesWithIngress(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newIngressInbound...)
-			assert.ElementsMatch(tc.expectedInbound, actual)
+			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newInbound...)
+			assert.ElementsMatch(actual, tc.expectedInbound)
 		})
 	}
 }
@@ -535,6 +521,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 	testCases := []struct {
 		name                                               string
 		originalPolicies, latestPolicies, expectedPolicies []*OutboundTrafficPolicy
+		allowPartialHostnamesMatch                         bool
 	}{
 		{
 			name: "hostnames don't match",
@@ -560,6 +547,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
+			allowPartialHostnamesMatch: false,
 		},
 		{
 			name: "hostnames match",
@@ -581,6 +569,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute, &testRoute2},
 				},
 			},
+			allowPartialHostnamesMatch: false,
 		},
 		{
 			name: "hostnames match, routes match",
@@ -602,6 +591,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
+			allowPartialHostnamesMatch: false,
 		},
 		{
 			name: "hostnames match, routes have same match conditions but diff weighted clusters",
@@ -626,12 +616,35 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
+			allowPartialHostnamesMatch: false,
+		},
+		{
+			name: "hostnames partially match",
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: []string{"testHostname1"},
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			allowPartialHostnamesMatch: true,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := MergeOutboundPolicies(tc.originalPolicies, tc.latestPolicies...)
-			assert.ElementsMatch(tc.expectedPolicies, actual)
+			actual := MergeOutboundPolicies(tc.allowPartialHostnamesMatch, tc.originalPolicies, tc.latestPolicies...)
+			assert.ElementsMatch(actual, tc.expectedPolicies)
 		})
 	}
 }
@@ -769,7 +782,7 @@ func newTestOutboundPolicy(name string, routes []*RouteWeightedClusters) *Outbou
 	}
 }
 
-func TestSubset(t *testing.T) {
+func TestSlicesUnionIfSubset(t *testing.T) {
 	first := []string{"bookstore.bookstore",
 		"bookstore.bookstore.svc.cluster.local",
 		"bookstore:80",
@@ -784,10 +797,18 @@ func TestSubset(t *testing.T) {
 
 	second := []string{"bookstore.bookstore.svc.cluster.local"}
 	assert := tassert.New(t)
-	isSubset := subset(first, second)
-	assert.True(isSubset)
+	hostsUnion := slicesUnionIfSubset(first, second)
+	assert.NotEqual(len(hostsUnion), 0)
+	assert.ElementsMatch(first, hostsUnion)
+
+	hostsUnion = slicesUnionIfSubset(second, first)
+	assert.NotEqual(len(hostsUnion), 0)
+	assert.ElementsMatch(first, hostsUnion)
 
 	third := []string{"bookstore.bookstore.svc.cluster.local", "foo.com"}
-	isSubset = subset(first, third)
-	assert.False(isSubset)
+	hostsUnion = slicesUnionIfSubset(first, third)
+	assert.Equal(len(hostsUnion), 0)
+
+	hostsUnion = slicesUnionIfSubset(third, first)
+	assert.Equal(len(hostsUnion), 0)
 }

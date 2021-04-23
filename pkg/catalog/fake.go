@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -100,9 +101,9 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
-	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV1Service).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
-	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV2Service).Return([]service.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
-	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookbuyerService).Return([]service.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV1Service).Return([]identity.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV2Service).Return([]identity.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookbuyerService).Return([]identity.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
 		mockIngressMonitor, stop, cfg, endpointProviders...)

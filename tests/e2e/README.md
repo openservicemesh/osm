@@ -87,8 +87,8 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 ```
 
 ### Flags
-#### (TODO) Kubeconf selection
-Currently, test init will load a `Kubeconf` based on Defalut Kubeconf Loading rules.
+#### (TODO) Kubeconfig selection
+Currently, test init will load a `Kubeconf` based on default kubeconfig loading rules.
 If Kind is used, the kubeconf is temporarily replaced and Kind's kubeconf is used instead.
 
 #### Container registry
@@ -163,3 +163,10 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus="\bSimpleCl
 The `test.timeout` flag sets a total time limit for all the tests that you are running. If you run the e2es without specifying any timeout limit, the tests will terminate after 10 minutes. To run the tests without any time limit, you should set `test.timeout 0`.
 
 To set a specific time limit, a unit must be specified along with a number. For instance, if you want to set the limit to 90 seconds (say for just testing one e2e), you should say `test.timeout 90s`. If you want the tests to run for 60 minutes, you should say `test.timeout 60m`.
+
+#### OpenShift:
+OpenShift compatibility is still a WIP for the e2e tests.
+
+To run these tests on OpenShift
+1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Include `-deployOnOpenShift=true` with your `go test` command.

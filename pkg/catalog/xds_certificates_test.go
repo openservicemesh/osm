@@ -16,6 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -445,16 +446,16 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 	Context("Test GetServiceAccountFromProxyCertificate", func() {
 		It("should correctly return the ServiceAccount encoded in the XDS certificate CN", func() {
-			cn := certificate.CommonName(fmt.Sprintf("%s.sa-name.sa-namespace", uuid.New().String()))
+			cn := certificate.CommonName(fmt.Sprintf("%s.sa-name.sa-namespace", uuid.New()))
 			svcAccount, err := GetServiceAccountFromProxyCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(svcAccount).To(Equal(service.K8sServiceAccount{Name: "sa-name", Namespace: "sa-namespace"}))
+			Expect(svcAccount).To(Equal(identity.K8sServiceAccount{Name: "sa-name", Namespace: "sa-namespace"}))
 		})
 
 		It("should correctly error when the XDS certificate CN is invalid", func() {
 			svcAccount, err := GetServiceAccountFromProxyCertificate(certificate.CommonName("invalid"))
 			Expect(err).To(HaveOccurred())
-			Expect(svcAccount).To(Equal(service.K8sServiceAccount{}))
+			Expect(svcAccount).To(Equal(identity.K8sServiceAccount{}))
 		})
 	})
 })

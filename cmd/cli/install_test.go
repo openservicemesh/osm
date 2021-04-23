@@ -29,14 +29,15 @@ import (
 )
 
 var (
-	testRegistry       = "test-registry"
-	testRegistrySecret = "test-registry-secret"
-	testOsmImageTag    = "test-tag"
-	testVaultHost      = "vault.osm.svc.cluster.local"
-	testVaultToken     = "token"
-	testRetentionTime  = "5d"
-	testEnvoyLogLevel  = "error"
-	testChartPath      = "testdata/test-chart"
+	testRegistry           = "test-registry"
+	testRegistrySecret     = "test-registry-secret"
+	testOsmImageTag        = "test-tag"
+	testVaultHost          = "vault.osm.svc.cluster.local"
+	testVaultToken         = "token"
+	testRetentionTime      = "5d"
+	testEnvoyLogLevel      = "error"
+	testControllerLogLevel = "info"
+	testChartPath          = "testdata/test-chart"
 )
 
 var _ = Describe("Running the install command", func() {
@@ -632,7 +633,7 @@ func TestResolveValues(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for idx, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
 			actual, err := test.installCmd.resolveValues()
@@ -641,7 +642,7 @@ func TestResolveValues(t *testing.T) {
 			} else {
 				assert.Equal(err, test.expectedErr)
 			}
-			assert.Equal(actual, test.expected)
+			assert.Equal(actual, test.expected, "Test at index %d failed", idx)
 		})
 	}
 }
@@ -680,6 +681,7 @@ func TestEnforceSingleMesh(t *testing.T) {
 		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
+		controllerLogLevel:          testControllerLogLevel,
 		enforceSingleMesh:           true,
 	}
 
@@ -738,6 +740,7 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
+		controllerLogLevel:          testControllerLogLevel,
 	}
 
 	err = install.run(config)
@@ -784,12 +787,13 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
+		controllerLogLevel:          testControllerLogLevel,
 		enforceSingleMesh:           true,
 	}
 
 	err = install.run(config)
 	assert.NotNil(err)
-	assert.True(strings.Contains(err.Error(), "Meshes already exist in cluster. Cannot enforce single mesh cluster"))
+	assert.Equal(err, errAlreadyExists)
 }
 
 func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
@@ -826,6 +830,7 @@ func getDefaultInstallCmd(writer io.Writer) installCmd {
 		vaultToken:                    defaultVaultToken,
 		vaultRole:                     defaultVaultRole,
 		envoyLogLevel:                 defaultEnvoyLogLevel,
+		controllerLogLevel:            defaultControllerLogLevel,
 		serviceCertValidityDuration:   defaultServiceCertValidityDuration,
 		enableDebugServer:             defaultEnableDebugServer,
 		enableEgress:                  defaultEnableEgress,
@@ -877,6 +882,7 @@ func getDefaultValues() map[string]interface{} {
 			"enableFluentbit":               defaultEnableFluentbit,
 			"deployJaeger":                  defaultDeployJaeger,
 			"envoyLogLevel":                 testEnvoyLogLevel,
+			"controllerLogLevel":            testControllerLogLevel,
 			"enforceSingleMesh":             defaultEnforceSingleMesh,
 		}}
 }

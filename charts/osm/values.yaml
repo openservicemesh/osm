@@ -11,11 +11,11 @@ OpenServiceMesh:
     # -- `osm-controller` pod PullPolicy
     pullPolicy: IfNotPresent
     # -- `osm-controller` image tag
-    tag: v0.8.2
+    tag: v0.8.3
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.17.1
+  sidecarImage: envoyproxy/envoy-alpine:v1.17.2
   osmcontroller:
     resource:
       limits:
@@ -26,6 +26,14 @@ OpenServiceMesh:
         memory: "128M"
     podLabels: {}
   prometheus:
+    # -- Resource limits for prometheus instance
+    resources:
+      limits:
+        cpu: 1
+        memory: 2G
+      requests:
+        cpu: 0.5
+        memory: 512M
     # -- Prometheus port
     port: 7070
     retention:
@@ -99,6 +107,8 @@ OpenServiceMesh:
   useHTTPSIngress: false
   # -- Envoy log level is used to specify the level of logs collected from envoy
   envoyLogLevel: error
+  # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
+  maxDataPlaneConnections: 0
   # -- Controller log verbosity
   controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster

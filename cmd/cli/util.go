@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // confirm displays a prompt `s` to the user and returns a bool indicating yes / no
@@ -37,4 +39,25 @@ func confirm(stdin io.Reader, stdout io.Writer, s string, tries int) (bool, erro
 	}
 
 	return false, nil
+}
+
+func annotateErrorMessageWithOsmNamespace(errMsgFormat string, args ...interface{}) error {
+	osmNamespaceErrorMsg := fmt.Sprintf(
+		"Note: The command failed when run in the OSM namespace [%s].\n"+
+			"Use the global flag --osm-namespace if [%s] is not the intended OSM namespace.",
+		settings.Namespace(), settings.Namespace())
+
+	return annotateErrorMessageWithActionableMessage(osmNamespaceErrorMsg, errMsgFormat, args...)
+}
+
+func annotateErrorMessageWithActionableMessage(actionableMessage string, errMsgFormat string, args ...interface{}) error {
+	if !strings.HasSuffix(errMsgFormat, "\n") {
+		errMsgFormat += "\n"
+	}
+
+	if !strings.HasSuffix(errMsgFormat, "\n\n") {
+		errMsgFormat += "\n"
+	}
+
+	return errors.Errorf(errMsgFormat+actionableMessage, args...)
 }

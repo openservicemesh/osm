@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -78,7 +79,7 @@ type Controller interface {
 	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
 	ListServiceAccounts() []*corev1.ServiceAccount
 
-	// Returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
+	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(svc service.MeshService) *corev1.Service
 
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
@@ -94,8 +95,8 @@ type Controller interface {
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
 
-	// ListServiceAccountsForService lists ServiceAccounts associated with the given service
-	ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error)
+	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
+	ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)

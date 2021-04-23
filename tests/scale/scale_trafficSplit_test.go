@@ -27,8 +27,9 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 		})
 
 		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
-			// Install OSM with all the requirements
 			var err error
+
+			// Install OSM with all the requirements
 			sd, err = scaleOSMInstall()
 			Expect(err).To(BeNil())
 
@@ -65,9 +66,9 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 			// Scale loop
 			sd.Iterate(func() {
 				// The following section computes the clients and servers (quantity and names) to be run this iteration
-				clientServices := []string{}
-				serverServices := []string{}
-				allNamespaces := []string{}
+				var clientServices []string
+				var serverServices []string
+				var allNamespaces []string
 
 				// All servers services for a traffic split live in the same namespace
 				serverNamespace := fmt.Sprintf("%s-%d", serverNamespacePrefix, totalNumberOfServerNamespaces)

@@ -92,9 +92,9 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			lb := &listenerBuilder{
-				meshCatalog: mockCatalog,
-				cfg:         mockConfigurator,
-				svcAccount:  tests.BookstoreServiceAccount,
+				meshCatalog:     mockCatalog,
+				cfg:             mockConfigurator,
+				serviceIdentity: tests.BookstoreServiceIdentity,
 			}
 
 			// Mock catalog call to get port:protocol mapping for service

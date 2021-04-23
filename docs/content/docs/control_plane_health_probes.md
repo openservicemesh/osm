@@ -1,5 +1,5 @@
 ---
-title: "OSM Control Plane Health Probes"
+title: "Health Probes: OSM Control Plane"
 description: "How OSM's health probes work and what to do if they fail"
 type: "docs"
 ---
@@ -102,7 +102,7 @@ If any health probes are consistently failing, perform the following steps to id
     $ # Assuming OSM is installed in the osm-system namespace:
     $ kubectl get pod -n osm-system $(kubectl get pods -n osm-system -l app=osm-controller -o jsonpath='{.items[0].metadata.name}') -o jsonpath='{range .spec.containers[*]}{.image}{"\n"}{end}'
     openservicemesh/osm-controller:v0.8.0
-    envoyproxy/envoy-alpine:v1.17.1
+    envoyproxy/envoy-alpine:v1.17.2
     ```
 
     To verify The osm-injector Pod is not running an Envoy sidecar container, verify none of the Pod's containers' images is an Envoy image. Envoy images have "envoyproxy/envoy" in their name.
@@ -112,7 +112,7 @@ If any health probes are consistently failing, perform the following steps to id
     $ # Assuming OSM is installed in the osm-system namespace:
     $ kubectl get pod -n osm-system $(kubectl get pods -n osm-system -l app=osm-injector -o jsonpath='{.items[0].metadata.name}') -o jsonpath='{range .spec.containers[*]}{.image}{"\n"}{end}'
     openservicemesh/osm-injector:v0.8.0
-    envoyproxy/envoy-alpine:v1.17.1
+    envoyproxy/envoy-alpine:v1.17.2
     ```
 
     If either Pod is running an Envoy container, it may have been injected erroneously by this or another another instance of OSM. For each mesh found with the `osm mesh list` command, verify the OSM namespace of the unhealthy Pod is not listed in the `osm namespace list` output with `SIDECAR-INJECTION` "enabled" for any OSM instance found with the `osm mesh list` command.
@@ -122,9 +122,9 @@ If any health probes are consistently failing, perform the following steps to id
     ```console
     $ osm mesh list
     
-    MESH NAME   NAMESPACE      CONTROLLER PODS
-    osm         osm-system     osm-controller-5494bcffb6-qpjdv
-    osm2        osm-system-2   osm-controller-48fd3c810d-sornc
+    MESH NAME   NAMESPACE      CONTROLLER PODS                   VERSION
+    osm         osm-system     osm-controller-5494bcffb6-qpjdv   v0.8.3
+    osm2        osm-system-2   osm-controller-48fd3c810d-sornc   v0.8.3
     ```
 
     Note how `osm-system` is present in the following list:

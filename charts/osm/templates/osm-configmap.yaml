@@ -12,7 +12,7 @@ data:
   enable_privileged_init_container: {{ .Values.OpenServiceMesh.enablePrivilegedInitContainer | quote }}
   enable_debug_server: {{ .Values.OpenServiceMesh.enableDebugServer | quote }}
   prometheus_scraping: {{ .Values.OpenServiceMesh.enablePrometheusScraping | quote }}
-
+  max_data_plane_connections: {{.Values.OpenServiceMesh.maxDataPlaneConnections | quote}}
   tracing_enable: {{ .Values.OpenServiceMesh.tracing.enable | quote }}
 {{- if .Values.OpenServiceMesh.tracing.enable }}
   tracing_address: {{ include "osm.tracingAddress" . | quote }}

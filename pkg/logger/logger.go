@@ -15,6 +15,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
+// AllowedLevels is the list of allowed log levels for OSM Controller.
+var AllowedLevels = []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
+
 // CallerHook implements zerolog.Hook interface.
 type CallerHook struct{}
 
@@ -71,8 +74,7 @@ func SetLogLevel(verbosity string) error {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 
 	default:
-		allowedLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
-		return errors.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
+		return errors.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, AllowedLevels)
 	}
 	return nil
 }

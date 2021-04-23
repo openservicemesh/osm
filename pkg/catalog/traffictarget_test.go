@@ -11,13 +11,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func TestListAllowedInboundServiceAccounts(t *testing.T) {
+func TestListAllowedInboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -28,10 +28,10 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 	}
 
 	testCases := []struct {
-		trafficTargets             []*smiAccess.TrafficTarget
-		svcAccount                 service.K8sServiceAccount
-		expectedInboundSvcAccounts []service.K8sServiceAccount
-		expectError                bool
+		trafficTargets                   []*smiAccess.TrafficTarget
+		serviceIdentity                  identity.ServiceIdentity
+		expectedInboundServiceIdentities []identity.ServiceIdentity
+		expectError                      bool
 	}{
 		// Test case 1 begin ------------------------------------
 		// There is a valid inbound service account
@@ -84,17 +84,17 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: 1 match
-			[]service.K8sServiceAccount{
-				{
+			[]identity.ServiceIdentity{
+				identity.K8sServiceAccount{
 					Name:      "sa-1",
 					Namespace: "ns-1",
-				},
+				}.ToServiceIdentity(),
 			},
 
 			false, // no errors expected
@@ -130,10 +130,10 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -171,10 +171,10 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -189,14 +189,14 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedInboundServiceAccounts(tc.svcAccount)
+			actual, err := meshCatalog.ListAllowedInboundServiceIdentities(tc.serviceIdentity)
 			assert.Equal(err != nil, tc.expectError)
-			assert.ElementsMatch(actual, tc.expectedInboundSvcAccounts)
+			assert.ElementsMatch(actual, tc.expectedInboundServiceIdentities)
 		})
 	}
 }
 
-func TestListAllowedOutboundServiceAccounts(t *testing.T) {
+func TestListAllowedOutboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -207,10 +207,10 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 	}
 
 	testCases := []struct {
-		trafficTargets              []*smiAccess.TrafficTarget
-		svcAccount                  service.K8sServiceAccount
-		expectedOutboundSvcAccounts []service.K8sServiceAccount
-		expectError                 bool
+		trafficTargets                    []*smiAccess.TrafficTarget
+		serviceIdentity                   identity.ServiceIdentity
+		expectedOutboundServiceIdentities []identity.ServiceIdentity
+		expectError                       bool
 	}{
 		// Test case 1 begin ------------------------------------
 		// There is a valid outbound service account
@@ -263,21 +263,21 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: 2 matches
-			[]service.K8sServiceAccount{
-				{
+			[]identity.ServiceIdentity{
+				identity.K8sServiceAccount{
 					Name:      "sa-2",
 					Namespace: "ns-2",
-				},
-				{
+				}.ToServiceIdentity(),
+				identity.K8sServiceAccount{
 					Name:      "sa-3",
 					Namespace: "ns-3",
-				},
+				}.ToServiceIdentity(),
 			},
 
 			false, // no errors expected
@@ -313,10 +313,10 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -354,10 +354,10 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			},
 
 			// given service account to test
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			},
+			}.ToServiceIdentity(),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -372,9 +372,9 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedOutboundServiceAccounts(tc.svcAccount)
+			actual, err := meshCatalog.ListAllowedOutboundServiceIdentities(tc.serviceIdentity)
 			assert.Equal(err != nil, tc.expectError)
-			assert.ElementsMatch(actual, tc.expectedOutboundSvcAccounts)
+			assert.ElementsMatch(actual, tc.expectedOutboundServiceIdentities)
 		})
 	}
 }
@@ -384,7 +384,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 
 	testCases := []struct {
 		identity               smiAccess.IdentityBindingSubject
-		expectedServiceAccount service.K8sServiceAccount
+		expectedServiceAccount identity.K8sServiceAccount
 	}{
 		{
 			smiAccess.IdentityBindingSubject{
@@ -392,7 +392,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
 			},
@@ -403,7 +403,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
-			service.K8sServiceAccount{
+			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
 			},
@@ -433,7 +433,7 @@ func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 		},
 	}
 
-	expected := []service.K8sServiceAccount{
+	expected := []identity.K8sServiceAccount{
 		{
 			Name:      "example1",
 			Namespace: "default1",
@@ -454,10 +454,10 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		name               string
-		trafficTargets     []*smiAccess.TrafficTarget
-		tcpRoutes          map[string]*smiSpecs.TCPRoute
-		upstreamSvcAccount service.K8sServiceAccount
+		name                    string
+		trafficTargets          []*smiAccess.TrafficTarget
+		tcpRoutes               map[string]*smiSpecs.TCPRoute
+		upstreamServiceIdentity identity.ServiceIdentity
 
 		expectedTrafficTargets []trafficpolicy.TrafficTargetWithRoutes
 		expectError            bool
@@ -512,7 +512,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -599,7 +599,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -747,7 +747,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -834,7 +834,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
@@ -880,7 +880,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				}
 			}
 
-			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamSvcAccount)
+			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamServiceIdentity)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(tc.expectedTrafficTargets, actual)
 		})

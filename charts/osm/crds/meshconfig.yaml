@@ -20,7 +20,7 @@ metadata:
   name: meshconfigs.config.openservicemesh.io
 spec:
   group: config.openservicemesh.io
-  scope: Cluster
+  scope: Namespaced
   names:
     kind: MeshConfig
     listKind: MeshConfigList
@@ -43,11 +43,11 @@ spec:
                   description: Configuration for Envoy sidecar
                   type: object
                   properties:
-                    enable_privileged_init_container:
+                    enablePriviledgedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
                       default: false
-                    log_level:
+                    logLevel:
                       description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
                       type: string
                       default: "error"
@@ -60,23 +60,27 @@ spec:
                         - error
                         - critical
                         - off
+                    maxDataPlaneConnections:
+                      description: Max allowed data plane sidecar connections
+                      type: integer
+                      default: 0
                 traffic:
                   description: Configuration for traffic management
                   type: object
                   properties:
-                    enable_egress:
+                    enableEgress:
                       description: Enables egress in the mesh
                       type: boolean
                       default: false
-                    outbound_ip_range_exclusion_list:
+                    outboundIPRangeExclusionList:
                       description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
                       type: string
                       pattern: ((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2})(,((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2}))*$
-                    use_https_ingress:
+                    useHTTPSIngress:
                       description: Enable HTTPS ingress on the mesh
                       type: boolean
                       default: false
-                    enable_permissive_traffic_policy_mode:
+                    enablePermissiveTrafficPolicyMode:
                       description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
                       type: boolean
                       default: false
@@ -84,8 +88,12 @@ spec:
                   description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
                   type: object
                   properties:
-                    enable_debug_server:
+                    enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                      default: true
+                    prometheusScrapping:
+                      description: Enables Prometheus metrics scraping on sidecar proxies.
                       type: boolean
                       default: true
                     tracing:
@@ -112,7 +120,7 @@ spec:
                   description: Configuration for traffic management
                   type: object
                   properties:
-                    service_cert_validity_duration:
+                    serviceCertValidityDuration:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
                       default: "24h"

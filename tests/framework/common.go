@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -164,12 +165,14 @@ const (
 	CollectLogsIfErrorOnly CollectLogsType = "ifError"
 	// NoCollectLogs will not collect logs
 	NoCollectLogs CollectLogsType = "no"
+	// ControlPlaneOnly will collect logs only for control plane processes
+	ControlPlaneOnly CollectLogsType = "controlPlaneOnly"
 )
 
 // Verifies the instType string flag option is a valid enum type
 func verifyValidCollectLogs(t CollectLogsType) error {
 	switch t {
-	case CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs:
+	case CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs, ControlPlaneOnly:
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid CollectLogsType (%s, %s, %s)",
@@ -212,6 +215,8 @@ type OsmTestData struct {
 	Client          *kubernetes.Clientset
 	SmiClients      *smiClients
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
+
+	DeployOnOpenShift bool // Determines whether to configure tests for OpenShift
 }
 
 // Function to run at init before Ginkgo has called parseFlags
@@ -239,6 +244,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.OsmNamespace, "OsmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
 
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable tagging Namespaces for metrics collection")
+	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 }
 
 // ValidateStringParams validates input string parametres are valid
@@ -1237,7 +1243,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 
 	// If collect logs or
 	// (test failed, by either restarts were seen or because spec failed) and (collect logs on error)
-	if td.CollectLogs == CollectLogs ||
+	if td.CollectLogs == CollectLogs || td.CollectLogs == ControlPlaneOnly ||
 		((restartSeen && !td.IgnoreRestarts) || CurrentGinkgoTestDescription().Failed) && td.CollectLogs == CollectLogsIfErrorOnly {
 		// Grab logs. We will move this to use CLI when able.
 		if err := td.GrabLogs(); err != nil {
@@ -1458,6 +1464,21 @@ func (td *OsmTestData) GrabLogs() error {
 		td.T.Logf("stderr:\n%s", stderr)
 	}
 
+	stdout, stderr, err = td.RunLocal("kubectl", []string{"get", "events", "-A"})
+	if err != nil {
+		td.T.Logf("error running kubectl get events")
+		td.T.Logf("stdout:\n%s", stdout)
+		td.T.Logf("stderr:\n%s", stderr)
+	} else {
+		if err := ioutil.WriteFile(fmt.Sprintf("%s/%s", absTestDirPath, "events"), stdout.Bytes(), 0600); err != nil {
+			td.T.Logf("Failed to write file for events: %s", err)
+		}
+	}
+
+	if td.CollectLogs == ControlPlaneOnly {
+		return nil
+	}
+
 	if td.InstType == KindCluster {
 		kindExportPath := td.GetTestFilePath("kindExport")
 		td.T.Logf("Collecting kind cluster")
@@ -1524,6 +1545,22 @@ func (td *OsmTestData) GrabLogs() error {
 				td.T.Logf("stderr:\n%s", stderr)
 			}
 		}
+	}
+
+	return nil
+}
+
+// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
+	if !td.DeployOnOpenShift {
+		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
+	}
+	//oc adm policy add-scc-to-user privileged -z bookbuyer -n "$BOOKBUYER_NAMESPACE"
+	args := []string{"adm", "policy", "add-scc-to-user", scc, "-z", serviceAccount, "-n", namespace}
+	stdout, stderr, err := td.RunLocal("oc", args)
+	if err != nil {
+		td.T.Logf("stdout:\n%s", stdout)
+		return errors.Errorf("failed to add SCC %s to %s/%s: %s", scc, namespace, serviceAccount, stderr)
 	}
 
 	return nil
