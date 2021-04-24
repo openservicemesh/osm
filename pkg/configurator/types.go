@@ -72,6 +72,9 @@ type Configurator interface {
 	// GetEnvoyLogLevel returns the envoy log level
 	GetEnvoyLogLevel() string
 
+	// GetEnvoyImage returns the envoy image
+	GetEnvoyImage() string
+
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 

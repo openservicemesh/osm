@@ -56,6 +56,7 @@ var _ = Describe("Test all patch operations", func() {
 			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
 			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
+			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
 

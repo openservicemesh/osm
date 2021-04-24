@@ -64,6 +64,11 @@ spec:
                       description: Max allowed data plane sidecar connections
                       type: integer
                       default: 0
+                    envoyImage:
+                      description: Image for the Envoy sidecar
+                      type: string
+                      default: "envoyproxy/envoy-alpine:v1.17.2"
+                      pattern: envoyproxy\/envoy-alpine:v\d+\.\d+\.\d+$
                 traffic:
                   description: Configuration for traffic management
                   type: object

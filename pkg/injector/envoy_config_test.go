@@ -245,7 +245,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	Context("test getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, envoyImage, mockConfigurator, originalHealthProbes)
+			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(1)
+			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,

@@ -52,6 +52,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				useHTTPSIngressKey:             "true",
 				enablePrivilegedInitContainer:  "true",
 				envoyLogLevel:                  "error",
+				envoyImage:                     "envoyproxy/envoy-alpine:v0.0.0",
 				serviceCertValidityDurationKey: "24h",
 				configResyncInterval:           "2m",
 				maxDataPlaneConnectionsKey:     "0",
@@ -66,6 +67,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					UseHTTPSIngress:               true,
 					EnablePrivilegedInitContainer: true,
 					EnvoyLogLevel:                 "error",
+					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
 					ServiceCertValidityDuration:   "24h",
 					ConfigResyncInterval:          "2m",
 					MaxDataPlaneConnections:       0,
@@ -191,6 +193,19 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("info", cfg.GetEnvoyLogLevel())
+			},
+		},
+		{
+			name:                 "GetEnvoyImage",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("envoyproxy/envoy-alpine:v1.17.2", cfg.GetEnvoyImage())
+			},
+			updatedConfigMapData: map[string]string{
+				envoyImage: "envoyproxy/envoy-alpine:v1.17.1",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetEnvoyImage())
 			},
 		},
 		{

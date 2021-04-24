@@ -38,8 +38,6 @@ type Config struct {
 	ListenPort int
 
 	InitContainerImage string
-
-	SidecarImage string
 }
 
 // Context needed to compose the Envoy bootstrap YAML.

@@ -69,7 +69,6 @@ func init() {
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
-	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -223,10 +222,6 @@ func validateCLIParams() error {
 
 	if injectorConfig.InitContainerImage == "" {
 		return errors.New("Please specify the init container image using --init-container-image")
-	}
-
-	if injectorConfig.SidecarImage == "" {
-		return errors.Errorf("Please specify the sidecar image using --sidecar-image")
 	}
 
 	if webhookConfigName == "" {

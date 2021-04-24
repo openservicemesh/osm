@@ -58,7 +58,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.config.SidecarImage, wh.configurator, originalHealthProbes)
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)

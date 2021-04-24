@@ -20,6 +20,7 @@ kubectl get configmap osm-config -n osm-system -o yaml
 | enable_debug_server | OpenServiceMesh.enableDebugServer | bool | true, false| `"true"` | Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies. |
 | enable_privileged_init_container| OpenServiceMesh.enablePrivilegedInitContainer | bool | true, false | `"false"` | Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN. |
 | envoy_log_level | OpenServiceMesh.envoyLogLevel | string | trace, debug, info, warning, warn, error, critical, off | `"error"` | Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh. To update the log level for existing pods, restart the deployment with `kubectl rollout restart`. |
+| envoy_image | OpenServiceMesh.envoyImage | string | any supported Envoy image of the form envoyproxy/envoy-alpine:vx.xx.x | `"envoyproxy/envoy-alpine:v1.17.2"` | Sets the Envoy proxy sidecar image, only applicable to newly created pods joining the mesh. To update the sidecar image for existing pods, restart the deployment with `kubectl rollout restart`. |
 | max_data_plane_connections | OpenServiceMesh.maxDataPlaneConnections | int | any positive integer value | `"0"` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | outbound_ip_range_exclusion_list | OpenServiceMesh.outboundIPRangeExclusionList | string | comma separated list of IP ranges of the form a.b.c.d/x | `-`| Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy. |
 | permissive_traffic_policy_mode | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | true, false | `"false"` | Setting to `true`, enables allow-all mode in the mesh i.e. no traffic policy enforcement in the mesh. If set to `false`, enables deny-all traffic policy in mesh i.e. an `SMI Traffic Target` is necessary for services to communicate. |
@@ -57,6 +58,7 @@ Error: invalid argument "3" for "--enable-egress" flag: strconv.ParseBool: parsi
 | enable_debug_server | `--enable-debug-server` | bool | `"true"` |
 | enable_privileged_init_container| `--enable-privileged-init-container` | bool | `"false"` |
 | envoy_log_level | `--envoy-log-level` | string | `"error"` |
+| envoy_image | `--envoy-image` | string | `"envoyproxy/envoy-alpine:v1.17.2"` |
 | max_data_plane_connections |`--max-data-plane-connections` | int | `"0"` |
 | outbound_ip_range_exclusion_list | `--outbound-ip-range-exclusion-list` | string | `-`|
 | permissive_traffic_policy_mode | `--enable-permissive-traffic-policy` | bool | `"false"` |
@@ -93,6 +95,7 @@ use_https_ingress: must be a boolean
 |-----|------|---------------|--------------------------------|
 | enable_debug_server | bool | `"true"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"enable_debug_server":"false"}}' --type=merge` |
 | envoy_log_level | string | `"error"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"envoy_log_level":"info"}}' --type=merge` |
+| envoy_image | string | `"envoyproxy/envoy-alpine:v1.17.2"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"envoy_image":"envoyproxy/envoy-alpine:v1.17.2"}}' --type=merge` |
 | max_data_plane_connections | int | `"0"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"max_data_plane_connections":"1000"}}' --type=merge` |
 | outbound_ip_range_exclusion_list | string | `-`| `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"outbound_ip_range_exclusion_list":"1.2.3.4/0"}}' --type=merge` |
 | service_cert_validity_duration | string | `"24h"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"service_cert_validity_duration":"2m"}}' --type=merge` |
@@ -119,6 +122,7 @@ kubectl describe validatingwebhookconfiguration osm-webhook-osm
 | enable_debug_server | `must be a boolean` |
 | enable_privileged_init_container| `must be a boolean` |
 | envoy_log_level | `invalid log level` |
+| envoy_image | `must be of the form envoyproxy/envoy-alpine:v<major>.<minor>.<patch>`
 | max_data_plane_connections | `must be a positive integer` |
 | outbound_ip_range_exclusion_list | `must be a list of valid IP addresses of the form a.b.c.d/x` |
 | permissive_traffic_policy_mode | `must be a boolean` |
@@ -135,6 +139,7 @@ kubectl describe validatingwebhookconfiguration osm-webhook-osm
 - enable_debug_server
 - enable_privileged_init_container
 - envoy_log_level
+- envoy_image
 - max_data_plane_connections
 - permissive_traffic_policy_mode
 - prometheus_scraping
