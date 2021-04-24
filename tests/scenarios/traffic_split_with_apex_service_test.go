@@ -51,11 +51,12 @@ var _ = Describe(``+
 			It("did not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resources).ToNot(BeNil())
-				Expect(len(resources)).To(Equal(1))
+				Expect(len(resources)).To(Equal(2))
 			})
 
 			// ---[  Prepare the config for testing  ]-------
-			routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
+			// Order matters, inbound is returned always in first index, outbound second one
+			routeCfg, ok := resources[1].(*xds_route.RouteConfiguration)
 			It("returns a response that can be unmarshalled into an xds RouteConfiguration struct", func() {
 				Expect(ok).To(BeTrue())
 				Expect(routeCfg.Name).To(Equal("rds-outbound"))

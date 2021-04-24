@@ -66,19 +66,19 @@ func TestBuildRouteConfiguration(t *testing.T) {
 			name:                   "no policies provided",
 			inbound:                []*trafficpolicy.InboundTrafficPolicy{},
 			outbound:               []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedRouteConfigLen: 0,
+			expectedRouteConfigLen: 2,
 		},
 		{
 			name:                   "inbound policy provided",
 			inbound:                []*trafficpolicy.InboundTrafficPolicy{testInbound},
 			outbound:               []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedRouteConfigLen: 1,
+			expectedRouteConfigLen: 2,
 		},
 		{
 			name:                   "outbound policy provided",
 			inbound:                []*trafficpolicy.InboundTrafficPolicy{},
 			outbound:               []*trafficpolicy.OutboundTrafficPolicy{testOutbound},
-			expectedRouteConfigLen: 1,
+			expectedRouteConfigLen: 2,
 		},
 		{
 			name:                   "both inbound and outbound policies provided",
@@ -118,7 +118,7 @@ func TestBuildRouteConfiguration(t *testing.T) {
 			featureflags.Features.WASMStats = tc.wasmEnabled
 
 			actual := BuildRouteConfiguration([]*trafficpolicy.InboundTrafficPolicy{testInbound}, nil, &envoy.Proxy{})
-			tassert.Len(t, actual, 1)
+			tassert.Len(t, actual, 2)
 			tassert.Len(t, actual[0].ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
 
 			featureflags.Features.WASMStats = oldWASMflag
