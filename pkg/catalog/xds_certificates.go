@@ -10,14 +10,17 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based
-// on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
+// GetServicesForProxy returns a list of services the given Envoy is a member of based
+// on its certificate, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+func (mc *MeshCatalog) GetServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
+	cn := p.GetCertificateCommonName()
+
 	pod, err := GetPodFromCertificate(cn, mc.kubeController)
 	if err != nil {
 		return nil, err

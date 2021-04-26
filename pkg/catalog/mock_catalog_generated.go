@@ -8,8 +8,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
+	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	smi "github.com/openservicemesh/osm/pkg/smi"
@@ -98,19 +98,19 @@ func (mr *MockMeshCatalogerMockRecorder) GetSMISpec() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSMISpec", reflect.TypeOf((*MockMeshCataloger)(nil).GetSMISpec))
 }
 
-// GetServicesFromEnvoyCertificate mocks base method
-func (m *MockMeshCataloger) GetServicesFromEnvoyCertificate(arg0 certificate.CommonName) ([]service.MeshService, error) {
+// GetServicesForProxy mocks base method
+func (m *MockMeshCataloger) GetServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesFromEnvoyCertificate", arg0)
+	ret := m.ctrl.Call(m, "GetServicesForProxy", arg0)
 	ret0, _ := ret[0].([]service.MeshService)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetServicesFromEnvoyCertificate indicates an expected call of GetServicesFromEnvoyCertificate
-func (mr *MockMeshCatalogerMockRecorder) GetServicesFromEnvoyCertificate(arg0 interface{}) *gomock.Call {
+// GetServicesForProxy indicates an expected call of GetServicesForProxy
+func (mr *MockMeshCatalogerMockRecorder) GetServicesForProxy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesFromEnvoyCertificate", reflect.TypeOf((*MockMeshCataloger)(nil).GetServicesFromEnvoyCertificate), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForProxy", reflect.TypeOf((*MockMeshCataloger)(nil).GetServicesForProxy), arg0)
 }
 
 // GetTargetPortToProtocolMappingForService mocks base method

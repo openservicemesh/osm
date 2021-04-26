@@ -24,7 +24,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 		return nil, err
 	}
 
-	services, err := cataloger.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
+	services, err := cataloger.GetServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err

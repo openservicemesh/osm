@@ -138,7 +138,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return(tc.proxyServices, nil).Times(0)
+			mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return(tc.proxyServices, nil).Times(0)
 			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxySvcAccount).Return(tc.allowedOutboundServices).Times(1)
 
 			actual := makeRequestForAllSecrets(testProxy, mockCatalog)
