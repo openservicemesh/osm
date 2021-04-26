@@ -118,6 +118,9 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 		resourcesSent.Add(cache.GetResourceName(res))
 	}
 
+	// Validate the generated resources given the request
+	validateRequestResponse(proxy, request, resources)
+
 	// TODO: Move updating resources sent, version, and nonce after "server.Send()" has succeeded
 	proxy.SetLastResourcesSent(typeURL, resourcesSent)
 
