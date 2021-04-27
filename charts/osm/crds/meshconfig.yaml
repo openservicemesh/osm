@@ -91,7 +91,7 @@ spec:
                     enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
                       type: boolean
-                      default: false
+                      default: true
                     prometheusScrapping:
                       description: Enables Prometheus metrics scraping on sidecar proxies.
                       type: boolean
