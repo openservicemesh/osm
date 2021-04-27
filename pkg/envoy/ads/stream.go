@@ -180,7 +180,6 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	requestNonce = discoveryRequest.ResponseNonce
 	// Handle first request on stream, should always reply to empty nonce
 	if requestNonce == "" {
-		// Wildcard mode for LDS/CDS can only happen in this context
 		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Empty nonce for %s, should be first message on stream (req resources: %v)",
 			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.ResourceNames)
 		return true
@@ -214,7 +213,11 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// ----
 	// At this point, there is no error and nonces match, it is guaranteed an ACK with last version.
 	// What's left is to check if the resources listed are the same. If they are not, we must respond
-	// with the new resources requested
+	// with the new resources requested.
+	//
+	// In case of LDS and CDS, "Envoy will always use wildcard mode for Listener and Cluster resources".
+	// The following logic is not needed (though correct) for LDS and CDS as request resources are also empty in ACK case.
+	//
 	// This part of the code was inspired by Istio's `shouldRespond` handling of request resource difference
 	// https://github.com/istio/istio/blob/da6178604559bdf2c707a57f452d16bee0de90c8/pilot/pkg/xds/ads.go#L347
 	// ----
