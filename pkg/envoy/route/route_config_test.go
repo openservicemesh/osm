@@ -236,14 +236,14 @@ func TestBuildVirtualHostStub(t *testing.T) {
 		{
 			name:         "inbound virtual host",
 			namePrefix:   inboundVirtualHost,
-			host:         "host",
+			host:         httpHostHeader,
 			domains:      []string{"domain1", "domain2"},
 			expectedName: "inbound_virtual-host|host",
 		},
 		{
 			name:         "outbound virtual host",
 			namePrefix:   outboundVirtualHost,
-			host:         "host",
+			host:         httpHostHeader,
 			domains:      []string{"domain1", "domain2"},
 			expectedName: "outbound_virtual-host|host",
 		},
@@ -439,6 +439,9 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
+						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
+							HostRewriteLiteral: "",
+						},
 					},
 				},
 			},
@@ -506,6 +509,9 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
+						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
+							HostRewriteLiteral: "",
+						},
 					},
 				},
 			},
@@ -552,6 +558,9 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
+						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
+							HostRewriteLiteral: "",
+						},
 					},
 				},
 			},
@@ -597,6 +606,9 @@ func TestBuildRoute(t *testing.T) {
 								},
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
+						},
+						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
+							HostRewriteLiteral: "",
 						},
 					},
 				},

@@ -98,6 +98,9 @@ const (
 
 	// HTTPUserAgent is the User Agent in the HTTP header
 	HTTPUserAgent = "test-UA"
+
+	//HTTPHostHeader is the host name in the HTTP header
+	HTTPHostHeader = "osm.mesh"
 )
 
 var (
@@ -192,6 +195,17 @@ var (
 		Methods:       []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
+		},
+	}
+
+	// BookstoreBuyHTTPRouteWithHost is an HTTP route to buy books
+	BookstoreBuyHTTPRouteWithHost = trafficpolicy.HTTPRouteMatch{
+		Path:          BookstoreBuyPath,
+		PathMatchType: trafficpolicy.PathMatchRegex,
+		Methods:       []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": HTTPUserAgent,
+			"host":       HTTPHostHeader,
 		},
 	}
 
@@ -335,6 +349,46 @@ var (
 					Methods:   []string{"GET"},
 					Headers: map[string]string{
 						"user-agent": HTTPUserAgent,
+					},
+				},
+				{
+					Name:      SellBooksMatchName,
+					PathRegex: BookstoreSellPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": HTTPUserAgent,
+					},
+				},
+				{
+					Name: WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": HTTPUserAgent,
+					},
+				},
+			},
+		},
+	}
+
+	// HTTPRouteGroupWithHost is the HTTP route group SMI object having a host header.
+	HTTPRouteGroupWithHost = spec.HTTPRouteGroup{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+			Name:      RouteGroupName,
+		},
+
+		Spec: spec.HTTPRouteGroupSpec{
+			Matches: []spec.HTTPMatch{
+				{
+					Name:      BuyBooksMatchName,
+					PathRegex: BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": HTTPUserAgent,
+						"host":       HTTPHostHeader,
 					},
 				},
 				{

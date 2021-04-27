@@ -77,6 +77,8 @@ func RestockBooks(amount int) {
 	client := &http.Client{}
 	requestBody := strings.NewReader(strconv.Itoa(1))
 	req, err := http.NewRequest("POST", chargeAccountURL, requestBody)
+	req.Header.Add("host", fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace))
+
 	if err != nil {
 		log.Error().Err(err).Msgf("RestockBooks: error posting to %s", chargeAccountURL)
 		return

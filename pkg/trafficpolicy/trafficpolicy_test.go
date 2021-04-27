@@ -669,7 +669,7 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 			expectedRoutes: []*RouteWeightedClusters{&testRoute},
 		},
 		{
-			name:           "routes have same match conditions but different weighted clusters, apply latest weighted clusters",
+			name:           "routes have same match conditions but different weighted clusters, union the weighted clusters",
 			originalRoutes: []*RouteWeightedClusters{&testRoute},
 			latestRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
@@ -677,7 +677,7 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 			}},
 			expectedRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
-				WeightedClusters: mapset.NewSet(testWeightedCluster2),
+				WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
 			}},
 		},
 	}
@@ -745,7 +745,7 @@ func TestTotalClustersWeight(t *testing.T) {
 	}{
 		{
 			name:           "route with single cluster",
-			route:          testRoute,
+			route:          testRoute2,
 			expectedWeight: 100,
 		},
 		{

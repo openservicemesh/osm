@@ -287,6 +287,155 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			permissiveMode: false,
 		},
 		{
+			name:         "inbound policies in same namespaces, with traffic split and host header",
+			downstreamSA: tests.BookbuyerServiceIdentity,
+			upstreamSA:   tests.BookstoreServiceIdentity,
+			upstreamServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}},
+			meshServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}, {
+				Name:      "bookstore-apex",
+				Namespace: "default",
+			}},
+			meshServiceAccounts: []identity.K8sServiceAccount{},
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent":  tests.HTTPUserAgent,
+								hostHeaderKey: tests.HTTPHostHeader,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			trafficSplit: split.TrafficSplit{
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: split.TrafficSplitSpec{
+					Service: "bookstore-apex",
+					Backends: []split.TrafficSplitBackend{
+						{
+							Service: "bookstore",
+							Weight:  tests.Weight90,
+						},
+						{
+							Service: tests.BookstoreV2ServiceName,
+							Weight:  tests.Weight10,
+						},
+					},
+				},
+			},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "bookstore.default",
+					Hostnames: []string{
+						"bookstore",
+						"bookstore.default",
+						"bookstore.default.svc",
+						"bookstore.default.svc.cluster",
+						"bookstore.default.svc.cluster.local",
+						"bookstore:8888",
+						"bookstore.default:8888",
+						"bookstore.default.svc:8888",
+						"bookstore.default.svc.cluster:8888",
+						"bookstore.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+				{
+					Name: "bookstore-apex",
+					Hostnames: []string{
+						"bookstore-apex",
+						"bookstore-apex.default",
+						"bookstore-apex.default.svc",
+						"bookstore-apex.default.svc.cluster",
+						"bookstore-apex.default.svc.cluster.local",
+						"bookstore-apex:8888",
+						"bookstore-apex.default:8888",
+						"bookstore-apex.default.svc:8888",
+						"bookstore-apex.default.svc.cluster:8888",
+						"bookstore-apex.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+				{
+					Name:      tests.HTTPHostHeader,
+					Hostnames: []string{tests.HTTPHostHeader},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+			permissiveMode: false,
+		},
+		{
 			name:                "permissive mode",
 			downstreamSA:        tests.BookstoreServiceIdentity,
 			upstreamSA:          tests.BookbuyerServiceIdentity,
@@ -670,6 +819,129 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "inbound policies in same namespaces: with traffic split (namespaced root service) and traffic target (having host header)",
+			downstreamSA: identity.K8sServiceAccount{
+				Name:      "bookbuyer",
+				Namespace: "default",
+			}.ToServiceIdentity(),
+			upstreamSA: identity.K8sServiceAccount{
+				Name:      "bookstore",
+				Namespace: "default",
+			}.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}},
+			meshServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}, {
+				Name:      "bookstore-apex",
+				Namespace: "default",
+			}},
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent":  tests.HTTPUserAgent,
+								hostHeaderKey: tests.HTTPHostHeader,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			trafficSplit: split.TrafficSplit{
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: split.TrafficSplitSpec{
+					Service: "bookstore-apex.default",
+					Backends: []split.TrafficSplitBackend{
+						{
+							Service: "bookstore",
+							Weight:  tests.Weight90,
+						},
+						{
+							Service: tests.BookstoreV2ServiceName,
+							Weight:  tests.Weight10,
+						},
+					},
+				},
+			},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "bookstore-apex",
+					Hostnames: []string{
+						"bookstore-apex",
+						"bookstore-apex.default",
+						"bookstore-apex.default.svc",
+						"bookstore-apex.default.svc.cluster",
+						"bookstore-apex.default.svc.cluster.local",
+						"bookstore-apex:8888",
+						"bookstore-apex.default:8888",
+						"bookstore-apex.default.svc:8888",
+						"bookstore-apex.default.svc.cluster:8888",
+						"bookstore-apex.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+				{
+					Name:      tests.HTTPHostHeader,
+					Hostnames: []string{tests.HTTPHostHeader},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -897,6 +1169,84 @@ func TestBuildInboundPolicies(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:           "inbound policies with host header",
+			sourceSA:       tests.BookbuyerServiceIdentity,
+			destSA:         tests.BookstoreServiceIdentity,
+			inboundService: tests.BookstoreV1Service,
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent":  tests.HTTPUserAgent,
+								hostHeaderKey: tests.HTTPHostHeader,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name:      tests.BookstoreV1Service.Name + "." + tests.BookstoreV1Service.Namespace,
+					Hostnames: tests.BookstoreV1Hostnames,
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore-v1",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+				{
+					Name:      tests.HTTPHostHeader,
+					Hostnames: []string{tests.HTTPHostHeader},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore-v1",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1092,6 +1442,112 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inbound policies in same namespaces with host header",
+			downstreamServiceIdentity: identity.K8sServiceAccount{
+				Name:      "bookbuyer",
+				Namespace: "default",
+			}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{
+				Name:      "bookstore",
+				Namespace: "default",
+			}.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{{
+				Name:      "bookstore",
+				Namespace: "default",
+			}},
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent":  tests.HTTPUserAgent,
+								hostHeaderKey: tests.HTTPHostHeader,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "bookstore.default",
+					Hostnames: []string{
+						"bookstore",
+						"bookstore.default",
+						"bookstore.default.svc",
+						"bookstore.default.svc.cluster",
+						"bookstore.default.svc.cluster.local",
+						"bookstore:8888",
+						"bookstore.default:8888",
+						"bookstore.default.svc:8888",
+						"bookstore.default.svc.cluster:8888",
+						"bookstore.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+				{
+					Name:      tests.HTTPHostHeader,
+					Hostnames: []string{tests.HTTPHostHeader},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          tests.BookstoreBuyPath,
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{"GET"},
+									Headers: map[string]string{
+										"user-agent":  tests.HTTPUserAgent,
+										hostHeaderKey: tests.HTTPHostHeader,
+									},
+								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "default/bookstore",
 									Weight:      100,
