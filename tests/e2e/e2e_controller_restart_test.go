@@ -18,32 +18,8 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server before 
 	func() {
 		Context("SimpleClientServer traffic test involving osm-controller restart: HTTP", func() {
 			testHTTPTrafficWithControllerRestart()
-			testCreateMeshConfig()
 		})
 	})
-
-func testCreateMeshConfig() {
-	const meshConfigName = "osm-mesh-config"
-
-	It("creates default MeshConfig resource", func() {
-		namespace := Td.GetOSMInstallOpts().ControlPlaneNS
-
-		// Install OSM
-		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
-		meshConfig, err := Td.GetMeshConfig(meshConfigName, namespace)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		// validate osm MeshConfig
-		Expect(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).Should(BeFalse())
-		Expect(meshConfig.Spec.Traffic.EnableEgress).Should(BeFalse())
-		Expect(meshConfig.Spec.Sidecar.LogLevel).Should(Equal("error"))
-		Expect(meshConfig.Spec.Observability.PrometheusScraping).Should(BeTrue())
-		Expect(meshConfig.Spec.Observability.EnableDebugServer).Should(BeFalse())
-		Expect(meshConfig.Spec.Observability.Tracing.Enable).Should(BeFalse())
-		Expect(meshConfig.Spec.Traffic.UseHTTPSIngress).Should(BeFalse())
-		Expect(meshConfig.Spec.Certificate.ServiceCertValidityDuration).Should(Equal("24h"))
-	})
-}
 
 func testHTTPTrafficWithControllerRestart() {
 	const sourceName = "client"

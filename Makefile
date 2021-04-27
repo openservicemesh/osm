@@ -77,10 +77,6 @@ endif
 clean-cert:
 	@rm -rf bin/cert
 
-.PHONY: clean-init-osm-controller
-clean-init-osm-controller:
-	@rm -rf bin/init-osm-controller
-
 .PHONY: clean-osm-controller
 clean-osm-controller:
 	@rm -rf bin/osm-controller
@@ -90,11 +86,7 @@ clean-osm-injector:
 	@rm -rf bin/osm-injector
 
 .PHONY: build
-build: build-init-osm-controller build-osm-controller build-osm-injector
-
-.PHONY: build-init-osm-controller
-build-init-osm-controller: check-go-version clean-init-osm-controller wasm/stats.wasm
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/init-osm-controller/init-osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/init-osm-controller
+build: build-osm-controller build-osm-injector
 
 .PHONY: build-osm-controller
 build-osm-controller: check-go-version clean-osm-controller wasm/stats.wasm
@@ -172,7 +164,7 @@ kind-reset:
 	kind delete cluster --name osm
 
 .PHONY: test-e2e
-test-e2e: docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
+test-e2e: docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -193,7 +185,7 @@ $(DEMO_BUILD_TARGETS):
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONY: demo-build
-demo-build: $(DEMO_BUILD_TARGETS) build-init-osm-controller build-osm-controller build-osm-injector
+demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller build-osm-injector
 
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
@@ -206,9 +198,6 @@ $(DOCKER_DEMO_TARGETS):
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
 
-docker-build-init-osm-controller: build-init-osm-controller
-	docker build -t $(CTR_REGISTRY)/init-osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.init-osm-controller bin/init-osm-controller
-
 docker-build-osm-controller: build-osm-controller
 	docker build -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller bin/osm-controller
 
@@ -219,10 +208,10 @@ wasm/stats.wasm: wasm/stats.cc wasm/Makefile
 	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
 
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector
 
 # docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector)
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-controller osm-injector)
 VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
