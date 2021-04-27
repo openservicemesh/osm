@@ -48,6 +48,13 @@ rules:
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]
     verbs: ["list", "get", "watch", "create", "delete"]
+
+  {{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") .Values.OpenServiceMesh.enableFluentbit }}
+  - apiGroups: ["security.openshift.io"]
+    resourceNames: ["hostaccess"]
+    resources: ["securitycontextconstraints"]
+    verbs: ["use"]
+  {{- end }}
 ---
 
 apiVersion: v1
