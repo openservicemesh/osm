@@ -37,6 +37,20 @@ func (m *MockMeshSpec) EXPECT() *MockMeshSpecMockRecorder {
 	return m.recorder
 }
 
+// GetHTTPRouteGroup mocks base method
+func (m *MockMeshSpec) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHTTPRouteGroup", arg0)
+	ret0, _ := ret[0].(*v1alpha4.HTTPRouteGroup)
+	return ret0
+}
+
+// GetHTTPRouteGroup indicates an expected call of GetHTTPRouteGroup
+func (mr *MockMeshSpecMockRecorder) GetHTTPRouteGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHTTPRouteGroup", reflect.TypeOf((*MockMeshSpec)(nil).GetHTTPRouteGroup), arg0)
+}
+
 // GetTCPRoute mocks base method
 func (m *MockMeshSpec) GetTCPRoute(arg0 string) *v1alpha4.TCPRoute {
 	m.ctrl.T.Helper()

@@ -409,3 +409,54 @@ var _ = Describe("When getting a TCP route by its namespaced name", func() {
 		Expect(tcpRoute).To(Equal(routeSpec))
 	})
 })
+
+var _ = Describe("When getting an HTTP route by its namespaced name", func() {
+	var (
+		meshSpec      MeshSpec
+		fakeClientSet *fakeKubeClientSet
+		err           error
+	)
+	BeforeEach(func() {
+		meshSpec, fakeClientSet, err = bootstrapClient()
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should return nil when a HTTP route is not found", func() {
+		route := meshSpec.GetHTTPRouteGroup("ns/route")
+		Expect(route).To(BeNil())
+	})
+
+	It("should return a non nil HTTPRouteGroup when found", func() {
+		trChannel := events.GetPubSubInstance().Subscribe(announcements.RouteGroupAdded,
+			announcements.RouteGroupDeleted,
+			announcements.RouteGroupUpdated)
+		defer events.GetPubSubInstance().Unsub(trChannel)
+		routeSpec := &smiSpecs.HTTPRouteGroup{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "specs.smi-spec.io/v1alpha4",
+				Kind:       "HTTPRouteGroup",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: testNamespaceName,
+				Name:      "test-GetHTTPRouteGroup",
+			},
+			Spec: smiSpecs.HTTPRouteGroupSpec{
+				Matches: []smiSpecs.HTTPMatch{
+					{
+						Name:      tests.SellBooksMatchName,
+						PathRegex: tests.BookstoreSellPath,
+						Methods:   []string{"GET"},
+					},
+				},
+			},
+		}
+
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-trChannel
+
+		route := meshSpec.GetHTTPRouteGroup(fmt.Sprintf("%s/%s", routeSpec.Namespace, routeSpec.Name))
+		Expect(route).ToNot(BeNil())
+		Expect(route).To(Equal(routeSpec))
+	})
+})

@@ -57,6 +57,9 @@ type MeshSpec interface {
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
+	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
+
 	// ListTCPTrafficSpecs lists SMI TCPRoute resources
 	ListTCPTrafficSpecs() []*spec.TCPRoute
 

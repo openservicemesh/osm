@@ -2,6 +2,7 @@ package smi
 
 import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
@@ -46,6 +47,11 @@ func (f fakeMeshSpec) ListServiceAccounts() []identity.K8sServiceAccount {
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (f fakeMeshSpec) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	return f.httpRouteGroups
+}
+
+// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+func (f fakeMeshSpec) GetHTTPRouteGroup(_ string) *smiSpecs.HTTPRouteGroup {
+	return nil
 }
 
 // ListTCPTrafficSpecs lists SMI TCPRoute resources

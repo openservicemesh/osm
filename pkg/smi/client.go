@@ -188,6 +188,17 @@ func (c *client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 	return httpTrafficSpec
 }
 
+// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+func (c *client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGroup {
+	// client-go cache uses <namespace>/<name> as key
+	routeIf, exists, err := c.caches.HTTPRouteGroup.GetByKey(namespacedName)
+	if exists && err == nil {
+		route := routeIf.(*smiSpecs.HTTPRouteGroup)
+		return route
+	}
+	return nil
+}
+
 // ListTCPTrafficSpecs lists SMI TCPRoute resources
 func (c *client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	var tcpRouteSpec []*smiSpecs.TCPRoute
