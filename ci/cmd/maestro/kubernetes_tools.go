@@ -145,47 +145,60 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 		os.Exit(1)
 	}
 
-	// Poll for success
-	startedWaiting := time.Now()
-
 	go func() {
 		defer close(result)
 		defer logStream.Close() //nolint: errcheck,gosec
+
 		r := bufio.NewReader(logStream)
+		type readResult struct {
+			line string
+			err  error
+		}
+		readRes := make(chan readResult)
+
+		go func() {
+			for {
+				line, err := r.ReadString('\n')
+				readRes <- readResult{line, err}
+			}
+		}()
+
+		timeout := time.After(totalWait)
 		for {
-			line, err := r.ReadString('\n')
-
-			switch {
-			// Make sure we don't wait too long for success/failure
-			case time.Since(startedWaiting) >= totalWait:
+			select {
+			case <-timeout:
 				result <- TestsTimedOut
-
-			// If we detect EOF before success - this must have been a failure
-			case err == io.EOF:
-				log.Error().Err(err).Msgf("EOF reading from pod %s/%s", namespace, podName)
-				result <- TestsFailed
-				return
-
-			// Any other error fails the test
-			case err != nil:
-				log.Error().Err(err).Msgf("Error reading from pod %s/%s", namespace, podName)
-				result <- TestsFailed
-				return
-
-			// Finally search for SUCCESS or FAILURE
-			// The container itself has the heuristic on when to emit these.
-			default:
-
-				if strings.Contains(line, successToken) {
-					log.Info().Msgf("[%s] Found %s", containerName, successToken)
-					result <- TestsPassed
-					return
-				}
-
-				if strings.Contains(line, failureToken) {
-					log.Info().Msgf("[%s] Found %s", containerName, failureToken)
+			case readres := <-readRes:
+				line := readres.line
+				err := readres.err
+				switch {
+				// If we detect EOF before success - this must have been a failure
+				case err == io.EOF:
+					log.Error().Err(err).Msgf("EOF reading from pod %s/%s", namespace, podName)
 					result <- TestsFailed
 					return
+
+				// Any other error fails the test
+				case err != nil:
+					log.Error().Err(err).Msgf("Error reading from pod %s/%s", namespace, podName)
+					result <- TestsFailed
+					return
+
+				// Finally search for SUCCESS or FAILURE
+				// The container itself has the heuristic on when to emit these.
+				default:
+
+					if strings.Contains(line, successToken) {
+						log.Info().Msgf("[%s] Found %s", containerName, successToken)
+						result <- TestsPassed
+						return
+					}
+
+					if strings.Contains(line, failureToken) {
+						log.Info().Msgf("[%s] Found %s", containerName, failureToken)
+						result <- TestsFailed
+						return
+					}
 				}
 			}
 		}
