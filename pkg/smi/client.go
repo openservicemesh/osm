@@ -194,6 +194,10 @@ func (c *client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGro
 	routeIf, exists, err := c.caches.HTTPRouteGroup.GetByKey(namespacedName)
 	if exists && err == nil {
 		route := routeIf.(*smiSpecs.HTTPRouteGroup)
+		if !c.kubeController.IsMonitoredNamespace(route.Namespace) {
+			log.Warn().Msgf("HTTPRouteGroup %s found, but belongs to a namespace that is not monitored, ignoring it", namespacedName)
+			return nil
+		}
 		return route
 	}
 	return nil
@@ -219,6 +223,10 @@ func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 	routeIf, exists, err := c.caches.TCPRoute.GetByKey(namespacedName)
 	if exists && err == nil {
 		route := routeIf.(*smiSpecs.TCPRoute)
+		if !c.kubeController.IsMonitoredNamespace(route.Namespace) {
+			log.Warn().Msgf("TCPRoute %s found, but belongs to a namespace that is not monitored, ignoring it", namespacedName)
+			return nil
+		}
 		return route
 	}
 	return nil
