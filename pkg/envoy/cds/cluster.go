@@ -74,18 +74,6 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 	}
 }
 
-// getSyntheticCluster returns a static cluster with no endpoints
-func getSyntheticCluster(name string) *xds_cluster.Cluster {
-	return &xds_cluster.Cluster{
-		Name: name,
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_STATIC,
-		},
-		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-	}
-}
-
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
 	xdsCluster := xds_cluster.Cluster{
