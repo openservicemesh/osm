@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -226,9 +227,10 @@ func main() {
 
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
+	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer}
+	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{SMIClientset: clientset}}
 	httpServer.AddHandlers(map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
