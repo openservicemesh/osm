@@ -15,9 +15,15 @@ import (
 )
 
 const (
-	defaultUseHTTPSIngress         = false
-	defaultEnableTracing           = true
-	defaultPrivilegedInitContainer = false
+	defaultUseHTTPSIngress               = false
+	defaultEnableTracing                 = true
+	defaultPrivilegedInitContainer       = false
+	defaultContainerRegistry             = "openservicemesh"
+	defaultOsmImageTag                   = "v0.8.3"
+	defaultEnablePermissiveTrafficPolicy = false
+	defaultEnableEgress                  = false
+	defaultEnableDebugServer             = false
+	defaultEnablePrometheusScraping      = true
 )
 
 const upgradeDesc = `

@@ -29,18 +29,13 @@ to automatically provision the metrics components and with the BYO method.
 
 By default, both Prometheus and Grafana are disabled.
 
-However, when configured with the `--deploy-prometheus` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `--deploy-grafana` flag to true when installing OSM using the `osm install` command.
+However, when configured with the `--set=OpenServiceMesh.deployPrometheus=true` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `--set=OpenServiceMesh.deployGrafana=true` flag to true when installing OSM using the `osm install` command.
 
-The automatic bring up can be overridden with the `osm install` option during install time:
+The automatic bring up can be overridden with the `osm install --set` flag during install time:
 
 ```bash
-osm install --help
-
-This command installs an osm control plane on the Kubernetes...
-...
---deploy-prometheus               Enable Prometheus deployment (default false)
---deploy-grafana                  Enable Grafana deployment (default false)
-...
+ osm install --set=OpenServiceMesh.deployPrometheus=true \
+             --set=OpenServiceMesh.deployGrafana=true
 ```
 
 Note that the Prometheus and Grafana instances deployed automatically by OSM have simple configurations that do not include high availability, persistent storage, or locked down security. If production-grade instances are required, pre-provision them and follow the BYO instructions on this page to integrate them with OSM.

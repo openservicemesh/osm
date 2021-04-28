@@ -12,7 +12,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
 1. Configure and Install [Service Mesh Interface (SMI) policies](https://github.com/servicemeshinterface/smi-spec)
 
-    OSM conforms to the SMI specification. By default, OSM denies all traffic communications between Kubernetes services unless explicitly allowed by SMI policies. This behavior can be overridden with the `--enable-permissive-traffic-policy` flag on the `osm install` command, allowing SMI policies not to be enforced while allowing traffic and services to still take advantage of features such as mTLS-encrypted traffic, metrics, and tracing.
+    OSM conforms to the SMI specification. By default, OSM denies all traffic communications between Kubernetes services unless explicitly allowed by SMI policies. This behavior can be overridden with the `--set=OpenServiceMesh.enablePermissiveTrafficPolicy=true` flag on the `osm install` command, allowing SMI policies not to be enforced while allowing traffic and services to still take advantage of features such as mTLS-encrypted traffic, metrics, and tracing.
 
     For example SMI policies, please see the following examples:
     - [demo/deploy-traffic-specs.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/deploy-traffic-specs.sh)

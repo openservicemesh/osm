@@ -54,7 +54,7 @@ Open Service Mesh includes a package, [tresor](https://github.com/openservicemes
   - To use this package in your Kubernetes cluster set the `CERT_MANAGER=tresor` variable in the Helm chart prior to deployment.
 
 Additionally:
-  - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret, where the CA root certificate and private key will be saved.
+  - `OpenServiceMesh.caBundleSecretName` - this string is the name of the Kubernetes secret, where the CA root certificate and private key will be saved.
 
 
 ### Using Hashicorp Vault
@@ -66,16 +66,16 @@ The following configuration parameters will be required for OSM to integrate wit
   - Vault token
   - Validity period for certificates
 
-CLI flags control how OSM integrates with Vault. The following OSM command line parameters must be configured to issue certificates with Vault:
-  - `--certificate-manager` - set this to `vault`
-  - `--vault-host` - host name of the Vault server (example: `vault.contoso.com`)
-  - `--vault-protocol` - protocol for Vault connection (`http` or `https`)
-  - `--vault-token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
-  - `--vault-role` - role created on Vault server and dedicated to Open Service Mesh (example: `openservicemesh`)
-  - `--service-cert-validity-duration` - period for which each new certificate issued for service-to-service communication will be valid. It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix, ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
+`osm install` set flag control how OSM integrates with Vault. The following `osm install` set options must be configured to issue certificates with Vault:
+  - `--set OpenServiceMesh.certificateManager=vault` - set this to `vault`
+  - `--set OpenServiceMesh.vault.host` - host name of the Vault server (example: `vault.contoso.com`)
+  - `--set OpenServiceMesh.vault.protocol` - protocol for Vault connection (`http` or `https`)
+  - `--set OpenServiceMesh.vault.token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
+  - `--set OpenServiceMesh.vault.role` - role created on Vault server and dedicated to Open Service Mesh (example: `openservicemesh`)
+  - `--set OpenServiceMesh.serviceCertValidityDuration` - period for which each new certificate issued for service-to-service communication will be valid. It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix, ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
 
 Additionally:
-  - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
+  - `OpenServiceMesh.caBundleSecretName` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
 
 
 #### Installing Hashi Vault
@@ -141,20 +141,20 @@ VAULT_TOKEN=xyz
 VAULT_ROLE=openservicemesh
 ```
 
-When running OSM on your local workstation, use the following CLI parameters:
+When running OSM on your local workstation, use the following `osm install` set options:
 ```
---certificate-manager="vault"
---vault-host="localhost"  # or the host where Vault is installed
---vault-protocol="http"
---vault-token="xyz"
---vault-role="openservicemesh'
---service-cert-validity-duration=24h
+--set OpenServiceMesh.certificateManager="vault"
+--set OpenServiceMesh.vault.host="localhost"  # or the host where Vault is installed
+--set OpenServiceMesh.vault.protocol="http"
+--set OpenServiceMesh.vault.token="xyz"
+--set OpenServiceMesh.vault.role="openservicemesh'
+--set OpenServiceMesh.serviceCertValidityDuration=24h
 ```
 
 #### How OSM Integrates with Vault
 
 When the OSM control plane starts, a new certificate issuer is instantiated.
-The kind of cert issuer is determined by the `--certificate-manager` CLI parameter.
+The kind of cert issuer is determined by the `OpenServiceMesh.certificateManager` set option.
 When this is set to `vault` OSM uses a Vault cert issuer.
 This is a Hashicorp Vault client, which satisfies the `certificate.Manager`
 interface. It provides the following methods:
@@ -240,8 +240,8 @@ default).
 
 Once ready, it is **required** to store the root CA certificate of your issuer
 as a Kubernetes secret in the OSM namespace (`osm-system` by default) at the
-`ca.crt` key. The target CA secret name can be configured on OSM with the flag
-`--ca-bundle-secret-name` (typically `osm-ca-bundle`).
+`ca.crt` key. The target CA secret name can be configured on OSM using
+`osm install --set OpenServiceMesh.caBundleSecretName=my-secret-name` (typically `osm-ca-bundle`).
 
 ```bash
 kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
@@ -252,11 +252,7 @@ kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
 In order for OSM to use cert-manager with the configured issuer, set the
 following CLI arguments on the `osm install` command:
 
-  - `--certificate-manager="cert-manager"` - Required to use cert-manager as the
-      provider.
-  - `--cert-manager-issuer-name` - The name of the [Cluster]Issuer resource
-      (defaulted to `osm-ca`).
-  - `--cert-manager-issuer-kind` - The kind of issuer (either `Issuer` or
-      `ClusterIssuer`, defaulted to `Issuer`).
-  - `--cert-manager-issuer-group` - The group that the issuer belongs to
-      (defaulted to `cert-manager.io` which is all core issuer types).
+  - `--set OpenServiceMesh.certificateManager="cert-manager"` - Required to use cert-manager as the provider.
+  - `--set OpenServiceMesh.certmanager.issuerName` - The name of the [Cluster]Issuer resource (defaulted to `osm-ca`).
+  - `--set OpenServiceMesh.certmanager.issuerKind` - The kind of issuer (either `Issuer` or `ClusterIssuer`, defaulted to `Issuer`).
+  - `--set OpenServiceMesh.certmanager.issuerGroup` - The group that the issuer belongs to (defaulted to `cert-manager.io` which is all core issuer types).
