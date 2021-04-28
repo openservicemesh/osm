@@ -469,9 +469,63 @@ At this point, applications do not have access to each other because no access c
 
 Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control and routing policies for the applications to communicate:
 
+ Deploy SMI TrafficTarget
 ```bash
-# Deploy SMI TrafficTarget and HTTPRouteGroup policy
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/docs/example/manifests/access/traffic-access-v1.yaml
+kubectl apply -f - <<EOF
+---
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha3
+metadata:
+  name: bookstore
+  namespace: bookstore
+spec:
+  destination:
+    kind: ServiceAccount
+    name: bookstore
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
+# Bookthief is NOT allowed to talk to Bookstore
+#  - kind: ServiceAccount
+#    name: bookthief
+#    namespace: bookthief
+EOF
+```
+
+Deploy HTTPRouteGroup policy
+```bash
+kubectl apply -f - <<EOF
+---
+apiVersion: specs.smi-spec.io/v1alpha4
+kind: HTTPRouteGroup
+metadata:
+  name: bookstore-service-routes
+  namespace: bookstore
+spec:
+  matches:
+  - name: books-bought
+    pathRegex: /books-bought
+    methods:
+    - GET
+    headers:
+    - host: "bookstore.bookstore"
+    - "user-agent": ".*-http-client/*.*"
+    - "client-app": "bookbuyer"
+  - name: buy-a-book
+    pathRegex: ".*a-book.*new"
+    methods:
+    - GET
+    headers:
+    - host: "bookstore.bookstore"
+EOF
 ```
 
 The counters should now be incrementing for the `bookbuyer`, and `bookstore` applications:
