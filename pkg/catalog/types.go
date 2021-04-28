@@ -45,9 +45,6 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// GetSMISpec returns the SMI spec
-	GetSMISpec() smi.MeshSpec
-
 	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service identity and inbound services
 	ListInboundTrafficPolicies(identity.ServiceIdentity, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
 
@@ -93,6 +90,12 @@ type MeshCataloger interface {
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+
+	// GetWeightedClustersForUpstream lists the weighted cluster backends corresponding to the upstream service.
+	GetWeightedClustersForUpstream(service.MeshService) []service.WeightedCluster
+
+	// ListMeshServicesForIdentity lists the services for a given service identity.
+	ListMeshServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate

@@ -1123,3 +1123,283 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal([]service.MeshService{destMeshService}, actual)
 }
+
+func TestGetOutboundTCPFilter(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	type testCase struct {
+		name          string
+		upstream      service.MeshService
+		trafficSplits []*split.TrafficSplit
+		expected      []service.WeightedCluster
+	}
+
+	testCases := []testCase{
+		{
+			name:          "TCP filter for upstream without any traffic split policies",
+			upstream:      service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: nil,
+			expected:      nil,
+		},
+		{
+			name:     "TCP filter for upstream with matching traffic split policy",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expected: []service.WeightedCluster{
+				{
+					ClusterName: "bar/foo-v1",
+					Weight:      10,
+				},
+				{
+					ClusterName: "bar/foo-v2",
+					Weight:      90,
+				},
+			},
+		},
+		{
+			name:     "TCP filter for upstream without matching traffic split policy",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "not-upstream.bar.svc.cluster.local", // Root service is not the upstream the filter is being built for
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			name:     "TCP filter for upstream with multiple matching policies, pick first",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  90,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "foo-v3",
+								Weight:  10,
+							},
+							{
+								Service: "foo-v4",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			expected: []service.WeightedCluster{
+				{
+					ClusterName: "bar/foo-v1",
+					Weight:      10,
+				},
+				{
+					ClusterName: "bar/foo-v2",
+					Weight:      90,
+				},
+			},
+		},
+		{
+			name:     "TCP filter for upstream with matching traffic split policy including a backend with 0 weight",
+			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "bar",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "foo.bar.svc.cluster.local",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "foo-v1",
+								Weight:  100,
+							},
+							{
+								Service: "foo-v2",
+								Weight:  0,
+							},
+						},
+					},
+				},
+			},
+			expected: []service.WeightedCluster{
+				{
+					ClusterName: "bar/foo-v1",
+					Weight:      100,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
+
+			mc := MeshCatalog{
+				meshSpec: mockMeshSpec,
+			}
+
+			clusterWeights := mc.GetWeightedClustersForUpstream(tc.upstream)
+
+			assert := tassert.New(t)
+			assert.Equal(tc.expected, clusterWeights)
+		})
+	}
+}
+
+func TestListMeshServicesForIdentity(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockController := k8s.NewMockController(mockCtrl)
+
+	mc := MeshCatalog{
+		meshSpec:       mockMeshSpec,
+		kubeController: mockController,
+		configurator:   mockConfigurator,
+	}
+
+	testCases := []struct {
+		name          string
+		id            identity.ServiceIdentity
+		services      []*corev1.Service
+		trafficSplits []*split.TrafficSplit
+		expected      []service.MeshService
+	}{
+		{
+			name:     "no allowed outbound services",
+			id:       "foo.bar",
+			expected: nil,
+		},
+		{
+			name: "some allowed service",
+			id:   "my-src-ns.my-src-name",
+			services: []*corev1.Service{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Namespace: "my-dst-ns",
+						Name:      "split-backend-1",
+					},
+				},
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Namespace: "my-dst-ns",
+						Name:      "split-backend-2",
+					},
+				},
+			},
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Namespace: "wrong-ns",
+					},
+				},
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "split",
+						Namespace: "my-dst-ns",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "split-svc.my-dst-ns",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "split-backend-1",
+							},
+							{
+								Service: "split-backend-2",
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Name:      "split-svc",
+					Namespace: "my-dst-ns",
+				},
+				{
+					Name:      "split-backend-1",
+					Namespace: "my-dst-ns",
+				},
+				{
+					Name:      "split-backend-2",
+					Namespace: "my-dst-ns",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
+			mockController.EXPECT().ListServices().Return(tc.services).Times(1)
+			if len(tc.trafficSplits) > 0 {
+				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
+			}
+
+			tassert.ElementsMatch(t, tc.expected, mc.ListMeshServicesForIdentity(tc.id))
+		})
+	}
+}

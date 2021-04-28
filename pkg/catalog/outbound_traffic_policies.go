@@ -230,3 +230,92 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 	}
 	return destServices, nil
 }
+
+// GetWeightedClustersForUpstream returns Envoy cluster weights for the given
+// upstream service, the apex service of a TrafficSplit.
+func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshService) []service.WeightedCluster {
+	var weightedClusters []service.WeightedCluster
+	apexServices := mapset.NewSet()
+
+	for _, split := range mc.meshSpec.ListTrafficSplits() {
+		// Split policy must be in the same namespace as the upstream service
+		if split.Namespace != upstream.Namespace {
+			continue
+		}
+		rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
+		if rootServiceName != upstream.Name {
+			// This split policy does not correspond to the upstream service
+			continue
+		}
+
+		if apexServices.Contains(split.Spec.Service) {
+			log.Error().Msgf("Skipping traffic split policy %s/%s as there is already a corresponding policy for apex service %s", split.Namespace, split.Name, split.Spec.Service)
+			continue
+		}
+
+		for _, backend := range split.Spec.Backends {
+			if backend.Weight == 0 {
+				// Skip backends with a weight of 0
+				log.Warn().Msgf("Skipping backend %s that has a weight of 0 in traffic split policy %s/%s", backend.Service, split.Namespace, split.Name)
+				continue
+			}
+			backendCluster := service.WeightedCluster{
+				ClusterName: service.ClusterName(split.Namespace + "/" + backend.Service),
+				Weight:      backend.Weight,
+			}
+			weightedClusters = append(weightedClusters, backendCluster)
+		}
+		apexServices.Add(split.Spec.Service)
+	}
+
+	return weightedClusters
+}
+
+// ListMeshServicesForIdentity returns a list of services the service with the
+// given identity can communicate with, including apex TrafficSplit services.
+func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIdentity) []service.MeshService {
+	upstreamServices := mc.ListAllowedOutboundServicesForIdentity(identity)
+	if len(upstreamServices) == 0 {
+		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", identity)
+		return nil
+	}
+
+	dstServicesSet := make(map[service.MeshService]struct{}) // Set, avoid duplicates
+	// Transform into set, when listing apex services we might face repetitions
+	for _, upstreamSvc := range upstreamServices {
+		dstServicesSet[upstreamSvc] = struct{}{}
+	}
+
+	// Getting apex services referring to the outbound services
+	// We get possible apexes which could traffic split to any of the possible
+	// outbound services
+	splitPolicy := mc.meshSpec.ListTrafficSplits()
+
+	for upstreamSvc := range dstServicesSet {
+		for _, split := range splitPolicy {
+			// Split policy must be in the same namespace as the upstream service that is a backend
+			if split.Namespace != upstreamSvc.Namespace {
+				continue
+			}
+			for _, backend := range split.Spec.Backends {
+				if backend.Service == upstreamSvc.Name {
+					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
+					rootMeshService := service.MeshService{
+						Namespace: split.Namespace,
+						Name:      rootServiceName,
+					}
+
+					// Add this root service into the set
+					dstServicesSet[rootMeshService] = struct{}{}
+				}
+			}
+		}
+	}
+
+	dstServices := make([]service.MeshService, 0, len(dstServicesSet))
+	for svc := range dstServicesSet {
+		dstServices = append(dstServices, svc)
+	}
+
+	return dstServices
+}

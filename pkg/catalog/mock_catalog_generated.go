@@ -12,7 +12,6 @@ import (
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
-	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -84,20 +83,6 @@ func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableServiceEndpoints", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableServiceEndpoints), arg0)
 }
 
-// GetSMISpec mocks base method
-func (m *MockMeshCataloger) GetSMISpec() smi.MeshSpec {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSMISpec")
-	ret0, _ := ret[0].(smi.MeshSpec)
-	return ret0
-}
-
-// GetSMISpec indicates an expected call of GetSMISpec
-func (mr *MockMeshCatalogerMockRecorder) GetSMISpec() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSMISpec", reflect.TypeOf((*MockMeshCataloger)(nil).GetSMISpec))
-}
-
 // GetServicesForProxy mocks base method
 func (m *MockMeshCataloger) GetServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
@@ -126,6 +111,20 @@ func (m *MockMeshCataloger) GetTargetPortToProtocolMappingForService(arg0 servic
 func (mr *MockMeshCatalogerMockRecorder) GetTargetPortToProtocolMappingForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortToProtocolMappingForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetTargetPortToProtocolMappingForService), arg0)
+}
+
+// GetWeightedClustersForUpstream mocks base method
+func (m *MockMeshCataloger) GetWeightedClustersForUpstream(arg0 service.MeshService) []service.WeightedCluster {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWeightedClustersForUpstream", arg0)
+	ret0, _ := ret[0].([]service.WeightedCluster)
+	return ret0
+}
+
+// GetWeightedClustersForUpstream indicates an expected call of GetWeightedClustersForUpstream
+func (mr *MockMeshCatalogerMockRecorder) GetWeightedClustersForUpstream(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWeightedClustersForUpstream", reflect.TypeOf((*MockMeshCataloger)(nil).GetWeightedClustersForUpstream), arg0)
 }
 
 // ListAllowedEndpointsForService mocks base method
@@ -214,6 +213,20 @@ func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 identity.Se
 func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInboundTrafficTargetsWithRoutes", reflect.TypeOf((*MockMeshCataloger)(nil).ListInboundTrafficTargetsWithRoutes), arg0)
+}
+
+// ListMeshServicesForIdentity mocks base method
+func (m *MockMeshCataloger) ListMeshServicesForIdentity(arg0 identity.ServiceIdentity) []service.MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMeshServicesForIdentity", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	return ret0
+}
+
+// ListMeshServicesForIdentity indicates an expected call of ListMeshServicesForIdentity
+func (mr *MockMeshCatalogerMockRecorder) ListMeshServicesForIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshServicesForIdentity", reflect.TypeOf((*MockMeshCataloger)(nil).ListMeshServicesForIdentity), arg0)
 }
 
 // ListOutboundTrafficPolicies mocks base method
