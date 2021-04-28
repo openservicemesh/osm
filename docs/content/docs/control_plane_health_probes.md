@@ -121,10 +121,10 @@ If any health probes are consistently failing, perform the following steps to id
 
     ```console
     $ osm mesh list
-    
-    MESH NAME   NAMESPACE      CONTROLLER PODS                   VERSION
-    osm         osm-system     osm-controller-5494bcffb6-qpjdv   v0.8.3
-    osm2        osm-system-2   osm-controller-48fd3c810d-sornc   v0.8.3
+
+    MESH NAME   NAMESPACE      CONTROLLER PODS                  VERSION     SMI SUPPORTED
+    osm         osm-system     osm-controller-5494bcffb6-qpjdv  v0.8.3      TrafficSplit:split.smi-spec.io/v1alpha2,TrafficTarget:access.smi-spec.io/v1alpha3,HTTPRouteGroup:specs.smi-spec.io/v1alpha4,TCPRoute:specs.smi-spec.io/v1alpha4
+    osm2        osm-system-2   osm-controller-48fd3c810d-sornc  v0.8.3      TrafficSplit:split.smi-spec.io/v1alpha2,TrafficTarget:access.smi-spec.io/v1alpha3,HTTPRouteGroup:specs.smi-spec.io/v1alpha4,TCPRoute:specs.smi-spec.io/v1alpha4
     ```
 
     Note how `osm-system` is present in the following list:

@@ -1,6 +1,9 @@
 package smi
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -277,4 +280,22 @@ func (c *client) ListServiceAccounts() []identity.K8sServiceAccount {
 		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
 	return serviceAccounts
+}
+
+// GetSmiClientVersionHTTPHandler returns an http handler that returns supported smi version information
+func GetSmiClientVersionHTTPHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		versionInfo := map[string]string{
+			"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
+			"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
+			"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
+			"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
+		}
+
+		if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
+			log.Error().Err(err).Msgf("Error marshaling version info struct: %+v", versionInfo)
+		} else {
+			_, _ = fmt.Fprint(w, string(jsonVersionInfo))
+		}
+	})
 }

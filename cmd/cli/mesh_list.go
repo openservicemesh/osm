@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -13,8 +15,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const meshListDescription = `
@@ -22,11 +26,13 @@ This command will list all the osm control planes running in a Kubernetes cluste
 
 type meshListCmd struct {
 	out       io.Writer
+	config    *rest.Config
 	clientSet kubernetes.Interface
+	localPort uint16
 }
 
 func newMeshList(out io.Writer) *cobra.Command {
-	meshList := &meshListCmd{
+	listCmd := &meshListCmd{
 		out: out,
 	}
 
@@ -40,14 +46,18 @@ func newMeshList(out io.Writer) *cobra.Command {
 			if err != nil {
 				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
+			listCmd.config = config
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
-			meshList.clientSet = clientset
-			return meshList.run()
+			listCmd.clientSet = clientset
+			return listCmd.run()
 		},
 	}
+
+	f := cmd.Flags()
+	f.Uint16VarP(&listCmd.localPort, "local-port", "p", constants.OSMHTTPServerPort, "Local port to use for port forwarding")
 
 	return cmd
 }
@@ -64,13 +74,26 @@ func (l *meshListCmd) run() error {
 
 	w := newTabWriter(l.out)
 
-	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION")
+	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED")
+
 	for _, elem := range list.Items {
 		m := elem.ObjectMeta.Labels["meshName"]
 		ns := elem.ObjectMeta.Namespace
 		x := getNamespacePods(l.clientSet, m, ns)
 		v := elem.ObjectMeta.Labels[constants.OSMAppVersionLabelKey]
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m, ns, strings.Join(x["Pods"], ","), v)
+
+		smiList := []string{"Unknown"}
+		if pods, ok := x["Pods"]; ok && len(pods) > 0 {
+			smiMap, err := getSupportedSmiForControllerPod(x["Pods"][0], ns, l)
+			if err == nil {
+				smiList = []string{}
+				for smi, version := range smiMap {
+					smiList = append(smiList, fmt.Sprintf("%s:%s", smi, version))
+				}
+			}
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", m, ns, strings.Join(x["Pods"], ","), v, strings.Join(smiList, ","))
 	}
 	_ = w.Flush()
 
@@ -114,4 +137,39 @@ func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
 	}
 
 	return meshList
+}
+
+func getSupportedSmiForControllerPod(pod string, namespace string, cmd *meshListCmd) (map[string]string, error) {
+	dialer, err := k8s.DialerToPod(cmd.config, cmd.clientSet, pod, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", cmd.localPort, constants.OSMHTTPServerPort))
+	if err != nil {
+		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+	}
+
+	var smiSupported map[string]string
+
+	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
+		defer pf.Stop()
+		url := fmt.Sprintf("http://localhost:%d%s", cmd.localPort, constants.HTTPServerSmiVersionPath)
+
+		// #nosec G107: Potential HTTP request made with variable url
+		resp, err := http.Get(url)
+		if err != nil {
+			return errors.Errorf("Error fetching url %s: %s", url, err)
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&smiSupported); err != nil {
+			return errors.Errorf("Error rendering HTTP response: %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
+	}
+
+	return smiSupported, nil
 }
