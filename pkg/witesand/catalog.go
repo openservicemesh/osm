@@ -52,7 +52,7 @@ func (wc *WitesandCatalog) UpdateMasterOsmIP() {
 
 func (wc *WitesandCatalog) UpdateUnicastSvcs() {
 	wc.unicastEnabledSvcs = make([]string, 0)
-	wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, "gateway") // by default add gw
+	wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, "edgepod") // by default add gw
 	unicastSvcsString := os.Getenv("UNICAST_ENABLED_SERVICES")
 	if unicastSvcsString != "" {
 		wc.unicastEnabledSvcs = append(wc.unicastEnabledSvcs, strings.Split(unicastSvcsString, ",")...)
@@ -112,8 +112,8 @@ func (wc *WitesandCatalog) ListRemoteK8s() map[string]RemoteK8s {
 	return remoteK8s
 }
 
-func (wc *WitesandCatalog) IsWSGatewayService(svc service.MeshServicePort) bool {
-	return strings.HasPrefix(svc.Name, "gateway")
+func (wc *WitesandCatalog) IsWSEdgePodService(svc service.MeshServicePort) bool {
+	return strings.HasPrefix(svc.Name, "edgepod")
 }
 
 func (wc *WitesandCatalog) IsWSUnicastService(inputSvcName string) bool {

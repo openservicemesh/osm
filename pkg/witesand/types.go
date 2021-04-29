@@ -14,7 +14,7 @@ var (
 )
 
 const (
-	GatewayServiceName = "default/gateway"
+	EdgePodServiceName = "default/edgepod"
 
 	// HTTP REST port for communication with WAVES and remote OSMes
 	HttpServerPort  = "2500"
@@ -24,7 +24,7 @@ const (
 	HttpRemoteAddrHeader      = "X-Osm-Origin-Ip"
 	HttpRemoteClusterIdHeader = "X-Osm-Cluster-Id"
 
-	// HTTP headers used by envoy to route traffic to gateway clusters
+	// HTTP headers used by envoy to route traffic to edgepod clusters
 	WSClusterHeader = "x-ws-dest-cluster"
 	WSHashHeader    = "x-ws-hash-header"
 
@@ -90,14 +90,14 @@ type WitesandCataloger interface {
 
 	// for usage by EDS
 	ListApigroupToPodIPs() ([]ApigroupToPodIPMap, error)
-	ListAllGatewayPodIPs() (*ClusterPods, error)
+	ListAllEdgePodIPs() (*ClusterPods, error)
 
-	ListLocalGatewayPods() (*ClusterPods, error)
+	ListLocalEdgePods() (*ClusterPods, error)
 	ListAllLocalPods() (*ClusterPods, error)
-	ListAllGatewayPods() ([]string, error)
+	ListAllEdgePods() ([]string, error)
 	ListAllPods() ([]string, error)
 	ListWavesPodIPs() ([]string, error)
 
-	IsWSGatewayService(svc service.MeshServicePort) bool
+	IsWSEdgePodService(svc service.MeshServicePort) bool
 	IsWSUnicastService(svc string) bool
 }

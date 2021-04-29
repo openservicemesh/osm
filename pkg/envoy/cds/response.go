@@ -42,8 +42,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			continue
 		}
 
-		if catalog.GetWitesandCataloger().IsWSGatewayService(dstService) {
-			getWSGatewayUpstreamServiceCluster(catalog, dstService, proxyServiceName.GetMeshServicePort(), cfg, clusterFactories)
+		if catalog.GetWitesandCataloger().IsWSEdgePodService(dstService) {
+			getWSEdgePodUpstreamServiceCluster(catalog, dstService, proxyServiceName.GetMeshServicePort(), cfg, clusterFactories)
 			continue
 		} else if catalog.GetWitesandCataloger().IsWSUnicastService(dstService.Name) {
 			getWSUnicastUpstreamServiceCluster(catalog, dstService, proxyServiceName.GetMeshServicePort(), cfg, clusterFactories)

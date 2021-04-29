@@ -12,9 +12,9 @@ func (wc *WitesandCatalog) GetClusterId() string {
 	return wc.clusterId
 }
 
-func (wc *WitesandCatalog) ListLocalGatewayPods() (*ClusterPods, error) {
+func (wc *WitesandCatalog) ListLocalEdgePods() (*ClusterPods, error) {
 	kubeClient := wc.kubeClient
-	svcName := "gateway"
+	svcName := "edgepod"
 
 	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
 	if err != nil {
@@ -72,7 +72,7 @@ func (wc *WitesandCatalog) ListWavesPodIPs() ([]string, error) {
 	return podips, nil
 }
 
-func (wc *WitesandCatalog) ListAllGatewayPods() ([]string, error) {
+func (wc *WitesandCatalog) ListAllEdgePods() ([]string, error) {
 	pods := make([]string, 0)
 	for _, clusterPods := range wc.clusterPodMap {
 		for pod, _ := range clusterPods.PodToIPMap {
@@ -94,7 +94,7 @@ func (wc *WitesandCatalog) ListAllPods() ([]string, error) {
 	return pods, nil
 }
 
-func (wc *WitesandCatalog) ListAllGatewayPodIPs() (*ClusterPods, error) {
+func (wc *WitesandCatalog) ListAllEdgePodIPs() (*ClusterPods, error) {
 	pods := ClusterPods{
 		PodToIPMap: make(map[string]string),
 	}

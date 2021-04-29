@@ -21,13 +21,13 @@ func (mc *MeshCatalog) witesandHttpServerAndClient() {
 }
 
 func (mc *MeshCatalog) witesandHttpServer() {
-	// GET local gatewaypods, also learn remote OSM clusterID and IP
-	http.HandleFunc("/localgatewaypods", mc.GetLocalGatewayPods) // inter OSM
+	// GET local edgepods, also learn remote OSM clusterID and IP
+	http.HandleFunc("/localedgepods", mc.GetLocalEdgePods) // inter OSM
 	http.HandleFunc("/localallpods", mc.GetAllLocalPods)         // inter OSM
 
 	// GET handlers
-	http.HandleFunc("/allgatewaypods", mc.GetAllGatewayPods) // from waves
-	http.HandleFunc("/gatewaypod", mc.GetAllGatewayPods)     // from waves, will deprecate
+	http.HandleFunc("/alledgepods", mc.GetAllEdgePods) // from waves
+	http.HandleFunc("/edgepod", mc.GetAllEdgePods)     // from waves, will deprecate
 	http.HandleFunc("/endpoints", mc.GetLocalEndpoints)      // inter OSM
 
 	http.HandleFunc("/allpods", mc.GetAllPods) // from waves
@@ -44,7 +44,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 	queryRemoteOsm := func(remoteOsmIP string) (witesand.ClusterPods, error) {
 		log.Info().Msgf("[queryRemoteOsm] querying osm:%s", remoteOsmIP)
 		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
-		url := fmt.Sprintf("http://%s/localgatewaypods", dest)
+		url := fmt.Sprintf("http://%s/localedgepods", dest)
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
@@ -128,7 +128,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 	// run forever
 	for {
 		// learn local pods
-		localPods, err := wc.ListLocalGatewayPods()
+		localPods, err := wc.ListLocalEdgePods()
 		if err == nil {
 			wc.UpdateClusterPods(witesand.LocalClusterId, localPods)
 		}
@@ -201,21 +201,21 @@ func (mc *MeshCatalog) getMyIP(destIP string) string {
 	return myIP
 }
 
-func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Request) {
+func (mc *MeshCatalog) GetLocalEdgePods(w http.ResponseWriter, r *http.Request) {
 	// learn remote OSM clusterID and address
 	remoteAddress := r.Header.Get(witesand.HttpRemoteAddrHeader)
 	remoteClusterId := r.Header.Get(witesand.HttpRemoteClusterIdHeader)
 
-	log.Info().Msgf("[GetLocalGatewayPods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
+	log.Info().Msgf("[GetLocalEdgePods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
 	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteClusterId, remoteAddress)
 
-	list, err := mc.GetWitesandCataloger().ListLocalGatewayPods()
+	list, err := mc.GetWitesandCataloger().ListLocalEdgePods()
 	if err != nil {
-		log.Error().Msgf("err fetching local gateway pod %+v", err)
+		log.Error().Msgf("err fetching local edgepod %+v", err)
 	}
 
 	if err := json.NewEncoder(w).Encode(list); err != nil {
-		log.Error().Msgf("err fetching local gateway pod %+v", err)
+		log.Error().Msgf("err fetching local edgepod %+v", err)
 	}
 }
 
@@ -229,15 +229,15 @@ func (mc *MeshCatalog) GetAllLocalPods(w http.ResponseWriter, r *http.Request) {
 
 	list, err := mc.GetWitesandCataloger().ListAllLocalPods()
 	if err != nil {
-		log.Error().Msgf("err fetching local gateway pod %+v", err)
+		log.Error().Msgf("err fetching local edgepod %+v", err)
 	}
 
 	if err := json.NewEncoder(w).Encode(list); err != nil {
-		log.Error().Msgf("err fetching local gateway pod %+v", err)
+		log.Error().Msgf("err fetching local edgepod %+v", err)
 	}
 }
 
-func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request) {
+func (mc *MeshCatalog) GetAllEdgePods(w http.ResponseWriter, r *http.Request) {
 	if InitialSyncingPeriod != 0 {
 		// initial cooling period, need to wait till we sync with others
 		log.Error().Msgf("InitialSyncingPeriod not over !!, send error response")
@@ -245,13 +245,13 @@ func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request)
 		fmt.Fprintf(w, "Not ready")
 		return
 	}
-	list, err := mc.GetWitesandCataloger().ListAllGatewayPods()
+	list, err := mc.GetWitesandCataloger().ListAllEdgePods()
 	if err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
+		log.Error().Msgf("err fetching edgepod %+v", err)
 	}
 
 	if err := json.NewEncoder(w).Encode(list); err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
+		log.Error().Msgf("err fetching edgepod %+v", err)
 	}
 }
 
@@ -265,11 +265,11 @@ func (mc *MeshCatalog) GetAllPods(w http.ResponseWriter, r *http.Request) {
 	}
 	list, err := mc.GetWitesandCataloger().ListAllPods()
 	if err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
+		log.Error().Msgf("err fetching edgepod %+v", err)
 	}
 
 	if err := json.NewEncoder(w).Encode(list); err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
+		log.Error().Msgf("err fetching edgepod %+v", err)
 	}
 }
 

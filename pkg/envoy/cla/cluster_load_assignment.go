@@ -83,8 +83,8 @@ func getSingleEndpointCLA(clusterName string, podIP string, servicePort int) *xd
 	return &cla
 }
 
-func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceName service.MeshServicePort) *[]*xds_endpoint.ClusterLoadAssignment {
-	log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Adding Endpoints")
+func NewWSEdgePodClusterLoadAssignment(catalog catalog.MeshCataloger, serviceName service.MeshServicePort) *[]*xds_endpoint.ClusterLoadAssignment {
+	log.Trace().Msgf("[EDS][NewWSEdgePodClusterLoadAssignment] Adding Endpoints")
 	servicePort := serviceName.Port
 	getMultiEndpointsCLA := func(atopMap witesand.ApigroupToPodIPMap, clusterName string) *xds_endpoint.ClusterLoadAssignment {
 		cla := xds_endpoint.ClusterLoadAssignment{
@@ -100,7 +100,7 @@ func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceNam
 		}
 
 		for _, podIP := range atopMap.PodIPs {
-			log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, IP=%+v, Port=%d", atopMap.Apigroup, serviceName.String(), podIP, servicePort)
+			log.Trace().Msgf("[EDS][NewWSEdgePodClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, IP=%+v, Port=%d", atopMap.Apigroup, serviceName.String(), podIP, servicePort)
 			lbEpt := xds_endpoint.LbEndpoint{
 				HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 					Endpoint: &xds_endpoint.Endpoint{
@@ -127,13 +127,13 @@ func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceNam
 		clas = append(clas, cla)
 	}
 
-	pods, _ := wscatalog.ListAllGatewayPodIPs()
+	pods, _ := wscatalog.ListAllEdgePodIPs()
 	for podName, podIP := range pods.PodToIPMap {
 		clusterName := podName + ":" + strconv.Itoa(servicePort)
 		cla := getSingleEndpointCLA(clusterName, podIP, servicePort)
 		clas = append(clas, cla)
 	}
-	log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Constructed ClusterLoadAssignment: %+v", clas)
+	log.Trace().Msgf("[EDS][NewWSEdgePodClusterLoadAssignment] Constructed ClusterLoadAssignment: %+v", clas)
 	return &clas
 }
 
@@ -142,7 +142,7 @@ func NewWSUnicastClusterLoadAssignment(catalog catalog.MeshCataloger, serviceNam
 	servicePort := serviceName.Port
 	serviceEndpoints, err := catalog.ListEndpointsForService(serviceName.GetMeshService())
 	if err != nil {
-		log.Error().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Error adding Endpoints for Service:%+v, err:%+v", serviceName, err)
+		log.Error().Msgf("[EDS][NewWSEdgePodClusterLoadAssignment] Error adding Endpoints for Service:%+v, err:%+v", serviceName, err)
 		return nil
 	}
 	var clas []*xds_endpoint.ClusterLoadAssignment

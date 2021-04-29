@@ -65,8 +65,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	var protos []*any.Any
 	for svc, endpoints := range outboundServicesEndpoints {
-		if catalog.GetWitesandCataloger().IsWSGatewayService(svc) {
-			loadAssignments := cla.NewWSGatewayClusterLoadAssignment(catalog, svc)
+		if catalog.GetWitesandCataloger().IsWSEdgePodService(svc) {
+			loadAssignments := cla.NewWSEdgePodClusterLoadAssignment(catalog, svc)
 			for _, loadAssignment := range *loadAssignments {
 				proto, err := ptypes.MarshalAny(loadAssignment)
 				if err != nil {
