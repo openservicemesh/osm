@@ -73,6 +73,8 @@ const (
 
 	mustBeValidIPRange = ": must be a list of valid IP addresses of the form a.b.c.d/x"
 
+	mustBeValidPort = ": must be a positive integer"
+
 	// cannotChangeMetadata is the reason for denial for changes to configmap metadata
 	cannotChangeMetadata = ": cannot change metadata"
 
@@ -280,6 +282,9 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		if field == outboundIPRangeExclusionListKey && !checkOutboundIPRangeExclusionList(value) {
 			reasonForDenial(resp, mustBeValidIPRange, field)
 		}
+		if field == outboundPortExclusionListKey && !checkOutboundPortExclusionList(value) {
+			reasonForDenial(resp, mustBeValidPort, field)
+		}
 		if field == maxDataPlaneConnectionsKey {
 			maxNum, err := strconv.Atoi(value)
 			if err != nil || maxNum < 0 {
@@ -325,6 +330,18 @@ func checkOutboundIPRangeExclusionList(ipRangesStr string) bool {
 	for i := range exclusionList {
 		ipAddress := strings.TrimSpace(exclusionList[i])
 		if _, _, err := net.ParseCIDR(ipAddress); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func checkOutboundPortExclusionList(portsStr string) bool {
+	portsExclusionList := strings.Split(portsStr, ",")
+	for i := range portsExclusionList {
+		port := strings.TrimSpace(portsExclusionList[i])
+		intVal, err := strconv.Atoi(port)
+		if err != nil || intVal <= 0 {
 			return false
 		}
 	}

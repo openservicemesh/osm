@@ -70,6 +70,7 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"EnvoyImage":                    envoyImage,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
+				"OutboundPortExclusionList":     outboundPortExclusionListKey,
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
 				"ConfigResyncInterval":          configResyncInterval,
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
@@ -209,6 +210,12 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 			},
 			expectProxyBroadcast: false,
 		},
+		{
+			deltaMeshConfigContents: map[string]string{
+				outboundPortExclusionListKey: "true",
+			},
+			expectProxyBroadcast: false,
+		},
 	}
 
 	for _, tc := range tests {
@@ -240,6 +247,8 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 				meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer, _ = strconv.ParseBool(mapVal)
 			case outboundIPRangeExclusionListKey:
 				meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = strings.Split(mapVal, ",")
+			case outboundPortExclusionListKey:
+				meshConfig.Spec.Traffic.OutboundPortExclusionList = strings.Split(mapVal, ",")
 			}
 		}
 

@@ -280,6 +280,7 @@ func TestValidateFields(t *testing.T) {
 					"service_cert_validity_duration":   "24h",
 					"tracing_port":                     "9411",
 					"outbound_ip_range_exclusion_list": "1.1.1.1/32, 2.2.2.2/24",
+					"outbound_port_exclusion_list":     "6379, 7070",
 					"max_data_plane_connections":       "1000",
 				},
 			},
@@ -375,6 +376,18 @@ func TestValidateFields(t *testing.T) {
 			},
 		},
 		{
+			testName: "Reject configmap with invalid syntax for port",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"outbound_port_exclusion_list": "-6379", // invalid syntax, must be 6379
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\noutbound_port_exclusion_list" + mustBeValidPort},
+			},
+		},
+		{
 			testName: "Reject configmap with invalid outbound IP range exclusions",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
@@ -384,6 +397,18 @@ func TestValidateFields(t *testing.T) {
 			expectedResponse: &admissionv1.AdmissionResponse{
 				Allowed: false,
 				Result:  &metav1.Status{Reason: "\noutbound_ip_range_exclusion_list" + mustBeValidIPRange},
+			},
+		},
+		{
+			testName: "Reject configmap with invalid outbound port exclusions",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"outbound_port_exclusion_list": "foobar",
+				},
+			},
+			expectedResponse: &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: "\noutbound_port_exclusion_list" + mustBeValidPort},
 			},
 		},
 		{

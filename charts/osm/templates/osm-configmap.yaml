@@ -27,3 +27,7 @@ data:
 {{- if .Values.OpenServiceMesh.outboundIPRangeExclusionList }}
   outbound_ip_range_exclusion_list: {{ join "," .Values.OpenServiceMesh.outboundIPRangeExclusionList | quote }}
 {{- end}}
+
+{{- if .Values.OpenServiceMesh.outboundPortExclusionList }}
+  outbound_port_exclusion_list: {{ join "," .Values.OpenServiceMesh.outboundPortExclusionList | quote }}
+{{- end}}

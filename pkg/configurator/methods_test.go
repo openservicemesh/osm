@@ -237,6 +237,19 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
+			name:                 "GetOutboundPortExclusionList",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Nil(cfg.GetOutboundPortExclusionList())
+			},
+			updatedConfigMapData: map[string]string{
+				outboundPortExclusionListKey: "7070, 6080",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal([]string{"7070", "6080"}, cfg.GetOutboundPortExclusionList())
+			},
+		},
+		{
 			name: "IsPrivilegedInitContainer",
 			initialConfigMapData: map[string]string{
 				enablePrivilegedInitContainer: "true",

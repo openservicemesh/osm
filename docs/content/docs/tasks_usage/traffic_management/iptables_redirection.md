@@ -75,6 +75,31 @@ OSM provides a means to specify a global list of IP ranges to exclude from outbo
 
 Excluded IP ranges are stored in the `osm-config` ConfigMap with the key `outbound_ip_range_exclusion_list`, and is read at the time of sidecar injection by `osm-injector`. These dynamically configurable IP ranges are programmed by the init container along with the static rules used to intercept and redirect traffic via the Envoy proxy sidecar. Excluded IP ranges will not be intercepted for traffic redirection to the Envoy proxy sidecar.
 
+### Global outbound port exclusions
+
+Outbound TCP based traffic from applications is by default intercepted using the `iptables` rules programmed by OSM, and redirected to the Envoy proxy sidecar. In some cases, it might be desirable to not subject certain ports to be redirected and routed by the Envoy proxy sidecar based on service mesh policies. A common use case to exclude ports is to not route non-application logic based traffic via the Envoy proxy, such as control plane traffic. In such scenarios, excluding certain ports from being subject to service mesh traffic routing policies becomes necessary.
+
+OSM provides a means to specify a global list of IP ranges to exclude from outbound traffic interception in the following ways:
+
+1. During OSM install using the `--set` option:
+    ```bash
+    # To exclude the ports 6379 and 7070 from outbound interception
+    osm install --set="OpenServiceMesh.outboundPortExclusionList={6379,7070}
+    ```
+
+1. By setting the `outbound_port_exclusion_list` key in the `osm-config` ConfigMap:
+    ```bash
+    ## Assumes OSM is installed in the osm-system namespace
+    kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"outbound_port_exclusion_list":"6379, 7070"}}' --type=merge
+    ```
+
+1. By uppgrading the Helm chart directly if OSM was installed using Helm:
+    ```bash
+    osm mesh upgrade --outbound-port-exclusion-list "6379,7070"
+    ```
+
+Excluded ports are stored in the `osm-config` ConfigMap with the key `outbound_port_exclusion_list`, and is read at the time of sidecar injection by `osm-injector`. These dynamically configurable ports are programmed by the init container along with the static rules used to intercept and redirect traffic via the Envoy proxy sidecar. Excluded ports will not be intercepted for traffic redirection to the Envoy proxy sidecar.
+
 ## Sample demo
 
 ### Traffic redirection with IP range exclusions

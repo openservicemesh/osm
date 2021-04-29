@@ -133,6 +133,20 @@ func (mr *MockConfiguratorMockRecorder) GetOutboundIPRangeExclusionList() *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundIPRangeExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundIPRangeExclusionList))
 }
 
+// GetOutboundPortExclusionList mocks base method
+func (m *MockConfigurator) GetOutboundPortExclusionList() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOutboundPortExclusionList")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetOutboundPortExclusionList indicates an expected call of GetOutboundPortExclusionList
+func (mr *MockConfiguratorMockRecorder) GetOutboundPortExclusionList() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundPortExclusionList))
+}
+
 // GetServiceCertValidityPeriod mocks base method
 func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 	m.ctrl.T.Helper()

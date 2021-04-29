@@ -145,6 +145,21 @@ func (c *Client) GetOutboundIPRangeExclusionList() []string {
 	return exclusionList
 }
 
+// GetOutboundPortExclusionList returns the list of ports (positive integers) to exclude from outbound sidecar interception
+func (c *Client) GetOutboundPortExclusionList() []string {
+	portsStr := c.getConfigMap().OutboundPortExclusionList
+	if portsStr == "" {
+		return nil
+	}
+
+	portExclusionList := strings.Split(portsStr, ",")
+	for i := range portExclusionList {
+		portExclusionList[i] = strings.TrimSpace(portExclusionList[i])
+	}
+
+	return portExclusionList
+}
+
 // IsPrivilegedInitContainer returns whether init containers should be privileged
 func (c *Client) IsPrivilegedInitContainer() bool {
 	return c.getConfigMap().EnablePrivilegedInitContainer
