@@ -14,6 +14,9 @@ policy; pkg/policy/mock_client_generated.go; github.com/openservicemesh/osm/pkg/
 # pkg/kubernetes
 kubernetes; pkg/kubernetes/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/kubernetes; Controller
 
+# pkg/catalog
+catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
+
 # pkg/debugger
 debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; CertificateManagerDebugger,MeshCatalogDebugger,XDSDebugger
 
@@ -25,9 +28,6 @@ endpoint; pkg/endpoint/mock_provider_generated.go; github.com/openservicemesh/os
 
 # pkg/configurator
 configurator; pkg/configurator/mock_client_generated.go; github.com/openservicemesh/osm/pkg/configurator; Configurator
-
-# pkg/catalog
-catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
 
 # pkg/certificate
 certificate; pkg/certificate/mock_certificate_generated.go; github.com/openservicemesh/osm/pkg/certificate; Certificater,Manager

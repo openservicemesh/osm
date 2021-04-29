@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -25,14 +26,16 @@ import (
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	var (
-		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockController
-		mockIngressMonitor *ingress.MockMonitor
+		mockCtrl             *gomock.Controller
+		mockKubeController   *k8s.MockController
+		mockIngressMonitor   *ingress.MockMonitor
+		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
+	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -105,20 +108,24 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV2Service).Return([]identity.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookbuyerService).Return([]identity.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
 
+	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
-		mockIngressMonitor, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
 }
 
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
-		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockController
-		mockIngressMonitor *ingress.MockMonitor
+		mockCtrl             *gomock.Controller
+		mockKubeController   *k8s.MockController
+		mockIngressMonitor   *ingress.MockMonitor
+		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
+	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -210,6 +217,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
 
+	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
-		mockIngressMonitor, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
 }
