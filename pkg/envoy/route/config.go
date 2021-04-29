@@ -97,12 +97,12 @@ func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds
 func createWSOutboundRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
 	var routes []*xds_route.Route
 	emptyHeaders := make(map[string]string)
-	route := getWSGatewayRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders)
+	route := getWSEdgePodRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders)
 	routes = append(routes, route)
 	return routes
 }
 
-func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]string) *xds_route.Route {
+func getWSEdgePodRoute(pathRegex string, method string, headersMap map[string]string) *xds_route.Route {
 	t := &xds_route.RouteAction_HashPolicy_Header_{
 		&xds_route.RouteAction_HashPolicy_Header{
 			HeaderName:   witesand.WSHashHeader,

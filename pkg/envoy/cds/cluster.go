@@ -68,14 +68,14 @@ func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePor
 	return remoteCluster, nil
 }
 
-// getWSGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
-func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
+// getWSEdgePodUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getWSEdgePodUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
 	wscatalog := catalog.GetWitesandCataloger()
 	apigroupClusterNames, err := wscatalog.ListApigroupClusterNames()
 	if err != nil {
 		return err
 	}
-	gatewayPodNames, err := wscatalog.ListAllGatewayPods()
+	edgePodNames, err := wscatalog.ListAllEdgePods()
 	if err != nil {
 		return err
 	}
@@ -115,8 +115,8 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 	}
 
 	// create clusters with pod-names with ROUND_ROBIN
-	for _, gatewayPodName := range gatewayPodNames {
-		clusterName := gatewayPodName + ":" + strconv.Itoa(upstreamSvc.Port)
+	for _, edgePodName := range edgePodNames {
+		clusterName := edgePodName + ":" + strconv.Itoa(upstreamSvc.Port)
 
 		remoteCluster := &xds_cluster.Cluster{
 			Name:                 clusterName,
