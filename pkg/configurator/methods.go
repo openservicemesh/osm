@@ -109,6 +109,15 @@ func (c *Client) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }
 
+// GetEnvoyImage returns the envoy image
+func (c *Client) GetEnvoyImage() string {
+	image := c.getConfigMap().EnvoyImage
+	if image != "" {
+		return image
+	}
+	return constants.DefaultEnvoyImage
+}
+
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getConfigMap().ServiceCertValidityDuration

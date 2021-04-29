@@ -55,6 +55,9 @@ const (
 	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
 	DefaultEnvoyLogLevel = "error"
 
+	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm configmap
+	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.17.2"
+
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
 

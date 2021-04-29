@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ var (
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 	// defaultFields are the default fields in osm-config
-	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable", "enable_privileged_init_container", "max_data_plane_connections"}
+	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "envoy_image", "service_cert_validity_duration", "tracing_enable", "enable_privileged_init_container", "max_data_plane_connections"}
 )
 
 const (
@@ -54,6 +55,9 @@ const (
 
 	// mustBeValidLogLvl is the reason for denial for envoy_log_level field
 	mustBeValidLogLvl = ": invalid log level"
+
+	// mustBeValidLogLvl is the reason for denial for envoy_image field
+	mustBeValidEnvoyImage = ": must be of the form envoyproxy/envoy-alpine:v<major>.<minor>.<patch>"
 
 	// mustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
 	mustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
@@ -255,6 +259,9 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		if field == envoyLogLevel && !checkEnvoyLogLevels(field, value) {
 			reasonForDenial(resp, mustBeValidLogLvl, field)
 		}
+		if field == envoyImage && !checkEnvoyImage(field, value) {
+			reasonForDenial(resp, mustBeValidEnvoyImage, field)
+		}
 		if field == serviceCertValidityDurationKey || field == configResyncInterval {
 			_, err := time.ParseDuration(value)
 			if err != nil {
@@ -305,6 +312,12 @@ func checkEnvoyLogLevels(configMapField, configMapValue string) bool {
 		}
 	}
 	return valid
+}
+
+// checkEnvoyLogLevels checks that the field value is a valid log level
+func checkEnvoyImage(configMapField, configMapValue string) bool {
+	match, _ := regexp.Match("envoyproxy\\/envoy-alpine:v\\d+\\.\\d+\\.\\d+$", []byte(configMapValue))
+	return match
 }
 
 func checkOutboundIPRangeExclusionList(ipRangesStr string) bool {

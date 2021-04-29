@@ -62,6 +62,7 @@ type meshUpgradeCmd struct {
 	enableEgress                  *bool
 	enableDebugServer             *bool
 	envoyLogLevel                 string
+	envoyImage                    string
 	enablePrometheusScraping      *bool
 	useHTTPSIngress               *bool
 	serviceCertValidityDuration   time.Duration
@@ -142,6 +143,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 	f.BoolVar(upg.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
 	f.BoolVar(upg.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
 	f.StringVar(&upg.envoyLogLevel, "envoy-log-level", "", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
+	f.StringVar(&upg.envoyImage, "envoy-image", "", "Set the image for the Envoy proxy sidecar")
 	f.BoolVar(upg.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(upg.useHTTPSIngress, "use-https-ingress", defaultUseHTTPSIngress, "Enable HTTPS Ingress")
 	f.DurationVar(&upg.serviceCertValidityDuration, "service-cert-validity-duration", 0, "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
@@ -201,6 +203,9 @@ func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]i
 	}
 	if len(u.envoyLogLevel) > 0 {
 		vals["envoyLogLevel"] = u.envoyLogLevel
+	}
+	if len(u.envoyImage) > 0 {
+		vals["sidecarImage"] = u.envoyImage
 	}
 	if u.enablePrometheusScraping != nil {
 		vals["enablePrometheusScraping"] = *u.enablePrometheusScraping

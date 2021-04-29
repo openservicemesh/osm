@@ -16,7 +16,7 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
 	// nodeID and clusterID are required for Envoy proxy to start.
 	nodeID := pod.Spec.ServiceAccountName
 	// cluster ID will be used as an identifier to the tracing sink
@@ -34,7 +34,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
-		Image:           envoyImage,
+		Image:           cfg.GetEnvoyImage(),
 		ImagePullPolicy: corev1.PullAlways,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: func() *int64 {

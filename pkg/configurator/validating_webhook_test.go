@@ -206,6 +206,7 @@ func TestCheckDefaultFields(t *testing.T) {
 					"tracing_enable":                   "",
 					"use_https_ingress":                "",
 					"envoy_log_level":                  "",
+					"envoy_image":                      "",
 					"service_cert_validity_duration":   "",
 					"tracing_address":                  "",
 					"tracing_port":                     "",
@@ -229,6 +230,7 @@ func TestCheckDefaultFields(t *testing.T) {
 					"prometheus_scraping":            "",
 					"use_https_ingress":              "",
 					"envoy_log_level":                "",
+					"envoy_image":                    "",
 					"service_cert_validity_duration": "",
 					"tracing_enable":                 "",
 					"max_data_plane_connections":     "",
@@ -430,6 +432,21 @@ func TestCheckEnvoyLogLevels(t *testing.T) {
 
 	for lvl, expRes := range tests {
 		res := checkEnvoyLogLevels(fakeField, lvl)
+		assert.Equal(expRes, res)
+	}
+}
+
+func TestCheckEnvoyImage(t *testing.T) {
+	assert := tassert.New(t)
+	tests := map[string]bool{
+		"envoyproxy/envoy-alpine:v1.17.2": true,
+		"envoyproxy/envoy-alpine:v1.1.1":  true,
+		"envoyproxy/envoy-alpine":         false,
+		"envoyproxy/envoy:v1.17.2":        false,
+	}
+
+	for image, expRes := range tests {
+		res := checkEnvoyImage(fakeField, image)
 		assert.Equal(expRes, res)
 	}
 }

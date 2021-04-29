@@ -84,6 +84,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	u.enableEgress = new(bool)
 	*u.enableEgress = true
 	u.envoyLogLevel = "trace"
+	u.envoyImage = "envoyproxy/envoy-alpine:v0.00.0"
 	u.tracingEndpoint = "/here"
 	u.outboundIPRangeExclusionList = []string{"0.0.0.0/0", "1.1.1.1/1"}
 	u.enablePrivilegedInitContainer = new(bool)
@@ -106,6 +107,10 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.envoyLogLevel")
 	a.Nil(err)
 	a.Equal("trace", envoyLogLevel)
+
+	envoyImage, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.sidecarImage")
+	a.Nil(err)
+	a.Equal("envoyproxy/envoy-alpine:v0.00.0", envoyImage)
 
 	tracingEndpoint, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.tracing.endpoint")
 	a.Nil(err)
