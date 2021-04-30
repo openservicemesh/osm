@@ -6,6 +6,8 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
@@ -274,7 +276,12 @@ func TestNewResponse(t *testing.T) {
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(tc.ingressInboundPolicies, nil).AnyTimes()
 
-			resources, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil)
+			// Empty discovery request
+			discoveryRequest := xds_discovery.DiscoveryRequest{
+				ResourceNames: []string{},
+			}
+
+			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -420,6 +427,11 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	certSerialNumber := certificate.SerialNumber("123456")
 	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
+	// Empty discovery request
+	discoveryRequest := xds_discovery.DiscoveryRequest{
+		ResourceNames: []string{},
+	}
+
 	testPermissiveInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
 			Name:      "bookstore-v1.default",
@@ -510,7 +522,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
 
-	resources, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
+	resources, err := NewResponse(mockCatalog, testProxy, &discoveryRequest, mockConfigurator, nil)
 	assert.Nil(err)
 
 	// Test rds-inbound route config
@@ -549,4 +561,68 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
 	assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
 	assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
+}
+
+func TestResponseRequestCompletion(t *testing.T) {
+	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	uuid := uuid.New().String()
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.one.two.three.co.uk", uuid, "some-service", "some-namespace"))
+	certSerialNumber := certificate.SerialNumber("123456")
+	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+
+	mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
+	mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}).AnyTimes()
+	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return([]*trafficpolicy.OutboundTrafficPolicy{}).AnyTimes()
+	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}, nil).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+	testCases := []struct {
+		request *xds_discovery.DiscoveryRequest
+	}{
+		{
+			request: &xds_discovery.DiscoveryRequest{
+				ResourceNames: []string{"foo", "bar"},
+			},
+		},
+		{
+			request: &xds_discovery.DiscoveryRequest{
+				ResourceNames: []string{"rds-inbound", "rds-outbound", "ingress", "bar", "doge"},
+			},
+		},
+		{
+			request: &xds_discovery.DiscoveryRequest{
+				ResourceNames: []string{},
+			},
+		},
+		{
+			request: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, nil)
+		assert.Nil(err)
+
+		if tc.request != nil {
+			requestMapset := mapset.NewSet()
+			for idx := range tc.request.ResourceNames {
+				requestMapset.Add(tc.request.ResourceNames[idx])
+			}
+
+			responseMapset := mapset.NewSet()
+			for _, res := range resources {
+				responseMapset.Add(cache.GetResourceName(res))
+			}
+
+			// verify all request resources where fulfilled
+			diffMapset := requestMapset.Difference(responseMapset)
+			assert.Equal(0, diffMapset.Cardinality())
+		}
+	}
 }
