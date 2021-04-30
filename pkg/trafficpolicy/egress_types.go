@@ -1,8 +1,6 @@
 package trafficpolicy
 
 import (
-	mapset "github.com/deckarep/golang-set"
-
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 )
 
@@ -72,6 +70,5 @@ type EgressHTTPRoutingRule struct {
 	Route RouteWeightedClusters
 
 	// AllowedDestinationIPRanges defines the destination IP ranges allowed for the `Route` defined in the routing rule.
-	// Stores string type
-	AllowedDestinationIPRanges mapset.Set
+	AllowedDestinationIPRanges []string
 }
