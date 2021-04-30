@@ -50,6 +50,11 @@ rules:
     resources: ["httproutegroups", "tcproutes"]
     verbs: ["list", "get", "watch"]
 
+  # OSM's custom policy API
+  - apiGroups: ["policy.openservicemesh.io"]
+    resources: ["egresses"]
+    verbs: ["list", "get", "watch"]
+
   # Used for interacting with cert-manager CertificateRequest resources.
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]

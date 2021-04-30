@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -41,6 +42,10 @@ type MeshCatalog struct {
 	// calls through kubeClient and instead relies on background cache synchronization and local
 	// lookups
 	kubeController k8s.Controller
+
+	// policyController implements the functionality related to the resources part of the policy.openrservicemesh.io
+	// API group, such as egress.
+	policyController policy.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -96,6 +101,9 @@ type MeshCataloger interface {
 
 	// ListMeshServicesForIdentity lists the services for a given service identity.
 	ListMeshServicesForIdentity(identity.ServiceIdentity) []service.MeshService
+
+	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
+	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate

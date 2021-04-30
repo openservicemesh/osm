@@ -42,6 +42,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -196,12 +197,18 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}
 
+	policyController, err := policy.NewPolicyController(kubeConfig, kubernetesClient, stop)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
+	}
+
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
 		kubeClient,
 		meshSpec,
 		certManager,
 		ingressClient,
+		policyController,
 		stop,
 		cfg,
 		endpointsProviders...)
