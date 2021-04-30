@@ -8,7 +8,7 @@ weight: 3
 
 ## Prerequisites
 
-- Kubernetes cluster running Kubernetes v1.15.0 or greater
+- Kubernetes cluster running Kubernetes v1.18.0 or greater
 - The [osm CLI](#set-up-the-osm-cli) or the [helm 3 CLI](https://helm.sh/docs/intro/install/)
 
 ## Set up the OSM CLI

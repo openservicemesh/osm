@@ -25,7 +25,7 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ## Install
 
 ### Prerequisites
-- Kubernetes cluster running Kubernetes v1.15.0 or greater
+- Kubernetes cluster running Kubernetes v1.18.0 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
