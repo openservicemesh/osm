@@ -5,6 +5,8 @@ type: docs
 aliases: ["osm_config_map.md"]
 ---
 
+> This document is deprecated and to be updated.
+
 # OSM ConfigMap
 OSM deploys a ConfigMap `osm-config` as a part of its control plane (in the same namespace as that of the osm-controller pod) which can be updated by the mesh owner/operator at any time. The purpose of this ConfigMap is to provide the mesh owner/operator the ability to update some of the mesh configurations based on their needs. The OSM ConfigMap can be found under [charts/osm/templates](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/templates/osm-configmap.yaml).
 To view your `osm-config` in CLI use the `kubectl get` command.

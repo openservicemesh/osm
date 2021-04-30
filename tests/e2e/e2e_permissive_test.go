@@ -39,7 +39,6 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 	It("Tests HTTP traffic for client pod -> server pod with permissive mode", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
-		installOpts.EnablePermissiveMode = true
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 		meshConfig, _ := Td.GetMeshConfig()
 		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = true

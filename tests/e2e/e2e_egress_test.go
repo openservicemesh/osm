@@ -22,7 +22,6 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 			It("Allows egress traffic when enabled", func() {
 				// Install OSM
 				installOpts := Td.GetOSMInstallOpts()
-				installOpts.EgressEnabled = true
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				var err error

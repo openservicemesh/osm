@@ -40,7 +40,6 @@ var (
 	testVaultHost          = "vault.osm.svc.cluster.local"
 	testVaultToken         = "token"
 	testRetentionTime      = "5d"
-	testEnvoyLogLevel      = "error"
 	testControllerLogLevel = "info"
 	testChartPath          = "testdata/test-chart"
 )
@@ -509,29 +508,6 @@ var _ = Describe("Running the install command", func() {
 
 })
 
-var _ = Describe("Test envoy log level types", func() {
-	Context("Test isValidEnvoyLogLevel", func() {
-		It("Should validate if the specified envoy log level is supported", func() {
-			err := isValidEnvoyLogLevel("error")
-			Expect(err).NotTo(HaveOccurred())
-
-			err = isValidEnvoyLogLevel("off")
-			Expect(err).NotTo(HaveOccurred())
-
-			err = isValidEnvoyLogLevel("warn")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("Should correctly error for invalid envoy log level", func() {
-			err := isValidEnvoyLogLevel("tracing")
-			Expect(err).To(HaveOccurred())
-
-			err = isValidEnvoyLogLevel("warns")
-			Expect(err).To(HaveOccurred())
-		})
-	})
-})
-
 var _ = Describe("deployPrometheus is true", func() {
 	var (
 		out    *bytes.Buffer
@@ -673,21 +649,18 @@ func TestEnforceSingleMesh(t *testing.T) {
 	fakeClientSet := fake.NewSimpleClientset()
 
 	install := &installCmd{
-		out:                         out,
-		chartPath:                   testChartPath,
-		containerRegistry:           testRegistry,
-		osmImageTag:                 testOsmImageTag,
-		osmImagePullPolicy:          defaultOsmImagePullPolicy,
-		certificateManager:          "tresor",
-		serviceCertValidityDuration: "24h",
-		prometheusRetentionTime:     testRetentionTime,
-		meshName:                    defaultMeshName,
-		enableEgress:                true,
-		deployGrafana:               false,
-		clientSet:                   fakeClientSet,
-		envoyLogLevel:               testEnvoyLogLevel,
-		controllerLogLevel:          testControllerLogLevel,
-		enforceSingleMesh:           true,
+		out:                     out,
+		chartPath:               testChartPath,
+		containerRegistry:       testRegistry,
+		osmImageTag:             testOsmImageTag,
+		osmImagePullPolicy:      defaultOsmImagePullPolicy,
+		certificateManager:      "tresor",
+		prometheusRetentionTime: testRetentionTime,
+		meshName:                defaultMeshName,
+		deployGrafana:           false,
+		clientSet:               fakeClientSet,
+		controllerLogLevel:      testControllerLogLevel,
+		enforceSingleMesh:       true,
 	}
 
 	err := install.run(config)
@@ -731,21 +704,18 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 	assert.Nil(err)
 
 	install := &installCmd{
-		out:                         out,
-		chartPath:                   testChartPath,
-		containerRegistry:           testRegistry,
-		osmImageTag:                 testOsmImageTag,
-		osmImagePullPolicy:          defaultOsmImagePullPolicy,
-		certificateManager:          "tresor",
-		serviceCertValidityDuration: "24h",
-		prometheusRetentionTime:     testRetentionTime,
-		meshName:                    defaultMeshName + "-2",
-		enableEgress:                true,
-		deployPrometheus:            true,
-		deployGrafana:               false,
-		clientSet:                   fakeClientSet,
-		envoyLogLevel:               testEnvoyLogLevel,
-		controllerLogLevel:          testControllerLogLevel,
+		out:                     out,
+		chartPath:               testChartPath,
+		containerRegistry:       testRegistry,
+		osmImageTag:             testOsmImageTag,
+		osmImagePullPolicy:      defaultOsmImagePullPolicy,
+		certificateManager:      "tresor",
+		prometheusRetentionTime: testRetentionTime,
+		meshName:                defaultMeshName + "-2",
+		deployPrometheus:        true,
+		deployGrafana:           false,
+		clientSet:               fakeClientSet,
+		controllerLogLevel:      testControllerLogLevel,
 	}
 
 	err = install.run(config)
@@ -778,22 +748,19 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 	assert.Nil(err)
 
 	install := &installCmd{
-		out:                         out,
-		chartPath:                   testChartPath,
-		containerRegistry:           testRegistry,
-		osmImageTag:                 testOsmImageTag,
-		osmImagePullPolicy:          defaultOsmImagePullPolicy,
-		certificateManager:          "tresor",
-		serviceCertValidityDuration: "24h",
-		prometheusRetentionTime:     testRetentionTime,
-		meshName:                    defaultMeshName + "-2",
-		enableEgress:                true,
-		deployPrometheus:            true,
-		deployGrafana:               false,
-		clientSet:                   fakeClientSet,
-		envoyLogLevel:               testEnvoyLogLevel,
-		controllerLogLevel:          testControllerLogLevel,
-		enforceSingleMesh:           true,
+		out:                     out,
+		chartPath:               testChartPath,
+		containerRegistry:       testRegistry,
+		osmImageTag:             testOsmImageTag,
+		osmImagePullPolicy:      defaultOsmImagePullPolicy,
+		certificateManager:      "tresor",
+		prometheusRetentionTime: testRetentionTime,
+		meshName:                defaultMeshName + "-2",
+		deployPrometheus:        true,
+		deployGrafana:           false,
+		clientSet:               fakeClientSet,
+		controllerLogLevel:      testControllerLogLevel,
+		enforceSingleMesh:       true,
 	}
 
 	err = install.run(config)
@@ -852,35 +819,29 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 
 func getDefaultInstallCmd(writer io.Writer) installCmd {
 	installCmd := installCmd{
-		out:                           writer,
-		certificateManager:            defaultCertificateManager,
-		certManagerIssuerGroup:        defaultCertManagerIssuerGroup,
-		certManagerIssuerKind:         defaultCertManagerIssuerKind,
-		certManagerIssuerName:         defaultCertManagerIssuerName,
-		chartPath:                     defaultChartPath,
-		containerRegistry:             defaultContainerRegistry,
-		containerRegistrySecret:       defaultContainerRegistrySecret,
-		meshName:                      defaultMeshName,
-		osmImagePullPolicy:            defaultOsmImagePullPolicy,
-		osmImageTag:                   defaultOsmImageTag,
-		prometheusRetentionTime:       defaultPrometheusRetentionTime,
-		vaultHost:                     defaultVaultHost,
-		vaultProtocol:                 defaultVaultProtocol,
-		vaultToken:                    defaultVaultToken,
-		vaultRole:                     defaultVaultRole,
-		envoyLogLevel:                 defaultEnvoyLogLevel,
-		controllerLogLevel:            defaultControllerLogLevel,
-		serviceCertValidityDuration:   defaultServiceCertValidityDuration,
-		enableDebugServer:             defaultEnableDebugServer,
-		enableEgress:                  defaultEnableEgress,
-		enablePermissiveTrafficPolicy: defaultEnablePermissiveTrafficPolicy,
-		clientSet:                     fake.NewSimpleClientset(),
-		deployPrometheus:              defaultDeployPrometheus,
-		enablePrometheusScraping:      defaultEnablePrometheusScraping,
-		deployGrafana:                 defaultDeployGrafana,
-		enableFluentbit:               defaultEnableFluentbit,
-		deployJaeger:                  defaultDeployJaeger,
-		enforceSingleMesh:             defaultEnforceSingleMesh,
+		out:                     writer,
+		certificateManager:      defaultCertificateManager,
+		certManagerIssuerGroup:  defaultCertManagerIssuerGroup,
+		certManagerIssuerKind:   defaultCertManagerIssuerKind,
+		certManagerIssuerName:   defaultCertManagerIssuerName,
+		chartPath:               defaultChartPath,
+		containerRegistry:       defaultContainerRegistry,
+		containerRegistrySecret: defaultContainerRegistrySecret,
+		meshName:                defaultMeshName,
+		osmImagePullPolicy:      defaultOsmImagePullPolicy,
+		osmImageTag:             defaultOsmImageTag,
+		prometheusRetentionTime: defaultPrometheusRetentionTime,
+		vaultHost:               defaultVaultHost,
+		vaultProtocol:           defaultVaultProtocol,
+		vaultToken:              defaultVaultToken,
+		vaultRole:               defaultVaultRole,
+		controllerLogLevel:      defaultControllerLogLevel,
+		clientSet:               fake.NewSimpleClientset(),
+		deployPrometheus:        defaultDeployPrometheus,
+		deployGrafana:           defaultDeployGrafana,
+		enableFluentbit:         defaultEnableFluentbit,
+		deployJaeger:            defaultDeployJaeger,
+		enforceSingleMesh:       defaultEnforceSingleMesh,
 	}
 
 	return installCmd
@@ -901,7 +862,6 @@ func getDefaultValues() map[string]interface{} {
 				"tag":        defaultOsmImageTag,
 				"pullPolicy": defaultOsmImagePullPolicy,
 			},
-			"serviceCertValidityDuration": defaultServiceCertValidityDuration,
 			"vault": map[string]interface{}{
 				"host":     defaultVaultHost,
 				"protocol": defaultVaultProtocol,
@@ -912,16 +872,11 @@ func getDefaultValues() map[string]interface{} {
 				"retention": map[string]interface{}{
 					"time": defaultPrometheusRetentionTime,
 				}},
-			"enableDebugServer":             defaultEnableDebugServer,
-			"enablePermissiveTrafficPolicy": defaultEnablePermissiveTrafficPolicy,
-			"enableEgress":                  defaultEnableEgress,
-			"deployPrometheus":              defaultDeployPrometheus,
-			"enablePrometheusScraping":      defaultEnablePrometheusScraping,
-			"deployGrafana":                 defaultDeployGrafana,
-			"enableFluentbit":               defaultEnableFluentbit,
-			"deployJaeger":                  defaultDeployJaeger,
-			"envoyLogLevel":                 testEnvoyLogLevel,
-			"controllerLogLevel":            testControllerLogLevel,
-			"enforceSingleMesh":             defaultEnforceSingleMesh,
+			"deployPrometheus":   defaultDeployPrometheus,
+			"deployGrafana":      defaultDeployGrafana,
+			"enableFluentbit":    defaultEnableFluentbit,
+			"deployJaeger":       defaultDeployJaeger,
+			"controllerLogLevel": testControllerLogLevel,
+			"enforceSingleMesh":  defaultEnforceSingleMesh,
 		}}
 }

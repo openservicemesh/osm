@@ -57,8 +57,6 @@ OpenServiceMesh:
     issuerKind: Issuer
     # -- cert-manager issuer group
     issuerGroup: cert-manager
-  # -- Sets the service certificatevalidity duration
-  serviceCertValidityDuration: 24h
   # -- The Kubernetes secret to store `ca.crt`
   caBundleSecretName: osm-ca-bundle
   grafana:
@@ -66,16 +64,8 @@ OpenServiceMesh:
     port: 3000
     # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
-  # -- Enable the debug HTTP server
-  enableDebugServer: false
-  # -- Enable permissive traffic policy mode
-  enablePermissiveTrafficPolicy: false
-  # -- Enable egress in the mesh
-  enableEgress: false
   # -- Deploy Prometheus
   deployPrometheus: false
-  # -- Enable Prometheus metrics scraping on sidecar proxies
-  enablePrometheusScraping: true
   # -- Deploy Grafana
   deployGrafana: false
   # -- Enable Fluent Bit sidecar deployment
@@ -103,12 +93,6 @@ OpenServiceMesh:
     httpsProxy: ""
   # -- Name for the new control plane instance
   meshName: osm
-  # -- Enables HTTPS ingress on the mesh
-  useHTTPSIngress: false
-  # -- Envoy log level is used to specify the level of logs collected from envoy
-  envoyLogLevel: error
-  # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
-  maxDataPlaneConnections: 0
   # -- Controller log verbosity
   controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster
@@ -124,31 +108,6 @@ OpenServiceMesh:
   # -- Deploy Jaeger in the OSM namespace
   deployJaeger: false
 
-  # The following section configures a destination where to send
-  # tracing data. Current implementation supports only Zipkin format
-  # backends (https://github.com/openservicemesh/osm/issues/1596)
-  tracing:
-
-    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
-    enable: false
-
-    # -- Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
-    address: ""
-
-    # -- Destination port for the listener
-    port: 9411
-
-    # -- Destination's API or collector endpoint where the spans will be sent to
-    endpoint: "/api/v2/spans"
-
-  # -- Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
-  # If specified, must be a list of IP ranges of the form a.b.c.d/x.
-  outboundIPRangeExclusionList: []
-
-  # -- Optional parameter to specify a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
-  # If specified, must be a list of positive integers.
-  outboundPortExclusionList: []
-
   # -- Sidecar injector configuration
   injector:
     replicaCount: 1
@@ -160,6 +119,3 @@ OpenServiceMesh:
         cpu: "0.3"
         memory: "64M"
     podLabels: {}
-
-  # -- Run init container in privileged mode
-  enablePrivilegedInitContainer: false

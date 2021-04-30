@@ -159,7 +159,7 @@ func main() {
 	// Start the default metrics store
 	startMetricsStore()
 
-	// This component will be watching the OSM ConfigMap and will make it
+	// This component will be watching the OSM MeshConfig and will make it
 	// to the rest of the components.
 	cfg := configurator.NewConfiguratorWithCRDClient(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 	meshConfig, err := cfg.GetMeshConfigJSON()
@@ -216,11 +216,6 @@ func main() {
 
 	proxyRegistry := registry.NewProxyRegistry()
 	proxyRegistry.ReleaseCertificateHandler(certManager)
-
-	// Create the configMap validating webhook
-	if err := configurator.NewValidatingWebhook(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating osm-config validating webhook")
-	}
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {

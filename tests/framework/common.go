@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -100,8 +99,6 @@ var (
 	defaultCertManager = "tresor"
 	// default enable NS metrics tag
 	defaultEnableNsMetricTag = true
-	// default enable debug server
-	defaultEnableDebugServer = true
 	// default deploy Prometheus
 	defaultDeployPrometheus = false
 	// default deploy Grafana
@@ -110,8 +107,6 @@ var (
 	defaultDeployJaeger = false
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
-	// default envoy loglevel
-	defaultEnvoyLogLevel = "debug"
 	// default OSM loglevel
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
@@ -421,11 +416,7 @@ type InstallOSMOpts struct {
 	CertmanagerIssuerKind  string
 	CertmanagerIssuerName  string
 
-	EgressEnabled        bool
-	EnablePermissiveMode bool
-	OSMLogLevel          string
-	EnvoyLogLevel        string
-	EnableDebugServer    bool
+	OSMLogLevel string
 
 	SetOverrides []string
 }
@@ -451,9 +442,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
-		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
-		EnableDebugServer:      defaultEnableDebugServer,
 		SetOverrides:           []string{},
 	}
 }
@@ -557,10 +546,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--osm-image-tag="+instOpts.OsmImagetag,
 		"--osm-namespace="+instOpts.ControlPlaneNS,
 		"--certificate-manager="+instOpts.CertManager,
-		"--enable-egress="+strconv.FormatBool(instOpts.EgressEnabled),
-		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.EnablePermissiveMode),
-		"--enable-debug-server="+strconv.FormatBool(instOpts.EnableDebugServer),
-		"--envoy-log-level="+instOpts.EnvoyLogLevel,
 	)
 
 	switch instOpts.CertManager {

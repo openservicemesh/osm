@@ -56,37 +56,28 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertificateManager            = "tresor"
-	defaultCertManagerIssuerGroup        = "cert-manager.io"
-	defaultCertManagerIssuerKind         = "Issuer"
-	defaultCertManagerIssuerName         = "osm-ca"
-	defaultChartPath                     = ""
-	defaultContainerRegistry             = "openservicemesh"
-	defaultContainerRegistrySecret       = ""
-	defaultMeshName                      = "osm"
-	defaultOsmImagePullPolicy            = "IfNotPresent"
-	defaultOsmImageTag                   = "v0.8.3"
-	defaultPrometheusRetentionTime       = constants.PrometheusDefaultRetentionTime
-	defaultVaultHost                     = ""
-	defaultVaultProtocol                 = "http"
-	defaultVaultToken                    = ""
-	defaultVaultRole                     = "openservicemesh"
-	defaultEnvoyLogLevel                 = "error"
-	defaultControllerLogLevel            = "info"
-	defaultServiceCertValidityDuration   = "24h"
-	defaultEnableDebugServer             = false
-	defaultEnableEgress                  = false
-	defaultEnablePermissiveTrafficPolicy = false
-	defaultDeployPrometheus              = false
-	defaultEnablePrometheusScraping      = true
-	defaultDeployGrafana                 = false
-	defaultEnableFluentbit               = false
-	defaultDeployJaeger                  = false
-	defaultEnforceSingleMesh             = false
+	defaultCertificateManager      = "tresor"
+	defaultCertManagerIssuerGroup  = "cert-manager.io"
+	defaultCertManagerIssuerKind   = "Issuer"
+	defaultCertManagerIssuerName   = "osm-ca"
+	defaultChartPath               = ""
+	defaultContainerRegistry       = "openservicemesh"
+	defaultContainerRegistrySecret = ""
+	defaultMeshName                = "osm"
+	defaultOsmImagePullPolicy      = "IfNotPresent"
+	defaultOsmImageTag             = "v0.8.3"
+	defaultPrometheusRetentionTime = constants.PrometheusDefaultRetentionTime
+	defaultVaultHost               = ""
+	defaultVaultProtocol           = "http"
+	defaultVaultToken              = ""
+	defaultVaultRole               = "openservicemesh"
+	defaultControllerLogLevel      = "info"
+	defaultDeployPrometheus        = false
+	defaultDeployGrafana           = false
+	defaultEnableFluentbit         = false
+	defaultDeployJaeger            = false
+	defaultEnforceSingleMesh       = false
 )
-
-// possibleEnvoyLogLevels referenced from : https://github.com/envoyproxy/envoy/blob/release/v1.15/test/server/options_impl_test.cc#L373
-var possibleEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
 // Its value is initialized at build time.
@@ -95,34 +86,29 @@ var chartTGZSource string
 var log = logger.NewPretty("osm-install")
 
 type installCmd struct {
-	out                           io.Writer
-	certificateManager            string
-	certManagerIssuerGroup        string
-	certManagerIssuerKind         string
-	certManagerIssuerName         string
-	chartPath                     string
-	containerRegistry             string
-	containerRegistrySecret       string
-	meshName                      string
-	osmImagePullPolicy            string
-	osmImageTag                   string
-	prometheusRetentionTime       string
-	vaultHost                     string
-	vaultProtocol                 string
-	vaultToken                    string
-	vaultRole                     string
-	envoyLogLevel                 string
-	controllerLogLevel            string
-	serviceCertValidityDuration   string
-	timeout                       time.Duration
-	enableDebugServer             bool
-	enableEgress                  bool
-	enablePermissiveTrafficPolicy bool
-	clientSet                     kubernetes.Interface
-	configClient                  *configClientset.Clientset
-	chartRequested                *chart.Chart
-	setOptions                    []string
-	atomic                        bool
+	out                     io.Writer
+	certificateManager      string
+	certManagerIssuerGroup  string
+	certManagerIssuerKind   string
+	certManagerIssuerName   string
+	chartPath               string
+	containerRegistry       string
+	containerRegistrySecret string
+	meshName                string
+	osmImagePullPolicy      string
+	osmImageTag             string
+	prometheusRetentionTime string
+	vaultHost               string
+	vaultProtocol           string
+	vaultToken              string
+	vaultRole               string
+	controllerLogLevel      string
+	timeout                 time.Duration
+	clientSet               kubernetes.Interface
+	configClient            *configClientset.Clientset
+	chartRequested          *chart.Chart
+	setOptions              []string
+	atomic                  bool
 
 	// Toggle to enable/disable Prometheus installation
 	deployPrometheus bool
@@ -182,19 +168,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.certManagerIssuerName, "cert-manager-issuer-name", defaultCertManagerIssuerName, "cert-manager issuer name")
 	f.StringVar(&inst.certManagerIssuerKind, "cert-manager-issuer-kind", defaultCertManagerIssuerKind, "cert-manager issuer kind")
 	f.StringVar(&inst.certManagerIssuerGroup, "cert-manager-issuer-group", defaultCertManagerIssuerGroup, "cert-manager issuer group")
-	f.StringVar(&inst.serviceCertValidityDuration, "service-cert-validity-duration", defaultServiceCertValidityDuration, "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", defaultPrometheusRetentionTime, "Duration for which data will be retained in prometheus")
-	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
-	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
-	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
 	f.BoolVar(&inst.deployPrometheus, "deploy-prometheus", defaultDeployPrometheus, "Install and deploy Prometheus")
-	f.BoolVar(&inst.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(&inst.deployGrafana, "deploy-grafana", defaultDeployGrafana, "Install and deploy Grafana")
 	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", defaultEnableFluentbit, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", defaultDeployJaeger, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel,
-		fmt.Sprintf("Envoy log level is the level of logs collected from envoy and needs to be one of: %s", strings.Join(possibleEnvoyLogLevels, ",")))
 	f.StringVar(&inst.controllerLogLevel, "controller-log-level", defaultControllerLogLevel,
 		fmt.Sprintf("Controller log level is the level of logs collected from envoy and needs to be one of these: %s", strings.Join(logger.AllowedLevels, ",")))
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
@@ -271,18 +250,12 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certManagerIssuerName),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certManagerIssuerKind),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certManagerIssuerGroup),
-		fmt.Sprintf("OpenServiceMesh.serviceCertValidityDuration=%s", i.serviceCertValidityDuration),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
-		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
-		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%t", i.deployPrometheus),
-		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),
 		fmt.Sprintf("OpenServiceMesh.deployGrafana=%t", i.deployGrafana),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%t", i.enableFluentbit),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
-		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
-		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
 		fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", strings.ToLower(i.controllerLogLevel)),
 		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
@@ -353,18 +326,8 @@ func (i *installCmd) validateOptions() error {
 		return annotateErrorMessageWithOsmNamespace("Error ensuring no osm-controller running in OSM namespace [%s]: %s", settings.Namespace(), err)
 	}
 
-	// validate the envoy log level type
-	if err := isValidEnvoyLogLevel(i.envoyLogLevel); err != nil {
-		return err
-	}
-
 	// validate the OSM Controller log level type
 	if err := isValidControllerLogLevel(i.controllerLogLevel); err != nil {
-		return err
-	}
-
-	// validate certificate validity duration
-	if _, err := time.ParseDuration(i.serviceCertValidityDuration); err != nil {
 		return err
 	}
 
@@ -389,12 +352,6 @@ func (i *installCmd) validateOptions() error {
 		}
 	}
 
-	if i.deployPrometheus {
-		if !i.enablePrometheusScraping {
-			_, _ = fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMConfigMap)
-		}
-	}
-
 	return nil
 }
 
@@ -405,15 +362,6 @@ func isValidControllerLogLevel(controllerLogLevel string) error {
 		}
 	}
 	return errors.Errorf("Invalid OSM Controller log level: %s. OSM Controller log level must be one of: %v", controllerLogLevel, logger.AllowedLevels)
-}
-
-func isValidEnvoyLogLevel(envoyLogLevel string) error {
-	for _, logLevel := range possibleEnvoyLogLevels {
-		if strings.EqualFold(envoyLogLevel, logLevel) {
-			return nil
-		}
-	}
-	return errors.Errorf("Invalid envoy log level: %s. Envoy log level must be one of: %v", envoyLogLevel, possibleEnvoyLogLevels)
 }
 
 func isValidMeshName(meshName string) error {
