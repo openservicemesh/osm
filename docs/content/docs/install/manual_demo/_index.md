@@ -351,8 +351,25 @@ A Kubernetes Service, Deployment, and Service Account for applications `bookbuye
 To view these resources on your cluster, run the following commands:
 
 ```bash
-kubectl get svc --all-namespaces
-kubectl get deployment --all-namespaces
+kubectl get deployments -n bookbuyer
+kubectl get deployments -n bookthief
+kubectl get deployments -n bookstore
+kubectl get deployments -n bookwarehouse
+
+kubectl get pods -n bookbuyer
+kubectl get pods -n bookthief
+kubectl get pods -n bookstore
+kubectl get pods -n bookwarehouse
+
+kubectl get services -n bookbuyer
+kubectl get services -n bookthief
+kubectl get services -n bookstore
+kubectl get services -n bookwarehouse
+
+kubectl get endpoints -n bookbuyer
+kubectl get endpoints -n bookthief
+kubectl get endpoints -n bookstore
+kubectl get endpoints -n bookwarehouse
 ```
 
 In addition to Kubernetes Services and Deployments, a [Kubernetes Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) was also created for each Deployment. The Service Account services as the application's identity which will be used later in the demo to create service to service access control policies.
