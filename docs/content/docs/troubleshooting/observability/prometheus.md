@@ -109,10 +109,10 @@ If Prometheus is found not to be scraping metrics for any Pods, perform the foll
 
 1. If [custom metrics](https://docs.openservicemesh.io/docs/tasks_usage/metrics/#custom-metrics) are not being scraped, verify they have been enabled.
 
-    Custom metrics are currently disable by default and enabled when the `OpenServiceMesh.enableWASMStatsExperimental` parameter is set to `true`. Verify the current OSM instance has this parameter set for a mesh named `osm` in the `osm-system` namespace:
+    Custom metrics are currently disable by default and enabled when the `OpenServiceMesh.featureFlags.enableWASMStats` parameter is set to `true`. Verify the current OSM instance has this parameter set for a mesh named `osm` in the `osm-system` namespace:
 
     ```console
     $ helm get values -a osm -n osm-system
     ```
 
-    If `OpenServiceMesh.enableWASMStatsExperimental` is set to a different value, reinstall OSM and pass `--set OpenServiceMesh.enableWASMStatsExperimental` to `osm install`.
+    If `OpenServiceMesh.featureFlags.enableWASMStats` is set to a different value, reinstall OSM and pass `--set OpenServiceMesh.featureFlags.enableWASMStats` to `osm install`.
