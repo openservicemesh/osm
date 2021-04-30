@@ -59,6 +59,9 @@ const (
 	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
 	outboundIPRangeExclusionListKey = "outbound_ip_range_exclusion_list"
 
+	// outboundPortExclusionListKey is the key name used to specify the ports to exclude from outbound sidecar interception
+	outboundPortExclusionListKey = "outbound_port_exclusion_list"
+
 	// enablePrivilegedInitContainer is the key name used to specify whether init containers should be privileged in the ConfigMap
 	enablePrivilegedInitContainer = "enable_privileged_init_container"
 
@@ -246,6 +249,9 @@ type osmConfig struct {
 	// OutboundIPRangeExclusionList is the list of outbound IP ranges to exclude from sidecar interception
 	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
 
+	// OutboundPortExclusionList is the list of outbound ports to exclude from sidecar interception
+	OutboundPortExclusionList string `yaml:"outbound_port_exclusion_list"`
+
 	EnablePrivilegedInitContainer bool `yaml:"enable_privileged_init_container"`
 
 	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
@@ -304,6 +310,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.EnvoyImage, _ = GetStringValueForKey(configMap, envoyImage)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
 	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
+	osmConfigMap.OutboundPortExclusionList, _ = GetStringValueForKey(configMap, outboundPortExclusionListKey)
 	osmConfigMap.EnablePrivilegedInitContainer, _ = GetBoolValueForKey(configMap, enablePrivilegedInitContainer)
 	osmConfigMap.ConfigResyncInterval, _ = GetStringValueForKey(configMap, configResyncInterval)
 

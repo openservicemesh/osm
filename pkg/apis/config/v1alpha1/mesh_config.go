@@ -34,6 +34,7 @@ type SidecarSpec struct {
 type TrafficSpec struct {
 	EnableEgress                      bool     `json:"enableEgress,omitempty" yaml:"enableEgress,omitempty"`
 	OutboundIPRangeExclusionList      []string `json:"outboundIPRangeExclusionList,omitempty" yaml:"outboundIPRangeExclusionList,omitempty"`
+	OutboundPortExclusionList         []string `json:"outboundPortExclusionList,omitempty" yaml:"outboundPortExclusionList,omitempty"`
 	UseHTTPSIngress                   bool     `json:"useHTTPSIngress,omitempty" yaml:"useHTTPSIngress,omitempty"`
 	EnablePermissiveTrafficPolicyMode bool     `json:"enablePermissiveTrafficPolicyMode,omitempty" yaml:"enablePermissiveTrafficPolicyMode,omitempty"`
 }

@@ -24,6 +24,7 @@ kubectl get configmap osm-config -n osm-system -o yaml
 | envoy_image | OpenServiceMesh.envoyImage | string | any supported Envoy image of the form envoyproxy/envoy-alpine:vx.xx.x | `"envoyproxy/envoy-alpine:v1.17.2"` | Sets the Envoy proxy sidecar image, only applicable to newly created pods joining the mesh. To update the sidecar image for existing pods, restart the deployment with `kubectl rollout restart`. |
 | max_data_plane_connections | OpenServiceMesh.maxDataPlaneConnections | int | any positive integer value | `"0"` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | outbound_ip_range_exclusion_list | OpenServiceMesh.outboundIPRangeExclusionList | string | comma separated list of IP ranges of the form a.b.c.d/x | `-`| Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy. |
+| outbound_port_exclusion_list | OpenServiceMesh.outboundPortExclusionList | string | comma separated list of ports | `-`| Global list of ports to exclude from outbound traffic interception by the sidecar proxy. |
 | permissive_traffic_policy_mode | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | true, false | `"false"` | Setting to `true`, enables allow-all mode in the mesh i.e. no traffic policy enforcement in the mesh. If set to `false`, enables deny-all traffic policy in mesh i.e. an `SMI Traffic Target` is necessary for services to communicate. |
 | prometheus_scraping | OpenServiceMesh.enablePrometheusScraping | bool | true, false | `"true"` | Enables Prometheus metrics scraping on sidecar proxies. |
 | service_cert_validity_duration | OpenServiceMesh.serviceCertValidityDuration | string | 24h, 1h30m (any time duration) | `"24h"` | Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix. |
@@ -62,6 +63,7 @@ Error: invalid argument "3" for "--enable-egress" flag: strconv.ParseBool: parsi
 | envoy_image | `--envoy-image` | string | `"envoyproxy/envoy-alpine:v1.17.2"` |
 | max_data_plane_connections |`--max-data-plane-connections` | int | `"0"` |
 | outbound_ip_range_exclusion_list | `--outbound-ip-range-exclusion-list` | string | `-`|
+| outbound_port_exclusion_list | `--outbound-port-exclusion-list` | string | `-`|
 | permissive_traffic_policy_mode | `--enable-permissive-traffic-policy` | bool | `"false"` |
 | prometheus_scraping |`--enable-prometheus-scraping` | bool | `"true"` |
 | service_cert_validity_duration | `--service-cert-validity-duration` | string | `"24h"` |
@@ -99,6 +101,7 @@ use_https_ingress: must be a boolean
 | envoy_image | string | `"envoyproxy/envoy-alpine:v1.17.2"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"envoy_image":"envoyproxy/envoy-alpine:v1.17.2"}}' --type=merge` |
 | max_data_plane_connections | int | `"0"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"max_data_plane_connections":"1000"}}' --type=merge` |
 | outbound_ip_range_exclusion_list | string | `-`| `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"outbound_ip_range_exclusion_list":"1.2.3.4/0"}}' --type=merge` |
+| outbound_port_exclusion_list | string | `-`| `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"outbound_port_exclusion_list":"6379"}}' --type=merge` |
 | service_cert_validity_duration | string | `"24h"` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"service_cert_validity_duration":"2m"}}' --type=merge` |
 | tracing_address | string | `jaeger.osm-system.svc.cluster.local` | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"tracing_address":"1.2a.b.c3"}}' --type=merge` |
 | tracing_endpoint | string | /api/v2/spans | `kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"tracing_endpoint":"/abracadabra"}}' --type=merge` |
@@ -126,6 +129,7 @@ kubectl describe validatingwebhookconfiguration osm-webhook-osm
 | envoy_image | `must be of the form envoyproxy/envoy-alpine:v<major>.<minor>.<patch>`
 | max_data_plane_connections | `must be a positive integer` |
 | outbound_ip_range_exclusion_list | `must be a list of valid IP addresses of the form a.b.c.d/x` |
+| outbound_port_exclusion_list | `must be a positive integer` |
 | permissive_traffic_policy_mode | `must be a boolean` |
 | prometheus_scraping | `must be a boolean` |
 | service_cert_validity_duration | `invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix` |

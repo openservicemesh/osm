@@ -87,6 +87,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	u.envoyImage = "envoyproxy/envoy-alpine:v0.00.0"
 	u.tracingEndpoint = "/here"
 	u.outboundIPRangeExclusionList = []string{"0.0.0.0/0", "1.1.1.1/1"}
+	u.outboundPortExclusionList = []string{"6379", "7070"}
 	u.enablePrivilegedInitContainer = new(bool)
 	*u.enablePrivilegedInitContainer = true
 
@@ -119,6 +120,10 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	outboundIPRangeExclusionList, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.outboundIPRangeExclusionList")
 	a.Nil(err)
 	a.Equal([]string{"0.0.0.0/0", "1.1.1.1/1"}, outboundIPRangeExclusionList)
+
+	outboundPortExclusionList, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.outboundPortExclusionList")
+	a.Nil(err)
+	a.Equal([]string{"6379", "7070"}, outboundPortExclusionList)
 
 	enablePrivilegedInitContainer, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enablePrivilegedInitContainer")
 	a.Nil(err)

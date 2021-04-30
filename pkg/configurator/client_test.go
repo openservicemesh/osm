@@ -67,6 +67,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"EnvoyImage":                    envoyImage,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
+				"OutboundPortExclusionList":     outboundPortExclusionListKey,
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
 				"ConfigResyncInterval":          configResyncInterval,
 			}
@@ -251,6 +252,12 @@ func TestConfigMapEventTriggers(t *testing.T) {
 		{
 			deltaConfigMapContents: map[string]string{
 				outboundIPRangeExclusionListKey: "true",
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			deltaConfigMapContents: map[string]string{
+				outboundPortExclusionListKey: "true",
 			},
 			expectProxyBroadcast: false,
 		},

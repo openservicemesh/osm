@@ -120,6 +120,7 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 	osmConfig.EnvoyImage = meshConfig.Spec.Sidecar.EnvoyImage
 	osmConfig.ServiceCertValidityDuration = meshConfig.Spec.Certificate.ServiceCertValidityDuration
 	osmConfig.OutboundIPRangeExclusionList = strings.Join(meshConfig.Spec.Traffic.OutboundIPRangeExclusionList, ",")
+	osmConfig.OutboundPortExclusionList = strings.Join(meshConfig.Spec.Traffic.OutboundPortExclusionList, ",")
 	osmConfig.EnablePrivilegedInitContainer = meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer
 
 	if osmConfig.TracingEnable {

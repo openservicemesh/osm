@@ -59,6 +59,7 @@ var _ = Describe("Test all patch operations", func() {
 			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
+			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
 
 			req := &admissionv1.AdmissionRequest{Namespace: namespace}
 			jsonPatches, err := wh.createPatch(&pod, req, proxyUUID)

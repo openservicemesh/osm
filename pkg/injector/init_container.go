@@ -6,8 +6,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func getInitContainerSpec(containerName string, containerImage string, outboundIPRangeExclusionList []string, enablePrivilegedInitContainer bool) corev1.Container {
-	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList)
+func getInitContainerSpec(containerName string, containerImage string, outboundIPRangeExclusionList []string, outboundPortExclusionList []string,
+	enablePrivilegedInitContainer bool) corev1.Container {
+	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList)
 	iptablesInitCommand := strings.Join(iptablesInitCommandsList, " && ")
 
 	return corev1.Container{
