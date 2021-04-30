@@ -14,7 +14,7 @@ This guide describes how to uninstall Open Service Mesh (OSM) from a Kubernetes 
 
 - Kubernetes cluster with OSM installed
 - The `kubectl` CLI
-- The `osm` CLI
+- The `osm` CLI or the helm 3 CLI
 
 ## Remove Envoy Sidecars from Application Pods and Envoy Secrets
 
@@ -81,6 +81,17 @@ Applications may be unavailable from outside the cluster for some time if ingres
 ### Delete Envoy Bootsrap Secrets
 
 Once the sidecar is removed, there is no need for the Envoy bootstrap config secrets OSM created. These are stored in the application namespace and can be deleted manually with `kubectl`. These secrets have the prefix `envoy-bootstrap-config` followed by some unique ID: `envoy-bootstrap-config-<some-id-here>`.
+
+### Using Helm
+
+Run the following `helm uninstall` command.
+```console
+$ helm uninstall <mesh name> --namespace <osm namespace> 
+```
+
+Run `helm uninstall --help` for more options.
+
+## Resource Management
 
 ## Uninstall OSM Control Plane and Remove User Provided Resources
 

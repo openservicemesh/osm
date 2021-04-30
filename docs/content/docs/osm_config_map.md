@@ -2,6 +2,7 @@
 title: "OSM ConfigMap"
 description: "OSM ConfigMap"
 type: docs
+aliases: ["osm_config_map.md"]
 ---
 
 # OSM ConfigMap
