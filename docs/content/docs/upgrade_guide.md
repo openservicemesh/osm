@@ -94,7 +94,7 @@ When upgrading, any custom settings used to install or run OSM may be reverted t
 
 To preserve any changes you've made to the OSM configuration, use the `helm --values` flag. Create a copy of the [values file](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/values.yaml) (make sure to use the version for the upgraded chart) and change any values you wish to customize. You can omit all other values.
 
-To see which values correspond to the ConfigMap settings, see the [OSM ConfigMap documentation](osm_config_map)
+To see which values correspond to the ConfigMap settings, see the [OSM ConfigMap documentation](osm_config_map.md)
 
 For example, to keep the `envoy_log_level` field in the ConfigMap set to `info`, save the following as `override.yaml`:
 
