@@ -22,7 +22,7 @@ This document will walk you through the steps to:
 
 ## Prerequisites
 This demo of OSM v0.8.0 requires:
-  - a cluster running Kubernetes v1.15.0 or greater
+  - a cluster running Kubernetes v1.18.0 or greater
   - a workstation capable of executing [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) scripts
   - [The Kubernetes command-line tool](https://kubernetes.io/docs/tasks/tools/#kubectl) - `kubectl`
 
