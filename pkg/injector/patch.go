@@ -54,7 +54,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// Add the Init Container
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage, wh.configurator.GetOutboundIPRangeExclusionList(), wh.configurator.GetOutboundPortExclusionList(), wh.configurator.IsPrivilegedInitContainer())
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), wh.configurator.GetOutboundPortExclusionList(), wh.configurator.IsPrivilegedInitContainer())
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	// Add the Envoy sidecar

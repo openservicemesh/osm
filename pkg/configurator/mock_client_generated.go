@@ -91,6 +91,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetInitContainerImage mocks base method
+func (m *MockConfigurator) GetInitContainerImage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInitContainerImage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetInitContainerImage indicates an expected call of GetInitContainerImage
+func (mr *MockConfiguratorMockRecorder) GetInitContainerImage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInitContainerImage", reflect.TypeOf((*MockConfigurator)(nil).GetInitContainerImage))
+}
+
 // GetMaxDataPlaneConnections mocks base method
 func (m *MockConfigurator) GetMaxDataPlaneConnections() int {
 	m.ctrl.T.Helper()

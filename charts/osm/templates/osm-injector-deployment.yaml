@@ -42,7 +42,6 @@ spec:
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
-            "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",

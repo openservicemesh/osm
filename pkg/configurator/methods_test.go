@@ -53,6 +53,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				enablePrivilegedInitContainer:  "true",
 				envoyLogLevel:                  "error",
 				envoyImage:                     "envoyproxy/envoy-alpine:v0.0.0",
+				initContainerImage:             "openservicemesh/init:v0.0.0",
 				serviceCertValidityDurationKey: "24h",
 				configResyncInterval:           "2m",
 				maxDataPlaneConnectionsKey:     "0",
@@ -68,6 +69,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					EnablePrivilegedInitContainer: true,
 					EnvoyLogLevel:                 "error",
 					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+					InitContainerImage:            "openservicemesh/init:v0.0.0",
 					ServiceCertValidityDuration:   "24h",
 					ConfigResyncInterval:          "2m",
 					MaxDataPlaneConnections:       0,
@@ -206,6 +208,19 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetEnvoyImage())
+			},
+		},
+		{
+			name:                 "GetInitContainerImage",
+			initialConfigMapData: map[string]string{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("openservicemesh/init:v0.8.3", cfg.GetInitContainerImage())
+			},
+			updatedConfigMapData: map[string]string{
+				initContainerImage: "openservicemesh/init:v0.8.2",
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("openservicemesh/init:v0.8.2", cfg.GetInitContainerImage())
 			},
 		},
 		{

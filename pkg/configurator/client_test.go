@@ -65,6 +65,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
 				"EnvoyLogLevel":                 envoyLogLevel,
 				"EnvoyImage":                    envoyImage,
+				"InitContainerImage":            initContainerImage,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
 				"OutboundPortExclusionList":     outboundPortExclusionListKey,

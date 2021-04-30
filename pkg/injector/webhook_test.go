@@ -489,9 +489,7 @@ var _ = Describe("Testing Injector Functions", func() {
   }
 }`
 	It("creates new webhook", func() {
-		injectorConfig := Config{
-			InitContainerImage: "-testInitContainerImage-",
-		}
+		injectorConfig := Config{}
 		kubeClient := fake.NewSimpleClientset()
 		var kubeController k8s.Controller
 		meshName := "-mesh-name-"

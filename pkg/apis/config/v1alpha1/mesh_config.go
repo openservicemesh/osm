@@ -26,6 +26,7 @@ type SidecarSpec struct {
 	EnablePrivilegedInitContainer bool   `json:"enablePrivilegedInitContainer,omitempty" yaml:"enablePrivilegedInitContainer,omitempty"`
 	LogLevel                      string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 	EnvoyImage                    string `json:"envoyImage,omitempty" yaml:"envoyImage,omitempty"`
+	InitContainerImage            string `json:"initContainerImage,omitempty" yaml:"initContainerImage,omitempty"`
 	MaxDataPlaneConnections       int    `json:"maxMaxPlaneConnections,omitempty" yaml:"max_data_plane_connections,omitempty"`
 	ConfigResyncInterval          string `json:"configResyncInterval,omitempty" yaml:"config_resync_interval,omitempty"`
 }

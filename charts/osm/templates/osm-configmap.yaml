@@ -10,6 +10,7 @@ data:
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
   envoy_log_level: {{ .Values.OpenServiceMesh.envoyLogLevel | quote }}
   envoy_image: {{ .Values.OpenServiceMesh.sidecarImage | quote }}
+  init_container_image: "{{ .Values.OpenServiceMesh.image.registry }}/init:{{ .Values.OpenServiceMesh.image.tag }}"
   enable_privileged_init_container: {{ .Values.OpenServiceMesh.enablePrivilegedInitContainer | quote }}
   enable_debug_server: {{ .Values.OpenServiceMesh.enableDebugServer | quote }}
   prometheus_scraping: {{ .Values.OpenServiceMesh.enablePrometheusScraping | quote }}

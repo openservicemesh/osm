@@ -36,8 +36,6 @@ type mutatingWebhook struct {
 type Config struct {
 	// ListenPort defines the port on which the sidecar injector listens
 	ListenPort int
-
-	InitContainerImage string
 }
 
 // Context needed to compose the Envoy bootstrap YAML.

@@ -4,16 +4,18 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-func getInitContainerSpec(containerName string, containerImage string, outboundIPRangeExclusionList []string, outboundPortExclusionList []string,
+func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []string,
 	enablePrivilegedInitContainer bool) corev1.Container {
 	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList)
 	iptablesInitCommand := strings.Join(iptablesInitCommandsList, " && ")
 
 	return corev1.Container{
 		Name:  containerName,
-		Image: containerImage,
+		Image: cfg.GetInitContainerImage(),
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: &enablePrivilegedInitContainer,
 			Capabilities: &corev1.Capabilities{

@@ -75,6 +75,9 @@ type Configurator interface {
 	// GetEnvoyImage returns the envoy image
 	GetEnvoyImage() string
 
+	// GetInitContainerImage returns the init container image
+	GetInitContainerImage() string
+
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 
