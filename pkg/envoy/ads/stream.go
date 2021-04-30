@@ -98,13 +98,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				continue
 			}
 
-			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
-			var typesRequest []envoy.TypeURI
-			if typeURL == envoy.TypeWildcard {
-				typesRequest = envoy.XDSResponseOrder
-			} else {
-				typesRequest = []envoy.TypeURI{typeURL}
-			}
+			typesRequest := []envoy.TypeURI{envoy.TypeURI(discoveryRequest.TypeUrl)}
 
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
@@ -179,6 +173,12 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	if !ok {
 		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: Unknown/Unsupported URI: %s",
 			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl)
+		return false
+	}
+
+	if typeURL == envoy.TypeEmptyURI {
+		// Skip handling TypeEmptyURI for now, context #3258
+		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Ignoring EmptyURI Type", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return false
 	}
 

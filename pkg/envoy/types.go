@@ -4,7 +4,6 @@ package envoy
 
 import (
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var (
@@ -24,20 +23,12 @@ func (t TypeURI) String() string {
 
 // Short returns an abbreviated version of the TypeURI, which is easier to spot in logs and metrics.
 func (t TypeURI) Short() string {
-	if t == TypeWildcard {
-		return Wildcard
-	}
-	return utils.GetLastChunkOfSlashed(t.String())
-}
-
-// IsWildcard returns true when the TypeURI is the one requesting ALL discovery types.
-func (t TypeURI) IsWildcard() bool {
-	return t == TypeWildcard
+	return XDSShortURINames[t]
 }
 
 // ValidURI defines valid URIs
 var ValidURI = map[string]TypeURI{
-	string(TypeWildcard):           TypeWildcard,
+	string(TypeEmptyURI):           TypeEmptyURI,
 	string(TypeSDS):                TypeSDS,
 	string(TypeCDS):                TypeCDS,
 	string(TypeLDS):                TypeLDS,
@@ -49,17 +40,18 @@ var ValidURI = map[string]TypeURI{
 
 // XDSShortURINames are shortened versions of the URI types
 var XDSShortURINames = map[TypeURI]string{
-	TypeSDS: "SDS",
-	TypeCDS: "CDS",
-	TypeLDS: "LDS",
-	TypeRDS: "RDS",
-	TypeEDS: "EDS",
+	TypeEmptyURI: "EmptyURI",
+	TypeSDS:      "SDS",
+	TypeCDS:      "CDS",
+	TypeLDS:      "LDS",
+	TypeRDS:      "RDS",
+	TypeEDS:      "EDS",
 }
 
 // Envoy TypeURIs
 const (
-	// TypeWildcard is the Wildcard type URI.
-	TypeWildcard TypeURI = ""
+	// TypeEmptyURI is an Empty URI type representation
+	TypeEmptyURI TypeURI = ""
 
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
@@ -84,9 +76,6 @@ const (
 
 	// TypeADS is not actually used by Envoy - but useful within OSM for logging
 	TypeADS TypeURI = "ADS"
-
-	// Wildcard short name for empty TypeURL
-	Wildcard string = "Wildcard"
 )
 
 const (
