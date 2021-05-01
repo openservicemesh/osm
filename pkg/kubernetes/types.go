@@ -6,9 +6,12 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -100,4 +103,11 @@ type Controller interface {
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
+
+	// GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
+	GetPodFromCertificate(certificate.CommonName) (*v1.Pod, error)
+
+	// GetServicesForProxy returns a list of services the given Envoy is a member of based
+	// on its certificate, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
 }

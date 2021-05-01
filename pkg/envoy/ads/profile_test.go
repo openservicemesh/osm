@@ -15,7 +15,7 @@ import (
 
 func TestValidateResourcesRequestResponse(t *testing.T) {
 	assert := tassert.New(t)
-	proxy := envoy.NewProxy(certificate.CommonName("common-name"), certificate.SerialNumber("123"), tests.NewMockAddress("1.2.3.4"))
+	proxy := envoy.NewProxy(certificate.CommonName("common-name"), certificate.SerialNumber("123"), tests.NewMockAddress("1.2.3.4"), nil)
 
 	testCases := []struct {
 		request          *xds_discovery.DiscoveryRequest

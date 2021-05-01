@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -76,9 +75,6 @@ type MeshCataloger interface {
 	// reach a specific service.
 	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
 	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
-
-	// GetServicesForProxy returns a list of services the given Envoy is a member of based on its certificate, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
 
 	// GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
 	GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)

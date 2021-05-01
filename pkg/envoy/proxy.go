@@ -1,7 +1,12 @@
 package envoy
 
 import (
+	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/service"
 	"net"
 	"strings"
 	"time"
@@ -42,6 +47,8 @@ type Proxy struct {
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
 	// eventually be set when the metadata arrives via the xDS protocol.
 	PodMetadata *PodMetadata
+
+	kubeController kubernetes.Controller
 }
 
 func (p *Proxy) String() string {
@@ -173,6 +180,63 @@ func (p *Proxy) GetHash() uint64 {
 	return p.hash
 }
 
+// GetServices returns a list of services the given Envoy is a member of based
+// on its certificate, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy)
+func (p *Proxy) GetServices() []service.MeshService {
+	services, err := p.kubeController.GetServicesForProxy(p)
+	if err != nil {
+		log.Err(err).Msgf("Error getting services for proxy with UID=%s", p.GetPodUID())
+		return nil
+	}
+	return services
+}
+
+// GetServiceAccount returns the Identity for the given proxy.
+func (p *Proxy) GetServiceAccount() (identity.K8sServiceAccount, error) {
+	var svcAccount identity.K8sServiceAccount
+	cnMeta, err := getCertificateCommonNameMeta(p.GetCertificateCommonName())
+	if err != nil {
+		return svcAccount, err
+	}
+
+	svcAccount.Name = cnMeta.ServiceAccount
+	svcAccount.Namespace = cnMeta.Namespace
+
+	return svcAccount, nil
+}
+
+var (
+	// ErrInvalidCertificateCN is an error for when a certificate has a CommonName, which does not match expected string format.
+	ErrInvalidCertificateCN = errors.New("invalid cn")
+)
+
+func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
+	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
+	if len(chunks) < 3 {
+		return nil, ErrInvalidCertificateCN
+	}
+	proxyUUID, err := uuid.Parse(chunks[0])
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing %s into uuid.UUID", chunks[0])
+		return nil, err
+	}
+
+	return &certificateCommonNameMeta{
+		ProxyUUID: proxyUUID,
+		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
+		ServiceAccount: chunks[1],
+		Namespace:      chunks[2],
+	}, nil
+}
+
+// certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
+type certificateCommonNameMeta struct {
+	ProxyUUID uuid.UUID
+	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
+	ServiceAccount string
+	Namespace      string
+}
+
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
 func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
@@ -199,7 +263,7 @@ func (p *Proxy) SetLastResourcesSent(typeURI TypeURI, resourcesSet mapset.Set) {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr, kubeController kubernetes.Controller) *Proxy {
 	// Get CommonName hash for this proxy
 	hash, err := utils.HashFromString(certCommonName.String())
 	if err != nil {
@@ -219,5 +283,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastSentVersion:      make(map[TypeURI]uint64),
 		lastAppliedVersion:   make(map[TypeURI]uint64),
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
+
+		kubeController: kubeController,
 	}
 }

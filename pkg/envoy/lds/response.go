@@ -3,7 +3,6 @@ package lds
 import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -18,13 +17,7 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) ([]types.Resource, error) {
-	svcList, err := meshCatalog.GetServicesForProxy(proxy)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
-	}
-
-	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	svcAccount, err := proxy.GetServiceAccount()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
@@ -58,7 +51,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
 	// Create inbound filter chains per service behind proxy
-	for _, proxyService := range svcList {
+	for _, proxyService := range proxy.GetServices() {
 		// Create in-mesh filter chains
 		inboundSvcFilterChains := lb.getInboundMeshFilterChains(proxyService)
 		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundSvcFilterChains...)

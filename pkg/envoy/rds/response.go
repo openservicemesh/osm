@@ -5,7 +5,6 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -20,21 +19,15 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := proxy.GetServiceAccount()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
 	}
 
-	services, err := cataloger.GetServicesForProxy(proxy)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
-		return nil, err
-	}
-
 	// Build traffic policies from  either SMI Traffic Target and Traffic Split or service discovery
 	// depending on whether permissive mode is enabled or not
-	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity.ToServiceIdentity(), services)
+	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity.ToServiceIdentity(), proxy.GetServices())
 	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity.ToServiceIdentity())
 
 	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
@@ -45,7 +38,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	}
 
 	// Build Ingress inbound policies for the services associated with this proxy
-	for _, svc := range services {
+	for _, svc := range proxy.GetServices() {
 		ingressInboundPolicies, err := cataloger.GetIngressPoliciesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc)

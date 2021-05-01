@@ -23,7 +23,7 @@ var _ = Describe("Test proxy methods", func() {
 	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy1234566623211353.%s.%s.one.two.three.co.uk", svc, ns))
 	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
-	proxy := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
+	proxy := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"), nil)
 
 	Context("test GetPodUID() with empty Pod Metadata field", func() {
 		It("returns correct values", func() {
