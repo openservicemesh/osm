@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -160,7 +159,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			inst.clientSet = clientset
-
 			return inst.run(config)
 		},
 	}
@@ -207,7 +205,6 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
-	log.Trace().Msgf("run(): start resolveValues()")
 	// values represents the overrides for the OSM chart's values.yaml file
 	values, err := i.resolveValues()
 	if err != nil {

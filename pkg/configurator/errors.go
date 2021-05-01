@@ -3,5 +3,6 @@ package configurator
 import "github.com/pkg/errors"
 
 var (
-	errNilAdmissionRequest = errors.New("nil admission request")
+	errMissingKeyInConfigMap = errors.New("missing key in ConfigMap")
+	errNilAdmissionRequest   = errors.New("nil admission request")
 )

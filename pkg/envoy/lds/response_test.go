@@ -12,8 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -58,8 +56,7 @@ func TestListenerConfiguration(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient)
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)

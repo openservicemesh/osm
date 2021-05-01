@@ -23,7 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/injector"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -41,7 +40,7 @@ var (
 	osmNamespace       string
 	webhookConfigName  string
 	caBundleSecretName string
-	osmMeshConfigName  string
+	osmConfigMapName   string
 
 	injectorConfig injector.Config
 
@@ -65,7 +64,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-injector")
-	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
@@ -134,13 +133,13 @@ func main() {
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
 	)
 
-	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfiguratorWithCRDClient(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
-	meshConfig, err := cfg.GetMeshConfigJSON()
+	// Initialize Configurator to watch osm-config ConfigMap
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	configMap, err := cfg.GetConfigMap()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
+		log.Error().Err(err).Msgf("Error parsing ConfigMap %s", osmConfigMapName)
 	}
-	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, meshConfig)
+	log.Debug().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController, err := k8s.NewKubernetesController(kubeClient, meshName, stop, k8s.Namespaces)

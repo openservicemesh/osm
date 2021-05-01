@@ -29,12 +29,8 @@ func testTCPEgressTraffic() {
 	It("Tests TCP traffic for client pod -> server pod", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
+		installOpts.EgressEnabled = true
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
-
-		meshConfig, _ := Td.GetMeshConfig()
-		meshConfig.Spec.Traffic.EnableEgress = true
-		meshConfig, err := Td.UpdateOSMConfig(meshConfig)
-		Expect(err).NotTo(HaveOccurred())
 
 		// Load TCP server image
 		Expect(Td.LoadImagesToKind([]string{"tcp-echo-server"})).To(Succeed())
@@ -60,7 +56,7 @@ func testTCPEgressTraffic() {
 				AppProtocol: AppProtocolTCP,
 			})
 
-		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -109,9 +105,7 @@ func testTCPEgressTraffic() {
 		Expect(cond).To(BeTrue(), "Failed testing TCP traffic from %s", srcToDestStr)
 
 		By("Disabling egress")
-		meshConfig.Spec.Traffic.EnableEgress = false
-		_, err = Td.UpdateOSMConfig(meshConfig)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(Td.UpdateOSMConfig("egress", "false")).To(Succeed())
 
 		// Expect client not to reach server
 		cond = Td.WaitForRepeatedSuccess(func() bool {

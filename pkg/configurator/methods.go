@@ -17,7 +17,7 @@ const (
 // The functions in this file implement the configurator.Configurator interface
 
 // GetOSMNamespace returns the namespace in which the OSM controller pod resides.
-func (c *CRDClient) GetOSMNamespace() string {
+func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
@@ -25,11 +25,11 @@ func marshalConfigToJSON(config *osmConfig) ([]byte, error) {
 	return json.MarshalIndent(config, "", "    ")
 }
 
-// GetMeshConfigJSON returns the MeshConfig in pretty JSON.
-func (c *CRDClient) GetMeshConfigJSON() ([]byte, error) {
-	cm, err := marshalConfigToJSON(c.getMeshConfig())
+// GetConfigMap returns the ConfigMap in pretty JSON.
+func (c *Client) GetConfigMap() ([]byte, error) {
+	cm, err := marshalConfigToJSON(c.getConfigMap())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
+		log.Error().Err(err).Msgf("Error marshaling ConfigMap %s: %+v", c.getConfigMapCacheKey(), c.getConfigMap())
 		return nil, err
 	}
 	return cm, nil
@@ -39,33 +39,33 @@ func (c *CRDClient) GetMeshConfigJSON() ([]byte, error) {
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
 // referenced in SMI policies is allowed.
-func (c *CRDClient) IsPermissiveTrafficPolicyMode() bool {
-	return c.getMeshConfig().PermissiveTrafficPolicyMode
+func (c *Client) IsPermissiveTrafficPolicyMode() bool {
+	return c.getConfigMap().PermissiveTrafficPolicyMode
 }
 
 // IsEgressEnabled determines whether egress is globally enabled in the mesh or not.
-func (c *CRDClient) IsEgressEnabled() bool {
-	return c.getMeshConfig().Egress
+func (c *Client) IsEgressEnabled() bool {
+	return c.getConfigMap().Egress
 }
 
 // IsDebugServerEnabled determines whether osm debug HTTP server is enabled
-func (c *CRDClient) IsDebugServerEnabled() bool {
-	return c.getMeshConfig().EnableDebugServer
+func (c *Client) IsDebugServerEnabled() bool {
+	return c.getConfigMap().EnableDebugServer
 }
 
 // IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
-func (c *CRDClient) IsPrometheusScrapingEnabled() bool {
-	return c.getMeshConfig().PrometheusScraping
+func (c *Client) IsPrometheusScrapingEnabled() bool {
+	return c.getConfigMap().PrometheusScraping
 }
 
 // IsTracingEnabled returns whether tracing is enabled
-func (c *CRDClient) IsTracingEnabled() bool {
-	return c.getMeshConfig().TracingEnable
+func (c *Client) IsTracingEnabled() bool {
+	return c.getConfigMap().TracingEnable
 }
 
 // GetTracingHost is the host to which we send tracing spans
-func (c *CRDClient) GetTracingHost() string {
-	tracingAddress := c.getMeshConfig().TracingAddress
+func (c *Client) GetTracingHost() string {
+	tracingAddress := c.getConfigMap().TracingAddress
 	if tracingAddress != "" {
 		return tracingAddress
 	}
@@ -73,8 +73,8 @@ func (c *CRDClient) GetTracingHost() string {
 }
 
 // GetTracingPort returns the tracing listener port
-func (c *CRDClient) GetTracingPort() uint32 {
-	tracingPort := c.getMeshConfig().TracingPort
+func (c *Client) GetTracingPort() uint32 {
+	tracingPort := c.getConfigMap().TracingPort
 	if tracingPort != 0 {
 		return uint32(tracingPort)
 	}
@@ -82,8 +82,8 @@ func (c *CRDClient) GetTracingPort() uint32 {
 }
 
 // GetTracingEndpoint returns the listener's collector endpoint
-func (c *CRDClient) GetTracingEndpoint() string {
-	tracingEndpoint := c.getMeshConfig().TracingEndpoint
+func (c *Client) GetTracingEndpoint() string {
+	tracingEndpoint := c.getConfigMap().TracingEndpoint
 	if tracingEndpoint != "" {
 		return tracingEndpoint
 	}
@@ -91,18 +91,18 @@ func (c *CRDClient) GetTracingEndpoint() string {
 }
 
 // UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
-func (c *CRDClient) UseHTTPSIngress() bool {
-	return c.getMeshConfig().UseHTTPSIngress
+func (c *Client) UseHTTPSIngress() bool {
+	return c.getConfigMap().UseHTTPSIngress
 }
 
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
-func (c *CRDClient) GetMaxDataPlaneConnections() int {
-	return c.getMeshConfig().MaxDataPlaneConnections
+func (c *Client) GetMaxDataPlaneConnections() int {
+	return c.getConfigMap().MaxDataPlaneConnections
 }
 
 // GetEnvoyLogLevel returns the envoy log level
-func (c *CRDClient) GetEnvoyLogLevel() string {
-	logLevel := c.getMeshConfig().EnvoyLogLevel
+func (c *Client) GetEnvoyLogLevel() string {
+	logLevel := c.getConfigMap().EnvoyLogLevel
 	if logLevel != "" {
 		return logLevel
 	}
@@ -110,8 +110,8 @@ func (c *CRDClient) GetEnvoyLogLevel() string {
 }
 
 // GetEnvoyImage returns the envoy image
-func (c *CRDClient) GetEnvoyImage() string {
-	image := c.getMeshConfig().EnvoyImage
+func (c *Client) GetEnvoyImage() string {
+	image := c.getConfigMap().EnvoyImage
 	if image != "" {
 		return image
 	}
@@ -119,8 +119,8 @@ func (c *CRDClient) GetEnvoyImage() string {
 }
 
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
-func (c *CRDClient) GetServiceCertValidityPeriod() time.Duration {
-	durationStr := c.getMeshConfig().ServiceCertValidityDuration
+func (c *Client) GetServiceCertValidityPeriod() time.Duration {
+	durationStr := c.getConfigMap().ServiceCertValidityDuration
 	validityDuration, err := time.ParseDuration(durationStr)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s=%s", serviceCertValidityDurationKey, durationStr)
@@ -131,8 +131,8 @@ func (c *CRDClient) GetServiceCertValidityPeriod() time.Duration {
 }
 
 // GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception
-func (c *CRDClient) GetOutboundIPRangeExclusionList() []string {
-	ipRangesStr := c.getMeshConfig().OutboundIPRangeExclusionList
+func (c *Client) GetOutboundIPRangeExclusionList() []string {
+	ipRangesStr := c.getConfigMap().OutboundIPRangeExclusionList
 	if ipRangesStr == "" {
 		return nil
 	}
@@ -146,8 +146,8 @@ func (c *CRDClient) GetOutboundIPRangeExclusionList() []string {
 }
 
 // GetOutboundPortExclusionList returns the list of ports (positive integers) to exclude from outbound sidecar interception
-func (c *CRDClient) GetOutboundPortExclusionList() []string {
-	portsStr := c.getMeshConfig().OutboundPortExclusionList
+func (c *Client) GetOutboundPortExclusionList() []string {
+	portsStr := c.getConfigMap().OutboundPortExclusionList
 	if portsStr == "" {
 		return nil
 	}
@@ -161,14 +161,14 @@ func (c *CRDClient) GetOutboundPortExclusionList() []string {
 }
 
 // IsPrivilegedInitContainer returns whether init containers should be privileged
-func (c *CRDClient) IsPrivilegedInitContainer() bool {
-	return c.getMeshConfig().EnablePrivilegedInitContainer
+func (c *Client) IsPrivilegedInitContainer() bool {
+	return c.getConfigMap().EnablePrivilegedInitContainer
 }
 
 // GetConfigResyncInterval returns the duration for resync interval.
 // If error or non-parsable value, returns 0 duration
-func (c *CRDClient) GetConfigResyncInterval() time.Duration {
-	resyncDuration := c.getMeshConfig().ConfigResyncInterval
+func (c *Client) GetConfigResyncInterval() time.Duration {
+	resyncDuration := c.getConfigMap().ConfigResyncInterval
 	duration, err := time.ParseDuration(resyncDuration)
 	if err != nil {
 		log.Debug().Err(err).Msgf("Error parsing config resync interval: %s", duration)

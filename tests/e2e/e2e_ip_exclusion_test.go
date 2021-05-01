@@ -31,7 +31,6 @@ func testIPExclusion() {
 		installOpts := Td.GetOSMInstallOpts()
 		installOpts.EnablePermissiveMode = false // explicitly set to false to demonstrate IP exclusion
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
-		meshConfig, _ := Td.GetMeshConfig()
 
 		// Create Test NS
 		for _, n := range ns {
@@ -61,9 +60,7 @@ func testIPExclusion() {
 
 		// The destination IP will be programmed as an IP exclusion
 		destinationIPRange := fmt.Sprintf("%s/32", dstSvc.Spec.ClusterIP)
-		meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = []string{destinationIPRange}
-		_, err = Td.UpdateOSMConfig(meshConfig)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(Td.UpdateOSMConfig("outbound_ip_range_exclusion_list", destinationIPRange))
 
 		srcPod := setupSource(sourceName, false)
 

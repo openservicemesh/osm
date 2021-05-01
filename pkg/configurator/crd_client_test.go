@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	osmNamespace      = "-test-osm-namespace-"
 	osmMeshConfigName = "-test-osm-mesh-config-"
 )
 
@@ -39,7 +38,7 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	cfg := newConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+	cfg := newConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace)
 	Expect(cfg).ToNot(BeNil())
 
 	meshConfig := v1alpha1.MeshConfig{
@@ -67,13 +66,13 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"TracingPort":                   tracingPortKey,
 				"TracingEndpoint":               tracingEndpointKey,
 				"UseHTTPSIngress":               useHTTPSIngressKey,
-				"EnvoyLogLevel":                 envoyLogLevelKey,
-				"EnvoyImage":                    envoyImageKey,
+				"EnvoyLogLevel":                 envoyLogLevel,
+				"EnvoyImage":                    envoyImage,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
 				"OutboundPortExclusionList":     outboundPortExclusionListKey,
-				"EnablePrivilegedInitContainer": enablePrivilegedInitContainerKey,
-				"ConfigResyncInterval":          configResyncIntervalKey,
+				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
+				"ConfigResyncInterval":          configResyncInterval,
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
@@ -112,7 +111,7 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	_ = newConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace, meshConfigInformerName)
+	_ = newConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace)
 
 	meshConfig := v1alpha1.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -177,7 +176,7 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		},
 		{
 			deltaMeshConfigContents: map[string]string{
-				envoyLogLevelKey: "warn",
+				envoyLogLevel: "warn",
 			},
 			expectProxyBroadcast: false,
 		},
@@ -201,7 +200,7 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		},
 		{
 			deltaMeshConfigContents: map[string]string{
-				enablePrivilegedInitContainerKey: "true",
+				enablePrivilegedInitContainer: "true",
 			},
 			expectProxyBroadcast: false,
 		},
@@ -214,12 +213,6 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		{
 			deltaMeshConfigContents: map[string]string{
 				outboundPortExclusionListKey: "true",
-			},
-			expectProxyBroadcast: false,
-		},
-		{
-			deltaMeshConfigContents: map[string]string{
-				configResyncIntervalKey: "24h",
 			},
 			expectProxyBroadcast: false,
 		},
@@ -244,20 +237,18 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 			case tracingPortKey:
 				port, _ := strconv.ParseInt(mapVal, 10, 16)
 				meshConfig.Spec.Observability.Tracing.Port = int16(port)
-			case envoyLogLevelKey:
+			case envoyLogLevel:
 				meshConfig.Spec.Sidecar.LogLevel = mapVal
 			case enableDebugServer:
 				meshConfig.Spec.Observability.EnableDebugServer, _ = strconv.ParseBool(mapVal)
 			case serviceCertValidityDurationKey:
 				meshConfig.Spec.Certificate.ServiceCertValidityDuration = mapVal
-			case enablePrivilegedInitContainerKey:
+			case enablePrivilegedInitContainer:
 				meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer, _ = strconv.ParseBool(mapVal)
 			case outboundIPRangeExclusionListKey:
 				meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = strings.Split(mapVal, ",")
 			case outboundPortExclusionListKey:
 				meshConfig.Spec.Traffic.OutboundPortExclusionList = strings.Split(mapVal, ",")
-			case configResyncIntervalKey:
-				meshConfig.Spec.Sidecar.ConfigResyncInterval = mapVal
 			}
 		}
 

@@ -7,67 +7,55 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
-func TestGetMeshConfigCacheKey(t *testing.T) {
-	c := CRDClient{
-		meshConfigName: "configName",
-		osmNamespace:   "namespaceName",
+func TestGetConfigMapCacheKey(t *testing.T) {
+	c := Client{
+		osmConfigMapName: "mapName",
+		osmNamespace:     "namespaceName",
 	}
-	expected := "namespaceName/configName"
-	actual := c.getMeshConfigCacheKey()
+	expected := "namespaceName/mapName"
+	actual := c.getConfigMapCacheKey()
 	tassert.Equal(t, expected, actual)
 }
 
 func TestCreateUpdateConfig(t *testing.T) {
-	t.Run("MeshConfig doesn't exist", func(t *testing.T) {
-		meshConfigClientSet := testclient.NewSimpleClientset()
-
+	t.Run("ConfigMap doesn't exist", func(t *testing.T) {
+		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		cfg := newConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
-		tassert.Equal(t, &osmConfig{}, cfg.getMeshConfig())
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		tassert.Equal(t, &osmConfig{}, cfg.(*Client).getConfigMap())
 	})
 
 	tests := []struct {
-		name                  string
-		initialMeshConfigData *v1alpha1.MeshConfigSpec
-		checkCreate           func(*tassert.Assertions, Configurator)
-		updatedMeshConfigData *v1alpha1.MeshConfigSpec
-		checkUpdate           func(*tassert.Assertions, Configurator)
+		name                 string
+		initialConfigMapData map[string]string
+		checkCreate          func(*tassert.Assertions, Configurator)
+		updatedConfigMapData map[string]string
+		checkUpdate          func(*tassert.Assertions, Configurator)
 	}{
 		{
 			name: "default",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					EnablePrivilegedInitContainer: true,
-					LogLevel:                      "error",
-					MaxDataPlaneConnections:       0,
-					ConfigResyncInterval:          "2m",
-					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
-				},
-				Traffic: v1alpha1.TrafficSpec{
-					EnablePermissiveTrafficPolicyMode: false,
-					EnableEgress:                      true,
-					UseHTTPSIngress:                   true,
-				},
-				Observability: v1alpha1.ObservabilitySpec{
-					EnableDebugServer:  true,
-					PrometheusScraping: true,
-					Tracing: v1alpha1.TracingSpec{
-						Enable: true,
-					},
-				},
-				Certificate: v1alpha1.CertificateSpec{
-					ServiceCertValidityDuration: "24h",
-				},
+			initialConfigMapData: map[string]string{
+				PermissiveTrafficPolicyModeKey: "false",
+				egressKey:                      "true",
+				enableDebugServer:              "true",
+				prometheusScrapingKey:          "true",
+				tracingEnableKey:               "true",
+				useHTTPSIngressKey:             "true",
+				enablePrivilegedInitContainer:  "true",
+				envoyLogLevel:                  "error",
+				envoyImage:                     "envoyproxy/envoy-alpine:v0.0.0",
+				serviceCertValidityDurationKey: "24h",
+				configResyncInterval:           "2m",
+				maxDataPlaneConnectionsKey:     "0",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				expectedConfig := &osmConfig{
@@ -87,25 +75,21 @@ func TestCreateUpdateConfig(t *testing.T) {
 				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
 
-				configBytes, err := cfg.GetMeshConfigJSON()
+				configBytes, err := cfg.GetConfigMap()
 				assert.Nil(err)
 				assert.Equal(string(expectedConfigBytes), string(configBytes))
 			},
 		},
 		{
 			name: "IsPermissiveTrafficPolicyMode",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					EnablePermissiveTrafficPolicyMode: true,
-				},
+			initialConfigMapData: map[string]string{
+				PermissiveTrafficPolicyModeKey: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsPermissiveTrafficPolicyMode())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					EnablePermissiveTrafficPolicyMode: false,
-				},
+			updatedConfigMapData: map[string]string{
+				PermissiveTrafficPolicyModeKey: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsPermissiveTrafficPolicyMode())
@@ -113,18 +97,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "IsEgressEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					EnableEgress: true,
-				},
+			initialConfigMapData: map[string]string{
+				egressKey: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsEgressEnabled())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					EnableEgress: false,
-				},
+			updatedConfigMapData: map[string]string{
+				egressKey: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsEgressEnabled())
@@ -132,18 +112,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "IsDebugServerEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					EnableDebugServer: true,
-				},
+			initialConfigMapData: map[string]string{
+				enableDebugServer: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsDebugServerEnabled())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					EnableDebugServer: false,
-				},
+			updatedConfigMapData: map[string]string{
+				enableDebugServer: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsDebugServerEnabled())
@@ -151,18 +127,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "IsPrometheusScrapingEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: true,
-				},
+			initialConfigMapData: map[string]string{
+				prometheusScrapingKey: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsPrometheusScrapingEnabled())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: false,
-				},
+			updatedConfigMapData: map[string]string{
+				prometheusScrapingKey: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsPrometheusScrapingEnabled())
@@ -170,15 +142,11 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "IsTracingEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					Tracing: v1alpha1.TracingSpec{
-						Enable:   true,
-						Address:  "myjaeger",
-						Port:     12121,
-						Endpoint: "/my/endpoint",
-					},
-				},
+			initialConfigMapData: map[string]string{
+				tracingEnableKey:   "true",
+				tracingAddressKey:  "myjaeger",
+				tracingPortKey:     "12121",
+				tracingEndpointKey: "/my/endpoint",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsTracingEnabled())
@@ -186,15 +154,11 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(uint32(12121), cfg.GetTracingPort())
 				assert.Equal("/my/endpoint", cfg.GetTracingEndpoint())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					Tracing: v1alpha1.TracingSpec{
-						Enable:   false,
-						Address:  "myjaeger",
-						Port:     12121,
-						Endpoint: "/my/endpoint",
-					},
-				},
+			updatedConfigMapData: map[string]string{
+				tracingEnableKey:   "false",
+				tracingAddressKey:  "myjaeger",
+				tracingPortKey:     "12121",
+				tracingEndpointKey: "/my/endpoint",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsTracingEnabled())
@@ -205,48 +169,40 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "UseHTTPSIngress",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					UseHTTPSIngress: true,
-				},
+			initialConfigMapData: map[string]string{
+				useHTTPSIngressKey: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.UseHTTPSIngress())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					UseHTTPSIngress: false,
-				},
+			updatedConfigMapData: map[string]string{
+				useHTTPSIngressKey: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.UseHTTPSIngress())
 			},
 		},
 		{
-			name:                  "GetEnvoyLogLevel",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetEnvoyLogLevel",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("error", cfg.GetEnvoyLogLevel())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					LogLevel: "info",
-				},
+			updatedConfigMapData: map[string]string{
+				envoyLogLevel: "info",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("info", cfg.GetEnvoyLogLevel())
 			},
 		},
 		{
-			name:                  "GetEnvoyImage",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetEnvoyImage",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("envoyproxy/envoy-alpine:v1.17.2", cfg.GetEnvoyImage())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					EnvoyImage: "envoyproxy/envoy-alpine:v1.17.1",
-				},
+			updatedConfigMapData: map[string]string{
+				envoyImage: "envoyproxy/envoy-alpine:v1.17.1",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetEnvoyImage())
@@ -254,48 +210,40 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "GetServiceCertValidityDuration",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Certificate: v1alpha1.CertificateSpec{
-					ServiceCertValidityDuration: "24h",
-				},
+			initialConfigMapData: map[string]string{
+				serviceCertValidityDurationKey: "5", // invalid, should default to 24h
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal(24*time.Hour, cfg.GetServiceCertValidityPeriod())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Certificate: v1alpha1.CertificateSpec{
-					ServiceCertValidityDuration: "1h",
-				},
+			updatedConfigMapData: map[string]string{
+				serviceCertValidityDurationKey: "1h",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal(1*time.Hour, cfg.GetServiceCertValidityPeriod())
 			},
 		},
 		{
-			name:                  "GetOutboundIPRangeExclusionList",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetOutboundIPRangeExclusionList",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Nil(cfg.GetOutboundIPRangeExclusionList())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					OutboundIPRangeExclusionList: []string{"1.1.1.1/32, 2.2.2.2/24"},
-				},
+			updatedConfigMapData: map[string]string{
+				outboundIPRangeExclusionListKey: "1.1.1.1/32, 2.2.2.2/24",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal([]string{"1.1.1.1/32", "2.2.2.2/24"}, cfg.GetOutboundIPRangeExclusionList())
 			},
 		},
 		{
-			name:                  "GetOutboundPortExclusionList",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetOutboundPortExclusionList",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Nil(cfg.GetOutboundPortExclusionList())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					OutboundPortExclusionList: []string{"7070, 6080"},
-				},
+			updatedConfigMapData: map[string]string{
+				outboundPortExclusionListKey: "7070, 6080",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal([]string{"7070", "6080"}, cfg.GetOutboundPortExclusionList())
@@ -303,34 +251,28 @@ func TestCreateUpdateConfig(t *testing.T) {
 		},
 		{
 			name: "IsPrivilegedInitContainer",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					EnablePrivilegedInitContainer: true,
-				},
+			initialConfigMapData: map[string]string{
+				enablePrivilegedInitContainer: "true",
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.True(cfg.IsPrivilegedInitContainer())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					EnablePrivilegedInitContainer: false,
-				},
+			updatedConfigMapData: map[string]string{
+				enablePrivilegedInitContainer: "false",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsPrivilegedInitContainer())
 			},
 		},
 		{
-			name:                  "GetResyncInterval",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetResyncInterval",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				interval := cfg.GetConfigResyncInterval()
 				assert.Equal(interval, time.Duration(0))
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					ConfigResyncInterval: "2m",
-				},
+			updatedConfigMapData: map[string]string{
+				configResyncInterval: "2m",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				interval := cfg.GetConfigResyncInterval()
@@ -338,16 +280,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:                  "NegativeGetResyncInterval",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "NegativeGetResyncInterval",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				interval := cfg.GetConfigResyncInterval()
 				assert.Equal(interval, time.Duration(0))
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					ConfigResyncInterval: "Non-duration string",
-				},
+			updatedConfigMapData: map[string]string{
+				configResyncInterval: "Non-duration string",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				interval := cfg.GetConfigResyncInterval()
@@ -355,15 +295,13 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:                  "GetMaxDataplaneConnections",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			name:                 "GetMaxDataplaneConnections",
+			initialConfigMapData: map[string]string{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal(0, cfg.GetMaxDataPlaneConnections())
 			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Sidecar: v1alpha1.SidecarSpec{
-					MaxDataPlaneConnections: 1000,
-				},
+			updatedConfigMapData: map[string]string{
+				maxDataPlaneConnectionsKey: "1000",
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal(1000, cfg.GetMaxDataPlaneConnections())
@@ -374,29 +312,28 @@ func TestCreateUpdateConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			meshConfigClientSet := testclient.NewSimpleClientset()
+			kubeClient := testclient.NewSimpleClientset()
 
 			// Prepare the pubsub channel
-			confChannel := events.GetPubSubInstance().Subscribe(
-				announcements.MeshConfigAdded,
-				announcements.MeshConfigUpdated)
+			confChannel := events.GetPubSubInstance().Subscribe(announcements.ConfigMapAdded, announcements.ConfigMapUpdated)
 			defer events.GetPubSubInstance().Unsub(confChannel)
 
 			// Create configurator
 			stop := make(chan struct{})
 			defer close(stop)
-			cfg := NewConfiguratorWithCRDClient(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+			cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-			meshConfig := v1alpha1.MeshConfig{
+			// Issue config map create
+			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
-					Name:      osmMeshConfigName,
+					Name:      osmConfigMapName,
 				},
-				Spec: *test.initialMeshConfigData,
+				Data: test.initialConfigMapData,
 			}
-
-			_, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), &meshConfig, metav1.CreateOptions{})
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
 			assert.Nil(err)
+
 			log.Info().Msg("Waiting for create announcement")
 			<-confChannel
 
@@ -406,8 +343,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 				return
 			}
 
-			meshConfig.Spec = *test.updatedMeshConfigData
-			_, err = meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Update(context.TODO(), &meshConfig, metav1.UpdateOptions{})
+			configMap.Data = test.updatedConfigMapData
+			_, err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
 			assert.Nil(err)
 
 			// Wait for the config map change to propagate to the cache.

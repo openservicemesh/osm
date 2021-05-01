@@ -21,7 +21,7 @@ type policies struct {
 
 func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		confJSON, err := ds.configurator.GetMeshConfigJSON()
+		confJSON, err := ds.configurator.GetConfigMap()
 		if err != nil {
 			log.Error().Err(err)
 			return

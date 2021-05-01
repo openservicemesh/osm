@@ -11,8 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,9 +30,8 @@ const (
 var _ = Describe("Test XDS certificate tooling", func() {
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
 
-	mc := NewFakeMeshCatalog(kubeClient, configClient)
+	mc := NewFakeMeshCatalog(kubeClient)
 
 	Context("Test GetServicesForProxy()", func() {
 		It("works as expected", func() {
