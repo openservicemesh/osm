@@ -41,7 +41,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	thereWereErrors := false
 
 	// A nil request indicates a request for all SDS responses
-	fullUpdateRequested := request == nil || envoy.TypeURI(request.TypeUrl).IsWildcard()
+	fullUpdateRequested := request == nil
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
