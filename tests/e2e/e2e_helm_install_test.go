@@ -25,19 +25,18 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 				// Install OSM with Helm
 				Expect(Td.HelmInstallOSM(release, namespace)).To(Succeed())
 
-				meshConfig, err := Td.GetMeshConfig()
+				configmap, err := Td.GetConfigMap("osm-config", namespace)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// validate osm MeshConfig
-				spec := meshConfig.Spec
-				Expect(spec.Traffic.EnablePermissiveTrafficPolicyMode).To(BeFalse())
-				Expect(spec.Traffic.EnableEgress).To(BeFalse())
-				Expect(spec.Sidecar.LogLevel).To(Equal("error"))
-				Expect(spec.Observability.EnableDebugServer).To(BeFalse())
-				Expect(spec.Observability.PrometheusScraping).To(BeTrue())
-				Expect(spec.Observability.Tracing.Enable).To(BeFalse())
-				Expect(spec.Traffic.UseHTTPSIngress).To(BeFalse())
-				Expect(spec.Certificate.ServiceCertValidityDuration).To(Equal("24h"))
+				// validate osm configmap
+				Expect(configmap.Data["permissive_traffic_policy_mode"]).Should(Equal("false"))
+				Expect(configmap.Data["egress"]).Should(Equal("false"))
+				Expect(configmap.Data["envoy_log_level"]).Should(Equal("error"))
+				Expect(configmap.Data["enable_debug_server"]).Should(Equal("false"))
+				Expect(configmap.Data["prometheus_scraping"]).Should(Equal("true"))
+				Expect(configmap.Data["tracing_enable"]).Should(Equal("false"))
+				Expect(configmap.Data["use_https_ingress"]).Should(Equal("false"))
+				Expect(configmap.Data["service_cert_validity_duration"]).Should(Equal("24h"))
 
 				Expect(Td.DeleteHelmRelease(release, namespace)).To(Succeed())
 			})

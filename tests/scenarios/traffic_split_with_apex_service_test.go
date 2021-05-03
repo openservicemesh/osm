@@ -14,8 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -37,8 +35,7 @@ var _ = Describe(``+
 			// ---[  Setup the test context  ]---------
 			mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 			kubeClient := testclient.NewSimpleClientset()
-			configClient := configFake.NewSimpleClientset()
-			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			proxy, err := getProxy(kubeClient)
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {

@@ -7,7 +7,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test init-osm-controller functionalities",
+var _ = OSMDescribe("Test osm-controller bootstrap initialization process",
 	OSMDescribeInfo{
 		Tier:   2,
 		Bucket: 1,

@@ -25,7 +25,6 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.EnableDebugServer = false
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-				meshConfig, _ := Td.GetMeshConfig()
 
 				// Create Test NS
 				Expect(Td.CreateNs(sourceNs, nil)).To(Succeed())
@@ -63,9 +62,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 				for i := 1; i <= iterations; i++ {
 					By(fmt.Sprintf("(%d/%d) Ensuring debug server is available when enableDebugServer is enabled", i, iterations))
 
-					meshConfig.Spec.Observability.EnableDebugServer = true
-					meshConfig, err := Td.UpdateOSMConfig(meshConfig)
-					Expect(err).NotTo(HaveOccurred())
+					Expect(Td.UpdateOSMConfig("enable_debug_server", "true"))
 
 					cond := Td.WaitForRepeatedSuccess(func() bool {
 						result := Td.HTTPRequest(req)
@@ -81,9 +78,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 
 					By(fmt.Sprintf("(%d/%d) Ensuring debug server is unavailable when enableDebugServer is disabled", i, iterations))
 
-					meshConfig.Spec.Observability.EnableDebugServer = false
-					_, err = Td.UpdateOSMConfig(meshConfig)
-					Expect(err).NotTo(HaveOccurred())
+					Expect(Td.UpdateOSMConfig("enable_debug_server", "false"))
 
 					cond = Td.WaitForRepeatedSuccess(func() bool {
 						result := Td.HTTPRequest(req)
