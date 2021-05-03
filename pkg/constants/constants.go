@@ -58,6 +58,9 @@ const (
 	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm configmap
 	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.17.2"
 
+	// DefaultInitContainerImage is the default init container image if not defined in the osm configmap
+	DefaultInitContainerImage = "openservicemesh/init:v0.8.3"
+
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
 

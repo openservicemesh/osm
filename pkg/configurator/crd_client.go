@@ -118,6 +118,7 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 	osmConfig.TracingEnable = meshConfig.Spec.Observability.Tracing.Enable
 	osmConfig.EnvoyLogLevel = meshConfig.Spec.Sidecar.LogLevel
 	osmConfig.EnvoyImage = meshConfig.Spec.Sidecar.EnvoyImage
+	osmConfig.InitContainerImage = meshConfig.Spec.Sidecar.InitContainerImage
 	osmConfig.ServiceCertValidityDuration = meshConfig.Spec.Certificate.ServiceCertValidityDuration
 	osmConfig.OutboundIPRangeExclusionList = strings.Join(meshConfig.Spec.Traffic.OutboundIPRangeExclusionList, ",")
 	osmConfig.OutboundPortExclusionList = strings.Join(meshConfig.Spec.Traffic.OutboundPortExclusionList, ",")

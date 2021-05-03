@@ -68,6 +68,7 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"UseHTTPSIngress":               useHTTPSIngressKey,
 				"EnvoyLogLevel":                 envoyLogLevel,
 				"EnvoyImage":                    envoyImage,
+				"InitContainerImage":            initContainerImage,
 				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
 				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
 				"OutboundPortExclusionList":     outboundPortExclusionListKey,

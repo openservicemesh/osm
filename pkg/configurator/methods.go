@@ -118,6 +118,15 @@ func (c *Client) GetEnvoyImage() string {
 	return constants.DefaultEnvoyImage
 }
 
+// GetInitContainerImage returns the init container image
+func (c *Client) GetInitContainerImage() string {
+	initImage := c.getConfigMap().InitContainerImage
+	if initImage != "" {
+		return initImage
+	}
+	return constants.DefaultInitContainerImage
+}
+
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getConfigMap().ServiceCertValidityDuration

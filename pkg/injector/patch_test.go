@@ -57,6 +57,7 @@ var _ = Describe("Test all patch operations", func() {
 			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
+			mockConfigurator.EXPECT().GetInitContainerImage().Return("").Times(1)
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)

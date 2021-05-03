@@ -53,6 +53,9 @@ const (
 	// envoyImage is the key name used to specify the image of the Envoy proxy in the ConfigMap
 	envoyImage = "envoy_image"
 
+	// initContainerImage is the key name used to specify the init container image in the ConfigMap
+	initContainerImage = "init_container_image"
+
 	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
 	serviceCertValidityDurationKey = "service_cert_validity_duration"
 
@@ -241,6 +244,9 @@ type osmConfig struct {
 	// EnvoyImage is the sidecar image
 	EnvoyImage string `yaml:"envoy_image"`
 
+	// InitContainerImage is the init container image
+	InitContainerImage string `yaml:"init_container_image"`
+
 	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
 	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
 	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
@@ -308,6 +314,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.EnvoyImage, _ = GetStringValueForKey(configMap, envoyImage)
+	osmConfigMap.InitContainerImage, _ = GetStringValueForKey(configMap, initContainerImage)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
 	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
 	osmConfigMap.OutboundPortExclusionList, _ = GetStringValueForKey(configMap, outboundPortExclusionListKey)

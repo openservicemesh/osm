@@ -65,6 +65,7 @@ func createDefaultMeshConfig() *v1alpha1.MeshConfig {
 		Spec: v1alpha1.MeshConfigSpec{
 			Sidecar: v1alpha1.SidecarSpec{
 				LogLevel:                      "error",
+				InitContainerImage:            "openservicemesh/init:v0.8.3",
 				EnablePrivilegedInitContainer: false,
 				MaxDataPlaneConnections:       0,
 			},
