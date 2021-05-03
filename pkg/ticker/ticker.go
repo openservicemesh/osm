@@ -55,13 +55,13 @@ func InitTicker(c configurator.Configurator) *ResyncTicker {
 	return rTicker
 }
 
-// Listens to configmap events and notifies ticker routine to start/stop
+// Listens to meshconfig events and notifies ticker routine to start/stop
 func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, stop <-chan struct{}) {
 	// Subscribe to configuration updates
-	configMapChannel := events.GetPubSubInstance().Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated)
+	meshConfigChannel := events.GetPubSubInstance().Subscribe(
+		announcements.MeshConfigAdded,
+		announcements.MeshConfigDeleted,
+		announcements.MeshConfigUpdated)
 
 	// Run config listener
 	// Bootstrap after subscribing
@@ -78,7 +78,7 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 
 	for {
 		select {
-		case <-configMapChannel:
+		case <-meshConfigChannel:
 			newResyncInterval := cfg.GetConfigResyncInterval()
 			// Skip no changes from current applied conf
 			if currentDuration == newResyncInterval {

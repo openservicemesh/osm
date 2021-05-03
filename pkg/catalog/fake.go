@@ -14,6 +14,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
+	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -24,7 +26,7 @@ import (
 )
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
-func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
+func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versioned.Interface) *MeshCatalog {
 	var (
 		mockCtrl             *gomock.Controller
 		mockKubeController   *k8s.MockController
@@ -45,8 +47,8 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	}
 
 	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
-	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	osmMeshConfigName := "-test-osm-mesh-config-"
+	cfg := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName)
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
@@ -130,15 +132,16 @@ func newFakeMeshCatalog() *MeshCatalog {
 	meshSpec := smi.NewFakeMeshSpecClient()
 
 	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
+	osmMeshConfigName := "-test-osm-mesh-config-"
 
 	stop := make(chan struct{})
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
 	kubeClient := fake.NewSimpleClientset()
+	configClient := configFake.NewSimpleClientset()
 
-	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName)
 
 	certManager := tresor.NewFakeCertManager(cfg)
 

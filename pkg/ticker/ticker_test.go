@@ -65,7 +65,7 @@ func TestTicker(t *testing.T) {
 	}, 6*time.Second, 2*time.Second)
 }
 
-// Test the ConfigMap event listener code for ticker
+// Test the MeshConfig event listener code for ticker
 func TestTickerConfigurator(t *testing.T) {
 	assert := assert.New(t)
 	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
@@ -99,10 +99,10 @@ func TestTickerConfigurator(t *testing.T) {
 	}
 
 	for _, test := range tickerConfTests {
-		// Simulate a configmap change, expect the right calls if it is enabled
+		// Simulate a meshconfig change, expect the right calls if it is enabled
 		mockConfigurator.EXPECT().GetConfigResyncInterval().Return(test.mockTickerDurationVal)
 		events.GetPubSubInstance().Publish(events.PubSubMessage{
-			AnnouncementType: announcements.ConfigMapUpdated,
+			AnnouncementType: announcements.MeshConfigUpdated,
 		})
 
 		receivedStartEvent := 0

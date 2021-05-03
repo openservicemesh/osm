@@ -13,16 +13,13 @@ var _ = OSMDescribe("Test init-osm-controller functionalities",
 		Bucket: 1,
 	},
 	func() {
-		const meshConfigName = "osm-mesh-config"
-
 		Context("When osm-controller starts in fresh environment", func() {
 			It("creates default MeshConfig resource", func() {
 				instOpts := Td.GetOSMInstallOpts()
-				namespace := instOpts.ControlPlaneNS
 
 				// Install OSM
 				Expect(Td.InstallOSM(instOpts)).To(Succeed())
-				meshConfig, err := Td.GetMeshConfig(meshConfigName, namespace)
+				meshConfig, err := Td.GetMeshConfig(Td.OsmNamespace)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// validate osm MeshConfig

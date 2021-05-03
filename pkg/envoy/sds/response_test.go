@@ -12,6 +12,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
@@ -29,6 +31,7 @@ func TestNewResponse(t *testing.T) {
 	// Setup a fake Kube client. We use this to create a full simulation of creating a pod with
 	// the required xDS Certificate, properly formatted CommonName etc.
 	fakeKubeClient := testclient.NewSimpleClientset()
+	fakeConfigClient := configFake.NewSimpleClientset()
 
 	// We deliberately set the namespace and service accounts to random values
 	// to ensure no hard-coded values sneak in.
@@ -58,9 +61,9 @@ func TestNewResponse(t *testing.T) {
 
 	badProxy := envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
 
-	cfg := configurator.NewConfigurator(fakeKubeClient, stop, namespace, "-the-config-map-name-")
+	cfg := configurator.NewConfigurator(fakeConfigClient, stop, namespace, "-the-mesh-config-name-")
 	certManager := tresor.NewFakeCertManager(cfg)
-	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient)
+	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with a rogue proxy (does not belong to the mesh)
 	actualSDSResponse, err := NewResponse(meshCatalog, badProxy, request, cfg, certManager)

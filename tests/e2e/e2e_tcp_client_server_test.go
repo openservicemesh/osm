@@ -38,8 +38,13 @@ func testTCPTraffic(permissiveMode bool) {
 	It("Tests TCP traffic for client pod -> server pod", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
-		installOpts.EnablePermissiveMode = permissiveMode
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+		var err error
+		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
+		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = permissiveMode
+		_, err = Td.UpdateOSMConfig(meshConfig)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Load TCP server image
 		Expect(Td.LoadImagesToKind([]string{"tcp-echo-server"})).To(Succeed())
@@ -64,7 +69,7 @@ func testTCPTraffic(permissiveMode bool) {
 				AppProtocol: constants.ProtocolTCP,
 			})
 
-		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())

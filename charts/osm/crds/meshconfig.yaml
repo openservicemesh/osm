@@ -43,7 +43,7 @@ spec:
                   description: Configuration for Envoy sidecar
                   type: object
                   properties:
-                    enablePriviledgedInitContainer:
+                    enablePrivilegedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
                       default: false
@@ -83,12 +83,16 @@ spec:
                       default: false
                     outboundIPRangeExclusionList:
                       description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
-                      type: string
-                      pattern: ((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2})(,((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2}))*$
+                      type: array
+                      items:
+                        type: string
+                        pattern: ((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2})$
                     outboundPortExclusionList:
                       description: Global list of ports to exclude from outbound traffic interception by the sidecar proxy.
-                      type: integer
-                      pattern: ^[1-9]\d*$
+                      type: array
+                      items:
+                        type: integer
+                        pattern: ^[1-9]\d*$
                     useHTTPSIngress:
                       description: Enable HTTPS ingress on the mesh
                       type: boolean
@@ -130,7 +134,7 @@ spec:
                           type: string
                           default: "/api/v2/spans"
                 certificate:
-                  description: Configuration for traffic management
+                  description: Configuration for certificate management
                   type: object
                   properties:
                     serviceCertValidityDuration:
