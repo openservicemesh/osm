@@ -53,7 +53,16 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		clusters = append(clusters, localCluster)
 	}
 
-	// Add an outbound passthrough cluster for egress
+	// Add egress clusters based on applied policies
+	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity()); err != nil {
+		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxyIdentity)
+	} else {
+		if egressTrafficPolicy != nil {
+			clusters = append(clusters, getEgressClusters(egressTrafficPolicy.ClustersConfigs)...)
+		}
+	}
+
+	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
 	if cfg.IsEgressEnabled() {
 		clusters = append(clusters, getOutboundPassthroughCluster())
 	}

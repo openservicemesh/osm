@@ -46,6 +46,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
+	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()

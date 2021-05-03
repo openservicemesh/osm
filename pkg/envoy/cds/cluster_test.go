@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGetUpstreamServiceCluster(t *testing.T) {
@@ -216,4 +217,147 @@ func TestGetOutboundPassthroughCluster(t *testing.T) {
 	actual := getOutboundPassthroughCluster()
 
 	assert.Equal(expectedCluster, actual)
+}
+
+func TestGetEgressClusters(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                 string
+		clusterConfigs       []*trafficpolicy.EgressClusterConfig
+		expectedClusterCount int
+	}{
+		{
+			name:                 "no cluster configs specified",
+			clusterConfigs:       nil,
+			expectedClusterCount: 0,
+		},
+		{
+			name: "all cluster configs are valid HTTP clusters",
+			clusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Host: "foo.com",
+					Port: 80,
+				},
+				{
+					Name: "bar.com:90",
+					Host: "bar.com",
+					Port: 90,
+				},
+			},
+			expectedClusterCount: 2,
+		},
+		{
+			name: "some cluster configs are invalid HTTP clusters",
+			clusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Host: "foo.com",
+					Port: 80,
+				},
+				{
+					// Host not specified, invalid cluster config
+					Name: "bar.com:90",
+					Port: 90,
+				},
+			},
+			expectedClusterCount: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getEgressClusters(tc.clusterConfigs)
+			assert.Len(actual, tc.expectedClusterCount)
+		})
+	}
+}
+
+func TestGetHTTPEgressCluster(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name            string
+		clusterConfig   *trafficpolicy.EgressClusterConfig
+		expectedCluster *xds_cluster.Cluster
+		expectError     bool
+	}{
+		{
+			name:            "egress cluster config is nil",
+			clusterConfig:   nil,
+			expectedCluster: nil,
+			expectError:     true,
+		},
+		{
+			name: "valid egress cluster config",
+			clusterConfig: &trafficpolicy.EgressClusterConfig{
+				Name: "foo.com:80",
+				Host: "foo.com",
+				Port: 80,
+			},
+			expectedCluster: &xds_cluster.Cluster{
+				Name:           "foo.com:80",
+				AltStatName:    "foo.com:80",
+				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+					Type: xds_cluster.Cluster_STRICT_DNS,
+				},
+				LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+				LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+					ClusterName: "foo.com:80",
+					Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+						{
+							LbEndpoints: []*xds_endpoint.LbEndpoint{{
+								HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+									Endpoint: &xds_endpoint.Endpoint{
+										Address: envoy.GetAddress("foo.com", 80),
+									},
+								},
+								LoadBalancingWeight: &wrappers.UInt32Value{
+									Value: constants.ClusterWeightAcceptAll,
+								},
+							}},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "egress cluster config Name unspecified",
+			clusterConfig: &trafficpolicy.EgressClusterConfig{
+				Host: "foo.com",
+				Port: 80,
+			},
+			expectedCluster: nil,
+			expectError:     true,
+		},
+		{
+			name: "egress cluster config Host unspecified",
+			clusterConfig: &trafficpolicy.EgressClusterConfig{
+				Name: "foo.com:80",
+				Port: 80,
+			},
+			expectedCluster: nil,
+			expectError:     true,
+		},
+		{
+			name: "egress cluster config Port unspecified",
+			clusterConfig: &trafficpolicy.EgressClusterConfig{
+				Name: "foo.com:80",
+				Host: "foo.com",
+			},
+			expectedCluster: nil,
+			expectError:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := GetDNSResolvableEgressCluster(tc.clusterConfig)
+			assert.Equal(tc.expectError, err != nil)
+			assert.Equal(tc.expectedCluster, actual)
+		})
+	}
 }
