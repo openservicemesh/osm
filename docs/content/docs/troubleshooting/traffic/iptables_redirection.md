@@ -119,7 +119,7 @@ By default, all traffic using TCP as the underlying transport protocol are redir
 
 If outbound ports are configured to be excluded but being subject to service mesh policies, verify they are configured as expected.
 
-### 1. Confirm outbound ports are correctly configured in the `osm-config` ConfigMap
+### 1. Confirm global outbound ports are correctly configured in the `osm-config` ConfigMap
 
 Confirm the outbound ports to be excluded are set correctly:
 
@@ -129,11 +129,22 @@ $ kubectl get configmap -n osm-system osm-config -o jsonpath='{.data.outbound_po
 6379, 7070
 ```
 
-The output shows the IP ranges that are excluded from outbound traffic redirection, `6379 and 7070` in the example above.
+The output shows the ports that are excluded from outbound traffic redirection, `6379 and 7070` in the example above.
 
-### 2. Confirm outbound ports are included in init container spec
+### 2. Confirm pod level outbound ports are correctly annotated on the pod
 
-When outbound IP range exclusions are configured, OSM's `osm-injector` service reads this configuration from the `osm-config` ConfigMap and programs `iptables` rules corresponding to these ranges so that they are excluded from outbound traffic redirection via the Envoy sidecar proxy.
+Confirm the outbound ports to be excluded on a pod are set correctly:
+
+```console
+$ kubectl get pod POD_NAME -o jsonpath='{.metadata.annotations}' -n POD_NAMESPACE'
+map[openservicemesh.io/outbound-port-exclusion-list:8080]
+```
+
+The output shows the ports that are excluded from outbound traffic redirection on the pod, `8080` in the example above.
+
+### 3. Confirm outbound ports are included in init container spec
+
+When outbound port exclusions are configured, OSM's `osm-injector` service reads this configuration from the `osm-config` ConfigMap and from the annotations on the pod, and programs `iptables` rules corresponding to these ranges so that they are excluded from outbound traffic redirection via the Envoy sidecar proxy.
 
 Confirm OSM's `osm-init` init container spec has rules corresponding to the configured outbound ports to exclude.
 
@@ -154,7 +165,7 @@ Init Containers:
       /bin/sh
     Args:
       -c
-      iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT && iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports 6379,7070 -j RETURN
+      iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT && iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports 6379,7070,8080 -j RETURN
     State:          Terminated
       Reason:       Completed
       Exit Code:    0
@@ -167,6 +178,6 @@ Init Containers:
       /var/run/secrets/kubernetes.io/serviceaccount from frontend-token-5g488 (ro)
 ```
 
-In the example above, the following `iptables` commands are responsible for explicitly ignoring the configured outbound ports (`6379 and 7070`) from being redirected to the Envoy proxy sidecar.
+In the example above, the following `iptables` commands are responsible for explicitly ignoring the configured outbound ports (`6379, 7070 and 8080`) from being redirected to the Envoy proxy sidecar.
 ```console
-iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports 6379,7070 -j RETURN
+iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports 6379,7070,8080 -j RETURN

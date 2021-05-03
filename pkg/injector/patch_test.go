@@ -3,6 +3,7 @@ package injector
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,6 +11,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,3 +108,52 @@ var _ = Describe("Test all patch operations", func() {
 		})
 	})
 })
+
+func TestMergePortExclusionLists(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                              string
+		podOutboundPortExclusionList      []string
+		globalOutboundPortExclusionList   []string
+		expectedOutboundPortExclusionList []string
+	}{
+		{
+			name:                              "overlap in global and pod outbound exclusion list",
+			podOutboundPortExclusionList:      []string{"6060", "7070"},
+			globalOutboundPortExclusionList:   []string{"6060", "8080"},
+			expectedOutboundPortExclusionList: []string{"6060", "7070", "8080"},
+		},
+		{
+			name:                              "no overlap in global and pod outbound exclusion list",
+			podOutboundPortExclusionList:      []string{"6060", "7070"},
+			globalOutboundPortExclusionList:   []string{"8080"},
+			expectedOutboundPortExclusionList: []string{"6060", "7070", "8080"},
+		},
+		{
+			name:                              "pod outbound exclusion list is nil",
+			podOutboundPortExclusionList:      nil,
+			globalOutboundPortExclusionList:   []string{"8080"},
+			expectedOutboundPortExclusionList: []string{"8080"},
+		},
+		{
+			name:                              "global outbound exclusion list is nil",
+			podOutboundPortExclusionList:      []string{"6060", "7070"},
+			globalOutboundPortExclusionList:   nil,
+			expectedOutboundPortExclusionList: []string{"6060", "7070"},
+		},
+		{
+			name:                              "no global or pod level outbound exclusion list",
+			podOutboundPortExclusionList:      nil,
+			globalOutboundPortExclusionList:   nil,
+			expectedOutboundPortExclusionList: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
+			assert.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
+		})
+	}
+}
