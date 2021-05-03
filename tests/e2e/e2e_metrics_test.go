@@ -29,7 +29,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			installOpts := Td.GetOSMInstallOpts()
 			installOpts.DeployPrometheus = true
 			installOpts.SetOverrides = []string{
-				"OpenServiceMesh.enableWASMStatsExperimental=true",
+				"OpenServiceMesh.featureFlags.enableWASMStats=true",
 				// These values are based on successful runs on OSM's CI values
 				"OpenServiceMesh.osmcontroller.resource.requests.cpu=100m",
 				"OpenServiceMesh.osmcontroller.resource.requests.memory=256M",
