@@ -50,7 +50,7 @@ const (
 	// methodHeaderKey is the key of the header for HTTP methods
 	methodHeaderKey = ":method"
 
-	// httpHostHeaderKey is the name of the HTTP host header in HTTPRouteMatch.Headers, specified via SMI
+	// httpHostHeaderKey is the name of the HTTP host header in HTTPRouteMatch.Headers
 	httpHostHeaderKey = "host"
 
 	// authorityHeaderKey is the key corresponding to the HTTP Host/Authority header programmed as a header matcher in an Envoy route
