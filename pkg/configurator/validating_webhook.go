@@ -319,7 +319,7 @@ func checkEnvoyLogLevels(configMapField, configMapValue string) bool {
 	return valid
 }
 
-// checkEnvoyLogLevels checks that the field value is a valid log level
+// checkEnvoyImage checks that the name of the envoy proxy sidecar image is valid
 func checkEnvoyImage(configMapField, configMapValue string) bool {
 	match, _ := regexp.Match("envoyproxy\\/envoy-alpine:v\\d+\\.\\d+\\.\\d+$", []byte(configMapValue))
 	return match
