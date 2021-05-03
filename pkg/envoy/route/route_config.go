@@ -50,10 +50,10 @@ const (
 	// methodHeaderKey is the key of the header for HTTP methods
 	methodHeaderKey = ":method"
 
-	// httpHostHeader is the name of the HTTP host header
-	httpHostHeader = "host"
+	// httpHostHeaderKey is the name of the HTTP host header in HTTPRouteMatch.Headers, specified via SMI
+	httpHostHeaderKey = "host"
 
-	// authorityHeaderKey is the key of the header for HTTP methods
+	// authorityHeaderKey is the key corresponding to the HTTP Host/Authority header programmed as a header matcher in an Envoy route
 	authorityHeaderKey = ":authority"
 )
 
@@ -289,7 +289,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 	headers = append(headers, methodsHeader)
 
 	// add host headers
-	if hostHeaderValue, ok := headersMap[httpHostHeader]; ok {
+	if hostHeaderValue, ok := headersMap[httpHostHeaderKey]; ok {
 		hostHeader := &xds_route.HeaderMatcher{
 			Name: authorityHeaderKey,
 			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
@@ -305,7 +305,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 	// add all other custom headers
 	for headerKey, headerValue := range headersMap {
 		// omit the host header as this is configured above
-		if headerKey == httpHostHeader {
+		if headerKey == httpHostHeaderKey {
 			continue
 		}
 		header := xds_route.HeaderMatcher{
