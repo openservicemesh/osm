@@ -378,7 +378,7 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
-			direction:     OutboundRoute,
+			direction:     outboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
@@ -453,7 +453,7 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
-			direction:     InboundRoute,
+			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
@@ -523,7 +523,7 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    nil,
 			totalWeight:   100,
-			direction:     InboundRoute,
+			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
@@ -572,7 +572,7 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    nil,
 			totalWeight:   100,
-			direction:     InboundRoute,
+			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
 				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			}),
@@ -648,13 +648,13 @@ func TestBuildWeightedCluster(t *testing.T) {
 			name:             "outbound",
 			weightedClusters: weightedClusters,
 			totalWeight:      100,
-			direction:        OutboundRoute,
+			direction:        outboundRoute,
 		},
 		{
 			name:             "inbound",
 			weightedClusters: weightedClusters,
 			totalWeight:      100,
-			direction:        InboundRoute,
+			direction:        inboundRoute,
 		},
 	}
 
@@ -751,7 +751,7 @@ func TestGetHeadersForRoute(t *testing.T) {
 	}
 	actual := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
 	assert.Equal(2, len(actual))
-	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(methodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
 	assert.Equal(userAgentHeader, actual[1].Name)
 	assert.Equal(routePolicy.Headers[userAgentHeader], actual[1].GetSafeRegexMatch().Regex)
@@ -764,7 +764,7 @@ func TestGetHeadersForRoute(t *testing.T) {
 	}
 	actual = getHeadersForRoute(routePolicy.Methods[1], routePolicy.Headers)
 	assert.Equal(1, len(actual))
-	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(methodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[1], actual[0].GetSafeRegexMatch().Regex)
 
 	// Returns only one HeaderMatcher for a route ignoring the host
@@ -778,7 +778,7 @@ func TestGetHeadersForRoute(t *testing.T) {
 	}
 	actual = getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
 	assert.Equal(2, len(actual))
-	assert.Equal(MethodHeaderKey, actual[0].Name)
+	assert.Equal(methodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
 }
 

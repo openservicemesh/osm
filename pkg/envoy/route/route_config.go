@@ -21,11 +21,11 @@ import (
 type Direction int
 
 const (
-	// OutboundRoute is the direction for an outbound route
-	OutboundRoute Direction = iota
+	// outboundRoute is the direction for an outbound route
+	outboundRoute Direction = iota
 
-	// InboundRoute is the direction for an inbound route
-	InboundRoute
+	// inboundRoute is the direction for an inbound route
+	inboundRoute
 )
 
 const (
@@ -47,8 +47,8 @@ const (
 	// ingressVirtualHost is the prefix for the virtual host's name in the ingress route configuration
 	ingressVirtualHost = "ingress_virtual-host"
 
-	// MethodHeaderKey is the key of the header for HTTP methods
-	MethodHeaderKey = ":method"
+	// methodHeaderKey is the key of the header for HTTP methods
+	methodHeaderKey = ":method"
 
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
@@ -159,7 +159,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, InboundRoute)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, inboundRoute)
 			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
@@ -171,7 +171,7 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
-		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), OutboundRoute))
+		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), outboundRoute))
 	}
 	return routes
 }
@@ -224,7 +224,7 @@ func buildWeightedCluster(weightedClusters mapset.Set, totalWeight int, directio
 		cluster := clusterInterface.(service.WeightedCluster)
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
-		if direction == InboundRoute {
+		if direction == inboundRoute {
 			// An inbound route is associated with a local cluster. The inbound route is applied
 			// on the destination cluster, and the destination clusters that accept inbound
 			// traffic have the name of the form 'someClusterName-local`.
@@ -235,7 +235,7 @@ func buildWeightedCluster(weightedClusters mapset.Set, totalWeight int, directio
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
 	}
-	if direction == OutboundRoute {
+	if direction == outboundRoute {
 		total = totalWeight
 	}
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
@@ -279,7 +279,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 
 	// add methods header
 	methodsHeader := &xds_route.HeaderMatcher{
-		Name: MethodHeaderKey,
+		Name: methodHeaderKey,
 		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &xds_matcher.RegexMatcher{
 				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
