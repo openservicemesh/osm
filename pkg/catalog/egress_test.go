@@ -17,10 +17,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
 
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
+
+func init() {
+	optionalFeatures := featureflags.OptionalFeatures{
+		EgressPolicy: true,
+	}
+	featureflags.Initialize(optionalFeatures)
+}
 
 func TestGetEgressTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)

@@ -11,6 +11,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -22,6 +23,10 @@ const (
 
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
+	if !featureflags.IsEgressPolicyEnabled() {
+		return nil, nil
+	}
+
 	var trafficMatches []*trafficpolicy.TrafficMatch
 	var clusterConfigs []*trafficpolicy.EgressClusterConfig
 	allowedDestinationPorts := mapset.NewSet()
