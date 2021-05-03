@@ -1,31 +1,33 @@
 package featureflags
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	tassert "github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Test FeatureFlags", func() {
-	Context("Testing OptionalFeatures", func() {
-		It("should initialize OptionalFeatures", func() {
+func TestFlags(t *testing.T) {
+	assert := tassert.New(t)
 
-			defaultWASMStats := IsWASMStatsEnabled()
-			Expect(defaultWASMStats).ToNot(BeTrue())
+	// 1. Verify all optional features are disabled by default
+	assert.Equal(false, IsWASMStatsEnabled())
+	assert.Equal(false, IsEgressPolicyEnabled())
 
-			optionalFeatures := OptionalFeatures{WASMStats: true}
-			Initialize(optionalFeatures)
+	// 2. Enable all optional features and verify they are enabled
+	optionalFeatures := OptionalFeatures{
+		WASMStats:    true,
+		EgressPolicy: true,
+	}
+	Initialize(optionalFeatures)
+	assert.Equal(true, IsWASMStatsEnabled())
+	assert.Equal(true, IsEgressPolicyEnabled())
 
-			initializedWASMStats := IsWASMStatsEnabled()
-			Expect(initializedWASMStats).To(BeTrue())
-
-		})
-
-		It("should not re-initialize OptionalFeatures", func() {
-			optionalFeatures2 := OptionalFeatures{WASMStats: false}
-			Initialize(optionalFeatures2)
-
-			WASMStats := IsWASMStatsEnabled()
-			Expect(WASMStats).To(BeTrue())
-		})
-	})
-})
+	// 3. Verify features cannot be reinitialized
+	optionalFeatures = OptionalFeatures{
+		WASMStats:    false,
+		EgressPolicy: false,
+	}
+	Initialize(optionalFeatures)
+	assert.Equal(true, IsWASMStatsEnabled())
+	assert.Equal(true, IsEgressPolicyEnabled())
+}

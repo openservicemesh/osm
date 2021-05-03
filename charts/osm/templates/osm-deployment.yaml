@@ -67,6 +67,9 @@ spec:
             {{- if .Values.OpenServiceMesh.featureFlags.enableWASMStats }}
             "--stats-wasm-experimental",
             {{- end }}
+            {{- if .Values.OpenServiceMesh.featureFlags.enableEgressPolicy }}
+            "--enable-egress-policy",
+            {{- end }}
           ]
           resources:
             limits:
