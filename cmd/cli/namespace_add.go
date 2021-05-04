@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,6 +89,15 @@ func (a *namespaceAddCmd) run() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		meshes, err := getMeshes(a.clientSet, a.meshName, "")
+		if err != nil {
+			return errors.Errorf("Cannot list meshes: [%v]", err)
+
+		}
+		if len(meshes) == 0 {
+			return errMeshNotFound(a.meshName)
+		}
+
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 
@@ -132,7 +142,7 @@ func (a *namespaceAddCmd) run() error {
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
 		}
 
-		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		_, err = a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
 			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 		}
@@ -141,4 +151,18 @@ func (a *namespaceAddCmd) run() error {
 	}
 
 	return nil
+}
+
+func getMeshes(clientSet kubernetes.Interface, meshName string, namespace string) ([]v1.Deployment, error) {
+	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": meshName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
+	return osmControllerDeployments.Items, err
+}
+
+func errMeshNotFound(name string) error {
+	return errors.Errorf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", name)
 }

@@ -50,8 +50,11 @@ const (
 	// methodHeaderKey is the key of the header for HTTP methods
 	methodHeaderKey = ":method"
 
-	// httpHostHeader is the name of the HTTP host header
-	httpHostHeader = "host"
+	// httpHostHeaderKey is the name of the HTTP host header in HTTPRouteMatch.Headers
+	httpHostHeaderKey = "host"
+
+	// authorityHeaderKey is the key corresponding to the HTTP Host/Authority header programmed as a header matcher in an Envoy route
+	authorityHeaderKey = ":authority"
 )
 
 // BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
@@ -177,7 +180,6 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 }
 
 func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.Route {
-	hostHeader := headersMap[httpHostHeader]
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			Headers: getHeadersForRoute(method, headersMap),
@@ -186,9 +188,6 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: buildWeightedCluster(weightedClusters, totalWeight, direction),
-				},
-				HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
-					HostRewriteLiteral: hostHeader,
 				},
 			},
 		},
@@ -289,10 +288,24 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 	}
 	headers = append(headers, methodsHeader)
 
+	// add host headers
+	if hostHeaderValue, ok := headersMap[httpHostHeaderKey]; ok {
+		hostHeader := &xds_route.HeaderMatcher{
+			Name: authorityHeaderKey,
+			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: &xds_matcher.RegexMatcher{
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+					Regex:      hostHeaderValue,
+				},
+			},
+		}
+		headers = append(headers, hostHeader)
+	}
+
 	// add all other custom headers
 	for headerKey, headerValue := range headersMap {
-		// omit the host header as this is configured in the HostRewriteSpecifier
-		if headerKey == httpHostHeader {
+		// omit the host header as this is configured above
+		if headerKey == httpHostHeaderKey {
 			continue
 		}
 		header := xds_route.HeaderMatcher{

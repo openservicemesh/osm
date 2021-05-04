@@ -66,7 +66,7 @@ func createFakeController(fakeClient kubernetes.Interface) error {
 		return err
 	}
 
-	controllerDep := createDeployment("test-controller", testMesh, "testVersion0.1.2", true)
+	controllerDep := createDeployment("test-controller", testMesh, true)
 	if _, err := fakeClient.AppsV1().Deployments(controllerNs.Name).Create(context.TODO(), controllerDep, metav1.CreateOptions{}); err != nil {
 		return err
 	}
