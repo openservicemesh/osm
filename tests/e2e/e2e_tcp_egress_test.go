@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -53,7 +54,7 @@ func testTCPEgressTraffic() {
 				Command:     []string{"/tcp-echo-server"},
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 				Ports:       []int{destinationPort},
-				AppProtocol: AppProtocolTCP,
+				AppProtocol: constants.ProtocolTCP,
 			})
 
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)

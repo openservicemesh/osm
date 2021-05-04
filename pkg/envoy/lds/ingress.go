@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -77,7 +78,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
 	for port, appProtocol := range protocolToPortMap {
 		switch appProtocol {
-		case httpAppProtocol:
+		case constants.ProtocolHTTP:
 			// Ingress filter chain for HTTP port
 			if lb.cfg.UseHTTPSIngress() {
 				// Filter chain with SNI matching enabled for HTTPS clients that set the SNI

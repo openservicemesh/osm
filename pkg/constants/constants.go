@@ -182,3 +182,15 @@ const (
 const (
 	HTTPServerSmiVersionPath = "/smi/version"
 )
+
+// Application protocols
+const (
+	// HTTP protocol
+	ProtocolHTTP = "http"
+
+	// TCP protocol
+	ProtocolTCP = "tcp"
+
+	// gRPC protocol
+	ProtocolGRPC = "grpc"
+)

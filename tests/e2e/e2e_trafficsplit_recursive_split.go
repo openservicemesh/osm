@@ -12,6 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -22,11 +23,11 @@ var _ = OSMDescribe("Test traffic split where root service is same as backend se
 	},
 	func() {
 		Context("HTTP traffic splitting with SMI", func() {
-			testRecursiveTrafficSplit(AppProtocolHTTP)
+			testRecursiveTrafficSplit(constants.ProtocolHTTP)
 		})
 
 		Context("TCP traffic splitting with SMI", func() {
-			testRecursiveTrafficSplit(AppProtocolTCP)
+			testRecursiveTrafficSplit(constants.ProtocolTCP)
 		})
 	})
 
@@ -168,7 +169,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 			for _, dstServer := range serverServices {
 				switch appProtocol {
 				// HTTP traffic
-				case AppProtocolHTTP:
+				case constants.ProtocolHTTP:
 					httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
 						SimpleAllowPolicy{
 							RouteGroupName:    fmt.Sprintf("%s-%s", srcClient, dstServer),
@@ -188,7 +189,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 					Expect(err).NotTo(HaveOccurred())
 
 				// TCP traffic
-				case AppProtocolTCP:
+				case constants.ProtocolTCP:
 					tcpRoute, trafficTarget := Td.CreateSimpleTCPAllowPolicy(
 						SimpleAllowPolicy{
 							RouteGroupName:    fmt.Sprintf("%s-%s", srcClient, dstServer),

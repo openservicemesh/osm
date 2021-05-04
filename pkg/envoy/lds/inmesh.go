@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -27,9 +28,6 @@ const (
 	outboundMeshTCPFilterChainPrefix  = "outbound-mesh-tcp-filter-chain"
 	inboundMeshTCPProxyStatPrefix     = "inbound-mesh-tcp-proxy"
 	outboundMeshTCPProxyStatPrefix    = "outbound-mesh-tcp-proxy"
-	httpAppProtocol                   = "http"
-	tcpAppProtocol                    = "tcp"
-	gRPCAppProtocol                   = "grpc"
 )
 
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
@@ -44,7 +42,7 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
 	for port, appProtocol := range protocolToPortMap {
 		switch strings.ToLower(appProtocol) {
-		case httpAppProtocol, gRPCAppProtocol:
+		case constants.ProtocolHTTP, constants.ProtocolGRPC:
 			// Filter chain for HTTP port
 			filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, port)
 			if err != nil {
@@ -53,7 +51,7 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 			}
 			filterChains = append(filterChains, filterChainForPort)
 
-		case tcpAppProtocol:
+		case constants.ProtocolTCP:
 			filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService, port)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, port)
@@ -405,7 +403,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 		// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
 		for port, appProtocol := range protocolToPortMap {
 			switch strings.ToLower(appProtocol) {
-			case httpAppProtocol, gRPCAppProtocol:
+			case constants.ProtocolHTTP, constants.ProtocolGRPC:
 				// Construct HTTP filter chain
 				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream, port); err != nil {
 					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)
@@ -413,7 +411,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 					filterChains = append(filterChains, httpFilterChain)
 				}
 
-			case tcpAppProtocol:
+			case constants.ProtocolTCP:
 				// Construct TCP filter chain
 				if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream, port); err != nil {
 					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)

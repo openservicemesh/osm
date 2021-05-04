@@ -11,6 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -60,7 +61,7 @@ func testTCPTraffic(permissiveMode bool) {
 				Command:     []string{"/tcp-echo-server"},
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 				Ports:       []int{destinationPort},
-				AppProtocol: AppProtocolTCP,
+				AppProtocol: constants.ProtocolTCP,
 			})
 
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)

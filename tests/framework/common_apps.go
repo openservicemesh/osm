@@ -44,12 +44,6 @@ const (
 
 	// CPUPanel is the ID of the CPU panel on OSM's MeshDetails dashboard
 	CPUPanel int = 14
-
-	// AppProtocolHTTP is the HTTP application protocol
-	AppProtocolHTTP = "http"
-
-	// AppProtocolTCP is the TCP application protocol
-	AppProtocolTCP = "tcp"
 )
 
 var (
