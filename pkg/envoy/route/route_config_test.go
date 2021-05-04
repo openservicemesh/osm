@@ -854,3 +854,389 @@ func TestLess(t *testing.T) {
 	actual = clusters.Less(1, 0)
 	assert.False(actual)
 }
+
+func TestBuildEgressRoute(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name           string
+		routingRules   []*trafficpolicy.EgressHTTPRoutingRule
+		expectedRoutes []*xds_route.Route
+	}{
+		{
+			name:           "no routing rules",
+			routingRules:   nil,
+			expectedRoutes: nil,
+		},
+		{
+			name: "multiple routing rules",
+			routingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+				{
+					Route: trafficpolicy.RouteWeightedClusters{
+						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Path:          "/foo",
+							Methods:       []string{"GET"},
+						},
+						WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+							service.WeightedCluster{ClusterName: "foo.com:80", Weight: 100},
+						}),
+					},
+				},
+				{
+					Route: trafficpolicy.RouteWeightedClusters{
+						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+							PathMatchType: trafficpolicy.PathMatchRegex,
+							Path:          "/bar",
+							Methods:       []string{"POST"},
+						},
+						WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+							service.WeightedCluster{ClusterName: "foo.com:80", Weight: 100},
+						}),
+					},
+				},
+			},
+			expectedRoutes: []*xds_route.Route{
+				{
+					Match: &xds_route.RouteMatch{
+						PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+							SafeRegex: &xds_matcher.RegexMatcher{
+								EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+								Regex:      "/foo",
+							},
+						},
+						Headers: []*xds_route.HeaderMatcher{
+							{
+								Name: ":method",
+								HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+									SafeRegexMatch: &xds_matcher.RegexMatcher{
+										EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+										Regex:      "GET",
+									},
+								},
+							},
+						},
+					},
+					Action: &xds_route.Route_Route{
+						Route: &xds_route.RouteAction{
+							ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+								WeightedClusters: &xds_route.WeightedCluster{
+									Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+										{
+											Name:   "foo.com:80",
+											Weight: &wrappers.UInt32Value{Value: 100},
+										},
+									},
+									TotalWeight: &wrappers.UInt32Value{Value: 100},
+								},
+							},
+						},
+					},
+				},
+				{
+					Match: &xds_route.RouteMatch{
+						PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+							SafeRegex: &xds_matcher.RegexMatcher{
+								EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+								Regex:      "/bar",
+							},
+						},
+						Headers: []*xds_route.HeaderMatcher{
+							{
+								Name: ":method",
+								HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+									SafeRegexMatch: &xds_matcher.RegexMatcher{
+										EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+										Regex:      "POST",
+									},
+								},
+							},
+						},
+					},
+					Action: &xds_route.Route_Route{
+						Route: &xds_route.RouteAction{
+							ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+								WeightedClusters: &xds_route.WeightedCluster{
+									Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+										{
+											Name:   "foo.com:80",
+											Weight: &wrappers.UInt32Value{Value: 100},
+										},
+									},
+									TotalWeight: &wrappers.UInt32Value{Value: 100},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := buildEgressRoutes(tc.routingRules)
+			assert.ElementsMatch(tc.expectedRoutes, actual)
+		})
+	}
+}
+
+func TestBuildEgressRouteConfiguration(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                     string
+		portSpecificRouteConfigs map[int][]*trafficpolicy.EgressHTTPRouteConfig
+		expectedRouteConfigs     []*xds_route.RouteConfiguration
+	}{
+		{
+			name: "multiple route configs per port",
+			portSpecificRouteConfigs: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
+				80: {
+					{
+						Name: "foo.com",
+						Hostnames: []string{
+							"foo.com",
+							"foo.com:80",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
+									}),
+								},
+							},
+						},
+					},
+					{
+						Name: "bar.com",
+						Hostnames: []string{
+							"bar.com",
+							"bar.com:80",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
+									}),
+								},
+							},
+						},
+					},
+				},
+				90: {
+					{
+						Name: "baz.com",
+						Hostnames: []string{
+							"baz.com",
+							"baz.com:90",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("baz.com:90"), Weight: 100},
+									}),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedRouteConfigs: []*xds_route.RouteConfiguration{
+				{
+					Name:             "rds-egress:80",
+					ValidateClusters: &wrappers.BoolValue{Value: false},
+					VirtualHosts: []*xds_route.VirtualHost{
+						{
+							Name: "egress_virtual-host|foo.com",
+							Domains: []string{
+								"foo.com",
+								"foo.com:80",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "foo.com:80",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name: "egress_virtual-host|bar.com",
+							Domains: []string{
+								"bar.com",
+								"bar.com:80",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "bar.com:80",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					Name:             "rds-egress:90",
+					ValidateClusters: &wrappers.BoolValue{Value: false},
+					VirtualHosts: []*xds_route.VirtualHost{
+						{
+							Name: "egress_virtual-host|baz.com",
+							Domains: []string{
+								"baz.com",
+								"baz.com:90",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "baz.com:90",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                     "no HTTP route configs",
+			portSpecificRouteConfigs: nil,
+			expectedRouteConfigs:     nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := BuildEgressRouteConfiguration(tc.portSpecificRouteConfigs)
+			assert.ElementsMatch(tc.expectedRouteConfigs, actual)
+		})
+	}
+}
+
+func TestGetEgressRouteConfigNameForPort(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name         string
+		port         int
+		expectedName string
+	}{
+		{
+			name:         "test 1",
+			port:         10,
+			expectedName: "rds-egress:10",
+		},
+		{
+			name:         "test 2",
+			port:         20,
+			expectedName: "rds-egress:20",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := GetEgressRouteConfigNameForPort(tc.port)
+			assert.Equal(tc.expectedName, actual)
+		})
+	}
+}

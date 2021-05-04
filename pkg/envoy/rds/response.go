@@ -58,6 +58,18 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 		rdsResources = append(rdsResources, ingressRouteConfig)
 	}
 
+	// Build Egress route configurations based on Egress HTTP routing rules associated with this proxy
+	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxyIdentity)
+	}
+	if egressTrafficPolicy != nil {
+		egressRouteConfigs := route.BuildEgressRouteConfiguration(egressTrafficPolicy.HTTPRouteConfigsPerPort)
+		for _, egressConfig := range egressRouteConfigs {
+			rdsResources = append(rdsResources, egressConfig)
+		}
+	}
+
 	if discoveryReq != nil {
 		// Ensure all RDS resources are responded to a given non-nil and non-empty request
 		// Empty RDS RouteConfig will be provided for resources requested that our logic did not fulfill
