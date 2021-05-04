@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,6 +81,47 @@ func TestAnnotateErrorMessageWithOsmNamespace(t *testing.T) {
 		})
 	}
 }
+
+var _ = Describe("Test getting pretty printed output of a list of meshes", func() {
+	var (
+		meshInfoList []meshInfo
+	)
+
+	Context("empty mesh list", func() {
+
+		meshInfoList = []meshInfo{}
+		pp := getPrettyPrintedMeshInfoList(meshInfoList)
+
+		It("should have correct output", func() {
+			Expect(pp).To(Equal("\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\n"))
+		})
+	})
+
+	Context("non-empty mesh list", func() {
+
+		meshInfoList = []meshInfo{
+			{
+				name:                 "m1",
+				namespace:            "ns1",
+				controllerPods:       []string{"p1", "p2", "p3"},
+				version:              "v1",
+				smiSupportedVersions: []string{"s1", "s2", "s3"},
+			},
+			{
+				name:                 "m2",
+				namespace:            "ns2",
+				controllerPods:       []string{"p3", "p4", "p5"},
+				version:              "v2",
+				smiSupportedVersions: []string{"s3", "s4", "s5"},
+			},
+		}
+
+		It("should have correct output", func() {
+			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\nm1\tns1\tp1,p2,p3\tv1\ts1,s2,s3\nm2\tns2\tp3,p4,p5\tv2\ts3,s4,s5\n"))
+		})
+
+	})
+})
 
 // helper function for tests that adds deployment to the clientset
 func addDeployment(fakeClientSet kubernetes.Interface, depName string, meshName string, namespace string, osmVersion string, isMesh bool) (*v1.Deployment, error) {
