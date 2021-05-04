@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func TestAnnotateErrorMessageWithActionableMessage(t *testing.T) {
@@ -72,4 +78,29 @@ func TestAnnotateErrorMessageWithOsmNamespace(t *testing.T) {
 				annotateErrorMessageWithOsmNamespace(tc.errorMsg, tc.name, tc.namespace, tc.exceptionMsg).Error())
 		})
 	}
+}
+
+// helper function for tests that adds deployment to the clientset
+func addDeployment(fakeClientSet kubernetes.Interface, depName string, meshName string, namespace string, osmVersion string, isMesh bool) (*v1.Deployment, error) {
+	dep := createDeployment(depName, meshName, osmVersion, isMesh)
+	return fakeClientSet.AppsV1().Deployments(namespace).Create(context.TODO(), dep, metav1.CreateOptions{})
+}
+
+// helper function for tests that creates a deployment for mesh and non-mesh deployments
+func createDeployment(deploymentName, meshName string, osmVersion string, isMesh bool) *v1.Deployment {
+	labelMap := make(map[string]string)
+	if isMesh {
+		labelMap["app"] = constants.OSMControllerName
+		labelMap["meshName"] = meshName
+		labelMap[constants.OSMAppVersionLabelKey] = osmVersion
+	} else {
+		labelMap["app"] = "non-mesh-app"
+	}
+	dep := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   deploymentName,
+			Labels: labelMap,
+		},
+	}
+	return dep
 }

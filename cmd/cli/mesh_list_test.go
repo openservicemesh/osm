@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,13 +25,6 @@ var _ = Describe("Running the mesh list command", func() {
 			listCmd       *meshListCmd
 		)
 
-		// helper function that adds deployment to the clientset
-		addDeployment := func(depName, meshName, namespace string, osmVersion string, isMesh bool) {
-			dep := createDeployment(depName, meshName, osmVersion, isMesh)
-			_, err := fakeClientSet.AppsV1().Deployments(namespace).Create(context.TODO(), dep, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-		}
-
 		// helper function that takes element from slice and returns the name for gomega struct
 		// https://onsi.github.io/gomega/#gstruct-testing-complex-data-types
 		idSelector := func(element interface{}) string {
@@ -47,9 +39,12 @@ var _ = Describe("Running the mesh list command", func() {
 		}
 
 		It("should print only correct meshes", func() {
-			addDeployment("osm-controller-1", "testMesh1", "testNs1", "testVersion0.1.2", true)
-			addDeployment("osm-controller-2", "testMesh2", "testNs2", "testVersion0.1.3", true)
-			addDeployment("not-osm-controller", "", "testNs3", "", false)
+			_, err = addDeployment(fakeClientSet, "osm-controller-1", "testMesh1", "testNs1", "testVersion0.1.2", true)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = addDeployment(fakeClientSet, "osm-controller-2", "testMesh2", "testNs2", "testVersion0.1.3", true)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = addDeployment(fakeClientSet, "not-osm-controller", "", "testNs3", "", false)
+			Expect(err).NotTo(HaveOccurred())
 
 			deployments, err = getControllerDeployments(listCmd.clientSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,21 +114,3 @@ var _ = Describe("Running the mesh list command", func() {
 		})
 	})
 })
-
-func createDeployment(deploymentName, meshName string, osmVersion string, isMesh bool) *v1.Deployment {
-	labelMap := make(map[string]string)
-	if isMesh {
-		labelMap["app"] = constants.OSMControllerName
-		labelMap["meshName"] = meshName
-		labelMap[constants.OSMAppVersionLabelKey] = osmVersion
-	} else {
-		labelMap["app"] = "non-mesh-app"
-	}
-	dep := &v1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   deploymentName,
-			Labels: labelMap,
-		},
-	}
-	return dep
-}
