@@ -580,7 +580,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("OpenServiceMesh.deployGrafana=%v", instOpts.DeployGrafana),
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%v", instOpts.DeployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
-		fmt.Sprintf("OpenServiceMesh.deployFluentbit=%v", instOpts.DeployFluentbit),
+		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
 	)
 
 	switch instOpts.CertManager {
