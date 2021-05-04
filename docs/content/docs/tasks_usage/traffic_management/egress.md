@@ -24,9 +24,9 @@ Enabling egress is done via a global setting. The setting is toggled on or off a
 ### Enabling egress
 Egress can be enabled during OSM install or post install. When egress is enabled, outbound traffic from pods are allowed to egress the pod as long as the traffic does not match in-mesh traffic policies that otherwise deny the traffic.
 
-1. During OSM install (default `--enable-egress=false`):
+1. During OSM install (default `OpenServiceMesh.enableEgress=false`):
 	```bash
-	osm install --enable-egress
+	osm install --set OpenServiceMesh.enableEgress=true
 	```
 
 2. After OSM has been installed:
@@ -41,7 +41,7 @@ Similar to enabling egress, egress can be disabled during OSM install or post in
 
 1. During OSM install:
 	```bash
-	bin osm install --enable-egress=false
+	osm install --set OpenServiceMesh.enableEgress=false
 	```
 
 2. After OSM has been installed:
@@ -67,7 +67,7 @@ The following demo shows a `curl` client making HTTPS requests to the external `
 
 1. Install OSM with egress enabled.
     ```bash
-    osm install --enable-egress=true
+    osm install --set OpenServiceMesh.enableEgress=true
     ```
 
 1. Deploy the `curl` client into the `curl` namespace after enrolling its namespace to the mesh.

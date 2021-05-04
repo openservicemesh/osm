@@ -51,7 +51,6 @@ func TestMeshUpgradeDefault(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
-
 	err := i.run(config)
 	a.Nil(err)
 
@@ -60,10 +59,9 @@ func TestMeshUpgradeDefault(t *testing.T) {
 	upgraded, err := action.NewGet(config).Run(u.meshName)
 	a.Nil(err)
 
-	osmImageTag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	meshName, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.meshName")
 	a.Nil(err)
-	a.Equal(defaultOsmImageTag, osmImageTag)
-
+	a.Equal(defaultMeshName, meshName)
 	err = u.run(config)
 	a.Nil(err)
 }
@@ -149,9 +147,11 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
-	i.enableEgress = !defaultEnableEgress
-	i.osmImageTag = "installed"
-	i.envoyLogLevel = "trace"
+	i.setOptions = []string{
+		"OpenServiceMesh.enableEgress=true",
+		"OpenServiceMesh.osmImageTag=installed",
+		"OpenServiceMesh.envoyLogLevel=trace",
+	}
 
 	err := i.run(config)
 	a.Nil(err)

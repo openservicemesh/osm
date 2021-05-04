@@ -10,7 +10,7 @@ If a Prometheus instance installed with OSM can't be reached, perform the follow
 
 1. Verify a Prometheus Pod exists.
 
-    When installed with `osm install --deploy-prometheus`, a Prometheus Pod named something like `osm-prometheus-5794755b9f-rnvlr` should exist in the namespace of the other OSM control plane components which named `osm-system` by default.
+    When installed with `osm install --set=OpenServiceMesh.deployPrometheus=true`, a Prometheus Pod named something like `osm-prometheus-5794755b9f-rnvlr` should exist in the namespace of the other OSM control plane components which named `osm-system` by default.
 
     If no such Pod is found, verify the OSM Helm chart was installed with the `OpenServiceMesh.deployPrometheus` parameter set to `true` with `helm`:
 
@@ -18,7 +18,7 @@ If a Prometheus instance installed with OSM can't be reached, perform the follow
     $ helm get values -a <mesh name> -n <OSM namespace>
     ```
 
-    If the parameter is set to anything but `true`, reinstall OSM with the `--deploy-prometheus` flag on `osm install`.
+    If the parameter is set to anything but `true`, reinstall OSM with the `--set=OpenServiceMesh.deployPrometheus=true` flag on `osm install`.
 
 1. Verify the Prometheus Pod is healthy.
 

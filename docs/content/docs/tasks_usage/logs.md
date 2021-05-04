@@ -12,14 +12,14 @@ Open Service Mesh (OSM) collects logs that are sent to stdout by default. When e
 ## Fluent Bit
 [Fluent Bit](https://fluentbit.io/) is an open source log processor and forwarder which allows you to collect data/logs and send them to multiple destinations. It can be used with OSM to forward OSM controller logs to a variety of outputs/log consumers by using its output plugins.
 
-OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/pipeline/outputs).
+OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--set=OpenServiceMesh.enableFluentbit=true` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/pipeline/outputs).
 
 ### Configuring Log Forwarding with Fluent Bit
 By default, the Fluent Bit sidecar is configured to simply send logs to the Fluent Bit container's stdout. If you have installed OSM with Fluent Bit enabled, you may access these logs using `kubectl logs -n osm-system <osm-controller-name> -c fluentbit-logger`. This command will also help you find how your logs are formatted in case you need to change your parsers and filters. 
 
 To quickly bring up Fluent Bit with default values, use:
 ```console
-osm install --enable-fluentbit
+osm install --set=OpenServiceMesh.enableFluentbit=true
 ```
 By default, logs will be filtered to emit info level logs. You may change the log level to "debug", "warn", "fatal", "panic", "disabled" or "trace" during installation using `--set OpenServiceMesh.controllerLogLevel=<desired log level>` . To get _all_ logs, set the log level to trace.
 
@@ -42,7 +42,7 @@ To customize log forwarding to your output, follow these steps and then reinstal
 
 1. Once you have updated the Fluent Bit ConfigMap template, you can deploy Fluent Bit during OSM installation using:
     ```console
-    osm install --enable-fluentbit [--set OpenServiceMesh.controllerLogLevel=<desired log level>]
+    osm install --set=OpenServiceMesh.enableFluentbit=true [--set OpenServiceMesh.controllerLogLevel=<desired log level>]
     ```
     You should now be able to interact with error logs in the output of your choice as they get generated.
 
@@ -81,7 +81,7 @@ You may require outbound proxy support if your egress traffic is configured to g
 
 If you have already built OSM with the ConfigMap changes above, you can simply enable proxy support using the OSM CLI, replacing your values in the command below:
 ```
-osm install --enable-fluentbit --set OpenServiceMesh.fluentBit.enableProxySupport=true,OpenServiceMesh.fluentBit.httpProxy=<http-proxy-host:port>,OpenServiceMesh.fluentBit.httpsProxy=<https-proxy-host:port>
+osm install --set=OpenServiceMesh.enableFluentbit=true,OpenServiceMesh.fluentBit.enableProxySupport=true,OpenServiceMesh.fluentBit.httpProxy=<http-proxy-host:port>,OpenServiceMesh.fluentBit.httpsProxy=<https-proxy-host:port>
 ```
 
 Alternatively, you may change the values in the Helm chart by updating the following in `values.yaml`:
@@ -96,6 +96,6 @@ Alternatively, you may change the values in the Helm chart by updating the follo
 
 1. Install OSM with Fluent Bit enabled:
     ```console
-    osm install --enable-fluentbit
+    osm install --set=OpenServiceMesh.enableFluentbit=true
     ```
-> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature. 
+> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature.

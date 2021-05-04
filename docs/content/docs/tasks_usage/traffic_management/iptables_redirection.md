@@ -108,7 +108,7 @@ The following demo shows an HTTP `curl` client making HTTP requests to the `http
 
 1. Install OSM with egress disabled.
     ```bash
-    osm install --enable-egress=false
+    osm install --set OpenServiceMesh.enableEgress=false
     ```
 
 1. Deploy the `curl` client into the `curl` namespace after enrolling its namespace to the mesh.

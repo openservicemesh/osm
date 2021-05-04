@@ -23,9 +23,9 @@ Permissive traffic policy mode can be enabled or disabled at the time of OSM ins
 
 Enabling permissive traffic policy mode implicitly disables SMI traffic policy mode.
 
-During OSM install:
+During OSM install using the `--set` flag:
 ```bash
-osm install --enable-permissive-traffic-policy=true
+osm install --set OpenServiceMesh.enablePermissiveTrafficPolicy=true
 ```
 
 After OSM has been installed:
@@ -37,9 +37,9 @@ osm mesh upgrade --enable-permissive-traffic-policy=true
 
 Disabling permissive traffic policy mode implicitly enables SMI traffic policy mode.
 
-During OSM install:
+During OSM install using the `--set` flag:
 ```bash
-osm install --enable-permissive-traffic-policy=false
+osm install --set OpenServiceMesh.enablePermissiveTrafficPolicy=false
 ```
 
 After OSM has been installed:
@@ -58,7 +58,7 @@ The following demo shows an HTTP `curl` client making HTTP requests to the `http
 
 1. Install OSM with permissive traffic policy mode enabled.
     ```bash
-    osm install --enable-permissive-traffic-policy=true
+    osm install --set OpenServiceMesh.enablePermissiveTrafficPolicy=true
     ```
 
 1. Deploy the `httpbin` service into the `httpbin` namespace after enrolling its namespace to the mesh. The `httpbin` service runs on port `14001`.

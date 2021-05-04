@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -566,14 +565,22 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 	var args []string
 	args = append(args, "install",
-		"--container-registry="+instOpts.ContainerRegistryLoc,
-		"--osm-image-tag="+instOpts.OsmImagetag,
 		"--osm-namespace="+instOpts.ControlPlaneNS,
-		"--certificate-manager="+instOpts.CertManager,
-		"--enable-egress="+strconv.FormatBool(instOpts.EgressEnabled),
-		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.EnablePermissiveMode),
-		"--enable-debug-server="+strconv.FormatBool(instOpts.EnableDebugServer),
-		"--envoy-log-level="+instOpts.EnvoyLogLevel,
+		fmt.Sprintf("--timeout=%v", 90*time.Second),
+	)
+
+	instOpts.SetOverrides = append(instOpts.SetOverrides,
+		fmt.Sprintf("OpenServiceMesh.image.registry=%s", instOpts.ContainerRegistryLoc),
+		fmt.Sprintf("OpenServiceMesh.image.tag=%s", instOpts.OsmImagetag),
+		fmt.Sprintf("OpenServiceMesh.certificateManager=%s", instOpts.CertManager),
+		fmt.Sprintf("OpenServiceMesh.enableEgress=%v", instOpts.EgressEnabled),
+		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
+		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%v", instOpts.EnableDebugServer),
+		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", instOpts.EnvoyLogLevel),
+		fmt.Sprintf("OpenServiceMesh.deployGrafana=%v", instOpts.DeployGrafana),
+		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%v", instOpts.DeployPrometheus),
+		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
+		fmt.Sprintf("OpenServiceMesh.deployFluentbit=%v", instOpts.DeployFluentbit),
 	)
 
 	switch instOpts.CertManager {
@@ -581,12 +588,11 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		if err := td.installVault(instOpts); err != nil {
 			return err
 		}
-		args = append(args,
-			"--vault-host="+instOpts.VaultHost,
-			"--vault-token="+instOpts.VaultToken,
-			"--vault-protocol="+instOpts.VaultProtocol,
-			"--vault-role="+instOpts.VaultRole,
-		)
+		instOpts.SetOverrides = append(instOpts.SetOverrides,
+			fmt.Sprintf("OpenServiceMesh.vault.host=%s", instOpts.VaultHost),
+			fmt.Sprintf("OpenServiceMesh.vault.role=%s", instOpts.VaultRole),
+			fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", instOpts.VaultProtocol),
+			fmt.Sprintf("OpenServiceMesh.vault.token=%s", instOpts.VaultToken))
 		// Wait for the vault pod
 		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1); err != nil {
 			return errors.Wrap(err, "failed waiting for vault pod to become ready")
@@ -595,27 +601,23 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		if err := td.installCertManager(instOpts); err != nil {
 			return err
 		}
-		args = append(args,
-			"--cert-manager-issuer-name="+instOpts.CertmanagerIssuerName,
-			"--cert-manager-issuer-kind="+instOpts.CertmanagerIssuerKind,
-			"--cert-manager-issuer-group="+instOpts.CertmanagerIssuerGroup,
-		)
+		instOpts.SetOverrides = append(instOpts.SetOverrides,
+			fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", instOpts.CertmanagerIssuerName),
+			fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", instOpts.CertmanagerIssuerKind),
+			fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", instOpts.CertmanagerIssuerGroup))
 	}
 
 	if !(td.InstType == KindCluster) {
 		// Making sure the image is always pulled in registry-based testing
-		args = append(args, "--osm-image-pull-policy=Always")
+		instOpts.SetOverrides = append(instOpts.SetOverrides,
+			"OpenServiceMesh.image.pullPolicy=Always")
 	}
 
 	if len(instOpts.ContainerRegistrySecret) != 0 {
-		args = append(args, "--container-registry-secret="+registrySecretName)
+		instOpts.SetOverrides = append(instOpts.SetOverrides,
+			fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", registrySecretName),
+		)
 	}
-
-	args = append(args, fmt.Sprintf("--deploy-prometheus=%v", instOpts.DeployPrometheus))
-	args = append(args, fmt.Sprintf("--deploy-grafana=%v", instOpts.DeployGrafana))
-	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.DeployJaeger))
-	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.DeployFluentbit))
-	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))
 
 	td.T.Logf("Setting log OSM's log level through overrides to %s", instOpts.OSMLogLevel)
 	instOpts.SetOverrides = append(instOpts.SetOverrides,
