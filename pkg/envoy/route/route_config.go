@@ -29,20 +29,26 @@ const (
 )
 
 const (
-	//InboundRouteConfigName is the name of the inbound mesh RDS route configuration
+	// InboundRouteConfigName is the name of the inbound mesh RDS route configuration
 	InboundRouteConfigName = "rds-inbound"
 
-	//OutboundRouteConfigName is the name of the outbound mesh RDS route configuration
+	// OutboundRouteConfigName is the name of the outbound mesh RDS route configuration
 	OutboundRouteConfigName = "rds-outbound"
 
-	//IngressRouteConfigName is the name of the ingress RDS route configuration
+	// IngressRouteConfigName is the name of the ingress RDS route configuration
 	IngressRouteConfigName = "rds-ingress"
+
+	// egressRouteConfigNamePrefix is the prefix for the name of the egress RDS route configuration
+	egressRouteConfigNamePrefix = "rds-egress"
 
 	// inboundVirtualHost is prefix for the virtual host's name in the inbound route configuration
 	inboundVirtualHost = "inbound_virtual-host"
 
 	// outboundVirtualHost is the prefix for the virtual host's name in the outbound route configuration
 	outboundVirtualHost = "outbound_virtual-host"
+
+	// egressVirtualHost is the prefix for the virtual host's name in the egress route configuration
+	egressVirtualHost = "egress_virtual-host"
 
 	// ingressVirtualHost is the prefix for the virtual host's name in the ingress route configuration
 	ingressVirtualHost = "ingress_virtual-host"
@@ -122,6 +128,26 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, pr
 	return ingressRouteConfig
 }
 
+// BuildEgressRouteConfiguration constructs the Envoy construct (*xds_route.RouteConfiguration) for the given egress route configs
+func BuildEgressRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.EgressHTTPRouteConfig) []*xds_route.RouteConfiguration {
+	var routeConfigs []*xds_route.RouteConfiguration
+
+	// An Envoy RouteConfiguration will exist for each HTTP egress port.
+	// This is required to avoid route conflicts that can arise when the same host header
+	// has different routes on different destination ports for that host.
+	for port, configs := range portSpecificRouteConfigs {
+		routeConfig := NewRouteConfigurationStub(GetEgressRouteConfigNameForPort(port))
+		for _, config := range configs {
+			virtualHost := buildVirtualHostStub(egressVirtualHost, config.Name, config.Hostnames)
+			virtualHost.Routes = buildEgressRoutes(config.RoutingRules)
+			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
+		}
+		routeConfigs = append(routeConfigs, routeConfig)
+	}
+
+	return routeConfigs
+}
+
 //NewRouteConfigurationStub creates the route configuration placeholder
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
@@ -175,6 +201,23 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
 		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), outboundRoute))
+	}
+	return routes
+}
+
+func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*xds_route.Route {
+	var routes []*xds_route.Route
+	for _, rule := range routingRules {
+		// For a given route path, sanitize the methods in case there
+		// is wildcard or if there are duplicates
+		allowedHTTPMethods := sanitizeHTTPMethods(rule.Route.HTTPRouteMatch.Methods)
+
+		// Build the route for the given egress routing rule and method
+		// Each HTTP method corresponds to a separate route
+		for _, httpMethod := range allowedHTTPMethods {
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.TotalClustersWeight(), outboundRoute)
+			routes = append(routes, route)
+		}
 	}
 	return routes
 }
@@ -328,4 +371,9 @@ func getRegexForMethod(httpMethod string) string {
 		methodRegex = constants.RegexMatchAll
 	}
 	return methodRegex
+}
+
+// GetEgressRouteConfigNameForPort returns the Egress route configuration object's name given the port it is targeted to
+func GetEgressRouteConfigNameForPort(port int) string {
+	return fmt.Sprintf("%s:%d", egressRouteConfigNamePrefix, port)
 }

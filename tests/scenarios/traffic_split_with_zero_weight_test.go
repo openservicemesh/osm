@@ -237,6 +237,7 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}, nil).AnyTimes()
+			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil)
 			assert.Nil(err)
