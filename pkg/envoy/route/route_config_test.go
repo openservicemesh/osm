@@ -236,14 +236,14 @@ func TestBuildVirtualHostStub(t *testing.T) {
 		{
 			name:         "inbound virtual host",
 			namePrefix:   inboundVirtualHost,
-			host:         httpHostHeader,
+			host:         httpHostHeaderKey,
 			domains:      []string{"domain1", "domain2"},
 			expectedName: "inbound_virtual-host|host",
 		},
 		{
 			name:         "outbound virtual host",
 			namePrefix:   outboundVirtualHost,
-			host:         httpHostHeader,
+			host:         httpHostHeaderKey,
 			domains:      []string{"domain1", "domain2"},
 			expectedName: "outbound_virtual-host|host",
 		},
@@ -439,9 +439,6 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: "",
-						},
 					},
 				},
 			},
@@ -509,9 +506,6 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: "",
-						},
 					},
 				},
 			},
@@ -558,9 +552,6 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: "",
-						},
 					},
 				},
 			},
@@ -606,9 +597,6 @@ func TestBuildRoute(t *testing.T) {
 								},
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
-						},
-						HostRewriteSpecifier: &xds_route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: "",
 						},
 					},
 				},
@@ -767,19 +755,21 @@ func TestGetHeadersForRoute(t *testing.T) {
 	assert.Equal(methodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[1], actual[0].GetSafeRegexMatch().Regex)
 
-	// Returns only one HeaderMatcher for a route ignoring the host
+	// Returns only HeaderMatcher for the method and host header (:authority)
 	routePolicy = trafficpolicy.HTTPRouteMatch{
 		Path:          "/books-bought",
 		PathMatchType: trafficpolicy.PathMatchRegex,
 		Methods:       []string{"GET", "POST"},
 		Headers: map[string]string{
-			"user-agent": tests.HTTPUserAgent,
+			"host": tests.HTTPHostHeader,
 		},
 	}
 	actual = getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
 	assert.Equal(2, len(actual))
 	assert.Equal(methodHeaderKey, actual[0].Name)
 	assert.Equal(routePolicy.Methods[0], actual[0].GetSafeRegexMatch().Regex)
+	assert.Equal(authorityHeaderKey, actual[1].Name)
+	assert.Equal(tests.HTTPHostHeader, actual[1].GetSafeRegexMatch().Regex)
 }
 
 func TestLen(t *testing.T) {
