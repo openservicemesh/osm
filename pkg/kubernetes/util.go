@@ -8,11 +8,12 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
-	clusterDomain      = "cluster.local"
-	defaultAppProtocol = "http"
+	clusterDomain = "cluster.local"
 )
 
 // GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
@@ -62,7 +63,7 @@ func GetServiceFromHostname(host string) string {
 	return strings.Split(service, ":")[0]
 }
 
-// GetAppProtocolFromPortName returns the port's application protocol from its name, 'defaultAppProtocol' if not specified.
+// GetAppProtocolFromPortName returns the port's application protocol from its name, defaults to 'http' if not specified.
 func GetAppProtocolFromPortName(portName string) string {
 	portName = strings.ToLower(portName)
 
@@ -77,7 +78,7 @@ func GetAppProtocolFromPortName(portName string) string {
 		return "grpc"
 
 	default:
-		return defaultAppProtocol
+		return constants.ProtocolHTTP
 	}
 }
 

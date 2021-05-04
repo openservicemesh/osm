@@ -17,10 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-const (
-	protocolHTTP = "http"
-)
-
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
 	if !featureflags.IsEgressPolicyEnabled() {
@@ -38,7 +34,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 		for _, portSpec := range egress.Spec.Ports {
 			// ---
 			// Build the HTTP route configs for the given Egress policy
-			if strings.EqualFold(portSpec.Protocol, protocolHTTP) {
+			if strings.EqualFold(portSpec.Protocol, constants.ProtocolHTTP) {
 				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number)
 				portToRouteConfigMap[portSpec.Number] = append(portToRouteConfigMap[portSpec.Number], httpRouteConfigs...)
 				clusterConfigs = append(clusterConfigs, httpClusterConfigs...)
