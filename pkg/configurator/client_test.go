@@ -71,6 +71,10 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"OutboundPortExclusionList":     outboundPortExclusionListKey,
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
 				"ConfigResyncInterval":          configResyncInterval,
+				"ProxyLimitCpu":                 proxyLimitCPU,
+				"ProxyLimitMemory":              proxyLimitMemory,
+				"ProxyRequestsCpu":              proxyRequestsCPU,
+				"ProxyRequestsMemory":           proxyRequestsMemory,
 			}
 			t := reflect.TypeOf(osmConfig{})
 

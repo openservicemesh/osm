@@ -48,7 +48,8 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 			ReadOnly:  true,
 			MountPath: envoyProxyConfigPath,
 		}},
-		Command: []string{"envoy"},
+		Resources: cfg.GetProxyResources(),
+		Command:   []string{"envoy"},
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),

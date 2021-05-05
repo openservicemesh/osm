@@ -70,6 +70,18 @@ const (
 
 	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
 	configResyncInterval = "config_resync_interval"
+
+	// proxyLimitCPU is the cpu limit to apply to injected proxy containers
+	proxyLimitCPU = "proxy_limit_cpu"
+
+	// proxyLimitMemory is the memory limit to apply to injected proxy containers
+	proxyLimitMemory = "proxy_limit_memory"
+
+	// proxyRequestsCPU is the cpu request to apply to injected proxy containers
+	proxyRequestsCPU = "proxy_requests_cpu"
+
+	// proxyRequestsMemory is the memory request to apply to injected proxy containers
+	proxyRequestsMemory = "proxy_requests_memory"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -262,6 +274,18 @@ type osmConfig struct {
 
 	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
 	ConfigResyncInterval string `yaml:"config_resync_interval"`
+
+	// ProxyLimitCPU is the cpu limit to apply to injected proxy containers
+	ProxyLimitCPU string `yaml:"proxy_limit_cpu"`
+
+	// ProxyLimitMemory is the memory limit to apply to injected proxy containers
+	ProxyLimitMemory string `yaml:"proxy_limit_memory"`
+
+	// ProxyRequestsCPU is the cpu request to apply to injected proxy containers
+	ProxyRequestsCPU string `yaml:"proxy_requests_cpu"`
+
+	// ProxyRequestsMemory is the memory request to apply to injected proxy containers
+	ProxyRequestsMemory string `yaml:"proxy_requests_memory"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -320,6 +344,10 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.OutboundPortExclusionList, _ = GetStringValueForKey(configMap, outboundPortExclusionListKey)
 	osmConfigMap.EnablePrivilegedInitContainer, _ = GetBoolValueForKey(configMap, enablePrivilegedInitContainer)
 	osmConfigMap.ConfigResyncInterval, _ = GetStringValueForKey(configMap, configResyncInterval)
+	osmConfigMap.ProxyLimitCPU, _ = GetStringValueForKey(configMap, proxyLimitCPU)
+	osmConfigMap.ProxyLimitMemory, _ = GetStringValueForKey(configMap, proxyLimitMemory)
+	osmConfigMap.ProxyRequestsCPU, _ = GetStringValueForKey(configMap, proxyRequestsCPU)
+	osmConfigMap.ProxyRequestsMemory, _ = GetStringValueForKey(configMap, proxyRequestsMemory)
 
 	if osmConfigMap.TracingEnable {
 		osmConfigMap.TracingAddress, _ = GetStringValueForKey(configMap, tracingAddressKey)

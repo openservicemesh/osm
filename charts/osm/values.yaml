@@ -158,6 +158,15 @@ OpenServiceMesh:
         cpu: "0.3"
         memory: "64M"
     podLabels: {}
+    # Allows specifying resource constraints for proxy containers
+    # Missing or empty value in configmap implies `Resources` value will not be configured in the injected proxies.
+    proxyResources:
+      limits:
+        cpu: ""
+        memory: ""
+      requests:
+        cpu: ""
+        memory: ""
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false

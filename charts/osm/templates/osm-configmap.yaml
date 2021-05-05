@@ -32,3 +32,8 @@ data:
 {{- if .Values.OpenServiceMesh.outboundPortExclusionList }}
   outbound_port_exclusion_list: {{ join "," .Values.OpenServiceMesh.outboundPortExclusionList | quote }}
 {{- end}}
+
+  proxy_limit_cpu: {{ .Values.OpenServiceMesh.injector.proxyResources.limits.cpu }}
+  proxy_limit_memory: {{ .Values.OpenServiceMesh.injector.proxyResources.limits.memory }}
+  proxy_requests_cpu: {{ .Values.OpenServiceMesh.injector.proxyResources.requests.cpu }}
+  proxy_requests_memory: {{ .Values.OpenServiceMesh.injector.proxyResources.requests.memory }}

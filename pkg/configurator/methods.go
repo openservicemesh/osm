@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -184,4 +187,48 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 		return time.Duration(0)
 	}
 	return duration
+}
+
+// GetProxyResources returns the `Resources` configured for proxies, if any
+func (c *Client) GetProxyResources() corev1.ResourceRequirements {
+	cfgMap := c.getConfigMap()
+	reqs := corev1.ResourceRequirements{}
+
+	if cfgMap.ProxyLimitCPU != "" {
+		cpuLimitQuant, err := resource.ParseQuantity(cfgMap.ProxyLimitCPU)
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing CPU Limit quantity for injected proxies")
+		} else {
+			reqs.Limits["cpu"] = cpuLimitQuant
+		}
+	}
+
+	if cfgMap.ProxyLimitMemory != "" {
+		memoryLimitQuant, err := resource.ParseQuantity(cfgMap.ProxyLimitMemory)
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing Memory Limit quantity for injected proxies")
+		} else {
+			reqs.Limits["memory"] = memoryLimitQuant
+		}
+	}
+
+	if cfgMap.ProxyRequestsCPU != "" {
+		cpuRequestQuant, err := resource.ParseQuantity(cfgMap.ProxyRequestsCPU)
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing CPU Requests quantity for injected proxies")
+		} else {
+			reqs.Requests["cpu"] = cpuRequestQuant
+		}
+	}
+
+	if cfgMap.ProxyRequestsMemory != "" {
+		memoryRequestsQuant, err := resource.ParseQuantity(cfgMap.ProxyRequestsMemory)
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing Memory Requests quantity for injected proxies")
+		} else {
+			reqs.Requests["memory"] = memoryRequestsQuant
+		}
+	}
+
+	return reqs
 }

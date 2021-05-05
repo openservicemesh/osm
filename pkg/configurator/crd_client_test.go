@@ -75,7 +75,12 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainer,
 				"ConfigResyncInterval":          configResyncInterval,
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
+				"ProxyLimitCpu":                 proxyLimitCPU,
+				"ProxyLimitMemory":              proxyLimitMemory,
+				"ProxyRequestsCpu":              proxyRequestsCPU,
+				"ProxyRequestsMemory":           proxyRequestsMemory,
 			}
+
 			t := reflect.TypeOf(osmConfig{})
 
 			expectedNumberOfFields := t.NumField()
