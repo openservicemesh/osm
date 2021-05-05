@@ -108,7 +108,7 @@ After installing OSM, [onboard a microservice application](docs/content/docs/tas
 ### OSM Usage Patterns
 
 1. [Traffic Management](docs/content/docs/tasks_usage/traffic_management/_index.md)
-1. [Observability](docs/content/docs/patterns/observability/_index.md)
+1. [Observability](docs/content/docs/tasks_usage/observability/_index.md)
 1. [Certificates](docs/content/docs/tasks_usage/certificates.md)
 1. [Sidecar Injection](docs/content/docs/tasks_usage/sidecar_injection.md)
 

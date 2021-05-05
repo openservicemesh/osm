@@ -2,6 +2,7 @@
 title: "Sidecar Injection"
 description: "This section describes the sidecar injection workflow in OSM."
 type: docs
+aliases: ["sidecar_injection.md"]
 ---
 
 # Sidecar Injection

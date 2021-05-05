@@ -3,12 +3,13 @@ title: "Onboard Services"
 description: "Onboard Services"
 type: docs
 weight: 1
+aliases: ["onboard_services.md"]
 ---
 
 # Onboard Services
 The following guide describes how to onboard a Kubernetes microservice to an OSM instance.
 
-1. Refer to the [application requirements](../application_requirements.md) guide before onboarding applications.
+1. Refer to the [application requirements](../../application_requirements.md) guide before onboarding applications.
 
 1. Configure and Install [Service Mesh Interface (SMI) policies](https://github.com/servicemeshinterface/smi-spec)
 
@@ -36,8 +37,8 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     ```
 
     To disable automatic sidecar injection as a part of enrolling a namespace into the mesh, use `osm namespace add <namespace> --disable-sidecar-injection`.
-
-    Once a namespace has been onboarded, pods can be enrolled in the mesh by configuring automatic sidecar injection. See the [Sidecar Injection](../patterns/sidecar_injection) document for more details.
+    <!-- Please do not replace the link of `sidecar_injection.md` this format in order to work on osm website first -->
+    Once a namespace has been on-boarded, pods can be enrolled in the mesh by configuring automatic sidecar injection. See the [Sidecar Injection](../sidecar_injection.md) document for more details.
 
     For an example on how to onboard and join namespaces to the OSM mesh, please see the following example:
     - [demo/join-namespaces.sh](https://github.com/openservicemesh/osm/blob/release-v0.8/demo/join-namespaces.sh)
@@ -51,7 +52,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
 1. Verify the new behavior
 
-    The OSM control plane supports Prometheus, Grafana and Jaeger instances that can be used to help make sure the application is working properly. **These are disabled by default**. More details can be found in the [Observability](./patterns/observability/_index.md) documents.
+    The OSM control plane supports Prometheus, Grafana and Jaeger instances that can be used to help make sure the application is working properly. **These are disabled by default**. More details can be found in the [Observability](../observability/) documents.
 
 
 #### Note: Removing Namespaces
