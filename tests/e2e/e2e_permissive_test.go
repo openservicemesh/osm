@@ -39,8 +39,11 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 	It("Tests HTTP traffic for client pod -> server pod with permissive mode", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
-		installOpts.EnablePermissiveMode = true
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
+		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
+		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = true
+		meshConfig, err := Td.UpdateOSMConfig(meshConfig)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Create Test NS
 		for _, n := range ns {
@@ -57,7 +60,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 				Ports:     []int{80},
 			})
 
-		_, err := Td.CreateServiceAccount(destNs, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		dstPod, err := Td.CreatePod(destNs, podDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -112,7 +115,9 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 
 		By("Ensuring traffic is not allowed when permissive mode is disabled")
 
-		Expect(Td.UpdateOSMConfig("permissive_traffic_policy_mode", "false"))
+		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = false
+		_, err = Td.UpdateOSMConfig(meshConfig)
+		Expect(err).NotTo(HaveOccurred())
 
 		cond = Td.WaitForRepeatedSuccess(func() bool {
 			result := Td.HTTPRequest(req)

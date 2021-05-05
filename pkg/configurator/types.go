@@ -13,22 +13,14 @@ var (
 	log = logger.New("configurator")
 )
 
-// Client is the k8s client struct for the OSM Config.
+// Client is the k8s client struct for the MeshConfig CRD.
 type Client struct {
-	osmNamespace     string
-	osmConfigMapName string
-	informer         cache.SharedIndexInformer
-	cache            cache.Store
-	cacheSynced      chan interface{}
-}
-
-// CRDClient is the k8s client struct for the MeshConfig CRD. The feature is in experimental stage.
-type CRDClient struct {
 	// TODO: rename it to `client`
-	osmNamespace string
-	informer     cache.SharedIndexInformer
-	cache        cache.Store
-	cacheSynced  chan interface{}
+	osmNamespace   string
+	informer       cache.SharedIndexInformer
+	cache          cache.Store
+	cacheSynced    chan interface{}
+	meshConfigName string
 }
 
 // Configurator is the controller interface for K8s namespaces
@@ -36,8 +28,8 @@ type Configurator interface {
 	// GetOSMNamespace returns the namespace in which OSM controller pod resides
 	GetOSMNamespace() string
 
-	// GetConfigMap returns the ConfigMap in pretty JSON (human readable)
-	GetConfigMap() ([]byte, error)
+	// GetMeshConfigJSON returns the MeshConfig in pretty JSON (human readable)
+	GetMeshConfigJSON() ([]byte, error)
 
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
 	IsPermissiveTrafficPolicyMode() bool

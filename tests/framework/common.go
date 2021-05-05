@@ -35,7 +35,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -92,14 +91,14 @@ const (
 var (
 	// default name for the mesh
 	defaultOsmNamespace = "osm-system"
+	// default MeshConfig name
+	defaultMeshConfigName = "osm-mesh-config"
 	// default image tag
 	defaultImageTag = "latest"
 	// default cert manager
 	defaultCertManager = "tresor"
 	// default enable NS metrics tag
 	defaultEnableNsMetricTag = true
-	// default enable debug server
-	defaultEnableDebugServer = true
 	// default deploy Prometheus
 	defaultDeployPrometheus = false
 	// default deploy Grafana
@@ -108,8 +107,6 @@ var (
 	defaultDeployJaeger = false
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
-	// default envoy loglevel
-	defaultEnvoyLogLevel = "debug"
 	// default OSM loglevel
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
@@ -198,6 +195,7 @@ type OsmTestData struct {
 	InitialRestartValues map[string]int  // Captures properly if an OSM instance have restarted during a NoInstall test
 
 	OsmNamespace      string
+	OsmMeshConfigName string
 	OsmImageTag       string
 	EnableNsMetricTag bool
 
@@ -246,6 +244,7 @@ func registerFlags(td *OsmTestData) {
 
 	flag.StringVar(&td.OsmImageTag, "osmImageTag", utils.GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
 	flag.StringVar(&td.OsmNamespace, "OsmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
+	flag.StringVar(&td.OsmMeshConfigName, "OsmMeshConfig", defaultMeshConfigName, "OSM MeshConfig name")
 
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable tagging Namespaces for metrics collection")
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
@@ -447,9 +446,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
-		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
-		EnableDebugServer:      defaultEnableDebugServer,
 		SetOverrides:           []string{},
 	}
 }
@@ -534,22 +531,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		// Store current restart values for CTL processes
 		td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
-		// This resets supported dynamic configs expected by the caller
-		err := td.UpdateOSMConfig("egress",
-			fmt.Sprintf("%t", instOpts.EgressEnabled))
-		if err != nil {
-			return err
-		}
-		err = td.UpdateOSMConfig("permissive_traffic_policy_mode",
-			fmt.Sprintf("%t", instOpts.EnablePermissiveMode))
-		if err != nil {
-			return err
-		}
-		err = td.UpdateOSMConfig("enable_debug_server",
-			fmt.Sprintf("%t", instOpts.EnableDebugServer))
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 
@@ -684,12 +665,13 @@ func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, 
 }
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
-func (td *OsmTestData) GetMeshConfig(name, namespace string) (*v1alpha1.MeshConfig, error) {
-	meshConfig, err := td.ConfigClient.ConfigV1alpha1().MeshConfigs(namespace).Get(context.TODO(), name, v1.GetOptions{})
+func (td *OsmTestData) GetMeshConfig(namespace string) (*v1alpha1.MeshConfig, error) {
+	meshConfig, err := td.ConfigClient.ConfigV1alpha1().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
 
 	if err != nil {
 		return nil, err
 	}
+	td.T.Logf("GetMeshConfig(): %v", meshConfig)
 	return meshConfig, nil
 }
 
@@ -1009,11 +991,15 @@ func (td *OsmTestData) AddNsToMesh(shouldInjectSidecar bool, ns ...string) error
 	return nil
 }
 
-// UpdateOSMConfig updates OSM configmap
-func (td *OsmTestData) UpdateOSMConfig(key, value string) error {
-	patch := []byte(fmt.Sprintf(`{"data": {%q: %q}}`, key, value))
-	_, err := td.Client.CoreV1().ConfigMaps(td.OsmNamespace).Patch(context.TODO(), "osm-config", types.StrategicMergePatchType, patch, metav1.PatchOptions{})
-	return err
+// UpdateOSMConfig updates OSM MeshConfig
+func (td *OsmTestData) UpdateOSMConfig(meshConfig *v1alpha1.MeshConfig) (*v1alpha1.MeshConfig, error) {
+	updated, err := td.ConfigClient.ConfigV1alpha1().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
+
+	if err != nil {
+		td.T.Logf("UpdateOSMConfig(): %s", err)
+		return nil, fmt.Errorf("UpdateOSMConfig(): %s", err)
+	}
+	return updated, nil
 }
 
 // CreateMultipleNs simple CreateNs for multiple NS creation

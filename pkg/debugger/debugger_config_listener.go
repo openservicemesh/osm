@@ -11,9 +11,9 @@ import (
 func (d *DebugConfig) StartDebugServerConfigListener() {
 	// Subscribe to configuration updates
 	ch := events.GetPubSubInstance().Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated)
+		announcements.MeshConfigAdded,
+		announcements.MeshConfigDeleted,
+		announcements.MeshConfigUpdated)
 
 	// This is the Debug server
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)

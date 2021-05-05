@@ -258,13 +258,13 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *admis
 		if !checkBoolFields(field, value, boolFields) {
 			reasonForDenial(resp, mustBeBool, field)
 		}
-		if field == envoyLogLevel && !checkEnvoyLogLevels(field, value) {
+		if field == envoyLogLevelKey && !checkEnvoyLogLevels(field, value) {
 			reasonForDenial(resp, mustBeValidLogLvl, field)
 		}
-		if field == envoyImage && !checkEnvoyImage(field, value) {
+		if field == envoyImageKey && !checkEnvoyImage(field, value) {
 			reasonForDenial(resp, mustBeValidEnvoyImage, field)
 		}
-		if field == serviceCertValidityDurationKey || field == configResyncInterval {
+		if field == serviceCertValidityDurationKey || field == configResyncIntervalKey {
 			_, err := time.ParseDuration(value)
 			if err != nil {
 				reasonForDenial(resp, mustBeValidTime, field)

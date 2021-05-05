@@ -1,0 +1,22 @@
+apiVersion: config.openservicemesh.io/v1alpha1
+kind: MeshConfig
+metadata:
+  name: osm-mesh-config
+spec:
+  sidecar:
+    enablePrivilegedInitContainer: false
+    logLevel: error
+    maxDataPlaneConnections: 0
+    envoyImage: "envoyproxy/envoy-alpine:v1.17.2"
+    initContainerImage: "openservicemesh/init:v0.8.3"
+  traffic:
+    enableEgress: false
+    useHTTPSIngress: false
+    enablePermissiveTrafficPolicyMode: true
+  observability:
+    enableDebugServer: true
+    prometheusScraping: true
+    tracing:
+      enable: false
+  certificate:
+    serviceCertValidityDuration: 24h
