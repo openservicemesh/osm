@@ -2,6 +2,7 @@
 title: "Application Requirements"
 description: "Application Requirements"
 type: docs
+aliases: ["application_requirements.md"]
 ---
 
 # Application Requirements
@@ -11,6 +12,7 @@ Do not run applications with the user ID (UID) value of **1500**. This is **rese
 
 ## Ports
 Do not use the following ports as they are used by the Envoy sidecar.
+
 | Port  | Description |
 | ------| ----------- |
 | 15000 | Envoy Admin Port |
