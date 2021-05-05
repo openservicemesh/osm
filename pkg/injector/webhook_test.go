@@ -6,14 +6,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -653,3 +656,127 @@ var _ = Describe("Testing Injector Functions", func() {
 		Expect(actual).To(Equal(expected))
 	})
 })
+
+func TestIsAnnotatedForOutboundPortExclusion(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		annotation    map[string]string
+		expectedError error
+		expectedPorts []string
+	}{
+		{
+			name:          "contains outbound port exclusion list annotation",
+			annotation:    map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			expectedError: nil,
+			expectedPorts: []string{"6060", "7070"},
+		},
+		{
+			name:          "does not contains outbound port exclusion list annontation",
+			annotation:    nil,
+			expectedError: nil,
+			expectedPorts: nil,
+		},
+		{
+			name:          "ontains outbound port exclusion list annontation but invalid port",
+			annotation:    map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
+			expectedError: errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, "6060, -7070"),
+			expectedPorts: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ports, err := isAnnotatedForOutboundPortExclusion(tc.annotation, "-kind-", "-name-")
+			if err != nil {
+				assert.EqualError(tc.expectedError, err.Error())
+			} else {
+				assert.Equal(tc.expectedError, err)
+			}
+			assert.ElementsMatch(tc.expectedPorts, ports)
+		})
+	}
+}
+
+func TestGetPodOutboundPortExclusionList(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		podAnnotation map[string]string
+		expectedError error
+		expectedPorts []string
+	}{
+		{
+			name:          "contains outbound port exclusion list annotation",
+			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			expectedError: nil,
+			expectedPorts: []string{"6060", "7070"},
+		},
+		{
+			name:          "does not contains outbound port exclusion list annontation",
+			podAnnotation: nil,
+			expectedError: nil,
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains outbound port exclusion list annontation but invalid port",
+			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
+			expectedError: errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, "6060, -7070"),
+			expectedPorts: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(GinkgoT())
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			fakeClientSet := fake.NewSimpleClientset()
+			namespace := "test"
+			osmNamespace := "osm-namespace"
+
+			wh := &mutatingWebhook{
+				kubeClient:     fakeClientSet,
+				kubeController: mockKubeController,
+				osmNamespace:   osmNamespace,
+				nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+					metav1.NamespaceSystem,
+					metav1.NamespacePublic,
+					osmNamespace,
+				}),
+			}
+
+			testNamespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			}
+			retNs, _ := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pod-test",
+					Annotations: tc.podAnnotation,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "test-SA",
+				},
+			}
+
+			_, err := fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+			mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
+
+			ports, err := wh.getPodOutboundPortExclusionList(pod, namespace)
+			if err != nil {
+				assert.EqualError(tc.expectedError, err.Error())
+			} else {
+				assert.Equal(tc.expectedError, err)
+			}
+			assert.ElementsMatch(tc.expectedPorts, ports)
+		})
+	}
+}
