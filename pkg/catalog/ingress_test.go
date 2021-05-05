@@ -700,6 +700,134 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			},
 			excpectError: false,
 		},
+		{
+			name: "Wildcard path / with Prefix type should be matched as a string prefix",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			ingresses: []*networkingV1beta1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1beta1.IngressSpec{
+						Rules: []networkingV1beta1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1beta1.IngressRuleValue{
+									HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+										Paths: []networkingV1beta1.HTTPIngressPath{
+											{
+												Path:     "/",
+												PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypePrefix))),
+												Backend: networkingV1beta1.IngressBackend{
+													ServiceName: "foo",
+													ServicePort: intstr.IntOrString{
+														Type:   intstr.Int,
+														IntVal: fakeIngressPort,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedTrafficPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "ingress-1.testns|fake1.com",
+					Hostnames: []string{
+						"fake1.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/",
+									PathMatchType: trafficpolicy.PathMatchPrefix,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+			},
+			excpectError: false,
+		},
+		{
+			name: "Prefix path type with trailing slash should be stripped",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			ingresses: []*networkingV1beta1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1beta1.IngressSpec{
+						Rules: []networkingV1beta1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1beta1.IngressRuleValue{
+									HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+										Paths: []networkingV1beta1.HTTPIngressPath{
+											{
+												Path:     "/foo/", // Trailing slash should be stripped in the route programmed
+												PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypePrefix))),
+												Backend: networkingV1beta1.IngressBackend{
+													ServiceName: "foo",
+													ServicePort: intstr.IntOrString{
+														Type:   intstr.Int,
+														IntVal: fakeIngressPort,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedTrafficPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "ingress-1.testns|fake1.com",
+					Hostnames: []string{
+						"fake1.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/foo(/.*)?$",
+									PathMatchType: trafficpolicy.PathMatchRegex,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+			},
+			excpectError: false,
+		},
 	}
 
 	for i, tc := range testCases {
@@ -1390,6 +1518,136 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
 									Path:          "/fake1-path1",
 									PathMatchType: trafficpolicy.PathMatchPrefix,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+			},
+			excpectError: false,
+		},
+		{
+			name: "Wildcard path / with Prefix type should be matched as a string prefix",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			ingresses: []*networkingV1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1.IngressSpec{
+						Rules: []networkingV1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1.IngressRuleValue{
+									HTTP: &networkingV1.HTTPIngressRuleValue{
+										Paths: []networkingV1.HTTPIngressPath{
+											{
+												Path:     "/",
+												PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypePrefix))),
+												Backend: networkingV1.IngressBackend{
+													Service: &networkingV1.IngressServiceBackend{
+														Name: "foo",
+														Port: networkingV1.ServiceBackendPort{
+															Number: fakeIngressPort,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedTrafficPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "ingress-1.testns|fake1.com",
+					Hostnames: []string{
+						"fake1.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/",
+									PathMatchType: trafficpolicy.PathMatchPrefix,
+									Methods:       []string{constants.WildcardHTTPMethod},
+								},
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+						},
+					},
+				},
+			},
+			excpectError: false,
+		},
+		{
+			name: "Prefix path type with trailing slash should be stripped",
+			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			ingresses: []*networkingV1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1.IngressSpec{
+						Rules: []networkingV1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1.IngressRuleValue{
+									HTTP: &networkingV1.HTTPIngressRuleValue{
+										Paths: []networkingV1.HTTPIngressPath{
+											{
+												Path:     "/foo/", // Trailing slash should be stripped in the route programmed
+												PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypePrefix))),
+												Backend: networkingV1.IngressBackend{
+													Service: &networkingV1.IngressServiceBackend{
+														Name: "foo",
+														Port: networkingV1.ServiceBackendPort{
+															Number: fakeIngressPort,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedTrafficPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "ingress-1.testns|fake1.com",
+					Hostnames: []string{
+						"fake1.com",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+									Path:          "/foo(/.*)?$",
+									PathMatchType: trafficpolicy.PathMatchRegex,
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
