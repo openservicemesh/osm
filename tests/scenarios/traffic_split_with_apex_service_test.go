@@ -22,6 +22,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -47,10 +49,14 @@ var _ = Describe(``+
 				Expect(proxy).ToNot(BeNil())
 			})
 
+			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+				return nil, nil
+			}))
+
 			// ---[  Get the config from rds.NewResponse()  ]-------
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 			It("did not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resources).ToNot(BeNil())

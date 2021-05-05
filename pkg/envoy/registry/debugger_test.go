@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
-	proxyRegistry := NewProxyRegistry()
+	proxyRegistry := NewProxyRegistry(nil)
 	certCommonName := certificate.CommonName("foo")
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)

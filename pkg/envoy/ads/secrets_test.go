@@ -26,7 +26,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 	type testCase struct {
 		name                     string
 		proxySvcAccount          identity.ServiceIdentity
-		proxyServices            []service.MeshService
 		allowedOutboundServices  []service.MeshService
 		expectedDiscoveryRequest *xds_discovery.DiscoveryRequest
 	}
@@ -41,9 +40,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		{
 			name:            "scenario where proxy is both downstream and upstream",
 			proxySvcAccount: proxyServiceIdentity,
-			proxyServices: []service.MeshService{
-				{Name: "service-1", Namespace: "ns-1"},
-			},
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2"},
 				{Name: "service-3", Namespace: "ns-3"},
@@ -67,7 +63,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		{
 			name:            "scenario where proxy is only a downsteam (no service)",
 			proxySvcAccount: proxyServiceIdentity,
-			proxyServices:   nil,
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2"},
 				{Name: "service-3", Namespace: "ns-3"},
@@ -89,11 +84,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			},
 		},
 		{
-			name:            "scenario where proxy does not have allowed upstreams to connect to",
-			proxySvcAccount: proxyServiceIdentity,
-			proxyServices: []service.MeshService{
-				{Name: "service-1", Namespace: "ns-1"},
-			},
+			name:                    "scenario where proxy does not have allowed upstreams to connect to",
+			proxySvcAccount:         proxyServiceIdentity,
 			allowedOutboundServices: nil,
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -110,10 +102,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		{
 			name:            "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
 			proxySvcAccount: proxyServiceIdentity,
-			proxyServices: []service.MeshService{
-				{Name: "service-1", Namespace: "ns-1"},
-				{Name: "service-4", Namespace: "ns-4"},
-			},
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2"},
 				{Name: "service-3", Namespace: "ns-3"},
@@ -138,7 +126,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return(tc.proxyServices, nil).Times(0)
 			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxySvcAccount).Return(tc.allowedOutboundServices).Times(1)
 
 			actual := makeRequestForAllSecrets(testProxy, mockCatalog)

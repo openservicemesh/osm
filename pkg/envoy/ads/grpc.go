@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 )
@@ -50,7 +49,7 @@ func recordEnvoyPodMetadata(request *xds_discovery.DiscoveryRequest, proxy *envo
 
 			// Verify that the ServiceAccount from the NodeID is the same as the one in the mTLS cert's CN
 			cn := proxy.GetCertificateCommonName()
-			certSA, err := catalog.GetServiceAccountFromProxyCertificate(cn)
+			certSA, err := envoy.GetServiceAccountFromProxyCertificate(cn)
 			if err != nil {
 				log.Err(err).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
 				return err

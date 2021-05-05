@@ -7,8 +7,10 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -220,4 +222,9 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastAppliedVersion:   make(map[TypeURI]uint64),
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 	}
+}
+
+// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<serviceAccount>.<namespace>
+func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
 }

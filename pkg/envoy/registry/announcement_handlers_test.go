@@ -30,7 +30,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 	var certManager certificate.Manager
 
 	BeforeEach(func() {
-		proxyRegistry = NewProxyRegistry()
+		proxyRegistry = NewProxyRegistry(nil)
 		podUID = uuid.New().String()
 
 		stop := make(<-chan struct{})
