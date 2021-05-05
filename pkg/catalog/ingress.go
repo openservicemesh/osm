@@ -117,8 +117,23 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 				case networkingV1beta1.PathTypePrefix:
 					// Element wise prefix match
 					// Request /foo matches path /foo and /foo/bar, not /foobar
-					httpRouteMatch.Path = ingressPath.Path + prefixMatchPathElementsRegex
-					httpRouteMatch.PathMatchType = trafficpolicy.PathMatchRegex
+					if ingressPath.Path == "/" {
+						// A wildcard path '/' for Prefix pathType must be matched
+						// as a string based prefix match, ie. path '/' should
+						// match any path in the request.
+						httpRouteMatch.Path = ingressPath.Path
+						httpRouteMatch.PathMatchType = trafficpolicy.PathMatchPrefix
+					} else {
+						// Non-wildcard path of the form '/path' must be matched as a
+						// regex match to meet k8s Ingress API requirement of element-wise
+						// prefix matching.
+						// There is also the requirement for prefix /foo/ to match /foo
+						// based on k8s API interpretation of element-wise matching, so
+						// account for this case by trimming trailing '/'.
+						path := strings.TrimRight(ingressPath.Path, "/")
+						httpRouteMatch.Path = path + prefixMatchPathElementsRegex
+						httpRouteMatch.PathMatchType = trafficpolicy.PathMatchRegex
+					}
 
 				case networkingV1beta1.PathTypeImplementationSpecific:
 					httpRouteMatch.Path = ingressPath.Path
@@ -206,8 +221,23 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 				case networkingV1.PathTypePrefix:
 					// Element wise prefix match
 					// Request /foo matches path /foo and /foo/bar, not /foobar
-					httpRouteMatch.Path = ingressPath.Path + prefixMatchPathElementsRegex
-					httpRouteMatch.PathMatchType = trafficpolicy.PathMatchRegex
+					if ingressPath.Path == "/" {
+						// A wildcard path '/' for Prefix pathType must be matched
+						// as a string based prefix match, ie. path '/' should
+						// match any path in the request.
+						httpRouteMatch.Path = ingressPath.Path
+						httpRouteMatch.PathMatchType = trafficpolicy.PathMatchPrefix
+					} else {
+						// Non-wildcard path of the form '/path' must be matched as a
+						// regex match to meet k8s Ingress API requirement of element-wise
+						// prefix matching.
+						// There is also the requirement for prefix /foo/ to match /foo
+						// based on k8s API interpretation of element-wise matching, so
+						// account for this case by trimming trailing '/'.
+						path := strings.TrimRight(ingressPath.Path, "/")
+						httpRouteMatch.Path = path + prefixMatchPathElementsRegex
+						httpRouteMatch.PathMatchType = trafficpolicy.PathMatchRegex
+					}
 
 				case networkingV1.PathTypeImplementationSpecific:
 					httpRouteMatch.Path = ingressPath.Path
