@@ -107,6 +107,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.port | int | `7070` | Prometheus port |
 | OpenServiceMesh.prometheus.resources | object | `{"limits":{"cpu":1,"memory":"2G"},"requests":{"cpu":0.5,"memory":"512M"}}` | Resource limits for prometheus instance |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus retention time |
+| OpenServiceMesh.pspEnabled | bool | `false` | Run OSM with PodSecurityPolicy configured |
 | OpenServiceMesh.replicaCount | int | `1` | `osm-controller` replicas |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Sets the service certificatevalidity duration |
 | OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.2"` | Envoy sidecar image |
