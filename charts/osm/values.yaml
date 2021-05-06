@@ -170,4 +170,3 @@ OpenServiceMesh:
     # Enable OSM's Egress policy API
     # If specified, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: false
-
