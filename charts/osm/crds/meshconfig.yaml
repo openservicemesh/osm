@@ -91,7 +91,7 @@ spec:
                       description: Global list of ports to exclude from outbound traffic interception by the sidecar proxy.
                       type: array
                       items:
-                        type: integer
+                        type: string
                         pattern: ^[1-9]\d*$
                     useHTTPSIngress:
                       description: Enable HTTPS ingress on the mesh
