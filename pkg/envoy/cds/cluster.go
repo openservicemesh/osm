@@ -62,20 +62,6 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 	return remoteCluster, nil
 }
 
-// getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
-func getOutboundPassthroughCluster() *xds_cluster.Cluster {
-	return &xds_cluster.Cluster{
-		Name:           envoy.OutboundPassthroughCluster,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_ORIGINAL_DST,
-		},
-		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-	}
-}
-
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
 	xdsCluster := xds_cluster.Cluster{
@@ -168,24 +154,29 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 
 	var egressClusters []*xds_cluster.Cluster
 	for _, config := range clusterConfigs {
-		if config.Host == "" {
-			log.Error().Msgf("Non DNS resolvable clusters are not supported for egress")
-			continue
-		}
+		switch config.Host {
+		case "":
+			// Cluster config does not have a Host specified, route it to its original destination.
+			// Used for TCP based clusters
+			egressClusters = append(egressClusters, getOriginalDestinationEgressCluster(config.Name))
 
-		if cluster, err := GetDNSResolvableEgressCluster(config); err != nil {
-			log.Error().Err(err).Msg("Error building cluster for the given egress cluster config")
-		} else {
-			egressClusters = append(egressClusters, cluster)
+		default:
+			// Cluster config has a Host specified, route it based on the Host resolved using DNS.
+			// Used for HTTP based clusters
+			if cluster, err := getDNSResolvableEgressCluster(config); err != nil {
+				log.Error().Err(err).Msg("Error building cluster for the given egress cluster config")
+			} else {
+				egressClusters = append(egressClusters, cluster)
+			}
 		}
 	}
 
 	return egressClusters
 }
 
-// GetDNSResolvableEgressCluster returns an XDS cluster object that is resolved using DNS for the given egress cluster config.
+// getDNSResolvableEgressCluster returns an XDS cluster object that is resolved using DNS for the given egress cluster config.
 // If the egress cluster config is invalid, an error is returned.
-func GetDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*xds_cluster.Cluster, error) {
+func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*xds_cluster.Cluster, error) {
 	if config == nil {
 		return nil, errors.New("Invalid egress cluster config: nil type")
 	}
@@ -225,4 +216,19 @@ func GetDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 			},
 		},
 	}, nil
+}
+
+// getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
+// The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
+func getOriginalDestinationEgressCluster(name string) *xds_cluster.Cluster {
+	return &xds_cluster.Cluster{
+		Name:           name,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_ORIGINAL_DST,
+		},
+		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+	}
 }

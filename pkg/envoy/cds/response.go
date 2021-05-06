@@ -64,7 +64,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
 	if cfg.IsEgressEnabled() {
-		clusters = append(clusters, getOutboundPassthroughCluster())
+		clusters = append(clusters, getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster))
 	}
 
 	// Add an inbound prometheus cluster (from Prometheus to localhost)
