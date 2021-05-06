@@ -90,16 +90,13 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
-						DestinationPort: policyV1alpha1.PortSpec{
-							Number:   80, // Used by foo.com and bar.com
-							Protocol: "http",
-						},
+
+						DestinationPort:     80, // Used by foo.com and bar.com
+						DestinationProtocol: "http",
 					},
 					{
-						DestinationPort: policyV1alpha1.PortSpec{
-							Number:   90, // Used by baz.com
-							Protocol: "http",
-						},
+						DestinationPort:     90, // Used by baz.com
+						DestinationProtocol: "http",
 					},
 				},
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
@@ -183,7 +180,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "multiple egress policies for HTTP ports",
+			name: "multiple egress policies for HTTP and TCP ports",
 			egressPolicies: []*policyV1alpha1.Egress{
 				{
 					Spec: policyV1alpha1.EgressSpec{
@@ -220,16 +217,13 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
-						DestinationPort: policyV1alpha1.PortSpec{
-							Number:   80, // Used by foo.com and bar.com
-							Protocol: "http",
-						},
+						DestinationPort:     80, // Used by foo.com and bar.com
+						DestinationProtocol: "http",
 					},
 					{
-						DestinationPort: policyV1alpha1.PortSpec{
-							Number:   100, // Used by foo.com
-							Protocol: "tcp",
-						},
+						DestinationPort:     100, // Used by foo.com
+						DestinationProtocol: "tcp",
+						Cluster:             "100",
 					},
 				},
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
@@ -279,9 +273,66 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 						Port: 80,
 					},
 					{
+						Name: "100",
+						Port: 100,
+					},
+					{
 						Name: "bar.com:80",
 						Host: "bar.com",
 						Port: 80,
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "multiple egress policies for HTTPS and TCP ports",
+			egressPolicies: []*policyV1alpha1.Egress{
+				{
+					Spec: policyV1alpha1.EgressSpec{
+						Hosts: []string{
+							"foo.com",
+						},
+						Ports: []policyV1alpha1.PortSpec{
+							{
+								Number:   100,
+								Protocol: "https",
+							},
+						},
+					},
+				},
+				{
+					Spec: policyV1alpha1.EgressSpec{
+						Ports: []policyV1alpha1.PortSpec{
+							{
+								Number:   100,
+								Protocol: "tcp",
+							},
+						},
+					},
+				},
+			},
+			httpRouteGroups: nil, // no SMI HTTP route matches
+			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.TrafficMatch{
+					{
+						DestinationPort:     100,
+						DestinationProtocol: "https",
+						ServerNames:         []string{"foo.com"},
+						Cluster:             "100",
+					},
+					{
+						DestinationPort:     100,
+						DestinationProtocol: "tcp",
+						Cluster:             "100",
+					},
+				},
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
+					{
+						// Same cluster used for both HTTPS and TCP on port 100
+						Name: "100",
+						Port: 100,
 					},
 				},
 			},
@@ -306,9 +357,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				policyController: mockPolicyController,
 			}
 
-			egressPolicy, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
+			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)
-			assert.Equal(tc.expectedEgressPolicy, egressPolicy)
+			assert.ElementsMatch(tc.expectedEgressPolicy.TrafficMatches, actual.TrafficMatches)
+			assert.ElementsMatch(tc.expectedEgressPolicy.ClustersConfigs, actual.ClustersConfigs)
+			assert.Equal(tc.expectedEgressPolicy.HTTPRouteConfigsPerPort, actual.HTTPRouteConfigsPerPort)
 		})
 	}
 }

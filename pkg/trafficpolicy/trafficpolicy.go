@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	mapset "github.com/deckarep/golang-set"
+	hashstructure "github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -240,4 +241,47 @@ func convertToInterface(slice []string) []interface{} {
 		sliceInterface[i] = slice[i]
 	}
 	return sliceInterface
+}
+
+// DeduplicateTrafficMatches deduplicates the given slice of TrafficMatch objects, and an error
+// if the deduplication cannot be performed.
+// The order of elements in a slice field does not determine uniqueness.
+func DeduplicateTrafficMatches(matches []*TrafficMatch) ([]*TrafficMatch, error) {
+	var dedupedMatces []*TrafficMatch
+	matchesMap := make(map[uint64]*TrafficMatch)
+
+	for _, match := range matches {
+		hash, err := hashstructure.Hash(match, hashstructure.FormatV2, &hashstructure.HashOptions{SlicesAsSets: true})
+		if err != nil {
+			return nil, err
+		}
+		matchesMap[hash] = match
+	}
+
+	for _, match := range matchesMap {
+		dedupedMatces = append(dedupedMatces, match)
+	}
+
+	return dedupedMatces, nil
+}
+
+// DeduplicateClusterConfigs deduplicates the given slice of EgressClusterConfig objects, and an error
+// if the deduplication cannot be performed.
+func DeduplicateClusterConfigs(configs []*EgressClusterConfig) ([]*EgressClusterConfig, error) {
+	var dedupedConfigs []*EgressClusterConfig
+	configMap := make(map[uint64]*EgressClusterConfig)
+
+	for _, config := range configs {
+		hash, err := hashstructure.Hash(config, hashstructure.FormatV2, &hashstructure.HashOptions{SlicesAsSets: true})
+		if err != nil {
+			return nil, err
+		}
+		configMap[hash] = config
+	}
+
+	for _, match := range configMap {
+		dedupedConfigs = append(dedupedConfigs, match)
+	}
+
+	return dedupedConfigs, nil
 }

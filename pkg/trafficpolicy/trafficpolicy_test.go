@@ -812,3 +812,223 @@ func TestSlicesUnionIfSubset(t *testing.T) {
 	hostsUnion = slicesUnionIfSubset(third, first)
 	assert.Equal(len(hostsUnion), 0)
 }
+
+func TestDeduplicateTrafficMatches(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    []*TrafficMatch
+		expected []*TrafficMatch
+	}{
+		{
+			name: "Duplicate HTTP port based traffic match",
+			input: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+			},
+			expected: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+			},
+		},
+		{
+			name: "Unique HTTP port based traffic match",
+			input: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+				{
+					DestinationPort:     90,
+					DestinationProtocol: "http",
+				},
+			},
+			expected: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+				{
+					DestinationPort:     90,
+					DestinationProtocol: "http",
+				},
+			},
+		},
+		{
+			name: "HTTP and TCP traffic match",
+			input: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+				{
+					DestinationPort:     90,
+					DestinationProtocol: "tcp",
+				},
+			},
+			expected: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+				},
+				{
+					DestinationPort:     90,
+					DestinationProtocol: "tcp",
+				},
+			},
+		},
+		{
+			name: "Order of IP ranges for the same port should be ignored during deduplication",
+			input: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "tcp",
+					DestinationIPRanges: []string{"1.1.1.1/1", "2.2.2.2/2"},
+				},
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "tcp",
+					DestinationIPRanges: []string{"2.2.2.2/2", "1.1.1.1/1"},
+				},
+			},
+			expected: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "tcp",
+					DestinationIPRanges: []string{"1.1.1.1/1", "2.2.2.2/2"},
+				},
+			},
+		},
+		{
+			name: "HTTPS and TCP traffic matches on the same port should not collide",
+			input: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "tcp",
+					Cluster:             "80",
+				},
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "https",
+					ServerNames:         []string{"foo.com"},
+					Cluster:             "80",
+				},
+			},
+			expected: []*TrafficMatch{
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "tcp",
+				},
+				{
+					DestinationPort:     80,
+					DestinationProtocol: "https",
+					ServerNames:         []string{"foo.com"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := DeduplicateTrafficMatches(tc.input)
+			assert.Nil(err)
+			assert.Len(actual, len(tc.expected))
+		})
+	}
+}
+
+func TestDeduplicateClusterConfigs(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    []*EgressClusterConfig
+		expected []*EgressClusterConfig
+	}{
+		{
+			name: "Duplicate TCP clusters",
+			input: []*EgressClusterConfig{
+				{
+					Name: "80",
+					Port: 80,
+				},
+				{
+					Name: "80",
+					Port: 80,
+				},
+			},
+			expected: []*EgressClusterConfig{
+				{
+					Name: "80",
+					Port: 80,
+				},
+			},
+		},
+		{
+			name: "Duplicate HTTP clusters",
+			input: []*EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Port: 80,
+					Host: "foo.com",
+				},
+				{
+					Name: "foo.com:80",
+					Port: 80,
+					Host: "foo.com",
+				},
+			},
+			expected: []*EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Port: 80,
+					Host: "foo.com",
+				},
+			},
+		},
+		{
+			name: "HTTP clusters with same port different Host are not duplicates",
+			input: []*EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Port: 80,
+					Host: "foo.com",
+				},
+				{
+					Name: "bar.com:80",
+					Port: 80,
+					Host: "bar.com",
+				},
+			},
+			expected: []*EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Port: 80,
+					Host: "foo.com",
+				},
+				{
+					Name: "bar.com:80",
+					Port: 80,
+					Host: "bar.com",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := DeduplicateClusterConfigs(tc.input)
+			assert.Nil(err)
+			assert.Len(actual, len(tc.expected))
+		})
+	}
+}

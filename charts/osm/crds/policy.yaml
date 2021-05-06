@@ -40,8 +40,6 @@ spec:
               type: object
               required:
                 - sources
-                - hosts
-                - ipAddresses
                 - ports
               properties:
                 sources:
