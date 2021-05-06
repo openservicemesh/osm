@@ -99,6 +99,10 @@ To install OSM on OpenShift:
         oc adm policy add-scc-to-user privileged -z <service account name> -n <service account namespace>
        ```
 
+### Pod Security Policy
+
+If you are running OSM in a cluster with PSPs enabled, pass in `--set OpenServiceMesh.pspEnabled=true` to your `osm install` or `helm install` CLI command.
+
 ## Inspect OSM Components
 
 A few components will be installed by default into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:

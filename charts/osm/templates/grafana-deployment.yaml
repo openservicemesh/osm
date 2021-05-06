@@ -20,6 +20,13 @@ spec:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-grafana
     spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+        supplementalGroups: [5555]
+      {{- end }}
       serviceAccountName: osm-grafana
       containers:
         - name: grafana

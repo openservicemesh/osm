@@ -616,6 +616,15 @@
                         }
                     },
                     "additionalProperties": true
+                },
+                "pspEnabled": {
+                    "$id": "#/properties/OpenServiceMesh/properties/pspEnabled",
+                    "type": "boolean",
+                    "title": "The pspEnabled schema",
+                    "description": "Indicates whether OSM should run with PodSecurityPolicies",
+                    "examples": [
+                        false
+                    ]
                 }
             },
             "additionalProperties": true
