@@ -228,13 +228,13 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	return filters, nil
 }
 
-// getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic
-func (lb *listenerBuilder) getOutboundHTTPFilter() (*xds_listener.Filter, error) {
+// getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic for the given route configuration
+func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
 	marshalledFilter, err = ptypes.MarshalAny(
-		getHTTPConnectionManager(route.OutboundRouteConfigName, lb.cfg, lb.statsHeaders))
+		getHTTPConnectionManager(routeConfigName, lb.cfg, lb.statsHeaders))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
@@ -296,7 +296,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 
 func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(upstream service.MeshService, port uint32) (*xds_listener.FilterChain, error) {
 	// Get HTTP filter for service
-	filter, err := lb.getOutboundHTTPFilter()
+	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting HTTP filter for upstream service %s", upstream)
 		return nil, err
