@@ -200,23 +200,50 @@ func TestGetPrometheusCluster(t *testing.T) {
 	assert.Equal(expectedCluster, &actual)
 }
 
-func TestGetOutboundPassthroughCluster(t *testing.T) {
+func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
 
-	expectedCluster := &xds_cluster.Cluster{
-		Name:           envoy.OutboundPassthroughCluster,
-		ConnectTimeout: ptypes.DurationProto(1 * time.Second),
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_ORIGINAL_DST,
+	testCases := []struct {
+		name        string
+		clusterName string
+		expected    *xds_cluster.Cluster
+	}{
+		{
+			name:        "foo cluster",
+			clusterName: "foo",
+			expected: &xds_cluster.Cluster{
+				Name:           "foo",
+				ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+					Type: xds_cluster.Cluster_ORIGINAL_DST,
+				},
+				LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
+				ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			},
 		},
-		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		{
+			name:        "bar cluster",
+			clusterName: "bar",
+			expected: &xds_cluster.Cluster{
+				Name:           "bar",
+				ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+					Type: xds_cluster.Cluster_ORIGINAL_DST,
+				},
+				LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
+				ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			},
+		},
 	}
 
-	actual := getOutboundPassthroughCluster()
-
-	assert.Equal(expectedCluster, actual)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getOriginalDestinationEgressCluster(tc.clusterName)
+			assert.Equal(tc.expected, actual)
+		})
+	}
 }
 
 func TestGetEgressClusters(t *testing.T) {
@@ -257,12 +284,11 @@ func TestGetEgressClusters(t *testing.T) {
 					Port: 80,
 				},
 				{
-					// Host not specified, invalid cluster config
 					Name: "bar.com:90",
 					Port: 90,
 				},
 			},
-			expectedClusterCount: 1,
+			expectedClusterCount: 2,
 		},
 	}
 
@@ -274,7 +300,7 @@ func TestGetEgressClusters(t *testing.T) {
 	}
 }
 
-func TestGetHTTPEgressCluster(t *testing.T) {
+func TestGetDNSResolvableEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -355,7 +381,7 @@ func TestGetHTTPEgressCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := GetDNSResolvableEgressCluster(tc.clusterConfig)
+			actual, err := getDNSResolvableEgressCluster(tc.clusterConfig)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedCluster, actual)
 		})
