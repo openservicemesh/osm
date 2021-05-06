@@ -115,6 +115,14 @@ var (
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
 	testFolderBase = "/tmp"
+	// default enable tracing
+	defaultEnableTracing = false
+	// default enable prometheus scraping
+	defaultEnablePrometheusScraping = false
+	// default service cert validity duration
+	defaultServiceCertValidityDuration = "24h"
+	// default enable privileged init container
+	defaultEnablePrivilegedInitContainer = false
 )
 
 // OSMDescribeInfo is a struct to represent the Tier and Bucket of a given e2e test
@@ -420,11 +428,15 @@ type InstallOSMOpts struct {
 	CertmanagerIssuerKind  string
 	CertmanagerIssuerName  string
 
-	EgressEnabled        bool
-	EnablePermissiveMode bool
-	OSMLogLevel          string
-	EnvoyLogLevel        string
-	EnableDebugServer    bool
+	EgressEnabled                 bool
+	EnablePermissiveMode          bool
+	OSMLogLevel                   string
+	EnvoyLogLevel                 string
+	EnableDebugServer             bool
+	EnableTracing                 bool
+	EnablePrivilegedInitContainer bool
+	EnablePrometheusScraping      bool
+	ServiceCertValidityDuration   string
 
 	SetOverrides []string
 }
@@ -432,15 +444,19 @@ type InstallOSMOpts struct {
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 	return InstallOSMOpts{
-		ControlPlaneNS:          td.OsmNamespace,
-		CertManager:             defaultCertManager,
-		ContainerRegistryLoc:    td.CtrRegistryServer,
-		ContainerRegistrySecret: td.CtrRegistryPassword,
-		OsmImagetag:             td.OsmImageTag,
-		DeployGrafana:           defaultDeployGrafana,
-		DeployPrometheus:        defaultDeployPrometheus,
-		DeployJaeger:            defaultDeployJaeger,
-		DeployFluentbit:         defaultDeployFluentbit,
+		ControlPlaneNS:                td.OsmNamespace,
+		CertManager:                   defaultCertManager,
+		ContainerRegistryLoc:          td.CtrRegistryServer,
+		ContainerRegistrySecret:       td.CtrRegistryPassword,
+		OsmImagetag:                   td.OsmImageTag,
+		DeployGrafana:                 defaultDeployGrafana,
+		DeployPrometheus:              defaultDeployPrometheus,
+		DeployJaeger:                  defaultDeployJaeger,
+		DeployFluentbit:               defaultDeployFluentbit,
+		EnableTracing:                 defaultEnableTracing,
+		EnablePrivilegedInitContainer: defaultEnablePrivilegedInitContainer,
+		EnablePrometheusScraping:      defaultEnablePrometheusScraping,
+		ServiceCertValidityDuration:   defaultServiceCertValidityDuration,
 
 		VaultHost:     "vault." + td.OsmNamespace + ".svc.cluster.local",
 		VaultProtocol: "http",
@@ -568,6 +584,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%v", instOpts.DeployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
+		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%v", instOpts.EnablePrometheusScraping),
+		fmt.Sprintf("OpenServiceMesh.tracing.enable=%v", instOpts.EnableTracing),
+		fmt.Sprintf("OpenServiceMesh.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
+		fmt.Sprintf("OpenServiceMesh.serviceCertValidityDuration=%v", instOpts.ServiceCertValidityDuration),
 	)
 
 	switch instOpts.CertManager {

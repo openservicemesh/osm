@@ -19,6 +19,7 @@ import (
 )
 
 const meshConfigName = "osm-mesh-config"
+const presetMeshConfigName = "preset-mesh-config"
 
 var (
 	flags = pflag.NewFlagSet("init-osm-controller", pflag.ExitOnError)
@@ -112,13 +113,35 @@ func main() {
 		return
 	}
 
-	meshConfig := createDefaultMeshConfig()
+	presetMeshConfig, presetMissing := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
 
-	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), meshConfig, metav1.CreateOptions{}); err == nil {
-		log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
-	} else if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", osmNamespace)
-	} else {
-		log.Fatal().Err(err).Msgf("Error creating default MeshConfig")
+	if _, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{}); err != nil {
+		if presetMissing != nil {
+			log.Fatal().Err(err).Msg("Error preset meshconfig is missing during OSM installation.")
+		}
+
+		meshConfig := &v1alpha1.MeshConfig{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MeshConfig",
+				APIVersion: "config.openservicemesh.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: meshConfigName,
+			},
+			Spec: presetMeshConfig.Spec,
+		}
+
+		if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), meshConfig, metav1.CreateOptions{}); err == nil {
+			log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
+		} else if apierrors.IsAlreadyExists(err) {
+			log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", osmNamespace)
+		} else {
+			log.Fatal().Err(err).Msgf("Error creating default MeshConfig")
+		}
+	}
+
+	// ensure preset is deleted after initialization
+	if err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Delete(context.TODO(), presetMeshConfigName, metav1.DeleteOptions{}); err != nil {
+		log.Warn().Msgf("error deleting %s MeshConfig, %s", presetMeshConfigName, err)
 	}
 }
