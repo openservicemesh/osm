@@ -227,7 +227,7 @@ VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME); docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }; else bash scripts/publish-image.sh $(NAME); fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME); fi
 
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)
