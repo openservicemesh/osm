@@ -188,6 +188,9 @@ const (
 	// HTTP protocol
 	ProtocolHTTP = "http"
 
+	// HTTPS protocol
+	ProtocolHTTPS = "https"
+
 	// TCP protocol
 	ProtocolTCP = "tcp"
 

@@ -1,9 +1,5 @@
 package trafficpolicy
 
-import (
-	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-)
-
 // EgressTrafficPolicy is the type used to represent the different egress traffic policy configurations
 // applicable to a client of Egress destinations.
 type EgressTrafficPolicy struct {
@@ -26,8 +22,28 @@ type EgressTrafficPolicy struct {
 
 // TrafficMatch is the type used to represent attributes used to match Egress traffic
 type TrafficMatch struct {
-	// DestinationPort defines the destination port's specification - port's number and protocol
-	DestinationPort policyV1alpha1.PortSpec
+	// DestinationPort defines the destination port number
+	DestinationPort int
+
+	// DestinationProtocol defines the protocol served by DestinationPort
+	DestinationProtocol string
+
+	// DestinationIPRanges defines the list of destination IP ranges
+	// +optional
+	DestinationIPRanges []string
+
+	// ServerNames defines the list of server names to be used as SNI when the
+	// DestinationProtocol is TLS based, ex. when the DestinationProtocol is 'https'
+	// +optional
+	ServerNames []string
+
+	// Cluster defines the cluster associated with this TrafficMatch, if possible.
+	// A TrafficMatch corresponding to an HTTP based cluster will not make use of
+	// this property since the cluster is determined based on the computed routes.
+	// A TraficMatch corresponding to a TCP based cluster will make use of this
+	// property to associate the match with the corresponding cluster.
+	// +optional
+	Cluster string
 }
 
 // EgressClusterConfig is the type used to represent an external cluster corresponding to a

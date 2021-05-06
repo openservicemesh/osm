@@ -25,35 +25,75 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 	var trafficMatches []*trafficpolicy.TrafficMatch
 	var clusterConfigs []*trafficpolicy.EgressClusterConfig
-	allowedDestinationPorts := mapset.NewSet()
 	portToRouteConfigMap := make(map[int][]*trafficpolicy.EgressHTTPRouteConfig)
-
 	egressResources := mc.policyController.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
 
 	for _, egress := range egressResources {
 		for _, portSpec := range egress.Spec.Ports {
-			// ---
-			// Build the HTTP route configs for the given Egress policy
-			if strings.EqualFold(portSpec.Protocol, constants.ProtocolHTTP) {
+			switch strings.ToLower(portSpec.Protocol) {
+			case constants.ProtocolHTTP:
+				// ---
+				// Build the HTTP route configs for the given Egress policy
 				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number)
 				portToRouteConfigMap[portSpec.Number] = append(portToRouteConfigMap[portSpec.Number], httpRouteConfigs...)
 				clusterConfigs = append(clusterConfigs, httpClusterConfigs...)
-			}
 
-			// ---
-			// TODO(#3045): Build the TCP route configs for the given Egress policy
-
-			// ---
-			// Build traffic matches for the given Egress policy.
-			// Traffic matches are used to match outbound traffic as egress traffic using the port numbers
-			// specified in Egress policies.
-			newlyAdded := allowedDestinationPorts.Add(portSpec)
-			if newlyAdded {
+				// Configure port based TrafficMatch for HTTP port
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
-					DestinationPort: portSpec,
+					DestinationPort:     portSpec.Number,
+					DestinationProtocol: portSpec.Protocol,
+				})
+
+			case constants.ProtocolTCP:
+				// ---
+				// Build the TCP cluster config for this port
+				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{
+					Name: fmt.Sprintf("%d", portSpec.Number),
+					Port: portSpec.Number,
+				})
+
+				// Configure port + IP range TrafficMatches
+				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					DestinationPort:     portSpec.Number,
+					DestinationProtocol: portSpec.Protocol,
+					DestinationIPRanges: egress.Spec.IPAddresses,
+					Cluster:             fmt.Sprintf("%d", portSpec.Number),
+				})
+
+			case constants.ProtocolHTTPS:
+				// ---
+				// Build the HTTPS cluster config for this port
+				// HTTPS is TLS encrypted, so will be proxied as a TCP stream
+				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{
+					Name: fmt.Sprintf("%d", portSpec.Number),
+					Port: portSpec.Number,
+				})
+
+				// Configure port + IP range TrafficMatches
+				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					DestinationPort:     portSpec.Number,
+					DestinationProtocol: portSpec.Protocol,
+					DestinationIPRanges: egress.Spec.IPAddresses,
+					ServerNames:         egress.Spec.Hosts,
+					Cluster:             fmt.Sprintf("%d", portSpec.Number),
 				})
 			}
 		}
+	}
+
+	var err error
+	// Deduplicate the list of TrafficMatch objects
+	trafficMatches, err = trafficpolicy.DeduplicateTrafficMatches(trafficMatches)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
+		return nil, err
+	}
+
+	// Deduplicate the list of EgressClusterConfig objects
+	clusterConfigs, err = trafficpolicy.DeduplicateClusterConfigs(clusterConfigs)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
+		return nil, err
 	}
 
 	return &trafficpolicy.EgressTrafficPolicy{
