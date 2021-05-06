@@ -88,6 +88,14 @@ func (a *namespaceAddCmd) run() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		exists, err := meshExists(a.clientSet, a.meshName)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return errors.Errorf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", a.meshName)
+		}
+
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 
@@ -132,7 +140,7 @@ func (a *namespaceAddCmd) run() error {
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
 		}
 
-		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		_, err = a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
 			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 		}
@@ -141,4 +149,21 @@ func (a *namespaceAddCmd) run() error {
 	}
 
 	return nil
+}
+
+// meshExists determines if a mesh with meshName exists within the cluster
+func meshExists(clientSet kubernetes.Interface, meshName string) (bool, error) {
+	// search for the mesh across all namespaces
+	deploymentsClient := clientSet.AppsV1().Deployments("")
+	// search and match using the mesh name provided
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": meshName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
+	if err != nil {
+		return false, errors.Errorf("Cannot obtain information about the mesh [%s]: [%v]", meshName, err)
+	}
+	// the mesh is present if there are osm controllers for the mesh
+	return len(osmControllerDeployments.Items) != 0, nil
 }
