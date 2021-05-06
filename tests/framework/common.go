@@ -99,6 +99,8 @@ var (
 	defaultCertManager = "tresor"
 	// default enable NS metrics tag
 	defaultEnableNsMetricTag = true
+	// default enable debug server
+	defaultEnableDebugServer = true
 	// default deploy Prometheus
 	defaultDeployPrometheus = false
 	// default deploy Grafana
@@ -107,6 +109,8 @@ var (
 	defaultDeployJaeger = false
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
+	// default envoy loglevel
+	defaultEnvoyLogLevel = "debug"
 	// default OSM loglevel
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
@@ -446,7 +450,9 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
+		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
+		EnableDebugServer:      defaultEnableDebugServer,
 		SetOverrides:           []string{},
 	}
 }

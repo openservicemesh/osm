@@ -16,17 +16,27 @@
                 "image",
                 "sidecarImage",
                 "certificateManager",
+                "serviceCertValidityDuration",
                 "caBundleSecretName",
+                "enableDebugServer",
+                "enablePermissiveTrafficPolicy",
+                "enableEgress",
                 "deployPrometheus",
+                "enablePrometheusScraping",
                 "deployGrafana",
                 "enableFluentbit",
                 "fluentBit",
                 "meshName",
+                "useHTTPSIngress",
+                "maxDataPlaneConnections",
+                "envoyLogLevel",
                 "controllerLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
+                "tracing",
                 "webhookConfigNamePrefix",
                 "osmcontroller",
+                "enablePrivilegedInitContainer",
                 "injector"
             ],
             "properties": {
@@ -184,6 +194,15 @@
                         "tresor"
                     ]
                 },
+                "serviceCertValidityDuration": {
+                    "$id": "#/properties/OpenServiceMesh/properties/serviceCertValidityDuration",
+                    "type": "string",
+                    "title": "The serviceCertValidityDuration schema",
+                    "description": "The service certificate validity duration.",
+                    "examples": [
+                        "24h"
+                    ]
+                },
                 "caBundleSecretName": {
                     "$id": "#/properties/OpenServiceMesh/properties/caBundleSecretName",
                     "type": "string",
@@ -193,6 +212,33 @@
                         "osm-ca-bundle"
                     ]
                 },
+                "enableDebugServer": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableDebugServer",
+                    "type": "boolean",
+                    "title": "The enableDebugServer schema",
+                    "description": "Indicates whether the Debug Server should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enablePermissiveTrafficPolicy": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePermissiveTrafficPolicy",
+                    "type": "boolean",
+                    "title": "The enablePermissiveTrafficPolicy schema",
+                    "description": "Indicates whether permissive traffic policy should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enableEgress": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableEgress",
+                    "type": "boolean",
+                    "title": "The enableEgress schema",
+                    "description": "Indicates whether egress should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
                 "deployPrometheus": {
                     "$id": "#/properties/OpenServiceMesh/properties/deployPrometheus",
                     "type": "boolean",
@@ -200,6 +246,15 @@
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
                     "examples": [
                         false
+                    ]
+                },
+                "enablePrometheusScraping": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheusScraping",
+                    "type": "boolean",
+                    "title": "The enablePrometheusScraping schema",
+                    "description": "Indicates whether Prometheus scraping should be enabled.",
+                    "examples": [
+                        true
                     ]
                 },
                 "deployGrafana": {
@@ -331,6 +386,34 @@
                         "osm"
                     ]
                 },
+                "useHTTPSIngress": {
+                    "$id": "#/properties/OpenServiceMesh/properties/useHTTPSIngress",
+                    "type": "boolean",
+                    "title": "The useHTTPSIngress schema",
+                    "description": "Indicates whether HTTPS Ingress should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "maxDataPlaneConnections": {
+                    "$id": "#/properties/OpenServiceMesh/properties/maxDataPlaneConnections",
+                    "type": "integer",
+                    "title": "The maxDataPlaneConnections schema",
+                    "description": "Sets the Max Data Plane Connections",
+                    "examples": [
+                        "1000"
+                    ]
+                },
+                "envoyLogLevel": {
+                    "$id": "#/properties/OpenServiceMesh/properties/envoyLogLevel",
+                    "type": "string",
+                    "title": "The envoyLogLevel schema",
+                    "description": "Envoy log level.",
+                    "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
+                    "examples": [
+                        "error"
+                    ]
+                },
                 "controllerLogLevel": {
                     "$id": "#/properties/OpenServiceMesh/properties/controllerLogLevel",
                     "type": "string",
@@ -359,6 +442,30 @@
                         true
                     ]
                 },
+                "tracing": {
+                    "$id": "#/properties/OpenServiceMesh/properties/tracing",
+                    "type": "object",
+                    "title": "The tracing schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "examples": [{
+                        "enable": true
+                    }],
+                    "required": [
+                        "enable"
+                    ],
+                    "properties": {
+                        "enable": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/enable",
+                            "type": "boolean",
+                            "title": "The enable schema",
+                            "description": "Indicates whether tracing is enabled or not.",
+                            "examples": [
+                                true
+                            ]
+                        }
+                    },
+                    "additionalProperties": true
+                },
                 "webhookConfigNamePrefix": {
                     "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
                     "type": "string",
@@ -375,6 +482,15 @@
                     "description": "Indicates the namespace in which the OSM control plane components will be installed",
                     "examples": [
                         "osm-system"
+                    ]
+                },
+                "enablePrivilegedInitContainer": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrivilegedInitContainer",
+                    "type": "boolean",
+                    "title": "The enablePrivilegedInitContainer schema",
+                    "description": "Indicates whether the init container for pods in the mesh should be privileged",
+                    "examples": [
+                        false
                     ]
                 },
                 "injector": {

@@ -28,6 +28,7 @@ func scaleOSMInstall() (*DataHandle, error) {
 	t := Td.GetOSMInstallOpts()
 	// To avoid logging become a burden, use error logging as a regular setup would
 	t.OSMLogLevel = "error"
+	t.EnvoyLogLevel = "error"
 
 	// Override Memory available, both requested and limit to 1G to guarantee the memory available
 	// for OSM will not depend on the Node's load.
