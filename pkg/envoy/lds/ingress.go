@@ -38,7 +38,7 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 		return nil
 	}
 
-	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil)
+	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil, true)
 	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)

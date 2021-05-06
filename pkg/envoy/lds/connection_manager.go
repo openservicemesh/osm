@@ -23,7 +23,7 @@ const (
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
 )
 
-func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string, inbound bool) *xds_hcm.HttpConnectionManager {
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix: fmt.Sprintf("%s.%s", meshHTTPConnManagerStatPrefix, routeName),
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
@@ -32,12 +32,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 				// HTTP RBAC filter
 				Name: wellknown.HTTPRoleBasedAccessControl,
 			},
-			{
-				// HTTP Router filter
-				Name: wellknown.Router,
-			},
 		},
-
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
 			Rds: &xds_hcm.Rds{
 				ConfigSource:    envoy.GetADSConfigSource(),
@@ -46,6 +41,15 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 		},
 		AccessLog: envoy.GetAccessLog(),
 	}
+
+	if cfg.GetInboundExternalAuthzEnable() {
+		connManager.HttpFilters = append(connManager.HttpFilters, getInboundExtAuthzHttpFilter(cfg))
+	}
+
+	connManager.HttpFilters = append(connManager.HttpFilters, &xds_hcm.HttpFilter{
+		// HTTP Router filter
+		Name: wellknown.Router,
+	})
 
 	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{

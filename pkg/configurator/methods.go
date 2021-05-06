@@ -152,3 +152,29 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 	}
 	return duration
 }
+
+// POC ExternalAuthz
+func (c *Client) GetInboundExternalAuthzEnable() bool {
+	return c.getConfigMap().InboundExternAuthzEnable
+}
+func (c *Client) GetInboundExternalAuthzAddress() string {
+	return c.getConfigMap().InboundExternAuthzAddress
+}
+func (c *Client) GetInboundExternalAuthzPort() int {
+	return c.getConfigMap().InboundExternAuthzPort
+}
+func (c *Client) GetInboundExternalAuthzStatPrefix() string {
+	return c.getConfigMap().InboundExternAuthzStatPrefix
+}
+func (c *Client) GetInboundExternalAuthzTimeout() time.Duration {
+	extauthzTimeout := c.getConfigMap().InboundExternAuthzTimeout
+	duration, err := time.ParseDuration(extauthzTimeout)
+	if err != nil {
+		log.Debug().Err(err).Msgf("Error parsing config extauthzTimeout: %s", duration)
+		return time.Duration(0)
+	}
+	return duration
+}
+func (c *Client) GetInboundExternalAuthzFailureModeAllow() bool {
+	return c.getConfigMap().InboundExternAuthzFailureModeAllow
+}

@@ -61,6 +61,14 @@ const (
 
 	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
 	configResyncInterval = "config_resync_interval"
+
+	// POC external authz
+	inboundExtauthzEnable           = "inbound_extauthz_enable"
+	inboundExtauthzAddress          = "inbound_extauthz_address"
+	inboundExtauthzPort             = "inbound_extauthz_port"
+	inboundExtauthzStatPrefix       = "inbound_extauthz_statprefix"
+	inboundExtauthzTimeout          = "inbound_extauthz_timeout"
+	inboundExtauthzFailureModeAllow = "inbound_extauthz_failuremodeallow"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -170,6 +178,12 @@ func (c *Client) configMapListener(stop <-chan struct{}) {
 					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingEndpoint != newConfigMap.TracingEndpoint)
 					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
 					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.PrometheusScraping != newConfigMap.PrometheusScraping)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzAddress != newConfigMap.InboundExternAuthzAddress)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzStatPrefix != newConfigMap.InboundExternAuthzStatPrefix)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzTimeout != newConfigMap.InboundExternAuthzTimeout)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzEnable != newConfigMap.InboundExternAuthzEnable)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzFailureModeAllow != newConfigMap.InboundExternAuthzFailureModeAllow)
+					triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.InboundExternAuthzPort != newConfigMap.InboundExternAuthzPort)
 
 					if triggerGlobalBroadcast {
 						log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
@@ -244,6 +258,14 @@ type osmConfig struct {
 
 	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
 	ConfigResyncInterval string `yaml:"config_resync_interval"`
+
+	// POC external authz
+	InboundExternAuthzEnable           bool   `yaml:"inbound_extauthz_enable"`
+	InboundExternAuthzAddress          string `yaml:"inbound_extauthz_address"`
+	InboundExternAuthzPort             int    `yaml:"inbound_extauthz_port"`
+	InboundExternAuthzStatPrefix       string `yaml:"inbound_extauthz_statprefix"`
+	InboundExternAuthzTimeout          string `yaml:"inbound_extauthz_timeout"`
+	InboundExternAuthzFailureModeAllow bool   `yaml:"inbound_extauthz_failuremodeallow"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -294,6 +316,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.UseHTTPSIngress, _ = GetBoolValueForKey(configMap, useHTTPSIngressKey)
 	osmConfigMap.MaxDataPlaneConnections, _ = GetIntValueForKey(configMap, maxDataPlaneConnectionsKey)
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
+	osmConfigMap.InboundExternAuthzEnable, _ = GetBoolValueForKey(configMap, inboundExtauthzEnable)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
 	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
@@ -304,6 +327,14 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 		osmConfigMap.TracingAddress, _ = GetStringValueForKey(configMap, tracingAddressKey)
 		osmConfigMap.TracingPort, _ = GetIntValueForKey(configMap, tracingPortKey)
 		osmConfigMap.TracingEndpoint, _ = GetStringValueForKey(configMap, tracingEndpointKey)
+	}
+
+	if osmConfigMap.InboundExternAuthzEnable {
+		osmConfigMap.InboundExternAuthzAddress, _ = GetStringValueForKey(configMap, inboundExtauthzAddress)
+		osmConfigMap.InboundExternAuthzPort, _ = GetIntValueForKey(configMap, inboundExtauthzPort)
+		osmConfigMap.InboundExternAuthzStatPrefix, _ = GetStringValueForKey(configMap, inboundExtauthzStatPrefix)
+		osmConfigMap.InboundExternAuthzTimeout, _ = GetStringValueForKey(configMap, inboundExtauthzTimeout)
+		osmConfigMap.InboundExternAuthzFailureModeAllow, _ = GetBoolValueForKey(configMap, inboundExtauthzFailureModeAllow)
 	}
 
 	return &osmConfigMap

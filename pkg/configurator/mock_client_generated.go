@@ -77,6 +77,90 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetInboundExternalAuthzAddress mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzAddress() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzAddress")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetInboundExternalAuthzAddress indicates an expected call of GetInboundExternalAuthzAddress
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzAddress() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzAddress", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzAddress))
+}
+
+// GetInboundExternalAuthzEnable mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzEnable() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzEnable")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetInboundExternalAuthzEnable indicates an expected call of GetInboundExternalAuthzEnable
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzEnable() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzEnable", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzEnable))
+}
+
+// GetInboundExternalAuthzFailureModeAllow mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzFailureModeAllow() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzFailureModeAllow")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetInboundExternalAuthzFailureModeAllow indicates an expected call of GetInboundExternalAuthzFailureModeAllow
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzFailureModeAllow() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzFailureModeAllow", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzFailureModeAllow))
+}
+
+// GetInboundExternalAuthzPort mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzPort() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzPort")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetInboundExternalAuthzPort indicates an expected call of GetInboundExternalAuthzPort
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzPort() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzPort", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzPort))
+}
+
+// GetInboundExternalAuthzStatPrefix mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzStatPrefix() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzStatPrefix")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetInboundExternalAuthzStatPrefix indicates an expected call of GetInboundExternalAuthzStatPrefix
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzStatPrefix() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzStatPrefix", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzStatPrefix))
+}
+
+// GetInboundExternalAuthzTimeout mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthzTimeout() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthzTimeout")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetInboundExternalAuthzTimeout indicates an expected call of GetInboundExternalAuthzTimeout
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthzTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthzTimeout", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthzTimeout))
+}
+
 // GetMaxDataPlaneConnections mocks base method
 func (m *MockConfigurator) GetMaxDataPlaneConnections() int {
 	m.ctrl.T.Helper()

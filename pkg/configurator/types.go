@@ -84,4 +84,12 @@ type Configurator interface {
 	// GetConfigResyncInterval returns the duration for resync interval.
 	// If error or non-parsable value, returns 0 duration
 	GetConfigResyncInterval() time.Duration
+
+	// POC ExternalAuthz
+	GetInboundExternalAuthzEnable() bool
+	GetInboundExternalAuthzAddress() string
+	GetInboundExternalAuthzPort() int
+	GetInboundExternalAuthzStatPrefix() string
+	GetInboundExternalAuthzTimeout() time.Duration
+	GetInboundExternalAuthzFailureModeAllow() bool
 }
