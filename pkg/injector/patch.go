@@ -102,9 +102,9 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	return admissionResponse.Patches
 }
 
-func mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList []string) []string {
+func mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList []int) []int {
 	portExclusionListMap := mapset.NewSet()
-	var portExclusionListMerged []string
+	var portExclusionListMerged []int
 
 	// iterate over the global outbound ports to be excluded
 	for _, port := range globalOutboundPortExclusionList {

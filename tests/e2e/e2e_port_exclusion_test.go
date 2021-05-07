@@ -64,8 +64,8 @@ func testGlobalPortExclusion() {
 		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
 
 		// The destination port will be programmed as an global port exclusion
-		destinationPort := fmt.Sprintf("%v", dstSvc.Spec.Ports[0].Port)
-		meshConfig.Spec.Traffic.OutboundPortExclusionList = []string{destinationPort}
+		destinationPort := int(dstSvc.Spec.Ports[0].Port)
+		meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{destinationPort}
 		_, err = Td.UpdateOSMConfig(meshConfig)
 		Expect(err).NotTo(HaveOccurred())
 

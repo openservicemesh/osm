@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []string,
+func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []int,
 	enablePrivilegedInitContainer bool) corev1.Container {
 	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList)
 	iptablesInitCommand := strings.Join(iptablesInitCommandsList, " && ")

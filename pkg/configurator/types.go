@@ -77,7 +77,7 @@ type Configurator interface {
 	GetOutboundIPRangeExclusionList() []string
 
 	// GetOutboundPortExclusionList returns the list of ports to exclude from outbound sidecar interception
-	GetOutboundPortExclusionList() []string
+	GetOutboundPortExclusionList() []int
 
 	// IsPrivilegedInitContainer determines whether init containers should be privileged
 	IsPrivilegedInitContainer() bool

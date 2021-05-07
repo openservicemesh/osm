@@ -2,6 +2,7 @@ package injector
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -68,7 +69,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList []string) []string {
+func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPortExclusionList []int) []string {
 	var cmd []string
 
 	// 1. Create redirection chains
@@ -90,7 +91,11 @@ func generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusio
 
 	// 5. Create dynamic outbound ports exclusion rule
 	if len(outboundPortExclusionList) > 0 {
-		outboundPortsToExclude := strings.Join(outboundPortExclusionList, ",")
+		var portExclusionListStr []string
+		for _, port := range outboundPortExclusionList {
+			portExclusionListStr = append(portExclusionListStr, strconv.Itoa(port))
+		}
+		outboundPortsToExclude := strings.Join(portExclusionListStr, ",")
 		rule := fmt.Sprintf("iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
 		cmd = append(cmd, rule)
 	}

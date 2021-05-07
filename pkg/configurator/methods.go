@@ -155,18 +155,8 @@ func (c *Client) GetOutboundIPRangeExclusionList() []string {
 }
 
 // GetOutboundPortExclusionList returns the list of ports (positive integers) to exclude from outbound sidecar interception
-func (c *Client) GetOutboundPortExclusionList() []string {
-	portsStr := c.getMeshConfig().OutboundPortExclusionList
-	if portsStr == "" {
-		return nil
-	}
-
-	portExclusionList := strings.Split(portsStr, ",")
-	for i := range portExclusionList {
-		portExclusionList[i] = strings.TrimSpace(portExclusionList[i])
-	}
-
-	return portExclusionList
+func (c *Client) GetOutboundPortExclusionList() []int {
+	return c.getMeshConfig().OutboundPortExclusionList
 }
 
 // IsPrivilegedInitContainer returns whether init containers should be privileged

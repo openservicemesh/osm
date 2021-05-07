@@ -148,10 +148,10 @@ func (mr *MockConfiguratorMockRecorder) GetOutboundIPRangeExclusionList() *gomoc
 }
 
 // GetOutboundPortExclusionList mocks base method
-func (m *MockConfigurator) GetOutboundPortExclusionList() []string {
+func (m *MockConfigurator) GetOutboundPortExclusionList() []int {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOutboundPortExclusionList")
-	ret0, _ := ret[0].([]string)
+	ret0, _ := ret[0].([]int)
 	return ret0
 }
 
