@@ -325,8 +325,8 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 // 1. The pod is explicitly annotated with a single or comma separate list of ports
 //
 // The function returns an error when it is unable to determine whether ports need to be excluded from outbound sidecar interception.
-func (wh *mutatingWebhook) getPodOutboundPortExclusionList(pod *corev1.Pod, namespace string) ([]string, error) {
-	var ports []string
+func (wh *mutatingWebhook) getPodOutboundPortExclusionList(pod *corev1.Pod, namespace string) ([]int, error) {
+	var ports []int
 	// Check if the pod is annotated for outbound port exclusion
 	ports, err := isAnnotatedForOutboundPortExclusion(pod.Annotations, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
@@ -354,7 +354,7 @@ func isAnnotatedForInjection(annotations map[string]string, objectKind string, o
 	return
 }
 
-func isAnnotatedForOutboundPortExclusion(annotations map[string]string, objectKind string, objectName string) (ports []string, err error) {
+func isAnnotatedForOutboundPortExclusion(annotations map[string]string, objectKind string, objectName string) (ports []int, err error) {
 	outboundPortsToExclude, ok := annotations[outboundPortExclusionListAnnotation]
 	if !ok {
 		return ports, err
@@ -363,13 +363,14 @@ func isAnnotatedForOutboundPortExclusion(annotations map[string]string, objectKi
 	log.Trace().Msgf("%s %s has outbound port exclusion annotation: '%s:%s'", objectKind, objectName, outboundPortExclusionListAnnotation, outboundPortsToExclude)
 	portsToExclude := strings.Split(outboundPortsToExclude, ",")
 	for _, portStr := range portsToExclude {
-		port := strings.TrimSpace(portStr)
-		if portInt, ok := strconv.Atoi(port); ok != nil || portInt <= 0 {
+		portStr := strings.TrimSpace(portStr)
+		portInt, ok := strconv.Atoi(portStr)
+		if ok != nil || portInt <= 0 {
 			err = errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, outboundPortsToExclude)
 			ports = nil
 			return ports, err
 		}
-		ports = append(ports, port)
+		ports = append(ports, portInt)
 	}
 	return ports, err
 }

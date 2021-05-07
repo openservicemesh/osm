@@ -256,7 +256,13 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 			case outboundIPRangeExclusionListKey:
 				meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = strings.Split(mapVal, ",")
 			case outboundPortExclusionListKey:
-				meshConfig.Spec.Traffic.OutboundPortExclusionList = strings.Split(mapVal, ",")
+				portExclusionListStr := strings.Split(mapVal, ",")
+				var portExclusionList []int
+				for _, portStr := range portExclusionListStr {
+					port, _ := strconv.Atoi(portStr)
+					portExclusionList = append(portExclusionList, port)
+				}
+				meshConfig.Spec.Traffic.OutboundPortExclusionList = portExclusionList
 			case configResyncIntervalKey:
 				meshConfig.Spec.Sidecar.ConfigResyncInterval = mapVal
 			}

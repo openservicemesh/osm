@@ -312,11 +312,11 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Traffic: v1alpha1.TrafficSpec{
-					OutboundPortExclusionList: []string{"7070", "6080"},
+					OutboundPortExclusionList: []int{7070, 6080},
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal([]string{"7070", "6080"}, cfg.GetOutboundPortExclusionList())
+				assert.Equal([]int{7070, 6080}, cfg.GetOutboundPortExclusionList())
 			},
 		},
 		{

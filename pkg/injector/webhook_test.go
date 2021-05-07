@@ -664,13 +664,13 @@ func TestIsAnnotatedForOutboundPortExclusion(t *testing.T) {
 		name          string
 		annotation    map[string]string
 		expectedError error
-		expectedPorts []string
+		expectedPorts []int
 	}{
 		{
 			name:          "contains outbound port exclusion list annotation",
 			annotation:    map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
 			expectedError: nil,
-			expectedPorts: []string{"6060", "7070"},
+			expectedPorts: []int{6060, 7070},
 		},
 		{
 			name:          "does not contains outbound port exclusion list annontation",
@@ -706,13 +706,13 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 		name          string
 		podAnnotation map[string]string
 		expectedError error
-		expectedPorts []string
+		expectedPorts []int
 	}{
 		{
 			name:          "contains outbound port exclusion list annotation",
 			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
 			expectedError: nil,
-			expectedPorts: []string{"6060", "7070"},
+			expectedPorts: []int{6060, 7070},
 		},
 		{
 			name:          "does not contains outbound port exclusion list annontation",
