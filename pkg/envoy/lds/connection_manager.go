@@ -15,11 +15,20 @@ import (
 	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
+// connectionDirection defines, for filter terms, the direction of the traffic from an application
+// perspective, in which the connection manager filters will be applied
+type connectionDirection string
+
 const (
 	statPrefix = "http"
+
+	// incoming defines in-mesh inbound and ingress traffic driections
+	incoming = "incoming"
+	// outgoing defines in-mesh outbound and egress traffic directions
+	outgoing = "outgoing"
 )
 
-func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string, direction connectionDirection) *xds_hcm.HttpConnectionManager {
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix: statPrefix,
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
@@ -28,12 +37,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 				// HTTP RBAC filter
 				Name: wellknown.HTTPRoleBasedAccessControl,
 			},
-			{
-				// HTTP Router filter
-				Name: wellknown.Router,
-			},
 		},
-
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
 			Rds: &xds_hcm.Rds{
 				ConfigSource:    envoy.GetADSConfigSource(),
@@ -42,6 +46,17 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 		},
 		AccessLog: envoy.GetAccessLog(),
 	}
+
+	// TODO Outgoing External Auth
+	incomingExtAuthCfg := cfg.GetInboundExternalAuthConfig()
+	if direction == incoming && incomingExtAuthCfg.Enable {
+		connManager.HttpFilters = append(connManager.HttpFilters, getExtAuthzHTTPFilter(incomingExtAuthCfg))
+	}
+
+	connManager.HttpFilters = append(connManager.HttpFilters, &xds_hcm.HttpFilter{
+		// HTTP Router filter
+		Name: wellknown.Router,
+	})
 
 	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{

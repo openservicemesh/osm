@@ -2,6 +2,7 @@ package lds
 
 import (
 	"testing"
+	"time"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -34,6 +35,9 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false)
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	// Check we get HTTP connection manager filter without Permissive mode
 	filter, err := lb.getOutboundHTTPFilter()
@@ -91,17 +95,22 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 		mockConfigurator *configurator.MockConfigurator
 	)
 
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-
 	Context("Test creation of HTTP connection manager", func() {
+		BeforeEach(func() {
+			mockCtrl = gomock.NewController(GinkgoT())
+			mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		})
+
 		It("Returns proper Zipkin config given when tracing is enabled", func() {
 			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).Times(1)
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
 			mockConfigurator.EXPECT().GetTracingEndpoint().Return(constants.DefaultTracingEndpoint).Times(1)
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).Times(1)
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).Times(1)
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, incoming)
 
 			Expect(connManager.Tracing.Verbose).To(Equal(true))
 			Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))
@@ -109,8 +118,11 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns proper Zipkin config given when tracing is disabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).Times(1)
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, incoming)
 			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
 
 			Expect(connManager.Tracing).To(Equal(nilHcmTrace))
@@ -118,13 +130,17 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns no stats config when WASM is disabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).Times(1)
+
 			oldWASMflag := featureflags.Features.WASMStats
 			featureflags.Features.WASMStats = false
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"}, incoming)
 
 			Expect(connManager.HttpFilters).To(HaveLen(2))
 			Expect(connManager.HttpFilters[0].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
@@ -138,13 +154,17 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns no stats config when WASM is disabled and no WASM is defined", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).Times(1)
+
 			oldWASMflag := featureflags.Features.WASMStats
 			featureflags.Features.WASMStats = true
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = ""
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"}, incoming)
 
 			Expect(connManager.HttpFilters).To(HaveLen(2))
 			Expect(connManager.HttpFilters[0].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
@@ -158,13 +178,17 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns no Lua headers filter config when there are no headers to add", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).Times(1)
+
 			oldWASMflag := featureflags.Features.WASMStats
 			featureflags.Features.WASMStats = true
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, incoming)
 
 			Expect(connManager.HttpFilters).To(HaveLen(3))
 			Expect(connManager.HttpFilters[0].GetName()).To(Equal("envoy.filters.http.wasm"))
@@ -179,13 +203,17 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns proper stats config when WASM is enabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable: false,
+			}).AnyTimes()
+
 			oldWASMflag := featureflags.Features.WASMStats
 			featureflags.Features.WASMStats = true
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"}, incoming)
 
 			Expect(connManager.GetHttpFilters()).To(HaveLen(4))
 			Expect(connManager.GetHttpFilters()[0].GetName()).To(Equal(wellknown.Lua))
@@ -198,6 +226,25 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
 			featureflags.Features.WASMStats = oldWASMflag
+		})
+
+		It("Returns inbound external authorization enabled connection manager when configuration requires", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+				Enable:           true,
+				Address:          "test.xyz",
+				Port:             123,
+				StatPrefix:       "pref",
+				AuthzTimeout:     3 * time.Second,
+				FailureModeAllow: false,
+			}).Times(1)
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, incoming)
+
+			Expect(connManager.GetHttpFilters()).To(HaveLen(3))
+			Expect(connManager.GetHttpFilters()[0].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
+			Expect(connManager.GetHttpFilters()[1].GetName()).To(Equal(wellknown.HTTPExternalAuthorization))
+			Expect(connManager.GetHttpFilters()[2].GetName()).To(Equal(wellknown.Router))
 		})
 	})
 })

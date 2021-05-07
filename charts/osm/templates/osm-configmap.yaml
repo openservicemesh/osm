@@ -13,6 +13,15 @@ data:
   enable_debug_server: {{ .Values.OpenServiceMesh.enableDebugServer | quote }}
   prometheus_scraping: {{ .Values.OpenServiceMesh.enablePrometheusScraping | quote }}
 
+  inbound_extauthz_enable: {{ .Values.OpenServiceMesh.inbound_extauthz.enable | quote }}
+{{- if .Values.OpenServiceMesh.inbound_extauthz.enable }}
+  inbound_extauthz_address: {{ .Values.OpenServiceMesh.inbound_extauthz.address | quote }}
+  inbound_extauthz_port: {{ .Values.OpenServiceMesh.inbound_extauthz.port | quote }}
+  inbound_extauthz_statprefix: {{ .Values.OpenServiceMesh.inbound_extauthz.statPrefix | quote }}
+  inbound_extauthz_timeout: {{ .Values.OpenServiceMesh.inbound_extauthz.timeout | quote }}
+  inbound_extauthz_failuremodeallow: {{ .Values.OpenServiceMesh.inbound_extauthz.failureModeAllow | quote }}
+{{- end }}
+
   tracing_enable: {{ .Values.OpenServiceMesh.tracing.enable | quote }}
 {{- if .Values.OpenServiceMesh.tracing.enable }}
   tracing_address: {{ include "osm.tracingAddress" . | quote }}

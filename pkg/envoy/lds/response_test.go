@@ -68,6 +68,9 @@ func TestListenerConfiguration(t *testing.T) {
 	mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(configurator.ExternAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	actual, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 	assert.Empty(err)
