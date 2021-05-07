@@ -72,4 +72,17 @@ type Configurator interface {
 	// GetConfigResyncInterval returns the duration for resync interval.
 	// If error or non-parsable value, returns 0 duration
 	GetConfigResyncInterval() time.Duration
+
+	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
+	GetInboundExternalAuthConfig() ExternAuthConfig
+}
+
+// ExternAuthConfig implements a generic subset of External Authz to configure external authorization in envoy's format
+type ExternAuthConfig struct {
+	Enable           bool
+	Address          string
+	Port             uint16
+	StatPrefix       string
+	AuthzTimeout     time.Duration
+	FailureModeAllow bool
 }

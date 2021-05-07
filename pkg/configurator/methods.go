@@ -147,3 +147,24 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 	}
 	return duration
 }
+
+// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
+func (c *Client) GetInboundExternalAuthConfig() ExternAuthConfig {
+	extAuthRet := ExternAuthConfig{}
+	cfgMap := c.getConfigMap()
+
+	extAuthRet.Enable = cfgMap.InboundExternAuthzEnable
+	extAuthRet.Address = cfgMap.InboundExternAuthzAddress
+	extAuthRet.Port = uint16(cfgMap.InboundExternAuthzPort)
+	extAuthRet.StatPrefix = cfgMap.InboundExternAuthzStatPrefix
+	extAuthRet.FailureModeAllow = cfgMap.InboundExternAuthzFailureModeAllow
+
+	duration, err := time.ParseDuration(cfgMap.InboundExternAuthzTimeout)
+	if err != nil {
+		log.Debug().Err(err).Msgf("ExternAuthzTimeout: Not a valid duration %s. defaulting to 1s.", duration)
+		duration = 1 * time.Second
+	}
+	extAuthRet.AuthzTimeout = duration
+
+	return extAuthRet
+}

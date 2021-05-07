@@ -131,6 +131,16 @@ OpenServiceMesh:
     # -- Destination's API or collector endpoint where the spans will be sent to
     endpoint: "/api/v2/spans"
 
+  # -- Inbound external authorization, allows configuring a remote service to provide
+  # external authorization upon request
+  inbound_extauthz:
+    enable: false
+    address: ""
+    port: 0
+    statPrefix: ""
+    timeout: 1s
+    failureModeAllow: false
+
   # -- Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []

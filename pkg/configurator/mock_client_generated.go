@@ -77,6 +77,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetInboundExternalAuthConfig mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthConfig() ExternAuthConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthConfig")
+	ret0, _ := ret[0].(ExternAuthConfig)
+	return ret0
+}
+
+// GetInboundExternalAuthConfig indicates an expected call of GetInboundExternalAuthConfig
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthConfig", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthConfig))
+}
+
 // GetOSMNamespace mocks base method
 func (m *MockConfigurator) GetOSMNamespace() string {
 	m.ctrl.T.Helper()
