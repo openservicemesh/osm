@@ -1,0 +1,2 @@
+OSM CRDs have been installed. Use the following command to see more details:
+$ kubectl api-versions

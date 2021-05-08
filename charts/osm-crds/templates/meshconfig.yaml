@@ -1,0 +1,143 @@
+# Custom Resource Definition (CRD) for OSM's configuration specification.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: meshconfigs.config.openservicemesh.io
+spec:
+  group: config.openservicemesh.io
+  scope: Namespaced
+  names:
+    kind: MeshConfig
+    listKind: MeshConfigList
+    shortNames:
+      - meshconfig
+    singular: meshconfig
+    plural: meshconfigs
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                sidecar:
+                  description: Configuration for Envoy sidecar
+                  type: object
+                  properties:
+                    enablePrivilegedInitContainer:
+                      description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
+                      type: boolean
+                      default: false
+                    logLevel:
+                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      type: string
+                      default: "error"
+                      enum:
+                        - trace
+                        - debug
+                        - info
+                        - warning
+                        - warn
+                        - error
+                        - critical
+                        - off
+                    maxDataPlaneConnections:
+                      description: Max allowed data plane sidecar connections
+                      type: integer
+                      default: 0
+                    envoyImage:
+                      description: Image for the Envoy sidecar
+                      type: string
+                      default: "envoyproxy/envoy-alpine:v1.17.2"
+                      pattern: envoyproxy\/envoy-alpine:v\d+\.\d+\.\d+$
+                    initContainerImage:
+                      description: Image for the init container
+                      type: string
+                      default: "openservicemesh/init:v0.8.3"
+                traffic:
+                  description: Configuration for traffic management
+                  type: object
+                  properties:
+                    enableEgress:
+                      description: Enables egress in the mesh
+                      type: boolean
+                      default: false
+                    outboundIPRangeExclusionList:
+                      description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: string
+                        pattern: ((?:\d{1,3}.){3}\d{1,3})\/(\d{1,2})$
+                    outboundPortExclusionList:
+                      description: Global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        pattern: ^[1-9]\d*$
+                    useHTTPSIngress:
+                      description: Enable HTTPS ingress on the mesh
+                      type: boolean
+                      default: false
+                    enablePermissiveTrafficPolicyMode:
+                      description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
+                      type: boolean
+                      default: false
+                observability:
+                  description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
+                  type: object
+                  properties:
+                    enableDebugServer:
+                      description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                      default: false
+                    prometheusScraping:
+                      description: Enables Prometheus metrics scraping on sidecar proxies.
+                      type: boolean
+                      default: true
+                    tracing:
+                      description: Configuration for distributed tracing
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables Jaeger tracing for the mesh.
+                          type: boolean
+                          default: false
+                        port:
+                          description: Port on which tracing is enabled.
+                          type: integer
+                          default: 9411
+                        address:
+                          description: Address of Jaeger tracing deployment, if tracing is enabled.
+                          type: string
+                          default: "jaeger.osm-system.svc.cluster.local"
+                        endpoint:
+                          description: Endpoint for tracing data, if tracing is enabled.
+                          type: string
+                          default: "/api/v2/spans"
+                certificate:
+                  description: Configuration for certificate management
+                  type: object
+                  properties:
+                    serviceCertValidityDuration:
+                      description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+                      type: string
+                      default: "24h"

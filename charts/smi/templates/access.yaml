@@ -1,0 +1,244 @@
+# Custom Resource Definition (CRD) for SMI's traffic access specification.
+#
+# Copyright SMI SDK for Go authors
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:  
+  name: traffictargets.access.smi-spec.io
+spec:
+  group: access.smi-spec.io
+  scope: Namespaced 
+  names:
+    kind: TrafficTarget
+    shortNames: 
+      - tt
+    plural: traffictargets
+    singular: traffictarget
+  versions:
+    - name: v1alpha3
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - destination
+                - rules
+                - sources
+              properties:
+                destination:
+                  description: The destination of this traffic target.
+                  type: object
+                  required:
+                    - name
+                    - kind
+                  properties:
+                    kind:
+                      description: Kind of the destination.
+                      type: string
+                    name:
+                      description: Name of the destination.
+                      type: string
+                    namespace:
+                      description: Namespace of the destination.
+                      type: string
+                rules:
+                  description: Specifications of this traffic target.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - kind
+                    properties:
+                      kind:
+                        description: Kind of this spec.
+                        type: string
+                        enum:
+                          - HTTPRouteGroup
+                          - TCPRoute
+                          - UDPRoute
+                      name:
+                        description: Name of this spec.
+                        type: string
+                      matches:
+                        description: Match conditions of this spec.
+                        type: array
+                        items:
+                          type: string
+                sources:
+                  description: Sources of this traffic target.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - kind
+                    properties:
+                      kind:
+                        description: Kind of this source.
+                        type: string
+                      name:
+                        description: Name of this source.
+                        type: string
+                      namespace:
+                        description: Namespace of this source.
+                        type: string
+    - name: v1alpha2
+      served: false
+      storage: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - destination
+              properties:
+                destination:
+                  description: The destination of this traffic target.
+                  type: object
+                  required:
+                    - name
+                    - kind
+                  properties:
+                    kind:
+                      description: Kind of the destination.
+                      type: string
+                    name:
+                      description: Name of the destination.
+                      type: string
+                    namespace:
+                      description: Namespace of the destination.
+                      type: string
+                    port:
+                      description: Port number of the destination.
+                      type: number
+                rules:
+                  description: Specifications of this traffic target.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - kind
+                    properties:
+                      kind:
+                        description: Kind of this spec.
+                        type: string
+                        enum:
+                          - HTTPRouteGroup
+                          - TCPRoute
+                      name:
+                        description: Name of this spec.
+                        type: string
+                      matches:
+                        description: Match conditions of this spec.
+                        type: array
+                        items:
+                          type: string
+                sources:
+                  description: Sources of this traffic target.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - kind
+                    properties:
+                      kind:
+                        description: Kind of this source.
+                        type: string
+                      name:
+                        description: Name of this source.
+                        type: string
+                      namespace:
+                        description: Namespace of this source.
+                        type: string
+    - name: v1alpha1
+      served: false
+      storage: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - destination
+          properties:
+            destination:
+              description: The destination of this traffic target.
+              type: object
+              required:
+                - name
+                - kind
+                - port
+              properties:
+                kind:
+                  description: Kind of the destination.
+                  type: string
+                name:
+                  description: Name of the destination.
+                  type: string
+                namespace:
+                  description: Namespace of the destination.
+                  type: string
+                port:
+                  description: Port number of the destination.
+                  type: number
+            specs:
+              description: Specifications of this traffic target.
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - kind
+                properties:
+                  kind:
+                    description: Kind of this spec.
+                    type: string
+                    enum:
+                      - HTTPRouteGroup
+                      - TCPRoute
+                  name:
+                    description: Name of this spec.
+                    type: string
+                  matches:
+                    description: Match conditions of this spec.
+                    type: array
+                    items:
+                      type: string
+            sources:
+              description: Sources of this traffic target.
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - kind
+                properties:
+                  kind:
+                    description: Kind of this source.
+                    type: string
+                  name:
+                    description: Name of this source.
+                    type: string
+                  namespace:
+                    description: Namespace of this source.
+                    type: string
