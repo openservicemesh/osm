@@ -36,7 +36,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
 	// Check we get HTTP connection manager filter without Permissive mode
-	filter, err := lb.getOutboundHTTPFilter()
+	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
 
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
@@ -46,7 +46,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	filter, err = lb.getOutboundHTTPFilter()
+	filter, err = lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
