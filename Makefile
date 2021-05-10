@@ -53,15 +53,15 @@ check-go-version: # Ensure the Go version used is what OSM requires
 	@if [ $(GO_VERSION_MAJOR) -gt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
 		exit 0 ;\
 	elif [ $(GO_VERSION_MAJOR) -lt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
-		@echo -e '$(GO_VERSION_MESSAGE)';\
+		echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	elif [ $(GO_VERSION_MINOR) -gt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
 		exit 0; \
 	elif [ $(GO_VERSION_MINOR) -lt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
-		@echo -e '$(GO_VERSION_MESSAGE)';\
+		echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	elif [ $(GO_VERSION_PATCH) -lt $(MIN_REQUIRED_GO_VERSION_PATCH) ] ; then \
-		@echo -e '$(GO_VERSION_MESSAGE)';\
+		echo -e '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
 	fi
 
