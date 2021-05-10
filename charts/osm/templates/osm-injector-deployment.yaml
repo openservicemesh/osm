@@ -25,12 +25,8 @@ spec:
         prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
-      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 3000
-        fsGroup: 2000
-        supplementalGroups: [5555]
+      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       nodeSelector:
         kubernetes.io/arch: amd64
