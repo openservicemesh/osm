@@ -101,6 +101,8 @@ To install OSM on OpenShift:
 
 ### Pod Security Policy
 
+OSM support for Pod Security Policy is still a work in progress. Some features may not be fully supported. Any issues can be filed in the [OSM GitHub repo](https://github.com/openservicemesh/osm/issues).
+
 If you are running OSM in a cluster with PSPs enabled, pass in `--set OpenServiceMesh.pspEnabled=true` to your `osm install` or `helm install` CLI command.
 
 ## Inspect OSM Components
