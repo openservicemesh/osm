@@ -182,7 +182,7 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 		InitContainerImage:            spec.Sidecar.InitContainerImage,
 		ServiceCertValidityDuration:   spec.Certificate.ServiceCertValidityDuration,
 		OutboundIPRangeExclusionList:  strings.Join(spec.Traffic.OutboundIPRangeExclusionList, ","),
-		OutboundPortExclusionList:     strings.Join(spec.Traffic.OutboundPortExclusionList, ","),
+		OutboundPortExclusionList:     spec.Traffic.OutboundPortExclusionList,
 		EnablePrivilegedInitContainer: spec.Sidecar.EnablePrivilegedInitContainer,
 		PrometheusScraping:            spec.Observability.PrometheusScraping,
 		ConfigResyncInterval:          spec.Sidecar.ConfigResyncInterval,
@@ -337,7 +337,7 @@ type osmConfig struct {
 	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
 
 	// OutboundPortExclusionList is the list of outbound ports to exclude from sidecar interception
-	OutboundPortExclusionList string `yaml:"outbound_port_exclusion_list"`
+	OutboundPortExclusionList []int `yaml:"outbound_port_exclusion_list"`
 
 	EnablePrivilegedInitContainer bool `yaml:"enable_privileged_init_container"`
 

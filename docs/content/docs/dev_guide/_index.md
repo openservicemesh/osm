@@ -70,7 +70,7 @@ OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane
 
 ## Get Go-ing
 
-This Open Service Mesh project uses [Go v1.15](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
+This Open Service Mesh project uses [Go v1.15.7+](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
 
 ## Get the dependencies
 
@@ -79,6 +79,8 @@ The OSM packages rely on many external Go libraries.
 Take a peek at the `go.mod` file in the root of this repository to see all dependencies.
 
 Run `go get -d ./...` to download all required Go packages.
+
+Also the project requires Docker. See how to install Docker [here].(https://docs.docker.com/engine/install/)
 
 #### Makefile
 

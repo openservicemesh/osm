@@ -18,6 +18,9 @@ spec:
         {{- include "osm.labels" . | nindent 8 }}
         app: jaeger
     spec:
+      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
       containers:
       - name: jaeger
         image: jaegertracing/all-in-one

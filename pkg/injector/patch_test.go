@@ -114,33 +114,33 @@ func TestMergePortExclusionLists(t *testing.T) {
 
 	testCases := []struct {
 		name                              string
-		podOutboundPortExclusionList      []string
-		globalOutboundPortExclusionList   []string
-		expectedOutboundPortExclusionList []string
+		podOutboundPortExclusionList      []int
+		globalOutboundPortExclusionList   []int
+		expectedOutboundPortExclusionList []int
 	}{
 		{
 			name:                              "overlap in global and pod outbound exclusion list",
-			podOutboundPortExclusionList:      []string{"6060", "7070"},
-			globalOutboundPortExclusionList:   []string{"6060", "8080"},
-			expectedOutboundPortExclusionList: []string{"6060", "7070", "8080"},
+			podOutboundPortExclusionList:      []int{6060, 7070},
+			globalOutboundPortExclusionList:   []int{6060, 8080},
+			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
 		},
 		{
 			name:                              "no overlap in global and pod outbound exclusion list",
-			podOutboundPortExclusionList:      []string{"6060", "7070"},
-			globalOutboundPortExclusionList:   []string{"8080"},
-			expectedOutboundPortExclusionList: []string{"6060", "7070", "8080"},
+			podOutboundPortExclusionList:      []int{6060, 7070},
+			globalOutboundPortExclusionList:   []int{8080},
+			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
 		},
 		{
 			name:                              "pod outbound exclusion list is nil",
 			podOutboundPortExclusionList:      nil,
-			globalOutboundPortExclusionList:   []string{"8080"},
-			expectedOutboundPortExclusionList: []string{"8080"},
+			globalOutboundPortExclusionList:   []int{8080},
+			expectedOutboundPortExclusionList: []int{8080},
 		},
 		{
 			name:                              "global outbound exclusion list is nil",
-			podOutboundPortExclusionList:      []string{"6060", "7070"},
+			podOutboundPortExclusionList:      []int{6060, 7070},
 			globalOutboundPortExclusionList:   nil,
-			expectedOutboundPortExclusionList: []string{"6060", "7070"},
+			expectedOutboundPortExclusionList: []int{6060, 7070},
 		},
 		{
 			name:                              "no global or pod level outbound exclusion list",

@@ -176,7 +176,7 @@ func (in *TrafficSpec) DeepCopyInto(out *TrafficSpec) {
 	}
 	if in.OutboundPortExclusionList != nil {
 		in, out := &in.OutboundPortExclusionList, &out.OutboundPortExclusionList
-		*out = make([]string, len(*in))
+		*out = make([]int, len(*in))
 		copy(*out, *in)
 	}
 	return
