@@ -1,6 +1,9 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // MeshConfig is the configuration for the service mesh overall
 // +genclient
@@ -23,12 +26,13 @@ type MeshConfigSpec struct {
 
 // SidecarSpec is the spec for OSM's sidecar configuration
 type SidecarSpec struct {
-	EnablePrivilegedInitContainer bool   `json:"enablePrivilegedInitContainer,omitempty"`
-	LogLevel                      string `json:"logLevel,omitempty"`
-	EnvoyImage                    string `json:"envoyImage,omitempty"`
-	InitContainerImage            string `json:"initContainerImage,omitempty"`
-	MaxDataPlaneConnections       int    `json:"maxDataPlaneConnections,omitempty"`
-	ConfigResyncInterval          string `json:"configResyncInterval,omitempty"`
+	EnablePrivilegedInitContainer bool                        `json:"enablePrivilegedInitContainer,omitempty"`
+	LogLevel                      string                      `json:"logLevel,omitempty"`
+	EnvoyImage                    string                      `json:"envoyImage,omitempty"`
+	InitContainerImage            string                      `json:"initContainerImage,omitempty"`
+	MaxDataPlaneConnections       int                         `json:"maxDataPlaneConnections,omitempty"`
+	ConfigResyncInterval          string                      `json:"configResyncInterval,omitempty"`
+	Resources                     corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // TrafficSpec is the spec for OSM's traffic management configuration
