@@ -1113,6 +1113,29 @@ func (td *OsmTestData) WaitForNamespacesDeleted(namespaces []string, timeout tim
 		})
 }
 
+// WaitForPodsDeleted waits for the pods to be deleted.
+func (td *OsmTestData) WaitForPodsDeleted(pods *corev1.PodList, namespace string, timeout time.Duration) error {
+	By(fmt.Sprintf("Waiting for pods to vanish from namespace %s", namespace))
+	podMap := map[string]bool{}
+	for _, pod := range pods.Items {
+		podMap[string(pod.GetUID())] = true
+	}
+	//Now POLL until all pods have been eradicated.
+	return wait.Poll(2*time.Second, timeout,
+		func() (bool, error) {
+			podList, err := td.Client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+			for _, item := range podList.Items {
+				if _, ok := podMap[string(item.GetUID())]; ok {
+					return false, nil
+				}
+			}
+			return true, nil
+		})
+}
+
 // RunLocal Executes command on local
 func (td *OsmTestData) RunLocal(path string, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
 	cmd := exec.Command(path, args...) // #nosec G204
