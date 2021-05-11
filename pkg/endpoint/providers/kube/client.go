@@ -2,6 +2,7 @@ package kube
 
 import (
 	"net"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -14,6 +15,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
+)
+
+const (
+	clusterIPNone = "none"
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
@@ -215,8 +220,8 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 		return nil, errServiceNotFound
 	}
 
-	if len(kubeService.Spec.ClusterIP) == 0 {
-		// If service has no cluster IP, use final endpoint as resolvable destinations
+	if len(kubeService.Spec.ClusterIP) == 0 || strings.ToLower(kubeService.Spec.ClusterIP) == clusterIPNone {
+		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
 		return c.ListEndpointsForService(svc), nil
 	}
 
