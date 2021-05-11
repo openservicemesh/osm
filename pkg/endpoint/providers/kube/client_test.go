@@ -164,6 +164,57 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		}))
 	})
 
+	It("GetResolvableEndpoints should properly return actual endpoints when ClusterIP is none", func() {
+
+		// If the service has cluster IP set to none, expect the individual pod endpoints
+		mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: clusterIPNone,
+				Ports: []corev1.ServicePort{{
+					Name:     "servicePort",
+					Protocol: corev1.ProtocolTCP,
+					Port:     tests.ServicePort,
+				}},
+				Selector: map[string]string{
+					"some-label": "test",
+				},
+			},
+		})
+
+		mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP: "8.8.8.8",
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Name:     "port",
+							Port:     88,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		}, nil)
+
+		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(8, 8, 8, 8),
+				Port: 88,
+			},
+		}))
+	})
+
 	It("should correctly return the port to protocol mapping for a service's endpoints", func() {
 
 		appProtoHTTP := "http"
