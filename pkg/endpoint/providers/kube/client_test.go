@@ -173,7 +173,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 				Namespace: tests.BookbuyerService.Namespace,
 			},
 			Spec: corev1.ServiceSpec{
-				ClusterIP: clusterIPNone,
+				ClusterIP: corev1.ClusterIPNone,
 				Ports: []corev1.ServicePort{{
 					Name:     "servicePort",
 					Protocol: corev1.ProtocolTCP,
