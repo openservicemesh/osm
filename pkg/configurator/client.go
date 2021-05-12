@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -76,6 +77,9 @@ const (
 
 	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
 	configResyncIntervalKey = "config_resync_interval"
+
+	// proxyResources is the key used to configure proxy resources
+	proxyResourcesKey = "proxy_resources"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -188,6 +192,7 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 		ConfigResyncInterval:          spec.Sidecar.ConfigResyncInterval,
 		MaxDataPlaneConnections:       spec.Sidecar.MaxDataPlaneConnections,
 		TracingEnable:                 spec.Observability.Tracing.Enable,
+		proxyResources:                spec.Sidecar.Resources,
 	}
 
 	if spec.Observability.Tracing.Enable {
@@ -343,4 +348,7 @@ type osmConfig struct {
 
 	// ConfigResyncInterval is a flag to configure resync interval for regular proxy broadcast updates
 	ConfigResyncInterval string `yaml:"config_resync_interval"`
+
+	// proxyResources are the proxy resources speficied for a proxy, if any
+	proxyResources corev1.ResourceRequirements
 }

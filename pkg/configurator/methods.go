@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -174,4 +176,9 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 		return time.Duration(0)
 	}
 	return duration
+}
+
+// GetProxyResources returns the `Resources` configured for proxies, if any
+func (c *Client) GetProxyResources() corev1.ResourceRequirements {
+	return c.getMeshConfig().proxyResources
 }
