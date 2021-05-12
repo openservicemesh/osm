@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
