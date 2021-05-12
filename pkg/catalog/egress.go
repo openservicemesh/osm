@@ -44,7 +44,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					DestinationProtocol: portSpec.Protocol,
 				})
 
-			case constants.ProtocolTCP:
+			case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
 				// ---
 				// Build the TCP cluster config for this port
 				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{

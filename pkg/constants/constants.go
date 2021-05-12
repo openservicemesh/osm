@@ -196,4 +196,9 @@ const (
 
 	// gRPC protocol
 	ProtocolGRPC = "grpc"
+
+	// ProtocolTCPServerFirst implies TCP based server first protocols
+	// Ex. MySQL, SMTP, PostgreSQL etc. where the server initiates the first
+	// byte in a TCP connection.
+	ProtocolTCPServerFirst = "tcp-server-first"
 )

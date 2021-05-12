@@ -43,7 +43,7 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 				filterChains = append(filterChains, filterChain)
 			}
 
-		case constants.ProtocolTCP, constants.ProtocolHTTPS:
+		case constants.ProtocolTCP, constants.ProtocolHTTPS, constants.ProtocolTCPServerFirst:
 			// TCP or HTTPS protocol --> TCPProxy filter
 			if filterChain, err := lb.getEgressTCPFilterChain(*match); err != nil {
 				log.Error().Err(err).Msgf("Error building egress filter chain for match [%v]", *match)

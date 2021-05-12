@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -16,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 var testWASM = "some bytes"
@@ -211,3 +214,115 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 		})
 	})
 })
+
+func TestGetFilterMatchPredicateForPorts(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		ports         []int
+		expectedMatch *xds_listener.ListenerFilterChainMatchPredicate
+	}{
+		{
+			name:  "single port to exclude",
+			ports: []int{80},
+			expectedMatch: &xds_listener.ListenerFilterChainMatchPredicate{
+				Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+					DestinationPortRange: &xds_type.Int32Range{
+						Start: 80, // Start is inclusive
+						End:   81, // End is exclusive
+					},
+				},
+			},
+		},
+		{
+			name:  "multiple ports to exclude",
+			ports: []int{80, 90},
+			expectedMatch: &xds_listener.ListenerFilterChainMatchPredicate{
+				Rule: &xds_listener.ListenerFilterChainMatchPredicate_OrMatch{
+					OrMatch: &xds_listener.ListenerFilterChainMatchPredicate_MatchSet{
+						Rules: []*xds_listener.ListenerFilterChainMatchPredicate{
+							{
+								Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+									DestinationPortRange: &xds_type.Int32Range{
+										Start: 80, // Start is inclusive
+										End:   81, // End is exclusive
+									},
+								},
+							},
+							{
+								Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+									DestinationPortRange: &xds_type.Int32Range{
+										Start: 90, // Start is inclusive
+										End:   91, // End is exclusive
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "no ports specified",
+			ports:         nil,
+			expectedMatch: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getFilterMatchPredicateForPorts(tc.ports)
+			assert.Equal(tc.expectedMatch, actual)
+		})
+	}
+}
+
+func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		matches       []*trafficpolicy.TrafficMatch
+		expectedMatch *xds_listener.ListenerFilterChainMatchPredicate
+	}{
+		{
+			name: "no server-first ports",
+			matches: []*trafficpolicy.TrafficMatch{
+				{
+					DestinationProtocol: "tcp",
+					DestinationPort:     80,
+				},
+			},
+			expectedMatch: nil,
+		},
+		{
+			name: "server-first port present",
+			matches: []*trafficpolicy.TrafficMatch{
+				{
+					DestinationProtocol: "tcp",
+					DestinationPort:     80,
+				},
+				{
+					DestinationProtocol: "tcp-server-first",
+					DestinationPort:     100,
+				},
+			},
+			expectedMatch: &xds_listener.ListenerFilterChainMatchPredicate{
+				Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+					DestinationPortRange: &xds_type.Int32Range{
+						Start: 100, // Start is inclusive
+						End:   101, // End is exclusive
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getFilterMatchPredicateForTrafficMatches(tc.matches)
+			assert.Equal(tc.expectedMatch, actual)
+		})
+	}
+}
