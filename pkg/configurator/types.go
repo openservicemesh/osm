@@ -4,6 +4,7 @@ package configurator
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -85,4 +86,7 @@ type Configurator interface {
 	// GetConfigResyncInterval returns the duration for resync interval.
 	// If error or non-parsable value, returns 0 duration
 	GetConfigResyncInterval() time.Duration
+
+	// GetProxyResources returns the `Resources` configured for proxies, if any
+	GetProxyResources() corev1.ResourceRequirements
 }

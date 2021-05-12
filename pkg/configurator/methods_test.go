@@ -7,6 +7,8 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
@@ -385,6 +387,36 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.Equal(1000, cfg.GetMaxDataPlaneConnections())
+			},
+		},
+		{
+			name:                  "GetProxyResources",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				res := cfg.GetProxyResources()
+				assert.Equal(0, len(res.Limits))
+				assert.Equal(0, len(res.Requests))
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceCPU:    resource.MustParse("1"),
+							v1.ResourceMemory: resource.MustParse("256M"),
+						},
+						Limits: v1.ResourceList{
+							v1.ResourceCPU:    resource.MustParse("2"),
+							v1.ResourceMemory: resource.MustParse("512M"),
+						},
+					},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				res := cfg.GetProxyResources()
+				assert.Equal(resource.MustParse("1"), res.Requests[v1.ResourceCPU])
+				assert.Equal(resource.MustParse("256M"), res.Requests[v1.ResourceMemory])
+				assert.Equal(resource.MustParse("2"), res.Limits[v1.ResourceCPU])
+				assert.Equal(resource.MustParse("512M"), res.Limits[v1.ResourceMemory])
 			},
 		},
 	}

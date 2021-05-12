@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockConfigurator is a mock of Configurator interface
@@ -159,6 +160,20 @@ func (m *MockConfigurator) GetOutboundPortExclusionList() []int {
 func (mr *MockConfiguratorMockRecorder) GetOutboundPortExclusionList() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundPortExclusionList))
+}
+
+// GetProxyResources mocks base method
+func (m *MockConfigurator) GetProxyResources() v1.ResourceRequirements {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyResources")
+	ret0, _ := ret[0].(v1.ResourceRequirements)
+	return ret0
+}
+
+// GetProxyResources indicates an expected call of GetProxyResources
+func (mr *MockConfiguratorMockRecorder) GetProxyResources() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyResources", reflect.TypeOf((*MockConfigurator)(nil).GetProxyResources))
 }
 
 // GetServiceCertValidityPeriod mocks base method

@@ -76,6 +76,7 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"EnablePrivilegedInitContainer": enablePrivilegedInitContainerKey,
 				"ConfigResyncInterval":          configResyncIntervalKey,
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
+				"ProxyResources":                proxyResourcesKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
