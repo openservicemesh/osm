@@ -404,6 +404,15 @@
                         "1000"
                     ]
                 },
+                "configResyncInterval": {
+                    "$id": "#/properties/OpenServiceMesh/properties/configResyncInterval",
+                    "type": "string",
+                    "title": "The configResyncInterval schema",
+                    "description": "Sets the resync interval for regular proxy broadcast updates",
+                    "examples": [
+                        "30s"
+                    ]
+                },
                 "envoyLogLevel": {
                     "$id": "#/properties/OpenServiceMesh/properties/envoyLogLevel",
                     "type": "string",

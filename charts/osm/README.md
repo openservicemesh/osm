@@ -64,6 +64,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` | cert-manager issuer group |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
+| OpenServiceMesh.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger in the OSM namespace |

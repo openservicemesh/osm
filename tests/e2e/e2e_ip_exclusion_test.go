@@ -29,6 +29,7 @@ func testIPExclusion() {
 	It("Tests HTTP traffic to external server via IP exclusion", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
+		installOpts.EnablePermissiveMode = false // explicitly set to false to demonstrate IP exclusion
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 

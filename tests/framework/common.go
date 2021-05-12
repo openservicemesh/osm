@@ -537,6 +537,23 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		// Store current restart values for CTL processes
 		td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
+		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
+
+		// This resets supported dynamic configs expected by the caller
+		meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
+		meshConfig, err := Td.UpdateOSMConfig(meshConfig)
+		if err != nil {
+			return err
+		}
+		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
+		meshConfig, err = Td.UpdateOSMConfig(meshConfig)
+		if err != nil {
+			return err
+		}
+		meshConfig.Spec.Observability.EnableDebugServer = instOpts.EnableDebugServer
+		if _, err = Td.UpdateOSMConfig(meshConfig); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -677,7 +694,6 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*v1alpha1.MeshConfig, er
 	if err != nil {
 		return nil, err
 	}
-	td.T.Logf("GetMeshConfig(): %v", meshConfig)
 	return meshConfig, nil
 }
 

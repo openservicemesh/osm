@@ -18,7 +18,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const meshConfigName = "osm-mesh-config"
+const (
+	meshConfigName       = "osm-mesh-config"
+	presetMeshConfigName = "preset-mesh-config"
+)
 
 var (
 	flags = pflag.NewFlagSet("init-osm-controller", pflag.ExitOnError)
@@ -52,7 +55,7 @@ func validateCLIParams() error {
 	return nil
 }
 
-func createDefaultMeshConfig() *v1alpha1.MeshConfig {
+func createDefaultMeshConfig(presetMeshConfig *v1alpha1.MeshConfig) *v1alpha1.MeshConfig {
 	return &v1alpha1.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
@@ -61,30 +64,7 @@ func createDefaultMeshConfig() *v1alpha1.MeshConfig {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,
 		},
-		Spec: v1alpha1.MeshConfigSpec{
-			Sidecar: v1alpha1.SidecarSpec{
-				LogLevel:                      "error",
-				EnvoyImage:                    "envoyproxy/envoy-alpine:v1.17.2",
-				InitContainerImage:            "openservicemesh/init:v0.8.3",
-				EnablePrivilegedInitContainer: false,
-				MaxDataPlaneConnections:       0,
-			},
-			Traffic: v1alpha1.TrafficSpec{
-				EnableEgress:                      false,
-				UseHTTPSIngress:                   false,
-				EnablePermissiveTrafficPolicyMode: false,
-			},
-			Observability: v1alpha1.ObservabilitySpec{
-				EnableDebugServer:  false,
-				PrometheusScraping: true,
-				Tracing: v1alpha1.TracingSpec{
-					Enable: false,
-				},
-			},
-			Certificate: v1alpha1.CertificateSpec{
-				ServiceCertValidityDuration: "24h",
-			},
-		},
+		Spec: presetMeshConfig.Spec,
 	}
 }
 
@@ -112,9 +92,18 @@ func main() {
 		return
 	}
 
-	meshConfig := createDefaultMeshConfig()
+	presetMeshConfig, presetConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
+	_, meshConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 
-	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), meshConfig, metav1.CreateOptions{}); err == nil {
+	// If the presetMeshConfig could not be loaded and a default meshConfig doesn't exist, return the error
+	if presetConfigErr != nil && apierrors.IsNotFound(meshConfigErr) {
+		log.Fatal().Err(err).Msgf("Unable to create default meshConfig, as %s could not be found", presetMeshConfigName)
+		return
+	}
+
+	defaultMeshConfig := createDefaultMeshConfig(presetMeshConfig)
+
+	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
 	} else if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", osmNamespace)
