@@ -25,6 +25,7 @@ import (
 const (
 	// clusterConnectTimeout is the timeout duration used by Envoy to timeout connections to the cluster
 	clusterConnectTimeout = 1 * time.Second
+	MaxConnectionThreshold = 1024*5
 )
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
@@ -51,6 +52,9 @@ func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePor
 		*/
 		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds:   makeWSThresholds(),
+		},
 	}
 
 	log.Debug().Msgf("cfg.IsPermissiveTrafficPolicyMode()=%+v", cfg.IsPermissiveTrafficPolicyMode())
@@ -89,6 +93,9 @@ func getWSEdgePodUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			CircuitBreakers: &xds_cluster.CircuitBreakers{
+				Thresholds:   makeWSThresholds(),
+			},
 		}
 
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
@@ -106,6 +113,9 @@ func getWSEdgePodUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			CircuitBreakers: &xds_cluster.CircuitBreakers{
+				Thresholds:   makeWSThresholds(),
+			},
 		}
 
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
@@ -123,6 +133,9 @@ func getWSEdgePodUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			CircuitBreakers: &xds_cluster.CircuitBreakers{
+				Thresholds:   makeWSThresholds(),
+			},
 		}
 
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
@@ -151,6 +164,9 @@ func getWSUnicastUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			CircuitBreakers: &xds_cluster.CircuitBreakers{
+				Thresholds:   makeWSThresholds(),
+			},
 		}
 
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
@@ -172,6 +188,9 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
 		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds:   makeWSThresholds(),
+		},
 	}
 }
 
@@ -210,8 +229,12 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			},
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			CircuitBreakers: &xds_cluster.CircuitBreakers{
+				Thresholds:   makeWSThresholds(),
+			},
 		}
 
+	//Thresholds:  []*xds_cluster.CircuitBreakers_Thresholds{Threshold = threshold,},
 		localityEndpoint := &xds_endpoint.LocalityLbEndpoints{
 			Locality: &xds_core.Locality{
 				Zone: "zone",
@@ -267,5 +290,8 @@ func getPrometheusCluster() xds_cluster.Cluster {
 		},
 		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds:   makeWSThresholds(),
+		},
 	}
 }
