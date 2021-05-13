@@ -28,6 +28,7 @@ type meshInfo struct {
 	controllerPods       []string
 	version              string
 	smiSupportedVersions []string
+	monitoredNamespaces  []string
 }
 
 func newMeshList(out io.Writer) *cobra.Command {

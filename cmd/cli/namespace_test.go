@@ -570,7 +570,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted2", "mesh2", false)
 			addNamespace("not-enlisted", "", false)
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -596,7 +596,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted2", "mesh2", false)
 			listCmd.meshName = "mesh2"
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -614,7 +614,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted1", "mesh1", true)
 			addNamespace("enlisted2", "mesh2", false)
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -641,7 +641,7 @@ var _ = Describe("Running the namespace list command", func() {
 
 			listCmd.meshName = "someothermesh"
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(namespaces.Items)).To(Equal(0))
 		})
