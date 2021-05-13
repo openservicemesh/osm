@@ -44,11 +44,11 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ### Features
 
 1. Easily and transparently configure [traffic shifting][3] for deployments
-1. Secure service to service communication by [enabling mTLS](docs/content/docs/tasks_usage/certificates.md)
+1. Secure service to service communication by [enabling mTLS](https://docs.openservicemesh.io/docs/tasks_usage/certificates/)
 1. Define and execute fine grained [access control][4] policies for services
-1. [Observability](docs/content/docs/patterns/observability/_index.md) and insights into application metrics for debugging and monitoring services
-1. Integrate with [external certificate management](docs/content/docs/tasks_usage/certificates.md) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/content/docs/tasks_usage/sidecar_injection.md) of Envoy proxy
+1. [Observability](https://docs.openservicemesh.io/docs/troubleshooting/observability/) and insights into application metrics for debugging and monitoring services
+1. Integrate with [external certificate management](https://docs.openservicemesh.io/docs/tasks_usage/certificates/) services/solutions with a pluggable interface
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://docs.openservicemesh.io/docs/tasks_usage/sidecar_injection/) of Envoy proxy
 
 ### Project status
 
@@ -95,22 +95,22 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
-See the [installation guide](docs/content/docs/install/_index.md) for more detailed options.
+See the [installation guide](https://docs.openservicemesh.io/docs/install/) for more detailed options.
 
 ## Demonstration
 
-The OSM [Bookstore demo](docs/content/docs/install/manual_demo/_index.md) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
+The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/install/manual_demo/) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
 
 ## Using OSM
 
-After installing OSM, [onboard a microservice application](docs/content/docs/tasks_usage/onboard_services.md) to the service mesh.
+After installing OSM, [onboard a microservice application](https://docs.openservicemesh.io/docs/tasks_usage/onboard_services/) to the service mesh.
 
 ### OSM Usage Patterns
 
-1. [Traffic Management](docs/content/docs/tasks_usage/traffic_management/_index.md)
-1. [Observability](docs/content/docs/tasks_usage/observability/_index.md)
-1. [Certificates](docs/content/docs/tasks_usage/certificates.md)
-1. [Sidecar Injection](docs/content/docs/tasks_usage/sidecar_injection.md)
+1. [Traffic Management](https://docs.openservicemesh.io/docs/tasks_usage/traffic_management/)
+1. [Observability](https://docs.openservicemesh.io/docs/troubleshooting/observability/)
+1. [Certificates](https://docs.openservicemesh.io/docs/tasks_usage/certificates/)
+1. [Sidecar Injection](https://docs.openservicemesh.io/docs/tasks_usage/sidecar_injection/)
 
 
 ## Community
