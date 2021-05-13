@@ -210,9 +210,9 @@ Notice the `Author` and `Signed-off-by` lines match. If they don't your PR will 
 automated DCO check.
 
 ## Contributing Documentation
-OSM's primary documentation is made available at https://docs.openservicemesh.io/. Any documentation content that needs to be visible on the website must be created in the `docs/content` folder. Content that should not be served on the website must be created outside the `docs/content` folder. Since it is hard to have links to markdown file references that are navigable both on the `docs.openservicemesh.io` website and Github, the project has prioritized the website experience over Github. This means it is okay for links to be navigable on the website but not on Github. Any content that is available on the website must be made navigable within the website and not redirect to Github.
+OSM's primary documentation is made available at [https://docs.openservicemesh.io/](https://docs.openservicemesh.io/). Any documentation content that needs to be visible on the website must be created in the [`osm-docs`](https://github.com/openservicemesh/osm-docs) repository. Refer to the [OSM documentation guide](https://github.com/openservicemesh/osm-docs/blob/main/README.md) for more details.
 
-Refer to the [OSM documentation guide](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/README.md) for more details.
+Documentation that is primarily intended for use with this code repo (instead of as a website) can be found in [docs/]((docs/).
 
 ## Roadmap
 We use [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
