@@ -9,6 +9,7 @@ spec:
     maxDataPlaneConnections: 0
     envoyImage: "envoyproxy/envoy-alpine:v1.17.2"
     initContainerImage: "openservicemesh/init:v0.8.3"
+    configResyncInterval: "0s"
   traffic:
     enableEgress: false
     useHTTPSIngress: false
@@ -16,6 +17,8 @@ spec:
   observability:
     enableDebugServer: true
     prometheusScraping: true
+    outboundPortExclusionList: []
+    outboundIPRangeExclusionList: []
     tracing:
       enable: false
   certificate:

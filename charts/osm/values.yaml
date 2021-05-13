@@ -109,6 +109,8 @@ OpenServiceMesh:
   envoyLogLevel: error
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
+   # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
+  configResyncInterval: "0s"
   # -- Controller log verbosity
   controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster

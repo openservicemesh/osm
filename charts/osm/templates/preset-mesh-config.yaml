@@ -1,0 +1,30 @@
+apiVersion: config.openservicemesh.io/v1alpha1
+kind: MeshConfig
+metadata:
+  name: preset-mesh-config
+spec:
+  sidecar:
+    enablePrivilegedInitContainer: {{.Values.OpenServiceMesh.enablePrivilegedInitContainer}}
+    logLevel: {{.Values.OpenServiceMesh.envoyLogLevel}}
+    maxDataPlaneConnections: {{.Values.OpenServiceMesh.maxDataPlaneConnections}}
+    envoyImage: {{.Values.OpenServiceMesh.sidecarImage}}
+    initContainerImage: "{{ .Values.OpenServiceMesh.image.registry }}/init:{{ .Values.OpenServiceMesh.image.tag }}"
+    configResyncInterval: {{.Values.OpenServiceMesh.configResyncInterval}}
+  traffic:
+    enableEgress: {{.Values.OpenServiceMesh.enableEgress}}
+    useHTTPSIngress: {{.Values.OpenServiceMesh.useHTTPSIngress}}
+    enablePermissiveTrafficPolicyMode: {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy}}
+    outboundPortExclusionList: {{.Values.OpenServiceMesh.outboundPortExclusionList}}
+    outboundIPRangeExclusionList: {{.Values.OpenServiceMesh.outboundIPRangeExclusionList}}
+  observability:
+    enableDebugServer: {{.Values.OpenServiceMesh.enableDebugServer}}
+    prometheusScraping: {{.Values.OpenServiceMesh.enablePrometheusScraping}}
+    tracing:
+      enable: {{.Values.OpenServiceMesh.tracing.enable}}
+      {{- if .Values.OpenServiceMesh.tracing.enable }}
+      port: {{.Values.OpenServiceMesh.tracing.port}}
+      address: {{.Values.OpenServiceMesh.tracing.address | quote}}
+      endpoint: {{.Values.OpenServiceMesh.tracing.endpoint  | quote}}
+      {{- end }}
+  certificate:
+    serviceCertValidityDuration: {{.Values.OpenServiceMesh.serviceCertValidityDuration}}

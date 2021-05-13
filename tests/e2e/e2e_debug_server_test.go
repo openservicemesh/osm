@@ -23,6 +23,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 			It("Starts debug server only when enableDebugServer flag is enabled", func() {
 				// Install OSM
 				installOpts := Td.GetOSMInstallOpts()
+				installOpts.EnableDebugServer = false
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 				meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 
