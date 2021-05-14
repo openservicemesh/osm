@@ -91,3 +91,19 @@ spec:
                       protocol:
                         description: Protocol served by this port.
                         type: string
+                matches:
+                  description: The resource references an Egress policy should match on.
+                  type: array
+                  items:
+                    type: object
+                    required: ['apiGroup', 'kind', 'name']
+                    properties:
+                      apiGroup:
+                        description: API group for the resource being referenced.
+                        type: string
+                      kind:
+                        description: Type of resource being referenced.
+                        type: string
+                      name:
+                        description: Name of resource being referenced.
+                        type: string
