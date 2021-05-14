@@ -63,8 +63,8 @@ metadata:
     helm.sh/hook: post-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
+  - apiGroups: ["config.openservicemesh.io"]
+    resources: ["meshconfigs"]
     verbs: ["delete"]
 
   {{- if .Values.OpenServiceMesh.pspEnabled }}
