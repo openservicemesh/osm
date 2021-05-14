@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("Test access via multiple services matching the same pod",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 3,
+		Bucket: 6,
 	},
 	func() {
 		Context("Multiple services matching same pod", func() {

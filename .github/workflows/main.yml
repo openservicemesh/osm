@@ -162,7 +162,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        bucket: [1, 2, 3, 4]
+        bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     env:
       CTR_TAG: ${{ github.sha }}
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
@@ -193,7 +193,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Tier 1\]\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
         continue-on-error: true
       - name: Upload PR test logs
         if: ${{ steps.pr_test.conclusion != 'skipped' }}

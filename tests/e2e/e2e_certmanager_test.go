@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 2,
+		Bucket: 1,
 	},
 	func() {
 		Context("CertManagerSimpleClientServer", func() {

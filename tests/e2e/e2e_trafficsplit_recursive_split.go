@@ -19,7 +19,7 @@ import (
 var _ = OSMDescribe("Test traffic split where root service is same as backend service",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 2,
+		Bucket: 9,
 	},
 	func() {
 		Context("HTTP traffic splitting with SMI", func() {

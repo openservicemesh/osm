@@ -16,7 +16,7 @@ import (
 var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 4,
+		Bucket: 2,
 	},
 	func() {
 		Context("Fluent Bit deployment", func() {

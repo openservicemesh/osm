@@ -15,7 +15,7 @@ import (
 var _ = OSMDescribe("Test HTTP traffic for different k8s versions",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 1,
+		Bucket: 6,
 	},
 	func() {
 		Context("Version v1.19.7", func() {

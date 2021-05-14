@@ -17,45 +17,9 @@ The tests are written using Ginkgo and Gomega so they may also be directly invok
 OSM's framework, helpers and related files are located under `tests/framework`.
 Once imported, it automatically sets up an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [common.go](tests/framework/common.go) for more details about the init, setup and cleanup processes.
 
-Tests are organized by top-level `Describe` blocks into tiers based on priority. A tier's tests will also be run as a part of all the tiers below it.
-
-- Tier 1: run against every PR and should pass before being merged
-- Tier 2: run against every merge into the main branch
-
-Independent of tiers, tests are also organized into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
-
 ### Test organization
 
-| Test  | Tier | Bucket |
-|--|--|--|
-| e2e_smi_traffic_target_test.go | 1 | 1
-| e2e_trafficsplit_test.go | 1 | 1
-| e2e_permissive_test.go | 1 | 1
-| e2e_deployment_client_server_test.go | 1 | 2
-| e2e_tcp_client_server_test.go | 1 | 2
-| e2e_grpc_insecure_origination_test.go | 1 | 2
-| e2e_http_ingress_test.go | 1 | 3
-| e2e_egress_test.go | 1 | 3
-| e2e_tcp_egress_test.go | 1 | 3
-| e2e_trafficsplit_same_sa_test.go | 1 | 4
-| e2e_pod_client_server_test.go | 1 | 4
-| e2e_helm_install_test.go | 2 | 1
-| e2e_init_controller_test.go | 2 | 1
-| e2e_controller_restart_test.go | 2 | 1
-| e2e_k8s_version_test.go | 2 | 1
-| e2e_hashivault_test.go| 2 | 2
-| e2e_certmanager_test.go | 2 | 2
-| e2e_ip_exclusion_test.go | 2 | 3
-| e2e_port_exclusion_test.go | 2 | 3
-| e2e_grpc_secure_origination_test.go | 2 | 3
-| e2e_multiple_services_per_pod_test.go | 2 | 3
-| e2e_metrics_test.go | 2 | 4
-| e2e_debug_server_test.go | 2 | 4
-| e2e_fluentbit_deployment_test.go | 2 | 4
-| e2e_fluentbit_output_test.go | 2 | 4
-| e2e_upgrade_test.go | 2 | 4
-
-**Note**: These tiers and buckets and which tests fall into each are likely to change as the test suite grows.
+Tests are organized by top-level `Describe` blocks into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
 
 To help organize the tests, a custom `Describe` block named `OSMDescribe` is provided which accepts an additional struct parameter which contains fields for test metadata like tier and bucket. `OSMDescribe` will construct a well-formatted name including the test metadata which can be used in CI to run tests accordingly. Ginkgo's original `Describe` should not be used directly at the top-level and `OSMDescribe` should be used instead.
 

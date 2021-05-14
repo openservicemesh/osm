@@ -10,7 +10,7 @@ import (
 var _ = OSMDescribe("Test init-osm-controller functionalities",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 1,
+		Bucket: 5,
 	},
 	func() {
 		Context("When osm-controller starts in fresh environment", func() {

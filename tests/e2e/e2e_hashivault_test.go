@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 2,
+		Bucket: 4,
 	},
 	func() {
 		Context("HashivaultSimpleClientServer", func() {

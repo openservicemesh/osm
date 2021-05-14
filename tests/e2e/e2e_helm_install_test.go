@@ -10,7 +10,7 @@ import (
 var _ = OSMDescribe("Test osm control plane installation with Helm",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 1,
+		Bucket: 4,
 	},
 	func() {
 		Context("Helm install using default values", func() {

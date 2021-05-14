@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Test health probes can succeed",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 3,
+		Bucket: 4,
 	},
 	func() {
 		It("Configures Pods' probes so they work as expected", func() {

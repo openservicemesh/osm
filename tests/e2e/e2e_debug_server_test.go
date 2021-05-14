@@ -14,7 +14,7 @@ import (
 var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 4,
+		Bucket: 1,
 	},
 	func() {
 		Context("DebugServer", func() {
