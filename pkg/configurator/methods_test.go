@@ -246,7 +246,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			name:                  "GetEnvoyImage",
 			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("envoyproxy/envoy-alpine:v1.17.2", cfg.GetEnvoyImage())
+				assert.Equal("envoyproxy/envoy-alpine:v1.18.3", cfg.GetEnvoyImage())
 			},
 			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Sidecar: v1alpha1.SidecarSpec{

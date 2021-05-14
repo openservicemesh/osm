@@ -56,7 +56,7 @@ const (
 	DefaultEnvoyLogLevel = "error"
 
 	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
-	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.17.2"
+	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.18.3"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
 	DefaultInitContainerImage = "openservicemesh/init:v0.8.3"

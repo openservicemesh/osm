@@ -23,7 +23,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 		Spec: v1alpha1.MeshConfigSpec{
 			Sidecar: v1alpha1.SidecarSpec{
 				LogLevel:                      "error",
-				EnvoyImage:                    "envoyproxy/envoy-alpine:v1.17.2",
+				EnvoyImage:                    "envoyproxy/envoy-alpine:v1.18.3",
 				InitContainerImage:            "openservicemesh/init:v0.8.3",
 				EnablePrivilegedInitContainer: false,
 				MaxDataPlaneConnections:       0,

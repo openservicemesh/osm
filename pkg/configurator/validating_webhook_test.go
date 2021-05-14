@@ -464,10 +464,10 @@ func TestCheckEnvoyLogLevels(t *testing.T) {
 func TestCheckEnvoyImage(t *testing.T) {
 	assert := tassert.New(t)
 	tests := map[string]bool{
-		"envoyproxy/envoy-alpine:v1.17.2": true,
+		"envoyproxy/envoy-alpine:v1.18.3": true,
 		"envoyproxy/envoy-alpine:v1.1.1":  true,
 		"envoyproxy/envoy-alpine":         false,
-		"envoyproxy/envoy:v1.17.2":        false,
+		"envoyproxy/envoy:v1.18.3":        false,
 	}
 
 	for image, expRes := range tests {

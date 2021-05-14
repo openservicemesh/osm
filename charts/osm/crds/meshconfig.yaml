@@ -67,7 +67,7 @@ spec:
                     envoyImage:
                       description: Image for the Envoy sidecar
                       type: string
-                      default: "envoyproxy/envoy-alpine:v1.17.2"
+                      default: "envoyproxy/envoy-alpine:v1.18.3"
                       pattern: envoyproxy\/envoy-alpine:v\d+\.\d+\.\d+$
                     initContainerImage:
                       description: Image for the init container
