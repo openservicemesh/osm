@@ -36,7 +36,7 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 
 ## OSM Components & Interactions
-![OSM Components & Interactions](./docs/content/docs/images/osm-components-and-interactions.png)
+![OSM Components & Interactions](https://docs.openservicemesh.io/docs/images/osm-components-and-interactions.png)
 
 ### Containers
 When a new Pod creation is initiated, OSM's
@@ -81,7 +81,7 @@ Let's take a look at each component:
 ### (1) Proxy Control Plane
 The Proxy Control Plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. OSM implements [Envoy's go-control-plane xDS v3 API](https://github.com/envoyproxy/go-control-plane). The xDS v3 API can also be used to extend the functionality provided by SMI, when [advanced Envoy features are needed](https://github.com/openservicemesh/osm/issues/1376).
 
-The Proxy Control Plane's availability is of foremost importance when it comes to traffic policy enforcement and connectivity management between services. Some of the Control Plane design decisions are heavily influenced by that fact, such as its stateless nature. To read more on the design decisions behind the High Availability design of the Control Plane, please refer to the [HA design doc](/docs/content/docs/HA.md).
+The Proxy Control Plane's availability is of foremost importance when it comes to traffic policy enforcement and connectivity management between services. Some of the Control Plane design decisions are heavily influenced by that fact, such as its stateless nature. To read more on the design decisions behind the High Availability design of the Control Plane, please refer to the [HA design doc](https://docs.openservicemesh.io/docs/ha/).
 
 ### (2) Certificate Manager
 Certificate Manager is a component that provides each service participating in the service mesh with a TLS certificate.

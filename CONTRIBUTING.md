@@ -91,7 +91,7 @@ git push -f
 
 ### Merging pull requests
 Pull requests by default must be merged by a core maintainer using the `Merge pull request` option as a `merge commit`.
-Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/content/docs/automerge.md).
+Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/automerge.md).
 
 Pull requests will be merged based on the following criteria:
 
