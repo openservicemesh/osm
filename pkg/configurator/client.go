@@ -24,46 +24,46 @@ const (
 )
 
 const (
-	// PermissiveTrafficPolicyModeKey is the key name used for permissive mode in the ConfigMap
+	// PermissiveTrafficPolicyModeKey is the key name used for permissive mode in the MeshConfig
 	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 
-	// egressKey is the key name used for egress in the ConfigMap
+	// egressKey is the key name used for egress in the MeshConfig
 	egressKey = "egress"
 
-	// enableDebugServer is the key name used for the debug server in the ConfigMap
+	// enableDebugServer is the key name used for the debug server in the MeshConfig
 	enableDebugServer = "enable_debug_server"
 
-	// prometheusScrapingKey is the key name used for prometheus scraping in the ConfigMap
+	// prometheusScrapingKey is the key name used for prometheus scraping in the MeshConfig
 	prometheusScrapingKey = "prometheus_scraping"
 
-	// useHTTPSIngressKey is the key name used for HTTPS ingress in the ConfigMap
+	// useHTTPSIngressKey is the key name used for HTTPS ingress in the MeshConfig
 	useHTTPSIngressKey = "use_https_ingress"
 
-	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the ConfigMap
+	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the MeshConfig
 	maxDataPlaneConnectionsKey = "max_data_plane_connections"
 
-	// tracingEnableKey is the key name used for tracing in the ConfigMap
+	// tracingEnableKey is the key name used for tracing in the MeshConfig
 	tracingEnableKey = "tracing_enable"
 
-	// tracingAddressKey is the key name used to specify the tracing address in the ConfigMap
+	// tracingAddressKey is the key name used to specify the tracing address in the MeshConfig
 	tracingAddressKey = "tracing_address"
 
-	// tracingPortKey is the key name used to specify the tracing port in the ConfigMap
+	// tracingPortKey is the key name used to specify the tracing port in the MeshConfig
 	tracingPortKey = "tracing_port"
 
-	// tracingEndpointKey is the key name used to specify the tracing endpoint in the ConfigMap
+	// tracingEndpointKey is the key name used to specify the tracing endpoint in the MeshConfig
 	tracingEndpointKey = "tracing_endpoint"
 
-	// envoyLogLevel is the key name used to specify the log level of Envoy proxy in the ConfigMap
+	// envoyLogLevel is the key name used to specify the log level of Envoy proxy in the MeshConfig
 	envoyLogLevelKey = "envoy_log_level"
 
-	// envoyImage is the key name used to specify the image of the Envoy proxy in the ConfigMap
+	// envoyImage is the key name used to specify the image of the Envoy proxy in the MeshConfig
 	envoyImageKey = "envoy_image"
 
-	// initContainerImage is the key name used to specify the init container image in the ConfigMap
+	// initContainerImage is the key name used to specify the init container image in the MeshConfig
 	initContainerImage = "init_container_image"
 
-	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
+	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the MeshConfig
 	serviceCertValidityDurationKey = "service_cert_validity_duration"
 
 	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
@@ -72,7 +72,7 @@ const (
 	// outboundPortExclusionListKey is the key name used to specify the ports to exclude from outbound sidecar interception
 	outboundPortExclusionListKey = "outbound_port_exclusion_list"
 
-	// enablePrivilegedInitContainerKey is the key name used to specify whether init containers should be privileged in the ConfigMap
+	// enablePrivilegedInitContainerKey is the key name used to specify whether init containers should be privileged in the MeshConfig
 	enablePrivilegedInitContainerKey = "enable_privileged_init_container"
 
 	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
@@ -118,8 +118,8 @@ func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct
 	return &client
 }
 
-// Listens to ConfigMap events and notifies dispatcher to issue config updates to the envoys based
-// on config seen on the configmap
+// Listens to MeshConfig events and notifies dispatcher to issue config updates to the envoys based
+// on config seen on the MeshConfig
 func (c *Client) runMeshConfigListener(stop <-chan struct{}) {
 	// Create the subscription channel synchronously
 	cfgSubChannel := events.GetPubSubInstance().Subscribe(
@@ -226,7 +226,7 @@ func meshConfigDeletedMessageHandler(psubMsg *events.PubSubMessage) {
 }
 
 func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
-	// Get config map
+	// Get the MeshConfig resource
 	prevMeshConfigObj, okPrevCast := psubMsg.OldObj.(*v1alpha1.MeshConfig)
 	newMeshConfigObj, okNewCast := psubMsg.NewObj.(*v1alpha1.MeshConfig)
 	if !okPrevCast || !okNewCast {
@@ -268,7 +268,7 @@ func (c *Client) getMeshConfigCacheKey() string {
 	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
 }
 
-// Returns the current ConfigMap
+// Returns the current MeshConfig
 func (c *Client) getMeshConfig() *osmConfig {
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
 	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
@@ -288,7 +288,7 @@ func (c *Client) getMeshConfig() *osmConfig {
 	return parseOSMMeshConfig(meshConfig)
 }
 
-// This struct must match the shape of the "osm-config" ConfigMap
+// This struct must match the shape of the "osm-mesh-config" MeshConfig
 // which was created in the OSM namespace.
 type osmConfig struct {
 	// PermissiveTrafficPolicyMode is a bool toggle, which when TRUE ignores SMI policies and

@@ -25,4 +25,4 @@ spec:
             - sh
             - -c
             - >
-             kubectl delete --ignore-not-found configmap -n '{{ include "osm.namespace" . }}' osm-config;
+             kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;

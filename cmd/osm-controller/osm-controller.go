@@ -160,7 +160,7 @@ func main() {
 	// Start the default metrics store
 	startMetricsStore()
 
-	// This component will be watching the OSM ConfigMap and will make it
+	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 	meshConfig, err := cfg.GetMeshConfigJSON()

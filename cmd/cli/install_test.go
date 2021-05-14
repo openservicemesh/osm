@@ -542,7 +542,7 @@ var _ = Describe("deployPrometheus is true", func() {
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
-		Expect(out.String()).To(Equal("Prometheus scraping is disabled. To enable it, set prometheus_scraping in osm-system/osm-config to true.\nOSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
+		Expect(out.String()).To(Equal("Prometheus scraping is disabled. To enable it, set prometheus_scraping in osm-system/osm-mesh-config to true.\nOSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 	})
 })
 

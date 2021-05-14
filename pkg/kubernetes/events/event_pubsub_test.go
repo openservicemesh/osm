@@ -24,15 +24,6 @@ func TestPubSubEvents(t *testing.T) {
 		{
 			register: announcements.EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.ConfigMapAdded,
-				NewObj:           struct{}{},
-				OldObj:           nil,
-			},
-			expectMessage: false,
-		},
-		{
-			register: announcements.EndpointAdded,
-			publish: PubSubMessage{
 				AnnouncementType: announcements.EndpointAdded,
 				NewObj:           nil,
 				OldObj:           "randomString",
