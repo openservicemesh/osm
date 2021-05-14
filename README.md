@@ -128,7 +128,7 @@ Connect with the Open Service Mesh community:
 
 ## Development Guide
 
-If you would like to contribute to OSM, check out the [development guide](docs/content/docs/dev_guide/_index.md).
+If you would like to contribute to OSM, check out the [development guide](docs/dev_guide/_index.md).
 
 ## Code of Conduct
 
