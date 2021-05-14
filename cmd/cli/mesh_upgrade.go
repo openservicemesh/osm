@@ -15,31 +15,31 @@ import (
 )
 
 const (
-	defaultUseHTTPSIngress               = false
-	defaultEnableTracing                 = true
-	defaultPrivilegedInitContainer       = false
-	defaultContainerRegistry             = "openservicemesh"
-	defaultOsmImageTag                   = "v0.8.3"
-	defaultEnablePermissiveTrafficPolicy = false
-	defaultEnableEgress                  = false
-	defaultEnableDebugServer             = false
-	defaultEnablePrometheusScraping      = true
+	defaultContainerRegistry = "openservicemesh"
+	defaultOsmImageTag       = "v0.8.3"
 )
 
 const upgradeDesc = `
-This command upgrades an OSM control plane configuration by upgrading the
+This command upgrades an OSM control plane by upgrading the
 underlying Helm release.
 
 The mesh to upgrade is identified by its mesh name and namespace. If either were
 overridden from the default for the "osm install" command, the --mesh-name and
 --osm-namespace flags need to be specified.
 
-By default, if flags tied to Helm chart values are not specified for "osm mesh
-upgrade", then the value from the current release will be carried over to the
-new release. Two exceptions to this rule are --container-registry and
---osm-image-tag, which will be overridden from the old release by default. Note
-that edits to resources NOT made by Helm or the OSM CLI may not persist after
+Values from the current Helm release will be carried over to the new release
+with the exception of OpenServiceMesh.image.registry (--container-registry) and
+OpenServiceMesh.image.tag (--osm-image-tag), which will be overridden from the
+old release by default. 
+
+Note: edits to resources NOT made by Helm or the OSM CLI may not persist after
 "osm mesh upgrade" is run.
+
+Note: edits made to chart values that impact the preset-mesh-config will not
+apply to the osm-mesh-config, when "osm mesh upgrade" is run. This means configuration 
+changes made to the osm-mesh-config resource will persist through an upgrade
+and any configuration changes needed can be done by patching this resource prior or 
+post an upgrade.
 
 If any CustomResourceDefinitions (CRDs) are different between the installed
 chart and the upgraded chart, the CRDs (and any corresponding custom resources)
@@ -48,10 +48,9 @@ updating the mesh to ensure compatibility.
 `
 
 const meshUpgradeExample = `
-# Upgrade the mesh with the default name in the osm-system namespace, setting
-# OpenServiceMesh.enableEgress to false, setting the image registry and tag to
-# the defaults, and leaving all other values unchanged.
-osm mesh upgrade --osm-namespace osm-system --enable-egress=false
+# Upgrade the mesh with the default name in the osm-system namespace, setting 
+# the image registry and tag to the defaults, and leaving all other values unchanged.
+osm mesh upgrade --osm-namespace osm-system
 `
 
 type meshUpgradeCmd struct {
@@ -62,71 +61,20 @@ type meshUpgradeCmd struct {
 
 	containerRegistry string
 	osmImageTag       string
-
-	// Bools are pointers so we can differentiate between true/false/unset
-	enablePermissiveTrafficPolicy *bool
-	enableEgress                  *bool
-	enableDebugServer             *bool
-	envoyLogLevel                 string
-	envoyImage                    string
-	enablePrometheusScraping      *bool
-	useHTTPSIngress               *bool
-	serviceCertValidityDuration   time.Duration
-	enableTracing                 *bool
-	tracingAddress                string
-	tracingPort                   uint16
-	tracingEndpoint               string
-	outboundIPRangeExclusionList  []string
-	outboundPortExclusionList     []int
-	enablePrivilegedInitContainer *bool
 }
 
 func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	upg := &meshUpgradeCmd{
 		out: out,
-
-		// Bool pointers need to be non-nil before pflag can use them to store
-		// values.
-		enableEgress:                  new(bool),
-		enablePermissiveTrafficPolicy: new(bool),
-		enableDebugServer:             new(bool),
-		enablePrometheusScraping:      new(bool),
-		useHTTPSIngress:               new(bool),
-		enableTracing:                 new(bool),
-		enablePrivilegedInitContainer: new(bool),
 	}
 	var chartPath string
 
 	cmd := &cobra.Command{
 		Use:     "upgrade",
-		Short:   "upgrade osm control plane configuration",
+		Short:   "upgrade osm control plane",
 		Long:    upgradeDesc,
 		Example: meshUpgradeExample,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			// By default, bool flags should remain unchanged unless explicitly set or unset.
-			f := cmd.Flags()
-			if !f.Changed("enable-egress") {
-				upg.enableEgress = nil
-			}
-			if !f.Changed("enable-permissive-traffic-policy") {
-				upg.enablePermissiveTrafficPolicy = nil
-			}
-			if !f.Changed("enable-debug-server") {
-				upg.enableDebugServer = nil
-			}
-			if !f.Changed("enable-prometheus-scraping") {
-				upg.enablePrometheusScraping = nil
-			}
-			if !f.Changed("use-https-ingress") {
-				upg.useHTTPSIngress = nil
-			}
-			if !f.Changed("enable-tracing") {
-				upg.enableTracing = nil
-			}
-			if !f.Changed("enable-privileged-init-container") {
-				upg.enablePrivilegedInitContainer = nil
-			}
-
 			if chartPath != "" {
 				var err error
 				upg.chart, err = loader.Load(chartPath)
@@ -145,22 +93,6 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 	f.StringVar(&chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&upg.containerRegistry, "container-registry", defaultContainerRegistry, "container registry that hosts control plane component images")
 	f.StringVar(&upg.osmImageTag, "osm-image-tag", defaultOsmImageTag, "osm image tag")
-
-	f.BoolVar(upg.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
-	f.BoolVar(upg.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
-	f.BoolVar(upg.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
-	f.StringVar(&upg.envoyLogLevel, "envoy-log-level", "", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
-	f.StringVar(&upg.envoyImage, "envoy-image", "", "Set the image for the Envoy proxy sidecar")
-	f.BoolVar(upg.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
-	f.BoolVar(upg.useHTTPSIngress, "use-https-ingress", defaultUseHTTPSIngress, "Enable HTTPS Ingress")
-	f.DurationVar(&upg.serviceCertValidityDuration, "service-cert-validity-duration", 0, "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
-	f.BoolVar(upg.enableTracing, "enable-tracing", defaultEnableTracing, "Enable tracing")
-	f.StringVar(&upg.tracingAddress, "tracing-address", "", "Tracing server hostname")
-	f.Uint16Var(&upg.tracingPort, "tracing-port", 0, "Tracing server port")
-	f.StringVar(&upg.tracingEndpoint, "tracing-endpoint", "", "Tracing server endpoint")
-	f.StringSliceVar(&upg.outboundIPRangeExclusionList, "outbound-ip-range-exclusion-list", nil, "A global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. Pass once per IP range or a single comma separated list of IP ranges of the form a.b.c.d/x")
-	f.IntSliceVar(&upg.outboundPortExclusionList, "outbound-port-exclusion-list", nil, "A global list of ports to exclude from outbound traffic interception by the sidecar proxy. Pass once per port or a single comma separated list of ports")
-	f.BoolVar(upg.enablePrivilegedInitContainer, "enable-privileged-init-container", defaultPrivilegedInitContainer, "Run init container in privileged mode")
 
 	return cmd
 }
@@ -198,59 +130,6 @@ func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]i
 			"tag":      u.osmImageTag,
 			"registry": u.containerRegistry,
 		},
-	}
-
-	if u.enablePermissiveTrafficPolicy != nil {
-		vals["enablePermissiveTrafficPolicy"] = *u.enablePermissiveTrafficPolicy
-	}
-	if u.enableEgress != nil {
-		vals["enableEgress"] = *u.enableEgress
-	}
-	if u.enableDebugServer != nil {
-		vals["enableDebugServer"] = *u.enableDebugServer
-	}
-	if len(u.envoyLogLevel) > 0 {
-		vals["envoyLogLevel"] = u.envoyLogLevel
-	}
-	if len(u.envoyImage) > 0 {
-		vals["sidecarImage"] = u.envoyImage
-	}
-	if u.enablePrometheusScraping != nil {
-		vals["enablePrometheusScraping"] = *u.enablePrometheusScraping
-	}
-	if u.useHTTPSIngress != nil {
-		vals["useHTTPSIngress"] = *u.useHTTPSIngress
-	}
-	if u.serviceCertValidityDuration > 0 {
-		vals["serviceCertValidityDuration"] = u.serviceCertValidityDuration
-	}
-
-	setTracing := func(key string, val interface{}) {
-		if _, exists := vals["tracing"]; !exists {
-			vals["tracing"] = map[string]interface{}{}
-		}
-		vals["tracing"].(map[string]interface{})[key] = val
-	}
-	if u.enableTracing != nil {
-		setTracing("enable", *u.enableTracing)
-	}
-	if len(u.tracingAddress) > 0 {
-		setTracing("address", u.tracingAddress)
-	}
-	if u.tracingPort > 0 {
-		setTracing("port", u.tracingPort)
-	}
-	if len(u.tracingEndpoint) > 0 {
-		setTracing("endpoint", u.tracingEndpoint)
-	}
-	if len(u.outboundIPRangeExclusionList) > 0 {
-		vals["outboundIPRangeExclusionList"] = u.outboundIPRangeExclusionList
-	}
-	if len(u.outboundPortExclusionList) > 0 {
-		vals["outboundPortExclusionList"] = u.outboundPortExclusionList
-	}
-	if u.enablePrivilegedInitContainer != nil {
-		vals["enablePrivilegedInitContainer"] = *u.enablePrivilegedInitContainer
 	}
 
 	vals = map[string]interface{}{

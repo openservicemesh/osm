@@ -22,7 +22,7 @@ BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
 ./bin/osm namespace remove "${BOOKSTORE_NAMESPACE:-bookbuyer}"     --mesh-name "${MESH_NAME:-osm}"
 ./bin/osm namespace remove "${BOOKTHIEF_NAMESPACE:-bookbuyer}"     --mesh-name "${MESH_NAME:-osm}"
 
-./bin/osm mesh upgrade --osm-namespace "${K8S_NAMESPACE}" --mesh-name "${MESH_NAME:-osm}" --container-registry "${CTR_REGISTRY}" --osm-image-tag "${CTR_TAG}" --enable-permissive-traffic-policy=true
+kubectl patch meshconfig osm-mesh-config -n "${K8S_NAMESPACE}" -p '{"spec":{"traffic":{"enablePermissiveTrafficPolicyMode":true}}}'  --type=merge
 
 
 # Create a top level service

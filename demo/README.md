@@ -70,7 +70,7 @@ To see the results of deploying the services and the service mesh - run the tail
 ## View Mesh Topology with Jaeger
 When the demo is run with `DEPLOY_JAEGER` set to `true` in your `.env` file, OSM will install a Jaeger pod. To configure all participating Envoys to send spans to this Jaeger instance, you must additionally enable tracing using:
 ```console
-osm mesh upgrade --enable-tracing
+kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
 ```
 Jaeger's UI is running on port 16686 and can be viewed by forwarding port 16686 from the Jaeger pod to the local workstation. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`. After running this script, navigate to http://localhost:16686/ to examine traces from the various applications. 
 
