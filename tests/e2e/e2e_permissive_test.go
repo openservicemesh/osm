@@ -14,7 +14,7 @@ import (
 var _ = OSMDescribe("Permissive Traffic Policy Mode",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 7,
 	},
 	func() {
 		Context("Permissive mode HTTP test with a Kubernetes Service for the Source", func() {

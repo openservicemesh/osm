@@ -17,7 +17,7 @@ import (
 var _ = OSMDescribe("Test proxy resource setting",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 4,
+		Bucket: 8,
 	},
 	func() {
 		Context("proxy resources", func() {

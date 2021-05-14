@@ -18,7 +18,7 @@ import (
 var _ = OSMDescribe("Test TrafficSplit where each backend shares the same ServiceAccount",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 4,
+		Bucket: 9,
 	},
 	func() {
 		Context("ClientServerTrafficSplitSameSA", func() {

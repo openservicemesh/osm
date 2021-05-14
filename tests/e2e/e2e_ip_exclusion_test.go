@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("Tests traffic via IP range exclusion",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 3,
+		Bucket: 5,
 	},
 	func() {
 		Context("Test IP range exclusion", func() {

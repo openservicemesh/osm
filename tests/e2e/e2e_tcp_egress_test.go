@@ -15,7 +15,7 @@ import (
 var _ = OSMDescribe("Test TCP traffic from 1 pod client -> egress server",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 3,
+		Bucket: 9,
 	},
 	func() {
 		Context("SimpleClientServer egress TCP", func() {

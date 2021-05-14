@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("Tests traffic via port exclusion",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 3,
+		Bucket: 7,
 	},
 	func() {
 		Context("Test global port exclusion", func() {

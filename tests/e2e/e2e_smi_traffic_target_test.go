@@ -19,7 +19,7 @@ import (
 var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 8,
 	},
 	func() {
 		Context("SMI TrafficTarget", func() {

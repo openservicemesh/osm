@@ -18,7 +18,7 @@ import (
 var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 4,
+		Bucket: 7,
 	},
 	func() {
 		Context("Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP", func() {

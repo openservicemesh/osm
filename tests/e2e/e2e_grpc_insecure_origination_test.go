@@ -22,7 +22,7 @@ const grpcbinInsecurePort = 9000
 var _ = OSMDescribe("gRPC insecure traffic origination for client pod -> server pod usint HTTP routes",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 2,
+		Bucket: 3,
 	},
 	func() {
 		Context("gRPC insecure traffic origination over HTTP2 with SMI HTTP routes", func() {

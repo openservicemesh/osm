@@ -23,7 +23,7 @@ import (
 var _ = OSMDescribe("HTTP ingress",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 3,
+		Bucket: 5,
 	},
 	func() {
 		const destNs = "server"
