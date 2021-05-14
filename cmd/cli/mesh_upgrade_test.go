@@ -79,15 +79,6 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 
 	u := defaultMeshUpgradeCmd()
 	u.osmImageTag = "upgraded"
-	u.enableEgress = new(bool)
-	*u.enableEgress = true
-	u.envoyLogLevel = "trace"
-	u.envoyImage = "envoyproxy/envoy-alpine:v0.00.0"
-	u.tracingEndpoint = "/here"
-	u.outboundIPRangeExclusionList = []string{"0.0.0.0/0", "1.1.1.1/1"}
-	u.outboundPortExclusionList = []int{6379, 7070}
-	u.enablePrivilegedInitContainer = new(bool)
-	*u.enablePrivilegedInitContainer = true
 
 	err = u.run(config)
 	a.Nil(err)
@@ -99,35 +90,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	a.Nil(err)
 	a.Equal("upgraded", osmImageTag)
 
-	egressEnabled, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enableEgress")
-	a.Nil(err)
-	a.True(egressEnabled.(bool))
-
-	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.envoyLogLevel")
-	a.Nil(err)
-	a.Equal("trace", envoyLogLevel)
-
-	envoyImage, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.sidecarImage")
-	a.Nil(err)
-	a.Equal("envoyproxy/envoy-alpine:v0.00.0", envoyImage)
-
-	tracingEndpoint, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.tracing.endpoint")
-	a.Nil(err)
-	a.Equal("/here", tracingEndpoint)
-
-	outboundIPRangeExclusionList, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.outboundIPRangeExclusionList")
-	a.Nil(err)
-	a.Equal([]string{"0.0.0.0/0", "1.1.1.1/1"}, outboundIPRangeExclusionList)
-
-	outboundPortExclusionList, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.outboundPortExclusionList")
-	a.Nil(err)
-	a.Equal([]int{6379, 7070}, outboundPortExclusionList)
-
-	enablePrivilegedInitContainer, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enablePrivilegedInitContainer")
-	a.Nil(err)
-	a.True(enablePrivilegedInitContainer.(bool))
-
-	// Successive upgrades should keep the overridden values from the previous upgrade
+	// Successive upgrades overriddes image-tag values from the previous upgrade
 	u = defaultMeshUpgradeCmd()
 	err = u.run(config)
 	a.Nil(err)
@@ -135,9 +98,9 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	upgraded, err = action.NewGet(config).Run(u.meshName)
 	a.Nil(err)
 
-	tracingEndpoint, err = chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.tracing.endpoint")
+	osmImageTag, err = chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
 	a.Nil(err)
-	a.Equal("/here", tracingEndpoint)
+	a.Equal(defaultOsmImageTag, osmImageTag)
 }
 
 func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
@@ -167,7 +130,7 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	// enableEgress should be unchanged by default
 	egressEnabled, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enableEgress")
 	a.Nil(err)
-	a.Equal(!defaultEnableEgress, egressEnabled)
+	a.Equal(true, egressEnabled)
 
 	// envoyLogLevel should be unchanged by default
 	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.envoyLogLevel")
