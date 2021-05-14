@@ -52,13 +52,13 @@ const (
 	// DefaultTracingPort is the tracing listener port.
 	DefaultTracingPort = uint32(9411)
 
-	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
+	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm MeshConfig
 	DefaultEnvoyLogLevel = "error"
 
-	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm configmap
+	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
 	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.17.2"
 
-	// DefaultInitContainerImage is the default init container image if not defined in the osm configmap
+	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
 	DefaultInitContainerImage = "openservicemesh/init:v0.8.3"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
@@ -147,6 +147,9 @@ const (
 
 	// OSMConfigMap is the name of the OSM ConfigMap
 	OSMConfigMap = "osm-config"
+
+	// OSMMeshConfig is the name of the OSM MeshConfig
+	OSMMeshConfig = "osm-mesh-config"
 )
 
 // Annotations used by the controller

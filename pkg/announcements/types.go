@@ -121,17 +121,6 @@ const (
 
 	// ---
 
-	// ConfigMapAdded is the type of announcement emitted when we observe an addition of a Kubernetes ConfigMap
-	ConfigMapAdded AnnouncementType = "configmap-added"
-
-	// ConfigMapDeleted the type of announcement emitted when we observe the deletion of a Kubernetes ConfigMap
-	ConfigMapDeleted AnnouncementType = "configmap-deleted"
-
-	// ConfigMapUpdated is the type of announcement emitted when we observe an update to a Kubernetes ConfigMap
-	ConfigMapUpdated AnnouncementType = "configmap-updated"
-
-	// ---
-
 	// IngressAdded is the type of announcement emitted when we observe an addition of a Kubernetes Ingress
 	IngressAdded AnnouncementType = "ingress-added"
 

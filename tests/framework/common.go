@@ -678,15 +678,6 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 	return nil
 }
 
-// GetConfigMap is a wrapper to get a config map by name in a particular namespace
-func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, error) {
-	configmap, err := td.Client.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return configmap, nil
-}
-
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
 func (td *OsmTestData) GetMeshConfig(namespace string) (*v1alpha1.MeshConfig, error) {
 	meshConfig, err := td.ConfigClient.ConfigV1alpha1().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})

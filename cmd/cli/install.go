@@ -236,7 +236,7 @@ func (i *installCmd) validateOptions() error {
 		// if deployPrometheus is true, make sure enablePrometheusScraping is not disabled
 		if setOptions["deployPrometheus"] == true {
 			if setOptions["enablePrometheusScraping"] == false {
-				_, _ = fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMConfigMap)
+				_, _ = fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMMeshConfig)
 			}
 		}
 
