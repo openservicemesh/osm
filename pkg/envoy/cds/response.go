@@ -115,7 +115,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		}
 		resp.Resources = append(resp.Resources, marshalledCluster)
 	}
-	log.Debug().Msgf("Proxy service %s CDS resp: %+v ", proxyServiceName, resp.Resources)
+	//log.Debug().Msgf("Proxy service %s CDS resp: %+v ", proxyServiceName, resp.Resources)
 
 	return resp, nil
 }
