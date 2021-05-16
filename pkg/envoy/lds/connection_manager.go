@@ -3,6 +3,7 @@ package lds
 import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	dpb "github.com/golang/protobuf/ptypes/duration"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	_ "github.com/golang/protobuf/ptypes/wrappers"
@@ -23,7 +24,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		HttpFilters: []*xds_hcm.HttpFilter{{
 			Name: wellknown.Router,
 		}},
-		//StreamIdleTimeout: &dpb.Duration{Seconds:18000},
+		StreamIdleTimeout: &dpb.Duration{Seconds:1200},
 
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
 			Rds: &xds_hcm.Rds{
