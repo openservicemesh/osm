@@ -15,7 +15,7 @@ OpenServiceMesh:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.17.2
+  sidecarImage: envoyproxy/envoy-alpine:v1.17.3
   osmcontroller:
     resource:
       limits:
