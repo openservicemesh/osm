@@ -214,6 +214,8 @@ OSM's primary documentation is made available at [https://docs.openservicemesh.i
 
 Documentation that is primarily intended for use with this code repo (instead of as a website) can be found in [docs/]((docs/).
 
+Refer to the [custom API reference generation guide](/docs/apidocs/README.md) to document custom APIs.
+
 ## Roadmap
 We use [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
 
