@@ -77,6 +77,10 @@ type TrafficSpec struct {
 
 	// EnablePermissiveTrafficPolicyMode defines a boolean indicating if permissive traffic policy mode is enabled mesh-wide.
 	EnablePermissiveTrafficPolicyMode bool `json:"enablePermissiveTrafficPolicyMode,omitempty"`
+
+	// InboundExternalAuthorization defines a ruleset that, if enabled, will configure a remote external authorization endpoint
+	// for all inbound and ingress traffic in the mesh.
+	InboundExternalAuthorization ExternalAuthzSpec `json:"inboundExternalAuthorization,omitempty"`
 }
 
 // ObservabilitySpec is the type to represent OSM's observability configurations.
@@ -104,6 +108,29 @@ type TracingSpec struct {
 
 	// Endpoint defines the API endpoint for tracing requests sent to the collector.
 	Endpoint string `json:"endpoint,omitempty"`
+}
+
+// ExternalAuthzSpec is a type to represent external authorization configuration.
+type ExternalAuthzSpec struct {
+	// Enable defines a boolean indicating if the external authorization policy is to be enabled.
+	Enable bool `json:"enable,omitempty"`
+
+	// Address defines the remote address of the external authorization endpoint.
+	Address string `json:"address,omitempty"`
+
+	// Port defines the destination port of the remote external authorization endpoint.
+	Port uint16 `json:"port,omitempty"`
+
+	// StatPrefix defines a prefix for the stats sink for this external authorization policy.
+	StatPrefix string `json:"statPrefix,omitempty"`
+
+	// Timeout defines the timeout in which a response from the external authorization endpoint.
+	// is expected to execute.
+	Timeout string `json:"timeout,omitempty"`
+
+	// FailureModeAllow defines a boolean indicating if traffic should be allowed on a failure to get a
+	// response against the external authorization endpoint.
+	FailureModeAllow bool `json:"failureModeAllow,omitempty"`
 }
 
 // CertificateSpec is type to reperesent OSM's certificate management configuration.
