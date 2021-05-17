@@ -117,6 +117,34 @@ spec:
                       description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
                       type: boolean
                       default: false
+                    inboundExternalAuthorization:
+                      description: Configures external authorization for inbound and ingress connections.
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables/disables the inbound external authorization policy if present.
+                          type: boolean
+                          default: false
+                        address:
+                          description: Target destination endpoint that will handle external authorization.
+                          type: string
+                        port:
+                          description: Remote destination port for the external authorization endpoint.
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
+                        statPrefix:
+                          description: String prefix for inbound external authorization related metrics.
+                          type: string
+                          default: "inboundExtAuthz"
+                        timeout:
+                          description: Defines the timeout to consider for the remote endpoint to reply in time.
+                          type: string
+                          default: "1s"
+                        failureModeAllow:
+                          description: Allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
+                          type: boolean
+                          default: false
                 observability:
                   description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
                   type: object
