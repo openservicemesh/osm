@@ -45,7 +45,10 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
+	configV1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	policyV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/cli"
@@ -215,11 +218,16 @@ type OsmTestData struct {
 	ClusterVersion                 string // Kind cluster version, ex. v1.20.2
 
 	// Cluster handles and rest config
-	Env             *cli.EnvSettings
-	RestConfig      *rest.Config
-	Client          *kubernetes.Clientset
-	ConfigClient    *configClientset.Clientset
-	SmiClients      *smiClients
+	Env        *cli.EnvSettings
+	RestConfig *rest.Config
+	Client     *kubernetes.Clientset
+
+	SmiClients *smiClients
+
+	// OSM's API clients
+	PolicyClient *policyV1alpha1Client.Clientset
+	ConfigClient *configClientset.Clientset
+
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
 
 	DeployOnOpenShift bool // Determines whether to configure tests for OpenShift
@@ -375,12 +383,18 @@ nodeRegistration:
 
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
-		return errors.Wrap(err, "failed to create v1alpha config client")
+		return errors.Wrapf(err, "failed to create %s client", configV1alpha1.SchemeGroupVersion.String())
+	}
+
+	policyClient, err := policyV1alpha1Client.NewForConfig(kubeConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create %s client", policyV1alpha1.SchemeGroupVersion.String())
 	}
 
 	td.RestConfig = kubeConfig
 	td.Client = clientset
 	td.ConfigClient = configClient
+	td.PolicyClient = policyClient
 
 	td.Env = cli.New()
 

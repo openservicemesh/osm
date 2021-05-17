@@ -155,13 +155,15 @@ type SimplePodAppDef struct {
 func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service) {
 	serviceAccountDefinition := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
+			Name:      def.Name,
+			Namespace: def.Namespace,
 		},
 	}
 
 	podDefinition := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
+			Name:      def.Name,
+			Namespace: def.Namespace,
 			Labels: map[string]string{
 				"app": def.Name,
 			},
