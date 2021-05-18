@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/cli"
@@ -219,6 +220,7 @@ type OsmTestData struct {
 	RestConfig      *rest.Config
 	Client          *kubernetes.Clientset
 	ConfigClient    *configClientset.Clientset
+	PolicyClient    *policyClientset.Clientset // TODO: Set this, and create functions to access create, deleting the policy, etc
 	SmiClients      *smiClients
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
 
