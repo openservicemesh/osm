@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -39,6 +40,18 @@ func parseFlags() error {
 	return nil
 }
 
+// getHTTPHealthProbes returns the HTTP health probes served by OSM webhook
+func getHTTPHealthProbes() []health.HTTPProbe {
+	// Example:
+	// return []health.HTTPProbe{
+	// 	{
+	// 		URL: "https://127.0.0.1:<local-port>",
+	// 		Protocol: health.ProtocolHTTPS,
+	// 	},
+	// }
+	return nil
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 
@@ -57,6 +70,11 @@ func main() {
 	}))
 
 	// TODO: add health/readiness probes
+	httpServer.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(nil, getHTTPHealthProbes()),
+		"/health/alive": health.LivenessHandler(nil, getHTTPHealthProbes()),
+	})
+
 	// TODO: Do we need to add metrics stuff?
 
 	// TODO: Add SSL Certs
