@@ -88,3 +88,7 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
     {{- end }}
+    {{- if .Values.OpenServiceMesh.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.OpenServiceMesh.controlPlaneTolerations | indent 8 }}
+    {{- end }}
