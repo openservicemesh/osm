@@ -110,7 +110,7 @@ var _ = Describe("Running the mesh list command", func() {
 		})
 		It("should print no meshes found message", func() {
 			Expect(err).NotTo(HaveOccurred())
-			Expect(out.String()).To(Equal("No control planes found\n"))
+			Expect(out.String()).To(Equal("No osm mesh control planes found\n"))
 		})
 	})
 })

@@ -1,24 +1,15 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"strings"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const meshListDescription = `
@@ -29,6 +20,14 @@ type meshListCmd struct {
 	config    *rest.Config
 	clientSet kubernetes.Interface
 	localPort uint16
+}
+
+type meshInfo struct {
+	name                 string
+	namespace            string
+	controllerPods       []string
+	version              string
+	smiSupportedVersions []string
 }
 
 func newMeshList(out io.Writer) *cobra.Command {
@@ -63,113 +62,19 @@ func newMeshList(out io.Writer) *cobra.Command {
 }
 
 func (l *meshListCmd) run() error {
-	list, err := getControllerDeployments(l.clientSet)
+	meshInfoList, err := getMeshInfoList(l.config, l.clientSet, l.localPort)
 	if err != nil {
-		return errors.Errorf("Could not list deployments %v", err)
+		fmt.Fprintf(l.out, "Unable to list meshes within the cluster.\n")
+		return err
 	}
-	if len(list.Items) == 0 {
-		fmt.Fprintf(l.out, "No control planes found\n")
+	if len(meshInfoList) == 0 {
+		fmt.Fprintf(l.out, "No osm mesh control planes found\n")
 		return nil
 	}
 
 	w := newTabWriter(l.out)
-
-	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED")
-
-	for _, elem := range list.Items {
-		m := elem.ObjectMeta.Labels["meshName"]
-		ns := elem.ObjectMeta.Namespace
-		x := getNamespacePods(l.clientSet, m, ns)
-		v := elem.ObjectMeta.Labels[constants.OSMAppVersionLabelKey]
-
-		smiList := []string{"Unknown"}
-		if pods, ok := x["Pods"]; ok && len(pods) > 0 {
-			smiMap, err := getSupportedSmiForControllerPod(x["Pods"][0], ns, l)
-			if err == nil {
-				smiList = []string{}
-				for smi, version := range smiMap {
-					smiList = append(smiList, fmt.Sprintf("%s:%s", smi, version))
-				}
-			}
-		}
-
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", m, ns, strings.Join(x["Pods"], ","), v, strings.Join(smiList, ","))
-	}
+	fmt.Fprint(w, getPrettyPrintedMeshInfoList(meshInfoList))
 	_ = w.Flush()
 
 	return nil
-}
-
-// getNamespacePods returns a map of controller pods
-func getNamespacePods(clientSet kubernetes.Interface, m string, ns string) map[string][]string {
-	x := make(map[string][]string)
-
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	pods, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
-
-	for pno := 0; pno < len(pods.Items); pno++ {
-		x["Pods"] = append(x["Pods"], pods.Items[pno].GetName())
-	}
-
-	return x
-}
-
-// getControllerDeployments returns a list of Deployments corresponding to osm-controller
-func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentList, error) {
-	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	return deploymentsClient.List(context.TODO(), listOptions)
-}
-
-// getMeshNames returns a set of mesh names corresponding to meshes within the cluster
-func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
-	meshList := mapset.NewSet()
-
-	deploymentList, _ := getControllerDeployments(clientSet)
-	for _, elem := range deploymentList.Items {
-		meshList.Add(elem.ObjectMeta.Labels["meshName"])
-	}
-
-	return meshList
-}
-
-func getSupportedSmiForControllerPod(pod string, namespace string, cmd *meshListCmd) (map[string]string, error) {
-	dialer, err := k8s.DialerToPod(cmd.config, cmd.clientSet, pod, namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", cmd.localPort, constants.OSMHTTPServerPort))
-	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
-	}
-
-	var smiSupported map[string]string
-
-	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
-		defer pf.Stop()
-		url := fmt.Sprintf("http://localhost:%d%s", cmd.localPort, constants.HTTPServerSmiVersionPath)
-
-		// #nosec G107: Potential HTTP request made with variable url
-		resp, err := http.Get(url)
-		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&smiSupported); err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
-	}
-
-	return smiSupported, nil
 }

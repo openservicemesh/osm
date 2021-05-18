@@ -11,6 +11,9 @@ import (
 	helmStorage "helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const meshUninstallDescription = `
@@ -23,9 +26,11 @@ Only use this in non-production and test environments.
 type uninstallCmd struct {
 	out             io.Writer
 	in              io.Reader
+	config          *rest.Config
 	meshName        string
 	force           bool
 	deleteNamespace bool
+	localPort       uint16
 	client          *action.Uninstall
 	clientSet       kubernetes.Interface
 }
@@ -50,6 +55,8 @@ func newUninstallCmd(config *action.Configuration, in io.Reader, out io.Writer) 
 			if err != nil {
 				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
+			uninstall.config = kubeconfig
+
 			uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
@@ -66,6 +73,8 @@ func newUninstallCmd(config *action.Configuration, in io.Reader, out io.Writer) 
 	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
 	//add uninstall namespace flag
 	f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
+	//add local port flag
+	f.Uint16VarP(&uninstall.localPort, "local-port", "p", constants.OSMHTTPServerPort, "Local port to use for port forwarding")
 
 	return cmd
 }
@@ -77,7 +86,19 @@ func (d *uninstallCmd) run() error {
 	ns := settings.Namespace()
 
 	if !d.force {
-		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Uninstall OSM [mesh name: %s] ?", d.meshName), 3)
+		// print a list of meshes within the cluster for a better user experience
+		fmt.Fprintf(d.out, "\nList of meshes present in the cluster:\n")
+
+		listCmd := &meshListCmd{
+			out:       d.out,
+			config:    d.config,
+			clientSet: d.clientSet,
+			localPort: d.localPort,
+		}
+
+		_ = listCmd.run()
+
+		confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] ?", d.meshName, ns), 3)
 		if !confirm || err != nil {
 			return err
 		}
@@ -92,7 +113,7 @@ func (d *uninstallCmd) run() error {
 	}
 
 	if err == nil {
-		fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", d.meshName, settings.Namespace())
+		fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", d.meshName, ns)
 	}
 
 	if d.deleteNamespace {
