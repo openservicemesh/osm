@@ -79,6 +79,9 @@ const (
 	// OSMControllerPort is the port on which XDS listens for new connections.
 	OSMControllerPort = 15128
 
+	// OSMWebhookPort is the port on which the OSM Webhook accepts K8s validating admission requests.
+	OSMWebhookPort = 9093
+
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
 
