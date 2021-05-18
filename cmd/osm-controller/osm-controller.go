@@ -257,6 +257,8 @@ func main() {
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, kubernetesClient)
 	debugConfig.StartDebugServerConfigListener()
 
+	k8s.PatchSecretHandler(kubeClient)
+
 	<-stop
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
