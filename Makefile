@@ -89,8 +89,12 @@ clean-osm-controller:
 clean-osm-injector:
 	@rm -rf bin/osm-injector
 
+.PHONY: clean-osm-webhook
+clean-osm-webhook:
+	@rm -rf bin/osm-webhook
+
 .PHONY: build
-build: build-init-osm-controller build-osm-controller build-osm-injector
+build: build-init-osm-controller build-osm-controller build-osm-injector build-osm-webhook
 
 .PHONY: build-init-osm-controller
 build-init-osm-controller: check-go-version clean-init-osm-controller wasm/stats.wasm
@@ -103,6 +107,10 @@ build-osm-controller: check-go-version clean-osm-controller wasm/stats.wasm
 .PHONY: build-osm-injector
 build-osm-injector: check-go-version clean-osm-injector
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
+
+.PHONY: build-osm-webhook
+build-osm-webhook: check-go-version clean-osm-webhook
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-webhook/osm-webhook -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-webhook
 
 .PHONY: build-osm
 build-osm: check-go-version
@@ -172,7 +180,7 @@ kind-reset:
 	kind delete cluster --name osm
 
 .PHONY: test-e2e
-test-e2e: docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
+test-e2e: docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector  docker-build-osm-webhook docker-build-init build-osm docker-build-tcp-echo-server
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -193,7 +201,7 @@ $(DEMO_BUILD_TARGETS):
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONY: demo-build
-demo-build: $(DEMO_BUILD_TARGETS) build-init-osm-controller build-osm-controller build-osm-injector
+demo-build: $(DEMO_BUILD_TARGETS) build-init-osm-controller build-osm-controller build-osm-injector build-osm-webhook
 
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
@@ -215,14 +223,17 @@ docker-build-osm-controller: build-osm-controller
 docker-build-osm-injector: build-osm-injector
 	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
 
+docker-build-osm-webhook: build-osm-webhook
+	docker build -t $(CTR_REGISTRY)/osm-webhook:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-webhook bin/osm-webhook
+
 wasm/stats.wasm: wasm/stats.cc wasm/Makefile
 	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
 
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector docker-build-osm-webhook
 
 # docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector)
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector osm-webhook)
 VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
