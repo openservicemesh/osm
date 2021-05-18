@@ -23,3 +23,21 @@ func makeThresholds(maxConnections *uint32) []*xds_cluster.CircuitBreakers_Thres
 		threshold,
 	}
 }
+
+func makeWSThresholds() []*xds_cluster.CircuitBreakers_Thresholds {
+	threshold := &xds_cluster.CircuitBreakers_Thresholds{}
+
+	threshold.MaxConnections = &wrappers.UInt32Value{
+		Value: MaxConnectionThreshold,
+	}
+	threshold.MaxRequests = &wrappers.UInt32Value{
+		Value: MaxConnectionThreshold,
+	}
+	threshold.MaxPendingRequests = &wrappers.UInt32Value{
+		Value: MaxConnectionThreshold,
+	}
+
+	return []*xds_cluster.CircuitBreakers_Thresholds{
+		threshold,
+	}
+}
