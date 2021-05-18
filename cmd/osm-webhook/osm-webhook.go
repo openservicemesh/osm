@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -57,6 +58,11 @@ func main() {
 	}))
 
 	// TODO: add health/readiness probes
+	httpServer.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(nil, nil),
+		"/health/alive": health.LivenessHandler(nil, nil),
+	})
+
 	// TODO: Do we need to add metrics stuff?
 
 	// TODO: Add SSL Certs
