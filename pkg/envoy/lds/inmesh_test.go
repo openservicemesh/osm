@@ -14,6 +14,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -34,6 +35,9 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 	// Mock calls used to build the HTTP connection manager
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -196,6 +200,9 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	// Mock calls used to build the HTTP connection manager
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -286,6 +293,9 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	// Mock calls used to build the HTTP connection manager
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,

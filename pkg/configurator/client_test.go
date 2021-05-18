@@ -77,6 +77,7 @@ var _ = Describe("Test OSM MeshConfig parsing", func() {
 				"ConfigResyncInterval":          configResyncIntervalKey,
 				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
 				"ProxyResources":                proxyResourcesKey,
+				"InboundExternAuthz":            inboundExtAuthz,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
@@ -225,6 +226,12 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 			},
 			expectProxyBroadcast: false,
 		},
+		{
+			deltaMeshConfigContents: map[string]string{
+				inboundExtAuthz: "true",
+			},
+			expectProxyBroadcast: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -266,6 +273,10 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 				meshConfig.Spec.Traffic.OutboundPortExclusionList = portExclusionList
 			case configResyncIntervalKey:
 				meshConfig.Spec.Sidecar.ConfigResyncInterval = mapVal
+			case inboundExtAuthz:
+				meshConfig.Spec.Traffic.InboundExternalAuthorization = v1alpha1.ExternalAuthzSpec{
+					Enable: true,
+				}
 			}
 		}
 

@@ -1,0 +1,99 @@
+####################################################
+# App Deployment with OPA-Envoy and Envoy sidecars.
+####################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+  namespace: opa
+  labels:
+    app: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+    spec:
+      containers:
+        - name: opa-envoy
+          image: openpolicyagent/opa:0.28.0-envoy
+          securityContext:
+            runAsUser: 1111
+          volumeMounts:
+            - readOnly: true
+              mountPath: /policy
+              name: opa-policy
+            - readOnly: true
+              mountPath: /config
+              name: opa-envoy-config
+          args:
+            - "run"
+            - "--server"
+            - "--config-file=/config/config.yaml"
+            - "--addr=0.0.0.0:8181"
+            - "--diagnostic-addr=0.0.0.0:8282"
+            - "--ignore=.*"
+            - "/policy/policy.rego"
+      volumes:
+        - name: proxy-config
+          configMap:
+            name: proxy-config
+        - name: opa-policy
+          configMap:
+            name: opa-policy
+        - name: opa-envoy-config
+          configMap:
+            name: opa-envoy-config
+---
+############################################################
+# Example configuration to bootstrap OPA-Envoy sidecars.
+############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-envoy-config
+  namespace: opa
+data:
+  config.yaml: |
+    plugins:
+      envoy_ext_authz_grpc:
+        addr: :9191
+        path: envoy/authz/allow
+    decision_logs:
+      console: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: opa
+  labels:
+    app: opa
+spec:
+  ports:
+  - port: 9191
+    protocol: TCP
+    targetPort: 9191
+  selector:
+    app: opa
+---
+############################################################
+# Example policy to enforce into OPA-Envoy sidecars.
+############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policy
+  namespace: opa
+data:
+  policy.rego: |
+    package envoy.authz
+
+    import input.attributes.request.http as http_request
+
+    default allow = false
+---

@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -181,4 +182,25 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 // GetProxyResources returns the `Resources` configured for proxies, if any
 func (c *Client) GetProxyResources() corev1.ResourceRequirements {
 	return c.getMeshConfig().proxyResources
+}
+
+// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
+func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
+	extAuthConfig := auth.ExtAuthConfig{}
+	inboundExtAuthzMeshConfig := c.getMeshConfig().inboundExternalAuth
+
+	extAuthConfig.Enable = inboundExtAuthzMeshConfig.Enable
+	extAuthConfig.Address = inboundExtAuthzMeshConfig.Address
+	extAuthConfig.Port = uint16(inboundExtAuthzMeshConfig.Port)
+	extAuthConfig.StatPrefix = inboundExtAuthzMeshConfig.StatPrefix
+	extAuthConfig.FailureModeAllow = inboundExtAuthzMeshConfig.FailureModeAllow
+
+	duration, err := time.ParseDuration(inboundExtAuthzMeshConfig.Timeout)
+	if err != nil {
+		log.Debug().Err(err).Msgf("ExternAuthzTimeout: Not a valid duration %s. defaulting to 1s.", duration)
+		duration = 1 * time.Second
+	}
+	extAuthConfig.AuthzTimeout = duration
+
+	return extAuthConfig
 }

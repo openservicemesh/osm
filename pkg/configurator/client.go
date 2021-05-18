@@ -80,6 +80,9 @@ const (
 
 	// proxyResources is the key used to configure proxy resources
 	proxyResourcesKey = "proxy_resources"
+
+	// inboundExtAuthz is the key used to enable the inbound external authorization filter
+	inboundExtAuthz = "inbound_ext_authz"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -201,6 +204,10 @@ func parseOSMMeshConfig(meshConfig *v1alpha1.MeshConfig) *osmConfig {
 		osmConfig.TracingPort = int(spec.Observability.Tracing.Port)
 	}
 
+	if spec.Traffic.InboundExternalAuthorization.Enable {
+		osmConfig.inboundExternalAuth = spec.Traffic.InboundExternalAuthorization
+	}
+
 	return &osmConfig
 }
 
@@ -249,6 +256,22 @@ func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
 	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevMeshConfig.TracingAddress != newMeshConfig.TracingAddress)
 	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevMeshConfig.TracingEndpoint != newMeshConfig.TracingEndpoint)
 	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevMeshConfig.TracingPort != newMeshConfig.TracingPort)
+
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevMeshConfig.inboundExternalAuth.Enable != newMeshConfig.inboundExternalAuth.Enable)
+	// Do not trigger updates on the inner configuration changes of ExtAuthz if disabled,
+	// or otherwise skip checking if the update is to be scheduled anyway
+	if newMeshConfig.inboundExternalAuth.Enable && !triggerGlobalBroadcast {
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevMeshConfig.inboundExternalAuth.Address != newMeshConfig.inboundExternalAuth.Address)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevMeshConfig.inboundExternalAuth.Port != newMeshConfig.inboundExternalAuth.Port)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevMeshConfig.inboundExternalAuth.StatPrefix != newMeshConfig.inboundExternalAuth.StatPrefix)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevMeshConfig.inboundExternalAuth.Timeout != newMeshConfig.inboundExternalAuth.Timeout)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevMeshConfig.inboundExternalAuth.FailureModeAllow != newMeshConfig.inboundExternalAuth.FailureModeAllow)
+	}
 
 	if triggerGlobalBroadcast {
 		log.Debug().Msgf("[%s] OSM MeshConfig update triggered global proxy broadcast",
@@ -351,4 +374,7 @@ type osmConfig struct {
 
 	// proxyResources are the proxy resources speficied for a proxy, if any
 	proxyResources corev1.ResourceRequirements
+
+	// inboundExternalAuth is the external authorization configuration for inbound and ingress
+	inboundExternalAuth v1alpha1.ExternalAuthzSpec
 }

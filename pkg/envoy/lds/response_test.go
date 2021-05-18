@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -70,6 +71,9 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
 
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 	assert.Empty(err)
