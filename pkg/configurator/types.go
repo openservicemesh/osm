@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -89,4 +90,7 @@ type Configurator interface {
 
 	// GetProxyResources returns the `Resources` configured for proxies, if any
 	GetProxyResources() corev1.ResourceRequirements
+
+	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
+	GetInboundExternalAuthConfig() auth.ExtAuthConfig
 }

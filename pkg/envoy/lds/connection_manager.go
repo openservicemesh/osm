@@ -17,13 +17,22 @@ import (
 	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
+// trafficDirection defines, for filter terms, the direction of the traffic from an application
+// perspective, in which the connection manager filters will be applied
+type trafficDirection string
+
 const (
 	meshHTTPConnManagerStatPrefix       = "mesh-http-conn-manager"
 	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
+
+	// inbound defines in-mesh inbound or ingress traffic driections
+	inbound = "inbound"
+	// outbound defines in-mesh outbound or egress traffic directions
+	outbound = "outbound"
 )
 
-func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string, direction trafficDirection) *xds_hcm.HttpConnectionManager {
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix: fmt.Sprintf("%s.%s", meshHTTPConnManagerStatPrefix, routeName),
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
@@ -32,12 +41,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 				// HTTP RBAC filter
 				Name: wellknown.HTTPRoleBasedAccessControl,
 			},
-			{
-				// HTTP Router filter
-				Name: wellknown.Router,
-			},
 		},
-
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
 			Rds: &xds_hcm.Rds{
 				ConfigSource:    envoy.GetADSConfigSource(),
@@ -46,6 +50,18 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 		},
 		AccessLog: envoy.GetAccessLog(),
 	}
+
+	if direction == inbound {
+		incomingExtAuthCfg := cfg.GetInboundExternalAuthConfig()
+		if incomingExtAuthCfg.Enable {
+			connManager.HttpFilters = append(connManager.HttpFilters, getExtAuthzHTTPFilter(incomingExtAuthCfg))
+		}
+	}
+
+	connManager.HttpFilters = append(connManager.HttpFilters, &xds_hcm.HttpFilter{
+		// HTTP Router filter
+		Name: wellknown.Router,
+	})
 
 	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{

@@ -11,6 +11,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -103,6 +104,10 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
 			// Mock calls used to build the HTTP connection manager
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			// Expect no External Auth config
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+				Enable: false,
+			}).AnyTimes()
 
 			filterChains := lb.getIngressFilterChains(proxyService)
 

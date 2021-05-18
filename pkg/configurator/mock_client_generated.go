@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	auth "github.com/openservicemesh/osm/pkg/auth"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -75,6 +76,20 @@ func (m *MockConfigurator) GetEnvoyLogLevel() string {
 func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
+}
+
+// GetInboundExternalAuthConfig mocks base method
+func (m *MockConfigurator) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundExternalAuthConfig")
+	ret0, _ := ret[0].(auth.ExtAuthConfig)
+	return ret0
+}
+
+// GetInboundExternalAuthConfig indicates an expected call of GetInboundExternalAuthConfig
+func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthConfig", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthConfig))
 }
 
 // GetInitContainerImage mocks base method
