@@ -11,8 +11,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Secrets Discovery Response.
@@ -65,7 +65,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
-		sdsCert, err := envoy.UnmarshalSDSCert(requestedCertificate)
+		sdsCert, err := secrets.UnmarshalSDSCert(requestedCertificate)
 		if err != nil {
 			log.Error().Err(err).Msgf("Invalid resource kind requested: %q", requestedCertificate)
 			continue
@@ -75,7 +75,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 
 		switch sdsCert.CertType {
 		// A service certificate is requested
-		case envoy.ServiceCertType:
+		case secrets.ServiceCertType:
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -85,7 +85,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			certs = append(certs, envoySecret)
 
 		// A root certificate used to validate a service certificate is requested
-		case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
+		case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound, secrets.RootCertTypeForHTTPS:
 			envoySecret, err := s.getRootCert(cert, *sdsCert)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -123,7 +123,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth
 	return secret, nil
 }
 
-func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert) (*xds_auth.Secret, error) {
+func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert secrets.SDSCert) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: sdscert.String(),
@@ -155,14 +155,14 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 
 // Given a requested SDS Cert, this function returns the Service Identities, which match that SDS Cert
 // Example: given "service-cert:namespace/service-account", this will return ServiceIdentity("namespace.service-account.cluster.local")
-func getServiceIdentitiesFromCert(sdscert envoy.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
+func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
 	// Program SAN matching based on SMI TrafficTarget policies
 	switch sdscert.CertType {
-	case envoy.RootCertTypeForMTLSOutbound:
+	case secrets.RootCertTypeForMTLSOutbound:
 		// For the outbound certificate validation context, the SANs needs to match the list of service identities
 		// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
 		// the SANs for this certificate should correspond to the service identities of 'X'.
-		meshSvc, err := service.UnmarshalMeshService(sdscert.Name)
+		meshSvc, err := sdscert.GetMeshService()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
@@ -174,7 +174,7 @@ func getServiceIdentitiesFromCert(sdscert envoy.SDSCert, serviceIdentity identit
 		}
 		return svcIdentities, nil
 
-	case envoy.RootCertTypeForMTLSInbound:
+	case secrets.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
 		// of this proxy. If it doesn't, then something is wrong in the system.
 		svcAccountInRequest, err := identity.UnmarshalK8sServiceAccount(sdscert.Name)

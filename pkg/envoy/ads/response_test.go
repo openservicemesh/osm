@@ -27,6 +27,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -89,20 +90,20 @@ var _ = Describe("Test ADS response functions", func() {
 			expected := &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					envoy.SDSCert{
+					secrets.SDSCert{
 						// Proxy's own cert to present to peer during mTLS/TLS handshake
 						Name:     proxySvcAccount.String(),
-						CertType: envoy.ServiceCertType,
+						CertType: secrets.ServiceCertType,
 					}.String(),
-					envoy.SDSCert{
+					secrets.SDSCert{
 						// Validation certificate for mTLS when this proxy is an upstream
 						Name:     proxySvcAccount.String(),
-						CertType: envoy.RootCertTypeForMTLSInbound,
+						CertType: secrets.RootCertTypeForMTLSInbound,
 					}.String(),
-					envoy.SDSCert{
+					secrets.SDSCert{
 						// Validation ceritificate for TLS when this proxy is an upstream
 						Name:     proxySvcAccount.String(),
-						CertType: envoy.RootCertTypeForHTTPS,
+						CertType: secrets.RootCertTypeForHTTPS,
 					}.String(),
 				},
 			}
@@ -166,27 +167,27 @@ var _ = Describe("Test ADS response functions", func() {
 			tmpResource = (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(proxyServiceCert.Name).To(Equal(envoy.SDSCert{
+			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.ServiceCertType,
+				CertType: secrets.ServiceCertType,
 			}.String()))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(envoy.SDSCert{
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(envoy.SDSCert{
+			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: secrets.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})
@@ -238,27 +239,27 @@ var _ = Describe("Test ADS response functions", func() {
 			tmpResource = sdsResponse.Resources[0]
 			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(proxyServiceCert.Name).To(Equal(envoy.SDSCert{
+			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.ServiceCertType,
+				CertType: secrets.ServiceCertType,
 			}.String()))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
 			tmpResource = sdsResponse.Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(envoy.SDSCert{
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
 			tmpResource = sdsResponse.Resources[2]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(envoy.SDSCert{
+			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: secrets.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})
