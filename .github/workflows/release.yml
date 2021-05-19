@@ -20,6 +20,7 @@ jobs:
     needs: version
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
