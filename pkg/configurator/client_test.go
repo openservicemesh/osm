@@ -2,15 +2,10 @@ package configurator
 
 import (
 	"context"
-	"fmt"
-	"reflect"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,78 +21,6 @@ const (
 	osmNamespace      = "-test-osm-namespace-"
 	osmMeshConfigName = "-test-osm-mesh-config-"
 )
-
-var _ = Describe("Test OSM MeshConfig parsing", func() {
-	meshConfigClientSet := testclient.NewSimpleClientset()
-
-	confChannel := events.GetPubSubInstance().Subscribe(
-		announcements.MeshConfigAdded,
-		announcements.MeshConfigDeleted,
-		announcements.MeshConfigUpdated)
-	defer events.GetPubSubInstance().Unsub(confChannel)
-
-	stop := make(chan struct{})
-	defer close(stop)
-
-	cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
-	Expect(cfg).ToNot(BeNil())
-
-	meshConfig := v1alpha1.MeshConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: osmNamespace,
-			Name:      osmMeshConfigName,
-		},
-	}
-
-	if _, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), &meshConfig, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("[TEST] Error creating MeshConfig %s/%s/: %s", meshConfig.Namespace, meshConfig.Name, err.Error())
-	}
-	<-confChannel
-
-	Context("Ensure we are able to get reasonable defaults from MeshConfig", func() {
-
-		It("Tag matches const key for all fields of OSM MeshConfig struct", func() {
-			fieldNameTag := map[string]string{
-				"PermissiveTrafficPolicyMode":   PermissiveTrafficPolicyModeKey,
-				"Egress":                        egressKey,
-				"EnableDebugServer":             enableDebugServer,
-				"PrometheusScraping":            prometheusScrapingKey,
-				"TracingEnable":                 tracingEnableKey,
-				"TracingAddress":                tracingAddressKey,
-				"TracingPort":                   tracingPortKey,
-				"TracingEndpoint":               tracingEndpointKey,
-				"UseHTTPSIngress":               useHTTPSIngressKey,
-				"EnvoyLogLevel":                 envoyLogLevelKey,
-				"EnvoyImage":                    envoyImageKey,
-				"InitContainerImage":            initContainerImage,
-				"ServiceCertValidityDuration":   serviceCertValidityDurationKey,
-				"OutboundIPRangeExclusionList":  outboundIPRangeExclusionListKey,
-				"OutboundPortExclusionList":     outboundPortExclusionListKey,
-				"EnablePrivilegedInitContainer": enablePrivilegedInitContainerKey,
-				"ConfigResyncInterval":          configResyncIntervalKey,
-				"MaxDataPlaneConnections":       maxDataPlaneConnectionsKey,
-				"ProxyResources":                proxyResourcesKey,
-				"InboundExternAuthz":            inboundExtAuthz,
-			}
-			t := reflect.TypeOf(osmConfig{})
-
-			expectedNumberOfFields := t.NumField()
-			actualNumberOfFields := len(fieldNameTag)
-
-			Expect(expectedNumberOfFields).To(
-				Equal(actualNumberOfFields),
-				fmt.Sprintf("Fields have been added or removed from the osmConfig struct -- expected %d, actual %d; please correct this unit test", expectedNumberOfFields, actualNumberOfFields))
-
-			for fieldName, expectedTag := range fieldNameTag {
-				f, _ := t.FieldByName("PermissiveTrafficPolicyMode")
-				actualtag := f.Tag.Get("yaml")
-				Expect(actualtag).To(
-					Equal(PermissiveTrafficPolicyModeKey),
-					fmt.Sprintf("Field %s expected to have tag %s; found %s instead", fieldName, expectedTag, actualtag))
-			}
-		})
-	})
-})
 
 // Tests config map event trigger routine
 func TestMeshConfigEventTriggers(t *testing.T) {
@@ -133,152 +56,120 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 	<-proxyBroadcastChannel
 
 	tests := []struct {
-		deltaMeshConfigContents map[string]string
-		expectProxyBroadcast    bool
+		caseName             string
+		updateMeshConfigSpec func(*v1alpha1.MeshConfigSpec)
+		expectProxyBroadcast bool
 	}{
 		{
-			deltaMeshConfigContents: map[string]string{
-				egressKey: "true",
+			caseName: "EnableEgress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.EnableEgress = true
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				PermissiveTrafficPolicyModeKey: "true",
+			caseName: "EnablePermissiveTrafficPolicyMode",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.EnablePermissiveTrafficPolicyMode = true
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				useHTTPSIngressKey: "true",
+			caseName: "UseHTTPSIngress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.UseHTTPSIngress = true
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				tracingEnableKey: "true",
+			caseName: "TracingEnable",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Enable = true
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				tracingAddressKey: "jaeger.jagnamespace.cluster.svc.local",
+			caseName: "TracingAddress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Address = "jaeger.jagnamespace.cluster.svc.local"
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				tracingEndpointKey: "true",
+			caseName: "TracingEndpoint",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Endpoint = "/my/endpoint"
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				tracingPortKey: "3521",
+			caseName: "TracingPort",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Port = 3521
 			},
 			expectProxyBroadcast: true,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				envoyLogLevelKey: "warn",
+			caseName: "SidecarLogLevel",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.LogLevel = "warn"
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				enableDebugServer: "true",
+			caseName: "EnableDebugServer",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.EnableDebugServer = true
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				serviceCertValidityDurationKey: "30h",
+			caseName: "ServiceCertValidityDuration",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Certificate.ServiceCertValidityDuration = "30h"
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				serviceCertValidityDurationKey: "30h",
+			caseName: "EnablePrivilegedInitContainer",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.EnablePrivilegedInitContainer = true
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				enablePrivilegedInitContainerKey: "true",
+			caseName: "OutboundIPRangeExclusionList",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.OutboundIPRangeExclusionList = []string{"1.2.3.4/24", "10.0.0.1/8"}
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				outboundIPRangeExclusionListKey: "1.2.3.4/24,10.0.0.1/8",
+			caseName: "OutboundPortExclusionList",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.OutboundPortExclusionList = []int{7070, 6080}
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				outboundPortExclusionListKey: "7070, 6080",
+			caseName: "ConfigResyncInterval",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.ConfigResyncInterval = "24h"
 			},
 			expectProxyBroadcast: false,
 		},
 		{
-			deltaMeshConfigContents: map[string]string{
-				configResyncIntervalKey: "24h",
-			},
-			expectProxyBroadcast: false,
-		},
-		{
-			deltaMeshConfigContents: map[string]string{
-				inboundExtAuthz: "true",
+			caseName: "InboundExternalAuthorization",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.InboundExternalAuthorization.Enable = true
 			},
 			expectProxyBroadcast: true,
 		},
 	}
 
 	for _, tc := range tests {
-		// merge meshconfig
-		for mapKey, mapVal := range tc.deltaMeshConfigContents {
-			switch mapKey {
-			case egressKey:
-				meshConfig.Spec.Traffic.EnableEgress, _ = strconv.ParseBool(mapVal)
-			case PermissiveTrafficPolicyModeKey:
-				meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode, _ = strconv.ParseBool(mapVal)
-			case useHTTPSIngressKey:
-				meshConfig.Spec.Traffic.UseHTTPSIngress, _ = strconv.ParseBool(mapVal)
-			case tracingEnableKey:
-				meshConfig.Spec.Observability.Tracing.Enable, _ = strconv.ParseBool(mapVal)
-			case tracingAddressKey:
-				meshConfig.Spec.Observability.Tracing.Address = mapVal
-			case tracingEndpointKey:
-				meshConfig.Spec.Observability.Tracing.Endpoint = mapVal
-			case tracingPortKey:
-				port, _ := strconv.ParseInt(mapVal, 10, 16)
-				meshConfig.Spec.Observability.Tracing.Port = int16(port)
-			case envoyLogLevelKey:
-				meshConfig.Spec.Sidecar.LogLevel = mapVal
-			case enableDebugServer:
-				meshConfig.Spec.Observability.EnableDebugServer, _ = strconv.ParseBool(mapVal)
-			case serviceCertValidityDurationKey:
-				meshConfig.Spec.Certificate.ServiceCertValidityDuration = mapVal
-			case enablePrivilegedInitContainerKey:
-				meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer, _ = strconv.ParseBool(mapVal)
-			case outboundIPRangeExclusionListKey:
-				meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = strings.Split(mapVal, ",")
-			case outboundPortExclusionListKey:
-				portExclusionListStr := strings.Split(mapVal, ",")
-				var portExclusionList []int
-				for _, portStr := range portExclusionListStr {
-					port, _ := strconv.Atoi(portStr)
-					portExclusionList = append(portExclusionList, port)
-				}
-				meshConfig.Spec.Traffic.OutboundPortExclusionList = portExclusionList
-			case configResyncIntervalKey:
-				meshConfig.Spec.Sidecar.ConfigResyncInterval = mapVal
-			case inboundExtAuthz:
-				meshConfig.Spec.Traffic.InboundExternalAuthorization = v1alpha1.ExternalAuthzSpec{
-					Enable: true,
-				}
-			}
-		}
+		// update meshconfig
+		tc.updateMeshConfigSpec(&meshConfig.Spec)
 
 		_, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Update(context.TODO(), &meshConfig, metav1.UpdateOptions{})
 		assert.NoError(err)
@@ -292,6 +183,6 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		case <-time.NewTimer(300 * time.Millisecond).C:
 			// one third of a second should be plenty
 		}
-		assert.Equal(tc.expectProxyBroadcast, proxyEventReceived)
+		assert.Equal(tc.expectProxyBroadcast, proxyEventReceived, tc.caseName)
 	}
 }

@@ -15,7 +15,6 @@ import (
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
@@ -35,7 +34,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 
 		stop := make(chan struct{})
 		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
-		tassert.Equal(t, &osmConfig{}, cfg.getMeshConfig())
+		tassert.Equal(t, &v1alpha1.MeshConfig{}, cfg.getMeshConfig())
 	})
 
 	tests := []struct {
@@ -74,20 +73,30 @@ func TestCreateUpdateConfig(t *testing.T) {
 				},
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				expectedConfig := &osmConfig{
-					PermissiveTrafficPolicyMode:   false,
-					Egress:                        true,
-					EnableDebugServer:             true,
-					PrometheusScraping:            true,
-					TracingEnable:                 true,
-					UseHTTPSIngress:               true,
-					EnablePrivilegedInitContainer: true,
-					EnvoyLogLevel:                 "error",
-					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
-					InitContainerImage:            "openservicemesh/init:v0.0.0",
-					ServiceCertValidityDuration:   "24h",
-					ConfigResyncInterval:          "2m",
-					MaxDataPlaneConnections:       0,
+				expectedConfig := &v1alpha1.MeshConfigSpec{
+					Sidecar: v1alpha1.SidecarSpec{
+						EnablePrivilegedInitContainer: true,
+						LogLevel:                      "error",
+						MaxDataPlaneConnections:       0,
+						ConfigResyncInterval:          "2m",
+						EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+						InitContainerImage:            "openservicemesh/init:v0.0.0",
+					},
+					Traffic: v1alpha1.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: false,
+						EnableEgress:                      true,
+						UseHTTPSIngress:                   true,
+					},
+					Observability: v1alpha1.ObservabilitySpec{
+						EnableDebugServer:  true,
+						PrometheusScraping: true,
+						Tracing: v1alpha1.TracingSpec{
+							Enable: true,
+						},
+					},
+					Certificate: v1alpha1.CertificateSpec{
+						ServiceCertValidityDuration: "24h",
+					},
 				}
 				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
@@ -203,9 +212,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsTracingEnabled())
-				assert.Equal(constants.DefaultTracingHost+".-test-osm-namespace-.svc.cluster.local", cfg.GetTracingHost())
-				assert.Equal(constants.DefaultTracingPort, cfg.GetTracingPort())
-				assert.Equal(constants.DefaultTracingEndpoint, cfg.GetTracingEndpoint())
 			},
 		},
 		{
@@ -299,7 +305,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Traffic: v1alpha1.TrafficSpec{
-					OutboundIPRangeExclusionList: []string{"1.1.1.1/32, 2.2.2.2/24"},
+					OutboundIPRangeExclusionList: []string{"1.1.1.1/32", "2.2.2.2/24"},
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
