@@ -133,11 +133,13 @@
                     "type": "object",
                     "title": "The image schema",
                     "description": "The details of the images to run.",
-                    "examples": [{
-                        "registry": "openservicemesh",
-                        "pullPolicy": "IfNotPresent",
-                        "tag": "v0.4.2"
-                    }],
+                    "examples": [
+                        {
+                            "registry": "openservicemesh",
+                            "pullPolicy": "IfNotPresent",
+                            "tag": "v0.4.2"
+                        }
+                    ],
                     "required": [
                         "registry",
                         "pullPolicy",
@@ -280,16 +282,18 @@
                     "type": "object",
                     "title": "The Fluent Bit schema",
                     "description": "The default details of the Fluent Bit sidecar if enabled.",
-                    "examples": [{
-                        "name": "fluentbit-logger",
-                        "registry": "fluent",
-                        "tag": "1.6.4",
-                        "pullPolicy": "IfNotPresent",
-                        "outputPlugin": "stdout",
-                        "enableProxySupport": "false",
-                        "httpProxy": "",
-                        "httpsProxy": ""
-                    }],
+                    "examples": [
+                        {
+                            "name": "fluentbit-logger",
+                            "registry": "fluent",
+                            "tag": "1.6.4",
+                            "pullPolicy": "IfNotPresent",
+                            "outputPlugin": "stdout",
+                            "enableProxySupport": "false",
+                            "httpProxy": "",
+                            "httpsProxy": ""
+                        }
+                    ],
                     "required": [
                         "name",
                         "registry",
@@ -456,9 +460,11 @@
                     "type": "object",
                     "title": "The tracing schema",
                     "description": "An explanation about the purpose of this instance.",
-                    "examples": [{
-                        "enable": true
-                    }],
+                    "examples": [
+                        {
+                            "enable": true
+                        }
+                    ],
                     "required": [
                         "enable"
                     ],
@@ -596,10 +602,12 @@
                     "type": "object",
                     "title": "Feature flags",
                     "description": "Feature flags",
-                    "examples": [{
-                        "enableWASMStats": true,
-                        "enableEgressPolicy": true
-                    }],
+                    "examples": [
+                        {
+                            "enableWASMStats": true,
+                            "enableEgressPolicy": true
+                        }
+                    ],
                     "required": [
                         "enableWASMStats",
                         "enableEgressPolicy"
@@ -633,6 +641,23 @@
                     "description": "Indicates whether OSM should run with PodSecurityPolicies",
                     "examples": [
                         false
+                    ]
+                },
+                "controlPlaneTolerations": {
+                    "$id": "#/properties/OpenServiceMesh/properties/controlPlaneTolerations",
+                    "type": "array",
+                    "title": "The controlPlaneTolerations schema",
+                    "description": "Node tolerations applied to control plane pods to schedule onto nodes with matching taints",
+                    "items": {
+                        "type": "object"
+                    },
+                    "examples": [
+                        {
+                            "key": "key1",
+                            "operator": "Equal",
+                            "value": "value1",
+                            "effect": "NoSchedule"
+                        }
                     ]
                 }
             },
