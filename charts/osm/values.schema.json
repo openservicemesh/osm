@@ -5,6 +5,70 @@
     "required": [
         "OpenServiceMesh"
     ],
+    "definitions": {
+        "containerResources": {
+            "$id": "#/properties/definitions/properties/containerResources",
+            "type": "object",
+            "title": "The containerResources schema definition",
+            "description": "The container's resource configuration",
+            "required": [
+                "limits",
+                "requests"
+            ],
+            "properties": {
+                "limits": {
+                    "$id": "#/properties/definitions/properties/containerResources/properties/limits",
+                    "type": "object",
+                    "title": "The containerResources' limits schema",
+                    "description": "The container's resource limits",
+                    "required": [
+                        "cpu",
+                        "memory"
+                    ],
+                    "properties": {
+                        "cpu": {
+                            "$id": "#/properties/definitions/properties/containerResources/properties/limits/properties/cpu",
+                            "type": "string",
+                            "title": "The containerResources' CPU limit schema",
+                            "description": "The container's CPU limit"
+                        },
+                        "memory": {
+                            "$id": "#/properties/definitions/properties/containerResources/properties/limits/properties/memory",
+                            "type": "string",
+                            "title": "The containerResources' memory limit schema",
+                            "description": "The constainer's memory limit"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "requests": {
+                    "$id": "#/properties/definitions/properties/containerResources/properties/requests",
+                    "type": "object",
+                    "title": "The containerResources' requests schema",
+                    "description": "The container's request limits",
+                    "required": [
+                        "cpu",
+                        "memory"
+                    ],
+                    "properties": {
+                        "cpu": {
+                            "$id": "#/properties/definitions/properties/containerResources/properties/requests/properties/cpu",
+                            "type": "string",
+                            "title": "The containerResources' CPU request schema",
+                            "description": "The container's CPU request limit"
+                        },
+                        "memory": {
+                            "$id": "#/properties/definitions/properties/containerResources/properties/requests/properties/memory",
+                            "type": "string",
+                            "title": "The containerResources' memory request schema",
+                            "description": "The container's memory request limit"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        }
+    },
     "properties": {
         "OpenServiceMesh": {
             "$id": "#/properties/OpenServiceMesh",
@@ -12,7 +76,6 @@
             "title": "The OpenServiceMesh schema",
             "description": "The top level required key in the values file.",
             "required": [
-                "replicaCount",
                 "image",
                 "sidecarImage",
                 "certificateManager",
@@ -35,98 +98,41 @@
                 "deployJaeger",
                 "tracing",
                 "webhookConfigNamePrefix",
-                "osmcontroller",
+                "osmController",
                 "enablePrivilegedInitContainer",
                 "injector"
             ],
             "properties": {
-                "replicaCount": {
-                    "$id": "#/properties/OpenServiceMesh/properties/replicaCount",
-                    "type": "integer",
-                    "title": "The replicaCount schema",
-                    "description": "The number of replicas of the osm-controller Pod.",
-                    "examples": [
-                        1
-                    ]
-                },
-                "osmcontroller": {
-                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller",
+                "osmController": {
+                    "$id": "#/properties/OpenServiceMesh/properties/osmController",
                     "type": "object",
-                    "title": "The osmcontroller schema",
-                    "description": "The details of the osmcontroller.",
+                    "title": "The osmController schema",
+                    "description": "The details of the osmController.",
                     "required": [
                         "resource"
                     ],
                     "properties": {
+                        "replicaCount": {
+                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/replicaCount",
+                            "type": "integer",
+                            "title": "The replicaCount schema",
+                            "description": "The number of replicas of the osm-controller pod",
+                            "examples": [
+                                1
+                            ]
+                        },
                         "resource": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource",
-                            "type": "object",
-                            "title": "The resource schema",
-                            "description": "The resources used by the osmcontroller.",
-                            "required": [
-                                "limits",
-                                "requests"
-                            ],
-                            "properties": {
-                                "limits": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontrollers/properties/resource/properties/limits",
-                                    "type": "object",
-                                    "title": "The resource limits schema",
-                                    "description": "The resources limits for the osmcontroller.",
-                                    "required": [
-                                        "cpu",
-                                        "memory"
-                                    ],
-                                    "properties": {
-                                        "cpu": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontrollers/properties/resource/properties/limits/properties/cpu",
-                                            "type": "string",
-                                            "title": "The resource limits cpu schema",
-                                            "description": "The resources limits cpu for the osmcontroller."
-                                        },
-                                        "memory": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/memory",
-                                            "type": "string",
-                                            "title": "The resource limits memory schema",
-                                            "description": "The resources limits cpu for the osmcontroller."
-                                        }
-                                    }
-                                },
-                                "requests": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests",
-                                    "type": "object",
-                                    "title": "The resource requests schema",
-                                    "description": "The resources requests for the osmcontroller.",
-                                    "required": [
-                                        "cpu",
-                                        "memory"
-                                    ],
-                                    "properties": {
-                                        "cpu": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests/properties/cpu",
-                                            "type": "string",
-                                            "title": "The resource requests cpu schema",
-                                            "description": "The resources requests cpu for the osmcontroller."
-                                        },
-                                        "memory": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests/properties/memory",
-                                            "type": "string",
-                                            "title": "The resource requests memory schema",
-                                            "description": "The resources requests memory for the osmcontroller."
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/podLabels",
+                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/podLabels",
                             "type": "object",
                             "title": "The podLabels schema",
-                            "description": "Labels for the osmcontroller pod.",
+                            "description": "Labels for the osmController pod.",
                             "default": {}
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "image": {
                     "$id": "#/properties/OpenServiceMesh/properties/image",
@@ -175,7 +181,7 @@
                             ]
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "sidecarImage": {
                     "$id": "#/properties/OpenServiceMesh/properties/sidecarImage",
@@ -300,6 +306,8 @@
                         "tag",
                         "pullPolicy",
                         "outputPlugin",
+                        "workspaceId",
+                        "primaryKey",
                         "enableProxySupport",
                         "httpProxy",
                         "httpsProxy"
@@ -351,6 +359,18 @@
                                 "stdout"
                             ]
                         },
+                        "workspaceId": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/workspaceId",
+                            "type": "string",
+                            "title": "The Fluent Bit workspaceId schema",
+                            "description": "The workspace ID for Fluent Bit output plugin to Log Analytics"
+                        },
+                        "primaryKey": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/primaryKey",
+                            "type": "string",
+                            "title": "The Fluent Bit primaryKey schema",
+                            "description": "The primary key for Fluent Bit output plugin to Log Analytics"
+                        },
                         "enableProxySupport": {
                             "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/enableProxySupport",
                             "type": "boolean",
@@ -379,7 +399,7 @@
                             ]
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "meshName": {
                     "$id": "#/properties/OpenServiceMesh/properties/meshName",
@@ -466,20 +486,52 @@
                         }
                     ],
                     "required": [
-                        "enable"
+                        "enable",
+                        "address",
+                        "port",
+                        "endpoint"
                     ],
                     "properties": {
                         "enable": {
                             "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/enable",
                             "type": "boolean",
-                            "title": "The enable schema",
-                            "description": "Indicates whether tracing is enabled or not.",
+                            "title": "The enable schema for tracing",
+                            "description": "Indicates whether tracing is enabled or not",
                             "examples": [
                                 true
                             ]
+                        },
+                        "address": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/address",
+                            "type": "string",
+                            "title": "The address schema for tracing",
+                            "description": "Address of the tracing collector",
+                            "examples": [
+                                "jaeger.<osm-namespace>.svc.cluster.local"
+                            ]
+                        },
+                        "port": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/port",
+                            "type": "integer",
+                            "title": "The port schema for tracing",
+                            "description": "Port of the tracing collector",
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "examples": [
+                                9411
+                            ]
+                        },
+                        "endpoint": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/endpoint",
+                            "type": "string",
+                            "title": "The endpoint schema for tracing",
+                            "description": "API path of the collector",
+                            "examples": [
+                                "/api/v2/spans"
+                            ]
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "webhookConfigNamePrefix": {
                     "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
@@ -528,64 +580,7 @@
                             ]
                         },
                         "resource": {
-                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource",
-                            "type": "object",
-                            "title": "The resource schema",
-                            "description": "The resource configuration for osm-injector.",
-                            "required": [
-                                "limits",
-                                "requests"
-                            ],
-                            "properties": {
-                                "limits": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits",
-                                    "type": "object",
-                                    "title": "The resource limits schema",
-                                    "description": "The resources limits for osm-injector",
-                                    "required": [
-                                        "cpu",
-                                        "memory"
-                                    ],
-                                    "properties": {
-                                        "cpu": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits/properties/cpu",
-                                            "type": "string",
-                                            "title": "The resource limits cpu schema",
-                                            "description": "The resources limits cpu for osm-injector"
-                                        },
-                                        "memory": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/limits/properties/memory",
-                                            "type": "string",
-                                            "title": "The resource limits memory schema",
-                                            "description": "The resources limits cpu for osm-injector"
-                                        }
-                                    }
-                                },
-                                "requests": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests",
-                                    "type": "object",
-                                    "title": "The resource requests schema",
-                                    "description": "The resources requests for osm-injector",
-                                    "required": [
-                                        "cpu",
-                                        "memory"
-                                    ],
-                                    "properties": {
-                                        "cpu": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests/properties/cpu",
-                                            "type": "string",
-                                            "title": "The resource requests cpu schema",
-                                            "description": "The resources requests cpu for osm-injector."
-                                        },
-                                        "memory": {
-                                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/resource/properties/requests/properties/memory",
-                                            "type": "string",
-                                            "title": "The resource requests memory schema",
-                                            "description": "The resources requests memory for osm-injector."
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
                             "$id": "#/properties/OpenServiceMesh/properties/injector/properties/podLabels",
@@ -595,7 +590,7 @@
                             "default": {}
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "featureFlags": {
                     "$id": "#/properties/OpenServiceMesh/properties/featureFlags",
@@ -632,7 +627,7 @@
                             ]
                         }
                     },
-                    "additionalProperties": true
+                    "additionalProperties": false
                 },
                 "pspEnabled": {
                     "$id": "#/properties/OpenServiceMesh/properties/pspEnabled",
@@ -652,17 +647,244 @@
                         "type": "object"
                     },
                     "examples": [
-                        {
-                            "key": "key1",
-                            "operator": "Equal",
-                            "value": "value1",
-                            "effect": "NoSchedule"
+                        [
+                            {
+                                "key": "key1",
+                                "operator": "Equal",
+                                "value": "value1",
+                                "effect": "NoSchedule"
+                            }
+                        ]
+                    ]
+                },
+                "outboundIPRangeExclusionList": {
+                    "$id": "#/properties/OpenServiceMesh/properties/outboundIPRangeExclusionList",
+                    "type": "array",
+                    "title": "The outboundIPRangeExclusionList schema",
+                    "description": "Outbound IP range exluclusion list for sidecar traffic interception",
+                    "items": {
+                        "type": "string",
+                        "pattern": "((?:\\d{1,3}\\.){3}\\d{1,3})\\/(\\d{1,2})$"
+                    },
+                    "examples": [
+                        [
+                            "8.8.8.8/32",
+                            "10.0.0.0/24"
+                        ]
+                    ]
+                },
+                "outboundPortExclusionList": {
+                    "$id": "#/properties/OpenServiceMesh/properties/outboundPortExclusionList",
+                    "type": "array",
+                    "title": "The outboundPortExclusionList schema",
+                    "description": "Outbound port exluclusion list for sidecar traffic interception",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                    },
+                    "examples": [
+                        [
+                            6379,
+                            3315
+                        ]
+                    ]
+                },
+                "grafana": {
+                    "$id": "#/properties/OpenServiceMesh/properties/grafana",
+                    "type": "object",
+                    "title": "The grafana schema",
+                    "description": "Grafana configuration parameters",
+                    "required": [
+                        "port",
+                        "enableRemoteRendering"
+                    ],
+                    "properties": {
+                        "port": {
+                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/port",
+                            "title": "Grafana's port schema",
+                            "description": "Grafana's port number",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "examples": [
+                                3000
+                            ]
+                        },
+                        "enableRemoteRendering": {
+                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/enableRemoteRendering",
+                            "type": "boolean",
+                            "title": "Grafana's enableRemoteRendering schema",
+                            "description": "Enable remote rendering of Grafana's dashboards",
+                            "examples": [
+                                true
+                            ]
                         }
+                    },
+                    "examples": [
+                        {
+                            "port": 3000,
+                            "enableRemoteRendering": true
+                        }
+                    ],
+                    "additionalProperties": false
+                },
+                "certmanager": {
+                    "$id": "#/properties/OpenServiceMesh/properties/certmanager",
+                    "type": "object",
+                    "title": "The certmanager schema",
+                    "description": "cert-manager.io configuration parameters",
+                    "required": [
+                        "issuerName",
+                        "issuerKind",
+                        "issuerGroup"
+                    ],
+                    "properties": {
+                        "issuerName": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerName",
+                            "title": "Cert-manager's issuerName schema",
+                            "description": "Cert-manager's certificate issuer name",
+                            "type": "string",
+                            "examples": [
+                                "osm-ca"
+                            ]
+                        },
+                        "issuerKind": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerKind",
+                            "title": "Cert-manager's issuerKind schema",
+                            "description": "Cert-manager's certificate issuer kind",
+                            "type": "string",
+                            "examples": [
+                                "Issuer"
+                            ]
+                        },
+                        "issuerGroup": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerGroup",
+                            "title": "Cert-manager's issuerGroup schema",
+                            "description": "Cert-manager's certificate issuer group",
+                            "type": "string",
+                            "examples": [
+                                "cert-manager"
+                            ]
+                        }
+                    },
+                    "examples": [
+                        {
+                            "issuerName": "osm-ca",
+                            "issuerKind": "Issuer",
+                            "issuerGroup": "cert-manager"
+                        }
+                    ],
+                    "additionalProperties": false
+                },
+                "vault": {
+                    "$id": "#/properties/OpenServiceMesh/properties/vault",
+                    "type": "object",
+                    "title": "The Hashicorp Vault schema",
+                    "description": "Hashicorp Vault configuration parameters",
+                    "properties": {
+                        "host": {
+                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/host",
+                            "title": "Hashicorp Vault's host schema",
+                            "description": "Hashicorp Vault host/service - where Vault is installed",
+                            "type": "string"
+                        },
+                        "protocol": {
+                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/protocol",
+                            "title": "Hashicorp Vault's protocol schema",
+                            "description": "Protocol to use to connect to Vault",
+                            "type": "string"
+                        },
+                        "token": {
+                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/token",
+                            "title": "Hashicorp Vault's token schema",
+                            "description": "Token to use to connect to Vault",
+                            "type": "string"
+                        },
+                        "role": {
+                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/role",
+                            "title": "Hashicorp Vault's role schema",
+                            "description": "Role to use with Vault",
+                            "type": "string"
+                        }
+                    },
+                    "examples": [
+                        {
+                            "host": "vault.default.svc.cluster.local",
+                            "protocol": "http",
+                            "token": "some-token",
+                            "role": "openservicemesh"
+                        }
+                    ],
+                    "additionalProperties": false
+                },
+                "prometheus": {
+                    "$id": "#/properties/OpenServiceMesh/properties/prometheus",
+                    "type": "object",
+                    "title": "The prometheus schema",
+                    "description": "Prometheus configurations",
+                    "required": [
+                        "resources",
+                        "port",
+                        "retention"
+                    ],
+                    "properties": {
+                        "resources": {
+                            "$ref": "#/definitions/containerResources"
+                        },
+                        "port": {
+                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/port",
+                            "title": "Prometheus' port schema",
+                            "description": "Prometheus' port number",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "examples": [
+                                7070
+                            ]
+                        },
+                        "retention": {
+                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/rentention",
+                            "type": "object",
+                            "title": "The Prometheus retention schema",
+                            "description": "Prometheus data retention configurations",
+                            "required": [
+                                "time"
+                            ],
+                            "properties": {
+                                "time": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/retention/properties/time",
+                                    "title": "Prometheus' data retention time schema",
+                                    "description": "Prometheus' data retention time",
+                                    "type": "string",
+                                    "examples": [
+                                        "15d"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "imagePullSecrets": {
+                    "$id": "#/properties/OpenServiceMesh/properties/imagePullSecrets",
+                    "type": "array",
+                    "title": "The imagePullSecrets schema",
+                    "description": "ImagePullSecrets for the control plane pod",
+                    "items": {
+                        "type": "object"
+                    },
+                    "examples": [
+                        [
+                            {
+                                "name": "secret-name"
+                            }
+                        ]
                     ]
                 }
             },
-            "additionalProperties": true
+            "additionalProperties": false
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }
