@@ -11,6 +11,7 @@ import (
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -61,6 +62,12 @@ const (
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
 // Its value is initialized at build time.
 var chartTGZSource string
+
+// The defaults used for `osm install`
+var (
+	defaultImageTag      string
+	defaultImageRegistry string
+)
 
 type installCmd struct {
 	out            io.Writer
@@ -162,6 +169,42 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
+
+	imgTag := defaultImageTag
+	imgTagVal, err := chartutil.Values(finalValues).PathValue("OpenServiceMesh.image.tag")
+	if err != nil {
+		if _, ok := err.(chartutil.ErrNoValue); !ok {
+			// Currently it looks like PathValue() won't return any other
+			// kind of error, which would make this unreachable.
+			return nil, errors.Wrap(err, "failed to get user-overridden OpenServiceMesh.image.tag value")
+		}
+	} else {
+		// Here the image tag value has been --set, so use that instead of
+		// defaultImageTag.
+		imgTagStr, ok := imgTagVal.(string)
+		if ok {
+			imgTag = imgTagStr
+		}
+	}
+	valuesConfig = append(valuesConfig, "OpenServiceMesh.image.tag="+imgTag)
+
+	imgReg := defaultImageRegistry
+	imgRegVal, err := chartutil.Values(finalValues).PathValue("OpenServiceMesh.image.registry")
+	if err != nil {
+		if _, ok := err.(chartutil.ErrNoValue); !ok {
+			// Currently it looks like PathValue() won't return any other kind
+			// of error, which would make this unreachable.
+			return nil, errors.Wrap(err, "failed to get user-overridden OpenServiceMesh.image.registry value")
+		}
+	} else {
+		// Here the image registry value has been --set, so use that instead of
+		// defaultImageRegistry.
+		imgRegStr, ok := imgRegVal.(string)
+		if ok {
+			imgReg = imgRegStr
+		}
+	}
+	valuesConfig = append(valuesConfig, "OpenServiceMesh.image.registry="+imgReg)
 
 	if err := parseVal(valuesConfig, finalValues); err != nil {
 		return nil, err
