@@ -14,34 +14,42 @@ import (
 )
 
 // PatchSecretHandler patches the envoy bootstrap config secrets based on the PodAdd events
-func PatchSecretHandler(kubeClient kubernetes.Interface) {
+// returns a stop channel which can be used to stop the inner handler
+func PatchSecretHandler(kubeClient kubernetes.Interface) chan struct{} {
 	podAddSubscription := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
+	stop := make(chan struct{})
 
 	go func() {
 		for {
-			podAddedMsg := <-podAddSubscription
-			psubMessage, castOk := podAddedMsg.(events.PubSubMessage)
-			if !castOk {
-				log.Error().Msgf("Error casting PubSubMessage: %T %v", psubMessage, psubMessage)
-				continue
-			}
+			select {
+			case <-stop:
+				return
+			case podAddedMsg := <-podAddSubscription:
+				psubMessage, castOk := podAddedMsg.(events.PubSubMessage)
+				if !castOk {
+					log.Error().Msgf("Error casting PubSubMessage: %T %v", psubMessage, psubMessage)
+					continue
+				}
 
-			// guaranteed can only be a PodAdded event
-			addedPodObj, castOk := psubMessage.NewObj.(*corev1.Pod)
-			if !castOk {
-				log.Error().Msgf("Failed to cast to *v1.Pod: %T %v", psubMessage.OldObj, psubMessage.OldObj)
-				continue
-			}
+				// guaranteed can only be a PodAdded event
+				addedPodObj, castOk := psubMessage.NewObj.(*corev1.Pod)
+				if !castOk {
+					log.Error().Msgf("Failed to cast to *v1.Pod: %T %v", psubMessage.OldObj, psubMessage.OldObj)
+					continue
+				}
 
-			podUID := addedPodObj.GetUID()
-			podUUID := addedPodObj.GetLabels()[constants.EnvoyUniqueIDLabelName]
-			podName := addedPodObj.GetName()
-			namespace := addedPodObj.GetNamespace()
-			secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+				podUID := addedPodObj.GetUID()
+				podUUID := addedPodObj.GetLabels()[constants.EnvoyUniqueIDLabelName]
+				podName := addedPodObj.GetName()
+				namespace := addedPodObj.GetNamespace()
+				secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
 
-			if secret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{}); err != nil {
-				log.Error().Err(err).Msgf("Failed to get secret %s/%s mounted to Pod %s/%s", namespace, secretName, namespace, podName)
-			} else {
+				secret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to get secret %s/%s mounted to Pod %s/%s", namespace, secretName, namespace, podName)
+					continue
+				}
+
 				secret.ObjectMeta.OwnerReferences = append(secret.ObjectMeta.OwnerReferences, metav1.OwnerReference{
 					APIVersion: "v1",
 					Kind:       "Pod",
@@ -57,4 +65,6 @@ func PatchSecretHandler(kubeClient kubernetes.Interface) {
 			}
 		}
 	}()
+
+	return stop
 }
