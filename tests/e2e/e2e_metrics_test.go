@@ -31,8 +31,8 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			installOpts.SetOverrides = []string{
 				"OpenServiceMesh.featureFlags.enableWASMStats=true",
 				// These values are based on successful runs on OSM's CI values
-				"OpenServiceMesh.osmcontroller.resource.requests.cpu=100m",
-				"OpenServiceMesh.osmcontroller.resource.requests.memory=256M",
+				"OpenServiceMesh.osmController.resource.requests.cpu=100m",
+				"OpenServiceMesh.osmController.resource.requests.memory=256M",
 			}
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
 

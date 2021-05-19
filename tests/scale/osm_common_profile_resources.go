@@ -33,9 +33,9 @@ func scaleOSMInstall() (*DataHandle, error) {
 	// Override Memory available, both requested and limit to 1G to guarantee the memory available
 	// for OSM will not depend on the Node's load.
 	t.SetOverrides = append(t.SetOverrides,
-		"OpenServiceMesh.osmcontroller.resource.requests.memory=1G")
+		"OpenServiceMesh.osmController.resource.requests.memory=1G")
 	t.SetOverrides = append(t.SetOverrides,
-		"OpenServiceMesh.osmcontroller.resource.limits.memory=1G")
+		"OpenServiceMesh.osmController.resource.limits.memory=1G")
 
 	// enable Prometheus and Grafana, plus remote rendering
 	t.DeployGrafana = true

@@ -3,20 +3,28 @@
 # Declare variables to be passed into your templates.
 
 OpenServiceMesh:
-  # -- `osm-controller` replicas
-  replicaCount: 1
+
+  #
+  # -- OSM control plane image parameters
   image:
-    # -- `osm-controller` image registry
+    # -- Container image registry
     registry: openservicemesh
-    # -- `osm-controller` pod PullPolicy
+    # -- Container image pull policy
     pullPolicy: IfNotPresent
-    # -- `osm-controller` image tag
+    # -- Container image tag
     tag: v0.8.3
+
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
   sidecarImage: envoyproxy/envoy-alpine:v1.18.3
-  osmcontroller:
+
+  #
+  # -- OSM controller parameters
+  osmController:
+    # -- OSM controller's replica count
+    replicaCount: 1
+    # -- OSM controller's container resource parameters
     resource:
       limits:
         cpu: "1.5"
@@ -24,32 +32,44 @@ OpenServiceMesh:
       requests:
         cpu: "0.5"
         memory: "128M"
+    # -- OSM controller's pod labels
     podLabels: {}
+
+  #
+  # -- Prometheus parameters
   prometheus:
-    # -- Resource limits for prometheus instance
+    # -- Prometheus's container resource parameters
     resources:
       limits:
-        cpu: 1
-        memory: 2G
+        cpu: "1"
+        memory: "2G"
       requests:
-        cpu: 0.5
-        memory: 512M
-    # -- Prometheus port
+        cpu: "0.5"
+        memory: "512M"
+    # -- Prometheus service's port
     port: 7070
+    # -- Prometheus data rentention configuration
     retention:
-      # -- Prometheus retention time
+      # -- Prometheus data retention time
       time: 15d
+
   # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
   certificateManager: tresor
+
+  #
+  # -- Hashicorp Vault configuration
   vault:
     # --  Hashicorp Vault host/service - where Vault is installed
-    host:
+    host: ""
     # -- protocol to use to connect to Vault
     protocol: http
     # -- token that should be used to connect to Vault
-    token:
+    token: ""
     # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
+
+  #
+  # -- cert-manager.io configuration
   certmanager:
     # --  cert-manager issuer namecert-manager issuer name
     issuerName: osm-ca
@@ -57,29 +77,44 @@ OpenServiceMesh:
     issuerKind: Issuer
     # -- cert-manager issuer group
     issuerGroup: cert-manager
-  # -- Sets the service certificatevalidity duration
+
+  # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
   serviceCertValidityDuration: 24h
-  # -- The Kubernetes secret to store `ca.crt`
+
+  # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
   caBundleSecretName: osm-ca-bundle
+
+  #
+  # -- Grafana parameters
   grafana:
-    # -- Grafana port
+    # -- Grafana service's port
     port: 3000
     # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
-  # -- Enable the debug HTTP server
+
+  # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
+
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: false
+
   # -- Enable egress in the mesh
   enableEgress: false
-  # -- Deploy Prometheus
+
+  # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
+
   # -- Enable Prometheus metrics scraping on sidecar proxies
   enablePrometheusScraping: true
-  # -- Deploy Grafana
+
+  # -- Deploy Grafana with OSM installation
   deployGrafana: false
-  # -- Enable Fluent Bit sidecar deployment
+
+  # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
   enableFluentbit: false
+
+  #
+  # -- FluentBit parameters
   fluentBit:
     # -- Fluent Bit sidecar container name
     name: fluentbit-logger
@@ -101,57 +136,67 @@ OpenServiceMesh:
     httpProxy: ""
     # -- Optional HTTPS proxy endpoint for Fluent Bit
     httpsProxy: ""
-  # -- Name for the new control plane instance
+
+  # -- Identifier for the instance of a service mesh within a cluster
   meshName: osm
-  # -- Enables HTTPS ingress on the mesh
+
+  # -- Enable mesh-wide HTTPS ingress capability (HTTP ingress is the default)
   useHTTPSIngress: false
-  # -- Envoy log level is used to specify the level of logs collected from envoy
+
+  # -- Log level for the Envoy proxy sidecar
   envoyLogLevel: error
+
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
+
    # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
   configResyncInterval: "0s"
+
   # -- Controller log verbosity
   controllerLogLevel: info
+
   # -- Enforce only deploying one mesh in the cluster
   enforceSingleMesh: false
-  # -- Validating- and MutatingWebhookConfiguration name
+
+  # -- Prefix used in name of the webhook configuration resources
   webhookConfigNamePrefix: osm-webhook
 
-  # -- Optional parameter. If not specified, the release namespace is used to deploy the osm components.
+  # -- Namespace to deploy OSM in. If not specified, the Helm release namespace is used.
   osmNamespace: ""
 
-  # -- Deploy Jaeger in the OSM namespace
+  # -- Deploy Jaeger during OSM installation
   deployJaeger: false
 
-  # The following section configures a destination where to send
-  # tracing data. Current implementation supports only Zipkin format
+  #
+  # -- Tracing parameters
+  #
+  # The following section configures a destination collector where tracing
+  # data is sent to. Current implementation supports only Zipkin format
   # backends (https://github.com/openservicemesh/osm/issues/1596)
   tracing:
-
-    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
+    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh
     enable: false
-
-    # -- Tracing destination cluster (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
+    # -- Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
     address: ""
-
-    # -- Destination port for the listener
+    # -- Port of the tracing collector service
     port: 9411
-
-    # -- Destination's API or collector endpoint where the spans will be sent to
+    # -- Tracing collector's API path where the spans will be sent to
     endpoint: "/api/v2/spans"
 
-  # -- Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
+  # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []
 
-  # -- Optional parameter to specify a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+  # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   outboundPortExclusionList: []
 
-  # -- Sidecar injector configuration
+  #
+  # -- OSM's sidecar injector parameters
   injector:
+    # -- Sidecar injector's replica count
     replicaCount: 1
+    # -- Sidecar injector's container resource parameters
     resource:
       limits:
         cpu: "0.5"
@@ -164,12 +209,12 @@ OpenServiceMesh:
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
 
+  #
   # -- Feature flags for experimental features
   featureFlags:
-    # Enable extra Envoy statistics generated by a custom WASM extension
+    # -- Enable extra Envoy statistics generated by a custom WASM extension
     enableWASMStats: false
-
-    # Enable OSM's Egress policy API
+    # -- Enable OSM's Egress policy API.
     # If specified, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: false
 
