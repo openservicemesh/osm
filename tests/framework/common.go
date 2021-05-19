@@ -380,9 +380,16 @@ nodeRegistration:
 		return errors.Wrap(err, "failed to create v1alpha config client")
 	}
 
+	policyClient, err := policyClientset.NewForConfig(kubeConfig)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to create v1alpha policy client")
+	}
+
 	td.RestConfig = kubeConfig
 	td.Client = clientset
 	td.ConfigClient = configClient
+	td.PolicyClient = policyClient
 
 	td.Env = cli.New()
 
