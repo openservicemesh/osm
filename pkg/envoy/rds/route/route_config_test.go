@@ -1050,7 +1050,7 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 			},
 			expectedRouteConfigs: []*xds_route.RouteConfiguration{
 				{
-					Name:             "rds-egress:80",
+					Name:             "rds-egress.80",
 					ValidateClusters: &wrappers.BoolValue{Value: false},
 					VirtualHosts: []*xds_route.VirtualHost{
 						{
@@ -1146,7 +1146,7 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 					},
 				},
 				{
-					Name:             "rds-egress:90",
+					Name:             "rds-egress.90",
 					ValidateClusters: &wrappers.BoolValue{Value: false},
 					VirtualHosts: []*xds_route.VirtualHost{
 						{
@@ -1224,12 +1224,12 @@ func TestGetEgressRouteConfigNameForPort(t *testing.T) {
 		{
 			name:         "test 1",
 			port:         10,
-			expectedName: "rds-egress:10",
+			expectedName: "rds-egress.10",
 		},
 		{
 			name:         "test 2",
 			port:         20,
-			expectedName: "rds-egress:20",
+			expectedName: "rds-egress.20",
 		},
 	}
 

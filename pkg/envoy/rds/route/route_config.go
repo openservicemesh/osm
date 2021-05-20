@@ -375,5 +375,5 @@ func getRegexForMethod(httpMethod string) string {
 
 // GetEgressRouteConfigNameForPort returns the Egress route configuration object's name given the port it is targeted to
 func GetEgressRouteConfigNameForPort(port int) string {
-	return fmt.Sprintf("%s:%d", egressRouteConfigNamePrefix, port)
+	return fmt.Sprintf("%s.%d", egressRouteConfigNamePrefix, port)
 }
