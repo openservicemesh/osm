@@ -26,7 +26,7 @@ func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 			log.Error().Err(err)
 			return
 		}
-		_, _ = fmt.Fprint(w, string(confJSON))
+		_, _ = fmt.Fprint(w, confJSON)
 	})
 }
 

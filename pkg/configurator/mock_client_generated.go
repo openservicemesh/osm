@@ -121,10 +121,10 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 }
 
 // GetMeshConfigJSON mocks base method
-func (m *MockConfigurator) GetMeshConfigJSON() ([]byte, error) {
+func (m *MockConfigurator) GetMeshConfigJSON() (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMeshConfigJSON")
-	ret0, _ := ret[0].([]byte)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -167,7 +167,7 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
 	}
-	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, string(meshConfig))
+	log.Info().Msgf("Initial MeshConfig %s: %s", osmMeshConfigName, meshConfig)
 
 	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {

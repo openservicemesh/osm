@@ -98,12 +98,12 @@ func TestCreateUpdateConfig(t *testing.T) {
 						ServiceCertValidityDuration: "24h",
 					},
 				}
-				expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
+				expectedConfigJSON, err := marshalConfigToJSON(expectedConfig)
 				assert.Nil(err)
 
-				configBytes, err := cfg.GetMeshConfigJSON()
+				configJSON, err := cfg.GetMeshConfigJSON()
 				assert.Nil(err)
-				assert.Equal(string(expectedConfigBytes), string(configBytes))
+				assert.Equal(expectedConfigJSON, configJSON)
 			},
 		},
 		{
