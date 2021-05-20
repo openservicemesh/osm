@@ -135,7 +135,7 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getMeshConfig().Spec.Certificate.ServiceCertValidityDuration
 	validityDuration, err := time.ParseDuration(durationStr)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s=%s", serviceCertValidityDurationKey, durationStr)
+		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s", durationStr)
 		return defaultServiceCertValidityDuration
 	}
 
