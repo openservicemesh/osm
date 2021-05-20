@@ -31,7 +31,7 @@ type Configurator interface {
 	GetOSMNamespace() string
 
 	// GetMeshConfigJSON returns the MeshConfig in pretty JSON (human readable)
-	GetMeshConfigJSON() ([]byte, error)
+	GetMeshConfigJSON() (string, error)
 
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
 	IsPermissiveTrafficPolicyMode() bool

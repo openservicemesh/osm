@@ -24,16 +24,20 @@ func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-func marshalConfigToJSON(config *v1alpha1.MeshConfigSpec) ([]byte, error) {
-	return json.MarshalIndent(config, "", "    ")
+func marshalConfigToJSON(config *v1alpha1.MeshConfigSpec) (string, error) {
+	bytes, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
 
 // GetMeshConfigJSON returns the MeshConfig in pretty JSON.
-func (c *Client) GetMeshConfigJSON() ([]byte, error) {
+func (c *Client) GetMeshConfigJSON() (string, error) {
 	cm, err := marshalConfigToJSON(&c.getMeshConfig().Spec)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
-		return nil, err
+		return "", err
 	}
 	return cm, nil
 }
