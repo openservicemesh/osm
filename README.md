@@ -124,6 +124,8 @@ Connect with the Open Service Mesh community:
   - [Meeting notes](https://docs.google.com/document/d/1da-XIqthmyG7zQyFAV1Kt-Qvq4NoNNBX7hZ_sM_kM98/edit?usp=sharing)
   - [CNCF YouTube Playlist for OSM community meetings](https://www.youtube.com/playlist?list=PLMy1gNP8pzh53-ScOG8i1BQW5cvAGkF0X)
 - [Mailing list](https://groups.google.com/g/openservicemesh)
+- [OSM Twitter](https://twitter.com/openservicemesh)
+
 
 
 ## Development Guide
