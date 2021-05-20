@@ -6,15 +6,12 @@ import (
 	"strings"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
 	// namespaceNameSeparator used for marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
 )
-
-var log = logger.New("identity")
 
 // ServiceIdentity is the type used to represent the identity for a service
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
@@ -72,26 +69,4 @@ func (sa K8sServiceAccount) IsEmpty() bool {
 // TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
 	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", sa.Name, sa.Namespace, ClusterLocalTrustDomain))
-}
-
-// UnmarshalK8sServiceAccount unmarshals a K8sServiceAccount type from a string
-func UnmarshalK8sServiceAccount(svcAccount string) (*K8sServiceAccount, error) {
-	slices := strings.Split(svcAccount, namespaceNameSeparator)
-	if len(slices) != 2 {
-		log.Error().Msgf("Error converting Service Account %s from string to K8sServiceAccount", svcAccount)
-		return nil, ErrInvalidNamespacedServiceStringFormat
-	}
-
-	// Make sure the slices are not empty. Split might actually leave empty slices.
-	for _, sep := range slices {
-		if len(sep) == 0 {
-			log.Error().Msgf("Error converting Service Account %s from string to K8sServiceAccount", svcAccount)
-			return nil, ErrInvalidNamespacedServiceStringFormat
-		}
-	}
-
-	return &K8sServiceAccount{
-		Namespace: slices[0],
-		Name:      slices[1],
-	}, nil
 }
