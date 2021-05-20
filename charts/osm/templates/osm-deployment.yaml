@@ -9,7 +9,7 @@ metadata:
     meshName: {{ .Values.OpenServiceMesh.meshName }}
     {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
-  replicas: {{ .Values.OpenServiceMesh.replicaCount }}
+  replicas: {{ .Values.OpenServiceMesh.osmController.replicaCount }}
   selector:
     matchLabels:
       app: osm-controller
@@ -18,8 +18,8 @@ spec:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-controller
-  {{- if .Values.OpenServiceMesh.osmcontroller.podLabels }}
-  {{- toYaml .Values.OpenServiceMesh.osmcontroller.podLabels | nindent 8 }}
+  {{- if .Values.OpenServiceMesh.osmController.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.osmController.podLabels | nindent 8 }}
   {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
@@ -76,11 +76,11 @@ spec:
           ]
           resources:
             limits:
-              cpu: "{{.Values.OpenServiceMesh.osmcontroller.resource.limits.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.osmcontroller.resource.limits.memory}}"
+              cpu: "{{.Values.OpenServiceMesh.osmController.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmController.resource.limits.memory}}"
             requests:
-              cpu: "{{.Values.OpenServiceMesh.osmcontroller.resource.requests.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.osmcontroller.resource.requests.memory}}"
+              cpu: "{{.Values.OpenServiceMesh.osmController.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmController.resource.requests.memory}}"
           readinessProbe:
             initialDelaySeconds: 1
             timeoutSeconds: 5
