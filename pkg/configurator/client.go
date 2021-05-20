@@ -21,35 +21,6 @@ const (
 	DefaultMeshConfigName = "osm-mesh-config"
 )
 
-const (
-	// PermissiveTrafficPolicyModeKey is the key name used for permissive mode in the MeshConfig
-	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
-
-	// maxDataPlaneConnectionsKey is the key name used for max data plane connections in the MeshConfig
-	maxDataPlaneConnectionsKey = "max_data_plane_connections"
-
-	// tracingPortKey is the key name used to specify the tracing port in the MeshConfig
-	tracingPortKey = "tracing_port"
-
-	// envoyLogLevel is the key name used to specify the log level of Envoy proxy in the MeshConfig
-	envoyLogLevelKey = "envoy_log_level"
-
-	// envoyImage is the key name used to specify the image of the Envoy proxy in the MeshConfig
-	envoyImageKey = "envoy_image"
-
-	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the MeshConfig
-	serviceCertValidityDurationKey = "service_cert_validity_duration"
-
-	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
-	outboundIPRangeExclusionListKey = "outbound_ip_range_exclusion_list"
-
-	// outboundPortExclusionListKey is the key name used to specify the ports to exclude from outbound sidecar interception
-	outboundPortExclusionListKey = "outbound_port_exclusion_list"
-
-	// configResyncInterval is the key name used to configure the resync interval for regular proxy broadcast updates
-	configResyncIntervalKey = "config_resync_interval"
-)
-
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
 func NewConfigurator(kubeClient versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string) Configurator {
 	return newConfigurator(kubeClient, stop, osmNamespace, meshConfigName)
