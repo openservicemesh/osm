@@ -12,6 +12,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -42,9 +43,9 @@ func TestNewResponse(t *testing.T) {
 	request := &xds_discovery.DiscoveryRequest{
 		TypeUrl: string(envoy.TypeSDS),
 		ResourceNames: []string{
-			envoy.SDSCert{Name: serviceAccount, CertType: envoy.ServiceCertType}.String(),
-			envoy.SDSCert{Name: serviceAccount, CertType: envoy.RootCertTypeForMTLSInbound}.String(),
-			envoy.SDSCert{Name: serviceAccount, CertType: envoy.RootCertTypeForHTTPS}.String(),
+			secrets.SDSCert{Name: serviceAccount, CertType: secrets.ServiceCertType}.String(),
+			secrets.SDSCert{Name: serviceAccount, CertType: secrets.RootCertTypeForMTLSInbound}.String(),
+			secrets.SDSCert{Name: serviceAccount, CertType: secrets.RootCertTypeForHTTPS}.String(),
 		},
 	}
 
@@ -95,7 +96,7 @@ func TestGetRootCert(t *testing.T) {
 
 	type testCase struct {
 		name            string
-		sdsCert         envoy.SDSCert
+		sdsCert         secrets.SDSCert
 		serviceIdentity identity.ServiceIdentity
 		prepare         func(d *dynamicMock)
 
@@ -108,9 +109,9 @@ func TestGetRootCert(t *testing.T) {
 		// Test case 1: tests SDS secret for inbound TLS secret -------------------------------
 		{
 			name: "test inbound MTLS certificate validation",
-			sdsCert: envoy.SDSCert{
+			sdsCert: secrets.SDSCert{
 				Name:     "ns-1/sa-1",
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
@@ -134,9 +135,9 @@ func TestGetRootCert(t *testing.T) {
 		// Test case 2: tests SDS secret for outbound TLS secret -------------------------------
 		{
 			name: "test outbound MTLS certificate validation",
-			sdsCert: envoy.SDSCert{
+			sdsCert: secrets.SDSCert{
 				Name:     "ns-2/service-2",
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: secrets.RootCertTypeForMTLSOutbound,
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
@@ -159,9 +160,9 @@ func TestGetRootCert(t *testing.T) {
 		// Test case 3: tests SDS secret for permissive mode -------------------------------
 		{
 			name: "test permissive mode certificate validation",
-			sdsCert: envoy.SDSCert{
+			sdsCert: secrets.SDSCert{
 				Name:     "ns-2/service-2",
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: secrets.RootCertTypeForMTLSOutbound,
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
@@ -179,9 +180,9 @@ func TestGetRootCert(t *testing.T) {
 		// Test case 4: tests SDS secret for inbound TLS secret with unexpected service account ---------------
 		{
 			name: "test inbound MTLS certificate validation",
-			sdsCert: envoy.SDSCert{
+			sdsCert: secrets.SDSCert{
 				Name:     "ns-1/sa-5", // this does not match the proxy's service account, so should error
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
@@ -292,7 +293,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		prepare         func(d *dynamicMock)
 
 		// sdsCertType must match the requested cert type. used by the test for business logic
-		sdsCertType envoy.SDSCertType
+		sdsCertType secrets.SDSCertType
 		// list of certs requested of the form:
 		// - "service-cert:namespace/service"
 		// - "root-cert-for-mtls-outbound:namespace/service"
@@ -321,7 +322,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
-			sdsCertType:    envoy.RootCertTypeForMTLSInbound,
+			sdsCertType:    secrets.RootCertTypeForMTLSInbound,
 			requestedCerts: []string{"root-cert-for-mtls-inbound:ns-1/sa-1"}, // root-cert requested
 
 			// expectations
@@ -346,7 +347,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
-			sdsCertType:    envoy.RootCertTypeForMTLSOutbound,
+			sdsCertType:    secrets.RootCertTypeForMTLSOutbound,
 			requestedCerts: []string{"root-cert-for-mtls-outbound:ns-2/service-2"}, // root-cert requested
 
 			// expectations
@@ -365,7 +366,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
-			sdsCertType:    envoy.RootCertTypeForHTTPS,
+			sdsCertType:    secrets.RootCertTypeForHTTPS,
 			requestedCerts: []string{"root-cert-https:ns-1/service-1"}, // root-cert requested
 
 			// expectations
@@ -384,7 +385,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				d.mockCertificater.EXPECT().GetPrivateKey().Return([]byte("foo")).Times(1)
 			},
 
-			sdsCertType:    envoy.ServiceCertType,
+			sdsCertType:    secrets.ServiceCertType,
 			requestedCerts: []string{"service-cert:ns-1/sa-1"}, // service-cert requested
 
 			// expectations
@@ -400,7 +401,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 			prepare: nil,
 
-			sdsCertType:    envoy.SDSCertType("invalid"),
+			sdsCertType:    secrets.SDSCertType("invalid"),
 			requestedCerts: []string{"invalid:ns-1/service-1"}, // service-cert requested
 
 			// expectations
@@ -454,7 +455,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			// verify different cert types
 			switch tc.sdsCertType {
 			// Verify SAN for inbound and outbound MTLS certs
-			case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
+			case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound, secrets.RootCertTypeForHTTPS:
 				// Check SANs
 				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)
@@ -462,7 +463,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				// Check trusted CA
 				assert.NotNil(sdsSecret.GetValidationContext().GetTrustedCa().GetInlineBytes())
 
-			case envoy.ServiceCertType:
+			case secrets.ServiceCertType:
 				assert.NotNil(sdsSecret.GetTlsCertificate().GetCertificateChain().GetInlineBytes())
 				assert.NotNil(sdsSecret.GetTlsCertificate().GetPrivateKey().GetInlineBytes())
 			}

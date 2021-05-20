@@ -1,4 +1,4 @@
-package envoy
+package secrets
 
 import (
 	"errors"

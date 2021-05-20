@@ -15,46 +15,12 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.
-type SDSCertType string
-
-// SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
-// this avoids having sprintf/parsing logic all over the place
-type SDSCert struct {
-	// Name is the name of the SDS secret for the certificate
-	Name string
-
-	// CertType is the certificate type
-	CertType SDSCertType
-}
-
-func (ct SDSCertType) String() string {
-	return string(ct)
-}
-
-// SDSCertType enums
 const (
-	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
-	ServiceCertType SDSCertType = "service-cert"
-
-	// RootCertTypeForMTLSOutbound is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-outbound:webservice"
-	RootCertTypeForMTLSOutbound SDSCertType = "root-cert-for-mtls-outbound"
-
-	// RootCertTypeForMTLSInbound is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-inbound:webservice"
-	RootCertTypeForMTLSInbound SDSCertType = "root-cert-for-mtls-inbound"
-
-	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
-	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
-)
-
-const (
-	// Separator is the separator between the prefix and the name of the certificate.
-	Separator = ":"
-
 	// TransportProtocolTLS is the TLS transport protocol used in Envoy configurations
 	TransportProtocolTLS = "tls"
 
@@ -62,58 +28,9 @@ const (
 	OutboundPassthroughCluster = "passthrough-outbound"
 )
 
-// Defines valid cert types
-var validCertTypes = map[SDSCertType]interface{}{
-	ServiceCertType:             nil,
-	RootCertTypeForMTLSOutbound: nil,
-	RootCertTypeForMTLSInbound:  nil,
-	RootCertTypeForHTTPS:        nil,
-}
-
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
 // It is set as a part of configuring the UpstreamTLSContext.
 var ALPNInMesh = []string{"osm"}
-
-// UnmarshalSDSCert parses the SDS resource name and returns an SDSCert object and an error if any
-// Examples:
-// 1. Unmarshalling 'service-cert:foo/bar' returns SDSCert{CertType: service-cert, Name: foo/bar}, nil
-// 2. Unmarshalling 'root-cert-for-mtls-inbound:foo/bar' returns SDSCert{CertType: root-cert-for-mtls-inbound, Name: foo/bar}, nil
-// 3. Unmarshalling 'invalid-cert' returns nil, error
-func UnmarshalSDSCert(str string) (*SDSCert, error) {
-	var ret SDSCert
-
-	// Check separators, ignore empty string fields
-	slices := strings.Split(str, Separator)
-	if len(slices) != 2 {
-		return nil, errInvalidCertFormat
-	}
-
-	// Make sure the slices are not empty. Split might actually leave empty slices.
-	for _, sep := range slices {
-		if len(sep) == 0 {
-			return nil, errInvalidCertFormat
-		}
-	}
-
-	// Check valid certType
-	ret.CertType = SDSCertType(slices[0])
-	if _, ok := validCertTypes[ret.CertType]; !ok {
-		return nil, errInvalidCertFormat
-	}
-
-	ret.Name = slices[1]
-
-	return &ret, nil
-}
-
-// String is a common facility/interface to generate a string resource name out of a SDSCert
-// This is to keep the sprintf logic and/or separators used agnostic to other modules
-func (sdsc SDSCert) String() string {
-	return fmt.Sprintf("%s%s%s",
-		sdsc.CertType.String(),
-		Separator,
-		sdsc.Name)
-}
 
 // GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *xds_core.Address {
@@ -200,7 +117,7 @@ func pbStringValue(v string) *structpb.Value {
 // getCommonTLSContext returns a CommonTlsContext type for a given 'tlsSDSCert' and 'peerValidationSDSCert' pair.
 // 'tlsSDSCert' determines the SDS Secret config used to present the TLS certificate.
 // 'peerValidationSDSCert' determines the SDS Secret configs used to validate the peer TLS certificate.
-func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert secrets.SDSCert) *xds_auth.CommonTlsContext {
 	return &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
@@ -221,25 +138,25 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool) *xds_auth.DownstreamTlsContext {
-	upstreamSDSCert := SDSCert{
+	upstreamSDSCert := secrets.SDSCert{
 		Name:     upstreamIdentity.GetSDSCSecretName(),
-		CertType: ServiceCertType,
+		CertType: secrets.ServiceCertType,
 	}
 
-	var downstreamPeerValidationCertType SDSCertType
+	var downstreamPeerValidationCertType secrets.SDSCertType
 	if mTLS {
 		// Perform SAN validation for downstream client certificates
-		downstreamPeerValidationCertType = RootCertTypeForMTLSInbound
+		downstreamPeerValidationCertType = secrets.RootCertTypeForMTLSInbound
 	} else {
 		// TLS based cert validation (used for ingress)
-		downstreamPeerValidationCertType = RootCertTypeForHTTPS
+		downstreamPeerValidationCertType = secrets.RootCertTypeForHTTPS
 	}
 	// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
 	// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
 	// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
-	downstreamPeerValidationSDSCert := SDSCert{
+	downstreamPeerValidationSDSCert := secrets.SDSCert{
 		Name:     upstreamIdentity.GetSDSCSecretName(),
 		CertType: downstreamPeerValidationCertType,
 	}
@@ -255,13 +172,13 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
-	downstreamSDSCert := SDSCert{
+	downstreamSDSCert := secrets.SDSCert{
 		Name:     downstreamIdentity.GetSDSCSecretName(),
-		CertType: ServiceCertType,
+		CertType: secrets.ServiceCertType,
 	}
-	upstreamPeerValidationSDSCert := SDSCert{
+	upstreamPeerValidationSDSCert := secrets.SDSCert{
 		Name:     upstreamSvc.String(),
-		CertType: RootCertTypeForMTLSOutbound,
+		CertType: secrets.RootCertTypeForMTLSOutbound,
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 )
 
 // makeRequestForAllSecrets constructs an SDS DiscoveryRequest as if an Envoy proxy sent it.
@@ -36,9 +37,9 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// It is referenced in the upstream cluster's UpstreamTlsContext and in the inbound
 			// listener's DownstreamTlsContext.
 			// The secret name is of the form <namespace>/<service-account>
-			envoy.SDSCert{
+			secrets.SDSCert{
 				Name:     serviceAccount.String(),
-				CertType: envoy.ServiceCertType,
+				CertType: secrets.ServiceCertType,
 			}.String(),
 
 			// For each root validation cert referenced in the inbound filter chain's DownstreamTlsContext for this proxy,
@@ -50,17 +51,17 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// This cert is the upstream service's validation certificate used to validate certificates presented
 			// by downstream clients during mTLS handshake.
 			// The secret name is of the form <namespace>/<upstream-service>
-			envoy.SDSCert{
+			secrets.SDSCert{
 				Name:     serviceAccount.String(),
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String(),
 
 			// This cert is the upstream service's validation certificate used to validate certificates presented
 			// by downstream clients during TLS handshake.
 			// The secret name is of the form <namespace>/<upstream-service>
-			envoy.SDSCert{
+			secrets.SDSCert{
 				Name:     serviceAccount.String(),
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: secrets.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),
@@ -70,9 +71,9 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	// Each cert is used to validate the certificate presented by the corresponding upstream service.
 	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(serviceAccount.ToServiceIdentity())
 	for _, upstream := range upstreamServices {
-		upstreamRootCertResource := envoy.SDSCert{
+		upstreamRootCertResource := secrets.SDSCert{
 			Name:     upstream.String(),
-			CertType: envoy.RootCertTypeForMTLSOutbound,
+			CertType: secrets.RootCertTypeForMTLSOutbound,
 		}.String()
 		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)
 	}
