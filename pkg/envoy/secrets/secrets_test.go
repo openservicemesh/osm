@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -161,6 +162,88 @@ func TestUnmarshalMeshService(t *testing.T) {
 			} else {
 				require.Nil(err)
 				assert.Equal(meshService, actual)
+			}
+		})
+	}
+}
+
+func TestUnmarshalK8sServiceAccount(t *testing.T) {
+	assert := tassert.New(t)
+	require := trequire.New(t)
+
+	namespace := "randomNamespace"
+	serviceName := "randomServiceAccountName"
+	svcAccount := &identity.K8sServiceAccount{
+		Namespace: namespace,
+		Name:      serviceName,
+	}
+	str := svcAccount.String()
+	fmt.Println(str)
+
+	testCases := []struct {
+		name        string
+		expectedErr bool
+		sdsCert     SDSCert
+	}{
+		{
+			name:        "successfully unmarshal service account",
+			expectedErr: false,
+			sdsCert: SDSCert{
+				Name: "randomNamespace/randomServiceAccountName",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 1",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "/svnc",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 2",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "svnc/",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 3",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "/svnc/",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 3",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "/",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 3",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "",
+			},
+		},
+		{
+			name:        "incomplete namespaced service account name 3",
+			expectedErr: true,
+			sdsCert: SDSCert{
+				Name: "test",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := tc.sdsCert.GetK8sServiceAccount()
+			if tc.expectedErr {
+				assert.NotNil(err)
+			} else {
+				require.Nil(err)
+				assert.Equal(svcAccount, actual)
 			}
 		})
 	}

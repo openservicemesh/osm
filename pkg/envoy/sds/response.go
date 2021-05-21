@@ -178,7 +178,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 	case secrets.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
 		// of this proxy. If it doesn't, then something is wrong in the system.
-		svcAccountInRequest, err := identity.UnmarshalK8sServiceAccount(sdscert.Name)
+		svcAccountInRequest, err := sdscert.GetK8sServiceAccount()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
 			return nil, err
