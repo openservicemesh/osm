@@ -3,7 +3,9 @@ package envoy
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -63,7 +65,10 @@ var _ = Describe("Test proxy methods", func() {
 
 			firstNonce := proxy.GetLastSentNonce(TypeCDS)
 			Expect(firstNonce).ToNot(Equal(uint64(0)))
-
+			// Platform(Windows): Sleep to accommodate `time.Now()` lower accuracy.
+			if runtime.GOOS == "windows" {
+				time.Sleep(1 * time.Millisecond)
+			}
 			proxy.SetNewNonce(TypeCDS)
 
 			secondNonce := proxy.GetLastSentNonce(TypeCDS)
