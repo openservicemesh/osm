@@ -244,6 +244,8 @@ OpenServiceMesh:
     enableMulticlusterMode: false
     # -- Enable OSM gateway for ingress or multicluster
     enableOSMGateway: false
+    # -- Enable async proxy-service mapping
+    enableAsyncProxyServiceMapping: false
 
   # -- Run OSM with PodSecurityPolicy configured
   pspEnabled: false
