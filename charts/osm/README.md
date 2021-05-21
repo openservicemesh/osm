@@ -77,6 +77,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar |
+| OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | OpenServiceMesh.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API If specified, fine grained control over Egress (external) traffic is enforced |
 | OpenServiceMesh.featureFlags.enableMulticlusterMode | bool | `false` | Enable Multicluster mode If specified, multicluster mode will be enabled in OSM |
 | OpenServiceMesh.featureFlags.enableOSMGateway | bool | `false` | Enable OSM gateway for ingress or multicluster |
