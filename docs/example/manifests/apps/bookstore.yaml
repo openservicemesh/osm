@@ -43,7 +43,7 @@ spec:
       serviceAccountName: bookstore
       containers:
         - name: bookstore
-          image: openservicemesh/bookstore:v0.8.3
+          image: openservicemesh/bookstore:v0.8.4
           imagePullPolicy: Always
           ports:
             - containerPort: 14001
