@@ -5,13 +5,11 @@
 package catalog
 
 import (
-	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -77,9 +75,6 @@ type MeshCataloger interface {
 	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
 	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
 
-	// GetServicesForProxy returns a list of services the given Envoy is a member of based on its certificate, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
-
 	// GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
 	GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
 
@@ -104,14 +99,6 @@ type MeshCataloger interface {
 
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
-}
-
-// certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
-type certificateCommonNameMeta struct {
-	ProxyUUID uuid.UUID
-	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
-	ServiceAccount string
-	Namespace      string
 }
 
 type trafficDirection string

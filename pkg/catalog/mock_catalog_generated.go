@@ -9,7 +9,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -96,21 +95,6 @@ func (m *MockMeshCataloger) GetResolvableServiceEndpoints(arg0 service.MeshServi
 func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableServiceEndpoints", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableServiceEndpoints), arg0)
-}
-
-// GetServicesForProxy mocks base method
-func (m *MockMeshCataloger) GetServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesForProxy", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesForProxy indicates an expected call of GetServicesForProxy
-func (mr *MockMeshCatalogerMockRecorder) GetServicesForProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForProxy", reflect.TypeOf((*MockMeshCataloger)(nil).GetServicesForProxy), arg0)
 }
 
 // GetTargetPortToProtocolMappingForService mocks base method

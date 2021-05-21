@@ -76,7 +76,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, nil)
 	assert.Nil(err)
 	assert.NotNil(resources)
 

@@ -9,8 +9,10 @@ import (
 )
 
 // NewProxyRegistry initializes a new empty *ProxyRegistry.
-func NewProxyRegistry() *ProxyRegistry {
-	return &ProxyRegistry{}
+func NewProxyRegistry(mapper ProxyServiceMapper) *ProxyRegistry {
+	return &ProxyRegistry{
+		ProxyServiceMapper: mapper,
+	}
 }
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.

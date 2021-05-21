@@ -25,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -43,8 +44,10 @@ func TestNewResponse(t *testing.T) {
 	xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return []service.MeshService{tests.BookbuyerService}, nil
+	}))
 
-	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
@@ -55,7 +58,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil)
+	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)

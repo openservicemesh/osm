@@ -13,6 +13,8 @@ var log = logger.New("proxy-registry")
 // ProxyRegistry keeps track of Envoy proxies as they connect and disconnect
 // from the control plane.
 type ProxyRegistry struct {
+	ProxyServiceMapper
+
 	connectedProxies    sync.Map
 	disconnectedProxies sync.Map
 

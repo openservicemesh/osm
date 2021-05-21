@@ -35,7 +35,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 	server := Server{
 		catalog:       meshCatalog,
 		proxyRegistry: proxyRegistry,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) ([]types.Resource, error){
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,
 			envoy.TypeRDS: rds.NewResponse,

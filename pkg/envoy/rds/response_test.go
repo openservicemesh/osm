@@ -25,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -257,6 +258,10 @@ func TestNewResponse(t *testing.T) {
 			proxy, err := getBookstoreV1Proxy(kubeClient)
 			assert.Nil(err)
 
+			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+				return []service.MeshService{tests.BookstoreV1Service}, nil
+			}))
+
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
@@ -271,7 +276,6 @@ func TestNewResponse(t *testing.T) {
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(tc.ingressInboundPolicies, nil).AnyTimes()
@@ -282,7 +286,7 @@ func TestNewResponse(t *testing.T) {
 				ResourceNames: []string{},
 			}
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, nil)
+			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, nil, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -515,8 +519,10 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 			},
 		},
 	}
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return []service.MeshService{tests.BookstoreV1Service}, nil
+	}))
 
-	mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 	mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(testPermissiveInbound).AnyTimes()
 	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(testPermissiveOutbound).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(testIngressInbound, nil).AnyTimes()
@@ -524,7 +530,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
 
-	resources, err := NewResponse(mockCatalog, testProxy, &discoveryRequest, mockConfigurator, nil)
+	resources, err := NewResponse(mockCatalog, testProxy, &discoveryRequest, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
 
 	// Test rds-inbound route config
@@ -578,7 +584,10 @@ func TestResponseRequestCompletion(t *testing.T) {
 	certSerialNumber := certificate.SerialNumber("123456")
 	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
-	mockCatalog.EXPECT().GetServicesForProxy(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return []service.MeshService{tests.BookstoreV1Service}, nil
+	}))
+
 	mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}).AnyTimes()
 	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return([]*trafficpolicy.OutboundTrafficPolicy{}).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}, nil).AnyTimes()
@@ -609,7 +618,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, nil)
+		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, nil, proxyRegistry)
 		assert.Nil(err)
 
 		if tc.request != nil {

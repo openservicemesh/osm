@@ -23,7 +23,7 @@ import (
 // The proxy itself did not ask for these. We know it needs them - so we send them.
 func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
 	// TODO(draychev): The proxy Certificate should revolve around ServiceIdentity, not specific to ServiceAccount [https://github.com/openservicemesh/osm/issues/3186]
-	serviceAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	serviceAccount, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
 			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
