@@ -199,3 +199,6 @@ spec:
                     enableOSMGateway:
                       type: boolean
                       default: false
+                    enableAsyncProxyServiceMapping:
+                      type: boolean
+                      default: false

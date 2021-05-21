@@ -449,6 +449,21 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(true, cfg.GetFeatureFlags().EnableMulticlusterMode)
 			},
 		},
+		{
+			name:                  "IsAsyncProxyServiceMappingEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableAsyncProxyServiceMapping: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping)
+			},
+		},
 	}
 
 	for _, test := range tests {

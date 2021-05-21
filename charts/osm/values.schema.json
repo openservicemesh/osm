@@ -675,7 +675,8 @@
                         "enableWASMStats",
                         "enableEgressPolicy",
                         "enableMulticlusterMode",
-                        "enableOSMGateway"
+                        "enableOSMGateway",
+                        "enableAsyncProxyServiceMapping"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -710,6 +711,15 @@
                             "type": "boolean",
                             "title": "Enable OSM gateway",
                             "description": "Enable OSM gateway for ingress or multicluster",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableAsyncProxyServiceMapping": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableAsyncProxyServiceMapping",
+                            "type": "boolean",
+                            "title": "Enable async proxy-service mapping",
+                            "description": "Enable async proxy-service mapping",
                             "examples": [
                                 true
                             ]
