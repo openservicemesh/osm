@@ -8,7 +8,7 @@ metadata:
     app: osm-controller
 spec:
   ports:
-    - name: osm-port
+    - name: ads-port
       port: 15128
       targetPort: 15128
     - name: debug-port

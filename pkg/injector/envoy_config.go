@@ -112,7 +112,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
-		XDSPort: constants.OSMControllerPort,
+		XDSPort: constants.ADSServerPort,
 
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.
