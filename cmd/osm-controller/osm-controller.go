@@ -76,7 +76,6 @@ var (
 
 var (
 	flags = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
-	port  = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 	log   = logger.New("osm-controller/main")
 )
 
@@ -225,7 +224,7 @@ func main() {
 
 	// Create and start the ADS gRPC service
 	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager)
-	if err := xdsServer.Start(ctx, cancel, *port, adsCert); err != nil {
+	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 

@@ -47,7 +47,7 @@ spec:
           ports:
             - name: "admin-port"
               containerPort: 15000
-            - name: "osm-port"
+            - name: "ads-port"
               containerPort: 15128
             - name: "metrics"
               containerPort: 9091
