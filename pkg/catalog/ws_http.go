@@ -13,7 +13,7 @@ import (
 
 var (
 	InitialSyncingPeriod = 3
-	QueryTimeout = 2 * time.Minute
+	QueryTimeout = 1 * time.Minute
 )
 
 func (mc *MeshCatalog) witesandHttpServerAndClient() {
@@ -45,6 +45,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 
 	initialWavesSyncDone := false
 	ticker := time.NewTicker(15 * time.Second)
+
 	// run forever
 	for {
 		// learn local pods
@@ -54,10 +55,11 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		}
 		// learn remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
-			remotePods, err := mc.QueryRemoteOSM(wc, remoteK8s.OsmIP)
+			remoteEdgePods, err := mc.QueryRemoteEdgePods(wc, remoteK8s.OsmIP)
 			if err == nil {
-				wc.UpdateClusterPods(clusterId, &remotePods)
+				wc.UpdateClusterPods(clusterId, &remoteEdgePods)
 			} else {
+				log.Info().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
@@ -70,10 +72,11 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		}
 		// learn remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
-			remotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
+			allRemotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
 			if err == nil {
-				wc.UpdateAllPods(clusterId, &remotePods)
+				wc.UpdateAllPods(clusterId, &allRemotePods)
 			} else {
+				log.Info().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
@@ -133,8 +136,8 @@ func (mc *MeshCatalog) QueryWaves(wavesIP string) (*map[string][]string, error) 
 
 	select {
 	case <-time.After(QueryTimeout):
-		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
-		return &apigroupToPodMaps, fmt.Errorf("QueryRemoteOSM query timeout")
+		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
+		return &apigroupToPodMaps, fmt.Errorf("QueryRemoteEdgePods query timeout")
 	case <-closeChan:
 	}
 	return &apigroupToPodMaps, err
@@ -176,22 +179,21 @@ func (mc *MeshCatalog) QueryAllPodRemote(wc witesand.WitesandCataloger, remoteOs
 
 	select {
 	case <-time.After(QueryTimeout):
-		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
-		return remotePods, fmt.Errorf("QueryRemoteOSM query timeout")
+		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
+		return remotePods, fmt.Errorf("QueryRemoteEdgePods query timeout")
 	case <-closeChan:
 	}
 	return remotePods, err
 }
 
-func (mc *MeshCatalog) QueryRemoteOSM(wc witesand.WitesandCataloger, remoteOsmIP string) (witesand.ClusterPods, error) {
-	closeChan := make(chan bool)
-
+func (mc *MeshCatalog) QueryRemoteEdgePods(wc witesand.WitesandCataloger, remoteOsmIP string) (witesand.ClusterPods, error) {
 	var err error
 	var remotePods witesand.ClusterPods
+	closeChan := make(chan bool)
 	go func(remoteOsmIP string, remotePods witesand.ClusterPods, err error) {
 		defer close(closeChan)
 
-		log.Info().Msgf(" witesandHttpClient [queryRemoteOsm] querying osm:%s", remoteOsmIP)
+		log.Info().Msgf(" witesandHttpClient [QueryRemoteEdgePods] querying osm:%s", remoteOsmIP)
 		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
 		url := fmt.Sprintf("http://%s/localedgepods", dest)
 		client := &http.Client{}
@@ -208,22 +210,22 @@ func (mc *MeshCatalog) QueryRemoteOSM(wc witesand.WitesandCataloger, remoteOsmIP
 			if err == nil {
 				err = json.Unmarshal(b, &remotePods)
 				if err == nil {
-					log.Info().Msgf(" witesandHttpClient [queryRemoteOsm] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
+					log.Info().Msgf(" witesandHttpClient [QueryRemoteEdgePods] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
 					return
 				} else {
-					log.Error().Msgf("witesandHttpClient [queryRemoteOsm] Marshalling error:%s", err)
+					log.Error().Msgf("witesandHttpClient [QueryRemoteEdgePods] Marshalling error:%s", err)
 					return
 				}
 			}
 		}
-		log.Info().Msgf("witesandHttpClient [queryRemoteOsm] err:%+v", err)
+		log.Info().Msgf("witesandHttpClient [QueryRemoteEdgePods] err:%+v", err)
 		return
 	}(remoteOsmIP, remotePods, err)
 
 	select {
 	case <-time.After(QueryTimeout):
-		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
-		return remotePods, fmt.Errorf("QueryRemoteOSM query timeout")
+		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
+		return remotePods, fmt.Errorf("QueryRemoteEdgePods query timeout")
 	case <-closeChan:
 	}
 	return remotePods, err
