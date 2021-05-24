@@ -13,6 +13,7 @@ import (
 
 var (
 	InitialSyncingPeriod = 3
+	QueryTimeout = 2 * time.Minute
 )
 
 func (mc *MeshCatalog) witesandHttpServerAndClient() {
@@ -41,87 +42,6 @@ func (mc *MeshCatalog) witesandHttpServer() {
 // HTTP client to query other OSMs for pods
 func (mc *MeshCatalog) witesandHttpClient() {
 	wc := mc.GetWitesandCataloger()
-	queryRemoteOsm := func(remoteOsmIP string) (witesand.ClusterPods, error) {
-		log.Info().Msgf("[queryRemoteOsm] querying osm:%s", remoteOsmIP)
-		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
-		url := fmt.Sprintf("http://%s/localedgepods", dest)
-		client := &http.Client{}
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
-		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
-		resp, err := client.Do(req)
-		var remotePods witesand.ClusterPods
-		if err == nil {
-			defer resp.Body.Close()
-			b, err := ioutil.ReadAll(resp.Body)
-			if err == nil {
-				err = json.Unmarshal(b, &remotePods)
-				if err == nil {
-					log.Info().Msgf("[queryRemoteOsm] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
-					return remotePods, nil
-				} else {
-					log.Error().Msgf("[queryRemoteOsm] Marshalling error:%s", err)
-					return remotePods, err
-				}
-			}
-		}
-		log.Info().Msgf("[queryRemoteOsm] err:%+v", err)
-		return remotePods, err
-	}
-
-	queryAllPodRemote := func(remoteOsmIP string) (witesand.ClusterPods, error) {
-		log.Info().Msgf("[queryAllPodRemote] querying osm:%s", remoteOsmIP)
-		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
-		url := fmt.Sprintf("http://%s/localallpods", dest)
-		client := &http.Client{}
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
-		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
-		resp, err := client.Do(req)
-		var remotePods witesand.ClusterPods
-		if err == nil {
-			defer resp.Body.Close()
-			b, err := ioutil.ReadAll(resp.Body)
-			if err == nil {
-				err = json.Unmarshal(b, &remotePods)
-				if err == nil {
-					log.Info().Msgf("[queryAllPodRemote] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
-					return remotePods, nil
-				} else {
-					log.Error().Msgf("[queryAllPodRemote] Marshalling error:%s", err)
-					return remotePods, err
-				}
-			}
-		}
-		log.Info().Msgf("[queryAllPodRemote] err:%+v", err)
-		return remotePods, err
-	}
-
-	queryWaves := func(wavesIP string) (*map[string][]string, error) {
-		log.Info().Msgf("[queryWaves] querying waves:%s", wavesIP)
-		dest := fmt.Sprintf("%s:%s", wavesIP, witesand.WavesServerPort)
-		url := fmt.Sprintf("http://%s/apigrpgwmap", dest)
-		client := &http.Client{}
-		req, _ := http.NewRequest("GET", url, nil)
-		resp, err := client.Do(req)
-		var apigroupToPodMaps map[string][]string
-		if err == nil {
-			defer resp.Body.Close()
-			b, err := ioutil.ReadAll(resp.Body)
-			if err == nil {
-				err = json.Unmarshal(b, &apigroupToPodMaps)
-				if err == nil {
-					log.Info().Msgf("[queryWaves] wavesIP:%s apigroupToPodMaps:%+v", wavesIP, apigroupToPodMaps)
-					return &apigroupToPodMaps, nil
-				} else {
-					log.Error().Msgf("[queryWaves] Marshalling error:%s body:%+v", err, b)
-					return nil, err
-				}
-			}
-		}
-		log.Info().Msgf("[queryWaves] err:%+v", err)
-		return nil, err
-	}
 
 	initialWavesSyncDone := false
 	ticker := time.NewTicker(15 * time.Second)
@@ -134,7 +54,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		}
 		// learn remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
-			remotePods, err := queryRemoteOsm(remoteK8s.OsmIP)
+			remotePods, err := mc.QueryRemoteOSM(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateClusterPods(clusterId, &remotePods)
 			} else {
@@ -150,7 +70,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		}
 		// learn remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
-			remotePods, err := queryAllPodRemote(remoteK8s.OsmIP)
+			remotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateAllPods(clusterId, &remotePods)
 			} else {
@@ -163,7 +83,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		if wc.IsMaster() && !initialWavesSyncDone && InitialSyncingPeriod != 0 {
 			wavesPods, err := wc.ListWavesPodIPs()
 			if err == nil && len(wavesPods) != 0 {
-				apigroupMaps, err := queryWaves(wavesPods[0])
+				apigroupMaps, err := mc.QueryWaves(wavesPods[0])
 				if err == nil {
 					wc.UpdateAllApigroupMaps(apigroupMaps)
 					initialWavesSyncDone = true
@@ -176,6 +96,137 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		}
 		<-ticker.C
 	}
+}
+
+func (mc *MeshCatalog) QueryWaves(wavesIP string) (*map[string][]string, error) {
+	closeChan := make(chan bool)
+	var apigroupToPodMaps map[string][]string
+	var err error
+	go func(wavesIP string, apigroupToPodMaps map[string][]string) {
+		defer close(closeChan)
+
+		log.Info().Msgf("[queryWaves] querying waves:%s", wavesIP)
+		dest := fmt.Sprintf("%s:%s", wavesIP, witesand.WavesServerPort)
+		url := fmt.Sprintf("http://%s/apigrpgwmap", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		var resp *http.Response
+		resp, err = client.Do(req)
+		if err == nil {
+			defer resp.Body.Close()
+			var b []byte
+			b, err = ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &apigroupToPodMaps)
+				if err == nil {
+					log.Info().Msgf("[queryWaves] wavesIP:%s apigroupToPodMaps:%+v", wavesIP, apigroupToPodMaps)
+					return
+				} else {
+					log.Error().Msgf("[queryWaves] Marshalling error:%s body:%+v", err, b)
+					return
+				}
+			}
+		}
+		log.Info().Msgf("[queryWaves] err:%+v", err)
+		return
+	}(wavesIP, apigroupToPodMaps)
+
+	select {
+	case <-time.After(QueryTimeout):
+		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
+		return &apigroupToPodMaps, fmt.Errorf("QueryRemoteOSM query timeout")
+	case <-closeChan:
+	}
+	return &apigroupToPodMaps, err
+}
+
+func (mc *MeshCatalog) QueryAllPodRemote(wc witesand.WitesandCataloger, remoteOsmIP string) (witesand.ClusterPods, error) {
+	closeChan := make(chan bool)
+	var err error
+	var remotePods witesand.ClusterPods
+	go func(remoteOsmIP string, remotePods witesand.ClusterPods, err error){
+		defer close(closeChan)
+
+		log.Info().Msgf("[queryAllPodRemote] querying osm:%s", remoteOsmIP)
+		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
+		url := fmt.Sprintf("http://%s/localallpods", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
+		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
+		var resp *http.Response
+		resp, err = client.Do(req)
+		if err == nil {
+			defer resp.Body.Close()
+			var b []byte
+			b, err = ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &remotePods)
+				if err == nil {
+					log.Info().Msgf("[queryAllPodRemote] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
+					return
+				} else {
+					log.Error().Msgf("[queryAllPodRemote] Marshalling error:%s", err)
+					return
+				}
+			}
+		}
+		log.Info().Msgf("[queryAllPodRemote] err:%+v", err)
+	} (remoteOsmIP, remotePods, err)
+
+	select {
+	case <-time.After(QueryTimeout):
+		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
+		return remotePods, fmt.Errorf("QueryRemoteOSM query timeout")
+	case <-closeChan:
+	}
+	return remotePods, err
+}
+
+func (mc *MeshCatalog) QueryRemoteOSM(wc witesand.WitesandCataloger, remoteOsmIP string) (witesand.ClusterPods, error) {
+	closeChan := make(chan bool)
+
+	var err error
+	var remotePods witesand.ClusterPods
+	go func(remoteOsmIP string, remotePods witesand.ClusterPods, err error) {
+		defer close(closeChan)
+
+		log.Info().Msgf(" witesandHttpClient [queryRemoteOsm] querying osm:%s", remoteOsmIP)
+		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
+		url := fmt.Sprintf("http://%s/localedgepods", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set(witesand.HttpRemoteAddrHeader, mc.getMyIP(remoteOsmIP))
+		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
+		var resp *http.Response
+		resp, err = client.Do(req)
+		//var remotePods witesand.ClusterPods
+		if err == nil {
+			defer resp.Body.Close()
+			var b []byte
+			b, err = ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &remotePods)
+				if err == nil {
+					log.Info().Msgf(" witesandHttpClient [queryRemoteOsm] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
+					return
+				} else {
+					log.Error().Msgf("witesandHttpClient [queryRemoteOsm] Marshalling error:%s", err)
+					return
+				}
+			}
+		}
+		log.Info().Msgf("witesandHttpClient [queryRemoteOsm] err:%+v", err)
+		return
+	}(remoteOsmIP, remotePods, err)
+
+	select {
+	case <-time.After(QueryTimeout):
+		log.Error().Msgf("[QueryRemoteOSM] failed. Timeout")
+		return remotePods, fmt.Errorf("QueryRemoteOSM query timeout")
+	case <-closeChan:
+	}
+	return remotePods, err
 }
 
 func (mc *MeshCatalog) getMyIP(destIP string) string {
