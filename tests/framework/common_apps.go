@@ -190,7 +190,7 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 	if td.AreRegistryCredsPresent() {
 		podDefinition.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
 			{
-				Name: registrySecretName,
+				Name: RegistrySecretName,
 			},
 		}
 	}
@@ -327,7 +327,7 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 	if td.AreRegistryCredsPresent() {
 		deploymentDefinition.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
 			{
-				Name: registrySecretName,
+				Name: RegistrySecretName,
 			},
 		}
 	}

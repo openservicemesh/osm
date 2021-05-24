@@ -81,9 +81,6 @@ var _ = AfterSuite(func() {
 })
 
 const (
-	// default name for the container registry secret
-	registrySecretName = "acr-creds"
-
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
 
@@ -149,6 +146,8 @@ const (
 	KindCluster InstallType = "KindCluster"
 	// NoInstall uses current kube cluster, assumes an OSM is present in `OsmNamespace`
 	NoInstall InstallType = "NoInstall"
+	// RegistrySecretName is the default name for the container registry secret
+	RegistrySecretName = "acr-creds"
 )
 
 // Verifies the instType string flag option is a valid enum type
@@ -633,7 +632,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 	if len(instOpts.ContainerRegistrySecret) != 0 {
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
-			fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", registrySecretName),
+			fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", RegistrySecretName),
 		)
 	}
 
@@ -1393,11 +1392,11 @@ type DockerConfigEntry struct {
 	Auth     string `json:"auth,omitempty"`
 }
 
-// CreateDockerRegistrySecret creates a secret named `registrySecretName` in namespace <ns>,
+// CreateDockerRegistrySecret creates a secret named `RegistrySecretName` in namespace <ns>,
 // based on ctrRegistry variables
 func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 	secret := &corev1.Secret{}
-	secret.Name = registrySecretName
+	secret.Name = RegistrySecretName
 	secret.Type = corev1.SecretTypeDockerConfigJson
 	secret.Data = map[string][]byte{}
 
@@ -1415,7 +1414,7 @@ func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 	json, _ := json.Marshal(dockerCfgJSON)
 	secret.Data[corev1.DockerConfigJsonKey] = json
 
-	td.T.Logf("Pushing Registry secret '%s' for namespace %s... ", registrySecretName, ns)
+	td.T.Logf("Pushing Registry secret '%s' for namespace %s... ", RegistrySecretName, ns)
 	_, err := td.Client.CoreV1().Secrets(ns).Create(context.Background(), secret, metav1.CreateOptions{})
 	if err != nil {
 		td.T.Fatalf("Could not add registry secret")

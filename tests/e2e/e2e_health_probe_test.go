@@ -175,7 +175,7 @@ server {
 			}
 
 			makePod := func(name string, probe *corev1.Probe) *corev1.Pod {
-				return &corev1.Pod{
+				podDef := &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: name,
 					},
@@ -223,7 +223,18 @@ server {
 						},
 					},
 				}
+
+				if Td.AreRegistryCredsPresent() {
+					podDef.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
+						{
+							Name: RegistrySecretName,
+						},
+					}
+				}
+
+				return podDef
 			}
+
 			pods := []*corev1.Pod{
 				makePod("nginx-http", http),
 				makePod("nginx-https", https),
