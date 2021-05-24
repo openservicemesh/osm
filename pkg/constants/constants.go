@@ -145,9 +145,6 @@ const (
 	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
 	EnvoyServiceNodeSeparator = "/"
 
-	// OSMConfigMap is the name of the OSM ConfigMap
-	OSMConfigMap = "osm-config"
-
 	// OSMMeshConfig is the name of the OSM MeshConfig
 	OSMMeshConfig = "osm-mesh-config"
 )

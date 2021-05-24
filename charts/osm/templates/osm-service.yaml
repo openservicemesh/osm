@@ -16,19 +16,3 @@ spec:
       targetPort: 9092
   selector:
     app: osm-controller
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: osm-config-validator
-  namespace: {{ include "osm.namespace" . }}
-  labels:
-    {{- include "osm.labels" . | nindent 4 }}
-    app: osm-controller
-spec:
-  ports:
-    - name: config-validator
-      port: 9093
-      targetPort: 9093
-  selector:
-    app: osm-controller
