@@ -1,5 +1,4 @@
 connect_timeout: 1s
-lb_policy: ROUND_ROBIN
 load_assignment:
   cluster_name: startup_cluster
   endpoints:

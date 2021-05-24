@@ -4,6 +4,8 @@ import (
 	"github.com/onsi/ginkgo"
 
 	"github.com/openservicemesh/osm/pkg/injector/test"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
@@ -16,26 +18,40 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.
 	// The key (function name) is used to locate and load the YAML file with the expected return for this function.
-	functionsToTest := map[string]func() interface{}{
-		"getVirtualHosts":            func() interface{} { return getVirtualHosts("/some/path", "-cluster-name-", "/original/probe/path") },
-		"getProbeCluster":            func() interface{} { return getProbeCluster("cluster-name", 12341234) },
-		"getLivenessCluster":         func() interface{} { return getLivenessCluster(liveness) },
-		"getReadinessCluster":        func() interface{} { return getReadinessCluster(readiness) },
-		"getStartupCluster":          func() interface{} { return getStartupCluster(startup) },
-		"getHTTPAccessLog":           func() interface{} { return getHTTPAccessLog() },
-		"getTCPAccessLog":            func() interface{} { return getTCPAccessLog() },
-		"getProbeListener":           func() interface{} { return getProbeListener("a", "b", "c", 9, liveness) },
-		"getLivenessListener":        func() interface{} { return getLivenessListener(liveness) },
-		"getLivenessListenerNonHTTP": func() interface{} { return getLivenessListener(livenessNonHTTP) },
-		"getReadinessListener":       func() interface{} { return getReadinessListener(readiness) },
-		"getStartupListener":         func() interface{} { return getStartupListener(startup) },
+	clusterFunctionsToTest := map[string]func() protoreflect.ProtoMessage{
+		"getVirtualHosts": func() protoreflect.ProtoMessage {
+			return getVirtualHost("/some/path", "-cluster-name-", "/original/probe/path")
+		},
+		"getProbeCluster":     func() protoreflect.ProtoMessage { return getProbeCluster("cluster-name", 12341234) },
+		"getLivenessCluster":  func() protoreflect.ProtoMessage { return getLivenessCluster(liveness) },
+		"getReadinessCluster": func() protoreflect.ProtoMessage { return getReadinessCluster(readiness) },
+		"getStartupCluster":   func() protoreflect.ProtoMessage { return getStartupCluster(startup) },
 	}
 
-	for fnName, fn := range functionsToTest {
+	listenerFunctionsToTest := map[string]func() (protoreflect.ProtoMessage, error){
+		"getHTTPAccessLog":           func() (protoreflect.ProtoMessage, error) { return getHTTPAccessLog() },
+		"getTCPAccessLog":            func() (protoreflect.ProtoMessage, error) { return getTCPAccessLog() },
+		"getProbeListener":           func() (protoreflect.ProtoMessage, error) { return getProbeListener("a", "b", "c", 9, liveness) },
+		"getLivenessListener":        func() (protoreflect.ProtoMessage, error) { return getLivenessListener(liveness) },
+		"getLivenessListenerNonHTTP": func() (protoreflect.ProtoMessage, error) { return getLivenessListener(livenessNonHTTP) },
+		"getReadinessListener":       func() (protoreflect.ProtoMessage, error) { return getReadinessListener(readiness) },
+		"getStartupListener":         func() (protoreflect.ProtoMessage, error) { return getStartupListener(startup) },
+	}
+
+	for fnName, fn := range clusterFunctionsToTest {
 		// A call to test.ThisFunction will:
-		//     a) marshal the output of each function (and save it to "actual_output_<functionName>.yaml")
+		//     a) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
 		//     b) load expectation from "expected_output_<functionName>.yaml"
 		//     c) compare actual and expected in a ginkgo.Context() + ginkgo.It()
-		test.ThisFunction(fnName, fn)
+		test.ThisXdsClusterFunction(fnName, fn)
+	}
+
+	for fnName, fn := range listenerFunctionsToTest {
+		// A call to test.ThisFunction will:
+		//     a) check for error
+		//     b) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
+		//     c) load expectation from "expected_output_<functionName>.yaml"
+		//     d) compare actual and expected in a ginkgo.Context() + ginkgo.It()
+		test.ThisXdsListenerFunction(fnName, fn)
 	}
 })

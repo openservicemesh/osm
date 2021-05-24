@@ -2,13 +2,27 @@ package injector
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"strconv"
+	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	xds_access "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -17,97 +31,129 @@ import (
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
-	m := map[interface{}]interface{}{
-		"node": map[string]interface{}{
-			"id": config.NodeID,
+	bootstrap := &xds_bootstrap.Bootstrap{
+		Node: &xds_core.Node{
+			Id: config.NodeID,
 		},
-		"admin": map[string]interface{}{
-			"access_log": map[string]interface{}{
-				"name": "envoy.access_loggers.stdout",
-				"typed_config": map[string]interface{}{
-					"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
-				},
-			},
-			"address": map[string]interface{}{
-				"socket_address": map[string]string{
-					"address":    constants.LocalhostIPAddress,
-					"port_value": strconv.Itoa(config.EnvoyAdminPort),
-				},
-			},
-		},
-
-		"dynamic_resources": map[string]interface{}{
-			"ads_config": map[string]interface{}{
-				"api_type":              "GRPC",
-				"transport_api_version": "V3",
-				"grpc_services": []map[string]interface{}{
-					{
-						"envoy_grpc": map[string]interface{}{
-							"cluster_name": config.XDSClusterName,
+		Admin: &xds_bootstrap.Admin{
+			AccessLog: []*xds_access.AccessLog{
+				{
+					Name: "envoy.access_loggers.stdout",
+					ConfigType: &xds_access.AccessLog_TypedConfig{
+						TypedConfig: &any.Any{
+							TypeUrl: "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
 						},
 					},
 				},
-				"set_node_on_first_message_only": true,
 			},
-			"cds_config": map[string]interface{}{
-				"ads":                  map[string]string{},
-				"resource_api_version": "V3",
+			Address: &xds_core.Address{
+				Address: &xds_core.Address_SocketAddress{
+					SocketAddress: &xds_core.SocketAddress{
+						Address: constants.LocalhostIPAddress,
+						PortSpecifier: &xds_core.SocketAddress_PortValue{
+							PortValue: config.EnvoyAdminPort,
+						},
+					},
+				},
 			},
-			"lds_config": map[string]interface{}{
-				"ads":                  map[string]string{},
-				"resource_api_version": "V3",
+		},
+		DynamicResources: &xds_bootstrap.Bootstrap_DynamicResources{
+			AdsConfig: &xds_core.ApiConfigSource{
+				ApiType:             xds_core.ApiConfigSource_GRPC,
+				TransportApiVersion: xds_core.ApiVersion_V3,
+				GrpcServices: []*xds_core.GrpcService{
+					{
+						TargetSpecifier: &xds_core.GrpcService_EnvoyGrpc_{
+							EnvoyGrpc: &xds_core.GrpcService_EnvoyGrpc{
+								ClusterName: config.XDSClusterName,
+							},
+						},
+					},
+				},
+				SetNodeOnFirstMessageOnly: true,
+			},
+			CdsConfig: &xds_core.ConfigSource{
+				ResourceApiVersion: xds_core.ApiVersion_V3,
+				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+					Ads: &xds_core.AggregatedConfigSource{},
+				},
+			},
+			LdsConfig: &xds_core.ConfigSource{
+				ResourceApiVersion: xds_core.ApiVersion_V3,
+				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+					Ads: &xds_core.AggregatedConfigSource{},
+				},
 			},
 		},
 	}
 
-	m["static_resources"] = getStaticResources(config)
-
-	configYAML, err := yaml.Marshal(&m)
+	staticResources, err := getStaticResources(config)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling Envoy config struct into YAML")
 		return nil, err
 	}
-	return configYAML, err
+	bootstrap.StaticResources = staticResources
+
+	configYAML, err := protoToYAML(bootstrap)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to marshal envoy bootstrap config to yaml")
+		return nil, err
+	}
+	return configYAML, nil
 }
 
 // getStaticResources returns STATIC resources included in the bootstrap Envoy config.
 // These will not change during the lifetime of the Pod.
-func getStaticResources(config envoyBootstrapConfigMeta) map[string]interface{} {
+func getStaticResources(config envoyBootstrapConfigMeta) (*xds_bootstrap.Bootstrap_StaticResources, error) {
 	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
-	var listeners []map[string]interface{}
+	var listeners []*xds_listener.Listener
+
+	var clusters []*xds_cluster.Cluster
 
 	// There will ALWAYS be an xDS cluster
-	clusters := []map[string]interface{}{
-		getXdsCluster(config),
+	xdsCluster, err := getXdsCluster(config)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting xDS cluster")
+		return nil, err
 	}
+	clusters = append(clusters, xdsCluster)
 
 	// Is there a liveness probe in the Pod Spec?
 	if config.OriginalHealthProbes.liveness != nil {
-		listeners = append(listeners, getLivenessListener(config.OriginalHealthProbes.liveness))
+		listener, err := getLivenessListener(config.OriginalHealthProbes.liveness)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting liveness listener")
+			return nil, err
+		}
+		listeners = append(listeners, listener)
 		clusters = append(clusters, getLivenessCluster(config.OriginalHealthProbes.liveness))
 	}
 
 	// Is there a readiness probe in the Pod Spec?
 	if config.OriginalHealthProbes.readiness != nil {
-		listeners = append(listeners, getReadinessListener(config.OriginalHealthProbes.readiness))
+		listener, err := getReadinessListener(config.OriginalHealthProbes.readiness)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting readiness listener")
+			return nil, err
+		}
+		listeners = append(listeners, listener)
 		clusters = append(clusters, getReadinessCluster(config.OriginalHealthProbes.readiness))
 	}
 
 	// Is there a startup probe in the Pod Spec?
 	if config.OriginalHealthProbes.startup != nil {
-		listeners = append(listeners, getStartupListener(config.OriginalHealthProbes.startup))
+		listener, err := getStartupListener(config.OriginalHealthProbes.startup)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting startup listener")
+			return nil, err
+		}
+		listeners = append(listeners, listener)
 		clusters = append(clusters, getStartupCluster(config.OriginalHealthProbes.startup))
 	}
 
-	staticResources := map[string]interface{}{
-		"clusters": clusters,
-	}
-
-	if len(listeners) > 0 {
-		staticResources["listeners"] = listeners
-	}
-
-	return staticResources
+	return &xds_bootstrap.Bootstrap_StaticResources{
+		Listeners: listeners,
+		Clusters:  clusters,
+	}, nil
 }
 
 func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater, originalHealthProbes healthProbes) (*corev1.Secret, error) {
@@ -116,9 +162,9 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		XDSClusterName: constants.OSMControllerName,
 		NodeID:         cert.GetCommonName().String(),
 
-		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
-		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
-		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
+		RootCert: cert.GetIssuingCA(),
+		Cert:     cert.GetCertificateChain(),
+		Key:      cert.GetPrivateKey(),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.ADSServerPort,
@@ -156,60 +202,93 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 }
 
-func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {
-	return map[string]interface{}{
-		"name":            config.XDSClusterName,
-		"connect_timeout": "0.25s",
-		"type":            "LOGICAL_DNS",
-		"typed_extension_protocol_options": map[string]interface{}{
-			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-				"explicit_http_config": map[string]interface{}{
-					"http2_protocol_options": map[string]string{},
-				},
+func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error) {
+	httpProtocolOptions := &xds_upstream_http.HttpProtocolOptions{
+		UpstreamProtocolOptions: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
 			},
 		},
-		"transport_socket": map[string]interface{}{
-			"name": "envoy.transport_sockets.tls",
-			"typed_config": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-				"common_tls_context": map[string]interface{}{
-					"alpn_protocols": []string{
-						"h2",
-					},
-					"validation_context": map[string]interface{}{
-						"trusted_ca": map[string]interface{}{
-							"inline_bytes": config.RootCert,
-						},
-					},
-					"tls_params": map[string]interface{}{
-						"tls_minimum_protocol_version": "TLSv1_2",
-						"tls_maximum_protocol_version": "TLSv1_3",
-					},
-					"tls_certificates": []map[string]interface{}{
-						{
-							"certificate_chain": map[string]interface{}{
-								"inline_bytes": config.Cert,
-							},
-							"private_key": map[string]interface{}{
-								"inline_bytes": config.Key,
-							},
+	}
+	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
+		return nil, err
+	}
+
+	upstreamTLSContext := &xds_transport_sockets.UpstreamTlsContext{
+		CommonTlsContext: &xds_transport_sockets.CommonTlsContext{
+			AlpnProtocols: []string{
+				"h2",
+			},
+			ValidationContextType: &xds_transport_sockets.CommonTlsContext_ValidationContext{
+				ValidationContext: &xds_transport_sockets.CertificateValidationContext{
+					TrustedCa: &xds_core.DataSource{
+						Specifier: &xds_core.DataSource_InlineBytes{
+							InlineBytes: config.RootCert,
 						},
 					},
 				},
 			},
-		},
-		"load_assignment": map[string]interface{}{
-			"cluster_name": config.XDSClusterName,
-			"endpoints": []map[string]interface{}{
+			TlsParams: &xds_transport_sockets.TlsParameters{
+				TlsMinimumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_2,
+				TlsMaximumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_3,
+			},
+			TlsCertificates: []*xds_transport_sockets.TlsCertificate{
 				{
-					"lb_endpoints": []map[string]interface{}{
+					CertificateChain: &xds_core.DataSource{
+						Specifier: &xds_core.DataSource_InlineBytes{
+							InlineBytes: config.Cert,
+						},
+					},
+					PrivateKey: &xds_core.DataSource{
+						Specifier: &xds_core.DataSource_InlineBytes{
+							InlineBytes: config.Key,
+						},
+					},
+				},
+			},
+		},
+	}
+	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
+		return nil, err
+	}
+
+	return &xds_cluster.Cluster{
+		Name:           config.XDSClusterName,
+		ConnectTimeout: durationpb.New(time.Millisecond * 250),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_LOGICAL_DNS,
+		},
+		TypedExtensionProtocolOptions: map[string]*any.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": pbHTTPProtocolOptions,
+		},
+		TransportSocket: &xds_core.TransportSocket{
+			Name: "envoy.transport_sockets.tls",
+			ConfigType: &xds_core.TransportSocket_TypedConfig{
+				TypedConfig: pbUpstreamTLSContext,
+			},
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: config.XDSClusterName,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{
 						{
-							"endpoint": map[string]interface{}{
-								"address": map[string]interface{}{
-									"socket_address": map[string]interface{}{
-										"address":    config.XDSHost,
-										"port_value": config.XDSPort,
+							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &xds_endpoint.Endpoint{
+									Address: &xds_core.Address{
+										Address: &xds_core.Address_SocketAddress{
+											SocketAddress: &xds_core.SocketAddress{
+												Address: config.XDSHost,
+												PortSpecifier: &xds_core.SocketAddress_PortValue{
+													PortValue: config.XDSPort,
+												},
+											},
+										},
 									},
 								},
 							},
@@ -218,5 +297,40 @@ func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {
 				},
 			},
 		},
+	}, nil
+}
+
+func protoToYAML(m protoreflect.ProtoMessage) ([]byte, error) {
+	marshalOptions := protojson.MarshalOptions{
+		UseProtoNames: true,
 	}
+	configJSON, err := marshalOptions.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	configYAML, err := jsonToYAML(configJSON)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshaling xDS struct into YAML")
+		return nil, err
+	}
+	return configYAML, err
+}
+
+// Reference impl taken from https://github.com/ghodss/yaml/blob/master/yaml.go#L87
+func jsonToYAML(jb []byte) ([]byte, error) {
+	// Convert the JSON to an object.
+	var jsonObj interface{}
+	// We are using yaml.Unmarshal here (instead of json.Unmarshal) because the
+	// Go JSON library doesn't try to pick the right number type (int, float,
+	// etc.) when unmarshalling to interface{}, it just picks float64
+	// universally. go-yaml does go through the effort of picking the right
+	// number type, so we can preserve number type throughout this process.
+	err := yaml.Unmarshal([]byte(jb), &jsonObj)
+	if err != nil {
+		return nil, err
+	}
+
+	// Marshal this object into YAML.
+	return yaml.Marshal(jsonObj)
 }

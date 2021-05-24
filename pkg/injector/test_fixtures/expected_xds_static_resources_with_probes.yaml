@@ -1,5 +1,5 @@
 clusters:
-- connect_timeout: 0.25s
+- connect_timeout: 0.250s
   load_assignment:
     cluster_name: osm-controller
     endpoints:

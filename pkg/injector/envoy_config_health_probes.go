@@ -1,7 +1,22 @@
 package injector
 
 import (
+	"time"
+
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
+
+	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
+	xds_http_connection_manager "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 )
 
 const (
@@ -14,44 +29,52 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(originalProbe *healthProbe) map[string]interface{} {
+func getLivenessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(livenessCluster, originalProbe.port)
 }
 
-func getReadinessCluster(originalProbe *healthProbe) map[string]interface{} {
+func getReadinessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(readinessCluster, originalProbe.port)
 }
 
-func getStartupCluster(originalProbe *healthProbe) map[string]interface{} {
+func getStartupCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(startupCluster, originalProbe.port)
 }
 
-func getProbeCluster(clusterName string, port int32) map[string]interface{} {
-	return map[string]interface{}{
-		"name":            clusterName,
-		"connect_timeout": "1s",
-		"type":            "STATIC",
-		"lb_policy":       "ROUND_ROBIN",
-		"load_assignment": map[string]interface{}{
-			"cluster_name": clusterName,
-			"endpoints": []map[string]interface{}{
+func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
+	return &xds_cluster.Cluster{
+		Name:           clusterName,
+		ConnectTimeout: durationpb.New(time.Second),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_STATIC,
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: clusterName,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
-					"lb_endpoints": []map[string]interface{}{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{
 						{
-							"endpoint": map[string]interface{}{
-								"address": map[string]interface{}{
-									"socket_address": map[string]interface{}{
-										"address":    "0.0.0.0",
-										"port_value": port,
+							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &xds_endpoint.Endpoint{
+									Address: &xds_core.Address{
+										Address: &xds_core.Address_SocketAddress{
+											SocketAddress: &xds_core.SocketAddress{
+												Address: "0.0.0.0",
+												PortSpecifier: &xds_core.SocketAddress_PortValue{
+													PortValue: uint32(port),
+												},
+											},
+										},
 									},
 								},
 							},
@@ -63,93 +86,137 @@ func getProbeCluster(clusterName string, port int32) map[string]interface{} {
 	}
 }
 
-func getLivenessListener(originalProbe *healthProbe) map[string]interface{} {
+func getLivenessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
-		return nil
+		return nil, nil
 	}
 	return getProbeListener(livenessListener, livenessCluster, livenessProbePath, livenessProbePort, originalProbe)
 }
 
-func getReadinessListener(originalProbe *healthProbe) map[string]interface{} {
+func getReadinessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
-		return nil
+		return nil, nil
 	}
 	return getProbeListener(readinessListener, readinessCluster, readinessProbePath, readinessProbePort, originalProbe)
 }
 
-func getStartupListener(originalProbe *healthProbe) map[string]interface{} {
+func getStartupListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
-		return nil
+		return nil, nil
 	}
 	return getProbeListener(startupListener, startupCluster, startupProbePath, startupProbePort, originalProbe)
 }
 
-func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *healthProbe) map[string]interface{} {
-	filters := []map[string]interface{}{
-		{
-			"name": "envoy.filters.network.http_connection_manager",
-			"typed_config": map[string]interface{}{
-				"@type":       "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-				"stat_prefix": "health_probes_http",
-				"access_log":  getHTTPAccessLog(),
-				"codec_type":  "AUTO",
-				"route_config": map[string]interface{}{
-					"name":          "local_route",
-					"virtual_hosts": getVirtualHosts(newPath, clusterName, originalProbe.path),
-				},
-				"http_filters": []map[string]interface{}{
-					{
-						"name": "envoy.filters.http.router",
+func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *healthProbe) (*xds_listener.Listener, error) {
+	var filterChain *xds_listener.FilterChain
+	if originalProbe.isHTTP {
+		httpAccessLog, err := getHTTPAccessLog()
+		if err != nil {
+			return nil, err
+		}
+		httpConnectionManager := &xds_http_connection_manager.HttpConnectionManager{
+			CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
+			StatPrefix: "health_probes_http",
+			AccessLog: []*xds_accesslog_filter.AccessLog{
+				httpAccessLog,
+			},
+			RouteSpecifier: &xds_http_connection_manager.HttpConnectionManager_RouteConfig{
+				RouteConfig: &xds_route.RouteConfiguration{
+					Name: "local_route",
+					VirtualHosts: []*xds_route.VirtualHost{
+						getVirtualHost(newPath, clusterName, originalProbe.path),
 					},
 				},
 			},
-		},
-	}
-	if !originalProbe.isHTTP {
-		filters = []map[string]interface{}{
-			{
-				"name": wellknown.TCPProxy,
-				"typed_config": map[string]interface{}{
-					"@type":       "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-					"cluster":     clusterName,
-					"stat_prefix": "health_probes",
-					"access_log":  getTCPAccessLog(),
+			HttpFilters: []*xds_http_connection_manager.HttpFilter{
+				{
+					Name: "envoy.filters.http.router",
+				},
+			},
+		}
+		pbHTTPConnectionManager, err := ptypes.MarshalAny(httpConnectionManager)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
+			return nil, err
+		}
+		filterChain = &xds_listener.FilterChain{
+			Filters: []*xds_listener.Filter{
+				{
+					Name: "envoy.filters.network.http_connection_manager",
+					ConfigType: &xds_listener.Filter_TypedConfig{
+						TypedConfig: pbHTTPConnectionManager,
+					},
+				},
+			},
+		}
+	} else {
+		tcpAccessLog, err := getTCPAccessLog()
+		if err != nil {
+			return nil, err
+		}
+		tcpProxy := &xds_tcp_proxy.TcpProxy{
+			StatPrefix: "health_probes",
+			AccessLog: []*xds_accesslog_filter.AccessLog{
+				tcpAccessLog,
+			},
+			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
+				Cluster: clusterName,
+			},
+		}
+		pbTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
+			return nil, err
+		}
+		filterChain = &xds_listener.FilterChain{
+			Filters: []*xds_listener.Filter{
+				{
+					Name: wellknown.TCPProxy,
+					ConfigType: &xds_listener.Filter_TypedConfig{
+						TypedConfig: pbTCPProxy,
+					},
 				},
 			},
 		}
 	}
 
-	return map[string]interface{}{
-		"name": listenerName,
-		"address": map[string]interface{}{
-			"socket_address": map[string]interface{}{
-				"address":    "0.0.0.0",
-				"port_value": port,
+	return &xds_listener.Listener{
+		Name: listenerName,
+		Address: &xds_core.Address{
+			Address: &xds_core.Address_SocketAddress{
+				SocketAddress: &xds_core.SocketAddress{
+					Address: "0.0.0.0",
+					PortSpecifier: &xds_core.SocketAddress_PortValue{
+						PortValue: uint32(port),
+					},
+				},
 			},
 		},
-		"filter_chains": []map[string]interface{}{
+		FilterChains: []*xds_listener.FilterChain{
+			filterChain,
+		},
+	}, nil
+}
+
+func getVirtualHost(newPath, clusterName, originalProbePath string) *xds_route.VirtualHost {
+	return &xds_route.VirtualHost{
+		Name: "local_service",
+		Domains: []string{
+			"*",
+		},
+		Routes: []*xds_route.Route{
 			{
-				"filters": filters,
-			},
-		},
-	}
-}
-
-func getVirtualHosts(newPath, clusterName, originalProbePath string) []map[string]interface{} {
-	return []map[string]interface{}{
-		{
-			"name": "local_service",
-			"domains": []string{
-				"*",
-			},
-			"routes": []map[string]interface{}{
-				{
-					"match": map[string]interface{}{
-						"prefix": newPath,
+				Match: &xds_route.RouteMatch{
+					PathSpecifier: &xds_route.RouteMatch_Prefix{
+						Prefix: newPath,
 					},
-					"route": map[string]interface{}{
-						"cluster":        clusterName,
-						"prefix_rewrite": originalProbePath,
+				},
+				Action: &xds_route.Route_Route{
+					Route: &xds_route.RouteAction{
+						ClusterSpecifier: &xds_route.RouteAction_Cluster{
+							Cluster: clusterName,
+						},
+						PrefixRewrite: originalProbePath,
 					},
 				},
 			},
@@ -157,59 +224,99 @@ func getVirtualHosts(newPath, clusterName, originalProbePath string) []map[strin
 	}
 }
 
-func getHTTPAccessLog() []map[string]interface{} {
-	return []map[string]interface{}{
-		{
-			"name": "envoy.access_loggers.file",
-			"typed_config": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
-				"log_format": map[string]interface{}{
-					"json_format": map[string]interface{}{
-						"requested_server_name": "%REQUESTED_SERVER_NAME%",
-						"method":                "%REQ(:METHOD)%",
-						"upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-						"upstream_cluster":      "%UPSTREAM_CLUSTER%",
-						"protocol":              "%PROTOCOL%",
-						"response_code":         "%RESPONSE_CODE%",
-						"time_to_first_byte":    "%RESPONSE_DURATION%",
-						"response_flags":        "%RESPONSE_FLAGS%",
-						"bytes_received":        "%BYTES_RECEIVED%",
-						"duration":              "%DURATION%",
-						"request_id":            "%REQ(X-REQUEST-ID)%",
-						"upstream_host":         "%UPSTREAM_HOST%",
-						"path":                  "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-						"response_code_details": "%RESPONSE_CODE_DETAILS%",
-						"x_forwarded_for":       "%REQ(X-FORWARDED-FOR)%",
-						"user_agent":            "%REQ(USER-AGENT)%",
-						"authority":             "%REQ(:AUTHORITY)%",
-						"start_time":            "%START_TIME%",
-						"bytes_sent":            "%BYTES_SENT%",
+// getHTTPAccessLog creates an Envoy AccessLog struct.
+func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
+	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling AccessLog object")
+		return nil, err
+	}
+	return &xds_accesslog_filter.AccessLog{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
+		},
+	}, nil
+}
+
+// getTCPAccessLog creates an Envoy AccessLog struct.
+func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
+	accessLog, err := ptypes.MarshalAny(getTCPStdoutAccessLog())
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling tcp AccessLog object")
+		return nil, err
+	}
+	return &xds_accesslog_filter.AccessLog{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
+		},
+	}, nil
+}
+
+func getStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
+	accessLogger := &xds_accesslog.StdoutAccessLog{
+		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
+			LogFormat: &xds_core.SubstitutionFormatString{
+				Format: &xds_core.SubstitutionFormatString_JsonFormat{
+					JsonFormat: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"start_time":            pbStringValue(`%START_TIME%`),
+							"method":                pbStringValue(`%REQ(:METHOD)%`),
+							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
+							"protocol":              pbStringValue(`%PROTOCOL%`),
+							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
+							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
+							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
+							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
+							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
+							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
+							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
+							"duration":              pbStringValue(`%DURATION%`),
+							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
+							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
+							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
+							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
+							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
+							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
+							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+						},
 					},
 				},
 			},
 		},
 	}
+	return accessLogger
 }
 
-func getTCPAccessLog() []map[string]interface{} {
-	return []map[string]interface{}{
-		{
-			"name": "envoy.access_loggers.file",
-			"typed_config": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
-				"log_format": map[string]interface{}{
-					"json_format": map[string]interface{}{
-						"requested_server_name": "%REQUESTED_SERVER_NAME%",
-						"upstream_cluster":      "%UPSTREAM_CLUSTER%",
-						"response_flags":        "%RESPONSE_FLAGS%",
-						"bytes_received":        "%BYTES_RECEIVED%",
-						"duration":              "%DURATION%",
-						"upstream_host":         "%UPSTREAM_HOST%",
-						"start_time":            "%START_TIME%",
-						"bytes_sent":            "%BYTES_SENT%",
+func getTCPStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
+	accessLogger := &xds_accesslog.StdoutAccessLog{
+		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
+			LogFormat: &xds_core.SubstitutionFormatString{
+				Format: &xds_core.SubstitutionFormatString_JsonFormat{
+					JsonFormat: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"start_time":            pbStringValue(`%START_TIME%`),
+							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
+							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
+							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
+							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
+							"duration":              pbStringValue(`%DURATION%`),
+							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
+							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+						},
 					},
 				},
 			},
+		},
+	}
+	return accessLogger
+}
+
+func pbStringValue(v string) *structpb.Value {
+	return &structpb.Value{
+		Kind: &structpb.Value_StringValue{
+			StringValue: v,
 		},
 	}
 }

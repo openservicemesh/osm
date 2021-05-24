@@ -32,7 +32,6 @@ filter_chains:
               upstream_service_time: '%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%'
               user_agent: '%REQ(USER-AGENT)%'
               x_forwarded_for: '%REQ(X-FORWARDED-FOR)%'
-      codec_type: AUTO
       http_filters:
       - name: envoy.filters.http.router
       route_config:
