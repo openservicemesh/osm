@@ -19,7 +19,7 @@ spec:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-prometheus
     spec:
-      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       containers:
