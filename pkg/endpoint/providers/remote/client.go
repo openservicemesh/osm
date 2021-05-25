@@ -74,7 +74,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 // GetServiceForServiceAccount retrieves the service for the given service account
 func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
-	log.Info().Msgf("[%s] Getting Services for service account %s on Remote", c.providerIdent, svcAccount)
+	//log.Info().Msgf("[%s] Getting Services for service account %s on Remote", c.providerIdent, svcAccount)
 	servicesSlice := make([]service.MeshService, 0)
 
 	if c.caches == nil {

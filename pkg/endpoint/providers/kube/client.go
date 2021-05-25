@@ -181,7 +181,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 		/* WITESAND END */
 		return make([]service.MeshService, 0), errServiceNotFound
 	} else {
-		log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
+		//log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
 	}
 
 	servicesSlice := make([]service.MeshService, 0, services.Cardinality())

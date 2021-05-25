@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -14,6 +15,7 @@ import (
 var (
 	InitialSyncingPeriod = 3
 	QueryTimeout = 1 * time.Minute
+	QueryErr = errors.New("rest query timed out")
 )
 
 func (mc *MeshCatalog) witesandHttpServerAndClient() {
@@ -58,8 +60,10 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			remoteEdgePods, err := mc.QueryRemoteEdgePods(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateClusterPods(clusterId, &remoteEdgePods)
+			} else if err == QueryErr {
+				log.Error().Msgf(" witesandHttpClient QueryRemoteEdgePods Timedout clusterID=", clusterId)
 			} else {
-				log.Info().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
+				log.Error().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
@@ -75,6 +79,8 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			allRemotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateAllPods(clusterId, &allRemotePods)
+			} else if err == QueryErr {
+				log.Error().Msgf(" witesandHttpClient QueryAllPodRemote Timedout clusterID=", clusterId)
 			} else {
 				log.Info().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
 				// not responding, trigger remove
@@ -90,6 +96,8 @@ func (mc *MeshCatalog) witesandHttpClient() {
 				if err == nil {
 					wc.UpdateAllApigroupMaps(apigroupMaps)
 					initialWavesSyncDone = true
+				} else if err == QueryErr {
+					log.Info().Msgf(" witesandHttpClient QueryWaves timedout")
 				}
 			}
 		}
@@ -137,7 +145,7 @@ func (mc *MeshCatalog) QueryWaves(wavesIP string) (*map[string][]string, error) 
 	select {
 	case <-time.After(QueryTimeout):
 		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
-		return &apigroupToPodMaps, fmt.Errorf("QueryRemoteEdgePods query timeout")
+		return &apigroupToPodMaps, QueryErr
 	case <-closeChan:
 	}
 	return &apigroupToPodMaps, err
@@ -180,7 +188,7 @@ func (mc *MeshCatalog) QueryAllPodRemote(wc witesand.WitesandCataloger, remoteOs
 	select {
 	case <-time.After(QueryTimeout):
 		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
-		return remotePods, fmt.Errorf("QueryRemoteEdgePods query timeout")
+		return remotePods, QueryErr
 	case <-closeChan:
 	}
 	return remotePods, err
@@ -225,7 +233,7 @@ func (mc *MeshCatalog) QueryRemoteEdgePods(wc witesand.WitesandCataloger, remote
 	select {
 	case <-time.After(QueryTimeout):
 		log.Error().Msgf("[QueryRemoteEdgePods] failed. Timeout")
-		return remotePods, fmt.Errorf("QueryRemoteEdgePods query timeout")
+		return remotePods, QueryErr
 	case <-closeChan:
 	}
 	return remotePods, err

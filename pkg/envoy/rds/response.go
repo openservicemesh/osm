@@ -143,7 +143,7 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 		routesPerHost[host] = make(map[string]trafficpolicy.RouteWeightedClusters)
 	}
 	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
-	log.Debug().Msgf("RDS aggregateRoutesByHost: routeFound:%t pathregex:%+v", routeFound, routePolicy.PathRegex)
+	//log.Debug().Msgf("RDS aggregateRoutesByHost: routeFound:%t pathregex:%+v", routeFound, routePolicy.PathRegex)
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)

@@ -244,7 +244,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v
 		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return admissionError(err)
 	}
-	log.Trace().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
+	//log.Trace().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
