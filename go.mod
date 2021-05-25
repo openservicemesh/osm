@@ -10,7 +10,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/dustin/go-humanize v1.0.0
-	github.com/envoyproxy/go-control-plane v0.9.8
+	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/fatih/color v1.10.0
 	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/golang/mock v1.4.1
@@ -44,7 +44,7 @@ require (
 	golang.org/x/sys v0.0.0-20210414055047-fe65e336abe0 // indirect
 	golang.org/x/tools v0.1.1-0.20210319172145-bda8f5cee399 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.0.1
-	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

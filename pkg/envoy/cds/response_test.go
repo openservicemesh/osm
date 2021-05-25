@@ -76,17 +76,20 @@ func TestNewResponse(t *testing.T) {
 		require.True(ok)
 		actualClusters = append(actualClusters, cl)
 	}
+
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	assert.Nil(err)
+
 	expectedLocalCluster := &xds_cluster.Cluster{
-		TransportSocketMatches: nil,
-		Name:                   "default/bookbuyer-local",
-		AltStatName:            "default/bookbuyer-local",
-		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS},
-		EdsClusterConfig:       nil,
-		ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
-		ProtocolSelection:      xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		RespectDnsTtl:          true,
-		DnsLookupFamily:        xds_cluster.Cluster_V4_ONLY,
-		Http2ProtocolOptions:   &xds_core.Http2ProtocolOptions{},
+		TransportSocketMatches:        nil,
+		Name:                          "default/bookbuyer-local",
+		AltStatName:                   "default/bookbuyer-local",
+		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS},
+		EdsClusterConfig:              nil,
+		ConnectTimeout:                ptypes.DurationProto(1 * time.Second),
+		RespectDnsTtl:                 true,
+		DnsLookupFamily:               xds_cluster.Cluster_V4_ONLY,
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: "default/bookbuyer-local",
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -123,12 +126,11 @@ func TestNewResponse(t *testing.T) {
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
-		TransportSocketMatches: nil,
-		Name:                   "default/bookstore-v1",
-		AltStatName:            "",
-		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		Http2ProtocolOptions:   &xds_core.Http2ProtocolOptions{},
-		ProtocolSelection:      xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		TransportSocketMatches:        nil,
+		Name:                          "default/bookstore-v1",
+		AltStatName:                   "",
+		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -153,12 +155,11 @@ func TestNewResponse(t *testing.T) {
 	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
-		TransportSocketMatches: nil,
-		Name:                   "default/bookstore-v2",
-		AltStatName:            "",
-		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		Http2ProtocolOptions:   &xds_core.Http2ProtocolOptions{},
-		ProtocolSelection:      xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		TransportSocketMatches:        nil,
+		Name:                          "default/bookstore-v2",
+		AltStatName:                   "",
+		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{

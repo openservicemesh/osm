@@ -35,6 +35,11 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 		return nil, err
 	}
 
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	remoteCluster := &xds_cluster.Cluster{
 		Name:           clusterName,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
@@ -44,8 +49,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
 		},
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}
 
 	if cfg.IsPermissiveTrafficPolicyMode() {
@@ -64,6 +68,11 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	xdsCluster := xds_cluster.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:           clusterName,
@@ -82,8 +91,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 				// Filled based on discovered endpoints for the service
 			},
 		},
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}
 
 	ports, err := catalog.GetTargetPortToProtocolMappingForService(proxyServiceName)
@@ -158,8 +166,11 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 		case "":
 			// Cluster config does not have a Host specified, route it to its original destination.
 			// Used for TCP based clusters
-			egressClusters = append(egressClusters, getOriginalDestinationEgressCluster(config.Name))
-
+			if originalDestinationEgressCluster, err := getOriginalDestinationEgressCluster(config.Name); err != nil {
+				log.Error().Err(err).Msg("Error building the original destination cluster for the given egress cluster config")
+			} else {
+				egressClusters = append(egressClusters, originalDestinationEgressCluster)
+			}
 		default:
 			// Cluster config has a Host specified, route it based on the Host resolved using DNS.
 			// Used for HTTP based clusters
@@ -220,15 +231,19 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 
 // getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
 // The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
-func getOriginalDestinationEgressCluster(name string) *xds_cluster.Cluster {
+func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, error) {
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	return &xds_cluster.Cluster{
 		Name:           name,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_ORIGINAL_DST,
 		},
-		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-	}
+		LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+	}, nil
 }

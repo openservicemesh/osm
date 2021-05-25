@@ -19,7 +19,12 @@ import (
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
-			"access_log_path": "/dev/stdout",
+			"access_log": map[string]interface{}{
+				"name": "envoy.access_loggers.stdout",
+				"typed_config": map[string]interface{}{
+					"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+				},
+			},
 			"address": map[string]interface{}{
 				"socket_address": map[string]string{
 					"address":    constants.LocalhostIPAddress,
@@ -149,10 +154,17 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 
 func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {
 	return map[string]interface{}{
-		"name":                   config.XDSClusterName,
-		"connect_timeout":        "0.25s",
-		"type":                   "LOGICAL_DNS",
-		"http2_protocol_options": map[string]string{},
+		"name":            config.XDSClusterName,
+		"connect_timeout": "0.25s",
+		"type":            "LOGICAL_DNS",
+		"typed_extension_protocol_options": map[string]interface{}{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": map[string]interface{}{
+				"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+				"explicit_http_config": map[string]interface{}{
+					"http2_protocol_options": map[string]string{},
+				},
+			},
+		},
 		"transport_socket": map[string]interface{}{
 			"name": "envoy.transport_sockets.tls",
 			"typed_config": map[string]interface{}{

@@ -79,8 +79,6 @@ const (
 )
 
 const (
-	accessLogPath = "/dev/stdout"
-
 	// localClusterSuffix is the tag to append to the local cluster name corresponding to a service cluster.
 	// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 	localClusterSuffix = "-local"
