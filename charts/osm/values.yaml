@@ -34,6 +34,8 @@ OpenServiceMesh:
         memory: "128M"
     # -- OSM controller's pod labels
     podLabels: {}
+    # -- Enable Pod Disruption Budget
+    enablePodDisruptionBudget: false
 
   #
   # -- Prometheus parameters
@@ -208,7 +210,10 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
+    # -- Sidecar injector's pod labels
     podLabels: {}
+    # -- Enable Pod Disruption Budget
+    enablePodDisruptionBudget: false
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
