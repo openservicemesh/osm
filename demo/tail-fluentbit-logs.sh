@@ -7,4 +7,4 @@ source .env
 
 POD="$(kubectl get pods -n "$K8S_NAMESPACE" --selector app=osm-controller --no-headers | awk '{print $1}' | head -n1)"
 
-kubectl logs "${POD}" osm-controller -n "$K8S_NAMESPACE" -f
+kubectl logs "${POD}" fluentbit-logger -n "$K8S_NAMESPACE" -f
