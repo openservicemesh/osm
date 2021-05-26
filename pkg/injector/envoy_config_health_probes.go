@@ -162,8 +162,7 @@ func getHTTPAccessLog() []map[string]interface{} {
 		{
 			"name": "envoy.access_loggers.file",
 			"typed_config": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
-				"path":  "/dev/stdout",
+				"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
 				"log_format": map[string]interface{}{
 					"json_format": map[string]interface{}{
 						"requested_server_name": "%REQUESTED_SERVER_NAME%",
@@ -197,8 +196,7 @@ func getTCPAccessLog() []map[string]interface{} {
 		{
 			"name": "envoy.access_loggers.file",
 			"typed_config": map[string]interface{}{
-				"@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
-				"path":  "/dev/stdout",
+				"@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
 				"log_format": map[string]interface{}{
 					"json_format": map[string]interface{}{
 						"requested_server_name": "%REQUESTED_SERVER_NAME%",

@@ -5,7 +5,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -33,12 +33,11 @@ func TestGetAccessLog(t *testing.T) {
 	assert.NotNil(res)
 }
 
-func TestGetFileAccessLog(t *testing.T) {
+func TestGetStdoutAccessLog(t *testing.T) {
 	assert := tassert.New(t)
 
-	expAccessLogger := &xds_accesslog.FileAccessLog{
-		Path: accessLogPath,
-		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+	expAccessLogger := &xds_accesslog.StdoutAccessLog{
+		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
 			LogFormat: &xds_core.SubstitutionFormatString{
 				Format: &xds_core.SubstitutionFormatString_JsonFormat{
 					JsonFormat: &structpb.Struct{
@@ -68,7 +67,7 @@ func TestGetFileAccessLog(t *testing.T) {
 			},
 		},
 	}
-	resAccessLogger := getFileAccessLog()
+	resAccessLogger := getStdoutAccessLog()
 
 	assert.Equal(resAccessLogger, expAccessLogger)
 }

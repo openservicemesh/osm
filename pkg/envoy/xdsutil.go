@@ -7,10 +7,12 @@ import (
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
@@ -78,7 +80,7 @@ func GetTLSParams() *xds_auth.TlsParameters {
 
 // GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*xds_accesslog_filter.AccessLog {
-	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
+	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
 	if err != nil {
 		log.Error().Err(err).Msg("Error marshalling AccessLog object")
 		return nil
@@ -91,10 +93,9 @@ func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 	}
 }
 
-func getFileAccessLog() *xds_accesslog.FileAccessLog {
-	accessLogger := &xds_accesslog.FileAccessLog{
-		Path: accessLogPath,
-		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+func getStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
+	accessLogger := &xds_accesslog.StdoutAccessLog{
+		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
 			LogFormat: &xds_core.SubstitutionFormatString{
 				Format: &xds_core.SubstitutionFormatString_JsonFormat{
 					JsonFormat: &structpb.Struct{
@@ -214,6 +215,25 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 		Sni: upstreamSvc.ServerName(),
 	}
 	return tlsConfig
+}
+
+// GetHTTP2ProtocolOptions creates an Envoy http configuration that matches the downstream protocol
+func GetHTTP2ProtocolOptions() (map[string]*any.Any, error) {
+	marshalledHTTPProtocolOptions, err := ptypes.MarshalAny(
+		&extensions_upstream_http_v3.HttpProtocolOptions{
+			UpstreamProtocolOptions: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
+				UseDownstreamProtocolConfig: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
+					Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+				},
+			},
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]*any.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": marshalledHTTPProtocolOptions,
+	}, nil
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.

@@ -32,25 +32,22 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 	upstreamSvc := tests.BookstoreV1Service
 
 	testCases := []struct {
-		name                      string
-		permissiveMode            bool
-		expectedClusterType       xds_cluster.Cluster_DiscoveryType
-		expectedLbPolicy          xds_cluster.Cluster_LbPolicy
-		expectedProtocolSelection xds_cluster.Cluster_ClusterProtocolSelection
+		name                string
+		permissiveMode      bool
+		expectedClusterType xds_cluster.Cluster_DiscoveryType
+		expectedLbPolicy    xds_cluster.Cluster_LbPolicy
 	}{
 		{
-			name:                      "Returns an EDS based cluster when permissive mode is disabled",
-			permissiveMode:            false,
-			expectedClusterType:       xds_cluster.Cluster_EDS,
-			expectedLbPolicy:          xds_cluster.Cluster_ROUND_ROBIN,
-			expectedProtocolSelection: xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			name:                "Returns an EDS based cluster when permissive mode is disabled",
+			permissiveMode:      false,
+			expectedClusterType: xds_cluster.Cluster_EDS,
+			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 		},
 		{
-			name:                      "Returns an Original Destination based cluster when permissive mode is enabled",
-			permissiveMode:            true,
-			expectedClusterType:       xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:          xds_cluster.Cluster_CLUSTER_PROVIDED,
-			expectedProtocolSelection: xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			name:                "Returns an Original Destination based cluster when permissive mode is enabled",
+			permissiveMode:      true,
+			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
+			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
 		},
 	}
 
@@ -61,7 +58,6 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 			assert.Nil(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
-			assert.Equal(tc.expectedProtocolSelection, remoteCluster.ProtocolSelection)
 		})
 	}
 }
@@ -144,7 +140,6 @@ func TestGetLocalServiceCluster(t *testing.T) {
 				assert.Equal(&xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS}, cluster.ClusterDiscoveryType)
 				assert.Equal(true, cluster.RespectDnsTtl)
 				assert.Equal(xds_cluster.Cluster_V4_ONLY, cluster.DnsLookupFamily)
-				assert.Equal(xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL, cluster.ProtocolSelection)
 				assert.Equal(len(tc.expectedLocalityLbEndpoints), len(cluster.LoadAssignment.Endpoints))
 				assert.ElementsMatch(tc.expectedLocalityLbEndpoints, cluster.LoadAssignment.Endpoints)
 			}
@@ -202,7 +197,8 @@ func TestGetPrometheusCluster(t *testing.T) {
 
 func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
-
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	assert.Nil(err)
 	testCases := []struct {
 		name        string
 		clusterName string
@@ -217,9 +213,8 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
-				LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
-				ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
+				TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 			},
 		},
 		{
@@ -231,16 +226,16 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
-				LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
-				ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
+				TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := getOriginalDestinationEgressCluster(tc.clusterName)
+			actual, err := getOriginalDestinationEgressCluster(tc.clusterName)
+			assert.Nil(err)
 			assert.Equal(tc.expected, actual)
 		})
 	}
