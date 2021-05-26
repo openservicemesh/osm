@@ -7,8 +7,9 @@ import (
 
 // OptionalFeatures is a struct to enable/disable optional features
 type OptionalFeatures struct {
-	WASMStats    bool
-	EgressPolicy bool
+	WASMStats        bool
+	EgressPolicy     bool
+	MulticlusterMode bool
 }
 
 var (
@@ -40,4 +41,9 @@ func IsWASMStatsEnabled() bool {
 // IsEgressPolicyEnabled returns a boolean indicating if OSM's Egress policy API is enabled
 func IsEgressPolicyEnabled() bool {
 	return Features.EgressPolicy
+}
+
+// IsMulticlusterModeEnabled returns a boolean indicating if multicluster mode is enabled in OSM
+func IsMulticlusterModeEnabled() bool {
+	return Features.MulticlusterMode
 }

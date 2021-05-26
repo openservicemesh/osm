@@ -106,6 +106,7 @@ func init() {
 	// feature flags
 	flags.BoolVar(&optionalFeatures.WASMStats, "stats-wasm-experimental", false, "Enable a WebAssembly module that generates additional Envoy statistics")
 	flags.BoolVar(&optionalFeatures.EgressPolicy, "enable-egress-policy", false, "Enable OSM's Egress policy API")
+	flags.BoolVar(&optionalFeatures.MulticlusterMode, "enable-multicluster", false, "Enable multicluster mode in OSM")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
