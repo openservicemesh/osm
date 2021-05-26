@@ -97,11 +97,13 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
 | OpenServiceMesh.image.tag | string | `"v0.8.4"` | Container image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
-| OpenServiceMesh.injector.podLabels | object | `{}` |  |
+| OpenServiceMesh.injector.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
+| OpenServiceMesh.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
 | OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
+| OpenServiceMesh.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | OpenServiceMesh.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | OpenServiceMesh.osmController.replicaCount | int | `1` | OSM controller's replica count |
 | OpenServiceMesh.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"512M"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters |
