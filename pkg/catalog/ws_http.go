@@ -60,10 +60,9 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			remoteEdgePods, err := mc.QueryRemoteEdgePods(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateClusterPods(clusterId, &remoteEdgePods)
-			} else if err == QueryErr {
-				log.Error().Msgf(" witesandHttpClient QueryRemoteEdgePods Timedout clusterID=", clusterId)
+				wc.UpdateRemoteFailCount(clusterId)
 			} else {
-				log.Error().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
+				log.Error().Msgf(" witesandHttpClient remove remotek8s clusterID=%d, err=%s", clusterId, err)
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
@@ -79,10 +78,9 @@ func (mc *MeshCatalog) witesandHttpClient() {
 			allRemotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
 			if err == nil {
 				wc.UpdateAllPods(clusterId, &allRemotePods)
-			} else if err == QueryErr {
-				log.Error().Msgf(" witesandHttpClient QueryAllPodRemote Timedout clusterID=", clusterId)
+				wc.UpdateRemoteFailCount(clusterId)
 			} else {
-				log.Info().Msgf(" witesandHttpClient remove remotek8s clusterID=", clusterId)
+				log.Error().Msgf(" witesandHttpClient remove remotek8s clusterID=%s err=%s", clusterId, err)
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
@@ -97,7 +95,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 					wc.UpdateAllApigroupMaps(apigroupMaps)
 					initialWavesSyncDone = true
 				} else if err == QueryErr {
-					log.Info().Msgf(" witesandHttpClient QueryWaves timedout")
+					log.Error().Msgf(" witesandHttpClient QueryWaves timedout")
 				}
 			}
 		}

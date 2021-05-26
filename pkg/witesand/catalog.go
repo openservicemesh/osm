@@ -64,6 +64,13 @@ func (wc *WitesandCatalog) IsMaster() bool {
 	return wc.masterOsmIP == ""
 }
 
+func (wc *WitesandCatalog) UpdateRemoteFailCount(clusterId string) {
+	remoteK8, exists := wc.remoteK8s[clusterId]
+	if exists {
+		remoteK8.failCount = 0
+	}
+}
+
 // update the context with received remoteK8s
 func (wc *WitesandCatalog) UpdateRemoteK8s(remoteClusterId string, remoteIP string) {
 	if remoteClusterId == "" {
