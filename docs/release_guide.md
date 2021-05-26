@@ -52,7 +52,6 @@ Create a new commit on the new branch to update the hardcoded version informatio
 
 * The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/values.yaml)
 * The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/Chart.yaml)
-* The default osm-controller image tag in [osm cli install](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/cli/install.go)
 * The default osm image tag in [osm cli mesh upgrade](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/cli/mesh_upgrade.go)
 * The image tags used in the [demo manifests](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps)
 * The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/README.md)

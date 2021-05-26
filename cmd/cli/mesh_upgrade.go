@@ -16,7 +16,7 @@ import (
 
 const (
 	defaultContainerRegistry = "openservicemesh"
-	defaultOsmImageTag       = "v0.8.4"
+	defaultOsmImageTag       = "v0.9.0"
 )
 
 const upgradeDesc = `
@@ -30,10 +30,10 @@ overridden from the default for the "osm install" command, the --mesh-name and
 Values from the current Helm release will be carried over to the new release
 with the exception of OpenServiceMesh.image.registry (--container-registry) and
 OpenServiceMesh.image.tag (--osm-image-tag), which will be overridden from the
-old release by default. 
+old release by default.
 
 Note: edits to resources NOT made by Helm or the OSM CLI may not persist after
-"osm mesh upgrade" is run.
+"osm mesh upgrade" is run. 
 
 Note: edits made to chart values that impact the preset-mesh-config will not
 apply to the osm-mesh-config, when "osm mesh upgrade" is run. This means configuration 
