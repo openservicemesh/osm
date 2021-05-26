@@ -25,12 +25,21 @@ spec:
     - 'downwardAPI'
     # Assume that persistentVolumes set up by the cluster admin are safe to use.
     - 'persistentVolumeClaim'
+    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+    - 'hostPath'
+    {{- end }}
   hostNetwork: false
   hostIPC: false
   hostPID: false
   runAsUser:
+    {{- if not .Values.OpenServiceMesh.enableFluentbit }}
     # Require the container to run without root privileges.
     rule: 'MustRunAsNonRoot'
+    {{- end }}
+    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+    # Allow root privileges to allow fluentbit access to logs.
+    rule: 'RunAsAny'
+    {{- end }}
   seLinux:
     # This policy assumes the nodes are using AppArmor rather than SELinux.
     rule: 'RunAsAny'
@@ -47,6 +56,15 @@ spec:
       - min: 1
         max: 65535
   readOnlyRootFilesystem: false
+  {{- if .Values.OpenServiceMesh.enableFluentbit }}
+  allowedHostPaths:
+  - pathPrefix: "/var/log/containers"
+    readOnly: true
+  - pathPrefix: "/var/log/pods"
+    readOnly: true
+  - pathPrefix: "/var/lib/docker/containers"
+    readOnly: true
+  {{- end }}
 {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

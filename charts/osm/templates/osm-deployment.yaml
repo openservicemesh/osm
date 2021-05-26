@@ -26,7 +26,7 @@ spec:
         prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
-      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       nodeSelector:
@@ -126,6 +126,9 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.name
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          {{- include "fluentbit.securityContext" . | nindent 10 }}
+          {{- end }}
           volumeMounts:
           - name: config
             mountPath: /fluent-bit/etc
