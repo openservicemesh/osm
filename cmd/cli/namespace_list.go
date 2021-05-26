@@ -61,7 +61,7 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 }
 
 func (l *namespaceListCmd) run() error {
-	namespaces, err := l.selectNamespaces()
+	namespaces, err := selectNamespacesMonitoredByMesh(l.meshName, l.clientSet)
 	if err != nil {
 		return errors.Errorf("Could not list namespaces related to osm [%s]: %v", l.meshName, err)
 	}
@@ -95,16 +95,16 @@ func (l *namespaceListCmd) run() error {
 	return nil
 }
 
-func (l *namespaceListCmd) selectNamespaces() (*v1.NamespaceList, error) {
+func selectNamespacesMonitoredByMesh(meshName string, clientSet kubernetes.Interface) (*v1.NamespaceList, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	selector := constants.OSMKubeResourceMonitorAnnotation
-	if l.meshName != "" {
-		selector = fmt.Sprintf("%s=%s", selector, l.meshName)
+	if meshName != "" {
+		selector = fmt.Sprintf("%s=%s", selector, meshName)
 	}
 
-	return l.clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
+	return clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 		LabelSelector: selector,
 	})
 }

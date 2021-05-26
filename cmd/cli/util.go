@@ -57,16 +57,17 @@ func confirm(stdin io.Reader, stdout io.Writer, s string, tries int) (bool, erro
 // getPrettyPrintedMeshInfoList a pretty printed list of meshes.
 // If showIndex is true, then a 1-indexed number is prepended before each mesh.
 func getPrettyPrintedMeshInfoList(meshInfoList []meshInfo) string {
-	s := "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\n"
+	s := "\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\n"
 
 	for _, meshInfo := range meshInfoList {
 		m := fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%s\n",
+			"%s\t%s\t%s\t%s\t%s\t%s\n",
 			meshInfo.name,
 			meshInfo.namespace,
 			strings.Join(meshInfo.controllerPods, ","),
 			meshInfo.version,
 			strings.Join(meshInfo.smiSupportedVersions, ","),
+			strings.Join(meshInfo.monitoredNamespaces, ","),
 		)
 		s += m
 	}
@@ -107,12 +108,21 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface, lo
 			}
 		}
 
+		meshMonitoredNamespaces := []string{}
+		nsList, err := selectNamespacesMonitoredByMesh(meshName, clientSet)
+		if err == nil && len(nsList.Items) > 0 {
+			for _, ns := range nsList.Items {
+				meshMonitoredNamespaces = append(meshMonitoredNamespaces, ns.Name)
+			}
+		}
+
 		meshInfoList = append(meshInfoList, meshInfo{
 			name:                 meshName,
 			namespace:            meshNamespace,
 			controllerPods:       meshControllerPods["Pods"],
 			version:              meshVersion,
 			smiSupportedVersions: meshSmiSupportedVersions,
+			monitoredNamespaces:  meshMonitoredNamespaces,
 		})
 	}
 

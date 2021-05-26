@@ -93,7 +93,7 @@ var _ = Describe("Test getting pretty printed output of a list of meshes", func(
 		pp := getPrettyPrintedMeshInfoList(meshInfoList)
 
 		It("should have correct output", func() {
-			Expect(pp).To(Equal("\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\n"))
+			Expect(pp).To(Equal("\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\n"))
 		})
 	})
 
@@ -106,18 +106,20 @@ var _ = Describe("Test getting pretty printed output of a list of meshes", func(
 				controllerPods:       []string{"p1", "p2", "p3"},
 				version:              "v1",
 				smiSupportedVersions: []string{"s1", "s2", "s3"},
+				monitoredNamespaces:  []string{"mn1", "mn2", "mn3"},
 			},
 			{
 				name:                 "m2",
 				namespace:            "ns2",
-				controllerPods:       []string{"p3", "p4", "p5"},
+				controllerPods:       []string{"p4", "p5", "p6"},
 				version:              "v2",
-				smiSupportedVersions: []string{"s3", "s4", "s5"},
+				smiSupportedVersions: []string{"s4", "s5", "s6"},
+				monitoredNamespaces:  []string{"mn4", "mn5", "mn6"},
 			},
 		}
 
 		It("should have correct output", func() {
-			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\nm1\tns1\tp1,p2,p3\tv1\ts1,s2,s3\nm2\tns2\tp3,p4,p5\tv2\ts3,s4,s5\n"))
+			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\nm1\tns1\tp1,p2,p3\tv1\ts1,s2,s3\tmn1,mn2,mn3\nm2\tns2\tp4,p5,p6\tv2\ts4,s5,s6\tmn4,mn5,mn6\n"))
 		})
 
 	})
