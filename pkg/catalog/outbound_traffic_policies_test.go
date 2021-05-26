@@ -1,15 +1,19 @@
 package catalog
 
 import (
+	"fmt"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/duration"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
@@ -1022,39 +1026,43 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
-		name             string
-		serviceIdentity  identity.ServiceIdentity
-		apexMeshServices []service.MeshService
-		traffictargets   []*access.TrafficTarget
-		trafficsplits    []*split.TrafficSplit
-		trafficspecs     []*spec.HTTPRouteGroup
-		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
+		name              string
+		serviceIdentity   identity.ServiceIdentity
+		apexMeshServices  []service.MeshService
+		traffictargets    []*access.TrafficTarget
+		trafficsplits     []*split.TrafficSplit
+		trafficspecs      []*spec.HTTPRouteGroup
+		enableRetryPolicy v1alpha1.FeatureFlags
+		expectedOutbound  []*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
-			name:             "only traffic targets",
-			serviceIdentity:  tests.BookbuyerServiceIdentity,
-			apexMeshServices: []service.MeshService{},
-			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficsplits:    []*split.TrafficSplit{},
-			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
-			expectedOutbound: expectedBookbuyerOutbound,
+			name:              "only traffic targets",
+			serviceIdentity:   tests.BookbuyerServiceIdentity,
+			apexMeshServices:  []service.MeshService{},
+			traffictargets:    []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficsplits:     []*split.TrafficSplit{},
+			trafficspecs:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			enableRetryPolicy: v1alpha1.FeatureFlags{EnableRetryPolicy: false},
+			expectedOutbound:  expectedBookbuyerOutbound,
 		},
 		{
-			name:             "no traffic targets and no traffic splits",
-			serviceIdentity:  tests.BookbuyerServiceIdentity,
-			apexMeshServices: []service.MeshService{},
-			traffictargets:   []*access.TrafficTarget{},
-			trafficsplits:    []*split.TrafficSplit{},
-			trafficspecs:     []*spec.HTTPRouteGroup{},
-			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
+			name:              "no traffic targets and no traffic splits",
+			serviceIdentity:   tests.BookbuyerServiceIdentity,
+			apexMeshServices:  []service.MeshService{},
+			traffictargets:    []*access.TrafficTarget{},
+			trafficsplits:     []*split.TrafficSplit{},
+			trafficspecs:      []*spec.HTTPRouteGroup{},
+			enableRetryPolicy: v1alpha1.FeatureFlags{EnableRetryPolicy: false},
+			expectedOutbound:  []*trafficpolicy.OutboundTrafficPolicy{},
 		},
 		{
-			name:             "only traffic targets with a route having host",
-			serviceIdentity:  tests.BookbuyerServiceIdentity,
-			apexMeshServices: []service.MeshService{},
-			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficsplits:    []*split.TrafficSplit{},
-			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
+			name:              "only traffic targets with a route having host",
+			serviceIdentity:   tests.BookbuyerServiceIdentity,
+			apexMeshServices:  []service.MeshService{},
+			traffictargets:    []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficsplits:     []*split.TrafficSplit{},
+			trafficspecs:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
+			enableRetryPolicy: v1alpha1.FeatureFlags{EnableRetryPolicy: false},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-v1.default.svc.cluster.local",
@@ -1098,6 +1106,58 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:              "traffic targets with a route having host and retry policy",
+			serviceIdentity:   tests.BookbuyerServiceIdentity,
+			apexMeshServices:  []service.MeshService{},
+			traffictargets:    []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficsplits:     []*split.TrafficSplit{},
+			trafficspecs:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
+			enableRetryPolicy: v1alpha1.FeatureFlags{EnableRetryPolicy: true},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-v1.default.svc.cluster.local",
+					Hostnames: tests.BookstoreV1Hostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name:      "bookstore-v2.default.svc.cluster.local",
+					Hostnames: tests.BookstoreV2Hostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name:      "bookstore-apex.default.svc.cluster.local",
+					Hostnames: tests.BookstoreApexHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name:      tests.HTTPHostHeader,
+					Hostnames: []string{tests.HTTPHostHeader},
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster, tests.BookstoreV2DefaultWeightedCluster, tests.BookstoreApexDefaultWeightedCluster),
+							RetryPolicy:      trafficpolicy.RetryPolicy{},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1109,6 +1169,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -1123,12 +1184,13 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			mockKubeController.EXPECT().GetService(tests.BookstoreV1Service).Return(tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{})).AnyTimes()
 			mockKubeController.EXPECT().GetService(tests.BookstoreV2Service).Return(tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{})).AnyTimes()
 			mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
-
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(tc.enableRetryPolicy).AnyTimes()
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
+				configurator:       mockConfigurator,
 			}
 
 			meshServices := []service.MeshService{
@@ -1509,6 +1571,72 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 			}
 
 			tassert.ElementsMatch(t, tc.expected, mc.ListMeshServicesForIdentity(tc.id))
+		})
+	}
+}
+
+func TestGetRetryPolicy(t *testing.T) {
+	testCases := []struct {
+		name           string
+		trafficTarget  access.TrafficTarget
+		expRetryPolicy *trafficpolicy.RetryPolicy
+	}{
+		{
+			name:           "no retry policy",
+			trafficTarget:  access.TrafficTarget{},
+			expRetryPolicy: nil,
+		},
+		{
+			name: "retry policy but invalid fields",
+			trafficTarget: access.TrafficTarget{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						RetryOnAnnotation:       "5xx",
+						NumRetriesAnnotation:    "b",
+						PerTryTimeoutAnnotation: "c",
+					},
+				},
+			},
+			expRetryPolicy: &trafficpolicy.RetryPolicy{
+				RetryOn: "5xx",
+			},
+		},
+		{
+			name: "retry policy missing required field",
+			trafficTarget: access.TrafficTarget{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						NumRetriesAnnotation:    "b",
+						PerTryTimeoutAnnotation: "c",
+					},
+				},
+			},
+			expRetryPolicy: nil,
+		},
+		{
+			name: "valid retry policy",
+			trafficTarget: access.TrafficTarget{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						RetryOnAnnotation:       "5xx",
+						NumRetriesAnnotation:    "3",
+						PerTryTimeoutAnnotation: "10s",
+					},
+				},
+			},
+			expRetryPolicy: &trafficpolicy.RetryPolicy{
+				RetryOn:       "5xx",
+				NumRetries:    &wrapperspb.UInt32Value{Value: 3},
+				PerTryTimeout: &duration.Duration{Seconds: 10},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+			retryPolicy := getRetryPolicy(&tc.trafficTarget)
+			assert.Equal(tc.expRetryPolicy, retryPolicy)
 		})
 	}
 }

@@ -210,6 +210,14 @@ func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedCl
 	return originalRoutes
 }
 
+// MergeRoutesRetryPolicy adds the retry policy to the Route
+func MergeRoutesRetryPolicy(routes []*RouteWeightedClusters, retryPolicy RetryPolicy) []*RouteWeightedClusters {
+	for _, route := range routes {
+		route.RetryPolicy = retryPolicy
+	}
+	return routes
+}
+
 // slicesUnionIfSubset returns the union of the two slices if either slices is a subset of the other
 func slicesUnionIfSubset(first, second []string) []string {
 	areSubsets := false
