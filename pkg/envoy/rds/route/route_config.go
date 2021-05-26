@@ -188,7 +188,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, inboundRoute)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, inboundRoute, rule.Route.RetryPolicy)
 			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
@@ -200,8 +200,9 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
-		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), outboundRoute))
+		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), outboundRoute, outRoute.RetryPolicy))
 	}
+
 	return routes
 }
 
@@ -215,14 +216,14 @@ func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*x
 		// Build the route for the given egress routing rule and method
 		// Each HTTP method corresponds to a separate route
 		for _, httpMethod := range allowedHTTPMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.TotalClustersWeight(), outboundRoute)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.TotalClustersWeight(), outboundRoute, rule.Route.RetryPolicy)
 			routes = append(routes, route)
 		}
 	}
 	return routes
 }
 
-func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.Route {
+func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction, retryPolicy trafficpolicy.RetryPolicy) *xds_route.Route {
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			Headers: getHeadersForRoute(method, headersMap),
@@ -231,6 +232,11 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: buildWeightedCluster(weightedClusters, totalWeight, direction),
+				},
+				RetryPolicy: &xds_route.RetryPolicy{
+					RetryOn:       retryPolicy.RetryOn,
+					NumRetries:    retryPolicy.NumRetries,
+					PerTryTimeout: retryPolicy.PerTryTimeout,
 				},
 			},
 		},

@@ -4,6 +4,8 @@ package trafficpolicy
 
 import (
 	mapset "github.com/deckarep/golang-set"
+	"github.com/golang/protobuf/ptypes/duration"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 )
@@ -45,6 +47,14 @@ type TCPRouteMatch struct {
 type RouteWeightedClusters struct {
 	HTTPRouteMatch   HTTPRouteMatch `json:"http_route_match:omitempty"`
 	WeightedClusters mapset.Set     `json:"weighted_clusters:omitempty"`
+	RetryPolicy      RetryPolicy
+}
+
+// RetryPolicy is a struct of the RetryPolicy
+type RetryPolicy struct {
+	RetryOn       string                  `json:"retry_on,omitempty"`
+	NumRetries    *wrapperspb.UInt32Value `json:"num_retries,omitempty"`
+	PerTryTimeout *duration.Duration      `json:"per_try_timeout,omitempty"`
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
