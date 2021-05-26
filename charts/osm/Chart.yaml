@@ -20,5 +20,5 @@ version: 0.9.0
 # incremented each time you make changes to the application.
 appVersion: v0.9.0
 
-# This specifies a particular range of k8s versions that the application is compatible with. 
+# This specifies a particular range of k8s versions that the application is compatible with.
 kubeVersion: ">= 1.18.0"
