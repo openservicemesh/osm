@@ -144,4 +144,17 @@ var _ = Describe("Test validateCLIParams", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+	Context("caBundleSecretName is empty", func() {
+		certProviderKind = providers.TresorKind.String()
+		meshName = testMeshName
+		osmNamespace = testOsmNamespace
+		webhookConfigName = testwebhookConfigName
+		caBundleSecretName = ""
+
+		err := validateCLIParams()
+
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })
