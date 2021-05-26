@@ -217,6 +217,9 @@ OpenServiceMesh:
     # -- Enable OSM's Egress policy API.
     # If specified, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: false
+    # -- Enable Multicluster mode.
+    # If specified, multicluster mode will be enabled in OSM
+    enableMulticlusterMode: false
 
   # -- Run OSM with PodSecurityPolicy configured
   pspEnabled: false

@@ -73,6 +73,9 @@ spec:
             {{- if .Values.OpenServiceMesh.featureFlags.enableEgressPolicy }}
             "--enable-egress-policy",
             {{- end }}
+            {{- if .Values.OpenServiceMesh.featureFlags.enableMulticlusterMode }}
+            "--enable-multicluster",
+            {{- end }}
           ]
           resources:
             limits:

@@ -605,7 +605,8 @@
                     ],
                     "required": [
                         "enableWASMStats",
-                        "enableEgressPolicy"
+                        "enableEgressPolicy",
+                        "enableMulticlusterMode"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -622,6 +623,15 @@
                             "type": "boolean",
                             "title": "Enable OSM's Egress policy",
                             "description": "Enable OSM's Egress policy for fine grained control over egress (external) traffic",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableMulticlusterMode": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableMulticluster",
+                            "type": "boolean",
+                            "title": "Enable Multicluster mode",
+                            "description": "Enable multicluster mode in OSM",
                             "examples": [
                                 true
                             ]
