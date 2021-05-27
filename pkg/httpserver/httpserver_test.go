@@ -96,4 +96,9 @@ func TestNewHTTPServer(t *testing.T) {
 
 	err = httpServ.Stop()
 	assert.Nil(err)
+	assert.False(httpServ.started)
+
+	// test stopping a stopped server
+	err = httpServ.Stop()
+	assert.Nil(err)
 }
