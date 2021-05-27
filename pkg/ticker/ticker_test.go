@@ -12,6 +12,32 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
+func teardownTicker() {
+	close(rTicker.stopConfigRoutine)
+	close(rTicker.stopTickerRoutine)
+	rTicker = nil
+}
+
+func TestInitTicker(t *testing.T) {
+	assert := assert.New(t)
+	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
+	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
+
+	events.GetPubSubInstance().Subscribe(announcements.TickerStart)
+	events.GetPubSubInstance().Subscribe(announcements.TickerStop)
+
+	assert.Nil(rTicker)
+	ticker := InitTicker(mockConfigurator)
+	assert.NotNil(ticker)
+	assert.NotNil(rTicker)
+
+	newTicker := InitTicker(mockConfigurator)
+	assert.Same(ticker, newTicker)
+
+	// clean up
+	teardownTicker()
+}
+
 func TestTicker(t *testing.T) {
 	assert := assert.New(t)
 
