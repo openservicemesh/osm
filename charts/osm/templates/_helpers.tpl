@@ -24,3 +24,12 @@ securityContext:
     fsGroup: 2000
     supplementalGroups: [5555]
 {{- end -}}
+
+{{/* Security context values for fluentbit */}}
+{{- define "fluentbit.securityContext" -}}
+securityContext:
+    runAsUser: 0
+    capabilities:
+        drop:
+            - ALL
+{{- end -}}
