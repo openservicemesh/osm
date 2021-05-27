@@ -130,6 +130,15 @@
                             "title": "The podLabels schema",
                             "description": "Labels for the osmController pod.",
                             "default": {}
+                        },
+                        "enablePodDisruptionBudget": {
+                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/enablePodDisruptionBudget",
+                            "type": "boolean",
+                            "title": "The enablePodDisruptionBudget schema",
+                            "description": "Indicates whether Pod Disruption Budget should be enabled or not.",
+                            "examples": [
+                                false
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -588,6 +597,15 @@
                             "title": "The podLabels schema",
                             "description": "Labels for the osm-injector pod.",
                             "default": {}
+                        },
+                        "enablePodDisruptionBudget": {
+                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/enablePodDisruptionBudget",
+                            "type": "boolean",
+                            "title": "The enablePodDisruptionBudget schema",
+                            "description": "Indicates whether Pod Disruption Budget should be enabled or not.",
+                            "examples": [
+                                false
+                            ]
                         }
                     },
                     "additionalProperties": false
