@@ -16,7 +16,7 @@ type HealthChecker struct {
 
 // Liveness is the Kubernetes liveness probe handler.
 func (smi HealthChecker) Liveness() bool {
-	return true
+	return checkSMICrdsExist(smi.SMIClientset)
 }
 
 // Readiness is the Kubernetes readiness probe handler.
