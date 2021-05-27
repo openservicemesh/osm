@@ -232,12 +232,11 @@ in question produces expected output or side effect. Integration tests, on the o
 ensure that multiple functions work together correctly. Integration tests ensure your new
 code composes with other existing pieces.
 
-Take a look at [the following test](/pkg/configurator/client_test.go),
+Take a look at [the following test](https://github.com/openservicemesh/osm/blob/release-v0.9/pkg/configurator/client_test.go),
 which tests the functionality of multiple functions together. In this particular example, the test:
 
-- uses a mock Kubernetes client via `testclient.NewSimpleClientset()` from the `github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake` library
-- [creates a MeshConfig](/pkg/configurator/client_test.go#L50)
-- [tests whether](/pkg/configurator/client_test.go#L63-L69) the underlying functions compose correctly by fetching the results of the top-level function `IsEgressEnabled()`
+- [creates a fake MeshConfig](https://github.com/openservicemesh/osm/blob/release-v0.9/pkg/configurator/client_test.go#L28-48)
+- [tests whether](https://github.com/openservicemesh/osm/blob/release-v0.9/pkg/configurator/client_test.go#L68) a event message is broadcasted to data plane proxy.
 
 ### End-to-End (e2e) Tests
 
@@ -261,7 +260,7 @@ work with a real Kubernetes cluster, with real SMI policy, and real functions - 
 
 OSM control plane exposes an HTTP server able to serve a number of resources.
 
-For mesh visibility and debugabbility, one can refer to the endpoints provided under [pkg/debugger](/pkg/debugger) which contains a number of endpoints able to inspect and list most of the common structures used by the control plane at runtime.
+For mesh visibility and debugability, one can refer to the endpoints provided under [pkg/debugger](/pkg/debugger) which contains a number of endpoints able to inspect and list most of the common structures used by the control plane at runtime.
 
 Additionally, the current implementation of the debugger imports and hooks [pprof endpoints](https://golang.org/pkg/net/http/pprof/).
 Pprof is a golang package able to provide profiling information at runtime through HTTP protocol to a connecting client.

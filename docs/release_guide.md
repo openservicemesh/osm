@@ -27,7 +27,6 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Update docs site](#update-docs-site)
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
-  - [Make version changes on docs.openservicemesh.io](#make-version-changes-on-docsopenservicemeshio)
 
 ## Create a release branch
 

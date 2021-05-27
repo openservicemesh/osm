@@ -11,17 +11,17 @@ release: 0.8.0
 # Open Service Mesh Demo: First Steps
 
 
-> Note: This demo is specific to OSM v0.8.0
+> Note: This demo is specific to OSM v0.9.0
 
 
 This document will walk you through the steps to:
-  - install Open Service Mesh (OSM) v0.8.0
+  - install Open Service Mesh (OSM) v0.9.0
   - install 2 sample apps: `bookbuyer` and `bookstore`
   - apply [Service Mesh Interface (SMI)](https://smi-spec.io/) policies to control the traffic between these pods
 
 
 ## Prerequisites
-This demo of OSM v0.8.0 requires:
+This demo of OSM v0.9.0-rc.1 requires:
   - a cluster running Kubernetes v1.18.0 or greater
   - a workstation capable of executing [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) scripts
   - [The Kubernetes command-line tool](https://kubernetes.io/docs/tasks/tools/#kubectl) - `kubectl`
@@ -33,21 +33,21 @@ The `osm` command-line tool contains everything needed to install and configure 
 The binary is available on the [OSM GitHub releases page](https://github.com/openservicemesh/osm/releases/).
 
 ### For GNU/Linux or macOS
-Download and unzip the 64-bit [GNU/Linux](https://github.com/openservicemesh/osm/releases/download/v0.8.0/osm-v0.8.0-linux-amd64.tar.gz)
+Download and unzip the 64-bit [GNU/Linux](https://github.com/openservicemesh/osm/releases/download/v0.9.0-rc.1/osm-v0.9.0-rc.1-linux-amd64.tar.gz)
 or
-[macOS](https://github.com/openservicemesh/osm/releases/download/v0.8.0/osm-v0.8.0-darwin-amd64.tar.gz)
-binary of OSM v0.8.0:
+[macOS](https://github.com/openservicemesh/osm/releases/download/v0.9.0-rc.1/osm-v0.9.0-rc.1-darwin-amd64.tar.gz)
+binary of OSM v0.9.0-rc.1:
 ```bash
 system=$(uname -s | tr '[:upper:]' '[:lower:]')
-release=v0.8.0
+release=v0.9.0-rc.1
 curl -L https://github.com/openservicemesh/osm/releases/download/${release}/osm-${release}-${system}-amd64.tar.gz | tar -vxzf -
 ./${system}-amd64/osm version
 ```
 
 ### For Windows
-Download and unzip the Windows OSM v0.8.0 binary via PowerShell:
+Download and unzip the Windows OSM v0.9.0-rc.1 binary via PowerShell:
 ```powershell
-wget  https://github.com/openservicemesh/osm/releases/download/v0.8.0/osm-v0.8.0-windows-amd64.zip -o osm.zip
+wget  https://github.com/openservicemesh/osm/releases/download/v0.9.0-rc.1/osm-v0.9.0-rc.1-windows-amd64.zip -o osm.zip
 unzip osm.zip
 .\windows-amd64\osm.exe version
 ```
@@ -128,7 +128,7 @@ spec:
   serviceAccountName: bookbuyer
   containers:
   - name: bookbuyer
-    image: openservicemesh/bookbuyer:v0.8.0
+    image: openservicemesh/bookbuyer:v0.9.0-rc.1
     command: ["/bookbuyer"]
     env:
     - name: "BOOKSTORE_NAMESPACE"
@@ -182,7 +182,7 @@ spec:
   serviceAccountName: bookstore
   containers:
   - name: bookstore
-    image: openservicemesh/bookstore:v0.8.0
+    image: openservicemesh/bookstore:v0.9.0-rc.1
     ports:
       - containerPort: 14001
     command: ["/bookstore"]
