@@ -50,27 +50,27 @@ If there are other commits on the `main` branch to be included in the release (s
 
 Create a new commit on the new branch to update the hardcoded version information in the following locations:
 
-* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/values.yaml)
-* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/release-v0.8/charts/osm/Chart.yaml)
-* The default osm-controller image tag in [osm cli install](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/cli/install.go)
-* The default osm image tag in [osm cli mesh upgrade](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/cli/mesh_upgrade.go)
-* The image tags used in the [demo manifests](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps)
-* The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/README.md)
+* The container image tag in [charts/osm/values.yaml](/charts/osm/values.yaml)
+* The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml)
+* The default osm-controller image tag in [osm cli install](/cmd/cli/install.go)
+* The default osm image tag in [osm cli mesh upgrade](/cmd/cli/mesh_upgrade.go)
+* The image tags used in the [demo manifests](/docs/example/manifests/apps)
+* The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
-* The init container image version in [charts/osm/crds/meshconfig.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/charts/osm/crds/meshconfig.yaml)
-* The init container image version in [pkg/constants/constants.go](https://github.com/openservicemesh/osm/blob/release-v0.8/pkg/constants/constants.go)
+* The init container image version in [charts/osm/crds/meshconfig.yaml](/charts/osm/crds/meshconfig.yaml)
+* The init container image version in [pkg/constants/constants.go](/pkg/constants/constants.go)
 * The image versions contained in tests.
-  - [cmd/init-osm-controller/init-osm-controller_test.go](https://github.com/openservicemesh/osm/blob/release-v0.8/cmd/init-osm-controller/init-osm-controller_test.go)
-  - [pkg/configurator/methods_test.go](https://github.com/openservicemesh/osm/blob/release-v0.8/pkg/configurator/methods_test.go)
+  - [cmd/init-osm-controller/init-osm-controller_test.go](/cmd/init-osm-controller/init-osm-controller_test.go)
+  - [pkg/configurator/methods_test.go](/pkg/configurator/methods_test.go)
 * The container image versions used in the examples.
-  - [docs/example/manifests/apps/bookbuyer.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps/bookbuyer.yaml)
-  - [docs/example/manifests/apps/bookstore-v2.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps/bookstore-v2.yaml)
-  - [docs/example/manifests/apps/bookstore.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps/bookstore.yaml)
-  - [docs/example/manifests/apps/bookthief.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps/bookthief.yaml)
-  - [docs/example/manifests/apps/bookwarehouse.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/apps/bookwarehouse.yaml)
-  - [docs/example/manifests/meshconfig/mesh-config.yaml](https://github.com/openservicemesh/osm/blob/release-v0.8/docs/example/manifests/meshconfig/mesh-config.yaml)
+  - [docs/example/manifests/apps/bookbuyer.yaml](/docs/example/manifests/apps/bookbuyer.yaml)
+  - [docs/example/manifests/apps/bookstore-v2.yaml](/docs/example/manifests/apps/bookstore-v2.yaml)
+  - [docs/example/manifests/apps/bookstore.yaml](/docs/example/manifests/apps/bookstore.yaml)
+  - [docs/example/manifests/apps/bookthief.yaml](/docs/example/manifests/apps/bookthief.yaml)
+  - [docs/example/manifests/apps/bookwarehouse.yaml](/docs/example/manifests/apps/bookwarehouse.yaml)
+  - [docs/example/manifests/meshconfig/mesh-config.yaml](/docs/example/manifests/meshconfig/mesh-config.yaml)
 
-Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](https://raw.githubusercontent.com/openservicemesh/osm/release-v0.8/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
+Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
 Proceed to the next step once the pull request is approved and merged.
 
@@ -87,7 +87,7 @@ $ git tag "$RELEASE_VERSION"
 $ git push upstream "$RELEASE_VERSION"
 ```
 
-A [GitHub Action](https://github.com/openservicemesh/osm/blob/release-v0.8/.github/workflows/release.yml) is triggered when the tag is pushed.
+A [GitHub Action](/.github/workflows/release.yml) is triggered when the tag is pushed.
 It will build the CLI binaries, publish a new GitHub release,
 upload the packaged binaries and checksums as release assets, build and push Docker images for OSM and the demo to the
 [`openservicemesh` organization](https://hub.docker.com/u/openservicemesh) on Docker Hub, and publish the Helm chart to the repo hosted at https://openservicemesh.github.io/osm.
@@ -106,7 +106,3 @@ Make an announcement on the [mailing list](https://groups.google.com/g/openservi
 Skip this step if the release is a release candidate (RC).
 
 Open a pull request against the `main` branch making the same version updates as [above](#update-release-branch-with-patches-and-versioning-changes) so the latest release assets are referenced there.
-
-## Make version changes on docs.openservicemesh.io
-
-To add the new version to the 'Releases' dropdown menu on [docs.openservicemesh.io](https://docs.openservicemesh.io/), refer to [this section](https://github.com/openservicemesh/osm/tree/release-v0.8/docs#versioning-the-docs-site) of the site Readme.
