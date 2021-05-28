@@ -24,6 +24,7 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
   - [Create and push a Git tag](#create-and-push-a-git-tag)
   - [Add release notes](#add-release-notes)
+  - [Update docs site](#update-docs-site)
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Make version changes on docs.openservicemesh.io](#make-version-changes-on-docsopenservicemeshio)
@@ -96,6 +97,20 @@ upload the packaged binaries and checksums as release assets, build and push Doc
 
 In the description section of the new release, add information about feature additions, bug fixes,
 and any other administrative tasks completed on the repository.
+
+## Update docs site
+
+In the demo site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update any version references in the manual demo on the docs site.
+
+  - [This demo of OSM v0.8.4 requires:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L13)
+  - [Download the 64-bit GNU/Linux or macOS binary of OSM v0.8.4:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L30)
+  - [release=v0.8.4](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L33)
+  - [Download the 64-bit Windows OSM v0.8.4 binary via Powershell:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L40)
+  - [wget  https://github.com/openservicemesh/osm/releases/download/v0.8.4/osm-v0.8.4-windows-amd64.zip -o osm.zip](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L42)
+  - [image: openservicemesh/bookbuyer:v0.8.4](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L199)
+  - [image: openservicemesh/bookthief:v0.8.4](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L231)
+  - [image: openservicemesh/bookstore:v0.8.4](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L283)
+  - [image: openservicemesh/bookwarehouse:v0.8.4](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L339)
 
 ## Announce the new release
 
