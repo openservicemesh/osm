@@ -30,7 +30,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	const (
 		containerName = "-container-name-"
 		envoyImage    = "-envoy-image-"
-		nodeID        = "-node-id-"
 		clusterID     = "-cluster-id-"
 
 		// This file contains the Bootstrap YAML generated for all of the Envoy proxies in OSM.
@@ -125,6 +124,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	}
 
 	config := envoyBootstrapConfigMeta{
+		NodeID:   cert.GetCommonName().String(),
 		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
 		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
 		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
@@ -291,7 +291,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				Args: []string{
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
-					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/svcacc/$(POD_NAME)/workload-kind/workload-name",
 					"--service-cluster", "svcacc.namespace",
 					"--bootstrap-version 3",
 				},

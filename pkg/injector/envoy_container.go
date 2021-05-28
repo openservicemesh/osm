@@ -8,7 +8,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 const (
@@ -17,20 +16,8 @@ const (
 )
 
 func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
-	// nodeID and clusterID are required for Envoy proxy to start.
-	nodeID := pod.Spec.ServiceAccountName
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
-
-	var workloadKind string
-	var workloadName string
-	for _, ref := range pod.GetOwnerReferences() {
-		if ref.Controller != nil && *ref.Controller {
-			workloadKind = ref.Kind
-			workloadName = ref.Name
-			break
-		}
-	}
 
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
@@ -53,7 +40,6 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
-			"--service-node", envoy.GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName),
 			"--service-cluster", clusterID,
 			"--bootstrap-version 3",
 		},

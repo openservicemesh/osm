@@ -18,6 +18,9 @@ import (
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	m := map[interface{}]interface{}{
+		"node": map[string]interface{}{
+			"id": config.NodeID,
+		},
 		"admin": map[string]interface{}{
 			"access_log": map[string]interface{}{
 				"name": "envoy.access_loggers.stdout",
@@ -111,6 +114,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
+		NodeID:         cert.GetCommonName().String(),
 
 		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
 		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
