@@ -100,7 +100,7 @@ and any other administrative tasks completed on the repository.
 
 ## Update docs site
 
-In the demo site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update any version references in the manual demo on the docs site.
+In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update any version references in the manual demo.
 
   - [This demo of OSM v0.8.4 requires:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L13)
   - [Download the 64-bit GNU/Linux or macOS binary of OSM v0.8.4:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L30)
