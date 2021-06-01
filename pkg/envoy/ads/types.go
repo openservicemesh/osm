@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
@@ -33,4 +34,5 @@ type Server struct {
 	certManager    certificate.Manager
 	ready          bool
 	workqueues     *workerpool.WorkerPool
+	kubecontroller k8s.Controller
 }
