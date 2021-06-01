@@ -63,7 +63,7 @@ var _ = OSMDescribe("Upgrade from latest",
 					// Reduce CPU so CI (capped at 2 CPU) can handle standing
 					// up the new control plane before tearing the old one
 					// down.
-					"osmcontroller": map[string]interface{}{
+					"osmController": map[string]interface{}{
 						"resource": map[string]interface{}{
 							"requests": map[string]interface{}{
 								"cpu": "0.3",
@@ -78,7 +78,7 @@ var _ = OSMDescribe("Upgrade from latest",
 						},
 					},
 					"prometheus": map[string]interface{}{
-						"resource": map[string]interface{}{
+						"resources": map[string]interface{}{
 							"requests": map[string]interface{}{
 								"cpu":    "0.1",
 								"memory": "256M",
