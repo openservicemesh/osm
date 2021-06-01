@@ -895,6 +895,5 @@
             },
             "additionalProperties": false
         }
-    },
-    "additionalProperties": false
+    }
 }
