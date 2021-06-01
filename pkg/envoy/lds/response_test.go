@@ -69,7 +69,15 @@ func TestNewResponse(t *testing.T) {
 	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
+	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, fmt.Errorf("dummy error")
+	}))
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	assert.NotNil(err)
+	assert.Nil(resources)
+
+	proxyRegistry = registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}))
 
@@ -81,7 +89,7 @@ func TestNewResponse(t *testing.T) {
 		Enable: false,
 	}).AnyTimes()
 
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
