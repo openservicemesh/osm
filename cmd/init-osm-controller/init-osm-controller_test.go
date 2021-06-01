@@ -57,3 +57,45 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.Equal(meshConfig.Spec.Observability.EnableDebugServer, false)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "24h")
 }
+
+func TestValidateCLIParams(t *testing.T) {
+	assert := tassert.New(t)
+
+	// save original global values
+	prevOsmNamespace := osmNamespace
+
+	tests := []struct {
+		caseName string
+		setup    func()
+		verify   func(error)
+	}{
+		{
+			caseName: "osm-namespace is empty",
+			setup: func() {
+				osmNamespace = ""
+			},
+			verify: func(err error) {
+				assert.NotNil(err)
+				assert.Contains(err.Error(), "--osm-namespace")
+			},
+		},
+		{
+			caseName: "osm-namespace is valid",
+			setup: func() {
+				osmNamespace = "valid-ns"
+			},
+			verify: func(err error) {
+				assert.Nil(err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc.setup()
+		err := validateCLIParams()
+		tc.verify(err)
+	}
+
+	// restore original global values
+	osmNamespace = prevOsmNamespace
+}
