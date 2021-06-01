@@ -36,3 +36,8 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 
 	return &mc
 }
+
+// GetKubecontroller returns the kubecontroller instance handling the current cluster
+func (mc *MeshCatalog) GetKubecontroller() k8s.Controller {
+	return mc.kubeController
+}
