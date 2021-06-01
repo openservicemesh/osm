@@ -10,9 +10,9 @@ weight: 5
 Welcome to the Open Service Mesh development guide!
 Thank you for joining us on a journey to build an SMI-native lightweight service mesh. The first of our [core principles](https://github.com/openservicemesh/osm#core-principles) is to create a system, which is "simple to understand and contribute to." We hope that you would find the source code easy to understand. If not - we invite you to help us fulfill this principle. There is no PR too small!
 
-To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [this guide](../install/manual_demo/_index.md).
+To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [the manual demo guide](https://docs.openservicemesh.io/docs/install/manual_demo/).
 
-To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design_concepts).
+To get a deeper understanding of how OSM functions - take a look at the detailed [software design](https://docs.openservicemesh.io/docs/design_concepts/).
 
 When you are ready to jump in - [fork the repo](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and then [clone it](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on your workstation.
 
@@ -80,7 +80,7 @@ Take a peek at the `go.mod` file in the root of this repository to see all depen
 
 Run `go get -d ./...` to download all required Go packages.
 
-Also the project requires Docker. See how to install Docker [here].(https://docs.docker.com/engine/install/)
+Also the project requires Docker. See how to [install Docker](https://docs.docker.com/engine/install/).
 
 #### Makefile
 
@@ -125,11 +125,11 @@ $ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 ```
 
-(NOTE: these requirements are true for automatic demo deployment using the available demo scripts, #1416 tracks an improvement to not strictly require these and use upstream images from official dockerhub registry if a user does not want/need changes on the code)
+(NOTE: these requirements are true for automatic demo deployment using the available demo scripts; [#1416](https://github.com/openservicemesh/osm/issues/1416) tracks an improvement to not strictly require these and use upstream images from official dockerhub registry if a user does not want/need changes on the code)
 
 ## Build and push OSM images
 
-For development an/or testing locally compiled builds, pushing the local image to a container registry is still required. The following build targets will do so automatically against the configured container registry.
+For development and/or testing locally compiled builds, pushing the local image to a container registry is still required. The following build targets will do so automatically against the configured container registry.
 
 ```console
 make docker-push-osm-controller
@@ -212,18 +212,18 @@ open ./coverage/index.html
 
 Once the file loads in your browser, scroll to the package you worked on to see current test coverage:
 
-![package coverage](../images/unit-test-coverage-1.png)
+![package coverage](https://docs.openservicemesh.io/docs/images/unit-test-coverage-1.png)
 
 Our overall guiding principle is to maintain unit-test coverage at or above 80%.
 
 To understand which particular functions need more testing - scroll further in the report:
 
-![per function](../images/unit-test-coverage-2.png)
+![per function](https://docs.openservicemesh.io/docs/images/unit-test-coverage-2.png)
 
 And if you are wondering why a function, which we have written a test for, is not 100% covered,
 you will find the per-function analysis useful. This will show you code paths that are not tested.
 
-![per function](../images/unit-test-coverage-3.png)
+![per function](https://docs.openservicemesh.io/docs/images/unit-test-coverage-3.png)
 
 ##### Mocking
 
@@ -287,7 +287,7 @@ scripts/port-forward-osm-debug.sh &
 go tool pprof http://localhost:9091/debug/pprof/heap
 ```
 
-From pprof tool, it is possible to extract a large variety of profiling information, from heap and cpu profiling, to goroutine blocking, mutex profiling or execution tracing. We suggest to refer to their [original documentation](https://golang.org/pkg/net/http/pprof/) for more information.
+From pprof tool, it is possible to extract a large variety of profiling information, from heap and cpu profiling, to goroutine blocking, mutex profiling or execution tracing. We suggest to refer to the [pprof documentation](https://golang.org/pkg/net/http/pprof/) for more information.
 
 ## Helm charts
 
