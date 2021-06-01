@@ -1,0 +1,65 @@
+{{ if .Values.enableMulticluster }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: remoteservices.multicluster.openservicemesh.io
+spec:
+  group: multicluster.openservicemesh.io
+  scope: Namespaced # osm-system is the required namespace
+  names:
+    kind: RemoteService
+    shortNames:
+      - rs
+    plural: remoteservices
+    singular: remoteservice
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - cluster
+                - equivalence
+              properties:
+                equivalence:
+                  description: |-
+                    Service equivalence aggregates services within the clusterset.
+                    All remote and local-services with a matching service name, serviceaccount and namespace
+                    will be aggregated under the global cluster.
+                  type: object
+                  required:
+                    - serviceName
+                    - serviceAccount
+                    - serviceNamespace
+                  properties:
+                    serviceName:
+                        description: The name of the remote service.
+                        type: string
+                    serviceAccount:
+                        description: The service account name associated with the service.
+                        type: string
+                    serviceNamespace:
+                        description: The namespace of the remote service
+                        type: string
+                cluster:
+                  description: The cluster the remote service is hosted on.
+                  type: object
+                  required:
+                    - gateway
+                    - name
+                  properties:
+                    gateway:
+                      description: a routable IP + port
+                      type: string
+                    name:
+                      description: Name of the remote cluster
+                      type: string
+                    certificate:
+                      description: mTLS certificates (optional)
+                      type: string
+{{ end }}
