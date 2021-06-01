@@ -3,12 +3,14 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"testing"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -26,7 +28,8 @@ var (
 )
 
 const (
-	nsInformerSyncTimeout = 3 * time.Second
+	nsInformerSyncTimeout           = 3 * time.Second
+	assertEventuallyPollingInterval = 10 * time.Millisecond
 )
 
 var _ = Describe("Test Namespace KubeController Methods", func() {
@@ -553,3 +556,60 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 	})
 
 })
+
+func TestGetEndpoint(t *testing.T) {
+	assert := tassert.New(t)
+
+	// Create kubernetes controller
+	kubeClient := testclient.NewSimpleClientset()
+	stop := make(chan struct{})
+	kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+	assert.Nil(err)
+	assert.NotNil(kubeController)
+
+	endpointsChannel := events.GetPubSubInstance().Subscribe(announcements.EndpointAdded,
+		announcements.EndpointDeleted,
+		announcements.EndpointUpdated)
+	defer events.GetPubSubInstance().Unsub(endpointsChannel)
+
+	// Create a namespace
+	testNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   tests.BookbuyerService.Namespace,
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+		},
+	}
+	_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+	assert.Nil(err)
+	// Wait on namespace to be ready
+	assert.Eventually(func() bool {
+		return kubeController.IsMonitoredNamespace(tests.BookbuyerService.Namespace)
+	}, nsInformerSyncTimeout, assertEventuallyPollingInterval)
+
+	testEndpoint := corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tests.BookbuyerService.Name,
+			Namespace: tests.BookbuyerService.Namespace,
+		},
+	}
+
+	// Create endpoint
+	expectedEndpoint, err := kubeClient.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Create(context.TODO(), &testEndpoint, metav1.CreateOptions{})
+	assert.Nil(err)
+	<-endpointsChannel
+
+	endpoint, err := kubeController.GetEndpoints(tests.BookbuyerService)
+	assert.Nil(err)
+	assert.NotNil(endpoint)
+	assert.Equal(expectedEndpoint, endpoint)
+
+	// Delete it
+	err = kubeClient.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Delete(context.TODO(), tests.BookbuyerService.Name, metav1.DeleteOptions{})
+	assert.Nil(err)
+	<-endpointsChannel
+
+	// Check it is gone
+	endpoint, err = kubeController.GetEndpoints(tests.BookbuyerService)
+	assert.Nil(err)
+	assert.Nil(endpoint)
+}
