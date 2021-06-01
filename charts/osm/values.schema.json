@@ -913,6 +913,5 @@
             },
             "additionalProperties": false
         }
-    },
-    "additionalProperties": false
+    }
 }
