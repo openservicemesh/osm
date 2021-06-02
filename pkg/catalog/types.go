@@ -99,9 +99,6 @@ type MeshCataloger interface {
 
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
-
-	// GetKubecontroller returns the kubecontroller instance handling the current cluster
-	GetKubecontroller() k8s.Controller
 }
 
 type trafficDirection string
