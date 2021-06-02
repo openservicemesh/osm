@@ -2,6 +2,7 @@ package vault
 
 import (
 	"net/url"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -14,19 +15,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
+
+	tassert "github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Test client helpers", func() {
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-	mockCtrl = gomock.NewController(GinkgoT())
+var (
+	issuingCA = pem.RootCertificate("zz")
 
-	issuingCA := pem.RootCertificate("zz")
-
-	expiredCertCN := certificate.CommonName("this.has.expired")
-	expiredCert := &Certificate{
+	expiredCertCN = certificate.CommonName("this.has.expired")
+	expiredCert   = &Certificate{
 		issuingCA:    pem.RootCertificate("zz"),
 		privateKey:   pem.PrivateKey("yy"),
 		certChain:    pem.Certificate("xx"),
@@ -35,8 +32,8 @@ var _ = Describe("Test client helpers", func() {
 		serialNumber: "-serial-number-",
 	}
 
-	validCertCN := certificate.CommonName("valid.certificate")
-	validCert := &Certificate{
+	validCertCN = certificate.CommonName("valid.certificate")
+	validCert   = &Certificate{
 		issuingCA:    issuingCA,
 		privateKey:   pem.PrivateKey("yy"),
 		certChain:    pem.Certificate("xx"),
@@ -45,8 +42,8 @@ var _ = Describe("Test client helpers", func() {
 		serialNumber: "-serial-number-",
 	}
 
-	rootCertCN := certificate.CommonName("root.cert")
-	rootCert := &Certificate{
+	rootCertCN = certificate.CommonName("root.cert")
+	rootCert   = &Certificate{
 		issuingCA:    pem.RootCertificate("zz"),
 		privateKey:   pem.PrivateKey("yy"),
 		certChain:    pem.Certificate("xx"),
@@ -54,6 +51,14 @@ var _ = Describe("Test client helpers", func() {
 		commonName:   rootCertCN,
 		serialNumber: "-serial-number-",
 	}
+)
+
+var _ = Describe("Test client helpers", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
 
 	Context("Test NewCertManager()", func() {
 		It("creates new certificate manager", func() {
@@ -178,3 +183,23 @@ var _ = Describe("Test client helpers", func() {
 		})
 	})
 })
+
+func TestListCertificiates(t *testing.T) {
+	assert := tassert.New(t)
+
+	cm := CertManager{
+		ca: rootCert,
+	}
+
+	emptyCertList, err := cm.ListCertificates()
+	assert.Nil(err)
+	assert.Equal(0, len(emptyCertList))
+
+	cm.cache.Store(expiredCertCN, expiredCert)
+	cm.cache.Store(validCertCN, validCert)
+	certList, err := cm.ListCertificates()
+	assert.Nil(err)
+	assert.Equal(2, len(certList))
+	assert.Contains(certList, expiredCert)
+	assert.Contains(certList, validCert)
+}
