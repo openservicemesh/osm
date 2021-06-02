@@ -26,7 +26,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	proxyServiceName := svcList[0]
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
-	log.Debug().Msgf("EDS svc %s allTrafficPolicies %+v", proxyServiceName, allTrafficPolicies)
+	//log.Debug().Msgf("EDS svc %s allTrafficPolicies %+v", proxyServiceName, allTrafficPolicies)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)

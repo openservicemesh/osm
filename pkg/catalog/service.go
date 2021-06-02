@@ -1,10 +1,8 @@
 package catalog
 
 import (
-	"reflect"
-	"strings"
-
 	"github.com/pkg/errors"
+	"reflect"
 
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -21,7 +19,7 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 				svcs = append(svcs, svc.String())
 			}
 
-			log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
+			//log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
 			services = append(services, providerServices...)
 		}
 	}

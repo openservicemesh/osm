@@ -27,7 +27,7 @@ func (wc *WitesandCatalog) ListLocalEdgePods() (*ClusterPods, error) {
 	}
 	for _, pod := range podList.Items {
 		if strings.HasPrefix(pod.Name, svcName) && pod.Status.Phase == "Running" {
-			log.Info().Msgf("pod.Name=%+v, pod.PodIP=%+v \n", pod.Name, pod.Status.PodIP)
+			//log.Info().Msgf("pod.Name=%+v, pod.PodIP=%+v \n", pod.Name, pod.Status.PodIP)
 			pods.PodToIPMap[pod.Name] = pod.Status.PodIP
 		}
 	}
@@ -108,12 +108,12 @@ func (wc *WitesandCatalog) ListAllEdgePodIPs() (*ClusterPods, error) {
 }
 
 func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *ClusterPods) {
-	log.Info().Msgf("[UpdateClusterPods] clusterId:%s", clusterId)
+	//log.Info().Msgf("[UpdateClusterPods] clusterId:%s", clusterId)
 	// checks to see if anything (pod or podip) has changed to trigger update
 	triggerUpdate := false
 	prevClusterPods, exists := wc.clusterPodMap[clusterId]
 	if exists && clusterPods != nil && len(prevClusterPods.PodToIPMap) == len(clusterPods.PodToIPMap) {
-		log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
+		//log.Info().Msgf("[UpdateClusterPods] clusterId=%s clusterPods:%+v", clusterId, *clusterPods)
 		for pod, podip := range clusterPods.PodToIPMap {
 			prevPodIp, exists := prevClusterPods.PodToIPMap[pod]
 			if !exists || prevPodIp != podip {
@@ -127,7 +127,7 @@ func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *Clus
 
 	// LOCK
 	if triggerUpdate {
-		log.Info().Msgf("[UpdateClusterPods] triggering update")
+		//log.Info().Msgf("[UpdateClusterPods] triggering update clusterID=%s", clusterId)
 		if clusterPods == nil || len(clusterPods.PodToIPMap) == 0 {
 			delete(wc.clusterPodMap, clusterId)
 		} else {
@@ -140,7 +140,7 @@ func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *Clus
 }
 
 func (wc *WitesandCatalog) UpdateAllPods(clusterId string, clusterPods *ClusterPods) {
-	log.Info().Msgf("[UpdateAllPods] clusterId:%s", clusterId)
+	//log.Info().Msgf("[UpdateAllPods] clusterId:%s", clusterId)
 	if clusterPods == nil || len(clusterPods.PodToIPMap) == 0 {
 		delete(wc.allPodMap, clusterId)
 	} else {

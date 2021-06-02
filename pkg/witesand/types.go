@@ -77,6 +77,7 @@ type WitesandCataloger interface {
 	UpdateMasterOsmIP()
 	IsMaster() bool
 
+	UpdateRemoteFailCount(remoteClusterId string)
 	UpdateRemoteK8s(remoteClusterId string, remoteIP string)
 	UpdateClusterPods(remoteClusterId string, remotePods *ClusterPods)
 	UpdateAllPods(ClusterId string, Pods *ClusterPods)

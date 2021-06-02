@@ -344,7 +344,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		matchedTrafficTargets = append(matchedTrafficTargets, trafficTarget)
 	}
 
-	log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
+	//log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
 	return matchedTrafficTargets, nil
 }
 
