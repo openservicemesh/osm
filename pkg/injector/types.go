@@ -42,6 +42,7 @@ type Config struct {
 type envoyBootstrapConfigMeta struct {
 	EnvoyAdminPort int
 	XDSClusterName string
+	NodeID         string
 	RootCert       string
 	Cert           string
 	Key            string

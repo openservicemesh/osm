@@ -21,6 +21,8 @@ dynamic_resources:
   lds_config:
     ads: {}
     resource_api_version: V3
+node:
+  id: foo.bar.co.uk
 static_resources:
   clusters:
   - connect_timeout: 0.25s
