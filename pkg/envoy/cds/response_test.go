@@ -16,6 +16,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -27,8 +28,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestNewResponse(t *testing.T) {
@@ -347,4 +350,96 @@ func TestNewResponse(t *testing.T) {
 	}
 
 	assert.ElementsMatch(expectedClusters, foundClusters)
+}
+
+func TestNewResponseListServicesError(t *testing.T) {
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, errors.New("some error")
+	}))
+	proxy := envoy.NewProxy("", "", nil)
+
+	resp, err := NewResponse(nil, proxy, nil, nil, nil, proxyRegistry)
+	tassert.Error(t, err)
+	tassert.Nil(t, resp)
+}
+
+func TestNewResponseInvalidProxyUID(t *testing.T) {
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}))
+	cn := certificate.CommonName("not valid")
+	proxy := envoy.NewProxy(cn, "", nil)
+
+	resp, err := NewResponse(nil, proxy, nil, nil, nil, proxyRegistry)
+	tassert.Error(t, err)
+	tassert.Nil(t, resp)
+}
+
+func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
+	svc := service.MeshService{Namespace: "ns", Name: "svc"}
+	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return []service.MeshService{svc}, nil
+	}))
+	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	proxy := envoy.NewProxy(cn, "", nil)
+
+	ctrl := gomock.NewController(t)
+	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetTargetPortToProtocolMappingForService(svc).Return(nil, errors.New("some error")).Times(1)
+
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil, proxyRegistry)
+	tassert.Error(t, err)
+	tassert.Nil(t, resp)
+}
+
+func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
+	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}))
+	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	proxy := envoy.NewProxy(cn, "", nil)
+
+	ctrl := gomock.NewController(t)
+	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, errors.New("some error")).Times(1)
+	cfg := configurator.NewMockConfigurator(ctrl)
+	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsPrometheusScrapingEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	tassert.NoError(t, err)
+	tassert.Empty(t, resp)
+}
+
+func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
+	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}))
+	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	proxy := envoy.NewProxy(cn, "", nil)
+
+	ctrl := gomock.NewController(t)
+	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(&trafficpolicy.EgressTrafficPolicy{
+		ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
+			{Name: "my-cluster"},
+			{Name: "my-cluster"}, // the test ensures this duplicate is removed
+		},
+	}, nil).Times(1)
+	cfg := configurator.NewMockConfigurator(ctrl)
+	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsPrometheusScrapingEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	tassert.NoError(t, err)
+	tassert.Len(t, resp, 1)
+	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
 }
