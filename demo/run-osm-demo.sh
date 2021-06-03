@@ -33,7 +33,6 @@ DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
 DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
-ENABLE_PROMETHEUS_SCRAPING="${ENABLE_PROMETHEUS_SCRAPING:-true}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
@@ -107,7 +106,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=OpenServiceMesh.enablePrometheusScraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout=90s \
@@ -128,7 +126,6 @@ else
       --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=OpenServiceMesh.enablePrometheusScraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout=90s \

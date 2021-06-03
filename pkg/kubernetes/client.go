@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"reflect"
+	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -297,4 +298,16 @@ func (c Client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 		svcAccounts = append(svcAccounts, svcAcc.(identity.K8sServiceAccount))
 	}
 	return svcAccounts, nil
+}
+
+// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
+func (c Client) IsMetricsEnabled(pod *corev1.Pod) bool {
+	isScrapingEnabled := false
+	prometheusScrapeAnnotation, ok := pod.Annotations[constants.PrometheusScrapeAnnotation]
+	if !ok {
+		return isScrapingEnabled
+	}
+
+	isScrapingEnabled, _ = strconv.ParseBool(prometheusScrapeAnnotation)
+	return isScrapingEnabled
 }

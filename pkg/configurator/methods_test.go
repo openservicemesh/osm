@@ -62,8 +62,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					UseHTTPSIngress:                   true,
 				},
 				Observability: v1alpha1.ObservabilitySpec{
-					EnableDebugServer:  true,
-					PrometheusScraping: true,
+					EnableDebugServer: true,
 					Tracing: v1alpha1.TracingSpec{
 						Enable: true,
 					},
@@ -88,8 +87,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 						UseHTTPSIngress:                   true,
 					},
 					Observability: v1alpha1.ObservabilitySpec{
-						EnableDebugServer:  true,
-						PrometheusScraping: true,
+						EnableDebugServer: true,
 						Tracing: v1alpha1.TracingSpec{
 							Enable: true,
 						},
@@ -161,25 +159,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsDebugServerEnabled())
-			},
-		},
-		{
-			name: "IsPrometheusScrapingEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: true,
-				},
-			},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.True(cfg.IsPrometheusScrapingEnabled())
-			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: false,
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.False(cfg.IsPrometheusScrapingEnabled())
 			},
 		},
 		{

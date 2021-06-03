@@ -86,7 +86,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		ldsResources = append(ldsResources, inboundListener)
 	}
 
-	if cfg.IsPrometheusScrapingEnabled() {
+	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
