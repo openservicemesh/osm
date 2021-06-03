@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -185,4 +186,16 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 		}
 		assert.Equal(tc.expectProxyBroadcast, proxyEventReceived, tc.caseName)
 	}
+}
+
+func TestGetMeshConfig(t *testing.T) {
+	assert := tassert.New(t)
+
+	meshConfigClient := fakeConfig.NewSimpleClientset()
+	stop := make(chan struct{})
+	client := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName)
+	meshConfig := client.getMeshConfig()
+
+	// returns empty MeshConfig if informer cache is empty
+	assert.Equal(meshConfig, &v1alpha1.MeshConfig{})
 }
