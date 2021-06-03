@@ -11,6 +11,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -122,6 +123,28 @@ var _ = Describe("Test getting pretty printed output of a list of meshes", func(
 			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\nm1\tns1\tp1,p2,p3\tv1\ts1,s2,s3\tmn1,mn2,mn3\nm2\tns2\tp4,p5,p6\tv2\ts4,s5,s6\tmn4,mn5,mn6\n"))
 		})
 
+	})
+})
+
+var _ = Describe("Test getting mesh controller metadata", func() {
+	meshName := "testMesh"
+	meshNamespace := "testNamespace"
+
+	Context("mesh controller metadata in clientSet", func() {
+		fakeClientSet := fake.NewSimpleClientset()
+		_, err := addDeployment(fakeClientSet, "osm-controller", meshName, meshNamespace, "testVersion0.1.2", true)
+		Expect(err).NotTo(HaveOccurred())
+
+		It("asd", func() {
+			deployment, err := getMeshControllerDeployment(fakeClientSet, meshName, meshNamespace)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(deployment.ObjectMeta.Namespace).To(Equal(meshNamespace))
+			Expect(deployment.ObjectMeta.Labels["meshName"]).To(Equal(meshName))
+			Expect(deployment.ObjectMeta.Labels[constants.OSMAppVersionLabelKey]).To(Equal("testVersion0.1.2"))
+			Expect(deployment.ObjectMeta.Name).To(Equal("osm-controller"))
+
+		})
 	})
 })
 

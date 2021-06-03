@@ -146,6 +146,30 @@ func getNamespacePods(clientSet kubernetes.Interface, m string, ns string) map[s
 	return x
 }
 
+// getMeshControllerDeployment returns the Deployment corresponding to osm-controller within
+func getMeshControllerDeployment(clientSet kubernetes.Interface, meshName, meshNamespace string) (*v1.Deployment, error) {
+	deploymentsClient := clientSet.AppsV1().Deployments(meshNamespace) // Get deployments from namespace
+	labelSelector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app":      constants.OSMControllerName,
+			"meshName": meshName,
+		},
+	}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+
+	deploymentList, err := deploymentsClient.List(context.TODO(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+	if len(deploymentList.Items) < 1 {
+		return nil, fmt.Errorf("no osm mesh installation found with mesh name [%s] and namespace [%s]", meshName, meshNamespace)
+	}
+
+	return &deploymentList.Items[0], nil
+}
+
 // getControllerDeployments returns a list of Deployments corresponding to osm-controller
 func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentList, error) {
 	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
