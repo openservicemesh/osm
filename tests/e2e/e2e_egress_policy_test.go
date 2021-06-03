@@ -60,7 +60,6 @@ func testEgressPolicy(scenario testScenario) {
 
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
-		installOpts.SetOverrides = append(installOpts.SetOverrides, "OpenServiceMesh.featureFlags.enableEgressPolicy=true")
 		installOpts.EgressEnabled = false // Disable global egress
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
