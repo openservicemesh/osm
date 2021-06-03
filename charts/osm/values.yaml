@@ -216,7 +216,7 @@ OpenServiceMesh:
     enableWASMStats: false
     # -- Enable OSM's Egress policy API.
     # If specified, fine grained control over Egress (external) traffic is enforced
-    enableEgressPolicy: false
+    enableEgressPolicy: true
     # -- Enable Multicluster mode.
     # If specified, multicluster mode will be enabled in OSM
     enableMulticlusterMode: false
