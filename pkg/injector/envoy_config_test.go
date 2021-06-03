@@ -1,7 +1,6 @@
 package injector
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -13,7 +12,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,13 +108,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	marshalAndSaveToFile := func(someStruct interface{}, filename string) string {
-		yamlBytes, err := yaml.Marshal(someStruct)
-		Expect(err).ToNot(HaveOccurred())
-		saveActualEnvoyYAML(filename, yamlBytes)
-		return string(yamlBytes)
-	}
-
 	probes := healthProbes{
 		liveness:  &healthProbe{path: "/liveness", port: 81, isHTTP: true},
 		readiness: &healthProbe{path: "/readiness", port: 82, isHTTP: true},
@@ -125,9 +116,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	config := envoyBootstrapConfigMeta{
 		NodeID:   cert.GetCommonName().String(),
-		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
-		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
-		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
+		RootCert: cert.GetIssuingCA(),
+		Cert:     cert.GetCertificateChain(),
+		Key:      cert.GetPrivateKey(),
 
 		EnvoyAdminPort: 15000,
 
@@ -195,28 +186,34 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	Context("Test getXdsCluster()", func() {
 		It("creates XDS Cluster struct without health probes", func() {
 			config.OriginalHealthProbes = probes
-			actual := getXdsCluster(config)
+			actualXds, err := getXdsCluster(config)
+			Expect(err).To(BeNil())
 
+			actualYAML, err := protoToYAML(actualXds)
+			Expect(err).To(BeNil())
+			saveActualEnvoyYAML(actualXDSClusterWithoutProbesFileName, actualYAML)
 			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
 			// difference when there is a discrepancy.
 			expectedYAML := getExpectedEnvoyYAML(expectedXDSClusterWithoutProbesFileName)
-			actualYAML := marshalAndSaveToFile(actual, actualXDSClusterWithoutProbesFileName)
 
-			Expect(actualYAML).To(Equal(expectedYAML),
+			Expect(string(actualYAML)).To(Equal(expectedYAML),
 				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
 					expectedXDSClusterWithoutProbesFileName, actualXDSClusterWithoutProbesFileName, expectedYAML, actualYAML))
 		})
 
 		It("creates XDS Cluster struct with health probes", func() {
 			config.OriginalHealthProbes = probes
-			actual := getXdsCluster(config)
+			actualXds, err := getXdsCluster(config)
+			Expect(err).To(BeNil())
 
+			actualYAML, err := protoToYAML(actualXds)
+			Expect(err).To(BeNil())
+			saveActualEnvoyYAML(actualXDSClusterWithProbesFileName, actualYAML)
 			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
 			// difference when there is a discrepancy.
 			expectedYAML := getExpectedEnvoyYAML(expectedXDSClusterWithProbesFileName)
-			actualYAML := marshalAndSaveToFile(actual, actualXDSClusterWithProbesFileName)
 
-			Expect(actualYAML).To(Equal(expectedYAML),
+			Expect(string(actualYAML)).To(Equal(expectedYAML),
 				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
 					expectedXDSClusterWithProbesFileName, actualXDSClusterWithProbesFileName, expectedYAML, actualYAML))
 		})
@@ -225,12 +222,16 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	Context("Test getStaticResources()", func() {
 		It("Creates static_resources Envoy struct", func() {
 			config.OriginalHealthProbes = healthProbes{}
-			actual := getStaticResources(config)
+			actualXds, err := getStaticResources(config)
+			Expect(err).To(BeNil())
+
+			actualYAML, err := protoToYAML(actualXds)
+			Expect(err).To(BeNil())
+			saveActualEnvoyYAML(actualXDSStaticResourcesWithProbesFileName, actualYAML)
 
 			expectedYAML := getExpectedEnvoyYAML(expectedXDSStaticResourcesWithProbesFileName)
-			actualYAML := marshalAndSaveToFile(actual, actualXDSStaticResourcesWithProbesFileName)
 
-			Expect(actualYAML).To(Equal(expectedYAML),
+			Expect(string(actualYAML)).To(Equal(expectedYAML),
 				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
 					expectedXDSStaticResourcesWithProbesFileName, actualXDSStaticResourcesWithProbesFileName, expectedYAML, actualYAML))
 		})

@@ -40,16 +40,16 @@ type Config struct {
 
 // Context needed to compose the Envoy bootstrap YAML.
 type envoyBootstrapConfigMeta struct {
-	EnvoyAdminPort int
+	EnvoyAdminPort uint32
 	XDSClusterName string
 	NodeID         string
-	RootCert       string
-	Cert           string
-	Key            string
+	RootCert       []byte
+	Cert           []byte
+	Key            []byte
 
 	// Host and port of the Envoy xDS server
 	XDSHost string
-	XDSPort int
+	XDSPort uint32
 
 	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
 	// the pod this Envoy is fronting.
