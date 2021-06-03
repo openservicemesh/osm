@@ -94,9 +94,6 @@ type ObservabilitySpec struct {
 	// EnableDebugServer defines if the debug endpoint on the OSM controller pod is enabled.
 	EnableDebugServer bool `json:"enableDebugServer,omitempty"`
 
-	// PrometheusScraping defines a boolean indicating if sidecars should be configured for Prometheus metrics scraping.
-	PrometheusScraping bool `json:"prometheusScraping,omitempty"`
-
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
 }

@@ -104,9 +104,6 @@ OpenServiceMesh:
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
 
-  # -- Enable Prometheus metrics scraping on sidecar proxies
-  enablePrometheusScraping: true
-
   # -- Deploy Grafana with OSM installation
   deployGrafana: false
 

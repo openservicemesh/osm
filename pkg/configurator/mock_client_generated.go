@@ -332,20 +332,6 @@ func (mr *MockConfiguratorMockRecorder) IsPrivilegedInitContainer() *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrivilegedInitContainer", reflect.TypeOf((*MockConfigurator)(nil).IsPrivilegedInitContainer))
 }
 
-// IsPrometheusScrapingEnabled mocks base method
-func (m *MockConfigurator) IsPrometheusScrapingEnabled() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsPrometheusScrapingEnabled")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// IsPrometheusScrapingEnabled indicates an expected call of IsPrometheusScrapingEnabled
-func (mr *MockConfiguratorMockRecorder) IsPrometheusScrapingEnabled() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrometheusScrapingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsPrometheusScrapingEnabled))
-}
-
 // IsTracingEnabled mocks base method
 func (m *MockConfigurator) IsTracingEnabled() bool {
 	m.ctrl.T.Helper()

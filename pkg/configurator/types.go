@@ -43,9 +43,6 @@ type Configurator interface {
 	// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
 	IsDebugServerEnabled() bool
 
-	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
-	IsPrometheusScrapingEnabled() bool
-
 	// IsTracingEnabled returns whether tracing is enabled
 	IsTracingEnabled() bool
 

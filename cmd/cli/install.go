@@ -233,13 +233,6 @@ func (i *installCmd) validateOptions() error {
 	}
 
 	if setOptions, ok := s["OpenServiceMesh"].(map[string]interface{}); ok {
-		// if deployPrometheus is true, make sure enablePrometheusScraping is not disabled
-		if setOptions["deployPrometheus"] == true {
-			if setOptions["enablePrometheusScraping"] == false {
-				_, _ = fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMMeshConfig)
-			}
-		}
-
 		// if certificateManager is vault, ensure all relevant information (vault-host, vault-token) is available
 		if setOptions["certificateManager"] == "vault" {
 			var missingFields []string
