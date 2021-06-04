@@ -59,8 +59,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-	return proxy, nil
+	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
 }
 
 func TestNewResponse(t *testing.T) {

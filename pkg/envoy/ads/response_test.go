@@ -84,7 +84,12 @@ var _ = Describe("Test ADS response functions", func() {
 
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+
+	Context("Proxy is valid", func() {
+		Expect(proxy).ToNot((BeNil()))
+		Expect(err).ToNot(HaveOccurred())
+	})
 
 	Context("Test makeRequestForAllSecrets()", func() {
 		It("returns service cert", func() {

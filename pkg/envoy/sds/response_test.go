@@ -58,18 +58,15 @@ func TestNewResponse(t *testing.T) {
 
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", podID, envoy.KindSidecar, serviceAccount, namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
-	goodProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	goodProxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	assert.Nil(err)
 
-	badProxy := envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
+	_, err = envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
+	assert.Equal(err, envoy.ErrInvalidCertificateCN)
 
 	cfg := configurator.NewConfigurator(fakeConfigClient, stop, namespace, "-the-mesh-config-name-")
 	certManager := tresor.NewFakeCertManager(cfg)
 	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
-
-	// ----- Test with a rogue proxy (does not belong to the mesh)
-	actualSDSResponse, err := NewResponse(meshCatalog, badProxy, request, cfg, certManager, nil)
-	assert.Equal(err, envoy.ErrInvalidCertificateCN, "Expected a different error!")
-	assert.Nil(actualSDSResponse)
 
 	// ----- Test with an properly configured proxy
 	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager, nil)
@@ -428,7 +425,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), "sa-1", "ns-1"))
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, "sa-1", "ns-1"))
 			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				serviceIdentity: tc.serviceIdentity,
@@ -439,7 +436,8 @@ func TestGetSDSSecrets(t *testing.T) {
 				cfg:         d.mockConfigurator,
 			}
 
-			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			assert.Nil(err)
 
 			// test the function
 			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts, proxy)
