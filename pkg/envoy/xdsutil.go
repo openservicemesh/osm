@@ -302,6 +302,7 @@ func GetLocalClusterNameForServiceCluster(clusterName string) string {
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
 type certificateCommonNameMeta struct {
 	ProxyUUID uuid.UUID
+	ProxyKind ProxyKind
 	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
 	ServiceAccount string
 	Namespace      string
@@ -309,7 +310,7 @@ type certificateCommonNameMeta struct {
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
 	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
-	if len(chunks) < 3 {
+	if len(chunks) < 4 {
 		return nil, ErrInvalidCertificateCN
 	}
 	proxyUUID, err := uuid.Parse(chunks[0])
@@ -320,9 +321,10 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 
 	return &certificateCommonNameMeta{
 		ProxyUUID: proxyUUID,
+		ProxyKind: ProxyKind(chunks[1]),
 		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
-		ServiceAccount: chunks[1],
-		Namespace:      chunks[2],
+		ServiceAccount: chunks[2],
+		Namespace:      chunks[3],
 	}, nil
 }
 

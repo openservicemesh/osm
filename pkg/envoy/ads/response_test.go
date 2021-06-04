@@ -82,7 +82,7 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, proxySvcAccount.Name, proxySvcAccount.Namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
@@ -118,7 +118,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
@@ -199,7 +199,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendSDSResponse()", func() {
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())

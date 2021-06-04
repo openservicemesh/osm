@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -224,7 +223,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	}
 }
 
-// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<serviceAccount>.<namespace>
-func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
+// NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
+func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace))
 }

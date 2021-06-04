@@ -47,7 +47,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc, svc2}).Times(1)
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace))
 			certSerialNumber := certificate.SerialNumber("123456")
 			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
@@ -95,7 +95,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc := tests.NewServiceFixture(svcName, namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
-			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, tests.BookstoreServiceAccountName, namespace))
+			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
 			certSerialNumber := certificate.SerialNumber("123456")
 			newProxy := envoy.NewProxy(podCN, certSerialNumber, nil)
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)

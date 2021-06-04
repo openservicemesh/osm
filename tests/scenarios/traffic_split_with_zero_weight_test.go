@@ -349,7 +349,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceIdentity, tests.Namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceIdentity, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 	return proxy, nil
