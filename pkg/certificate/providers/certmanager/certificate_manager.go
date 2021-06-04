@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1beta1"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	cminformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
@@ -236,7 +236,7 @@ func NewCertManager(
 	cfg configurator.Configurator,
 ) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
-	crLister := informerFactory.Certmanager().V1beta1().CertificateRequests().Lister().CertificateRequests(namespace)
+	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
 
 	// TODO: pass through graceful shutdown
 	informerFactory.Start(make(chan struct{}))
@@ -245,7 +245,7 @@ func NewCertManager(
 		ca:        ca,
 		cache:     make(map[certificate.CommonName]certificate.Certificater),
 		namespace: namespace,
-		client:    client.CertmanagerV1beta1().CertificateRequests(namespace),
+		client:    client.CertmanagerV1().CertificateRequests(namespace),
 		issuerRef: issuerRef,
 		crLister:  crLister,
 		cfg:       cfg,

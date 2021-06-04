@@ -9,10 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1beta1"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
-	cmfakeapi "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1beta1/fake"
+	cmfakeapi "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/testing"
@@ -94,7 +94,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 		}
 
 		fakeClient := cmfakeclient.NewSimpleClientset()
-		fakeClient.CertmanagerV1beta1().(*cmfakeapi.FakeCertmanagerV1beta1).Fake.PrependReactor("*", "*", func(action testing.Action) (bool, runtime.Object, error) {
+		fakeClient.CertmanagerV1().(*cmfakeapi.FakeCertmanagerV1).Fake.PrependReactor("*", "*", func(action testing.Action) (bool, runtime.Object, error) {
 			switch action.GetVerb() {
 			case "create":
 				return true, crNotReady, nil
