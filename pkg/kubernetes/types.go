@@ -1,5 +1,5 @@
 // Package kubernetes implements the Kubernetes Controller interface to monitor and retrieve information regarding
-// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, and ServiceAccounts.
+// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, ServiceAccounts, and MultiClusterServices.
 package kubernetes
 
 import (
@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	versionedconfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -58,6 +60,8 @@ const (
 	Endpoints InformerKey = "Endpoints"
 	// ServiceAccounts lookup identifier
 	ServiceAccounts InformerKey = "ServiceAccounts"
+	// MultiClusterServices lookup identifier
+	MultiClusterServices InformerKey = "MultiClusterServices"
 )
 
 // informerCollection is the type holding the collection of informers we keep
@@ -65,10 +69,11 @@ type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	meshName    string
-	kubeClient  kubernetes.Interface
-	informers   informerCollection
-	cacheSynced chan interface{}
+	meshName        string
+	kubeClient      kubernetes.Interface
+	configInterface versionedconfig.Interface
+	informers       informerCollection
+	cacheSynced     chan interface{}
 }
 
 // Controller is the controller interface for K8s services
@@ -103,4 +108,10 @@ type Controller interface {
 
 	// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
 	IsMetricsEnabled(*corev1.Pod) bool
+
+	// GetMultiClusterService returns an v1alpha1 MulticClusterService if it exists, or nil
+	GetMultiClusterService(name, namespace string) (*v1alpha1.MultiClusterService, error)
+
+	// ListMultiClusterServices returns a list of v1alpha1 MultiClusterServices if any exist, or nil
+	ListMultiClusterServices() ([]*v1alpha1.MultiClusterService, error)
 }

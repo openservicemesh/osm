@@ -557,6 +557,17 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 })
 
+func TestGetMultiClusterSvc(t *testing.T) {
+	assert := tassert.New(t)
+
+	// Create kubernetes controller
+	kubeClient := testclient.NewSimpleClientset()
+	stop := make(chan struct{})
+	kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+	assert.Nil(err)
+	assert.NotNil(kubeController)
+}
+
 func TestGetEndpoint(t *testing.T) {
 	assert := tassert.New(t)
 
