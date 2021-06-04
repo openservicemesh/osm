@@ -23,6 +23,8 @@ import (
 type Interface interface {
 	// MeshConfigs returns a MeshConfigInformer.
 	MeshConfigs() MeshConfigInformer
+	// MultiClusterServices returns a MultiClusterServiceInformer.
+	MultiClusterServices() MultiClusterServiceInformer
 }
 
 type version struct {
@@ -39,4 +41,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // MeshConfigs returns a MeshConfigInformer.
 func (v *version) MeshConfigs() MeshConfigInformer {
 	return &meshConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// MultiClusterServices returns a MultiClusterServiceInformer.
+func (v *version) MultiClusterServices() MultiClusterServiceInformer {
+	return &multiClusterServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

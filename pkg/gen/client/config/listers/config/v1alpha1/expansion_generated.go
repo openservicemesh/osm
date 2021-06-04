@@ -22,3 +22,11 @@ type MeshConfigListerExpansion interface{}
 // MeshConfigNamespaceListerExpansion allows custom methods to be added to
 // MeshConfigNamespaceLister.
 type MeshConfigNamespaceListerExpansion interface{}
+
+// MultiClusterServiceListerExpansion allows custom methods to be added to
+// MultiClusterServiceLister.
+type MultiClusterServiceListerExpansion interface{}
+
+// MultiClusterServiceNamespaceListerExpansion allows custom methods to be added to
+// MultiClusterServiceNamespaceLister.
+type MultiClusterServiceNamespaceListerExpansion interface{}
