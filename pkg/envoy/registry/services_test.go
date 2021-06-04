@@ -49,7 +49,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace))
 			certSerialNumber := certificate.SerialNumber("123456")
-			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			Expect(err).ToNot(HaveOccurred())
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedSvc := service.MeshService{
@@ -65,15 +66,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			Expect(meshServices).Should(HaveLen(len(expectedList)))
 			Expect(meshServices).Should(ConsistOf(expectedList))
-		})
-
-		It("returns an error with an invalid CN", func() {
-			certCommonName := certificate.CommonName("getAllowedDirectionalServices")
-			certSerialNumber := certificate.SerialNumber("123456")
-			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			service, err := proxyRegistry.ListProxyServices(proxy)
-			Expect(err).To(HaveOccurred())
-			Expect(service).To(BeNil())
 		})
 	})
 
@@ -97,7 +89,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
 			certSerialNumber := certificate.SerialNumber("123456")
-			newProxy := envoy.NewProxy(podCN, certSerialNumber, nil)
+			newProxy, err := envoy.NewProxy(podCN, certSerialNumber, nil)
+			Expect(err).ToNot(HaveOccurred())
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
 

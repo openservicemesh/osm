@@ -25,21 +25,21 @@ func TestIsCNForProxy(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:     "workload CN belongs to proxy",
-			cn:       certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil),
+			name: "workload CN belongs to proxy",
+			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
+			proxy: func() *envoy.Proxy {
+				p, _ := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil)
+				return p
+			}(),
 			expected: true,
 		},
 		{
-			name:     "workload CN does not belong to proxy",
-			cn:       certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc-foo.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil),
-			expected: false,
-		},
-		{
-			name:     "not a workload CN",
-			cn:       certificate.CommonName("some-cn.type"),
-			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.svc-acc-foo.namespace", uuid.New())), certSerialNumber, nil),
+			name: "workload CN does not belong to proxy",
+			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
+			proxy: func() *envoy.Proxy {
+				p, _ := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc-foo.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil)
+				return p
+			}(),
 			expected: false,
 		},
 	}
