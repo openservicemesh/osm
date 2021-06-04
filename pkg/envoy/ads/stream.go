@@ -143,7 +143,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 }
 
 // shouldPushUpdate handles allowing new updates to envoy from control-plane driven config changes.
-// Its use is to make sure we don't unintentintionally push new versions if at least a first request has not arrived yet.
+// Its use is to make sure we don't unintentionally push new versions if at least a first request has not arrived yet.
 func shouldPushUpdate(proxy *envoy.Proxy) bool {
 	// In ADS, CDS and LDS will come first in all cases. Only allow an control-plane-push update push if
 	// we have sent either to the proxy already.

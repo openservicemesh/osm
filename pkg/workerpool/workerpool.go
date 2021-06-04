@@ -102,6 +102,15 @@ func (wp *WorkerPool) GetWorkerNumber() int {
 	return int(wp.nWorkers)
 }
 
+// GetJobsCount get number of jobs in the workerpool
+func (wp *WorkerPool) GetJobsCount() int {
+	count := 0
+	for _, worker := range wp.workerContext {
+		count += len(worker.jobs)
+	}
+	return count
+}
+
 // Stop stops the workerpool
 func (wp *WorkerPool) Stop() {
 	for _, worker := range wp.workerContext {

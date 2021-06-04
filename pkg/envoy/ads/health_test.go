@@ -32,3 +32,4 @@ func TestServerGetID(t *testing.T) {
 	actual := (&Server{}).GetID()
 	assert.Equal(actual, expected)
 }
+
