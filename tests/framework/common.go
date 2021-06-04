@@ -22,7 +22,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/fatih/color"
-	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
@@ -887,7 +887,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	install.RepoURL = "https://charts.jetstack.io"
 	install.Namespace = td.OsmNamespace
 	install.ReleaseName = "certmanager"
-	install.Version = "v0.16.1"
+	install.Version = "v1.3.1"
 
 	chartPath, err := install.LocateChart("cert-manager", helmcli.New())
 	if err != nil {
@@ -906,22 +906,22 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to install cert-manager chart")
 	}
 
-	selfsigned := &v1alpha2.Issuer{
+	selfsigned := &cmapi.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "selfsigned",
 		},
-		Spec: v1alpha2.IssuerSpec{
-			IssuerConfig: v1alpha2.IssuerConfig{
-				SelfSigned: &v1alpha2.SelfSignedIssuer{},
+		Spec: cmapi.IssuerSpec{
+			IssuerConfig: cmapi.IssuerConfig{
+				SelfSigned: &cmapi.SelfSignedIssuer{},
 			},
 		},
 	}
 
-	cert := &v1alpha2.Certificate{
+	cert := &cmapi.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "osm-ca",
 		},
-		Spec: v1alpha2.CertificateSpec{
+		Spec: cmapi.CertificateSpec{
 			IsCA:       true,
 			Duration:   &metav1.Duration{Duration: 90 * 24 * time.Hour},
 			SecretName: osmCABundleName,
@@ -934,13 +934,13 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		},
 	}
 
-	ca := &v1alpha2.Issuer{
+	ca := &cmapi.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "osm-ca",
 		},
-		Spec: v1alpha2.IssuerSpec{
-			IssuerConfig: v1alpha2.IssuerConfig{
-				CA: &v1alpha2.CAIssuer{
+		Spec: cmapi.IssuerSpec{
+			IssuerConfig: cmapi.IssuerConfig{
+				CA: &cmapi.CAIssuer{
 					SecretName: osmCABundleName,
 				},
 			},
@@ -960,7 +960,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	// https://cert-manager.io/docs/concepts/webhook/#webhook-connection-problems-shortly-after-cert-manager-installation
 	// Retry API errors with some delay in case of failures.
 	if err = Td.RetryFuncOnError(func() error {
-		_, err = cmClient.CertmanagerV1alpha2().Certificates(td.OsmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
+		_, err = cmClient.CertmanagerV1().Certificates(td.OsmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to create Certificate "+cert.Name)
 		}
@@ -970,7 +970,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	}
 
 	if err = Td.RetryFuncOnError(func() error {
-		_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
+		_, err = cmClient.CertmanagerV1().Issuers(td.OsmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
 		}
@@ -980,7 +980,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	}
 
 	if err = Td.RetryFuncOnError(func() error {
-		_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
+		_, err = cmClient.CertmanagerV1().Issuers(td.OsmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to create Issuer "+ca.Name)
 		}

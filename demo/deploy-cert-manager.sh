@@ -3,11 +3,11 @@
 # shellcheck disable=SC1091
 source .env
 
-CERT_MANAGER_VERSION="${CERT_MANAGER_VERSION:-0.16.1}"
+CERT_MANAGER_VERSION="${CERT_MANAGER_VERSION:-1.3.1}"
 
 apply_cert-manager_bootstrap_manifests() {
   kubectl apply -f - <<EOF
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: selfsigned
@@ -15,7 +15,7 @@ metadata:
 spec:
   selfSigned: {}
 ---
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: osm-ca
@@ -30,7 +30,7 @@ spec:
     kind: Issuer
     group: cert-manager.io
 ---
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: osm-ca

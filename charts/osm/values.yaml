@@ -78,7 +78,7 @@ OpenServiceMesh:
     # -- cert-manager issuer kind
     issuerKind: Issuer
     # -- cert-manager issuer group
-    issuerGroup: cert-manager
+    issuerGroup: cert-manager.io
 
   # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
   serviceCertValidityDuration: 24h

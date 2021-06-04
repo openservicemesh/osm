@@ -61,7 +61,7 @@ The following table lists the configurable parameters of the osm chart and their
 |-----|------|---------|-------------|
 | OpenServiceMesh.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
 | OpenServiceMesh.certificateManager | string | `"tresor"` | The Certificate manager type: `tresor`, `vault` or `cert-manager` |
-| OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` | cert-manager issuer group |
+| OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager.io"` | cert-manager issuer group |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
 | OpenServiceMesh.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
