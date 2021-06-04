@@ -208,6 +208,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
+		configController,
 		endpointsProviders...)
 
 	var proxyMapper registry.ProxyServiceMapper
