@@ -2,12 +2,15 @@ package kube
 
 import (
 	"net"
+	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -18,10 +21,11 @@ import (
 )
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (*Client, error) {
+func NewClient(kubeController k8s.Controller, configController config.Controller, providerIdent string, cfg configurator.Configurator) (*Client, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeController: kubeController,
+		configClient:   configController,
 	}
 
 	return &client, nil
@@ -37,6 +41,20 @@ func (c *Client) GetID() string {
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
+
+	if !svc.Local() {
+		multiclustersvc := c.configClient.ListMultiClusterServices()
+		for _, cluster := range multiclustersvc {
+			for _, clusterSpec := range cluster.Spec.Cluster {
+				parsedAddress := strings.Split(clusterSpec.Address, ":")
+				port, _ := strconv.ParseUint(parsedAddress[1], 10, 32)
+				endpoints = append(endpoints, endpoint.Endpoint{
+					IP:   net.ParseIP(parsedAddress[0]),
+					Port: endpoint.Port(port),
+				})
+			}
+		}
+	}
 
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
@@ -75,6 +93,20 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 	var endpoints []endpoint.Endpoint
 
+	multiclusterServices := c.configClient.ListMultiClusterServices()
+	for _, mcs := range multiclusterServices {
+		if mcs.Spec.ServiceAccount == sa.Name {
+			for _, cluster := range mcs.Spec.Cluster {
+				parsedAddress := strings.Split(cluster.Address, ":")
+				port, _ := strconv.ParseUint(parsedAddress[1], 10, 32)
+				endpoints = append(endpoints, endpoint.Endpoint{
+					IP:   net.ParseIP(parsedAddress[0]),
+					Port: endpoint.Port(port),
+				})
+			}
+		}
+	}
+
 	podList := c.kubeController.ListPods()
 	for _, pod := range podList {
 		if pod.Namespace != sa.Namespace {
@@ -100,6 +132,17 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
 func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
 	services := mapset.NewSet()
+
+	// multiclusterServices := c.configClient.ListMultiClusterServices()
+	// println(multiclusterServices)
+	// for _, mcs := range multiclusterServices {
+	// 	if mcs.Spec.ServiceAccount == svcAccount.Name {
+	// 		services.Add(service.MeshService{
+	// 			Namespace: mcs.Namespace,
+	// 			Name:      mcs.Name,
+	// 		})
+	// 	}
+	// }
 
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
@@ -208,6 +251,21 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	var err error
+
+	if !svc.Local() {
+		mcsvcs := c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+		for _, mcsvc := range mcsvcs {
+			for _, cluster := range mcsvc.Spec.Cluster {
+				parsedAddress := strings.Split(cluster.Address, ":")
+				port, _ := strconv.ParseUint(parsedAddress[1], 10, 32)
+				endpoints = append(endpoints, endpoint.Endpoint{
+					IP:   net.ParseIP(parsedAddress[0]),
+					Port: endpoint.Port(port),
+				})
+			}
+
+		}
+	}
 
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
