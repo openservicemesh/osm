@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
@@ -32,12 +33,14 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 		mockKubeController   *k8s.MockController
 		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
+		mockConfigController *config.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
+	mockConfigController = config.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -113,7 +116,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, mockConfigController, stop, cfg, endpointProviders...)
 }
 
 func newFakeMeshCatalog() *MeshCatalog {
@@ -122,12 +125,14 @@ func newFakeMeshCatalog() *MeshCatalog {
 		mockKubeController   *k8s.MockController
 		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
+		mockConfigController *config.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
+	mockConfigController = config.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -223,5 +228,5 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, mockConfigController, stop, cfg, endpointProviders...)
 }

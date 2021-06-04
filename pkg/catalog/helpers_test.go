@@ -14,6 +14,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
@@ -38,6 +39,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockConfigController := config.NewMockController(mockCtrl)
 
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
@@ -133,5 +135,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, mockMeshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, mockConfigController, stop, mockConfigurator, endpointProviders...)
 }

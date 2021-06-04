@@ -22,3 +22,11 @@ type MeshConfigListerExpansion interface{}
 // MeshConfigNamespaceListerExpansion allows custom methods to be added to
 // MeshConfigNamespaceLister.
 type MeshConfigNamespaceListerExpansion interface{}
+
+// RemoteServiceListerExpansion allows custom methods to be added to
+// RemoteServiceLister.
+type RemoteServiceListerExpansion interface{}
+
+// RemoteServiceNamespaceListerExpansion allows custom methods to be added to
+// RemoteServiceNamespaceLister.
+type RemoteServiceNamespaceListerExpansion interface{}

@@ -156,6 +156,15 @@ const (
 
 	// EgressUpdated is the type of announcement emitted when we observe an update to egress.policy.openservicemesh.io
 	EgressUpdated AnnouncementType = "egress-updated"
+
+	// Config
+	ConfigAdded AnnouncementType = "config-added"
+
+	// ConfigDeleted the type of announcement emitted when we observe a deletion of config.policy.openservicemesh.io
+	ConfigDeleted AnnouncementType = "config-deleted"
+
+	// ConfigUpdated is the type of announcement emitted when we observe an update to config.policy.openservicemesh.io
+	ConfigUpdated AnnouncementType = "config-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration

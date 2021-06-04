@@ -29,6 +29,10 @@ func (c *FakeConfigV1alpha1) MeshConfigs(namespace string) v1alpha1.MeshConfigIn
 	return &FakeMeshConfigs{c, namespace}
 }
 
+func (c *FakeConfigV1alpha1) RemoteServices(namespace string) v1alpha1.RemoteServiceInterface {
+	return &FakeRemoteServices{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeConfigV1alpha1) RESTClient() rest.Interface {

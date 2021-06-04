@@ -31,3 +31,6 @@ configurator; pkg/configurator/mock_client_generated.go; github.com/openservicem
 
 # pkg/certificate
 certificate; pkg/certificate/mock_certificate_generated.go; github.com/openservicemesh/osm/pkg/certificate; Certificater,Manager
+
+# pkg/config
+config; pkg/config/mock_client_generated.go; github.com/openservicemesh/osm/pkg/config; Controller

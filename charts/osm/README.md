@@ -73,6 +73,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enableDebugServer | bool | `false` | Enable the debug HTTP server on OSM controller |
 | OpenServiceMesh.enableEgress | bool | `false` | Enable egress in the mesh |
 | OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
+| OpenServiceMesh.enableMulticluster | bool | `false` | Enable multicluster  |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | OpenServiceMesh.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | OpenServiceMesh.enablePrometheusScraping | bool | `true` | Enable Prometheus metrics scraping on sidecar proxies |

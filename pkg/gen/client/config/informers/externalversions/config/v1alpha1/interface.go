@@ -23,6 +23,8 @@ import (
 type Interface interface {
 	// MeshConfigs returns a MeshConfigInformer.
 	MeshConfigs() MeshConfigInformer
+	// RemoteServices returns a RemoteServiceInformer.
+	RemoteServices() RemoteServiceInformer
 }
 
 type version struct {
@@ -39,4 +41,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // MeshConfigs returns a MeshConfigInformer.
 func (v *version) MeshConfigs() MeshConfigInformer {
 	return &meshConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RemoteServices returns a RemoteServiceInformer.
+func (v *version) RemoteServices() RemoteServiceInformer {
+	return &remoteServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

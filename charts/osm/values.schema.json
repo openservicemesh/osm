@@ -100,7 +100,8 @@
                 "webhookConfigNamePrefix",
                 "osmController",
                 "enablePrivilegedInitContainer",
-                "injector"
+                "injector",
+                "enableMulticluster"
             ],
             "properties": {
                 "osmController": {
@@ -565,6 +566,15 @@
                     "type": "boolean",
                     "title": "The enablePrivilegedInitContainer schema",
                     "description": "Indicates whether the init container for pods in the mesh should be privileged",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enableMulticluster": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableMulticluster",
+                    "type": "boolean",
+                    "title": "The enableMulticluster schema",
+                    "description": "Indicates whether the cluster can communicate with other clusters",
                     "examples": [
                         false
                     ]

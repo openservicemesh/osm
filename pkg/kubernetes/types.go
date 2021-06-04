@@ -1,5 +1,5 @@
 // Package kubernetes implements the Kubernetes Controller interface to monitor and retrieve information regarding
-// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, and ServiceAccounts.
+// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, ServiceAccounts and RemoteServices.
 package kubernetes
 
 import (
@@ -58,6 +58,8 @@ const (
 	Endpoints InformerKey = "Endpoints"
 	// ServiceAccounts lookup identifier
 	ServiceAccounts InformerKey = "ServiceAccounts"
+	// RemoteServices lookup identifier
+	RemoteServices InformerKey = "RemoteServices"
 )
 
 // informerCollection is the type holding the collection of informers we keep

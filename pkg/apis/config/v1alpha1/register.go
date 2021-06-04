@@ -39,6 +39,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MeshConfig{},
 		&MeshConfigList{},
+		&RemoteService{},
+		&RemoteServiceList{},
 	)
 
 	metav1.AddToGroupVersion(
