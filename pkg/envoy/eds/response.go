@@ -1,55 +1,59 @@
 package eds
 
 import (
+	"strings"
+
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	namespacedNameDelimiter = "/"
+)
+
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
-	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity.ToServiceIdentity())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
+	if request == nil {
+		return nil, errors.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxyIdentity)
 	}
 
 	var rdsResources []types.Resource
-	for svc, endpoints := range allowedEndpoints {
-		loadAssignment := newClusterLoadAssignment(svc, endpoints)
+	for _, cluster := range request.ResourceNames {
+		meshSvc, err := clusterToMeshSvc(cluster)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
+			continue
+		}
+		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity.ToServiceIdentity(), meshSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s, for proxy identity %s", meshSvc, proxyIdentity)
+			continue
+		}
+		loadAssignment := newClusterLoadAssignment(meshSvc, endpoints)
 		rdsResources = append(rdsResources, loadAssignment)
 	}
 
 	return rdsResources, nil
 }
 
-// getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) (map[service.MeshService][]endpoint.Endpoint, error) {
-	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-
-	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
-		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity, dstSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)
-			continue
-		}
-		allowedServicesEndpoints[dstSvc] = endpoints
+func clusterToMeshSvc(cluster string) (service.MeshService, error) {
+	chunks := strings.Split(cluster, namespacedNameDelimiter)
+	if len(chunks) != 2 {
+		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>, Got: %s", cluster)
 	}
-	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
-	return allowedServicesEndpoints, nil
+	return service.MeshService{Namespace: chunks[0], Name: chunks[1]}, nil
 }
