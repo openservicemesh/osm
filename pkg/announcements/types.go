@@ -156,6 +156,17 @@ const (
 
 	// EgressUpdated is the type of announcement emitted when we observe an update to egress.policy.openservicemesh.io
 	EgressUpdated AnnouncementType = "egress-updated"
+
+	// ---
+
+	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io
+	MultiClusterServiceAdded AnnouncementType = "multiclusterservice-added"
+
+	// MultiClusterServiceDeleted is the type of announcement emitted when we observe an deletion of a multiclusterservice.config.openservicemesh.io
+	MultiClusterServiceDeleted AnnouncementType = "multiclusterservice-deleted"
+
+	// MultiClusterServiceUpdated is the type of announcement emitted when we observe an update of a multiclusterservice.config.openservicemesh.io
+	MultiClusterServiceUpdated AnnouncementType = "multiclusterservice-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration
