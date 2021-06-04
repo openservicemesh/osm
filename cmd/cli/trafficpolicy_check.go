@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -158,16 +157,9 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 				}
 
 				if source.Name == srcPod.Spec.ServiceAccountName && source.Namespace == srcPod.Namespace {
-					fmt.Fprintf(cmd.out, "[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s' via the SMI TrafficTarget policy %q:\n",
-						srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name, trafficTarget.Name)
+					fmt.Fprintf(cmd.out, "[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s' via the SMI TrafficTarget policy %q in namespace %s\n",
+						srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name, trafficTarget.Name, trafficTarget.Namespace)
 					foundTrafficTarget = true
-
-					target := trafficTarget // avoids gosec G601: Implicit memory aliasing in for loop
-					trafficTargetPolicy, err := yaml.Marshal(&target)
-					if err != nil {
-						return errors.Errorf("Failed to marshal TrafficTarget %s: %s", trafficTarget.Name, err)
-					}
-					fmt.Fprintf(cmd.out, "---\n%s\n---\n", string(trafficTargetPolicy))
 				}
 			}
 		}
