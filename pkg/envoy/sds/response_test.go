@@ -56,7 +56,7 @@ func TestNewResponse(t *testing.T) {
 	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
 	podID := uuid.New().String()
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", podID, serviceAccount, namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", podID, envoy.KindSidecar, serviceAccount, namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	goodProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 

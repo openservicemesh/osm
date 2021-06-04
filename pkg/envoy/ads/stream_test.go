@@ -27,13 +27,13 @@ func TestIsCNForProxy(t *testing.T) {
 		{
 			name:     "workload CN belongs to proxy",
 			cn:       certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.svc-acc.namespace", uuid.New())), certSerialNumber, nil),
+			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil),
 			expected: true,
 		},
 		{
 			name:     "workload CN does not belong to proxy",
 			cn:       certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.svc-acc-foo.namespace", uuid.New())), certSerialNumber, nil),
+			proxy:    envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc-foo.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil),
 			expected: false,
 		},
 		{

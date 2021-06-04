@@ -83,3 +83,14 @@ const (
 	// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 	localClusterSuffix = "-local"
 )
+
+// ProxyKind is the type used to define the proxy's kind
+type ProxyKind string
+
+const (
+	// KindSidecar implies the proxy is a sidecar
+	KindSidecar ProxyKind = "sidecar"
+
+	// KindGateway implies the proxy is a gateway
+	KindGateway ProxyKind = "gateway"
+)

@@ -44,7 +44,7 @@ func TestNewResponse(t *testing.T) {
 
 	proxyUUID := uuid.New()
 	// The format of the CN matters
-	xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
+	xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
@@ -381,7 +381,7 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{svc}, nil
 	}))
-	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy := envoy.NewProxy(cn, "", nil)
 
 	ctrl := gomock.NewController(t)
@@ -399,7 +399,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy := envoy.NewProxy(cn, "", nil)
 
 	ctrl := gomock.NewController(t)
@@ -421,7 +421,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewCertCommonNameWithProxyID(uuid.New(), "svcacc", "ns")
+	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy := envoy.NewProxy(cn, "", nil)
 
 	ctrl := gomock.NewController(t)
