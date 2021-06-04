@@ -38,6 +38,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockConfigController := policy.NewMockController(mockCtrl)
 
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
@@ -133,5 +134,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, mockConfigController, stop, mockConfigurator, endpointProviders...)
 }
