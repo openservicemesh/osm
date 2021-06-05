@@ -35,8 +35,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 				EnablePermissiveTrafficPolicyMode: true,
 			},
 			Observability: v1alpha1.ObservabilitySpec{
-				EnableDebugServer:  false,
-				PrometheusScraping: true,
+				EnableDebugServer: false,
 				Tracing: v1alpha1.TracingSpec{
 					Enable: false,
 				},
@@ -55,7 +54,6 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.Equal(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode, true)
 	assert.Equal(meshConfig.Spec.Traffic.EnableEgress, true)
 	assert.Equal(meshConfig.Spec.Traffic.UseHTTPSIngress, false)
-	assert.Equal(meshConfig.Spec.Observability.PrometheusScraping, true)
 	assert.Equal(meshConfig.Spec.Observability.EnableDebugServer, false)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "24h")
 }

@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"

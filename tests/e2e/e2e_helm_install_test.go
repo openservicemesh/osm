@@ -34,7 +34,6 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 				Expect(spec.Traffic.EnableEgress).To(BeFalse())
 				Expect(spec.Sidecar.LogLevel).To(Equal("error"))
 				Expect(spec.Observability.EnableDebugServer).To(BeFalse())
-				Expect(spec.Observability.PrometheusScraping).To(BeTrue())
 				Expect(spec.Observability.Tracing.Enable).To(BeFalse())
 				Expect(spec.Traffic.UseHTTPSIngress).To(BeFalse())
 				Expect(spec.Certificate.ServiceCertValidityDuration).To(Equal("24h"))

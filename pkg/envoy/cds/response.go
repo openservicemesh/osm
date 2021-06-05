@@ -75,7 +75,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an inbound prometheus cluster (from Prometheus to localhost)
-	if cfg.IsPrometheusScrapingEnabled() {
+	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
 		clusters = append(clusters, getPrometheusCluster())
 	}
 

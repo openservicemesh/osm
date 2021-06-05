@@ -1,6 +1,7 @@
 package lds
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
@@ -30,7 +32,12 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 		tests.SelectorKey:                tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
 	}
-	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, podLabels); err != nil {
+
+	newPod1 := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, podLabels)
+	newPod1.Annotations = map[string]string{
+		constants.PrometheusScrapeAnnotation: "true",
+	}
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{}); err != nil {
 		return nil, err
 	}
 
@@ -66,7 +73,6 @@ func TestNewResponse(t *testing.T) {
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)
-	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
 	// test scenario that listing proxy services returns an error
@@ -82,7 +88,6 @@ func TestNewResponse(t *testing.T) {
 	}))
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{

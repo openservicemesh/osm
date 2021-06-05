@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
+	kubernetes "github.com/openservicemesh/osm/pkg/kubernetes"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -65,6 +66,20 @@ func (m *MockMeshCataloger) GetIngressPoliciesForService(arg0 service.MeshServic
 func (mr *MockMeshCatalogerMockRecorder) GetIngressPoliciesForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressPoliciesForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressPoliciesForService), arg0)
+}
+
+// GetKubeController mocks base method
+func (m *MockMeshCataloger) GetKubeController() kubernetes.Controller {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetKubeController")
+	ret0, _ := ret[0].(kubernetes.Controller)
+	return ret0
+}
+
+// GetKubeController indicates an expected call of GetKubeController
+func (mr *MockMeshCatalogerMockRecorder) GetKubeController() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKubeController", reflect.TypeOf((*MockMeshCataloger)(nil).GetKubeController))
 }
 
 // GetPortToProtocolMappingForService mocks base method

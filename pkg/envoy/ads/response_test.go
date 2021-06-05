@@ -126,7 +126,6 @@ var _ = Describe("Test ADS response functions", func() {
 		kubectrlMock := kubernetes.NewMockController(mockCtrl)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
@@ -207,7 +206,6 @@ var _ = Describe("Test ADS response functions", func() {
 		kubectrlMock := kubernetes.NewMockController(mockCtrl)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
