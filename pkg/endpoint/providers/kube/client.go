@@ -178,6 +178,8 @@ func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService
 func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
 	var finalList []corev1.Service
 	serviceList := c.kubeController.ListServices()
+	
+	// TODO: Query for the multicluster service object
 
 	for _, svc := range serviceList {
 		// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
