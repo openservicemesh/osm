@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -189,7 +190,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			actualXds, err := getXdsCluster(config)
 			Expect(err).To(BeNil())
 
-			actualYAML, err := protoToYAML(actualXds)
+			actualYAML, err := utils.ProtoToYAML(actualXds)
 			Expect(err).To(BeNil())
 			saveActualEnvoyYAML(actualXDSClusterWithoutProbesFileName, actualYAML)
 			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
@@ -206,7 +207,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			actualXds, err := getXdsCluster(config)
 			Expect(err).To(BeNil())
 
-			actualYAML, err := protoToYAML(actualXds)
+			actualYAML, err := utils.ProtoToYAML(actualXds)
 			Expect(err).To(BeNil())
 			saveActualEnvoyYAML(actualXDSClusterWithProbesFileName, actualYAML)
 			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
@@ -225,7 +226,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			actualXds, err := getStaticResources(config)
 			Expect(err).To(BeNil())
 
-			actualYAML, err := protoToYAML(actualXds)
+			actualYAML, err := utils.ProtoToYAML(actualXds)
 			Expect(err).To(BeNil())
 			saveActualEnvoyYAML(actualXDSStaticResourcesWithProbesFileName, actualYAML)
 
