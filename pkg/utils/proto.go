@@ -13,12 +13,13 @@ func ProtoToYAML(m protoreflect.ProtoMessage) ([]byte, error) {
 	}
 	configJSON, err := marshalOptions.Marshal(m)
 	if err != nil {
+		log.Error().Err(err).Msg("Error marshaling proto to JSON")
 		return nil, err
 	}
 
 	configYAML, err := yaml.JSONToYAML(configJSON)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling xDS struct into YAML")
+		log.Error().Err(err).Msgf("Error converting JSON to YAML")
 		return nil, err
 	}
 	return configYAML, err

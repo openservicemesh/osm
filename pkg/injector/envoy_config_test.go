@@ -45,9 +45,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		expectedXDSClusterWithProbesFileName = "expected_xds_cluster_with_probes.yaml"
 		actualXDSClusterWithProbesFileName   = "actual_xds_cluster_with_probes.yaml"
 
-		expectedXDSStaticResourcesWithProbesFileName = "expected_xds_static_resources_with_probes.yaml"
-		actualXDSStaticResourcesWithProbesFileName   = "actual_xds_static_resources_with_probes.yaml"
-
 		// All the YAML files listed above are in this sub-directory
 		directoryForYAMLFiles = "test_fixtures"
 	)
@@ -220,21 +217,13 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		})
 	})
 
-	Context("Test getStaticResources()", func() {
-		It("Creates static_resources Envoy struct", func() {
-			config.OriginalHealthProbes = healthProbes{}
-			actualXds, err := getStaticResources(config)
+	Context("Test getProbeResources()", func() {
+		It("Should not create listeners and clusters when there are no probes", func() {
+			config.OriginalHealthProbes = healthProbes{} // no probes
+			actualListeners, actualClusters, err := getProbeResources(config)
 			Expect(err).To(BeNil())
-
-			actualYAML, err := utils.ProtoToYAML(actualXds)
-			Expect(err).To(BeNil())
-			saveActualEnvoyYAML(actualXDSStaticResourcesWithProbesFileName, actualYAML)
-
-			expectedYAML := getExpectedEnvoyYAML(expectedXDSStaticResourcesWithProbesFileName)
-
-			Expect(string(actualYAML)).To(Equal(expectedYAML),
-				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
-					expectedXDSStaticResourcesWithProbesFileName, actualXDSStaticResourcesWithProbesFileName, expectedYAML, actualYAML))
+			Expect(actualListeners).To(BeNil())
+			Expect(actualClusters).To(BeNil())
 		})
 	})
 
