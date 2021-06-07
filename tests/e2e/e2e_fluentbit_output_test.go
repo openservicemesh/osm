@@ -24,6 +24,9 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 	func() {
 		Context("Fluent Bit output", func() {
 			It("Forwards correctly filtered logs to stdout", func() {
+				if Td.DeployOnOpenShift {
+					Skip("Skipping test: FluentBit not supported on OpenShift")
+				}
 				// Install OSM with Fluentbit
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.DeployFluentbit = true
