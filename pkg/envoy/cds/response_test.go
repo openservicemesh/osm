@@ -420,11 +420,12 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	mockKubeController := k8s.NewMockController(ctrl)
+	cfg := configurator.NewMockConfigurator(ctrl)
+
 	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, errors.New("some error")).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
-	cfg := configurator.NewMockConfigurator(ctrl)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
 
@@ -445,6 +446,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	mockKubeController := k8s.NewMockController(ctrl)
+	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
@@ -454,7 +456,6 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 			{Name: "my-cluster"}, // the test ensures this duplicate is removed
 		},
 	}, nil).Times(1)
-	cfg := configurator.NewMockConfigurator(ctrl)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
 

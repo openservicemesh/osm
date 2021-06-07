@@ -180,3 +180,16 @@ spec:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
                       default: "24h"
+                featureFlags:
+                  description: OSM feature flags
+                  type: object
+                  properties:
+                    enableWASMStats:
+                      type: boolean
+                      default: true
+                    enableEgressPolicy:
+                      type: boolean
+                      default: true
+                    enableMulticlusterMode:
+                      type: boolean
+                      default: false

@@ -14,7 +14,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -57,7 +56,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 		listener.DefaultFilterChain = egressFilterChain
 	}
 
-	if featureflags.IsEgressPolicyEnabled() {
+	if featureflags := lb.cfg.GetFeatureFlags(); featureflags.EnableEgressPolicy {
 		var filterDisableMatchPredicate *xds_listener.ListenerFilterChainMatchPredicate
 		// Create filter chains for egress based on policies
 		if egressTrafficPolicy, err := lb.meshCatalog.GetEgressTrafficPolicy(lb.serviceIdentity); err != nil {

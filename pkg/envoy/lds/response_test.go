@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
@@ -91,6 +92,10 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
+	}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats:    false,
+		EnableEgressPolicy: true,
 	}).AnyTimes()
 
 	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)

@@ -9,7 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -34,7 +33,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
-	if featureflags.IsWASMStatsEnabled() {
+	if featureflags := cfg.GetFeatureFlags(); featureflags.EnableWASMStats {
 		statsHeaders = proxy.StatsHeaders()
 	}
 

@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	auth "github.com/openservicemesh/osm/pkg/auth"
 	v1 "k8s.io/api/core/v1"
 )
@@ -76,6 +77,20 @@ func (m *MockConfigurator) GetEnvoyLogLevel() string {
 func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
+}
+
+// GetFeatureFlags mocks base method
+func (m *MockConfigurator) GetFeatureFlags() v1alpha1.FeatureFlags {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeatureFlags")
+	ret0, _ := ret[0].(v1alpha1.FeatureFlags)
+	return ret0
+}
+
+// GetFeatureFlags indicates an expected call of GetFeatureFlags
+func (mr *MockConfiguratorMockRecorder) GetFeatureFlags() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureFlags", reflect.TypeOf((*MockConfigurator)(nil).GetFeatureFlags))
 }
 
 // GetInboundExternalAuthConfig mocks base method

@@ -27,3 +27,7 @@ spec:
       {{- end }}
   certificate:
     serviceCertValidityDuration: {{.Values.OpenServiceMesh.serviceCertValidityDuration}}
+  featureFlags: 
+    enableWASMStats: {{.Values.OpenServiceMesh.featureFlags.enableWASMStats}}
+    enableEgressPolicy: {{.Values.OpenServiceMesh.featureFlags.enableEgressPolicy}}
+    enableMulticlusterMode: {{.Values.OpenServiceMesh.featureFlags.enableMulticlusterMode}}
