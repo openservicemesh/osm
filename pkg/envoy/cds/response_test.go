@@ -53,7 +53,9 @@ func TestNewResponse(t *testing.T) {
 	// The format of the CN matters
 	xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
+	proxy, err := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
+	assert.Nil(err)
+
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}))
@@ -77,7 +79,7 @@ func TestNewResponse(t *testing.T) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod1})
@@ -378,19 +380,8 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, errors.New("some error")
 	}))
-	proxy := envoy.NewProxy("", "", nil)
-
-	resp, err := NewResponse(nil, proxy, nil, nil, nil, proxyRegistry)
-	tassert.Error(t, err)
-	tassert.Nil(t, resp)
-}
-
-func TestNewResponseInvalidProxyUID(t *testing.T) {
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}))
-	cn := certificate.CommonName("not valid")
-	proxy := envoy.NewProxy(cn, "", nil)
+	proxy, err := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace)), "", nil)
+	tassert.Nil(t, err)
 
 	resp, err := NewResponse(nil, proxy, nil, nil, nil, proxyRegistry)
 	tassert.Error(t, err)
@@ -404,7 +395,8 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 		return []service.MeshService{svc}, nil
 	}))
 	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
-	proxy := envoy.NewProxy(cn, "", nil)
+	proxy, err := envoy.NewProxy(cn, "", nil)
+	tassert.Nil(t, err)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -422,7 +414,8 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 		return nil, nil
 	}))
 	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
-	proxy := envoy.NewProxy(cn, "", nil)
+	proxy, err := envoy.NewProxy(cn, "", nil)
+	tassert.Nil(t, err)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -446,7 +439,8 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 		return nil, nil
 	}))
 	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
-	proxy := envoy.NewProxy(cn, "", nil)
+	proxy, err := envoy.NewProxy(cn, "", nil)
+	tassert.Nil(t, err)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)

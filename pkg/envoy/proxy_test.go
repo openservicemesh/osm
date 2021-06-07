@@ -25,16 +25,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-const (
-	svc = "service-name"
-	ns  = "some-namespace"
-)
-
 var _ = Describe("Test proxy methods", func() {
-	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy1234566623211353.%s.%s.one.two.three.co.uk", svc, ns))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), KindSidecar))
 	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
-	proxy := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
+	proxy, err := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
+
+	Context("Proxy is valid", func() {
+		Expect(proxy).ToNot((BeNil()))
+		Expect(err).ToNot(HaveOccurred())
+	})
 
 	Context("test GetPodUID() with empty Pod Metadata field", func() {
 		It("returns correct values", func() {

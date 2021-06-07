@@ -415,8 +415,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceIdentity, tests.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-	return proxy, nil
+	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
 }
 
 func TestNewResponseWithPermissiveMode(t *testing.T) {
@@ -430,7 +429,8 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	uuid := uuid.New().String()
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.one.two.three.co.uk", uuid, "some-service", "some-namespace"))
 	certSerialNumber := certificate.SerialNumber("123456")
-	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	testProxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	assert.Nil(err)
 
 	// Empty discovery request
 	discoveryRequest := xds_discovery.DiscoveryRequest{
@@ -582,7 +582,8 @@ func TestResponseRequestCompletion(t *testing.T) {
 	uuid := uuid.New().String()
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.one.two.three.co.uk", uuid, "some-service", "some-namespace"))
 	certSerialNumber := certificate.SerialNumber("123456")
-	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	testProxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	assert.Nil(err)
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil

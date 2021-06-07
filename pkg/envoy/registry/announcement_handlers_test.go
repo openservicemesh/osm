@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,8 +27,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 	var proxyRegistry *ProxyRegistry
 	var podUID string
 	var proxy *envoy.Proxy
-	var envoyCN certificate.CommonName
 	var certManager certificate.Manager
+	envoyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New()))
 
 	BeforeEach(func() {
 		proxyRegistry = NewProxyRegistry(nil)
@@ -44,7 +45,9 @@ var _ = Describe("Test Announcement Handlers", func() {
 		_, err := certManager.IssueCertificate(envoyCN, 5*time.Second)
 		Expect(err).ToNot(HaveOccurred())
 
-		proxy = envoy.NewProxy(envoyCN, "-cert-serial-number-", nil)
+		proxy, err = envoy.NewProxy(envoyCN, "-cert-serial-number-", nil)
+		Expect(err).ToNot(HaveOccurred())
+
 		proxy.PodMetadata = &envoy.PodMetadata{
 			UID: podUID,
 		}

@@ -38,6 +38,9 @@ type Proxy struct {
 	// hash is based on CommonName
 	hash uint64
 
+	// kind is the proxy's kind (ex. sidecar, gateway)
+	kind ProxyKind
+
 	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
@@ -199,12 +202,22 @@ func (p *Proxy) SetLastResourcesSent(typeURI TypeURI, resourcesSet mapset.Set) {
 	p.lastxDSResourcesSent[typeURI] = resourcesSet
 }
 
+// Kind return the proxy's kind
+func (p *Proxy) Kind() ProxyKind {
+	return p.kind
+}
+
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
 	// Get CommonName hash for this proxy
 	hash, err := utils.HashFromString(certCommonName.String())
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
+		log.Warn().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
+	}
+
+	cnMeta, err := getCertificateCommonNameMeta(certCommonName)
+	if err != nil {
+		return nil, ErrInvalidCertificateCN
 	}
 
 	return &Proxy{
@@ -220,7 +233,9 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastSentVersion:      make(map[TypeURI]uint64),
 		lastAppliedVersion:   make(map[TypeURI]uint64),
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
-	}
+
+		kind: cnMeta.ProxyKind,
+	}, nil
 }
 
 // NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>

@@ -1,6 +1,9 @@
 package registry
 
 import (
+	"fmt"
+
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -10,9 +13,14 @@ import (
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry(nil)
-	certCommonName := certificate.CommonName("foo")
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New()))
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+
+	Context("Proxy is valid", func() {
+		Expect(proxy).ToNot((BeNil()))
+		Expect(err).ToNot(HaveOccurred())
+	})
 
 	Context("Test register/unregister proxies", func() {
 		It("no proxies connected or disconnected", func() {
