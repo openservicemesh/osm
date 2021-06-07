@@ -13,22 +13,23 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+// NewProvider implements mesh.Provider, which creates a new Kubernetes cluster/compute provider.
+func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (provider.Provider, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeClient:     kubeClient,
 		kubeController: kubeController,
 	}
-
+	// TODO(whgriffi): debug
 	return &client, nil
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.
-// Required by interface: EndpointsProvider
+// Required by interface: Provider
 func (c *Client) GetID() string {
 	return c.providerIdent
 }

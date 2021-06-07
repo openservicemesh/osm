@@ -13,9 +13,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -330,7 +330,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
@@ -364,10 +364,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			}
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				configurator:       mockConfigurator,
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
+				configurator:   mockConfigurator,
 			}
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
@@ -685,7 +685,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -694,9 +694,9 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			actual := mc.listOutboundTrafficPoliciesForTrafficSplits(tc.sourceNamespace)
@@ -756,12 +756,12 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+	mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		meshSpec:           mockMeshSpec,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+		kubeController: mockKubeController,
+		meshSpec:       mockMeshSpec,
+		Providers:      []provider.Provider{mockEndpointProvider},
 	}
 
 	testCases := []struct {
@@ -927,12 +927,12 @@ func TestBuildOutboundPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			destK8sService := tests.NewServiceFixture(tc.destMeshService.Name, tc.destMeshService.Namespace, map[string]string{})
@@ -1040,7 +1040,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -1056,9 +1056,9 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceIdentity)
@@ -1073,11 +1073,11 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+	mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+		kubeController: mockKubeController,
+		Providers:      []provider.Provider{mockEndpointProvider},
 	}
 
 	destSA := identity.K8sServiceAccount{

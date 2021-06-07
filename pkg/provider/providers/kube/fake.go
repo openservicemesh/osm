@@ -7,12 +7,13 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-// NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
-func NewFakeProvider() endpoint.Provider {
+// NewFakeProvider implements mesh.Provider, which creates a test Kubernetes cluster/compute provider.
+func NewFakeProvider() provider.Provider {
 	return &fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
 			tests.BookstoreV1Service.String():   {tests.Endpoint},
@@ -69,7 +70,7 @@ func (f fakeClient) GetTargetPortToProtocolMappingForService(svc service.MeshSer
 	return map[uint32]string{uint32(tests.Endpoint.Port): "http"}, nil
 }
 
-// GetID returns the unique identifier of the EndpointsProvider.
+// GetID returns the unique identifier of the Provider.
 func (f fakeClient) GetID() string {
 	return "Fake Kubernetes Client"
 }

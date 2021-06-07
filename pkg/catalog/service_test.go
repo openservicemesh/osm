@@ -12,10 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -96,11 +96,11 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 			actual := mc.getApexServicesForBackendService(tests.BookstoreV1Service)
@@ -201,11 +201,11 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 			actual := mc.isTrafficSplitBackendService(tc.backendService)
@@ -274,7 +274,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	type endpointProviderConfig struct {
-		provider          *endpoint.MockProvider
+		provider          *provider.MockProvider
 		portToProtocolMap map[uint32]string
 		err               error
 	}
@@ -291,13 +291,13 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 			providerConfigs: []endpointProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          provider.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          provider.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -312,13 +312,13 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 			providerConfigs: []endpointProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          provider.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          provider.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "tcp", 90: "http"},
 					err:               nil,
 				},
@@ -333,7 +333,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 			providerConfigs: []endpointProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          provider.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -348,14 +348,14 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			// Create a list of providers for catalog and mock their calls based on the given config
-			var allProviders []endpoint.Provider
+			var allProviders []provider.Provider
 			for _, providerConfig := range tc.providerConfigs {
 				allProviders = append(allProviders, providerConfig.provider)
 				providerConfig.provider.EXPECT().GetTargetPortToProtocolMappingForService(testSvc).Return(providerConfig.portToProtocolMap, providerConfig.err).Times(1)
 			}
 
 			mc := &MeshCatalog{
-				endpointsProviders: allProviders,
+				Providers: allProviders,
 			}
 
 			actualPortToProtocolMap, err := mc.GetTargetPortToProtocolMappingForService(testSvc)

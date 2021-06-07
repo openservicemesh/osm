@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -138,13 +139,13 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()

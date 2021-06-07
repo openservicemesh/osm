@@ -15,6 +15,7 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -26,11 +27,11 @@ var (
 
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
-	endpointsProviders []endpoint.Provider
-	meshSpec           smi.MeshSpec
-	certManager        certificate.Manager
-	ingressMonitor     ingress.Monitor
-	configurator       configurator.Configurator
+	Providers      []provider.Provider
+	meshSpec       smi.MeshSpec
+	certManager    certificate.Manager
+	ingressMonitor ingress.Monitor
+	configurator   configurator.Configurator
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This is the API/REST interface to the cluster

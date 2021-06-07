@@ -15,9 +15,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -480,14 +480,14 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				configurator:       mockConfigurator,
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
+				configurator:   mockConfigurator,
 			}
 
 			var services []*corev1.Service
@@ -950,12 +950,12 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			for _, meshSvc := range tc.meshServices {
@@ -1255,12 +1255,12 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			destK8sService := tests.NewServiceFixture(tc.inboundService.Name, tc.inboundService.Namespace, map[string]string{})
@@ -1333,12 +1333,12 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			k8sService := tests.NewServiceFixture(tc.meshService.Name, tc.meshService.Namespace, map[string]string{})
@@ -1570,12 +1570,12 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			for _, destMeshSvc := range tc.upstreamServices {
@@ -1819,12 +1819,12 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Providers:      []provider.Provider{mockEndpointProvider},
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

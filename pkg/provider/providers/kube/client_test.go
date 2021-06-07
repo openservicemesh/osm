@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -35,7 +36,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockConfigurator   *configurator.MockConfigurator
 
 		fakeClientSet *testclient.Clientset
-		provider      endpoint.Provider
+		provider      provider.Provider
 		err           error
 	)
 
@@ -289,7 +290,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		kubeController   k8s.Controller
 		mockConfigurator *configurator.MockConfigurator
 		fakeClientSet    *testclient.Clientset
-		provider         endpoint.Provider
+		provider         provider.Provider
 		err              error
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
