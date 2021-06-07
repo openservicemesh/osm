@@ -12,6 +12,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/fatih/color v1.10.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/golang/mock v1.4.1
 	github.com/golang/protobuf v1.4.3
