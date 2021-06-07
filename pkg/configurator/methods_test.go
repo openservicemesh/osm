@@ -440,6 +440,51 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(resource.MustParse("512M"), res.Limits[v1.ResourceMemory])
 			},
 		},
+		{
+			name:                  "IsWASMStatsEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableWASMStats)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableWASMStats: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableWASMStats)
+			},
+		},
+		{
+			name:                  "IsEgressPolicyEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableEgressPolicy)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableEgressPolicy: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableEgressPolicy)
+			},
+		},
+		{
+			name:                  "IsMulticlusterModeEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableMulticlusterMode)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableMulticlusterMode: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableMulticlusterMode)
+			},
+		},
 	}
 
 	for _, test := range tests {

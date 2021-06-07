@@ -203,3 +203,8 @@ func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 
 	return extAuthConfig
 }
+
+// GetFeatureFlags returns OSM's feature flags
+func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
+	return c.getMeshConfig().Spec.FeatureFlags
+}

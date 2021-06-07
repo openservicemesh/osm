@@ -10,23 +10,18 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
-
-func init() {
-	// Initialize the Egress policy feature
-	featureflags.Initialize(featureflags.OptionalFeatures{
-		EgressPolicy: true,
-	})
-}
 
 func TestGetEgressHTTPFilterChain(t *testing.T) {
 	assert := tassert.New(t)
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	testCases := []struct {
 		name                     string
@@ -56,12 +51,13 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			lb := &listenerBuilder{
 				cfg: mockConfigurator,
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableEgressPolicy: true,
+				EnableWASMStats:    false}).AnyTimes()
 			actual, err := lb.getEgressHTTPFilterChain(tc.destinationPort)
 
 			assert.Equal(tc.expectError, err != nil)
@@ -77,6 +73,8 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	testCases := []struct {
 		name                     string
@@ -153,6 +151,11 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableEgressPolicy: true,
+				EnableWASMStats:    false,
+			}).AnyTimes()
+
 			lb := &listenerBuilder{}
 
 			actual, err := lb.getEgressTCPFilterChain(tc.trafficMatch)
@@ -170,6 +173,8 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	testCases := []struct {
 		name                     string
@@ -217,11 +222,14 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			lb := &listenerBuilder{
 				cfg: mockConfigurator,
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableEgressPolicy: true,
+				EnableWASMStats:    false,
+			}).AnyTimes()
 
 			actual := lb.getEgressFilterChainsForMatches(tc.trafficMatches)
 
