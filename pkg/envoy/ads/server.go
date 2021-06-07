@@ -7,6 +7,8 @@ import (
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -50,6 +52,9 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 		xdsLog:         make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time),
 		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
 		kubecontroller: kubecontroller,
+		cacheEnabled:   cfg.GetFeatureFlags().EnableSnapshotCacheMode,
+		configVerMutex: sync.Mutex{},
+		configVersion:  make(map[string]uint64),
 	}
 
 	return &server
@@ -70,8 +75,25 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 		return err
 	}
 
-	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+	if s.cacheEnabled {
+		// TODO: Zerolog can't be passed as snapshot cache internal logger as it doesn't implement golang's logger interface
+		// passing nil as logger (third argument) for now
+		s.ch = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, nil)
+		s.srv = serverv3.NewServer(ctx, s.ch, &Callbacks{})
+
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.srv)
+	} else {
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+	}
+
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
+
+	if s.cacheEnabled {
+		// Start broadcast listener thread when cache is enabled and we are ready to start handling
+		// proxy broadcast updates
+		go s.broadcastListener()
+	}
+
 	s.ready = true
 
 	return nil

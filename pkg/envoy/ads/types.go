@@ -7,6 +7,8 @@ import (
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -35,4 +37,15 @@ type Server struct {
 	ready          bool
 	workqueues     *workerpool.WorkerPool
 	kubecontroller k8s.Controller
+
+	// ---
+	// SnapshotCache implementation structrues below
+	cacheEnabled bool
+	ch           cachev3.SnapshotCache
+	srv          serverv3.Server
+	// When snapshot cache is enabled, we (currently) don't keep track of proxy information, however different
+	// config versions have to be provided to the cache as we keep adding snapshots. The following map
+	// tracks at which version we are at given a proxy UUID
+	configVerMutex sync.Mutex
+	configVersion  map[string]uint64
 }
