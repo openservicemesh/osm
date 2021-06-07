@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -27,6 +24,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -93,7 +91,7 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	}
 	bootstrap.StaticResources = staticResources
 
-	configYAML, err := protoToYAML(bootstrap)
+	configYAML, err := utils.ProtoToYAML(bootstrap)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to marshal envoy bootstrap config to yaml")
 		return nil, err
@@ -298,39 +296,4 @@ func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error
 			},
 		},
 	}, nil
-}
-
-func protoToYAML(m protoreflect.ProtoMessage) ([]byte, error) {
-	marshalOptions := protojson.MarshalOptions{
-		UseProtoNames: true,
-	}
-	configJSON, err := marshalOptions.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-
-	configYAML, err := jsonToYAML(configJSON)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling xDS struct into YAML")
-		return nil, err
-	}
-	return configYAML, err
-}
-
-// Reference impl taken from https://github.com/ghodss/yaml/blob/master/yaml.go#L87
-func jsonToYAML(jb []byte) ([]byte, error) {
-	// Convert the JSON to an object.
-	var jsonObj interface{}
-	// We are using yaml.Unmarshal here (instead of json.Unmarshal) because the
-	// Go JSON library doesn't try to pick the right number type (int, float,
-	// etc.) when unmarshalling to interface{}, it just picks float64
-	// universally. go-yaml does go through the effort of picking the right
-	// number type, so we can preserve number type throughout this process.
-	err := yaml.Unmarshal([]byte(jb), &jsonObj)
-	if err != nil {
-		return nil, err
-	}
-
-	// Marshal this object into YAML.
-	return yaml.Marshal(jsonObj)
 }
