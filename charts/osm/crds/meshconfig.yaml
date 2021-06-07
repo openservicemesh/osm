@@ -68,10 +68,6 @@ spec:
                       description: Image for the Envoy sidecar
                       type: string
                       default: "envoyproxy/envoy-alpine:v1.18.3"
-<<<<<<< HEAD
-                      pattern: envoyproxy\/envoy-alpine:v\d+\.\d+\.\d+$
-=======
->>>>>>> 56d9248e (fix(crds/meshconfig): remove envoy image pattern)
                     initContainerImage:
                       description: Image for the init container
                       type: string
