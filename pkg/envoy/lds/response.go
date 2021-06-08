@@ -18,17 +18,6 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	if proxy.Kind() == envoy.KindGateway {
-		// TODO: Configure gateway
-		return nil, nil
-	}
-
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
-		return nil, err
-	}
-
 	svcAccount, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
@@ -43,6 +32,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	lb := newListenerBuilder(meshCatalog, svcAccount.ToServiceIdentity(), cfg, statsHeaders)
+
+	if proxy.Kind() == envoy.KindGateway {
+		return lb.buildGatewayListeners(), nil
+	}
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
@@ -60,6 +53,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
+
+	svcList, err := proxyRegistry.ListProxyServices(proxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
+		return nil, err
+	}
 	// Create inbound filter chains per service behind proxy
 	for _, proxyService := range svcList {
 		// Create in-mesh filter chains
