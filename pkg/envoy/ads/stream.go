@@ -309,6 +309,11 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
+	if p.Kind() == envoy.KindGateway {
+		log.Debug().Msgf("Proxy with serial no %s is a gateway, skipping recording pod metadata", p.GetCertificateSerialNumber())
+		return nil
+	}
+
 	pod, err := envoy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubecontroller)
 	if err != nil {
 		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", p.GetCertificateSerialNumber())

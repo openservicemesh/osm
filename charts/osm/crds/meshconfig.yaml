@@ -196,3 +196,6 @@ spec:
                     enableSnapshotCacheMode:
                       type: boolean
                       default: false
+                    enableOSMGateway:
+                      type: boolean
+                      default: false

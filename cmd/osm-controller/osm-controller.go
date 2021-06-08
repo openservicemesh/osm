@@ -56,6 +56,7 @@ var (
 	meshName           string // An ID that uniquely identifies an OSM instance
 	kubeConfigFile     string
 	osmNamespace       string
+	osmServiceAccount  string
 	webhookConfigName  string
 	caBundleSecretName string
 	osmMeshConfigName  string
@@ -77,8 +78,9 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
-	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file")
+	flags.StringVar(&osmNamespace, "osm-namespace", "", "OSM controller's namespace")
+	flags.StringVar(&osmServiceAccount, "osm-service-account", "", "OSM controller's service account")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 
@@ -168,6 +170,14 @@ func main() {
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", certProviderKind)
+	}
+
+	if cfg.GetFeatureFlags().EnableOSMGateway {
+		log.Info().Msgf("Bootstrapping OSM gateway")
+		if err := bootstrapOSMGateway(kubeClient, certManager, osmNamespace); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
+				"Error bootstraping OSM gateway")
+		}
 	}
 
 	kubeProvider, err := kube.NewProvider(kubernetesClient, constants.KubeProviderName, cfg)
