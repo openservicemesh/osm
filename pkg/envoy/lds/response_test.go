@@ -71,6 +71,18 @@ func TestNewResponse(t *testing.T) {
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats:        false,
+		EnableEgressPolicy:     true,
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)
 	assert.NotNil(proxy)
@@ -86,17 +98,6 @@ func TestNewResponse(t *testing.T) {
 	proxyRegistry = registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}))
-
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
-		EnableWASMStats:    false,
-		EnableEgressPolicy: true,
-	}).AnyTimes()
 
 	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Empty(err)
