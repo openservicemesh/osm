@@ -9,8 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	xds_access "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -24,74 +22,35 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
-	bootstrap := &xds_bootstrap.Bootstrap{
-		Node: &xds_core.Node{
-			Id: config.NodeID,
-		},
-		Admin: &xds_bootstrap.Admin{
-			AccessLog: []*xds_access.AccessLog{
-				{
-					Name: "envoy.access_loggers.stdout",
-					ConfigType: &xds_access.AccessLog_TypedConfig{
-						TypedConfig: &any.Any{
-							TypeUrl: "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
-						},
-					},
-				},
-			},
-			Address: &xds_core.Address{
-				Address: &xds_core.Address_SocketAddress{
-					SocketAddress: &xds_core.SocketAddress{
-						Address: constants.LocalhostIPAddress,
-						PortSpecifier: &xds_core.SocketAddress_PortValue{
-							PortValue: config.EnvoyAdminPort,
-						},
-					},
-				},
-			},
-		},
-		DynamicResources: &xds_bootstrap.Bootstrap_DynamicResources{
-			AdsConfig: &xds_core.ApiConfigSource{
-				ApiType:             xds_core.ApiConfigSource_GRPC,
-				TransportApiVersion: xds_core.ApiVersion_V3,
-				GrpcServices: []*xds_core.GrpcService{
-					{
-						TargetSpecifier: &xds_core.GrpcService_EnvoyGrpc_{
-							EnvoyGrpc: &xds_core.GrpcService_EnvoyGrpc{
-								ClusterName: config.XDSClusterName,
-							},
-						},
-					},
-				},
-				SetNodeOnFirstMessageOnly: true,
-			},
-			CdsConfig: &xds_core.ConfigSource{
-				ResourceApiVersion: xds_core.ApiVersion_V3,
-				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
-					Ads: &xds_core.AggregatedConfigSource{},
-				},
-			},
-			LdsConfig: &xds_core.ConfigSource{
-				ResourceApiVersion: xds_core.ApiVersion_V3,
-				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
-					Ads: &xds_core.AggregatedConfigSource{},
-				},
-			},
-		},
+	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
+		NodeID:           config.NodeID,
+		AdminPort:        constants.EnvoyAdminPort,
+		XDSClusterName:   constants.OSMControllerName,
+		TrustedCA:        config.RootCert,
+		CertificateChain: config.Cert,
+		PrivateKey:       config.Key,
+		XDSHost:          config.XDSHost,
+		XDSPort:          config.XDSPort,
+	})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
+		return nil, err
 	}
 
-	staticResources, err := getStaticResources(config)
+	probeListeners, probeClusters, err := getProbeResources(config)
 	if err != nil {
 		return nil, err
 	}
-	bootstrap.StaticResources = staticResources
+	bootstrapConfig.StaticResources.Listeners = append(bootstrapConfig.StaticResources.Listeners, probeListeners...)
+	bootstrapConfig.StaticResources.Clusters = append(bootstrapConfig.StaticResources.Clusters, probeClusters...)
 
-	configYAML, err := utils.ProtoToYAML(bootstrap)
+	configYAML, err := utils.ProtoToYAML(bootstrapConfig)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to marshal envoy bootstrap config to yaml")
 		return nil, err
@@ -99,28 +58,20 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	return configYAML, nil
 }
 
-// getStaticResources returns STATIC resources included in the bootstrap Envoy config.
+// getProbeResources returns the listener and cluster objects that are statically configured to serve
+// startup, readiness and liveness probes.
 // These will not change during the lifetime of the Pod.
-func getStaticResources(config envoyBootstrapConfigMeta) (*xds_bootstrap.Bootstrap_StaticResources, error) {
+func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
 	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
 	var listeners []*xds_listener.Listener
-
 	var clusters []*xds_cluster.Cluster
-
-	// There will ALWAYS be an xDS cluster
-	xdsCluster, err := getXdsCluster(config)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting xDS cluster")
-		return nil, err
-	}
-	clusters = append(clusters, xdsCluster)
 
 	// Is there a liveness probe in the Pod Spec?
 	if config.OriginalHealthProbes.liveness != nil {
 		listener, err := getLivenessListener(config.OriginalHealthProbes.liveness)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting liveness listener")
-			return nil, err
+			return nil, nil, err
 		}
 		listeners = append(listeners, listener)
 		clusters = append(clusters, getLivenessCluster(config.OriginalHealthProbes.liveness))
@@ -131,7 +82,7 @@ func getStaticResources(config envoyBootstrapConfigMeta) (*xds_bootstrap.Bootstr
 		listener, err := getReadinessListener(config.OriginalHealthProbes.readiness)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting readiness listener")
-			return nil, err
+			return nil, nil, err
 		}
 		listeners = append(listeners, listener)
 		clusters = append(clusters, getReadinessCluster(config.OriginalHealthProbes.readiness))
@@ -142,16 +93,13 @@ func getStaticResources(config envoyBootstrapConfigMeta) (*xds_bootstrap.Bootstr
 		listener, err := getStartupListener(config.OriginalHealthProbes.startup)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting startup listener")
-			return nil, err
+			return nil, nil, err
 		}
 		listeners = append(listeners, listener)
 		clusters = append(clusters, getStartupCluster(config.OriginalHealthProbes.startup))
 	}
 
-	return &xds_bootstrap.Bootstrap_StaticResources{
-		Listeners: listeners,
-		Clusters:  clusters,
-	}, nil
+	return listeners, clusters, nil
 }
 
 func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater, originalHealthProbes healthProbes) (*corev1.Secret, error) {
