@@ -104,7 +104,7 @@ func TestRDSRespose(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore-v1.default",
+					Name: "bookstore-v1.default.local",
 					Hostnames: []string{
 						"bookstore-v1",
 						"bookstore-v1.default",
@@ -147,7 +147,7 @@ func TestRDSRespose(t *testing.T) {
 					},
 				},
 				{
-					Name: tests.BookstoreApexServiceName,
+					Name: tests.BookstoreApexServiceName + ".default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -192,7 +192,7 @@ func TestRDSRespose(t *testing.T) {
 			},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      tests.BookstoreApexServiceName,
+					Name:      tests.BookstoreApexServiceName + ".default.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -267,7 +267,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Equal("rds-inbound", routeConfig.Name)
 			assert.Equal(2, len(routeConfig.VirtualHosts))
 
-			assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
+			assert.Equal("inbound_virtual-host|bookstore-v1.default.local", routeConfig.VirtualHosts[0].Name)
 			assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -277,7 +277,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
-			assert.Equal("inbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[1].Name)
+			assert.Equal("inbound_virtual-host|bookstore-apex.default.local", routeConfig.VirtualHosts[1].Name)
 			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[1].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[1].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -296,7 +296,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Equal("rds-outbound", routeConfig.Name)
 			assert.Equal(1, len(routeConfig.VirtualHosts))
 
-			assert.Equal("outbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[0].Name)
+			assert.Equal("outbound_virtual-host|bookstore-apex.default.local", routeConfig.VirtualHosts[0].Name)
 			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.WildCardRouteMatch.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)

@@ -552,13 +552,13 @@ func TestGetServiceHostnames(t *testing.T) {
 	mc := newFakeMeshCatalog()
 
 	testCases := []struct {
-		svc           service.MeshService
-		sameNamespace bool
-		expected      []string
+		svc      service.MeshService
+		locality service.Locality
+		expected []string
 	}{
 		{
 			tests.BookstoreV1Service,
-			true,
+			service.LocalNS,
 			[]string{
 				"bookstore-v1",
 				"bookstore-v1.default",
@@ -574,7 +574,7 @@ func TestGetServiceHostnames(t *testing.T) {
 		},
 		{
 			tests.BookstoreV1Service,
-			false,
+			service.LocalCluster,
 			[]string{
 				"bookstore-v1.default",
 				"bookstore-v1.default.svc",
@@ -589,8 +589,8 @@ func TestGetServiceHostnames(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing hostnames for svc %s with sameNamespace=%t", tc.svc, tc.sameNamespace), func(t *testing.T) {
-			actual, err := mc.getServiceHostnames(tc.svc, tc.sameNamespace)
+		t.Run(fmt.Sprintf("Testing hostnames for svc %s with locality=%d", tc.svc, tc.locality), func(t *testing.T) {
+			actual, err := mc.GetServiceHostnames(tc.svc, tc.locality)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expected)
 		})
