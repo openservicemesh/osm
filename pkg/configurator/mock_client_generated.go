@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	auth "github.com/openservicemesh/osm/pkg/auth"
+	identity "github.com/openservicemesh/osm/pkg/identity"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -276,17 +277,17 @@ func (mr *MockConfiguratorMockRecorder) IsEgressEnabled() *gomock.Call {
 }
 
 // IsPermissiveTrafficPolicyMode mocks base method
-func (m *MockConfigurator) IsPermissiveTrafficPolicyMode() bool {
+func (m *MockConfigurator) IsPermissiveTrafficPolicyMode(arg0 identity.ServiceIdentity) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsPermissiveTrafficPolicyMode")
+	ret := m.ctrl.Call(m, "IsPermissiveTrafficPolicyMode", arg0)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsPermissiveTrafficPolicyMode indicates an expected call of IsPermissiveTrafficPolicyMode
-func (mr *MockConfiguratorMockRecorder) IsPermissiveTrafficPolicyMode() *gomock.Call {
+func (mr *MockConfiguratorMockRecorder) IsPermissiveTrafficPolicyMode(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPermissiveTrafficPolicyMode", reflect.TypeOf((*MockConfigurator)(nil).IsPermissiveTrafficPolicyMode))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPermissiveTrafficPolicyMode", reflect.TypeOf((*MockConfigurator)(nil).IsPermissiveTrafficPolicyMode), arg0)
 }
 
 // IsPrivilegedInitContainer mocks base method

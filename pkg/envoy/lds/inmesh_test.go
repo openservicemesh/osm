@@ -264,7 +264,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
@@ -357,7 +357,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)

@@ -139,7 +139,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert secrets.SDS
 		},
 	}
 
-	if s.cfg.IsPermissiveTrafficPolicyMode() {
+	if s.cfg.IsPermissiveTrafficPolicyMode(s.serviceIdentity) {
 		// In permissive mode, there are no SMI TrafficTarget policies, so
 		// SAN matching is not required.
 		return secret, nil

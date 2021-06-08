@@ -71,7 +71,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
-	if !lb.cfg.IsPermissiveTrafficPolicyMode() {
+	if !lb.cfg.IsPermissiveTrafficPolicyMode(lb.serviceIdentity) {
 		// Apply RBAC policies on the inbound filters based on configured policies
 		rbacFilter, err := lb.buildRBACFilter()
 		if err != nil {
@@ -197,7 +197,7 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
-	if !lb.cfg.IsPermissiveTrafficPolicyMode() {
+	if !lb.cfg.IsPermissiveTrafficPolicyMode(lb.serviceIdentity) {
 		// Apply RBAC policies on the inbound filters based on configured policies
 		rbacFilter, err := lb.buildRBACFilter()
 		if err != nil {

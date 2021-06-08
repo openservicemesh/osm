@@ -19,6 +19,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -132,7 +133,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(identity.ServiceIdentity(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity())).Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 
@@ -212,7 +213,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(identity.ServiceIdentity(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity())).Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 		mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{

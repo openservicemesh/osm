@@ -232,7 +232,7 @@ func TestRDSRespose(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()).Return(false).AnyTimes()
 
 			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil

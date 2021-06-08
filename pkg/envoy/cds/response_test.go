@@ -63,7 +63,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()

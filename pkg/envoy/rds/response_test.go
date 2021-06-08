@@ -274,7 +274,7 @@ func TestNewResponse(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(false).AnyTimes()
 
 			mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
@@ -528,7 +528,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(testIngressInbound, nil).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(true).AnyTimes()
 
 	resources, err := NewResponse(mockCatalog, testProxy, &discoveryRequest, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
@@ -593,7 +593,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return([]*trafficpolicy.OutboundTrafficPolicy{}).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}, nil).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(false).AnyTimes()
 
 	testCases := []struct {
 		request *xds_discovery.DiscoveryRequest

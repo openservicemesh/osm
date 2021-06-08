@@ -18,7 +18,7 @@ import (
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode(downstreamIdentity) {
 		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
 		outboundPolicies = mergedPolicies
@@ -100,7 +100,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode(serviceIdentity) {
 		return mc.listMeshServices()
 	}
 

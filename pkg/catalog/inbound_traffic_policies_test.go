@@ -514,7 +514,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tc.upstreamSA).Return(tc.permissiveMode).AnyTimes()
 			actual := mc.ListInboundTrafficPolicies(tc.upstreamSA, tc.upstreamServices)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
 		})

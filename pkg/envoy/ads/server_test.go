@@ -1,4 +1,4 @@
-package utils
+package ads
 
 import (
 	"context"
@@ -67,4 +67,42 @@ func TestGrpcServe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	assert.Len(errorCh, 0)
+}
+
+func TestSetupMutualTLS(t *testing.T) {
+	assert := tassert.New(t)
+
+	type setupMutualTLStest struct {
+		certPem       []byte
+		keyPem        []byte
+		ca            []byte
+		expectedError string
+	}
+
+	certManager := tresor.NewFakeCertManager(nil)
+	adsCert, err := certManager.GetRootCertificate()
+	assert.Nil(err)
+
+	serverType := "ADS"
+	goodCertPem := adsCert.GetCertificateChain()
+	goodKeyPem := adsCert.GetPrivateKey()
+	goodCA := adsCert.GetIssuingCA()
+	var emptyByteArray []byte
+
+	setupMutualTLStests := []setupMutualTLStest{
+		{emptyByteArray, goodKeyPem, goodCA, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key "},
+		{goodCertPem, goodKeyPem, emptyByteArray, "[grpc][mTLS][ADS] Failed to append client certs"},
+		{goodCertPem, goodKeyPem, goodCA, ""},
+	}
+
+	for _, smt := range setupMutualTLStests {
+		result, err := setupMutualTLS(true, serverType, smt.certPem, smt.keyPem, smt.ca)
+		if err != nil {
+			assert.Nil(result)
+			assert.Contains(err.Error(), smt.expectedError)
+		} else {
+			assert.NotNil(result)
+			assert.Empty(smt.expectedError)
+		}
+	}
 }

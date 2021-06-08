@@ -25,7 +25,7 @@ const (
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode(upstreamIdentity) {
 		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		for _, svc := range upstreamServices {
 			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)

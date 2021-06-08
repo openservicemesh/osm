@@ -38,7 +38,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.
 func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode(upstream) {
 		return nil, nil
 	}
 

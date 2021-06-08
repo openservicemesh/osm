@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -36,7 +37,7 @@ func TestGetFilterForService(t *testing.T) {
 		cfg: mockConfigurator,
 	}
 
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false)
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(false)
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
@@ -50,7 +51,7 @@ func TestGetFilterForService(t *testing.T) {
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 
 	// Check we get HTTP connection manager filter with Permissive mode
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true)
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(true)
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 

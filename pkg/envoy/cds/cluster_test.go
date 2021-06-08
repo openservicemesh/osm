@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -53,7 +54,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(identity.ServiceIdentity(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity())).Return(tc.permissiveMode).Times(1)
 			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator)
 			assert.Nil(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())

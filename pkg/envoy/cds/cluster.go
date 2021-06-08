@@ -52,7 +52,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}
 
-	if cfg.IsPermissiveTrafficPolicyMode() {
+	if cfg.IsPermissiveTrafficPolicyMode(downstreamIdentity) {
 		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED

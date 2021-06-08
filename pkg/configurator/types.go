@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -34,7 +35,7 @@ type Configurator interface {
 	GetMeshConfigJSON() (string, error)
 
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
-	IsPermissiveTrafficPolicyMode() bool
+	IsPermissiveTrafficPolicyMode(serviceIdentity identity.ServiceIdentity) bool
 
 	// IsEgressEnabled determines whether egress is globally enabled in the mesh or not
 	IsEgressEnabled() bool

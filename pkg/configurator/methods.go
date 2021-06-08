@@ -10,6 +10,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 const (
@@ -46,8 +48,9 @@ func (c *Client) GetMeshConfigJSON() (string, error) {
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
 // referenced in SMI policies is allowed.
-func (c *Client) IsPermissiveTrafficPolicyMode() bool {
-	return c.getMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
+func (c *Client) IsPermissiveTrafficPolicyMode(si identity.ServiceIdentity) bool {
+	sa := si.ToK8sServiceAccount()
+	return c.getMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode || envoy.ProxyKind(sa.Name) == envoy.KindGateway && sa.Namespace == c.osmNamespace
 }
 
 // IsEgressEnabled determines whether egress is globally enabled in the mesh or not.

@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
@@ -112,7 +113,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				},
 			},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.True(cfg.IsPermissiveTrafficPolicyMode())
+				assert.True(cfg.IsPermissiveTrafficPolicyMode(identity.ServiceIdentity(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity())))
 			},
 			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Traffic: v1alpha1.TrafficSpec{
@@ -120,7 +121,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.False(cfg.IsPermissiveTrafficPolicyMode())
+				assert.False(cfg.IsPermissiveTrafficPolicyMode(identity.ServiceIdentity(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity())))
+				assert.True(cfg.IsPermissiveTrafficPolicyMode(identity.ServiceIdentity("gateway.osm-system.cluster.local")))
 			},
 		},
 		{

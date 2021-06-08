@@ -86,7 +86,7 @@ func TestNewResponse(t *testing.T) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}))
 
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tests.BookbuyerServiceIdentity).Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{

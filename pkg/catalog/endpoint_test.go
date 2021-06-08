@@ -147,7 +147,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tc.proxyIdentity).Return(false).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()

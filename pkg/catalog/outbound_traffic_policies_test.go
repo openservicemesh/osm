@@ -370,7 +370,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				configurator:       mockConfigurator,
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(tc.downstreamSA).Return(tc.permissiveMode).AnyTimes()
 			outbound := mc.ListOutboundTrafficPolicies(tc.downstreamSA)
 			assert.ElementsMatch(tc.expectedOutbound, outbound)
 		})
@@ -1393,7 +1393,7 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode(identity.ServiceIdentity("split-backend-1.my-dst-ns.svc.cluster.local")).Return(true).Times(1)
 			mockController.EXPECT().ListServices().Return(tc.services).Times(1)
 			if len(tc.trafficSplits) > 0 {
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
