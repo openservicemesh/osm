@@ -104,6 +104,16 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
+	if mc.isOSMGateway(serviceIdentity) {
+		var services []service.MeshService
+		for _, svc := range mc.listMeshServices() {
+			// The gateway can only forward to local services.
+			if svc.Local() {
+				services = append(services, svc)
+			}
+		}
+		return services
+	}
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
