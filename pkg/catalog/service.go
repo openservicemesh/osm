@@ -173,16 +173,16 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	return services
 }
 
-// getServiceHostnames returns a list of hostnames corresponding to the service.
+// GetServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
-func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
+	hostnames := kubernetes.GetHostnamesForService(svc, locality)
 	return hostnames, nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -18,16 +19,16 @@ const (
 
 // GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
 // If 'sameNamespace' is set to true, then the shorthand hostnames service and service:port are also returned.
-func GetHostnamesForService(service *corev1.Service, sameNamespace bool) []string {
+func GetHostnamesForService(svc *corev1.Service, locality service.Locality) []string {
 	var domains []string
-	if service == nil {
+	if svc == nil {
 		return domains
 	}
 
-	serviceName := service.Name
-	namespace := service.Namespace
+	serviceName := svc.Name
+	namespace := svc.Namespace
 
-	if sameNamespace {
+	if locality == service.LocalNS {
 		// Within the same namespace, service name is resolvable to its address
 		domains = append(domains, serviceName) // service
 	}
@@ -36,10 +37,10 @@ func GetHostnamesForService(service *corev1.Service, sameNamespace bool) []strin
 	domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))                   // service.namespace.svc
 	domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))           // service.namespace.svc.cluster
 	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, clusterDomain)) // service.namespace.svc.cluster.local
-	for _, portSpec := range service.Spec.Ports {
+	for _, portSpec := range svc.Spec.Ports {
 		port := portSpec.Port
 
-		if sameNamespace {
+		if locality == service.LocalNS {
 			// Within the same namespace, service name is resolvable to its address
 			domains = append(domains, fmt.Sprintf("%s:%d", serviceName, port)) // service:port
 		}

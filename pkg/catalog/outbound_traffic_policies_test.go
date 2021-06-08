@@ -24,7 +24,7 @@ import (
 
 var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*trafficpolicy.OutboundTrafficPolicy{
 	{
-		Name:      "bookstore-v1",
+		Name:      "bookstore-v1.default.local",
 		Hostnames: tests.BookstoreV1Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -34,7 +34,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		},
 	},
 	{
-		Name:      "bookstore-v2",
+		Name:      "bookstore-v2.default.local",
 		Hostnames: tests.BookstoreV2Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -44,7 +44,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		},
 	},
 	{
-		Name:      "bookstore-apex",
+		Name:      "bookstore-apex.default.local",
 		Hostnames: tests.BookstoreApexHostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -112,7 +112,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1",
+					Name:      "bookstore-v1.default.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -122,7 +122,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2",
+					Name:      "bookstore-v2.default.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -132,7 +132,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -163,7 +163,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1",
+					Name:      "bookstore-v1.default.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -173,7 +173,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2",
+					Name:      "bookstore-v2.default.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -183,7 +183,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: BookstoreApexHostnamesSorted,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -224,7 +224,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -262,7 +262,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name: "bookstore-v1.default",
+					Name: "bookstore-v1.default.local",
 					Hostnames: []string{
 						"bookstore-v1.default",
 						"bookstore-v1.default.svc",
@@ -281,7 +281,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-v2.default",
+					Name: "bookstore-v2.default.local",
 					Hostnames: []string{
 						"bookstore-v2.default",
 						"bookstore-v2.default.svc",
@@ -300,7 +300,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookbuyer.default",
+					Name: "bookbuyer.default.local",
 					Hostnames: []string{
 						"bookbuyer.default",
 						"bookbuyer.default.svc",
@@ -498,7 +498,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -524,7 +524,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -550,7 +550,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -580,7 +580,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -593,7 +593,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					},
 				},
 				{
-					Name:      "apex-split-1.bar",
+					Name:      "apex-split-1.bar.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -619,7 +619,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "apex-split-1.bar",
+					Name:      "apex-split-1.bar.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -649,7 +649,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "apex-split-1.bar",
+					Name:      "apex-split-1.bar.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -662,7 +662,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					},
 				},
 				{
-					Name:      "apex-split-1.baz",
+					Name:      "apex-split-1.baz.local",
 					Hostnames: testSplit3NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -774,7 +774,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 			services: map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "default"},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name: "bookstore-apex.default",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex.default",
 						"bookstore-apex.default.svc",
@@ -793,7 +793,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-v1.default",
+					Name: "bookstore-v1.default.local",
 					Hostnames: []string{
 						"bookstore-v1.default",
 						"bookstore-v1.default.svc",
@@ -812,7 +812,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookbuyer.default",
+					Name: "bookbuyer.default.local",
 					Hostnames: []string{
 						"bookbuyer.default",
 						"bookbuyer.default.svc",
@@ -876,7 +876,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 			trafficSplit:    split.TrafficSplit{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      tests.BookstoreV1Service.Name,
+					Name:      tests.BookstoreV1Service.FQDN(),
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -896,7 +896,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 			trafficSplit:    split.TrafficSplit{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      tests.BookstoreV1Service.Name,
+					Name:      tests.BookstoreV1Service.FQDN(),
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -990,7 +990,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1",
+					Name:      "bookstore-v1.default.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -1000,7 +1000,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2",
+					Name:      "bookstore-v2.default.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -1010,7 +1010,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex",
+					Name:      "bookstore-apex.default.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{

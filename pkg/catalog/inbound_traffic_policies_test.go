@@ -86,7 +86,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			trafficSplit: split.TrafficSplit{},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -198,7 +198,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -241,7 +241,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-apex",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -354,7 +354,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -384,7 +384,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-apex",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -446,7 +446,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			trafficSplit:        split.TrafficSplit{},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookbuyer.default",
+					Name: "bookbuyer.default.local",
 					Hostnames: []string{
 						"bookbuyer",
 						"bookbuyer.default",
@@ -659,7 +659,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore-apex",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -775,7 +775,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore-apex",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -892,7 +892,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore-apex",
+					Name: "bookstore-apex.default.local",
 					Hostnames: []string{
 						"bookstore-apex",
 						"bookstore-apex.default",
@@ -1034,7 +1034,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.bookstore-ns",
+					Name: "bookstore.bookstore-ns.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.bookstore-ns",
@@ -1125,7 +1125,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -1208,7 +1208,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name:      tests.BookstoreV1Service.Name + "." + tests.BookstoreV1Service.Namespace,
+					Name:      tests.BookstoreV1Service.Name + "." + tests.BookstoreV1Service.Namespace + ".local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Rules: []*trafficpolicy.Rule{
 						{
@@ -1291,7 +1291,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 			name: "inbound traffic policies for permissive mode",
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.bookstore-ns",
+					Name: "bookstore.bookstore-ns.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.bookstore-ns",
@@ -1412,7 +1412,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -1504,7 +1504,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 			},
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore.default",
+					Name: "bookstore.default.local",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.default",
@@ -1843,40 +1843,4 @@ func TestGetTrafficSpecName(t *testing.T) {
 	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
-}
-
-func TestBuildPolicyName(t *testing.T) {
-	assert := tassert.New(t)
-
-	svc := service.MeshService{
-		Namespace: "default",
-		Name:      "foo",
-	}
-
-	testCases := []struct {
-		name          string
-		svc           service.MeshService
-		sameNamespace bool
-		expectedName  string
-	}{
-		{
-			name:          "same namespace",
-			svc:           svc,
-			sameNamespace: true,
-			expectedName:  "foo",
-		},
-		{
-			name:          "different namespace",
-			svc:           svc,
-			sameNamespace: false,
-			expectedName:  "foo.default",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := buildPolicyName(tc.svc, tc.sameNamespace)
-			assert.Equal(tc.expectedName, actual)
-		})
-	}
 }

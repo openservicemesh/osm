@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -20,7 +21,7 @@ func TestGetHostnamesForService(t *testing.T) {
 	testCases := []struct {
 		name              string
 		service           *corev1.Service
-		isSameNamespace   bool
+		locality          service.Locality
 		expectedHostnames []string
 	}{
 		{
@@ -28,7 +29,7 @@ func TestGetHostnamesForService(t *testing.T) {
 			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
 				tests.SelectorKey: tests.SelectorValue,
 			}),
-			isSameNamespace: true,
+			locality: service.LocalNS,
 			expectedHostnames: []string{
 				tests.BookbuyerServiceName,
 				fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
@@ -47,7 +48,7 @@ func TestGetHostnamesForService(t *testing.T) {
 			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
 				tests.SelectorKey: tests.SelectorValue,
 			}),
-			isSameNamespace: false,
+			locality: service.LocalCluster,
 			expectedHostnames: []string{
 				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
 				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
@@ -63,7 +64,7 @@ func TestGetHostnamesForService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := GetHostnamesForService(tc.service, tc.isSameNamespace)
+			actual := GetHostnamesForService(tc.service, tc.locality)
 			assert.ElementsMatch(actual, tc.expectedHostnames)
 			assert.Len(actual, len(tc.expectedHostnames))
 		})
