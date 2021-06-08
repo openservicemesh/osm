@@ -1849,8 +1849,9 @@ func TestBuildPolicyName(t *testing.T) {
 	assert := tassert.New(t)
 
 	svc := service.MeshService{
-		Namespace: "default",
-		Name:      "foo",
+		Namespace:          "default",
+		Name:               "foo",
+		ClusterDomain:      constants.ClusterDomain,
 	}
 
 	testCases := []struct {

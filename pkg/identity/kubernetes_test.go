@@ -17,7 +17,7 @@ func TestGetKubernetesServiceIdentity(t *testing.T) {
 	}{
 		{
 			K8sServiceAccount{Name: "foo", Namespace: "bar"},
-			"cluster.local",
+			constants.ClusterDomain,
 			ServiceIdentity("foo.bar.cluster.local"),
 		},
 		{

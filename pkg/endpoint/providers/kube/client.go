@@ -122,6 +122,8 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 			services.Add(service.MeshService{
 				Namespace: pod.Namespace,
 				Name:      svc.Name,
+				ClusterName: "local",
+
 			})
 		}
 	}

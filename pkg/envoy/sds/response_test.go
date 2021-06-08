@@ -339,7 +339,11 @@ func TestGetSDSSecrets(t *testing.T) {
 					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
 					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
 				}
-				svc := service.MeshService{Name: "service-2", Namespace: "ns-2"}
+				svc := service.MeshService{
+					Name:          "service-2",
+					Namespace:     "ns-2",
+					ClusterDomain: constants.ClusterDomain,
+				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
