@@ -67,6 +67,59 @@
                     "additionalProperties": false
                 }
             }
+        },
+        "autoScale": {
+            "$id": "#/properties/definitions/properties/autoScale",
+            "type": "object",
+            "title": "The autoScale schema",
+            "description": "Autoscale configuration parameters",
+            "required": [
+                "enable"
+            ],
+            "properties": {
+                "enable": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/enable",
+                    "type": "boolean",
+                    "title": "Autoscale enable",
+                    "description": "Indicates whether autoscale should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "minReplicas": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/minReplicas",
+                    "type": "integer",
+                    "title": "Autoscale minimum replicas",
+                    "description": "Indicates the minimum replicas for autoscale.",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "examples": [
+                        1
+                    ]
+                },
+                "maxReplicas": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/maxReplicas",
+                    "type": "integer",
+                    "title": "Autoscale maximum replicase",
+                    "description": "Indicates the maximum replicas for autoscale.",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "examples": [
+                        5
+                    ]
+                },
+                "targetAverageUtilization": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/targetAverageUtilization",
+                    "type": "integer",
+                    "title": "Autoscale targetAverageUtilization",
+                    "description": "Indicates average target CPU utilization (percentage) for autoscale.",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "examples": [
+                        80
+                    ]
+                }
+            }
         }
     },
     "properties": {
@@ -139,6 +192,9 @@
                             "examples": [
                                 false
                             ]
+                        },
+                        "autoScale": {
+                            "$ref": "#/definitions/autoScale"
                         }
                     },
                     "additionalProperties": false
@@ -606,6 +662,9 @@
                             "examples": [
                                 false
                             ]
+                        },
+                        "autoScale": {
+                            "$ref": "#/definitions/autoScale"
                         }
                     },
                     "additionalProperties": false
