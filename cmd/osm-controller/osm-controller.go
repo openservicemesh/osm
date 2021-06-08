@@ -187,7 +187,7 @@ func main() {
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
 
-	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, constants.KubeProviderName, cfg)
+	kubeProvider, err := kube.NewProvider(kubernetesClient, constants.KubeProviderName, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
@@ -206,7 +206,6 @@ func main() {
 
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
-		kubeClient,
 		meshSpec,
 		certManager,
 		ingressClient,

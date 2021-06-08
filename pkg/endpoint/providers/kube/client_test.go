@@ -34,9 +34,8 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
 
-		fakeClientSet *testclient.Clientset
-		provider      endpoint.Provider
-		err           error
+		provider endpoint.Provider
+		err      error
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -48,8 +47,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		fakeClientSet = testclient.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, mockKubeController, providerID, mockConfigurator)
+		provider, err = NewProvider(mockKubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -319,7 +317,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}, 3*time.Second).Should(BeTrue())
 
 		Expect(err).ToNot(HaveOccurred())
-		provider, err = NewProvider(fakeClientSet, kubeController, providerID, mockConfigurator)
+		provider, err = NewProvider(kubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -723,7 +721,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			providerID := "provider"
 
-			provider, err := NewProvider(kubeClient, mockKubeController, providerID, mockConfigurator)
+			provider, err := NewProvider(mockKubeController, providerID, mockConfigurator)
 			assert.Nil(err)
 
 			var pods []*corev1.Pod

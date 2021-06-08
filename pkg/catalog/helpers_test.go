@@ -132,6 +132,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, kubeClient, mockMeshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
 		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, endpointProviders...)
 }
