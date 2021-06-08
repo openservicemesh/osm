@@ -1,6 +1,8 @@
 package utils
 
-import "os"
+import (
+	"os"
+)
 
 // GetEnv is a convenience wrapper for os.Getenv() with additional default value return
 // when empty or unset

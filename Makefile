@@ -213,7 +213,7 @@ pkg/envoy/lds/stats.wasm: wasm/stats.cc wasm/Makefile
 	@mv wasm/stats.wasm $@
 
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-crd-converter 
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-crd-converter
 
 .PHONY: embed-files
 embed-files: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
