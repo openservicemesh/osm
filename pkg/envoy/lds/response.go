@@ -18,11 +18,6 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	if proxy.Kind() == envoy.KindGateway {
-		// TODO: Configure gateway
-		return nil, nil
-	}
-
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
@@ -43,6 +38,23 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	lb := newListenerBuilder(meshCatalog, svcAccount.ToServiceIdentity(), cfg, statsHeaders)
+
+	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
+		// Build Prometheus listener config
+		prometheusConnManager := getPrometheusConnectionManager()
+		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
+			log.Error().Err(err).Msgf("Error building Prometheus listener for proxy %s", proxy.String())
+		} else {
+			ldsResources = append(ldsResources, prometheusListener)
+		}
+	}
+
+	if proxy.Kind() == envoy.KindGateway {
+		ldsResources = append(ldsResources, lb.newMultiClusterGatewayListener())
+		return ldsResources, nil
+	}
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
@@ -86,18 +98,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configured.
 		// Configuring a listener without a filter chain is an error.
 		ldsResources = append(ldsResources, inboundListener)
-	}
-
-	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
-		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
-	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
-		// Build Prometheus listener config
-		prometheusConnManager := getPrometheusConnectionManager()
-		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
-			log.Error().Err(err).Msgf("Error building Prometheus listener for proxy %s", proxy.String())
-		} else {
-			ldsResources = append(ldsResources, prometheusListener)
-		}
 	}
 
 	return ldsResources, nil

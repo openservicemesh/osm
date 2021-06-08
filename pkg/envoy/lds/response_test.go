@@ -108,7 +108,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Len(resources, 3)
 
 	// validating outbound listener
-	listener, ok := resources[0].(*xds_listener.Listener)
+	listener, ok := resources[1].(*xds_listener.Listener)
 	assert.True(ok)
 	assert.Equal(listener.Name, outboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
@@ -125,7 +125,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, wellknown.TCPProxy)
 
 	// validating inbound listener
-	listener, ok = resources[1].(*xds_listener.Listener)
+	listener, ok = resources[2].(*xds_listener.Listener)
 	assert.True(ok)
 	assert.Equal(listener.Name, inboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
@@ -133,12 +133,12 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
 	assert.Equal(listener.ListenerFilters[1].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
-	// There is 1 filter chains configured on the inbound-listner based on the configuration:
+	// There is 1 filter chains configured on the inbound-listener based on the configuration:
 	// 1. Filter chanin for bookbuyer
 	assert.Len(listener.FilterChains, 1)
 
 	// validating prometheus listener
-	listener, ok = resources[2].(*xds_listener.Listener)
+	listener, ok = resources[0].(*xds_listener.Listener)
 	assert.True(ok)
 	assert.Equal(listener.Name, prometheusListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)

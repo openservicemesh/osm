@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -38,6 +39,8 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),

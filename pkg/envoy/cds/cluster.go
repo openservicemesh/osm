@@ -25,14 +25,30 @@ const (
 	clusterConnectTimeout = 1 * time.Second
 )
 
+type options struct {
+	noPermissive bool
+	noTLS        bool
+}
+
+// Option is type of function that edits the defaults of the options struct.
+type Option func(o options)
+
+// NoTLS is an option to disable TLS.
+func NoTLS(o options) {
+	o.noTLS = true
+}
+
+// NoPermissive is an option to not generate permissive endpoints discovery for clusters.
+func NoPermissive(o options) {
+	o.noPermissive = true
+}
+
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
-	clusterName := upstreamSvc.String()
-	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
-		envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
-	if err != nil {
-		return nil, err
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, cfg configurator.Configurator, opts ...Option) (*xds_cluster.Cluster, error) {
+	o := options{}
+	for _, opt := range opts {
+		opt(o)
 	}
 
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
@@ -41,19 +57,29 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 	}
 
 	remoteCluster := &xds_cluster.Cluster{
-		Name:           clusterName,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-		TransportSocket: &xds_core.TransportSocket{
+		Name:                          upstreamSvc.String(),
+		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+	}
+
+	if !o.noTLS {
+		marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+			envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
+		if err != nil {
+			return nil, err
+		}
+		remoteCluster.TransportSocket = &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
-		},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		}
 	}
 
-	if cfg.IsPermissiveTrafficPolicyMode() {
+	if cfg.IsPermissiveTrafficPolicyMode() && !o.noPermissive {
 		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
+		// The gateway's services are referenced via <name>.<namespace>.cluster.<cluster-domain>, which doesn't have
+		// a cluster service discovery mechanism, so need to be explicit.
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
 	} else {

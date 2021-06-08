@@ -383,13 +383,11 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.serviceIdentity)
-	if len(upstreamServices) == 0 {
+	dstServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
+	if len(dstServices) == 0 {
 		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
 		return filterChains
 	}
-
-	dstServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
 
 	// Iterate all destination services
 	for _, upstream := range dstServices {

@@ -15,11 +15,6 @@ import (
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	if proxy.Kind() == envoy.KindGateway {
-		// TODO: Configure gateway
-		return nil, nil
-	}
-
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
@@ -32,6 +27,33 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
+	}
+
+	// Add an inbound prometheus cluster (from Prometheus to localhost)
+	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
+		clusters = append(clusters, getPrometheusCluster())
+	}
+
+	// Add an outbound tracing cluster (from localhost to tracing sink)
+	if cfg.IsTracingEnabled() {
+		clusters = append(clusters, getTracingCluster(cfg))
+	}
+
+	if proxy.Kind() == envoy.KindGateway {
+		// Build remote clusters based on allowed outbound services
+		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
+			cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg, NoPermissive, NoTLS)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
+					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
+				return nil, err
+			}
+
+			clusters = append(clusters, cluster)
+		}
+		return makeResources(proxy, clusters), nil
 	}
 
 	// Build remote clusters based on allowed outbound services
@@ -66,29 +88,20 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 	}
 
-	outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
-		return nil, err
-	}
-
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
 	if cfg.IsEgressEnabled() {
-		clusters = append(clusters, outboundPassthroughCluser)
+		outboundPassthroughCluster, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
+			return nil, err
+		}
+		clusters = append(clusters, outboundPassthroughCluster)
 	}
 
-	// Add an inbound prometheus cluster (from Prometheus to localhost)
-	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
-		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
-	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
-		clusters = append(clusters, getPrometheusCluster())
-	}
+	return makeResources(proxy, clusters), nil
+}
 
-	// Add an outbound tracing cluster (from localhost to tracing sink)
-	if cfg.IsTracingEnabled() {
-		clusters = append(clusters, getTracingCluster(cfg))
-	}
-
+func makeResources(proxy *envoy.Proxy, clusters []*xds_cluster.Cluster) []types.Resource {
 	alreadyAdded := mapset.NewSet()
 	var cdsResources []types.Resource
 	for _, cluster := range clusters {
@@ -99,6 +112,5 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		alreadyAdded.Add(cluster.Name)
 		cdsResources = append(cdsResources, cluster)
 	}
-
-	return cdsResources, nil
+	return cdsResources
 }

@@ -399,11 +399,16 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	tassert.Nil(t, err)
 
 	ctrl := gomock.NewController(t)
+	mockKubeController := k8s.NewMockController(ctrl)
+	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetTargetPortToProtocolMappingForService(svc).Return(nil, errors.New("some error")).Times(1)
+	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
+	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
@@ -463,4 +468,34 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
+}
+
+func TestNewResponseForGateway(t *testing.T) {
+	proxyIdentity := identity.K8sServiceAccount{Name: "gateway", Namespace: "osm-system"}.ToServiceIdentity()
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}))
+	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindGateway, "gateway", "osm-system")
+	proxy, err := envoy.NewProxy(cn, "", nil)
+	tassert.Nil(t, err)
+
+	ctrl := gomock.NewController(t)
+	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	mockKubeController := k8s.NewMockController(ctrl)
+	cfg := configurator.NewMockConfigurator(ctrl)
+	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return([]service.MeshService{
+		tests.BookbuyerService,
+		tests.BookwarehouseService,
+	}).AnyTimes()
+	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
+	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
+
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	tassert.NoError(t, err)
+	tassert.Len(t, resp, 2)
+	tassert.Equal(t, "default/bookbuyer", resp[0].(*xds_cluster.Cluster).Name)
+	tassert.Equal(t, "default/bookwarehouse", resp[1].(*xds_cluster.Cluster).Name)
 }
