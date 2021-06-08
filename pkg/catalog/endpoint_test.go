@@ -139,30 +139,30 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockEndpointProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
+				mockProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
 			}
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {
-				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
+				mockProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
 			var pods []*v1.Pod
@@ -192,7 +192,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					podEndpoints := tc.outboundServiceEndpoints[svc]
-					mockEndpointProvider.EXPECT().ListEndpointsForIdentity(sa).Return(podEndpoints).AnyTimes()
+					mockProvider.EXPECT().ListEndpointsForIdentity(sa).Return(podEndpoints).AnyTimes()
 				}
 			}
 

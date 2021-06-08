@@ -17,6 +17,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/provider"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -197,7 +198,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			meshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 			meshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
@@ -207,20 +208,20 @@ func TestGetEndpointsForProxy(t *testing.T) {
 			assert.NotNil(mockCatalog)
 			assert.NotNil(proxy)
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockEndpointProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
+				mockProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
 			}
 
 			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxyIdentity).Return(tc.services).AnyTimes()
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {
-				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
+				mockProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
 			mockCatalog.EXPECT().ListAllowedOutboundServiceIdentities(tc.proxyIdentity).Return(tc.allowedServiceIdentities, nil).AnyTimes()
@@ -252,7 +253,7 @@ func TestGetEndpointsForProxy(t *testing.T) {
 
 			for sa, svcEndpoints := range tc.outboundServiceAccountEndpoints {
 				for svc, endpoints := range svcEndpoints {
-					mockEndpointProvider.EXPECT().ListEndpointsForIdentity(sa).Return(endpoints).AnyTimes()
+					mockProvider.EXPECT().ListEndpointsForIdentity(sa).Return(endpoints).AnyTimes()
 					mockCatalog.EXPECT().ListAllowedEndpointsForService(tc.proxyIdentity, svc).Return(endpoints, nil).AnyTimes()
 				}
 			}

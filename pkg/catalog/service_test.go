@@ -96,11 +96,11 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 			actual := mc.getApexServicesForBackendService(tests.BookstoreV1Service)
@@ -201,11 +201,11 @@ func TestIsTrafficSplitBackendService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 			actual := mc.isTrafficSplitBackendService(tc.backendService)
@@ -273,7 +273,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	type endpointProviderConfig struct {
+	type providerConfig struct {
 		provider          *provider.MockProvider
 		portToProtocolMap map[uint32]string
 		err               error
@@ -281,14 +281,14 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 
 	testCases := []struct {
 		name                      string
-		providerConfigs           []endpointProviderConfig
+		providerConfigs           []providerConfig
 		expectedPortToProtocolMap map[uint32]string
 		expectError               bool
 	}{
 		{
 			// Test case 1
 			name: "multiple providers correctly returning the same port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []providerConfig{
 				{
 					// provider 1
 					provider:          provider.NewMockProvider(mockCtrl),
@@ -309,7 +309,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 2
 			name: "multiple providers incorrectly returning different port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []providerConfig{
 				{
 					// provider 1
 					provider:          provider.NewMockProvider(mockCtrl),
@@ -330,7 +330,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 3
 			name: "single provider correctly returning port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []providerConfig{
 				{
 					// provider 1
 					provider:          provider.NewMockProvider(mockCtrl),
@@ -355,7 +355,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 			}
 
 			mc := &MeshCatalog{
-				Providers: allProviders,
+				providers: allProviders,
 			}
 
 			actualPortToProtocolMap, err := mc.GetTargetPortToProtocolMappingForService(testSvc)

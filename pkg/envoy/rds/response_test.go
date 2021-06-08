@@ -23,11 +23,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -251,7 +251,7 @@ func TestNewResponse(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
@@ -267,7 +267,7 @@ func TestNewResponse(t *testing.T) {
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
 			}
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()

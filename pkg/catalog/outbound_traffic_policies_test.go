@@ -330,10 +330,10 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -359,14 +359,14 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 				mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.traffictargets).AnyTimes()
 				mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.trafficspecs).AnyTimes()
-				mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
+				mockProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
 				mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
 			}
 
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 				configurator:   mockConfigurator,
 			}
 
@@ -685,7 +685,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -696,7 +696,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 
 			actual := mc.listOutboundTrafficPoliciesForTrafficSplits(tc.sourceNamespace)
@@ -756,12 +756,12 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+	mockProvider := provider.NewMockProvider(mockCtrl)
 
 	mc := MeshCatalog{
 		kubeController: mockKubeController,
 		meshSpec:       mockMeshSpec,
-		Providers:      []provider.Provider{mockEndpointProvider},
+		providers:      []provider.Provider{mockProvider},
 	}
 
 	testCases := []struct {
@@ -845,7 +845,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 				mockKubeController.EXPECT().GetService(meshSvc).Return(svcFixture)
 			}
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().ListServices().Return(k8sServices)
 
 			actual := mc.buildOutboundPermissiveModePolicies()
@@ -927,20 +927,20 @@ func TestBuildOutboundPolicies(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 
 			destK8sService := tests.NewServiceFixture(tc.destMeshService.Name, tc.destMeshService.Namespace, map[string]string{})
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.destMeshService}, nil).AnyTimes()
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.destMeshService}, nil).AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().GetService(tc.destMeshService).Return(destK8sService).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA.ToServiceIdentity(), tc.destSA.ToServiceIdentity())
@@ -1040,7 +1040,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+			mockProvider := provider.NewMockProvider(mockCtrl)
 
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
@@ -1049,8 +1049,8 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.traffictargets).AnyTimes()
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.trafficspecs).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
+			mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().GetService(tests.BookstoreV1Service).Return(tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{})).AnyTimes()
 			mockKubeController.EXPECT().GetService(tests.BookstoreV2Service).Return(tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{})).AnyTimes()
 			mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
@@ -1058,7 +1058,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			mc := MeshCatalog{
 				kubeController: mockKubeController,
 				meshSpec:       mockMeshSpec,
-				Providers:      []provider.Provider{mockEndpointProvider},
+				providers:      []provider.Provider{mockProvider},
 			}
 
 			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceIdentity)
@@ -1073,11 +1073,11 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockEndpointProvider := provider.NewMockProvider(mockCtrl)
+	mockProvider := provider.NewMockProvider(mockCtrl)
 
 	mc := MeshCatalog{
 		kubeController: mockKubeController,
-		Providers:      []provider.Provider{mockEndpointProvider},
+		providers:      []provider.Provider{mockProvider},
 	}
 
 	destSA := identity.K8sServiceAccount{
@@ -1092,8 +1092,8 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
 
-	mockEndpointProvider.EXPECT().GetServicesForServiceAccount(destSA).Return([]service.MeshService{destMeshService}, nil).AnyTimes()
-	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+	mockProvider.EXPECT().GetServicesForServiceAccount(destSA).Return([]service.MeshService{destMeshService}, nil).AnyTimes()
+	mockProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
 
 	trafficTarget := &access.TrafficTarget{

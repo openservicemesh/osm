@@ -192,7 +192,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
 
-	Providers := []provider.Provider{kubeProvider}
+	providers := []provider.Provider{kubeProvider}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
@@ -213,7 +213,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		Providers...)
+		providers...)
 
 	proxyRegistry := registry.NewProxyRegistry(&registry.KubeProxyServiceMapper{KubeController: kubernetesClient})
 	proxyRegistry.ReleaseCertificateHandler(certManager)

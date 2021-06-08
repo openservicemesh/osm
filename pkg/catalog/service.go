@@ -72,7 +72,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 // getServicesForServiceAccount returns a list of services corresponding to a service account
 func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
-	for _, provider := range mc.Providers {
+	for _, provider := range mc.providers {
 		providerServices, err := provider.GetServicesForServiceAccount(sa)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", sa, provider.GetID())
@@ -120,7 +120,7 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	var portToProtocolMap, previous map[uint32]string
 
-	for _, provider := range mc.Providers {
+	for _, provider := range mc.providers {
 		current, err := provider.GetTargetPortToProtocolMappingForService(svc)
 		if err != nil {
 			return nil, err

@@ -9,7 +9,7 @@ import (
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service
 func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.Providers {
+	for _, provider := range mc.providers {
 		ep := provider.ListEndpointsForService(svc)
 		if len(ep) == 0 {
 			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), svc)
@@ -23,7 +23,7 @@ func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) ([]endpo
 // GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
 func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.Providers {
+	for _, provider := range mc.providers {
 		ep, err := provider.GetResolvableEndpointsForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msgf("[%s] Error getting endpoints for Service %s", provider.GetID(), svc)
@@ -73,7 +73,7 @@ func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identit
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) listEndpointsForServiceIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.Providers {
+	for _, provider := range mc.providers {
 		ep := provider.ListEndpointsForIdentity(serviceIdentity)
 		if len(ep) == 0 {
 			log.Trace().Msgf("[%s] No endpoints found for service account=%s", provider.GetID(), serviceIdentity)

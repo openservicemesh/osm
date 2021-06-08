@@ -17,7 +17,7 @@ import (
 func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, policyController policy.Controller, stop <-chan struct{}, cfg configurator.Configurator, Providers ...provider.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	mc := MeshCatalog{
-		Providers:        Providers,
+		providers:        Providers,
 		meshSpec:         meshSpec,
 		certManager:      certManager,
 		ingressMonitor:   ingressMonitor,
