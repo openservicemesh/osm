@@ -10,6 +10,7 @@ CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+BOOKSTORE_CLUSTER_ID="${BOOKSTORE_CLUSTER_ID:-}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
@@ -62,6 +63,8 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
+            - name: "BOOKSTORE_CLUSTER_ID"
+              value: "$BOOKSTORE_CLUSTER_ID"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
             - name: "ENABLE_EGRESS"

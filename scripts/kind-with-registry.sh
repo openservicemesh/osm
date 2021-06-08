@@ -7,8 +7,9 @@ set -o pipefail
 # desired cluster name; default is "kind"
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-osm}"
 
-if kind get clusters | grep -q ^osm$ ; then
-  echo "cluster already exists, moving on"
+# shellcheck disable=SC2086
+if kind get clusters | grep -q ^$KIND_CLUSTER_NAME$ ; then
+  echo "cluster '$KIND_CLUSTER_NAME' already exists, skipping creation of cluster."
   exit 0
 fi
 
@@ -59,7 +60,7 @@ if [ "${kind_network}" != "bridge" ]; then
       needs_connect="false"
     fi
   done
-  if [ "${needs_connect}" = "true" ]; then               
+  if [ "${needs_connect}" = "true" ]; then
     docker network connect "${kind_network}" "${reg_name}" || true
   fi
 fi
