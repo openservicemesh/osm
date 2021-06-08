@@ -36,6 +36,16 @@ OpenServiceMesh:
     podLabels: {}
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
+    # -- Auto scale configuration
+    autoScale:
+      # -- Enable Autoscale
+      enable: false
+      # -- Minimum replicas for autoscale
+      minReplicas: 1
+      # -- Maximum replicas for autoscale
+      maxReplicas: 5
+      # -- Average target CPU utilization (%)
+      targetAverageUtilization: 80
 
   #
   # -- Prometheus parameters
@@ -207,6 +217,16 @@ OpenServiceMesh:
     podLabels: {}
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
+    # -- Auto scale configuration
+    autoScale:
+      # -- Enable Autoscale
+      enable: false
+      # -- Minimum replicas for autoscale
+      minReplicas: 1
+      # -- Maximum replicas for autoscale
+      maxReplicas: 5
+      # -- Average target CPU utilization (%)
+      targetAverageUtilization: 80
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
