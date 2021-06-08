@@ -124,6 +124,4 @@ pull_request_rules:
       - -draft
     actions:
       rebase:
-        # bot_account is the account the rebase will be done under
-        # if not specified Mergify will use any user in OSM that's logged into Mergify
-        bot_account: OSM-PR-bot
+        # Mergify will use any OSM user that's logged into the Mergify dashboard for the rebasing
