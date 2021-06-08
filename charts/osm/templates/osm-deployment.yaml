@@ -55,6 +55,7 @@ spec:
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-service-account", "{{ .Release.Name }}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
