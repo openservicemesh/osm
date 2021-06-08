@@ -280,7 +280,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	var matchedTrafficTargets []trafficpolicy.TrafficTarget
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+		//log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 		if !isValidTrafficTarget(trafficTargets) {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -289,7 +289,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		for _, trafficSources := range trafficTargets.Spec.Sources {
 			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
 			if err != nil {
-				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+				//log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 				continue
 			}
 			for _, trafficTarget := range trafficTargetPermutations {
@@ -344,7 +344,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		matchedTrafficTargets = append(matchedTrafficTargets, trafficTarget)
 	}
 
-	//log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
+	log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
 	return matchedTrafficTargets, nil
 }
 

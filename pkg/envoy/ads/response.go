@@ -131,11 +131,11 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	response.Nonce = proxy.SetNewNonce(typeURL)
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
-	//if envoy.TypeURI(request.TypeUrl) == envoy.TypeSDS {
-	//	log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
-	//} else {
-	//	log.Trace().Msgf("Constructed %s response: VersionInfo=%s; %+v", response.TypeUrl, response.VersionInfo, response)
-	//}
+	if envoy.TypeURI(request.TypeUrl) == envoy.TypeSDS {
+		log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
+	} else {
+		log.Trace().Msgf("Constructed %s response: VersionInfo=%s; %+v", response.TypeUrl, response.VersionInfo, response)
+	}
 
 	return response, nil
 }

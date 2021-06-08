@@ -221,8 +221,8 @@ func getEgressCIDR(configMap *v1.ConfigMap) string {
 func GetBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
-			key, configMap.Namespace, configMap.Name, configMap.Data)
+		//log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return false, errMissingKeyInConfigMap
 	}
 
@@ -239,8 +239,8 @@ func GetBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {
 func GetIntValueForKey(configMap *v1.ConfigMap, key string) (int, error) {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
-			key, configMap.Namespace, configMap.Name, configMap.Data)
+		//log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return 0, errMissingKeyInConfigMap
 	}
 
@@ -257,8 +257,8 @@ func GetIntValueForKey(configMap *v1.ConfigMap, key string) (int, error) {
 func GetStringValueForKey(configMap *v1.ConfigMap, key string) (string, error) {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
-			key, configMap.Namespace, configMap.Name, configMap.Data)
+		//log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return "", errMissingKeyInConfigMap
 	}
 	return configMapStringValue, nil
