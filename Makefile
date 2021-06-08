@@ -154,6 +154,11 @@ kind-demo: export CTR_REGISTRY=localhost:5000
 kind-demo: .env kind-up clean-osm
 	./demo/run-osm-demo.sh
 
+.PHONY: kind-multicluster-demo
+kind-multicluster-demo:
+	./demo/run-osm-multicluster-testing.sh # TODO - change to final file. Currently using temp testing file.
+
+
 # build-bookbuyer, etc
 DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
 DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
