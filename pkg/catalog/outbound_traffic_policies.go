@@ -62,8 +62,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
-			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
-			Namespace: split.Namespace,
+			Name:        kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Namespace:   split.Namespace,
+			ClusterName: "local",
 		}
 
 		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
@@ -75,9 +76,10 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 
 		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
-			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
+			//ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace, ClusterName: "local"}
 			wc := service.WeightedCluster{
-				ClusterName: service.ClusterName(ms.String()),
+				//ClusterName: service.ClusterName(ms.String()),
+				ClusterName: "local", // traffic splits can't reference remote in V1alpha
 				Weight:      backend.Weight,
 			}
 			weightedClusters = append(weightedClusters, wc)
@@ -301,8 +303,9 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 				if backend.Service == upstreamSvc.Name {
 					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
 					rootMeshService := service.MeshService{
-						Namespace: split.Namespace,
-						Name:      rootServiceName,
+						Namespace:   split.Namespace,
+						Name:        rootServiceName,
+						ClusterName: "local",
 					}
 
 					// Add this root service into the set
