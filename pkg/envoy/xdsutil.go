@@ -9,7 +9,6 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -49,6 +48,9 @@ const (
 
 	// OutboundPassthroughCluster is the outbound passthrough cluster name
 	OutboundPassthroughCluster = "passthrough-outbound"
+
+	// AccessLoggerName is name used for the envoy access loggers.
+	AccessLoggerName = "envoy.access_loggers.stream"
 )
 
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
@@ -86,7 +88,7 @@ func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 		return nil
 	}
 	return []*xds_accesslog_filter.AccessLog{{
-		Name: wellknown.FileAccessLog,
+		Name: AccessLoggerName,
 		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
 			TypedConfig: accessLog,
 		}},
