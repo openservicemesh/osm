@@ -5,8 +5,6 @@
 package catalog
 
 import (
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -31,10 +29,6 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
-
-	// Current assumption is that OSM is working with a single Kubernetes cluster.
-	// This is the API/REST interface to the cluster
-	kubeClient kubernetes.Interface
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local

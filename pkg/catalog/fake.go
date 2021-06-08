@@ -113,7 +113,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
 		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
 }
 
@@ -223,6 +223,6 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
 		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
 }
