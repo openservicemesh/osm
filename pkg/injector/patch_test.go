@@ -2,11 +2,9 @@ package injector
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -15,37 +13,90 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var _ = Describe("Test all patch operations", func() {
+func TestCreatePatch(t *testing.T) {
+	assert := tassert.New(t)
 
-	// Setup all constants and variables needed for the tests
+	// Setup all variables and constants needed for the tests
 	proxyUUID := uuid.New()
 	const (
 		namespace = "-namespace-"
 		podName   = "-pod-name-"
 	)
 
-	Context("test createPatch() function", func() {
-		It("creates a patch", func() {
+	testCases := []struct {
+		name            string
+		namespace       *corev1.Namespace
+		expectedPatches []string
+	}{
+		{
+			name: "creates a patch",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			},
+			expectedPatches: []string{
+				// Add Envoy UID Label
+				`"path":"/metadata/labels"`,
+				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
+				// Add Volumes
+				`"path":"/spec/volumes"`,
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
+				// Add Init Container
+				`"path":"/spec/initContainers"`,
+				`"command":["/bin/sh"]`,
+				// Add Envoy Container
+				`"path":"/spec/containers"`,
+				`"command":["envoy"]`,
+			},
+		},
+		{
+			name: "metrics enabled",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        namespace,
+					Annotations: map[string]string{constants.MetricsAnnotation: "enabled"},
+				},
+			},
+			expectedPatches: []string{
+				// Add Envoy UID Label
+				`"path":"/metadata/labels"`,
+				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
+				// Add metrics Annotations
+				`"path":"/metadata/annotations"`,
+				`"value":{"prometheus.io/path":"/stats/prometheus","prometheus.io/port":"15010","prometheus.io/scrape":"true"}`,
+				// Add Volumes
+				`"path":"/spec/volumes"`,
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
+				// Add Init Container
+				`"path":"/spec/initContainers"`,
+				`"command":["/bin/sh"]`,
+				// Add Envoy Container
+				`"path":"/spec/containers"`,
+				`"command":["envoy"]`,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset()
-			mockCtrl := gomock.NewController(GinkgoT())
+			mockCtrl := gomock.NewController(t)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockNsController := k8s.NewMockController(mockCtrl)
-			mockNsController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
-			testNamespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "default",
-				},
-			}
-			_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
+			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace)
+			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
+			assert.NoError(err)
 
 			wh := &mutatingWebhook{
 				kubeClient:          client,
@@ -55,8 +106,6 @@ var _ = Describe("Test all patch operations", func() {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
-			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
 			mockConfigurator.EXPECT().GetInitContainerImage().Return("").Times(1)
@@ -65,50 +114,24 @@ var _ = Describe("Test all patch operations", func() {
 			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 
-			req := &admissionv1.AdmissionRequest{Namespace: namespace}
-			jsonPatches, err := wh.createPatch(&pod, req, proxyUUID)
+			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
 
-			Expect(err).ToNot(HaveOccurred())
+			raw, err := json.Marshal(pod)
+			assert.NoError(err)
 
-			expectedJSONPatches := `[` +
-				// Add Volumes
-				`{"op":addOperation,` +
-				`"path":"/spec/volumes",` +
-				`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-proxy-uuid"}}]},` +
+			req := &admissionv1.AdmissionRequest{Namespace: namespace, Object: runtime.RawExtension{Raw: raw}}
+			rawPatches, err := wh.createPatch(&pod, req, proxyUUID)
 
-				// Add Init Container
-				`{"op":addOperation,` +
-				`"path":"/spec/initContainers",` +
-				`"value":[{"name":"osm-init","env":[{"name":"OSM_PROXY_UID","value":"1500"},` +
-				`{"name":"OSM_ENVOY_INBOUND_PORT","value":"15003"},{"name":"OSM_ENVOY_OUTBOUND_PORT","value":"15001"}],` +
-				`"resources":{},"securityContext":{"capabilities":{addOperation:["NET_ADMIN"]}}}]},` +
+			assert.NoError(err)
 
-				// Add Envoy Container
-				`{"op":addOperation,"path":"/spec/containers",` +
-				`"value":[{"name":"envoy","command":["envoy"],` +
-				`"args":["--log-level","","--config-path","/etc/envoy/bootstrap.yaml","--service-node","bookstore","--service-cluster","bookstore.-namespace-","--bootstrap-version 3"],` +
-				`"ports":[{"name":"proxy-admin","containerPort":15000},{"name":"proxy-inbound","containerPort":15003},{"name":"proxy-metrics","containerPort":15010}],` +
-				`"resources":{},"volumeMounts":[{"name":"envoy-bootstrap-config-volume","readOnly":true,"mountPath":"/etc/envoy"}],` +
-				`"imagePullPolicy":"Always",` +
-				`"securityContext":{"runAsUser":1500}}]},{"op":addOperation,"path":"/metadata/annotations",` +
-				`"value":{"prometheus.io/scrape":"true"}},` +
+			patches := string(rawPatches)
 
-				// Add Prometheus Port Annotation
-				`{"op":addOperation,"path":"/metadata/annotations/prometheus.io~1port","value":"15010"},` +
-
-				// Add Prometheus Path Annotation
-				`{"op":addOperation,"path":"/metadata/annotations/prometheus.io~1path","value":"/stats/prometheus"},` +
-
-				// Add Envoy UID Label
-				`{"op":replaceOperation,"path":"/metadata/labels/osm-proxy-uuid","value":"proxy-uuid"}` +
-
-				`]`
-
-			Expect(string(jsonPatches)).ToNot(Equal(expectedJSONPatches),
-				fmt.Sprintf("Actual: %s", jsonPatches))
+			for _, expectedPatch := range tc.expectedPatches {
+				assert.Contains(patches, expectedPatch)
+			}
 		})
-	})
-})
+	}
+}
 
 func TestMergePortExclusionLists(t *testing.T) {
 	assert := tassert.New(t)
