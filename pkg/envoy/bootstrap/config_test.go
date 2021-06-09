@@ -33,7 +33,7 @@ func TestBuildFromConfig(t *testing.T) {
 
 	expectedYAML := `admin:
   access_log:
-  - name: envoy.access_loggers.stdout
+  - name: envoy.access_loggers.stream
     typed_config:
       '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
   address:

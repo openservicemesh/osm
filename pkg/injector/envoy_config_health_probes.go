@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
+
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -232,7 +234,7 @@ func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 		return nil, err
 	}
 	return &xds_accesslog_filter.AccessLog{
-		Name: wellknown.FileAccessLog,
+		Name: envoy.AccessLoggerName,
 		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
 			TypedConfig: accessLog,
 		},
@@ -247,7 +249,7 @@ func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 		return nil, err
 	}
 	return &xds_accesslog_filter.AccessLog{
-		Name: wellknown.FileAccessLog,
+		Name: envoy.AccessLoggerName,
 		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
 			TypedConfig: accessLog,
 		},

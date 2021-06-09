@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 // BuildFromConfig builds and returns an Envoy Bootstrap object from the given config
@@ -87,7 +88,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		Admin: &xds_bootstrap.Admin{
 			AccessLog: []*xds_accesslog_config.AccessLog{
 				{
-					Name: "envoy.access_loggers.stdout",
+					Name: envoy.AccessLoggerName,
 					ConfigType: &xds_accesslog_config.AccessLog_TypedConfig{
 						TypedConfig: pbAccessLog,
 					},
