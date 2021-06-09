@@ -193,3 +193,6 @@ spec:
                     enableMulticlusterMode:
                       type: boolean
                       default: false
+                    enableSnapshotCacheMode:
+                      type: boolean
+                      default: false

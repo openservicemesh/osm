@@ -6,6 +6,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/protobuf/ptypes"
 
@@ -13,24 +14,31 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-// Wrapper to create and send a discovery response to an envoy server
-func (s *Server) sendTypeResponse(typeURI envoy.TypeURI, proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, req *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) error {
+// getTypeResource invokes the XDS handler (LDS, CDS etc.) to respond to the XDS request containing the requests' type and associated resources
+func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	startedAt := time.Now()
-	log.Trace().Msgf("[%s] Creating response for proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	typeURI := envoy.TypeURI(request.TypeUrl)
+	log.Trace().Msgf("[%s] Getting resources for proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
-	if discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, cfg); err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	handler, ok := s.xdsHandlers[typeURI]
+	if !ok {
+		return nil, errUnknownTypeURL
+	}
+
+	if s.cfg.IsDebugServerEnabled() {
+		s.trackXDSLog(proxy.GetCertificateCommonName(), typeURI)
+	}
+
+	// Invoke XDS handler
+	resources, err := handler(s.catalog, proxy, request, s.cfg, s.certManager, s.proxyRegistry)
+	if err != nil {
 		xdsPathTimeTrack(startedAt, log.Debug(), typeURI, proxy, false)
-		return err
-	} else if err := (*server).Send(discoveryResponse); err != nil {
-		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		xdsPathTimeTrack(startedAt, log.Debug(), typeURI, proxy, false)
-		return err
+		return nil, errCreatingResponse
 	}
 
 	xdsPathTimeTrack(startedAt, log.Debug(), typeURI, proxy, true)
-	return nil
+	return resources, nil
 }
 
 // sendResponse takes a set of TypeURIs which will be called to generate the xDS resources
@@ -42,6 +50,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 
 	// A nil request indicates a request for all SDS responses
 	fullUpdateRequested := request == nil
+	cacheResourceMap := map[envoy.TypeURI][]types.Resource{}
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
@@ -61,8 +70,30 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 			finalReq = request
 		}
 
-		if err := s.sendTypeResponse(typeURI, proxy, server, finalReq, cfg); err != nil {
+		// Generate the resources for this request
+		resources, err := s.getTypeResources(proxy, finalReq)
+		if err != nil {
 			log.Error().Err(err).Msgf("Creating %s update for Proxy %s", typeURI.Short(), proxy.GetCertificateCommonName())
+			thereWereErrors = true
+			continue
+		}
+
+		if s.cacheEnabled {
+			// Keep a reference to later set the full snapshot in the cache
+			cacheResourceMap[typeURI] = resources
+		} else {
+			// If cache disabled, craft and send a reply to the proxy on the stream
+			if err := s.SendDiscoveryResponse(proxy, finalReq, server, resources); err != nil {
+				log.Error().Err(err).Msgf("Creating %s update for Proxy %s", typeURI.Short(), proxy.GetCertificateCommonName())
+				thereWereErrors = true
+			}
+		}
+	}
+
+	if s.cacheEnabled {
+		// Store the aggregated resources as a full snapshot
+		if err := s.RecordFullSnapshot(proxy, cacheResourceMap); err != nil {
+			log.Error().Err(err).Msgf("Failed to record snapshot for proxy %s: %v", proxy.GetCertificateCommonName(), err)
 			thereWereErrors = true
 		}
 	}
@@ -76,56 +107,43 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	return nil
 }
 
-func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	typeURL := envoy.TypeURI(request.TypeUrl)
-	handler, ok := s.xdsHandlers[typeURL]
-	if !ok {
-		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
-		return nil, errUnknownTypeURL
-	}
-
-	if s.cfg.IsDebugServerEnabled() {
-		s.trackXDSLog(proxy.GetCertificateCommonName(), typeURL)
-	}
-
+// SendDiscoveryResponse creates a new response for <proxy> given <resourcesToSend> and <request.TypeURI> and sends it
+func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, resourcesToSend []types.Resource) error {
 	// request.Node is only available on the first Discovery Request; will be nil on the following
-	nodeID := ""
-	if request.Node != nil {
-		nodeID = request.Node.Id
-	}
-
-	log.Trace().Msgf("Invoking handler for type %s; request from Envoy with Node ID %s", typeURL, nodeID)
-	resources, err := handler(s.catalog, proxy, request, cfg, s.certManager, s.proxyRegistry)
-	if err != nil {
-		log.Error().Err(err).Msgf("Handler errored TypeURL: %s, proxy: %s", request.TypeUrl, proxy.GetCertificateSerialNumber())
-		return nil, errCreatingResponse
-	}
+	typeURI := envoy.TypeURI(request.TypeUrl)
 
 	response := &xds_discovery.DiscoveryResponse{
-		TypeUrl:     request.TypeUrl, // Request TypeURL
-		VersionInfo: strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10),
-		Nonce:       proxy.SetNewNonce(typeURL),
+		TypeUrl:     request.TypeUrl,
+		VersionInfo: strconv.FormatUint(proxy.IncrementLastSentVersion(typeURI), 10),
+		Nonce:       proxy.SetNewNonce(typeURI),
 	}
 
 	resourcesSent := mapset.NewSet()
-	for _, res := range resources {
+	for _, res := range resourcesToSend {
 		proto, err := ptypes.MarshalAny(res)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURL, proxy.GetCertificateSerialNumber())
+			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())
 			continue
 		}
 		response.Resources = append(response.Resources, proto)
 		resourcesSent.Add(cache.GetResourceName(res))
 	}
 
-	// Validate the generated resources given the request
-	validateRequestResponse(proxy, request, resources)
-
-	// TODO: Move updating resources sent, version, and nonce after "server.Send()" has succeeded
-	proxy.SetLastResourcesSent(typeURL, resourcesSent)
-
 	// NOTE: Never log entire 'response' - will contain secrets!
 	log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
 
-	return response, nil
+	// Validate the generated resources given the request
+	validateRequestResponse(proxy, request, resourcesToSend)
+
+	// Send the response
+	if err := (*server).Send(response); err != nil {
+		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		return err
+	}
+
+	// Sending discovery response succeeded, record last resources sent
+	// TODO: increase version and nonce only if Send succeeded
+	proxy.SetLastResourcesSent(typeURI, resourcesSent)
+
+	return nil
 }

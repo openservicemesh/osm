@@ -158,4 +158,7 @@ type FeatureFlags struct {
 
 	// EnableMulticlusterMode defines if Multicluster mode is enabled.
 	EnableMulticlusterMode bool `json:"enableMulticlusterMode,omitempty"`
+
+	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache
+	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode,omitempty"`
 }
