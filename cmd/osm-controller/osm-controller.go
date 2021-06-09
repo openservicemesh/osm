@@ -31,7 +31,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
-	"github.com/openservicemesh/osm/pkg/endpoint/providers/remote"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/health"
@@ -46,7 +45,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
-	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -57,10 +55,7 @@ const (
 var (
 	verbosity            string
 	meshName             string // An ID that uniquely identifies an OSM instance
-	enableRemoteCluster  bool
-	clusterId            string
 	kubeConfigFile       string
-	osmControllerName    string
 	osmNamespace         string
 	webhookConfigName    string
 	caBundleSecretName   string
@@ -70,12 +65,8 @@ var (
 
 	injectorConfig injector.Config
 
-	remoteProvider             *remote.Client
-	witesandCatalog            *witesand.WitesandCatalog
-
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
-	m                *catalog.MeshCatalog
 
 	scheme = runtime.NewScheme()
 )
@@ -101,13 +92,13 @@ var (
 )
 
 func init() {
+	//witesand init
+	wsinit()
+
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.BoolVar(&enableRemoteCluster, "enable-remote-cluster", false, "Enable Remote cluster")
-	flags.StringVar(&clusterId, "cluster-id", "master", "Cluster Id")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&osmControllerName, "osm-controller-name", "osm-controller", "Service name of osm-controller.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
@@ -217,21 +208,7 @@ func main() {
 	}
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
-
-	log.Info().Msgf("enableRemoteCluster:%t clusterId:%s", enableRemoteCluster, clusterId)
-
-	witesandCatalog = witesand.NewWitesandCatalog(kubeClient, clusterId)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Witesand catalog")
-	}
-
-	if enableRemoteCluster {
-		remoteProvider, err = remote.NewProvider(kubeClient, witesandCatalog, clusterId, stop, meshSpec, constants.RemoteProviderName)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize remote provider")
-		}
-		endpointsProviders = append(endpointsProviders, remoteProvider)
-	}
+	err, endpointsProviders = wsRemoteCluster(kubeClient, err, stop, meshSpec, endpointsProviders)
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {

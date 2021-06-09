@@ -235,8 +235,6 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 		}
 		headers = append(headers, &header)
 	}
-
-	log.Debug().Msgf("[getHeadersForRoute] headers=%+v \n", headers)
 	return headers
 }
 

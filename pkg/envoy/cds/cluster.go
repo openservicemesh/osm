@@ -2,7 +2,6 @@ package cds
 
 import (
 	"fmt"
-	"strconv"
 	_ "strings"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -57,7 +55,6 @@ func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePor
 		},
 	}
 
-	log.Debug().Msgf("cfg.IsPermissiveTrafficPolicyMode()=%+v", cfg.IsPermissiveTrafficPolicyMode())
 	if cfg.IsPermissiveTrafficPolicyMode() {
 		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
@@ -70,111 +67,6 @@ func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePor
 	}
 
 	return remoteCluster, nil
-}
-
-// getWSEdgePodUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
-func getWSEdgePodUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
-	wscatalog := catalog.GetWitesandCataloger()
-	apigroupClusterNames, err := wscatalog.ListApigroupClusterNames()
-	if err != nil {
-		return err
-	}
-	edgePodNames, err := wscatalog.ListAllEdgePods()
-	if err != nil {
-		return err
-	}
-
-	// create clusters with apigroup-names with ROUND_ROBIN
-	for _, apigroupName := range apigroupClusterNames {
-		clusterName := apigroupName + ":" + strconv.Itoa(upstreamSvc.Port)
-
-		remoteCluster := &xds_cluster.Cluster{
-			Name:                 clusterName,
-			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
-			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-			CircuitBreakers: &xds_cluster.CircuitBreakers{
-				Thresholds:   makeWSThresholds(),
-			},
-		}
-
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
-		clusterFactories[remoteCluster.Name] = remoteCluster
-	}
-
-	// create clusters with apigroup-names + "device-hash" with ROUND_ROBIN
-	for _, apigroupName := range apigroupClusterNames {
-		clusterName := apigroupName + witesand.DeviceHashSuffix + ":" + strconv.Itoa(upstreamSvc.Port)
-
-		remoteCluster := &xds_cluster.Cluster{
-			Name:                 clusterName,
-			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
-			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-			CircuitBreakers: &xds_cluster.CircuitBreakers{
-				Thresholds:   makeWSThresholds(),
-			},
-		}
-
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_RING_HASH
-		clusterFactories[remoteCluster.Name] = remoteCluster
-	}
-
-	// create clusters with pod-names with ROUND_ROBIN
-	for _, edgePodName := range edgePodNames {
-		clusterName := edgePodName + ":" + strconv.Itoa(upstreamSvc.Port)
-
-		remoteCluster := &xds_cluster.Cluster{
-			Name:                 clusterName,
-			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
-			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-			CircuitBreakers: &xds_cluster.CircuitBreakers{
-				Thresholds:   makeWSThresholds(),
-			},
-		}
-
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
-		clusterFactories[remoteCluster.Name] = remoteCluster
-	}
-
-	return nil
-}
-
-// create one cluster for each pod in the service.
-// cluster name of the form "<pod-name>:<port-num>"
-func getWSUnicastUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
-	serviceEndpoints, err := catalog.ListEndpointsForService(upstreamSvc.GetMeshService())
-	if err != nil {
-		return err
-	}
-
-	// create clusters with pod-names
-	for _, endpoint := range serviceEndpoints {
-		clusterName := endpoint.PodName + ":" + strconv.Itoa(upstreamSvc.Port)
-
-		remoteCluster := &xds_cluster.Cluster{
-			Name:                 clusterName,
-			ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
-			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-			CircuitBreakers: &xds_cluster.CircuitBreakers{
-				Thresholds:   makeWSThresholds(),
-			},
-		}
-
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		clusterFactories[remoteCluster.Name] = remoteCluster
-	}
-
-	return nil
 }
 
 // getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
@@ -234,7 +126,6 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			},
 		}
 
-	//Thresholds:  []*xds_cluster.CircuitBreakers_Thresholds{Threshold = threshold,},
 		localityEndpoint := &xds_endpoint.LocalityLbEndpoints{
 			Locality: &xds_core.Locality{
 				Zone: "zone",

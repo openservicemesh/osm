@@ -60,7 +60,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		if featureflags.IsBackpressureEnabled() {
 			enableBackpressure(catalog, remoteCluster, dstService.GetMeshService())
 		}
-		log.Debug().Msgf("remoteName:%s, remoteCluster:%+v", remoteCluster.Name, remoteCluster)
+		//log.Debug().Msgf("remoteName:%s, remoteCluster:%+v", remoteCluster.Name, remoteCluster)
 
 		clusterFactories[remoteCluster.Name] = remoteCluster
 	}

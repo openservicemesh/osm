@@ -55,10 +55,6 @@ func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 	return mc.meshSpec
 }
 
-func (mc *MeshCatalog) GetWitesandCataloger() witesand.WitesandCataloger {
-	return mc.witesandCatalog
-}
-
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	ticking := make(chan announcements.Announcement)
 	announcementChannels := []announcementChannel{
@@ -90,13 +86,4 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	}
 
 	return announcementChannels
-}
-
-func (mc *MeshCatalog) GetProvider(ident string) endpoint.Provider {
-	for _, ep := range mc.endpointsProviders {
-		if ep.GetID() == ident {
-			return ep
-		}
-	}
-	return nil
 }

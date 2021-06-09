@@ -200,8 +200,8 @@ func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, same
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		var svc1 corev1.Service
-		svc1.Name =  meshService.Name
-		svc1.Namespace =  meshService.Namespace
+		svc1.Name = meshService.Name
+		svc1.Namespace = meshService.Namespace
 		svc1.Spec.Ports = make([]corev1.ServicePort, 0)
 		svc = &svc1
 	}
@@ -406,7 +406,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 	}
 	destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
 	if destErr != nil {
-		log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
+		//log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
 		return nil, destErr
 	}
 
