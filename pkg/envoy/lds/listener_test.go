@@ -14,12 +14,12 @@ import (
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -41,6 +41,9 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
+	}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats: false,
 	}).AnyTimes()
 
 	// Check we get HTTP connection manager filter without Permissive mode
@@ -108,10 +111,16 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Should have the correct StatPrefix", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
 			connManager := getHTTPConnectionManager("foo", mockConfigurator, nil, outbound)
 			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.foo"))
 
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
 			connManager = getHTTPConnectionManager("bar", mockConfigurator, nil, outbound)
 			Expect(connManager.StatPrefix).To(Equal("mesh-http-conn-manager.bar"))
 		})
@@ -121,6 +130,9 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
 			mockConfigurator.EXPECT().GetTracingEndpoint().Return(constants.DefaultTracingEndpoint).Times(1)
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, outbound)
 
@@ -130,6 +142,9 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns proper Zipkin config given when tracing is disabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, outbound)
 			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
@@ -139,9 +154,9 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 		It("Returns no stats config when WASM is disabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
-
-			oldWASMflag := featureflags.Features.WASMStats
-			featureflags.Features.WASMStats = false
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
@@ -155,14 +170,13 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
-			featureflags.Features.WASMStats = oldWASMflag
 		})
 
 		It("Returns no stats config when WASM is disabled and no WASM is defined", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
-
-			oldWASMflag := featureflags.Features.WASMStats
-			featureflags.Features.WASMStats = true
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: true,
+			}).Times(1)
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = ""
@@ -176,14 +190,13 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
-			featureflags.Features.WASMStats = oldWASMflag
 		})
 
 		It("Returns no Lua headers filter config when there are no headers to add", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
-
-			oldWASMflag := featureflags.Features.WASMStats
-			featureflags.Features.WASMStats = true
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: true,
+			}).Times(1)
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
@@ -198,14 +211,13 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
-			featureflags.Features.WASMStats = oldWASMflag
 		})
 
 		It("Returns proper stats config when WASM is enabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
-
-			oldWASMflag := featureflags.Features.WASMStats
-			featureflags.Features.WASMStats = true
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: true,
+			}).Times(1)
 
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = testWASM
@@ -222,7 +234,6 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
-			featureflags.Features.WASMStats = oldWASMflag
 		})
 
 		It("Returns inbound external authorization enabled connection manager when enabled by config", func() {
@@ -234,6 +245,9 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 				StatPrefix:       "pref",
 				AuthzTimeout:     3 * time.Second,
 				FailureModeAllow: false,
+			}).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
 			}).Times(1)
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil, inbound)

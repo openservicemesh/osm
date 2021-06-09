@@ -35,6 +35,9 @@ type MeshConfigSpec struct {
 
 	// Certificate defines the certificate management configurations for a mesh instance.
 	Certificate CertificateSpec `json:"certificate,omitempty"`
+
+	// FeatureFlags defines the feature flags for a mesh instance.
+	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
 }
 
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.
@@ -143,4 +146,16 @@ type MeshConfigList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []MeshConfig `json:"items"`
+}
+
+// FeatureFlags is a type to represent OSM's feature flags.
+type FeatureFlags struct {
+	// EnableWASMStats defines if WASM Stats are enabled.
+	EnableWASMStats bool `json:"enableWASMStats,omitempty"`
+
+	// EnableEgressPolicy defines if OSM's Egress policy is enabled.
+	EnableEgressPolicy bool `json:"enableEgressPolicy,omitempty"`
+
+	// EnableMulticlusterMode defines if Multicluster mode is enabled.
+	EnableMulticlusterMode bool `json:"enableMulticlusterMode,omitempty"`
 }

@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -34,7 +33,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -68,9 +66,6 @@ var (
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
-	// feature flag options
-	optionalFeatures featureflags.OptionalFeatures
-
 	scheme = runtime.NewScheme()
 )
 
@@ -103,11 +98,6 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
-	// feature flags
-	flags.BoolVar(&optionalFeatures.WASMStats, "stats-wasm-experimental", false, "Enable a WebAssembly module that generates additional Envoy statistics")
-	flags.BoolVar(&optionalFeatures.EgressPolicy, "enable-egress-policy", false, "Enable OSM's Egress policy API")
-	flags.BoolVar(&optionalFeatures.MulticlusterMode, "enable-multicluster", false, "Enable multicluster mode in OSM")
-
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
 }
@@ -122,13 +112,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Error setting log level")
 	}
 
-	if featureFlagsJSON, err := json.Marshal(featureflags.Features); err != nil {
-		log.Error().Err(err).Msgf("Error marshaling feature flags struct: %+v", featureflags.Features)
-	} else {
-		log.Info().Msgf("Feature flags: %s", string(featureFlagsJSON))
-	}
-
-	featureflags.Initialize(optionalFeatures)
 	events.GetPubSubInstance() // Just to generate the interface, single routine context
 
 	// Initialize kube config and client

@@ -91,7 +91,7 @@ type MeshCataloger interface {
 	// ListMeshServicesForIdentity lists the services for a given service identity.
 	ListMeshServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
+	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
 
 	// GetKubeController returns the kube controller instance handling the current cluster
