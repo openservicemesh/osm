@@ -75,7 +75,7 @@ func (mc *MeshCatalog) dispatcher() {
 
 			// Identify if this is an actual delta, or just resync
 			delta := isDeltaUpdate(psubMessage)
-			log.Info().Msgf("dispatchertrack [Pubsub] %s - delta: %v", psubMessage.AnnouncementType.String(), delta)
+			//log.Info().Msgf("dispatchertrack [Pubsub] %s - delta: %v", psubMessage.AnnouncementType.String(), delta)
 
 			// Schedule an envoy broadcast update if we either:
 			// - detected a config delta
