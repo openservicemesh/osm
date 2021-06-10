@@ -6,7 +6,7 @@ weight: 1
 ---
 
 
-![OSM Components & Interactions](../../images/osm-components-and-interactions.png)
+![OSM Components & Interactions](osm-components-and-interactions.png)
 
 ### Containers
 
