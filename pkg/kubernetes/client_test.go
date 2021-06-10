@@ -446,7 +446,11 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			Expect(err).ToNot(HaveOccurred())
 			<-serviceChannel
 
-			meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace}
+			meshSvc := service.MeshService{
+				Name:          svc.Name,
+				Namespace:     svc.Namespace,
+				ClusterDomain: "cluster.local",
+			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
 
@@ -542,7 +546,11 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			Expect(err).ToNot(HaveOccurred())
 			<-serviceChannel
 
-			meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace}
+			meshSvc := service.MeshService{
+				Name:          svc.Name,
+				Namespace:     svc.Namespace,
+				ClusterDomain: "cluster.local",
+			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
 

@@ -343,7 +343,11 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		},
 	}
 
-	testSvc := service.MeshService{Name: "foo", Namespace: "bar"}
+	testSvc := service.MeshService{
+		Name:          "foo",
+		Namespace:     "bar",
+		ClusterDomain: "cluster.local",
+	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
@@ -372,8 +376,9 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	svc := service.MeshService{
-		Namespace: "foo",
-		Name:      "bar",
+		Namespace:     "foo",
+		Name:          "bar",
+		ClusterDomain: "cluster.local",
 	}
 	appProtocolTCP := "tcp"
 	appProtocolHTTP := "http"

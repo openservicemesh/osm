@@ -21,7 +21,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 			backendService := service.MeshService{
 				Name:      backend.Service,
 				Namespace: split.ObjectMeta.Namespace,
-				ClusterName: "local",
+				ClusterDomain: "cluster.local",
 
 			}
 			if svc.Equals(backendService) {
@@ -38,7 +38,7 @@ func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
 		apexService := service.MeshService{
 			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace: split.Namespace,
-			ClusterName: "local",
+			ClusterDomain: "cluster.local",
 		}
 		if svc.Equals(apexService) {
 			return true
@@ -58,6 +58,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 				meshService := service.MeshService{
 					Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 					Namespace: split.Namespace,
+					ClusterDomain: "cluster.local",
 				}
 				apexSet.Add(meshService)
 				break

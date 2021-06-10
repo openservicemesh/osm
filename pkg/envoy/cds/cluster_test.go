@@ -67,8 +67,9 @@ func TestGetLocalServiceCluster(t *testing.T) {
 
 	clusterName := "bookbuyer-local"
 	proxyService := service.MeshService{
-		Name:      "bookbuyer",
-		Namespace: "bookbuyer-ns",
+		Name:          "bookbuyer",
+		Namespace:     "bookbuyer-ns",
+		ClusterDomain: "cluster.local",
 	}
 
 	mockCtrl := gomock.NewController(t)

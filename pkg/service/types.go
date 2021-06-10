@@ -17,8 +17,8 @@ type MeshService struct {
 	// The name of the service
 	Name string
 
-	// The cluster name in which the service runs
-	ClusterName string
+	// The cluster domain in which the service runs
+	ClusterDomain string
 }
 
 func (ms MeshService) String() string {

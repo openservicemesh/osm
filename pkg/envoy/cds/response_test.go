@@ -389,7 +389,11 @@ func TestNewResponseListServicesError(t *testing.T) {
 }
 
 func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
-	svc := service.MeshService{Namespace: "ns", Name: "svc"}
+	svc := service.MeshService{
+		Namespace:     "ns",
+		Name:          "svc",
+		ClusterDomain: "cluster.local",
+	}
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{svc}, nil

@@ -62,7 +62,7 @@ func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServ
 		meshServices = append(meshServices, service.MeshService{
 			Namespace:    svc.Namespace,
 			Name:         svc.Name,
-			ClusterName: "local",
+			ClusterDomain: "local",
 		})
 	}
 	return meshServices
