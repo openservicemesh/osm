@@ -535,6 +535,25 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	return nil
 }
 
+func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshConfig) (defaultConfig *v1alpha1.MeshConfig) {
+	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
+	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
+	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
+	meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = []string{}
+
+	meshConfig.Spec.Observability.EnableDebugServer = instOpts.EnableDebugServer
+
+	meshConfig.Spec.Sidecar.Resources = corev1.ResourceRequirements{}
+	meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer = false
+	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
+	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
+	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
+
+	meshConfig.Spec.Certificate.ServiceCertValidityDuration = "24h"
+
+	return meshConfig
+}
+
 // InstallOSM installs OSM. The behavior of this function is dependant on
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
@@ -552,21 +571,12 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 
-		// This resets supported dynamic configs expected by the caller
-		meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
-		meshConfig, err := Td.UpdateOSMConfig(meshConfig)
-		if err != nil {
+		meshConfig = setMeshConfigToDefault(instOpts, meshConfig)
+
+		if _, err := Td.UpdateOSMConfig(meshConfig); err != nil {
 			return err
 		}
-		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
-		meshConfig, err = Td.UpdateOSMConfig(meshConfig)
-		if err != nil {
-			return err
-		}
-		meshConfig.Spec.Observability.EnableDebugServer = instOpts.EnableDebugServer
-		if _, err = Td.UpdateOSMConfig(meshConfig); err != nil {
-			return err
-		}
+
 		return nil
 	}
 
