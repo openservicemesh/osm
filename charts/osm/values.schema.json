@@ -152,7 +152,8 @@
                 "webhookConfigNamePrefix",
                 "osmController",
                 "enablePrivilegedInitContainer",
-                "injector"
+                "injector",
+                "featureFlags"
             ],
             "properties": {
                 "osmController": {
@@ -673,7 +674,8 @@
                     "required": [
                         "enableWASMStats",
                         "enableEgressPolicy",
-                        "enableMulticlusterMode"
+                        "enableMulticlusterMode",
+                        "enableOSMGateway"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -699,6 +701,15 @@
                             "type": "boolean",
                             "title": "Enable Multicluster mode",
                             "description": "Enable multicluster mode in OSM",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableOSMGateway": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableOSMGateway",
+                            "type": "boolean",
+                            "title": "Enable OSM gateway",
+                            "description": "Enable OSM gateway for ingress or multicluster",
                             "examples": [
                                 true
                             ]
