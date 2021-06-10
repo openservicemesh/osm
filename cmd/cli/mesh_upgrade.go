@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"time"
@@ -10,8 +11,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-
-	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const (
@@ -30,15 +29,15 @@ overridden from the default for the "osm install" command, the --mesh-name and
 Values from the current Helm release will be carried over to the new release
 with the exception of OpenServiceMesh.image.registry (--container-registry) and
 OpenServiceMesh.image.tag (--osm-image-tag), which will be overridden from the
-old release by default. 
+old release by default.
 
 Note: edits to resources NOT made by Helm or the OSM CLI may not persist after
 "osm mesh upgrade" is run.
 
 Note: edits made to chart values that impact the preset-mesh-config will not
-apply to the osm-mesh-config, when "osm mesh upgrade" is run. This means configuration 
+apply to the osm-mesh-config, when "osm mesh upgrade" is run. This means configuration
 changes made to the osm-mesh-config resource will persist through an upgrade
-and any configuration changes needed can be done by patching this resource prior or 
+and any configuration changes needed can be done by patching this resource prior or
 post an upgrade.
 
 If any CustomResourceDefinitions (CRDs) are different between the installed
@@ -48,7 +47,7 @@ updating the mesh to ensure compatibility.
 `
 
 const meshUpgradeExample = `
-# Upgrade the mesh with the default name in the osm-system namespace, setting 
+# Upgrade the mesh with the default name in the osm-system namespace, setting
 # the image registry and tag to the defaults, and leaving all other values unchanged.
 osm mesh upgrade --osm-namespace osm-system
 `
@@ -100,7 +99,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	if u.chart == nil {
 		var err error
-		u.chart, err = cli.LoadChart(chartTGZSource)
+		u.chart, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
 		if err != nil {
 			return err
 		}

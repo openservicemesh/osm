@@ -1,7 +1,6 @@
 #!make
 
 TARGETS         := darwin/amd64 linux/amd64 windows/amd64
-SHELL           := bash -o pipefail
 BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
 CTR_REGISTRY    ?= openservicemesh
@@ -18,7 +17,7 @@ BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w"
 
 # These two values are combined and passed to go test
 E2E_FLAGS ?= -installType=KindCluster
@@ -33,37 +32,6 @@ GO_VERSION_PATCH = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -
 ifeq ($(GO_VERSION_PATCH),)
 GO_VERSION_PATCH := 0
 endif
-
-# Required Go version
-# These variables set the minimum required version of Go for this project.
-# The minimum version below is defined based on:
-#   - required language features
-#   - known required bug fixes
-#   - CVEs
-# Current: 1.15.7
-# For more context see https://github.com/openservicemesh/osm/issues/2363
-# For CVEs fixed with 1.15.7 see https://groups.google.com/g/golang-announce/c/mperVMGa98w
-MIN_REQUIRED_GO_VERSION_MAJOR = 1
-MIN_REQUIRED_GO_VERSION_MINOR = 15
-MIN_REQUIRED_GO_VERSION_PATCH = 7
-
-GO_VERSION_MESSAGE = "Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH).\n OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!\n\n"
-
-check-go-version: # Ensure the Go version used is what OSM requires
-	@if [ $(GO_VERSION_MAJOR) -gt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
-		exit 0 ;\
-	elif [ $(GO_VERSION_MAJOR) -lt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
-		echo -e '$(GO_VERSION_MESSAGE)';\
-		exit 1; \
-	elif [ $(GO_VERSION_MINOR) -gt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
-		exit 0; \
-	elif [ $(GO_VERSION_MINOR) -lt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
-		echo -e '$(GO_VERSION_MESSAGE)';\
-		exit 1; \
-	elif [ $(GO_VERSION_PATCH) -lt $(MIN_REQUIRED_GO_VERSION_PATCH) ] ; then \
-		echo -e '$(GO_VERSION_MESSAGE)';\
-		exit 1; \
-	fi
 
 check-env:
 ifndef CTR_REGISTRY
@@ -93,20 +61,23 @@ clean-osm-injector:
 build: build-init-osm-controller build-osm-controller build-osm-injector
 
 .PHONY: build-init-osm-controller
-build-init-osm-controller: check-go-version clean-init-osm-controller wasm/stats.wasm
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/init-osm-controller/init-osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/init-osm-controller
+build-init-osm-controller: clean-init-osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/init-osm-controller/init-osm-controller -ldflags ${LDFLAGS} ./cmd/init-osm-controller
 
 .PHONY: build-osm-controller
-build-osm-controller: check-go-version clean-osm-controller wasm/stats.wasm
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/osm-controller
+build-osm-controller: clean-osm-controller pkg/envoy/lds/stats.wasm
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags ${LDFLAGS} ./cmd/osm-controller
 
 .PHONY: build-osm-injector
-build-osm-injector: check-go-version clean-osm-injector
+build-osm-injector: clean-osm-injector
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
 
 .PHONY: build-osm
-build-osm: check-go-version
-	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
+build-osm: cmd/cli/chart.tgz
+	CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
+
+cmd/cli/chart.tgz: scripts/generate_chart/generate_chart.go $(wildcard charts/osm/**/*)
+	go run $< > $@
 
 .PHONY: clean-osm
 clean-osm:
@@ -144,7 +115,7 @@ go-vet:
 	go vet ./...
 
 .PHONY: go-lint
-go-lint:
+go-lint: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
@@ -160,7 +131,7 @@ go-test:
 	./scripts/go-test.sh
 
 .PHONY: go-test-coverage
-go-test-coverage:
+go-test-coverage: embed-files
 	./scripts/test-w-coverage.sh
 
 .PHONY: kind-up
@@ -215,11 +186,22 @@ docker-build-osm-controller: build-osm-controller
 docker-build-osm-injector: build-osm-injector
 	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
 
-wasm/stats.wasm: wasm/stats.cc wasm/Makefile
+pkg/envoy/lds/stats.wasm: wasm/stats.cc wasm/Makefile
 	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
-
+	@mv wasm/stats.wasm $@
 .PHONY: docker-build
 docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector
+
+.PHONY: embed-files
+embed-files: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
+
+.PHONY: embed-files-test
+embed-files-test:
+	./scripts/generate-dummy-embed.sh
+
+.PHONY: build-ci
+build-ci: embed-files
+	go build -v ./...
 
 # docker-push-bookbuyer, etc
 DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector)
@@ -245,8 +227,8 @@ install-git-pre-push-hook:
 # -------------------------------------------
 
 .PHONY: build-cross
-build-cross:
-	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
+build-cross: cmd/cli/chart.tgz
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
 dist:
