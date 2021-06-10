@@ -36,6 +36,11 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
+	if !svc.IsLocal() {
+		log.Trace().Msg("Not a local service and we can't handle that scenario yet.")
+		return nil
+	}
+
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
@@ -142,6 +147,11 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
+	if !svc.IsLocal() {
+		log.Trace().Msg("Not a local service and we can't handle that scenario yet.")
+		return nil, errors.New("Unable to handle non-local port service mappings")
+	}
+
 	endpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || endpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
@@ -205,6 +215,11 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	var err error
+
+	if !svc.IsLocal() {
+		log.Trace().Msg("Not a local service and we can't handle that scenario yet.")
+		return nil, errors.New("Unable to handle non-local resolvable endpoints for non-local services")
+	}
 
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
