@@ -396,7 +396,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 
 	srcServiceList, srcErr := mc.GetServicesForServiceAccount(sourceServiceAccount)
 	if srcErr != nil {
-		log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
+		//log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
 		return nil, srcErr
 	}
 
