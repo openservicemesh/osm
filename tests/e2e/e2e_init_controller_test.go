@@ -15,6 +15,10 @@ var _ = OSMDescribe("Test init-osm-controller functionalities",
 	func() {
 		Context("When osm-controller starts in fresh environment", func() {
 			It("creates default MeshConfig resource", func() {
+
+				if Td.InstType == "NoInstall" {
+					Skip("Skipping test: NoInstall marked on a test that requires fresh installation")
+				}
 				instOpts := Td.GetOSMInstallOpts()
 
 				// Install OSM
