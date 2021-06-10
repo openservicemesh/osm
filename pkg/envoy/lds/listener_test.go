@@ -23,7 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-var testWASM = "some bytes"
+var testWASM = []byte("some bytes")
 
 // Tests TestGetFilterForService checks that a proper filter type is properly returned
 // for given config parameters and service
@@ -179,7 +179,7 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			}).Times(1)
 
 			oldStatsWASMBytes := statsWASMBytes
-			statsWASMBytes = ""
+			statsWASMBytes = []byte("")
 
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"}, outbound)
 

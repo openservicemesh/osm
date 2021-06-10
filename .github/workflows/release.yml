@@ -39,10 +39,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Build Binaries
         run: |
           make release-artifacts
@@ -128,10 +128,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with version tag

@@ -40,10 +40,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+      - name: go build deps
+        run: make embed-files-test
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.30
+          skip-pkg-cache: true
           args: --timeout 5m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
   tidy:
@@ -52,6 +59,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
       - name: go mod tidy
         run: make go-mod-tidy
 
@@ -91,12 +102,12 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Go Build
-        run: go build -v ./...
+        run: make build-ci
 
   unittest:
     name: Go test
@@ -117,10 +128,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Test
         run: make go-test-coverage
       - name: Upload Coverage
@@ -146,10 +157,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Test
         run: |
           touch .env
@@ -181,10 +192,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Build test dependencies
         run: make docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
       # PR Tests
@@ -270,10 +281,10 @@ jobs:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
 
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
         id: go
 
       - name: Run Simulation w/ Tresor, SMI policies, and egress disabled
@@ -313,10 +324,10 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.15
+      - name: Setup Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with git sha tag

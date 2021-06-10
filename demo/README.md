@@ -3,7 +3,7 @@
 ## System Requirements
 - MacOS, Linux or WSL2 on Windows
 - GCC
-- Go version [1.15.7 or higher](https://github.com/openservicemesh/osm/issues/2363)
+- Go version [1.16.0 or higher](https://github.com/openservicemesh/osm/issues/2363)
 - Kubectl version 1.15 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`
@@ -23,7 +23,7 @@
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
 	- **Option 2:** A Kubernetes cluster - use an already provisioned cluster config, either in the default location ($HOME/.kube/config) or referenced by the $KUBECONFIG environment variable.
-      - Set `CTR_REGISTRY` in your `.env` file to a container registry you have permission to push and pull from. 
+      - Set `CTR_REGISTRY` in your `.env` file to a container registry you have permission to push and pull from.
       - Ensure you are logged into the container registry using: `docker login <registry url>`
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
@@ -72,7 +72,7 @@ When the demo is run with `DEPLOY_JAEGER` set to `true` in your `.env` file, OSM
 ```console
 kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
 ```
-Jaeger's UI is running on port 16686 and can be viewed by forwarding port 16686 from the Jaeger pod to the local workstation. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`. After running this script, navigate to http://localhost:16686/ to examine traces from the various applications. 
+Jaeger's UI is running on port 16686 and can be viewed by forwarding port 16686 from the Jaeger pod to the local workstation. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`. After running this script, navigate to http://localhost:16686/ to examine traces from the various applications.
 
 ## Demo Web UI
 The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
