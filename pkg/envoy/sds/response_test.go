@@ -342,7 +342,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				svc := service.MeshService{
 					Name:          "service-2",
 					Namespace:     "ns-2",
-					ClusterDomain: "cluster.local",
+					ClusterDomain: constants.ClusterDomain,
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)

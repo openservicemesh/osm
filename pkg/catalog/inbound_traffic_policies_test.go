@@ -1851,7 +1851,7 @@ func TestBuildPolicyName(t *testing.T) {
 	svc := service.MeshService{
 		Namespace:          "default",
 		Name:               "foo",
-		ClusterDomain:      "cluster.local",
+		ClusterDomain:      constants.ClusterDomain,
 	}
 
 	testCases := []struct {

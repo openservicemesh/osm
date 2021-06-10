@@ -56,13 +56,13 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expectedSvc := service.MeshService{
 				Namespace:     tests.Namespace,
 				Name:          svcName,
-				ClusterDomain: "cluster.local",
+				ClusterDomain: constants.ClusterDomain,
 			}
 
 			expectedSvc2 := service.MeshService{
 				Namespace:     tests.Namespace,
 				Name:          svcName2,
-				ClusterDomain: "cluster.local",
+				ClusterDomain: constants.ClusterDomain,
 			}
 			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
 
@@ -99,7 +99,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expected := service.MeshService{
 				Namespace:     namespace,
 				Name:          svcName,
-				ClusterDomain: "cluster.local",
+				ClusterDomain: constants.ClusterDomain,
 			}
 			expectedList := []service.MeshService{expected}
 

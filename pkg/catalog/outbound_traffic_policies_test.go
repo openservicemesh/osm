@@ -1088,7 +1088,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	destMeshService := service.MeshService{
 		Name:               "bookstore",
 		Namespace:          "bookstore-ns",
-		ClusterDomain:      "cluster.local",
+		ClusterDomain:      constants.ClusterDomain,
 	}
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})

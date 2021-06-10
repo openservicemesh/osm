@@ -449,7 +449,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			meshSvc := service.MeshService{
 				Name:          svc.Name,
 				Namespace:     svc.Namespace,
-				ClusterDomain: "cluster.local",
+				ClusterDomain: constants.ClusterDomain,
 			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
@@ -549,7 +549,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			meshSvc := service.MeshService{
 				Name:          svc.Name,
 				Namespace:     svc.Namespace,
-				ClusterDomain: "cluster.local",
+				ClusterDomain: constants.ClusterDomain,
 			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)

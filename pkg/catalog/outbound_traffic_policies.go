@@ -64,7 +64,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		svc := service.MeshService{
 			Name:        kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace:   split.Namespace,
-			ClusterDomain: "cluster.local",
+			ClusterDomain: constants.ClusterDomain,
 		}
 
 		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
@@ -305,7 +305,7 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 					rootMeshService := service.MeshService{
 						Namespace:     split.Namespace,
 						Name:          rootServiceName,
-						ClusterDomain: "cluster.local",
+						ClusterDomain: constants.ClusterDomain,
 					}
 
 					// Add this root service into the set
