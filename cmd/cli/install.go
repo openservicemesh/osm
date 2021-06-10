@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+
+	_ "embed" // required to embed resources
 	"fmt"
 	"io"
 	"time"
@@ -18,7 +21,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -58,9 +60,10 @@ const (
 	defaultEnforceSingleMesh = false
 )
 
-// chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
-// Its value is initialized at build time.
-var chartTGZSource string
+// chartTGZSource is the `helm package`d representation of the default Helm chart.
+// Its value is embedded at build time.
+//go:embed chart.tgz
+var chartTGZSource []byte
 
 type installCmd struct {
 	out            io.Writer
@@ -141,7 +144,7 @@ func (i *installCmd) loadOSMChart() error {
 	if i.chartPath != "" {
 		i.chartRequested, err = loader.Load(i.chartPath)
 	} else {
-		i.chartRequested, err = cli.LoadChart(chartTGZSource)
+		i.chartRequested, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
 	}
 
 	if err != nil {

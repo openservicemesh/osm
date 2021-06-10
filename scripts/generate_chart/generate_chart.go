@@ -16,5 +16,5 @@ func main() {
 		fmt.Fprintln(os.Stderr, "error getting chart source:", err)
 		os.Exit(1)
 	}
-	fmt.Print(source)
+	fmt.Print(string(source))
 }

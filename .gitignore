@@ -44,6 +44,7 @@ _dist/
 creds.json
 screenlog.*
 demo/bin/
+*.tgz
 *.wasm
 
 ## Ignore test coverage files
