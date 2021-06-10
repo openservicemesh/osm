@@ -35,7 +35,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		log.Error().Err(err).Msg(fmt.Sprintf("Failed listing routes for proxyServiceName:%+v", proxyServiceName))
 		return nil, err
 	}
-	log.Debug().Msgf("RDS proxy:%+v trafficPolicies:%+v", proxy, allTrafficPolicies)
+	//log.Debug().Msgf("RDS proxy:%+v trafficPolicies:%+v", proxy, allTrafficPolicies)
 
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -109,7 +109,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 
-	log.Debug().Msgf("RDS proxy: %+v routeConfiguration: %+v", proxy, routeConfiguration)
+	//log.Debug().Msgf("RDS proxy: %+v routeConfiguration: %+v", proxy, routeConfiguration)
 
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
