@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	
 	log = logger.New("multiclusterservice-controller")
 )
 

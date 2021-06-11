@@ -567,7 +567,6 @@ func TestGetMultiClusterSvc(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(kubeController)
 
-	
 }
 
 func TestGetEndpoint(t *testing.T) {
