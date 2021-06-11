@@ -156,8 +156,12 @@ kind-demo: .env kind-up clean-osm
 
 .PHONY: kind-multicluster-demo
 kind-multicluster-demo:
-	./demo/run-osm-multicluster-testing.sh # TODO - change to final file. Currently using temp testing file.
+	./demo/run-osm-multicluster-demo.sh 
 
+.PHONY: kind-multicluster-reset
+kind-multicluster-reset:
+	kind delete cluster --name multicluster-osm-1
+	kind delete cluster --name multicluster-osm-2
 
 # build-bookbuyer, etc
 DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
