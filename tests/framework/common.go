@@ -736,29 +736,39 @@ func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 
 func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
 	td.T.Log("Installing Vault")
+
+	appName := "vault"
 	replicas := int32(1)
 	terminationGracePeriodSeconds := int64(10)
+
+	serviceAccountDefinition := Td.SimpleServiceAccount(appName, td.OsmNamespace)
+	svcAccount, err := Td.CreateServiceAccount(serviceAccountDefinition.Namespace, &serviceAccountDefinition)
+	if err != nil {
+		return errors.Wrap(err, "failed to create vault service account")
+	}
+
 	vaultDep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "vault",
+			Name: appName,
 			Labels: map[string]string{
-				"app": "vault",
+				"app": appName,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "vault",
+					"app": appName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "vault",
+						"app": appName,
 					},
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName:            svcAccount.Name,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
@@ -853,22 +863,22 @@ tail /dev/random;
 			},
 		},
 	}
-	_, err := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Create(context.TODO(), vaultDep, metav1.CreateOptions{})
+	_, err = td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Create(context.TODO(), vaultDep, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create vault deployment")
 	}
 
 	vaultSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "vault",
+			Name: appName,
 			Labels: map[string]string{
-				"app": "vault",
+				"app": appName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeLoadBalancer,
 			Selector: map[string]string{
-				"app": "vault",
+				"app": appName,
 			},
 			Ports: []corev1.ServicePort{
 				{
