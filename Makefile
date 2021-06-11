@@ -18,7 +18,7 @@ BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -X main.defaultImageTag=$(CTR_TAG) -X main.defaultImageRegistry=$(CTR_REGISTRY) -s -w"
 
 # These two values are combined and passed to go test
 E2E_FLAGS ?= -installType=KindCluster
@@ -105,7 +105,8 @@ build-osm-injector: check-go-version clean-osm-injector
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
 
 .PHONY: build-osm
-build-osm: check-go-version
+build-osm: CTR_TAG=$(GIT_SHA)
+build-osm: check-go-version $(addprefix docker-push-, init init-osm-controller osm-controller osm-injector)
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 .PHONY: clean-osm
@@ -227,7 +228,7 @@ VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME); fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) CTR_REGISTRY=$(CTR_REGISTRY) CTR_TAG=$(CTR_TAG) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME); fi
 
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)
