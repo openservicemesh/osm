@@ -14,5 +14,8 @@ spec:
     - name: debug-port
       port: 9092
       targetPort: 9092
+    - name: healthz
+      port: 9091
+      targetPort: 9091
   selector:
     app: osm-controller

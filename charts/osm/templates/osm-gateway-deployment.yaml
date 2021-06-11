@@ -1,0 +1,54 @@
+{{- if .Values.OpenServiceMesh.featureFlags.enableOSMGateway }}
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: osm-gateway
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-gateway
+spec:
+  selector:
+    matchLabels:
+      app: osm-gateway
+  template:
+    metadata:
+      labels:
+        app: osm-gateway
+      name: osm-gateway
+    spec:
+      initContainers:
+        - name: osm-gateway-init
+          image: curlimages/curl
+          args:
+          - /bin/sh
+          - -c
+          - >
+            set -x;
+            while [ $(curl -sw '%{http_code}' "http://osm-controller.{{ include "osm.namespace" . }}.svc.cluster.local:9091/health/ready" -o /dev/null) -ne 200 ]; do
+              sleep 10;
+            done
+      containers:
+        - name: envoy
+          image: {{ .Values.OpenServiceMesh.sidecarImage }}
+          command:
+            - "envoy"
+          args: [
+            "--config-path", "/etc/envoy/bootstrap.yaml",
+            "--bootstrap-version", "3",
+            "--service-node", "osm-gateway",
+            "--service-cluster", "osm-gateway",
+          ]
+          ports:
+            - containerPort: 14080
+              name: http2
+              protocol: TCP
+          volumeMounts:
+            - name: envoy-bootstrap-config-volume
+              mountPath: /etc/envoy
+              readOnly: true
+      volumes:
+        - name: envoy-bootstrap-config-volume
+          secret:
+            secretName: osm-gateway-bootstrap-config
+{{- end }}

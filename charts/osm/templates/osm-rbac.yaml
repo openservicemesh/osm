@@ -99,7 +99,7 @@ rules:
     verbs: ["create", "watch"]
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["create", "update", "delete"]
+    verbs: ["create", "update", "delete", "patch"]
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["create", "update"]
