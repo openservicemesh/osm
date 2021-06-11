@@ -1,9 +1,8 @@
 package lds
 
 import (
-	"encoding/base64"
+	_ "embed" // required to embed resources
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -17,13 +16,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-var statsWASMBytes string
-
-func init() {
-	b64 := base64.NewDecoder(base64.StdEncoding, strings.NewReader(statsWASMBytes))
-	b, _ := ioutil.ReadAll(b64)
-	statsWASMBytes = string(b)
-}
+//go:embed stats.wasm
+var statsWASMBytes []byte
 
 func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error) {
 	if len(headers) == 0 {
@@ -67,7 +61,7 @@ func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {
 						Specifier: &envoy_config_core_v3.AsyncDataSource_Local{
 							Local: &envoy_config_core_v3.DataSource{
 								Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
-									InlineBytes: []byte(statsWASMBytes),
+									InlineBytes: statsWASMBytes,
 								},
 							},
 						},
