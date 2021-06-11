@@ -206,6 +206,20 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	var endpoints []endpoint.Endpoint
 	var err error
 
+	if !svc.IsLocal() {
+		multiclustersvc, _ := c.kubeController.ListMultiClusterServices(svc.Name, svc.Namespace)
+		for _, cluster := range multiclustersvc {
+			mulservicespec := cluster.Spec
+			clusSpec := mulservicespec.Cluster[0]
+
+			endpoints = append(endpoints, endpoint.Endpoint{
+				IP:   net.ParseIP(clusSpec.Address),
+				Port: endpoint.Port(123),
+			})
+		}
+		// iterate over the list get the endpoints.
+	}
+
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
