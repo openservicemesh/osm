@@ -91,13 +91,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case <-quit:
-			log.Debug().Msgf("gRPC stream with Envoy on Pod with UID=%s closed!", proxy.GetPodUID())
+			log.Debug().Msgf("gRPC stream closed for proxy %s!", proxy.String())
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
 		case discoveryRequest, ok := <-requests:
 			if !ok {
-				log.Error().Msgf("Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s closed gRPC!", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				log.Error().Msgf("gRPC stream closed by proxy %s!", proxy.String())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
@@ -113,14 +113,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Proxy SerialNumber=%s PodUID=%s: Broadcast wake", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Info().Msgf("Broadcast update received for proxy %s", proxy.String())
 
 			// Per protocol, we have to wait for the proxy to go through init phase (initial no-nonce request),
 			// otherwise we will be generating versions that will be ignored as empty nonce will generate a new version anyway.
 			// We only have to push an update from control plane if we have provided already something before.
 			if !shouldPushUpdate(proxy) {
-				log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: Proxy has still not gone through init phase, not force-pushing new version",
-					proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				log.Error().Msgf("Proxy %s has still not gone through init phase, not force-pushing new version", proxy.String())
 				continue
 			}
 
@@ -133,7 +132,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if isCNforProxy(proxy, cert.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
-				log.Debug().Msgf("Certificate has been updated for proxy with SerialNumber=%s, UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				log.Debug().Msgf("Certificate has been updated for proxy %s", proxy.String())
 
 				// Empty DiscoveryRequest should create the SDS specific request
 				// Prepare to queue the SDS proxy response job on the worker pool
@@ -149,8 +148,8 @@ func shouldPushUpdate(proxy *envoy.Proxy) bool {
 	// In ADS, CDS and LDS will come first in all cases. Only allow an control-plane-push update push if
 	// we have sent either to the proxy already.
 	if proxy.GetLastSentNonce(envoy.TypeLDS) == "" && proxy.GetLastSentNonce(envoy.TypeCDS) == "" {
-		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: LDS and CDS unrequested yet, waiting for first request for this proxy to be responded to",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Msgf("Proxy %s: LDS and CDS unrequested yet, waiting for first request for this proxy to be responded to",
+			proxy.String())
 		return false
 	}
 	return true
@@ -174,37 +173,36 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	var requestNonce string
 	var lastNonce string
 
-	log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Request %s [nonce=%s; version=%s; resources=%v] last sent [nonce=%s; version=%d]",
-		proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl,
+	log.Debug().Msgf("Proxy %s: Request %s [nonce=%s; version=%s; resources=%v] last sent [nonce=%s; version=%d]",
+		proxy.String(), discoveryRequest.TypeUrl,
 		discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames,
 		proxy.GetLastSentNonce(envoy.TypeURI(discoveryRequest.TypeUrl)), proxy.GetLastSentVersion(envoy.TypeURI(discoveryRequest.TypeUrl)))
 
 	// Parse TypeURL of the request
 	typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
 	if !ok {
-		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: Unknown/Unsupported URI: %s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.TypeUrl)
+		log.Error().Msgf("Proxy %s: Unknown/Unsupported URI: %s",
+			proxy.String(), discoveryRequest.TypeUrl)
 		return false
 	}
 
 	if typeURL == envoy.TypeEmptyURI {
 		// Skip handling TypeEmptyURI for now, context #3258
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Ignoring EmptyURI Type", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Debug().Msgf("Proxy %s: Ignoring EmptyURI Type", proxy.String())
 		return false
 	}
 
 	// Parse ACK'd verion on the proxy for this given resource
 	requestVersion, err = parseRequestVersion(discoveryRequest)
 	if err != nil {
-		log.Error().Err(err).Msgf("Proxy SerialNumber=%s PodUID=%s: Error parsing version %s for type %s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.VersionInfo, typeURL)
+		log.Error().Err(err).Msgf("Proxy %s: Error parsing version %s for type %s", proxy.String(), discoveryRequest.VersionInfo, typeURL)
 		return false
 	}
 
 	// Handle NACK case
 	if discoveryRequest.ErrorDetail != nil {
-		log.Error().Msgf("Proxy SerialNumber=%s PodUID=%s: [NACK] err: \"%s\" for nonce %s, last version applied on request %s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ErrorDetail, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo)
+		log.Error().Msgf("Proxy %s: [NACK] err: \"%s\" for nonce %s, last version applied on request %s",
+			proxy.String(), discoveryRequest.ErrorDetail, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo)
 		// TODO: if NACK's on our latest nonce, we can also update lastAppliedVersion
 		// TODO: if the NACK's nonce is our latest nonce, we should retry to avoid leaving the envoy in a wrong config state and update
 		// last applied version to this requests one's, as it tells us what version is the proxy using.
@@ -214,8 +212,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Handle first request on stream case, should always reply to empty nonce
 	requestNonce = discoveryRequest.ResponseNonce
 	if requestNonce == "" {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Empty nonce for %s, should be first message on stream (req resources: %v)",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.ResourceNames)
+		log.Debug().Msgf("Proxy %s: Empty nonce for %s, should be first message on stream (req resources: %v)",
+			proxy.String(), typeURL.Short(), discoveryRequest.ResourceNames)
 		return true
 	}
 
@@ -227,8 +225,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 		// Version applied is going to be X, we will set our version to be also X, and trigger a response. This will make
 		// this control plane to generate version X+1 for this proxy, thus keeping linearity between versions even if the proxy
 		// moves around different control planes, and updating the resources to the SotW of this control plane.
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Request type %s nonce %s for a proxy we didn't yet issue a nonce for. Updating version to %d.",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestNonce, requestVersion)
+		log.Debug().Msgf("Proxy %s: Request type %s nonce %s for a proxy we didn't yet issue a nonce for. Updating version to %d",
+			proxy.String(), typeURL.Short(), requestNonce, requestVersion)
 		proxy.SetLastSentVersion(typeURL, requestVersion)
 		proxy.SetLastAppliedVersion(typeURL, requestVersion)
 		return true
@@ -237,8 +235,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Handle regular proto (nonce based) from now on
 	// As per protocol, we can ignore any request on the TypeURL stream that has not caught up with last sent nonce.
 	if requestNonce != lastNonce {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Ignoring request for %s non-latest nonce (request: %s, current: %s)",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestNonce, lastNonce)
+		log.Debug().Msgf("Proxy %s: Ignoring request for %s non-latest nonce (request: %s, current: %s)",
+			proxy.String(), typeURL.Short(), requestNonce, lastNonce)
 		return false
 	}
 
@@ -266,13 +264,13 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 
 	requestedResourcesDifference := resourcesRequested.Difference(resourcesLastSent)
 	if requestedResourcesDifference.Cardinality() != 0 {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: request difference in v:%d - requested: %v lastSent: %v (diff: %v), triggering update",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), requestVersion, resourcesRequested, resourcesLastSent, requestedResourcesDifference)
+		log.Debug().Msgf("Proxy %s: request difference in v:%d - requested: %v lastSent: %v (diff: %v), triggering update",
+			proxy.String(), requestVersion, resourcesRequested, resourcesLastSent, requestedResourcesDifference)
 		return true
 	}
 
-	log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: ACK received for %s, version: %d nonce: %s resources ACKd: %v",
-		proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestVersion, requestNonce, resourcesRequested)
+	log.Debug().Msgf("Proxy %s: ACK received for %s, version: %d nonce: %s resources ACKd: %v",
+		proxy.String(), typeURL.Short(), requestVersion, requestNonce, resourcesRequested)
 	return false
 }
 
@@ -291,8 +289,7 @@ func getRequestedResourceNamesSet(discoveryRequest *xds_discovery.DiscoveryReque
 func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy %s", proxy.String())
 		return false
 	}
 

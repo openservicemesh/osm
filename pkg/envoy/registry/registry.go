@@ -32,7 +32,7 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 		// Create a PodUID to Cert Serial Number so we can easily look-up the SerialNumber of the cert issued to a proxy for a given Pod.
 		pr.podUIDToCertificateSerialNumber.Store(podUID, proxy.GetCertificateSerialNumber())
 	}
-	log.Debug().Msgf("Registered new proxy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Debug().Msgf("Registered new proxy %s", proxy.String())
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
@@ -43,7 +43,7 @@ func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
 		lastSeen: time.Now(),
 	})
 
-	log.Debug().Msgf("Unregistered proxy with certificate SerialNumber=%v on Pod with UID=%s", p.GetCertificateSerialNumber(), p.GetPodUID())
+	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 
 // GetConnectedProxyCount counts the number of connected proxies
