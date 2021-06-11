@@ -39,6 +39,11 @@ type MeshService struct {
 	ClusterDomain string
 }
 
+// IsLocal returns true if the service is in the local cluster.
+func (ms MeshService) IsLocal() bool {
+		return true
+}
+
 func (ms MeshService) String() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }

@@ -104,7 +104,7 @@ func (c *Client) initServicesMonitor() {
 
 func (c *Client) initMultiClusterServicesMonitor() {
 	informerFactory := configinformer.NewSharedInformerFactory(
-		c.versionInterface,
+		c.configInterface,
 		DefaultKubeEventResyncInterval,
 	)
 	c.informers[MultiClusterServices] = informerFactory.Config().V1alpha1().MultiClusterServices().Informer()
