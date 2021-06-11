@@ -22,7 +22,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -30,8 +30,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -39,8 +38,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
 		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
 			return nil, err
 		}
 
@@ -95,8 +93,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	var cdsResources []types.Resource
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy %s", cluster.Name, proxy.String())
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)

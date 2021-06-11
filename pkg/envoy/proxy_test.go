@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -34,12 +36,6 @@ var _ = Describe("Test proxy methods", func() {
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	Context("test GetPodUID() with empty Pod Metadata field", func() {
-		It("returns correct values", func() {
-			Expect(proxy.GetPodUID()).To(Equal(""))
-		})
 	})
 
 	Context("test GetLastAppliedVersion()", func() {
@@ -139,8 +135,8 @@ var _ = Describe("Test proxy methods", func() {
 			}
 
 			Expect(proxy.HasPodMetadata()).To(BeTrue())
-			Expect(proxy.GetPodUID()).To(Equal(podUID))
-			Expect(proxy.String()).To(Equal(fmt.Sprintf("Proxy on Pod with UID=%s", podUID)))
+			Expect(proxy.PodMetadata.UID).To(Equal(podUID))
+			Expect(strings.Contains(proxy.String(), "Proxy: [Serial: 123456]")).To(BeTrue())
 		})
 	})
 })
@@ -449,3 +445,40 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 	})
 })
+
+func TestPodMetadataString(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		proxy    *Proxy
+		expected string
+	}{
+		{
+			name: "with valid pod metadata",
+			proxy: &Proxy{
+				PodMetadata: &PodMetadata{
+					UID:            "some-UID",
+					Namespace:      "some-ns",
+					Name:           "some-pod",
+					ServiceAccount: identity.K8sServiceAccount{Name: "some-service-account"},
+				},
+			},
+			expected: "UID=some-UID, Namespace=some-ns, Name=some-pod, ServiceAccount=some-service-account",
+		},
+		{
+			name: "no pod metadata",
+			proxy: &Proxy{
+				PodMetadata: nil,
+			},
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := tc.proxy.PodMetadataString()
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}
