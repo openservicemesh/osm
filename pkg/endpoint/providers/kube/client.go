@@ -36,6 +36,19 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
+	if !svc.IsLocal() {
+		multiclustersvc, _ := c.kubeController.ListMultiClusterServices(svc.Name, svc.Namespace)
+		for _, cluster := range multiclustersvc {
+			for _, clusterSpec := range cluster.Spec.Cluster {
+				endpoints = append(endpoints, endpoint.Endpoint{
+					IP:   net.ParseIP(clusterSpec.Address),
+					Port: endpoint.Port(123), // TODO: Figure out what the port is
+				})
+			}
+		}
+		// iterate over the list get the endpoints.
+	}
+
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
@@ -207,14 +220,12 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	var err error
 
 	if !svc.IsLocal() {
-		multiclustersvc, _ := c.kubeController.ListMultiClusterServices(svc.Name, svc.Namespace)
-		for _, cluster := range multiclustersvc {
-			mulservicespec := cluster.Spec
-			clusSpec := mulservicespec.Cluster[0]
+		mcsvc, _ := c.kubeController.GetMultiClusterSvc(svc.Name, svc.Namespace)
 
+		for _, cluster := range mcsvc.Spec.Cluster {
 			endpoints = append(endpoints, endpoint.Endpoint{
-				IP:   net.ParseIP(clusSpec.Address),
-				Port: endpoint.Port(123),
+				IP:   net.ParseIP(cluster.Address),
+				Port: endpoint.Port(123), // TODO: Figure out what the port is
 			})
 		}
 		// iterate over the list get the endpoints.
