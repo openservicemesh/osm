@@ -13,6 +13,7 @@ The OSM project builds on the ideas and implementations of many cloud native eco
 ## Table of Contents
 - [Overview](#overview)
   - [Core Principles](#core-principles)
+  - [Documentation](#documentation)
   - [Features](#features)
   - [Project Status](#project-status)
   - [Support](#support)
@@ -40,6 +41,11 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 1. Effortless to install, maintain, and operate
 1. Painless to troubleshoot
 1. Easy to configure via [Service Mesh Interface (SMI)][2]
+
+### Documentation
+Documentation pertaining to the usage of Open Service Mesh is made available at [docs.openservicemesh.io](https://docs.openservicemesh.io/).
+
+Documentation pertaining to development, release workflows, and other repository specific documentation, can be found in the [docs folder](/docs).
 
 ### Features
 
