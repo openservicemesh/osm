@@ -8,6 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -49,7 +50,11 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
+	if log.GetLevel() <= zerolog.DebugLevel {
+		// If log level is Debug or Trace
+		return fmt.Sprintf("Proxy: [Serial: %s], [Pod metadata: %s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
+	}
+	return fmt.Sprintf("Proxy: [Serial: %s]", p.xDSCertificateSerialNumber)
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -154,12 +159,12 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 	return p.lastNonce[typeURI]
 }
 
-// GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
-func (p *Proxy) GetPodUID() string {
+// PodMetadataString returns relevant pod metadata as a string
+func (p *Proxy) PodMetadataString() string {
 	if p.PodMetadata == nil {
 		return ""
 	}
-	return p.PodMetadata.UID
+	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
 }
 
 // GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.

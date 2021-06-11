@@ -25,13 +25,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
 		return nil, err
 	}
 
 	svcAccount, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -47,14 +47,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error making outbound listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error building outbound listener for proxy %s", proxy.String())
 	} else {
 		if outboundListener == nil {
 			// This check is important to prevent attempting to configure a listener without a filter chain which
 			// otherwise results in an error.
-			log.Debug().Msgf("Not programming Outbound listener for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Debug().Msgf("Not programming outbound listener for proxy %s", proxy.String())
 		} else {
 			ldsResources = append(ldsResources, outboundListener)
 		}
@@ -96,8 +94,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
-			log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-				proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Error building Prometheus listener for proxy %s", proxy.String())
 		} else {
 			ldsResources = append(ldsResources, prometheusListener)
 		}

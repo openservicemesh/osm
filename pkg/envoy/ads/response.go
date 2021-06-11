@@ -19,7 +19,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	startedAt := time.Now()
 	typeURI := envoy.TypeURI(request.TypeUrl)
-	log.Trace().Msgf("[%s] Getting resources for proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+	log.Trace().Msgf("Proxy %s: getting resources for type %s", proxy.String(), typeURI.Short())
 
 	handler, ok := s.xdsHandlers[typeURI]
 	if !ok {
@@ -137,7 +137,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on Pod with UID=%s", typeURI.Short(), proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error sending response for type %s to proxy %s", typeURI.Short(), proxy.String())
 		return err
 	}
 
