@@ -1,10 +1,3 @@
----
-title: "Development Guide"
-description: "Open Service Mesh Development Guide"
-type: docs
-weight: 5
----
-
 # Open Service Mesh Development Guide
 
 Welcome to the Open Service Mesh development guide!
@@ -148,23 +141,18 @@ the `bin/fmt` script.
 
 The OSM repo has a few layers of tests:
 
-- unit tests
-- integration tests
-- simulations
+- Unit tests
+- End-to-end (e2e) tests
+- Simulations
 
-For tests in the OSM repo we have chosen to leverage the
-[Gomega](https://onsi.github.io/gomega/) and
-[Ginkgo](https://onsi.github.io/ginkgo/) frameworks. We follow Go's convention and add
-unit tests for the respective functions in files with the `_test.go` suffix. So if a
-function lives in a file `foo.go` we will write a test for it in the file `foo_test.go`.
-For more about Go testing
-read [the following document](https://tip.golang.org/cmd/go/#hdr-Test_packages).
+For tests in the OSM repo we have chosen to leverage the following:
 
-Take a look at any of the [existing unit-test examples](/pkg/catalog/inbound_traffic_policies_test.go)
-should you need a starting point.
+- [Go testing](https://golang.org/pkg/testing/) for unit tests
+- [Gomega](https://onsi.github.io/gomega/) and [Ginkgo](https://onsi.github.io/ginkgo/) frameworks for e2e tests
 
-Often times we add a [suite_test.go](/pkg/catalog/suite_test.go)
-file, which serves as an entry point for the Ginkgo tests within the given package.
+We follow Go's convention and add unit tests for the respective functions in files with the `_test.go` suffix. So if a function lives in a file `foo.go` we will write a unit test for it in the file `foo_test.go`.
+
+Refer to a [unit test](/pkg/catalog/inbound_traffic_policies_test.go) and [e2e test](/tests/e2e/e2e_egress_policy_test.go) example should you need a starting point.
 
 #### Unit Tests
 
