@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
@@ -49,6 +50,21 @@ func (m *MockController) GetEndpoints(arg0 service.MeshService) (*v1.Endpoints, 
 func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
+}
+
+// GetMultiClusterSvc mocks base method
+func (m *MockController) GetMultiClusterSvc(arg0, arg1 string) (*v1alpha1.MultiClusterService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMultiClusterSvc", arg0, arg1)
+	ret0, _ := ret[0].(*v1alpha1.MultiClusterService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMultiClusterSvc indicates an expected call of GetMultiClusterSvc
+func (mr *MockControllerMockRecorder) GetMultiClusterSvc(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultiClusterSvc", reflect.TypeOf((*MockController)(nil).GetMultiClusterSvc), arg0, arg1)
 }
 
 // GetNamespace mocks base method
@@ -120,6 +136,21 @@ func (m *MockController) ListMonitoredNamespaces() ([]string, error) {
 func (mr *MockControllerMockRecorder) ListMonitoredNamespaces() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitoredNamespaces", reflect.TypeOf((*MockController)(nil).ListMonitoredNamespaces))
+}
+
+// ListMultiClusterServices mocks base method
+func (m *MockController) ListMultiClusterServices(arg0, arg1 string) ([]*v1alpha1.MultiClusterService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMultiClusterServices", arg0, arg1)
+	ret0, _ := ret[0].([]*v1alpha1.MultiClusterService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMultiClusterServices indicates an expected call of ListMultiClusterServices
+func (mr *MockControllerMockRecorder) ListMultiClusterServices(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMultiClusterServices", reflect.TypeOf((*MockController)(nil).ListMultiClusterServices), arg0, arg1)
 }
 
 // ListPods mocks base method

@@ -15,7 +15,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configinformer "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -32,11 +35,12 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 
 	// Initialize informers
 	informerInitHandlerMap := map[InformerKey]func(){
-		Namespaces:      client.initNamespaceMonitor,
-		Services:        client.initServicesMonitor,
-		ServiceAccounts: client.initServiceAccountsMonitor,
-		Pods:            client.initPodMonitor,
-		Endpoints:       client.initEndpointMonitor,
+		Namespaces:           client.initNamespaceMonitor,
+		Services:             client.initServicesMonitor,
+		ServiceAccounts:      client.initServiceAccountsMonitor,
+		Pods:                 client.initPodMonitor,
+		Endpoints:            client.initEndpointMonitor,
+		MultiClusterServices: client.initMultiClusterServicesMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
@@ -96,6 +100,21 @@ func (c *Client) initServicesMonitor() {
 		Delete: announcements.ServiceDeleted,
 	}
 	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), providerName, c.shouldObserve, svcEventTypes))
+}
+
+func (c *Client) initMultiClusterServicesMonitor() {
+	informerFactory := configinformer.NewSharedInformerFactory(
+		c.versionInterface,
+		DefaultKubeEventResyncInterval,
+	)
+	c.informers[MultiClusterServices] = informerFactory.Config().V1alpha1().MultiClusterServices().Informer()
+
+	svcEventTypes := EventTypes{
+		Add:    announcements.MultiClusterServiceAdded,
+		Update: announcements.MultiClusterServiceUpdated,
+		Delete: announcements.MultiClusterServiceDeleted,
+	}
+	c.informers[MultiClusterServices].AddEventHandler(GetKubernetesEventHandlers((string)(MultiClusterServices), providerName, c.shouldObserve, svcEventTypes))
 }
 
 // Initializes Service Account monitoring
@@ -310,4 +329,29 @@ func (c Client) IsMetricsEnabled(pod *corev1.Pod) bool {
 
 	isScrapingEnabled, _ = strconv.ParseBool(prometheusScrapeAnnotation)
 	return isScrapingEnabled
+}
+
+// GetMultiClusterSvc returns an v1alpha1 MulticClusterService if it exists, or nil
+func (c Client) GetMultiClusterSvc(name, namespace string) (*v1alpha1.MultiClusterService, error) {
+	svcIf, exists, err := c.informers[MultiClusterServices].GetStore().GetByKey(name)
+	if exists && err == nil {
+		mcsvc := svcIf.(*v1alpha1.MultiClusterService)
+		return mcsvc, nil
+	}
+	return nil, nil
+}
+
+// ListMultiClusterServices returns a list of v1alpha1 MulticClusterServices if any exist, or nil
+func (c Client) ListMultiClusterServices(name, namespace string) ([]*v1alpha1.MultiClusterService, error) {
+	var mcservices []*v1alpha1.MultiClusterService
+
+	for _, mcService := range c.informers[MultiClusterServices].GetStore().List() {
+		svc := mcService.(*v1alpha1.MultiClusterService)
+
+		if !c.IsMonitoredNamespace(svc.Namespace) {
+			continue
+		}
+		mcservices = append(mcservices, svc)
+	}
+	return mcservices, nil
 }
