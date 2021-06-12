@@ -30,8 +30,8 @@ func (proxyJob *proxyResponseJob) GetDoneCh() <-chan struct{} {
 func (proxyJob *proxyResponseJob) Run() {
 	err := (*proxyJob.xdsServer).sendResponse(proxyJob.proxy, proxyJob.adsStream, proxyJob.request, proxyJob.xdsServer.cfg, proxyJob.typeURIs...)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to create and send %v update to Envoy with xDS Certificate SerialNumber=%s for PodUUID=%s",
-			proxyJob.typeURIs, proxyJob.proxy.GetCertificateSerialNumber(), proxyJob.proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Failed to create and send %v update to proxy %s",
+			proxyJob.typeURIs, proxyJob.proxy.String())
 	}
 	close(proxyJob.done)
 }
