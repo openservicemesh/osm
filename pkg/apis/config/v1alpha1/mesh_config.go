@@ -164,4 +164,7 @@ type FeatureFlags struct {
 
 	// EnableOSMGateway defines if OSM gateway is enabled.
 	EnableOSMGateway bool `json:"enableOSMGateway,omitempty"`
+
+	//EnableAsyncProxyServiceMapping defines if OSM will map proxies to services asynchronously.
+	EnableAsyncProxyServiceMapping bool `json:"enableAsyncProxyServiceMapping,omitempty"`
 }

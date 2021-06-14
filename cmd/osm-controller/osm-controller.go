@@ -207,7 +207,15 @@ func main() {
 		cfg,
 		endpointsProviders...)
 
-	proxyRegistry := registry.NewProxyRegistry(&registry.KubeProxyServiceMapper{KubeController: kubernetesClient})
+	var proxyMapper registry.ProxyServiceMapper
+	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {
+		m := registry.NewAsyncKubeProxyServiceMapper(kubernetesClient)
+		m.Run(stop)
+		proxyMapper = m
+	} else {
+		proxyMapper = &registry.KubeProxyServiceMapper{KubeController: kubernetesClient}
+	}
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper)
 	proxyRegistry.ReleaseCertificateHandler(certManager)
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
