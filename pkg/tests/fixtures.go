@@ -29,6 +29,9 @@ const (
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
 
+	// BookstoreServiceName is the name of the bookstore service.
+	BookstoreServiceName = "bookstore"
+
 	// BookstoreV1ServiceName is the name of the bookstore-v1 service.
 	BookstoreV1ServiceName = "bookstore-v1"
 
@@ -139,6 +142,20 @@ var (
 		ClusterDomain: constants.LocalDomain,
 	}
 
+	// BookstoreHostnames are the hostnames for bookstore service
+	BookstoreHostnames = []string{
+		"bookstore",
+		"bookstore.default",
+		"bookstore.default.svc",
+		"bookstore.default.svc.cluster",
+		"bookstore.default.svc.cluster.local",
+		"bookstore:8888",
+		"bookstore.default:8888",
+		"bookstore.default.svc:8888",
+		"bookstore.default.svc.cluster:8888",
+		"bookstore.default.svc.cluster.local:8888",
+	}
+
 	// BookstoreV1Hostnames are the hostnames for bookstore-v1 service
 	BookstoreV1Hostnames = []string{
 		"bookstore-v1",
@@ -147,6 +164,18 @@ var (
 		"bookstore-v1.default.svc.cluster",
 		"bookstore-v1.default.svc.cluster.local",
 		"bookstore-v1:8888",
+		"bookstore-v1.default:8888",
+		"bookstore-v1.default.svc:8888",
+		"bookstore-v1.default.svc.cluster:8888",
+		"bookstore-v1.default.svc.cluster.local:8888",
+	}
+
+	// BookstoreV1NamespacedHostnames are the hostnames for the bookstore-apex service
+	BookstoreV1NamespacedHostnames = []string{
+		"bookstore-v1.default",
+		"bookstore-v1.default.svc",
+		"bookstore-v1.default.svc.cluster",
+		"bookstore-v1.default.svc.cluster.local",
 		"bookstore-v1.default:8888",
 		"bookstore-v1.default.svc:8888",
 		"bookstore-v1.default.svc.cluster:8888",
@@ -191,6 +220,58 @@ var (
 		"bookstore-apex.default.svc:8888",
 		"bookstore-apex.default.svc.cluster:8888",
 		"bookstore-apex.default.svc.cluster.local:8888",
+	}
+
+	// BookbuyerHostnames are the hostnames for the bookbuyer service
+	BookbuyerHostnames = []string{
+		"bookbuyer",
+		"bookbuyer.default",
+		"bookbuyer.default.svc",
+		"bookbuyer.default.svc.cluster",
+		"bookbuyer.default.svc.cluster.local",
+		"bookbuyer:8888",
+		"bookbuyer.default:8888",
+		"bookbuyer.default.svc:8888",
+		"bookbuyer.default.svc.cluster:8888",
+		"bookbuyer.default.svc.cluster.local:8888",
+	}
+
+	// BookbuyerTestHostnames are the namespaced hostnames for the bookbuyer service
+	BookbuyerTestHostnames = []string{
+		"bookbuyer",
+		"bookbuyer.test",
+		"bookbuyer.test.svc",
+		"bookbuyer.test.svc.cluster",
+		"bookbuyer.test.svc.cluster.local",
+		"bookbuyer:8888",
+		"bookbuyer.test:8888",
+		"bookbuyer.test.svc:8888",
+		"bookbuyer.test.svc.cluster:8888",
+		"bookbuyer.test.svc.cluster.local:8888",
+	}
+
+	// ApexSplitBazNamespacedHostNames are the namespaced hostnames for the apex split service
+	ApexSplitBazNamespacedHostNames = []string{
+		"apex-split-1.baz",
+		"apex-split-1.baz.svc",
+		"apex-split-1.baz.svc.cluster",
+		"apex-split-1.baz.svc.cluster.local",
+		"apex-split-1.baz:8888",
+		"apex-split-1.baz.svc:8888",
+		"apex-split-1.baz.svc.cluster:8888",
+		"apex-split-1.baz.svc.cluster.local:8888",
+	}
+
+	// ApexSplitBarNamespacedHostNames are the namespaced hostnames for the apex split service
+	ApexSplitBarNamespacedHostNames = []string{
+		"apex-split-1.bar",
+		"apex-split-1.bar.svc",
+		"apex-split-1.bar.svc.cluster",
+		"apex-split-1.bar.svc.cluster.local",
+		"apex-split-1.bar:8888",
+		"apex-split-1.bar.svc:8888",
+		"apex-split-1.bar.svc.cluster:8888",
+		"apex-split-1.bar.svc.cluster.local:8888",
 	}
 
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
@@ -462,6 +543,20 @@ var (
 		Path:          constants.RegexMatchAll,
 		PathMatchType: trafficpolicy.PathMatchRegex,
 		Methods:       []string{constants.WildcardHTTPMethod},
+	}
+
+	// ExpectedHostnames is a map of host names for target service
+	ExpectedHostnames = map[string][]string{
+		BookstoreServiceName:          BookstoreHostnames,
+		BookstoreV1ServiceName:        BookstoreV1Hostnames,
+		"bookstore-v1-namespaced":     BookstoreV1NamespacedHostnames,
+		BookstoreV2ServiceName:        BookstoreV2Hostnames,
+		BookstoreApexServiceName:      BookstoreApexHostnames,
+		"bookstore-apex-namespaced":   BookstoreApexNamespacedHostnames,
+		BookbuyerServiceName:          BookbuyerHostnames,
+		"bookbuyer-test":              BookbuyerTestHostnames,
+		"apex-split-1-namespaced":     ApexSplitBarNamespacedHostNames,
+		"apex-split-1-baz-namespaced": ApexSplitBazNamespacedHostNames,
 	}
 )
 

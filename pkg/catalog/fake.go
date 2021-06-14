@@ -42,8 +42,14 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	meshSpec := smi.NewFakeMeshSpecClient()
 
 	stop := make(<-chan struct{})
+
+	provider := kube.NewFakeProvider()
+
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
+	}
+	serviceProviders := []service.Provider{
+		provider,
 	}
 
 	osmNamespace := "-test-osm-namespace-"
@@ -114,7 +120,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, cfg, serviceProviders, endpointProviders)
 }
 
 func newFakeMeshCatalog() *MeshCatalog {
@@ -136,9 +142,16 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmMeshConfigName := "-test-osm-mesh-config-"
 
 	stop := make(chan struct{})
+
+	provider := kube.NewFakeProvider()
+
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
 	}
+	serviceProviders := []service.Provider{
+		provider,
+	}
+
 	kubeClient := fake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 
@@ -224,5 +237,5 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, cfg, serviceProviders, endpointProviders)
 }

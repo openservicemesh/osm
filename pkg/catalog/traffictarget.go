@@ -183,7 +183,7 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 
 		tcpRoute := mc.meshSpec.GetTCPRoute(tcpRouteName)
 		if tcpRoute == nil {
-			return nil, ErrNoTrafficSpecFoundForTrafficPolicy
+			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}
 
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{

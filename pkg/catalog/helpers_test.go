@@ -42,9 +42,14 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
+	provider := kube.NewFakeProvider()
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
 	}
+	serviceProviders := []service.Provider{
+		provider,
+	}
+
 	stop := make(chan struct{})
 
 	certManager := tresor.NewFakeCertManager(mockConfigurator)
@@ -136,5 +141,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders)
 }

@@ -72,13 +72,14 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 	return apexList
 }
 
-// getServicesForServiceAccount returns a list of services corresponding to a service account
-func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
+// getServicesForServiceIdentity returns a list of services corresponding to a service identity
+func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	var services []service.MeshService
-	for _, provider := range mc.endpointsProviders {
-		providerServices, err := provider.GetServicesForServiceAccount(sa)
+
+	for _, provider := range mc.serviceProviders {
+		providerServices, err := provider.GetServicesForServiceIdentity(svcIdentity)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", sa, provider.GetID())
+			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Identity %s from provider %s", svcIdentity, provider.GetID())
 			continue
 		}
 		var svcs []string
@@ -86,12 +87,12 @@ func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccoun
 			svcs = append(svcs, svc.String())
 		}
 
-		log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
+		log.Trace().Msgf("Found K8s Services %s linked to Service Identity %s from provider %s", strings.Join(svcs, ","), svcIdentity, provider.GetID())
 		services = append(services, providerServices...)
 	}
 
 	if len(services) == 0 {
-		return nil, ErrServiceNotFoundForAnyProvider
+		return nil, errServiceNotFoundForAnyProvider
 	}
 
 	return services, nil
@@ -100,16 +101,15 @@ func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccoun
 // ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
 func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
 	// Currently OSM uses kubernetes service accounts as service identities
-	serviceAccounts, err := mc.kubeController.ListServiceIdentitiesForService(svc)
-	if err != nil {
-		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
-		return nil, err
-	}
-
 	var serviceIdentities []identity.ServiceIdentity
-	for _, svcAccount := range serviceAccounts {
-		serviceIdentity := svcAccount.ToServiceIdentity()
-		serviceIdentities = append(serviceIdentities, serviceIdentity)
+	for _, provider := range mc.serviceProviders {
+		serviceIDs, err := provider.ListServiceIdentitiesForService(svc)
+		if err != nil {
+			log.Err(err).Msgf("Error getting ServiceIdentities for Service %s", svc)
+			return nil, err
+		}
+
+		serviceIdentities = append(serviceIdentities, serviceIDs...)
 	}
 
 	return serviceIdentities, nil
@@ -123,7 +123,7 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	var portToProtocolMap, previous map[uint32]string
 
-	for _, provider := range mc.endpointsProviders {
+	for _, provider := range mc.serviceProviders {
 		current, err := provider.GetTargetPortToProtocolMappingForService(svc)
 		if err != nil {
 			return nil, err
@@ -149,19 +149,21 @@ func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.Mesh
 func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
-	k8sSvc := mc.kubeController.GetService(svc)
-	if k8sSvc == nil {
-		return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
+	for _, provider := range mc.serviceProviders {
+		currentPortToProtocolMap, err := provider.GetPortToProtocolMappingForService(svc)
+		if err != nil {
+			return nil, err
+		}
+		for key, value := range currentPortToProtocolMap {
+			if v, ok := portToProtocolMap[key]; ok && v != value {
+				return nil, errors.Errorf("Unexpected protocol %s for port %d, expected protocol %s, service: %s, provider: %s", value, key, v, svc, provider.GetID())
+			}
+			portToProtocolMap[key] = value
+		}
 	}
 
-	for _, portSpec := range k8sSvc.Spec.Ports {
-		var appProtocol string
-		if portSpec.AppProtocol != nil {
-			appProtocol = *portSpec.AppProtocol
-		} else {
-			appProtocol = k8s.GetAppProtocolFromPortName(portSpec.Name)
-		}
-		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
+	if len(portToProtocolMap) == 0 {
+		return nil, errors.Errorf("Error fetching port:protocol mapping for service %s", svc)
 	}
 
 	return portToProtocolMap, nil
@@ -170,9 +172,17 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 // listMeshServices returns all services in the mesh
 func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	var services []service.MeshService
-	for _, svc := range mc.kubeController.ListServices() {
-		services = append(services, utils.K8sSvcToMeshSvc(svc))
+
+	for _, provider := range mc.serviceProviders {
+		svcs, err := provider.ListServices()
+		if err != nil {
+			log.Error().Err(err).Msgf("Error listing services for provider %s", provider.GetID())
+			continue
+		}
+
+		services = append(services, svcs...)
 	}
+
 	return services
 }
 
@@ -180,12 +190,18 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
 func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
-	svc := mc.kubeController.GetService(meshService)
-	if svc == nil {
-		return nil, errors.Errorf("Error fetching service %q", meshService)
+	svc := utils.K8sSvcToMeshSvc(mc.kubeController.GetService(meshService))
+
+	var hostnames []string
+	for _, provider := range mc.serviceProviders {
+		hosts, err := provider.GetHostnamesForService(svc, locality)
+
+		if err != nil {
+			return nil, errors.Errorf("Error fetching hostnames for sercice: %s, provider: %s", meshService, provider.GetID())
+		}
+		hostnames = append(hostnames, hosts...)
 	}
 
-	hostnames := k8s.GetHostnamesForService(svc, locality)
 	return hostnames, nil
 }
 

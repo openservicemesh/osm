@@ -44,6 +44,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -197,6 +198,7 @@ func main() {
 	kubeProvider := kube.NewClient(kubernetesClient, configClient, constants.KubeProviderName, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
+	serviceProviders := []service.Provider{kubeProvider}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
@@ -216,7 +218,9 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		endpointsProviders...)
+		serviceProviders,
+		endpointsProviders,
+	)
 
 	var proxyMapper registry.ProxyServiceMapper
 	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {

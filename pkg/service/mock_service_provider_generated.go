@@ -78,19 +78,19 @@ func (mr *MockProviderMockRecorder) GetPortToProtocolMappingForService(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPortToProtocolMappingForService", reflect.TypeOf((*MockProvider)(nil).GetPortToProtocolMappingForService), arg0)
 }
 
-// GetServicesForServiceAccount mocks base method
-func (m *MockProvider) GetServicesForServiceAccount(arg0 identity.ServiceIdentity) ([]MeshService, error) {
+// GetServicesForServiceIdentity mocks base method
+func (m *MockProvider) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) ([]MeshService, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesForServiceAccount", arg0)
+	ret := m.ctrl.Call(m, "GetServicesForServiceIdentity", arg0)
 	ret0, _ := ret[0].([]MeshService)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetServicesForServiceAccount indicates an expected call of GetServicesForServiceAccount
-func (mr *MockProviderMockRecorder) GetServicesForServiceAccount(arg0 interface{}) *gomock.Call {
+// GetServicesForServiceIdentity indicates an expected call of GetServicesForServiceIdentity
+func (mr *MockProviderMockRecorder) GetServicesForServiceIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceAccount", reflect.TypeOf((*MockProvider)(nil).GetServicesForServiceAccount), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceIdentity", reflect.TypeOf((*MockProvider)(nil).GetServicesForServiceIdentity), arg0)
 }
 
 // GetTargetPortToProtocolMappingForService mocks base method

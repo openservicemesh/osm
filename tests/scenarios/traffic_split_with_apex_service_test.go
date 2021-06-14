@@ -98,11 +98,11 @@ var _ = Describe(``+
 			// Get the 3 VirtualHost configurations into variables so it is easier to
 			// test them (they are stored in a slice w/ non-deterministic order)
 			var apex, v1, v2 *xds_route.VirtualHost
-			for idx, virtualHost := range routeCfg.VirtualHosts {
+			for _, virtualHost := range routeCfg.VirtualHosts {
 				map[string]func(){
-					apexName: func() { apex = routeCfg.VirtualHosts[idx] },
-					v1Name:   func() { v1 = routeCfg.VirtualHosts[idx] },
-					v2Name:   func() { v2 = routeCfg.VirtualHosts[idx] },
+					apexName: func() { apex = virtualHost },
+					v1Name:   func() { v1 = virtualHost },
+					v2Name:   func() { v2 = virtualHost },
 				}[virtualHost.Name]()
 			}
 

@@ -490,12 +490,14 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:   []service.Provider{mockServiceProvider},
 				configurator:       mockConfigurator,
 			}
 
@@ -524,6 +526,19 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			}
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+
+			for _, ms := range tc.meshServices {
+				locality := service.LocalCluster
+				if ms.Namespace == tc.downstreamSA.ToK8sServiceAccount().Namespace {
+					locality = service.LocalNS
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+				} else {
+					if ms.Name == tests.BookstoreApexServiceName {
+						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"], nil).AnyTimes()
+					}
+				}
+			}
+
 			actual := mc.ListInboundTrafficPolicies(tc.upstreamSA, tc.upstreamServices)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
 		})
@@ -971,11 +986,13 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:   []service.Provider{mockServiceProvider},
 			}
 
 			for _, meshSvc := range tc.meshServices {
@@ -989,6 +1006,18 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
+
+			for _, ms := range tc.meshServices {
+				locality := service.LocalCluster
+				if ms.Namespace == tc.downstreamSA.ToK8sServiceAccount().Namespace {
+					locality = service.LocalNS
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+				} else {
+					if ms.Name == tests.BookstoreApexServiceName {
+						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"], nil).AnyTimes()
+					}
+				}
+			}
 
 			actual := mc.listInboundPoliciesForTrafficSplits(tc.upstreamSA, tc.upstreamServices)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
@@ -1292,9 +1321,22 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
+			mockServiceProvider.EXPECT().GetServicesForServiceIdentity(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA, tc.destSA)
+
+			mockServiceProvider.EXPECT().GetHostnamesForService(tc.inboundService, service.LocalNS).Return([]string{
+				tc.inboundService.Name,
+				fmt.Sprintf("%s.%s", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s:8888", tc.inboundService.Name),
+				fmt.Sprintf("%s.%s:8888", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc:8888", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:8888", tc.inboundService.Name, tc.inboundService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:8888", tc.inboundService.Name, tc.inboundService.Namespace),
+			}, nil).AnyTimes()
 
 			actual := mc.buildInboundPolicies(&trafficTarget, tc.inboundService)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
@@ -1359,17 +1401,32 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:   []service.Provider{mockServiceProvider},
 			}
 
 			k8sService := tests.NewServiceFixture(tc.meshService.Name, tc.meshService.Namespace, map[string]string{})
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().GetService(tc.meshService).Return(k8sService)
+			mockServiceProvider.EXPECT().GetHostnamesForService(tc.meshService, service.LocalNS).Return([]string{
+				tc.meshService.Name,
+				fmt.Sprintf("%s.%s", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s:8888", tc.meshService.Name),
+				fmt.Sprintf("%s.%s:8888", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc:8888", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:8888", tc.meshService.Name, tc.meshService.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:8888", tc.meshService.Name, tc.meshService.Namespace),
+			}, nil).AnyTimes()
+
 			actual := mc.buildInboundPermissiveModePolicies(tc.meshService)
 			assert.Len(actual, len(tc.expectedInboundPolicies))
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
@@ -1614,10 +1671,40 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.upstreamServiceIdentity).Return(tc.upstreamServices, nil).AnyTimes()
+			mockServiceProvider.EXPECT().GetServicesForServiceIdentity(tc.upstreamServiceIdentity).Return(tc.upstreamServices, nil).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamServiceIdentity, tc.upstreamServiceIdentity)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
+
+			for _, ms := range tc.upstreamServices {
+				locality := service.LocalCluster
+				if ms.Namespace == tc.downstreamServiceIdentity.ToK8sServiceAccount().Namespace {
+					locality = service.LocalNS
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return([]string{
+						ms.Name,
+						fmt.Sprintf("%s.%s", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster.%s", ms.Name, ms.Namespace, ms.ClusterDomain),
+						fmt.Sprintf("%s:8888", ms.Name),
+						fmt.Sprintf("%s.%s:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster.%s:8888", ms.Name, ms.Namespace, ms.ClusterDomain),
+					}, nil).AnyTimes()
+				} else {
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return([]string{
+						fmt.Sprintf("%s.%s", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster.%s", ms.Name, ms.Namespace, ms.ClusterDomain),
+						fmt.Sprintf("%s.%s:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster:8888", ms.Name, ms.Namespace),
+						fmt.Sprintf("%s.%s.svc.cluster.%s:8888", ms.Name, ms.Namespace, ms.ClusterDomain),
+					}, nil).AnyTimes()
+				}
+			}
 
 			actual := mc.listInboundPoliciesFromTrafficTargets(tc.upstreamServiceIdentity, tc.upstreamServices)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual, "The expected and actual do not match!")
@@ -1849,11 +1936,13 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:   []service.Provider{mockServiceProvider},
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

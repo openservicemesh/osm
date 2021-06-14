@@ -87,8 +87,8 @@ type WeightedCluster struct {
 
 // Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Provider interface {
-	// GetServicesForServiceAccount returns a list of services corresponding to a service account
-	GetServicesForServiceAccount(identity.ServiceIdentity) ([]MeshService, error)
+	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentity) ([]MeshService, error)
 
 	// ListServices returns a list of services that are part of monitored namespaces
 	ListServices() ([]MeshService, error)

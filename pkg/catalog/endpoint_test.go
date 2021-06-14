@@ -159,7 +159,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockEndpointProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
+				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services, nil).AnyTimes()
 			}
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {

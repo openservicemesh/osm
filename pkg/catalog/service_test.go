@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -219,9 +218,9 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockServiceProvider := service.NewMockProvider(mockCtrl)
 	mc := &MeshCatalog{
-		kubeController: mockKubeController,
+		serviceProviders: []service.Provider{mockServiceProvider},
 	}
 
 	testCases := []struct {
@@ -248,19 +247,13 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			nil,
-			errors.New("test error"),
+			errServiceNotFound,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			// Create a list of K8sServiceAccounts, from the ServiceIdentities to serve as a return for the mock below.
-			var serviceAccountsToReturn []identity.K8sServiceAccount
-			for _, svcAccount := range tc.expectedSvcAccounts {
-				serviceAccountsToReturn = append(serviceAccountsToReturn, svcAccount.ToK8sServiceAccount())
-			}
-			mockKubeController.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(serviceAccountsToReturn, tc.expectedError).Times(1)
-
+			mockServiceProvider.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(tc.expectedSvcAccounts, tc.expectedError).Times(1)
 			serviceIdentities, err := mc.ListServiceIdentitiesForService(tc.svc)
 			assert.ElementsMatch(serviceIdentities, tc.expectedSvcAccounts)
 			assert.Equal(err, tc.expectedError)
@@ -273,31 +266,31 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	type endpointProviderConfig struct {
-		provider          *endpoint.MockProvider
+	type serviceProviderConfig struct {
+		provider          *service.MockProvider
 		portToProtocolMap map[uint32]string
 		err               error
 	}
 
 	testCases := []struct {
 		name                      string
-		providerConfigs           []endpointProviderConfig
+		providerConfigs           []serviceProviderConfig
 		expectedPortToProtocolMap map[uint32]string
 		expectError               bool
 	}{
 		{
 			// Test case 1
 			name: "multiple providers correctly returning the same port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -309,16 +302,16 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 2
 			name: "multiple providers incorrectly returning different port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "tcp", 90: "http"},
 					err:               nil,
 				},
@@ -330,10 +323,10 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 3
 			name: "single provider correctly returning port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -352,14 +345,14 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			// Create a list of providers for catalog and mock their calls based on the given config
-			var allProviders []endpoint.Provider
+			var allProviders []service.Provider
 			for _, providerConfig := range tc.providerConfigs {
 				allProviders = append(allProviders, providerConfig.provider)
 				providerConfig.provider.EXPECT().GetTargetPortToProtocolMappingForService(testSvc).Return(providerConfig.portToProtocolMap, providerConfig.err).Times(1)
 			}
 
 			mc := &MeshCatalog{
-				endpointsProviders: allProviders,
+				serviceProviders: allProviders,
 			}
 
 			actualPortToProtocolMap, err := mc.GetTargetPortToProtocolMappingForService(testSvc)
@@ -496,12 +489,14 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
+
 			mc := &MeshCatalog{
-				kubeController: mockKubeController,
+				kubeController:   mockKubeController,
+				serviceProviders: []service.Provider{mockServiceProvider},
 			}
 
-			mockKubeController.EXPECT().GetService(svc).Return(tc.service).Times(1)
-
+			mockServiceProvider.EXPECT().GetPortToProtocolMappingForService(svc).Return(tc.expectedPortToProtocolMap, nil).Times(1)
 			actualPortToProtocolMap, err := mc.GetPortToProtocolMappingForService(svc)
 
 			assert.Equal(tc.expectError, err != nil)
@@ -514,10 +509,11 @@ func TestListMeshServices(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-
+	mockServiceProvider := service.NewMockProvider(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mc := MeshCatalog{
-		kubeController: mockKubeController,
+		kubeController:   mockKubeController,
+		serviceProviders: []service.Provider{mockServiceProvider},
 	}
 
 	testCases := []struct {
@@ -536,16 +532,20 @@ func TestListMeshServices(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var k8sServices []*corev1.Service
-			var expectedMeshServices []service.MeshService
+			var expectedMeshServices, actual []service.MeshService
 
 			for name, namespace := range tc.services {
-				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))
 				expectedMeshServices = append(expectedMeshServices, tests.NewMeshServiceFixture(name, namespace))
 			}
 
-			mockKubeController.EXPECT().ListServices().Return(k8sServices)
-			actual := mc.listMeshServices()
+			mockServiceProvider.EXPECT().ListServices().Return(expectedMeshServices, nil)
+			for _, provider := range mc.serviceProviders {
+				services, err := provider.ListServices()
+				if err != nil {
+					panic(err)
+				}
+				actual = append(actual, services...)
+			}
 			assert.Equal(expectedMeshServices, actual)
 		})
 	}
@@ -554,7 +554,15 @@ func TestListMeshServices(t *testing.T) {
 func TestGetServiceHostnames(t *testing.T) {
 	assert := tassert.New(t)
 
-	mc := newFakeMeshCatalog()
+	mockCtrl := gomock.NewController(t)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockServiceProvider := service.NewMockProvider(mockCtrl)
+	mc := MeshCatalog{
+		kubeController:   mockKubeController,
+		meshSpec:         mockMeshSpec,
+		serviceProviders: []service.Provider{mockServiceProvider},
+	}
 
 	testCases := []struct {
 		svc      service.MeshService
@@ -595,6 +603,9 @@ func TestGetServiceHostnames(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing hostnames for svc %s with locality=%d", tc.svc, tc.locality), func(t *testing.T) {
+			k8sService := tests.NewServiceFixture(tc.svc.Name, tc.svc.Namespace, map[string]string{})
+			mockKubeController.EXPECT().GetService(tc.svc).Return(k8sService).Times(1)
+			mockServiceProvider.EXPECT().GetHostnamesForService(tc.svc, tc.locality).Return(tc.expected, nil).Times(1)
 			actual, err := mc.GetServiceHostnames(tc.svc, tc.locality)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expected)
