@@ -64,36 +64,6 @@ func (mr *MockProviderMockRecorder) GetResolvableEndpointsForService(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockProvider)(nil).GetResolvableEndpointsForService), arg0)
 }
 
-// GetServicesForServiceAccount mocks base method
-func (m *MockProvider) GetServicesForServiceAccount(arg0 identity.K8sServiceAccount) ([]service.MeshService, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesForServiceAccount", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesForServiceAccount indicates an expected call of GetServicesForServiceAccount
-func (mr *MockProviderMockRecorder) GetServicesForServiceAccount(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceAccount", reflect.TypeOf((*MockProvider)(nil).GetServicesForServiceAccount), arg0)
-}
-
-// GetTargetPortToProtocolMappingForService mocks base method
-func (m *MockProvider) GetTargetPortToProtocolMappingForService(arg0 service.MeshService) (map[uint32]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTargetPortToProtocolMappingForService", arg0)
-	ret0, _ := ret[0].(map[uint32]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTargetPortToProtocolMappingForService indicates an expected call of GetTargetPortToProtocolMappingForService
-func (mr *MockProviderMockRecorder) GetTargetPortToProtocolMappingForService(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortToProtocolMappingForService", reflect.TypeOf((*MockProvider)(nil).GetTargetPortToProtocolMappingForService), arg0)
-}
-
 // ListEndpointsForIdentity mocks base method
 func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.ServiceIdentity) []Endpoint {
 	m.ctrl.T.Helper()
