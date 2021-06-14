@@ -96,7 +96,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
-| OpenServiceMesh.image.tag | string | `"v0.8.4"` | Container image tag |
+| OpenServiceMesh.image.tag | string | `"v0.9.0"` | Container image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
 | OpenServiceMesh.injector.autoScale.enable | bool | `false` | Enable Autoscale |
