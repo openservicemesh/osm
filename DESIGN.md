@@ -294,7 +294,7 @@ connected Envoy proxies with a list of clusters, mapping of service name to list
 The `ListEndpointsForService` method will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
-The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
+The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s and `ServiceProvider`s.
 
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -330,8 +330,8 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServicesForServiceAccount returns a list of services corresponding to a service account
-	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
+	// GetServicesForServiceIdentity returns a list of services corresponding to a service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentityt) ([]service.MeshService, error)
 
   // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
   GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
@@ -397,7 +397,7 @@ The [Endpoints providers](#3-endpoints-providers) has no awareness of:
 > Note: As of this iteration of OSM we deliberately choose to leak the Mesh Specification implementation into the
 EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
-when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
+when Azure provider's `ListEndpointsForService` is invoked with some a service name
 the provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,

@@ -4,6 +4,8 @@ package service
 import (
 	"fmt"
 	"strings"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 const (
@@ -69,4 +71,13 @@ func (c ClusterName) String() string {
 type WeightedCluster struct {
 	ClusterName ClusterName `json:"cluster_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
+}
+
+// Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
+type Provider interface {
+	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentity) ([]MeshService, error)
+
+	// GetID returns the unique identifier of the EndpointsProvider.
+	GetID() string
 }
