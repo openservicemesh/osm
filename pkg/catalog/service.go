@@ -121,7 +121,7 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	var portToProtocolMap, previous map[uint32]string
 
-	for _, provider := range mc.endpointsProviders {
+	for _, provider := range mc.serviceProviders {
 		current, err := provider.GetTargetPortToProtocolMappingForService(svc)
 		if err != nil {
 			return nil, err
@@ -144,6 +144,7 @@ func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.Mesh
 // GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+// TODO(whitneygriffith): rm or reference provider
 func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
@@ -166,6 +167,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 }
 
 // listMeshServices returns all services in the mesh
+// TODO(whitneygriffith): rm or reference provider
 func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	var services []service.MeshService
 	for _, svc := range mc.kubeController.ListServices() {

@@ -186,6 +186,31 @@ func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService
 	return portToProtocolMap, nil
 }
 
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
+// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
+// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+// TODO(whitneygriffith): implement and find all references
+func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	// k8sSvc := mc.kubeController.GetService(svc)
+	// if k8sSvc == nil {
+	// 	return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
+	// }
+
+	// for _, portSpec := range k8sSvc.Spec.Ports {
+	// 	var appProtocol string
+	// 	if portSpec.AppProtocol != nil {
+	// 		appProtocol = *portSpec.AppProtocol
+	// 	} else {
+	// 		appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
+	// 	}
+	// 	portToProtocolMap[uint32(portSpec.Port)] = appProtocol
+	// }
+
+	return portToProtocolMap, nil
+}
+
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
 func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
 	var finalList []corev1.Service
@@ -245,4 +270,67 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	}
 
 	return endpoints, err
+}
+
+// ListServices returns a list of services that are part of monitored namespaces
+// TODO(whitneygriffith): implement and find all references
+func (c *Client) ListServices() ([]service.MeshService, error) {
+	var services []service.MeshService
+
+	// for _, serviceInterface := range c.informers[Services].GetStore().List() {
+	// 	svc := serviceInterface.(*corev1.Service)
+
+	// 	if !c.IsMonitoredNamespace(svc.Namespace) {
+	// 		continue
+	// 	}
+	// 	services = append(services, svc)
+	// }
+	return services, nil
+}
+
+// listMeshServices returns all services in the mesh
+// TODO(whitneygriffith): implement and find all references
+func (c *Client) ListMeshServices() ([]service.MeshService, error) {
+	var services []service.MeshService
+	// for _, svc := range mc.kubeController.ListServices() {
+	// 	services = append(services, utils.K8sSvcToMeshSvc(svc))
+	// }
+	return services, nil
+}
+
+// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
+// If 'sameNamespace' is set to true, then the shorthand hostnames service and service:port are also returned.
+// TODO(whitneygriffith): implement and find all references
+func (c Client) GetHostnamesForService(service service.MeshService, sameNamespace bool) ([]string, error) {
+	var domains []string
+	// if service == nil {
+	// 	return domains
+	// }
+
+	// serviceName := service.Name
+	// namespace := service.Namespace
+
+	// if sameNamespace {
+	// 	// Within the same namespace, service name is resolvable to its address
+	// 	domains = append(domains, serviceName) // service
+	// }
+
+	// domains = append(domains, fmt.Sprintf("%s.%s", serviceName, namespace))                       // service.namespace
+	// domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))                   // service.namespace.svc
+	// domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))           // service.namespace.svc.cluster
+	// domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, clusterDomain)) // service.namespace.svc.cluster.local
+	// for _, portSpec := range service.Spec.Ports {
+	// 	port := portSpec.Port
+
+	// 	if sameNamespace {
+	// 		// Within the same namespace, service name is resolvable to its address
+	// 		domains = append(domains, fmt.Sprintf("%s:%d", serviceName, port)) // service:port
+	// 	}
+
+	// 	domains = append(domains, fmt.Sprintf("%s.%s:%d", serviceName, namespace, port))                       // service.namespace:port
+	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc:%d", serviceName, namespace, port))                   // service.namespace.svc:port
+	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster:%d", serviceName, namespace, port))           // service.namespace.svc.cluster:port
+	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)) // service.namespace.svc.cluster.local:port
+	// }
+	return domains, nil
 }
