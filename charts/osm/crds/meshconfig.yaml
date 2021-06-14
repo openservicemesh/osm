@@ -209,3 +209,6 @@ spec:
                     enableAsyncProxyServiceMapping:
                       type: boolean
                       default: false
+                    enableValidatingWebhook:
+                      type: boolean
+                      default: false

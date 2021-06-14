@@ -250,6 +250,9 @@ OpenServiceMesh:
     enableOSMGateway: false
     # -- Enable async proxy-service mapping
     enableAsyncProxyServiceMapping: false
+    # -- Enable kubernetes validating webhook
+    enableValidatingWebhook: false
+
 
   # -- Run OSM with PodSecurityPolicy configured
   pspEnabled: false
