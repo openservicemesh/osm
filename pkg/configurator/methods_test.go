@@ -307,6 +307,21 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
+			name:                  "GetIboundPortExclusionList",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Nil(cfg.GetInboundPortExclusionList())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					InboundPortExclusionList: []int{7070, 6080},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal([]int{7070, 6080}, cfg.GetInboundPortExclusionList())
+			},
+		},
+		{
 			name: "IsPrivilegedInitContainer",
 			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Sidecar: v1alpha1.SidecarSpec{

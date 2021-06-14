@@ -200,6 +200,10 @@ OpenServiceMesh:
   # If specified, must be a list of positive integers.
   outboundPortExclusionList: []
 
+  # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  inboundPortExclusionList: []
+
   #
   # -- OSM's sidecar injector parameters
   injector:

@@ -55,8 +55,11 @@ const (
 	// injectorServiceName is the name of the OSM sidecar injector service
 	injectorServiceName = "osm-injector"
 
-	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusion
+	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
 	outboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
+
+	// inboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
+	inboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -319,18 +322,21 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	return false, nil
 }
 
-// getPodOutboundPortExclusionList gets a list of ports to exclude from outbound sidecar interception.
+// getPortExclusionListForPod gets a list of ports to exclude from sidecar traffic interception for the given
+// pod and annotation kind.
 //
-// Outbound Ports are excluded from sidecar interception when:
-// 1. The pod is explicitly annotated with a single or comma separate list of ports
+// Ports are excluded from sidecar interception when the pod is explicitly annotated with a single or
+// comma separate list of ports.
+//
+// The kind of exclusion (inbound vs outbound) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether ports need to be excluded from outbound sidecar interception.
-func (wh *mutatingWebhook) getPodOutboundPortExclusionList(pod *corev1.Pod, namespace string) ([]int, error) {
+func (wh *mutatingWebhook) getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]int, error) {
 	var ports []int
 	// Check if the pod is annotated for outbound port exclusion
-	ports, err := isAnnotatedForOutboundPortExclusion(pod.Annotations, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+	ports, err := isAnnotatedForPortExclusion(pod.Annotations, annotation, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
-		log.Error().Err(err).Msg("Error determining outbound ports for exclusion on pod")
+		log.Error().Err(err).Msgf("Error determining port exclusions for annotation %s on pod %s/%s", annotation, namespace, pod.Name)
 		return ports, err
 	}
 
@@ -354,19 +360,19 @@ func isAnnotatedForInjection(annotations map[string]string, objectKind string, o
 	return
 }
 
-func isAnnotatedForOutboundPortExclusion(annotations map[string]string, objectKind string, objectName string) (ports []int, err error) {
-	outboundPortsToExclude, ok := annotations[outboundPortExclusionListAnnotation]
+func isAnnotatedForPortExclusion(annotations map[string]string, portAnnotation string, objectKind string, objectName string) (ports []int, err error) {
+	portsToExcludeStr, ok := annotations[portAnnotation]
 	if !ok {
 		return ports, err
 	}
 
-	log.Trace().Msgf("%s %s has outbound port exclusion annotation: '%s:%s'", objectKind, objectName, outboundPortExclusionListAnnotation, outboundPortsToExclude)
-	portsToExclude := strings.Split(outboundPortsToExclude, ",")
+	log.Trace().Msgf("%s %s has port exclusion annotation: '%s:%s'", objectKind, objectName, portAnnotation, portsToExcludeStr)
+	portsToExclude := strings.Split(portsToExcludeStr, ",")
 	for _, portStr := range portsToExclude {
 		portStr := strings.TrimSpace(portStr)
 		portInt, ok := strconv.Atoi(portStr)
 		if ok != nil || portInt <= 0 {
-			err = errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, outboundPortsToExclude)
+			err = errors.Errorf("Invalid port '%s' specified for annotation '%s'", portStr, portAnnotation)
 			ports = nil
 			return ports, err
 		}

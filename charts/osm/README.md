@@ -98,6 +98,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
 | OpenServiceMesh.image.tag | string | `"v0.9.0"` | Container image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
+| OpenServiceMesh.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | OpenServiceMesh.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
 | OpenServiceMesh.injector.autoScale.enable | bool | `false` | Enable Autoscale |
 | OpenServiceMesh.injector.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |

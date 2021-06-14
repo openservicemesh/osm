@@ -657,38 +657,56 @@ var _ = Describe("Testing Injector Functions", func() {
 	})
 })
 
-func TestIsAnnotatedForOutboundPortExclusion(t *testing.T) {
+func TestIsAnnotatedForPortExclusion(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
 		name          string
-		annotation    map[string]string
+		annotations   map[string]string
+		forAnnotation string
 		expectedError error
 		expectedPorts []int
 	}{
 		{
 			name:          "contains outbound port exclusion list annotation",
-			annotation:    map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			annotations:   map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
 			expectedError: nil,
 			expectedPorts: []int{6060, 7070},
 		},
 		{
-			name:          "does not contains outbound port exclusion list annontation",
-			annotation:    nil,
+			name:          "contains inbound port exclusion list annotation",
+			annotations:   map[string]string{inboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "does not contains port exclusion list annontation",
+			annotations:   nil,
+			forAnnotation: "",
 			expectedError: nil,
 			expectedPorts: nil,
 		},
 		{
-			name:          "ontains outbound port exclusion list annontation but invalid port",
-			annotation:    map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
-			expectedError: errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, "6060, -7070"),
+			name:          "contains outbound port exclusion list annontation but invalid port",
+			annotations:   map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains inbound port exclusion list annontation but invalid port",
+			annotations:   map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ports, err := isAnnotatedForOutboundPortExclusion(tc.annotation, "-kind-", "-name-")
+			ports, err := isAnnotatedForPortExclusion(tc.annotations, tc.forAnnotation, "-kind-", "-name-")
 			if err != nil {
 				assert.EqualError(tc.expectedError, err.Error())
 			} else {
@@ -705,25 +723,43 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 	testCases := []struct {
 		name          string
 		podAnnotation map[string]string
+		forAnnotation string
 		expectedError error
 		expectedPorts []int
 	}{
 		{
 			name:          "contains outbound port exclusion list annotation",
 			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
 			expectedError: nil,
 			expectedPorts: []int{6060, 7070},
 		},
 		{
-			name:          "does not contains outbound port exclusion list annontation",
+			name:          "contains inbound port exclusion list annotation",
+			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "does not contains any port exclusion list annontation",
 			podAnnotation: nil,
+			forAnnotation: "",
 			expectedError: nil,
 			expectedPorts: nil,
 		},
 		{
 			name:          "contains outbound port exclusion list annontation but invalid port",
 			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
-			expectedError: errors.Errorf("Invalid port for key %q: %s", outboundPortExclusionListAnnotation, "6060, -7070"),
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains inbound port exclusion list annontation but invalid port",
+			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 	}
@@ -770,7 +806,7 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 			mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 			mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
-			ports, err := wh.getPodOutboundPortExclusionList(pod, namespace)
+			ports, err := wh.getPortExclusionListForPod(pod, namespace, tc.forAnnotation)
 			if err != nil {
 				assert.EqualError(tc.expectedError, err.Error())
 			} else {
