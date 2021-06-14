@@ -24,7 +24,10 @@ debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/os
 health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes
 
 # pkg/endpoint
-endpoint; pkg/endpoint/mock_provider_generated.go; github.com/openservicemesh/osm/pkg/endpoint; Provider
+endpoint; pkg/endpoint/mock_endpoint_provider_generated.go; github.com/openservicemesh/osm/pkg/endpoint; Provider
+
+# pkg/service
+service; pkg/service/mock_service_provider_generated.go; github.com/openservicemesh/osm/pkg/service; Provider
 
 # pkg/configurator
 configurator; pkg/configurator/mock_client_generated.go; github.com/openservicemesh/osm/pkg/configurator; Configurator
