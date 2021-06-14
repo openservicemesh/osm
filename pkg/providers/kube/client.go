@@ -36,7 +36,7 @@ func NewServiceProvider(kubeController k8s.Controller, providerIdent string, cfg
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.
-// Required by interface: EndpointsProvider
+// Required by interface: EndpointsProvider, ServiceProvider
 func (c *Client) GetID() string {
 	return c.providerIdent
 }
@@ -105,7 +105,7 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 	return endpoints
 }
 
-// GetServicesForServiceIdentity retrieves a list of services for the given service account.
+// GetServicesForServiceIdentity retrieves a list of services for the given service identity.
 func (c Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 

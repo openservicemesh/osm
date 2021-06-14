@@ -112,10 +112,11 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name == ident.Name && source.Namespace == ident.Namespace { // found outbound
-				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
+				sa := identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
-				})
+				}
+				destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 				if err != nil {
 					log.Error().Err(err).Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
 					break
@@ -233,7 +234,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	destServices, err := mc.getServicesForServiceAccount(sa)
+	destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 	if err != nil {
 		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
 	}

@@ -69,13 +69,14 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 	return apexList
 }
 
-// getServicesForServiceAccount returns a list of services corresponding to a service account
-func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
+// getServicesForServiceIdentity returns a list of services corresponding to a service identity
+func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	var services []service.MeshService
-	for _, provider := range mc.endpointsProviders {
-		providerServices, err := provider.GetServicesForServiceAccount(sa)
+
+	for _, provider := range mc.serviceProviders {
+		providerServices, err := provider.GetServicesForServiceIdentity(svcIdentity)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", sa, provider.GetID())
+			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", svcIdentity, provider.GetID())
 			continue
 		}
 		var svcs []string
@@ -83,7 +84,7 @@ func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccoun
 			svcs = append(svcs, svc.String())
 		}
 
-		log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
+		log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), svcIdentity, provider.GetID())
 		services = append(services, providerServices...)
 	}
 
