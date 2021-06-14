@@ -9,8 +9,8 @@ import (
 )
 
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []int,
-	enablePrivilegedInitContainer bool) corev1.Container {
-	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList)
+	inboundPortExclusionList []int, enablePrivilegedInitContainer bool) corev1.Container {
+	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList)
 	iptablesInitCommand := strings.Join(iptablesInitCommandsList, " && ")
 
 	return corev1.Container{

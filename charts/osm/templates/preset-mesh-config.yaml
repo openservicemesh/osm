@@ -15,6 +15,7 @@ spec:
     useHTTPSIngress: {{.Values.OpenServiceMesh.useHTTPSIngress}}
     enablePermissiveTrafficPolicyMode: {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy}}
     outboundPortExclusionList: {{.Values.OpenServiceMesh.outboundPortExclusionList}}
+    inboundPortExclusionList: {{.Values.OpenServiceMesh.inboundPortExclusionList}}
     outboundIPRangeExclusionList: {{.Values.OpenServiceMesh.outboundIPRangeExclusionList}}
   observability:
     enableDebugServer: {{.Values.OpenServiceMesh.enableDebugServer}}

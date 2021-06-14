@@ -69,7 +69,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPortExclusionList []int) []string {
+func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) []string {
 	var cmd []string
 
 	// 1. Create redirection chains
@@ -89,7 +89,7 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPor
 		cmd = append(cmd, rule)
 	}
 
-	// 5. Create dynamic outbound ports exclusion rule
+	// 5. Create dynamic outbound ports exclusion rules
 	if len(outboundPortExclusionList) > 0 {
 		var portExclusionListStr []string
 		for _, port := range outboundPortExclusionList {
@@ -97,6 +97,17 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPor
 		}
 		outboundPortsToExclude := strings.Join(portExclusionListStr, ",")
 		rule := fmt.Sprintf("iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
+		cmd = append(cmd, rule)
+	}
+
+	// 6. Create dynamic inbound ports exclusion rules
+	if len(inboundPortExclusionList) > 0 {
+		var portExclusionListStr []string
+		for _, port := range inboundPortExclusionList {
+			portExclusionListStr = append(portExclusionListStr, strconv.Itoa(port))
+		}
+		inboundPortsToExclude := strings.Join(portExclusionListStr, ",")
+		rule := fmt.Sprintf("iptables -t nat -I PROXY_INBOUND -p tcp --match multiport --dports %s -j RETURN", inboundPortsToExclude)
 		cmd = append(cmd, rule)
 	}
 
