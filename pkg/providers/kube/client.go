@@ -15,8 +15,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+// NewEndpointProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
+func NewEndpointProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+	client := Client{
+		providerIdent:  providerIdent,
+		kubeController: kubeController,
+	}
+
+	return &client, nil
+}
+
+// NewServiceProvider implements mesh.ServiceProvider, which creates a new Kubernetes cluster/compute provider.
+func NewServiceProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (service.Provider, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeController: kubeController,
@@ -95,9 +105,11 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 	return endpoints
 }
 
-// GetServicesForServiceAccount retrieves a list of services for the given service account.
-func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
+// GetServicesForServiceIdentity retrieves a list of services for the given service account.
+func (c Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
+
+	svcAccount := svcIdentity.ToK8sServiceAccount()
 
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
