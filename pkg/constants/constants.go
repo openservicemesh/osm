@@ -149,13 +149,19 @@ const (
 	OSMMeshConfig = "osm-mesh-config"
 )
 
-// Annotations used by the controller
+// Annotations used by the control plane
 const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
 	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
 
 	// MetricsAnnotation is the annotation used for enabling/disabling metrics
 	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Labels used by the control plane
+const (
+	// IgnoreLabel is the label used to ignore a resource
+	IgnoreLabel = "openservicemesh.io/ignore"
 )
 
 // Annotations used for Metrics

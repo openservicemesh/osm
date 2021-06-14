@@ -4,11 +4,23 @@ import (
 	"fmt"
 	"testing"
 
-	tassert "github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
+	"github.com/golang/mock/gomock"
 
 	"github.com/pkg/errors"
+	tassert "github.com/stretchr/testify/assert"
+	networkingV1 "k8s.io/api/networking/v1"
+	networkingV1beta1 "k8s.io/api/networking/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/discovery"
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/pointer"
+
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 type fakeDiscoveryClient struct {
@@ -109,6 +121,218 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 
 			assert.Equal(tc.exepectError, err != nil)
 			assert.Equal(tc.expectedVersions, versions)
+		})
+	}
+}
+
+func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	assert := tassert.New(t)
+
+	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
+	meshSvc := service.MeshService{Name: "foo", Namespace: "test"}
+
+	testCases := []struct {
+		name               string
+		ingressResource    runtime.Object
+		version            string
+		expectedMatchCount int
+	}{
+		{
+			name: "ingress v1 is not ignored",
+			ingressResource: &networkingV1.Ingress{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "networking.k8s.io/v1",
+					Kind:       "Ingress",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-1",
+					Namespace: meshSvc.Namespace,
+				},
+				Spec: networkingV1.IngressSpec{
+					Rules: []networkingV1.IngressRule{
+						{
+							Host: "fake1.com",
+							IngressRuleValue: networkingV1.IngressRuleValue{
+								HTTP: &networkingV1.HTTPIngressRuleValue{
+									Paths: []networkingV1.HTTPIngressPath{
+										{
+											Path:     "/fake1-path1",
+											PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypeImplementationSpecific))),
+											Backend: networkingV1.IngressBackend{
+												Service: &networkingV1.IngressServiceBackend{
+													Name: meshSvc.Name,
+													Port: networkingV1.ServiceBackendPort{
+														Number: 80,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			version:            networkingV1.SchemeGroupVersion.String(),
+			expectedMatchCount: 1,
+		},
+		{
+			name: "ingress v1 is ignored using a label",
+			ingressResource: &networkingV1.Ingress{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "networking.k8s.io/v1",
+					Kind:       "Ingress",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-1",
+					Namespace: meshSvc.Namespace,
+					Labels:    map[string]string{constants.IgnoreLabel: "true"}, // ignored
+				},
+				Spec: networkingV1.IngressSpec{
+					Rules: []networkingV1.IngressRule{
+						{
+							Host: "fake1.com",
+							IngressRuleValue: networkingV1.IngressRuleValue{
+								HTTP: &networkingV1.HTTPIngressRuleValue{
+									Paths: []networkingV1.HTTPIngressPath{
+										{
+											Path:     "/fake1-path1",
+											PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypeImplementationSpecific))),
+											Backend: networkingV1.IngressBackend{
+												Service: &networkingV1.IngressServiceBackend{
+													Name: meshSvc.Name,
+													Port: networkingV1.ServiceBackendPort{
+														Number: 80,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			version:            networkingV1.SchemeGroupVersion.String(),
+			expectedMatchCount: 0,
+		},
+		{
+			name: "ingress v1beta1 is not ignored",
+			ingressResource: &networkingV1beta1.Ingress{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "networking.k8s.io/v1beta1",
+					Kind:       "Ingress",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-1",
+					Namespace: meshSvc.Namespace,
+				},
+				Spec: networkingV1beta1.IngressSpec{
+					Rules: []networkingV1beta1.IngressRule{
+						{
+							Host: "fake1.com",
+							IngressRuleValue: networkingV1beta1.IngressRuleValue{
+								HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+									Paths: []networkingV1beta1.HTTPIngressPath{
+										{
+											Path:     "/fake1-path1",
+											PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypeImplementationSpecific))),
+											Backend: networkingV1beta1.IngressBackend{
+												ServiceName: meshSvc.Name,
+												ServicePort: intstr.IntOrString{
+													Type:   intstr.Int,
+													IntVal: 80,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			version:            networkingV1beta1.SchemeGroupVersion.String(),
+			expectedMatchCount: 1,
+		},
+		{
+			name: "ingress v1beta1 is ignored using a label",
+			ingressResource: &networkingV1beta1.Ingress{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "networking.k8s.io/v1beta1",
+					Kind:       "Ingress",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-1",
+					Namespace: meshSvc.Namespace,
+					Labels:    map[string]string{constants.IgnoreLabel: "true"}, // ignored
+				},
+				Spec: networkingV1beta1.IngressSpec{
+					Rules: []networkingV1beta1.IngressRule{
+						{
+							Host: "fake1.com",
+							IngressRuleValue: networkingV1beta1.IngressRuleValue{
+								HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+									Paths: []networkingV1beta1.HTTPIngressPath{
+										{
+											Path:     "/fake1-path1",
+											PathType: (*networkingV1beta1.PathType)(pointer.StringPtr(string(networkingV1beta1.PathTypeImplementationSpecific))),
+											Backend: networkingV1beta1.IngressBackend{
+												ServiceName: meshSvc.Name,
+												ServicePort: intstr.IntOrString{
+													Type:   intstr.Int,
+													IntVal: 80,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			version:            networkingV1beta1.SchemeGroupVersion.String(),
+			expectedMatchCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fakeClient := fake.NewSimpleClientset(tc.ingressResource)
+			fakeClient.Discovery().(*fakeDiscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{
+				{
+					GroupVersion: networkingV1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Kind: "Ingress"},
+					},
+				},
+				{
+					GroupVersion: networkingV1beta1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Kind: "Ingress"},
+					},
+				},
+			}
+
+			c, err := NewIngressClient(fakeClient, mockKubeController, make(chan struct{}), nil)
+			assert.Nil(err)
+
+			switch tc.version {
+			case networkingV1.SchemeGroupVersion.String():
+				ingresses, err := c.GetIngressNetworkingV1(meshSvc)
+				assert.Nil(err)
+				assert.Len(ingresses, tc.expectedMatchCount)
+
+			case networkingV1beta1.SchemeGroupVersion.String():
+				ingresses, err := c.GetIngressNetworkingV1beta1(meshSvc)
+				assert.Nil(err)
+				assert.Len(ingresses, tc.expectedMatchCount)
+			}
 		})
 	}
 }
