@@ -53,9 +53,7 @@ Create a new commit on the new branch to update the hardcoded version informatio
 
 * The container image tag in [charts/osm/values.yaml](/charts/osm/values.yaml)
 * The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml)
-* The default osm-controller image tag in [osm cli install](/cmd/cli/install.go)
 * The default osm image tag in [osm cli mesh upgrade](/cmd/cli/mesh_upgrade.go)
-* The image tags used in the [demo manifests](/docs/example/manifests/apps)
 * The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
 * The init container image version in [charts/osm/crds/meshconfig.yaml](/charts/osm/crds/meshconfig.yaml)

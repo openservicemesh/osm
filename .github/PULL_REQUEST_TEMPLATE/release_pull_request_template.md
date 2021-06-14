@@ -8,9 +8,8 @@ Use the checklist below to ensure your release PR is complete before marking it 
 - [ ] I have made all of the following version and patch updates:
   1. Updated the container image tag in charts/osm/values.yaml
   2. Updated the chart **and** app version in charts/osm/Chart.yaml
-  3. Updated the default osm-controller image tag in osm cli
-  4. Updated the image tags used in the demo manifests
-  5. Regenerated the Helm chart README.md
+  3. Updated the image tags used in the demo manifests
+  4. Regenerated the Helm chart README.md
 
 - [ ] I have checked that the base branch for this PR is correct as defined by the release guide
 <!--
