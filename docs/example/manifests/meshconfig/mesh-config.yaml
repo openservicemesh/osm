@@ -17,6 +17,7 @@ spec:
   observability:
     enableDebugServer: true
     outboundPortExclusionList: []
+    inboundPortExclusionList: []
     outboundIPRangeExclusionList: []
     tracing:
       enable: false
