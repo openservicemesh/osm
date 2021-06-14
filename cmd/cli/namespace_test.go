@@ -703,7 +703,7 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespace", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
 		})
 	})
 
@@ -738,11 +738,11 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespaces", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
 
 			ns2, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace2, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns2.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns2.Labels[constants.IgnoreLabel]).To(Equal("true"))
 		})
 	})
 })
