@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -44,11 +45,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/validator"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
 	xdsServerCertificateCommonName = "ads"
+	validatingWebhookServiceCN     = "osm-validator"
 )
 
 var (
@@ -239,6 +242,19 @@ func main() {
 		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
+
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatingWebhookServiceCN, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
+	}
+
+	if cfg.GetFeatureFlags().EnableValidatingWebhook {
+		if _, err := validator.NewValidatingWebhook(webhookConfigName, constants.OSMHTTPServerPort, webhookHandlerCert, kubeClient, stop); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
+		}
+	}
 	// Metrics
 	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
 	// Version
