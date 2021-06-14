@@ -98,12 +98,16 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
 			for _, apexService := range apexServices {
 				// build an inbound policy for every apex service
-				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace)
+				locality := service.LocalCluster
+				if apexService.Namespace == upstreamServiceAccount.Namespace {
+					locality = service.LocalNS
+				}
+				hostnames, err := mc.GetServiceHostnames(apexService, locality)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
 				}
-				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(apexService, apexService.Namespace == upstreamServiceAccount.Namespace), hostnames)
+				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(apexService.FQDN(), hostnames)
 				weightedCluster := getDefaultWeightedClusterForService(upstreamSvc)
 
 				for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
@@ -137,13 +141,13 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 		return inboundPolicies
 	}
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
 
-	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(svc, false), hostnames)
+	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(svc.FQDN(), hostnames)
 	weightedCluster := getDefaultWeightedClusterForService(svc)
 
 	for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
@@ -169,13 +173,13 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
 
-	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(svc, false), hostnames)
+	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(svc.FQDN(), hostnames)
 	weightedCluster := getDefaultWeightedClusterForService(svc)
 
 	// Add a wildcard route to accept traffic from any service account (wildcard service account)
@@ -253,13 +257,4 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return trafficpolicy.TrafficSpecName(specKey)
-}
-
-// buildPolicyName creates a name for a policy associated with the given service
-func buildPolicyName(svc service.MeshService, sameNamespace bool) string {
-	name := svc.Name
-	if !sameNamespace {
-		return name + "." + svc.Namespace
-	}
-	return name
 }
