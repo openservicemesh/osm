@@ -119,6 +119,195 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 	}
 }
 
+func TestRun(t *testing.T) {
+	assert := tassert.New(t)
+
+	fakeK8sClient := fake.NewSimpleClientset()
+	fakeAccessClient := fakeAccess.NewSimpleClientset()
+	fakeConfigClient := fakeConfig.NewSimpleClientset()
+	out := new(bytes.Buffer)
+
+	cmd := trafficPolicyCheckCmd{
+		clientSet:        fakeK8sClient,
+		smiAccessClient:  fakeAccessClient,
+		meshConfigClient: fakeConfigClient,
+		out:              out,
+	}
+
+	testCases := []struct {
+		srcNamespacedPod string
+		dstNamespacedPod string
+		srcPod           corev1.Pod
+		dstPod           corev1.Pod
+		createPods       bool
+		expectError      bool
+	}{
+		// first test case: invalid namespaced pod name for src
+		{
+			"ns-1/pod-1/foo",
+			"ns-2/pod-2",
+			corev1.Pod{},
+			corev1.Pod{},
+			false,
+			true,
+		},
+		// second test case: invalid namespaced pod name for dst
+		{
+			"ns-1/pod-1",
+			"ns-2/pod-2/foo",
+			corev1.Pod{},
+			corev1.Pod{},
+			false,
+			true,
+		},
+		// third test case: pods do not exist
+		{
+			"ns-1/pod-1",
+			"ns-2/pod-2",
+			corev1.Pod{},
+			corev1.Pod{},
+			false,
+			true,
+		},
+		// fourth test case: pods are not a part of the mesh
+		{
+			"ns-1/pod-1",
+			"ns-2/pod-2",
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-1",
+					Namespace: "ns-1",
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa-1",
+				},
+			},
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-2",
+					Namespace: "ns-2",
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa-2",
+				},
+			},
+			true,
+			true,
+		},
+		// fifth test case: run does not err and checkTrafficPolicy returns nil
+		{
+			"ns-1/pod-1",
+			"ns-2/pod-2",
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-1",
+					Namespace: "ns-1",
+					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa-1",
+				},
+			},
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-2",
+					Namespace: "ns-2",
+					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa-2",
+				},
+			},
+			true,
+			false,
+		},
+	}
+
+	// Create OSM namespace
+	osmNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-system",
+		},
+	}
+	_, err := fakeK8sClient.CoreV1().Namespaces().Create(context.TODO(), osmNamespace, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	// Create src and dst namespaces
+	ns1 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns-1",
+		},
+	}
+	ns2 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns-2",
+		},
+	}
+	_, err = fakeK8sClient.CoreV1().Namespaces().Create(context.TODO(), ns1, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	_, err = fakeK8sClient.CoreV1().Namespaces().Create(context.TODO(), ns2, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	// Create service accounts
+	sa1 := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "sa-1",
+		},
+	}
+	sa2 := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "sa-2",
+		},
+	}
+	_, err = fakeK8sClient.CoreV1().ServiceAccounts(ns1.Name).Create(context.TODO(), sa1, metav1.CreateOptions{})
+	assert.Nil(err)
+	_, err = fakeK8sClient.CoreV1().ServiceAccounts(ns2.Name).Create(context.TODO(), sa2, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	// Create MeshConfig with permissive mode enabled
+	meshConfig := &v1alpha1.MeshConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "osm-system",
+			Name:      defaultOsmMeshConfigName,
+		},
+		Spec: v1alpha1.MeshConfigSpec{
+			Traffic: v1alpha1.TrafficSpec{
+				EnablePermissiveTrafficPolicyMode: true,
+			},
+		},
+	}
+
+	_, err = fakeConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace.Name).Create(context.TODO(), meshConfig, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing testcase %d", i), func(t *testing.T) {
+			cmd.sourcePod = tc.srcNamespacedPod
+			cmd.destinationPod = tc.dstNamespacedPod
+
+			// create pods
+			if tc.createPods {
+				_, err = fakeK8sClient.CoreV1().Pods(ns1.Name).Create(context.TODO(), &tc.srcPod, metav1.CreateOptions{})
+				assert.Nil(err)
+				_, err = fakeK8sClient.CoreV1().Pods(ns2.Name).Create(context.TODO(), &tc.dstPod, metav1.CreateOptions{})
+				assert.Nil(err)
+			}
+
+			err = cmd.run()
+			assert.Equal(tc.expectError, err != nil)
+
+			// delete pods for next test case
+			if tc.createPods {
+				err = fakeK8sClient.CoreV1().Pods(ns1.Name).Delete(context.TODO(), tc.srcPod.Name, metav1.DeleteOptions{})
+				assert.Nil(err)
+				err = fakeK8sClient.CoreV1().Pods(ns2.Name).Delete(context.TODO(), tc.dstPod.Name, metav1.DeleteOptions{})
+				assert.Nil(err)
+			}
+		})
+	}
+}
+
 func TestCheckTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 	fakeK8sClient := fake.NewSimpleClientset()
