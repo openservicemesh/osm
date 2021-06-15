@@ -48,7 +48,7 @@ func DecodePEMCertificate(certPEM []byte) (*x509.Certificate, error) {
 		var block *pemEnc.Block
 		block, certPEM = pemEnc.Decode(certPEM)
 		if block == nil {
-			return nil, errNoCertificateInPEM
+			return nil, ErrNoCertificateInPEM
 		}
 		if block.Type != TypeCertificate || len(block.Headers) != 0 {
 			continue
@@ -62,7 +62,7 @@ func DecodePEMCertificate(certPEM []byte) (*x509.Certificate, error) {
 		return cert, nil
 	}
 
-	return nil, errNoCertificateInPEM
+	return nil, ErrNoCertificateInPEM
 }
 
 // DecodePEMPrivateKey converts a certificate from PEM to x509 encoding
@@ -84,7 +84,7 @@ func DecodePEMPrivateKey(keyPEM []byte) (*rsa.PrivateKey, error) {
 		return caKeyInterface.(*rsa.PrivateKey), nil
 	}
 
-	return nil, errNoCertificateInPEM
+	return nil, ErrNoCertificateInPEM
 }
 
 // EncodeCertReqDERtoPEM encodes the certificate request provided in DER format
