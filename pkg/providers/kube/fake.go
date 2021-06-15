@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+// TODO(whitneygriffith): restructure based on kube.NewClient
 // NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
 func NewFakeProvider() endpoint.Provider {
 	return &fakeClient{

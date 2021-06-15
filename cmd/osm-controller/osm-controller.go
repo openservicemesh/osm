@@ -42,6 +42,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -185,8 +186,6 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
 
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
@@ -197,6 +196,9 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
 
+	endpointsProviders := []endpoint.Provider{kubeProvider}
+	serviceProviders := []service.Provider{kubeProvider}
+
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
 		meshSpec,
@@ -205,7 +207,9 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		endpointsProviders...)
+		serviceProviders,
+		endpointsProviders,
+	)
 
 	var proxyMapper registry.ProxyServiceMapper
 	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {
