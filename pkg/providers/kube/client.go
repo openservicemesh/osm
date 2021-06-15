@@ -14,7 +14,11 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
-
+var(
+    // Ensure Client conforms to the provider interfaces
+    _ endpoint.Provider = &Client{}
+    _ service.Provider = &Client{}
+)
 // NewEndpointProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewEndpointProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	client := Client{
