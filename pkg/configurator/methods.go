@@ -199,6 +199,11 @@ func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 	return extAuthConfig
 }
 
+// GetClusterId returns the cluster id (experimental - multicluster)
+func (c *Client) GetClusterId() string {
+		return c.getMeshConfig().Spec.Experimental.ClusterId
+}
+
 // GetFeatureFlags returns OSM's feature flags
 func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
