@@ -52,7 +52,7 @@ func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Ce
 	if cert := cm.getFromCache(cn); cert != nil {
 		return cert, nil
 	}
-	return nil, fmt.Errorf("failed to find certificate with CN=%s", cn)
+	return nil, errCertNotFound
 }
 
 func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
