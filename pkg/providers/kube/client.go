@@ -14,23 +14,15 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
-var(
-    // Ensure Client conforms to the provider interfaces
-    _ endpoint.Provider = &Client{}
-    _ service.Provider = &Client{}
+
+var (
+	// Ensure Client conforms to the provider interfaces
+	_ endpoint.Provider = &Client{}
+	_ service.Provider  = &Client{}
 )
-// NewEndpointProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewEndpointProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
-	client := Client{
-		providerIdent:  providerIdent,
-		kubeController: kubeController,
-	}
 
-	return &client, nil
-}
-
-// NewServiceProvider implements mesh.ServiceProvider, which creates a new Kubernetes cluster/compute provider.
-func NewServiceProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (service.Provider, error) {
+// NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
+func NewClient(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (*Client, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeController: kubeController,
@@ -46,7 +38,7 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
+func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
@@ -82,7 +74,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
 	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 	var endpoints []endpoint.Endpoint
@@ -110,7 +102,7 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 }
 
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.
-func (c Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
+func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
 	svcAccount := svcIdentity.ToK8sServiceAccount()
@@ -155,7 +147,7 @@ func (c Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdenti
 }
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (c *Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	endpoints, err := c.kubeController.GetEndpoints(svc)
@@ -194,7 +186,7 @@ func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
 // TODO(whitneygriffith): implement and find all references
-func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	// k8sSvc := mc.kubeController.GetService(svc)
@@ -292,7 +284,7 @@ func (c *Client) ListServices() ([]service.MeshService, error) {
 	return services, nil
 }
 
-// listMeshServices returns all services in the mesh
+// ListMeshServices returns all services in the mesh
 // TODO(whitneygriffith): implement and find all references
 func (c *Client) ListMeshServices() ([]service.MeshService, error) {
 	var services []service.MeshService
@@ -305,7 +297,7 @@ func (c *Client) ListMeshServices() ([]service.MeshService, error) {
 // GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
 // If 'sameNamespace' is set to true, then the shorthand hostnames service and service:port are also returned.
 // TODO(whitneygriffith): implement and find all references
-func (c Client) GetHostnamesForService(service service.MeshService, sameNamespace bool) ([]string, error) {
+func (c *Client) GetHostnamesForService(service service.MeshService, sameNamespace bool) ([]string, error) {
 	var domains []string
 	// if service == nil {
 	// 	return domains
