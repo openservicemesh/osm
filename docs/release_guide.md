@@ -112,7 +112,7 @@ In the docs site's main branch, edit the file [https://github.com/openservicemes
 
 ## Announce the new release
 
-Make an announcement on the [mailing list](https://groups.google.com/g/openservicemesh) and [Slack channel](https://cloud-native.slack.com/archives/C018794NV1C).
+Make an announcement on the [OSM mailing list](https://groups.google.com/g/openservicemesh) and [OSM Slack channel](https://cloud-native.slack.com/archives/openservicemesh) after you [join CNCF Slack](https://slack.cncf.io/).
 
 ## Make version changes on main branch
 
