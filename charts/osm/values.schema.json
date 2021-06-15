@@ -788,6 +788,23 @@
                         ]
                     ]
                 },
+                "inboundPortExclusionList": {
+                    "$id": "#/properties/OpenServiceMesh/properties/inboundPortExclusionList",
+                    "type": "array",
+                    "title": "The inboundPortExclusionList schema",
+                    "description": "Inbound port exluclusion list for sidecar traffic interception",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                    },
+                    "examples": [
+                        [
+                            6379,
+                            3315
+                        ]
+                    ]
+                },
                 "grafana": {
                     "$id": "#/properties/OpenServiceMesh/properties/grafana",
                     "type": "object",

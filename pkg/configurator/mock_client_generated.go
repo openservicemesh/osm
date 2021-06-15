@@ -107,6 +107,20 @@ func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthConfig() *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthConfig", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthConfig))
 }
 
+// GetInboundPortExclusionList mocks base method
+func (m *MockConfigurator) GetInboundPortExclusionList() []int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundPortExclusionList")
+	ret0, _ := ret[0].([]int)
+	return ret0
+}
+
+// GetInboundPortExclusionList indicates an expected call of GetInboundPortExclusionList
+func (mr *MockConfiguratorMockRecorder) GetInboundPortExclusionList() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetInboundPortExclusionList))
+}
+
 // GetInitContainerImage mocks base method
 func (m *MockConfigurator) GetInitContainerImage() string {
 	m.ctrl.T.Helper()

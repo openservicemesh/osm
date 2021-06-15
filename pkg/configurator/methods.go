@@ -151,6 +151,11 @@ func (c *Client) GetOutboundPortExclusionList() []int {
 	return c.getMeshConfig().Spec.Traffic.OutboundPortExclusionList
 }
 
+// GetInboundPortExclusionList returns the list of ports (positive integers) to exclude from inbound sidecar interception
+func (c *Client) GetInboundPortExclusionList() []int {
+	return c.getMeshConfig().Spec.Traffic.InboundPortExclusionList
+}
+
 // IsPrivilegedInitContainer returns whether init containers should be privileged
 func (c *Client) IsPrivilegedInitContainer() bool {
 	return c.getMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer
