@@ -8,7 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -22,7 +21,7 @@ var (
 )
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (*Client, error) {
+func NewClient(kubeController k8s.Controller, providerIdent string) (*Client, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeController: kubeController,
