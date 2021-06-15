@@ -95,6 +95,9 @@ type Configurator interface {
 	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
 	GetInboundExternalAuthConfig() auth.ExtAuthConfig
 
+	// GetClusterId returns the cluster id (experimental - multicluster)
+	GetClusterId() string
+
 	// GetFeatureFlags returns OSM's feature flags
 	GetFeatureFlags() v1alpha1.FeatureFlags
 }

@@ -36,6 +36,9 @@ type MeshConfigSpec struct {
 	// Certificate defines the certificate management configurations for a mesh instance.
 	Certificate CertificateSpec `json:"certificate,omitempty"`
 
+	// Experimental defines the experimental scenario configurations for a mesh instance.
+	Experimental ExperimentalSpec `json:"experimental,omitempty"`
+
 	// FeatureFlags defines the feature flags for a mesh instance.
 	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
 }
@@ -140,6 +143,12 @@ type ExternalAuthzSpec struct {
 type CertificateSpec struct {
 	// ServiceCertValidityDuration defines the service certificate validity duration.
 	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty"`
+}
+
+// ExperimentalSpec represents experimental configurations.
+type ExperimentalSpec struct {
+	// ClusterId references _this_ cluster's name/ID. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
+	ClusterId string `json:"clusterId,omitempty"`
 }
 
 // MeshConfigList lists the MeshConfig objects.
