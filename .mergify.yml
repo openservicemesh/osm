@@ -1,4 +1,8 @@
 pull_request_rules:
+  # All conditions must be true before an action will be done
+  # For automerge and automerge-squash, if the PR is in conflict with the base branch, even if all conditions are true, the PR will not be merged
+  # Automerge and automerge-squash will also autorebase
+
   - name: Automatic merge to main branch
     conditions:
       # True if the base branch is main
@@ -36,11 +40,6 @@ pull_request_rules:
       merge:
         # Currently we merge PRs by creating a merge commit
         method: merge
-        # True enables Strict Merge i.e. the PR will only be merged when it's up-to-date with the base branch
-        strict: true
-        # strict_method is how the PR is updated with the base branch.
-        # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
-        strict_method: rebase
 
   - name: Automatic squash to main branch
     conditions:
@@ -79,12 +78,6 @@ pull_request_rules:
       merge:
         # Squashes commits then merges PR
         method: squash
-        # True enables Strict Merge i.e. the PR will only be merged when it's up-to-date with the base branch
-        strict: true
-        # strict_method is how the PR is updated with the base branch.
-        # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
-        strict_method: rebase
-
 
   - name: Automatic merge to release branch
     conditions:
@@ -123,16 +116,14 @@ pull_request_rules:
       merge:
         # Currently we merge PRs by creating a merge commit
         method: merge
-        # True enables Strict Merge i.e. the PR will only be merged when it's up-to-date with the base branch
-        strict: true
-        # strict_method is how the PR is updated with the base branch.
-        # Choices are either merge base branch into PR (default) or rebase the PR against the base branch
-        strict_method: rebase
 
-  - name: Automatic rebase for autorebase label
+  - name: Automatic rebase
     conditions:
-      # True if the PR has the autorebase label
-      - label=autorebase
+      # True if the PR has any of the following labels
+      - or:
+        - label=automerge
+        - label=autorebase
+        - label=automerge-squash
       # True when the PR is not conflicting with the base branch
       - -conflict
       # True if the PR is not in draft state
