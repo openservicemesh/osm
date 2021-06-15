@@ -5,6 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,12 +38,9 @@ var _ = Describe("Test pkg/service functions", func() {
 			Expect(actual).To(Equal(expected))
 		})
 
-		It("implements K8sServiceAccount{}.ToServiceIdentity() correctly", func() {
-			actual := K8sServiceAccount{
-				Namespace: "ns",
-				Name:      "name",
-			}.ToServiceIdentity()
-			expected := ServiceIdentity("name.ns.cluster.local")
+		It("implements ServiceIdentity{}.GetCertificateCommonName() correctly", func() {
+			actual := ServiceIdentity("name.ns.cluster.local").GetCertificateCommonName()
+			expected := certificate.CommonName("name.ns.cluster.local")
 			Expect(actual).To(Equal(expected))
 		})
 
@@ -51,6 +50,15 @@ var _ = Describe("Test pkg/service functions", func() {
 				Namespace: "ns",
 				Name:      "name",
 			}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("implements K8sServiceAccount{}.ToServiceIdentity() correctly", func() {
+			actual := K8sServiceAccount{
+				Namespace: "ns",
+				Name:      "name",
+			}.ToServiceIdentity()
+			expected := ServiceIdentity("name.ns.cluster.local")
 			Expect(actual).To(Equal(expected))
 		})
 	})
