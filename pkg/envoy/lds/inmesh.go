@@ -383,20 +383,18 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.serviceIdentity)
+	upstreamServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
 	if len(upstreamServices) == 0 {
 		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
 		return filterChains
 	}
 
-	dstServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
-
 	// Iterate all destination services
-	for _, upstream := range dstServices {
-		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstream, lb.serviceIdentity)
-		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstream)
+	for _, upstreamSvc := range upstreamServices {
+		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstreamSvc, lb.serviceIdentity)
+		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstreamSvc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for upstream service %s", upstream)
+			log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for upstream service %s", upstreamSvc)
 			continue
 		}
 
@@ -405,22 +403,22 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 			switch strings.ToLower(appProtocol) {
 			case constants.ProtocolHTTP, constants.ProtocolGRPC:
 				// Construct HTTP filter chain
-				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)
+				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstreamSvc, port); err != nil {
+					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstreamSvc, lb.serviceIdentity)
 				} else {
 					filterChains = append(filterChains, httpFilterChain)
 				}
 
 			case constants.ProtocolTCP:
 				// Construct TCP filter chain
-				if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.serviceIdentity)
+				if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstreamSvc, port); err != nil {
+					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstreamSvc, lb.serviceIdentity)
 				} else {
 					filterChains = append(filterChains, tcpFilterChain)
 				}
 
 			default:
-				log.Error().Msgf("Cannot build outbound filter chain, unsupported protocol %s for upstream:port %s:%d", appProtocol, upstream, port)
+				log.Error().Msgf("Cannot build outbound filter chain, unsupported protocol %s for upstream:port %s:%d", appProtocol, upstreamSvc, port)
 			}
 		}
 	}
