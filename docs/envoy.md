@@ -13,7 +13,7 @@ configuration mechanisms for request manipulation:
 
 ### Listeners
 
-Envoy itself intercepts all requests by reconfiguring the IP tables on the Pod to reroute incoming and outbound traffic
+Envoy itself intercepts all requests by reconfiguring the [Iptables](https://linux.die.net/man/8/iptables) on the Pod to reroute incoming and outbound traffic
 to the Sidecar. In OSM, incoming requests are intercepted and forwarded to port 15003, while outbound requests are
 forwarded to port 15001. Each port is configured with its own listener.
 
