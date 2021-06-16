@@ -2,19 +2,27 @@
 package validator
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/client-go/kubernetes"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 var (
 	defaultValidators = map[string]Validator{}
+
+	// ValidatingWebhookPath is the path for the validating webhook.
+	ValidatingWebhookPath = "/validate"
 )
 
 // RegisterValidator registers all validators. It is not thread safe.
@@ -73,15 +81,21 @@ type ValidatingWebhookServer struct {
 	Validators map[string]Validator
 }
 
-// New returns a ValidatingWebhookServer with the defaultValidators that were previously registered.
-func New() *ValidatingWebhookServer {
+// NewValidatingWebhook returns a ValidatingWebhookServer with the defaultValidators that were previously registered.
+func NewValidatingWebhook(webhookConfigName string, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) (*ValidatingWebhookServer, error) {
 	vCopy := make(map[string]Validator, len(defaultValidators))
 	for k, v := range defaultValidators {
 		vCopy[k] = v
 	}
-	return &ValidatingWebhookServer{
+	v := &ValidatingWebhookServer{
 		Validators: vCopy,
 	}
+	// Update the updateValidatingWebhookConfig with the OSM CA bundle
+	if err := updateValidatingWebhookCABundle(webhookConfigName, certificater, kubeClient); err != nil {
+		return nil, errors.Errorf("Error configuring ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+	}
+	go v.run(port, certificater, stop)
+	return v, nil
 }
 
 // HandleValidation implements the HTTP API for the Validating Webhook.
@@ -134,6 +148,49 @@ func (s *ValidatingWebhookServer) handleValidation(req *admissionv1.AdmissionReq
 		resp = webhook.AdmissionError(err)
 	}
 	return
+}
+
+func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certificater, stop <-chan struct{}) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc(ValidatingWebhookPath, s.HandleValidation)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: mux,
+	}
+
+	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", port)
+	go func() {
+		// Wait on exit signals
+		<-stop
+
+		// Stop the server
+		if err := server.Shutdown(ctx); err != nil {
+			log.Error().Err(err).Msg("Error shutting down validating webhook HTTP server")
+		} else {
+			log.Info().Msg("Done shutting down validating webhook HTTP server")
+		}
+	}()
+	// Generate a key pair from your pem-encoded cert and key ([]byte).
+	cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
+	if err != nil {
+		log.Error().Err(err).Msg("Error parsing webhook certificate")
+		return
+	}
+
+	// #nosec G402
+	server.TLSConfig = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	if err := server.ListenAndServeTLS("", ""); err != nil {
+		log.Error().Err(err).Msg("Validating webhook HTTPS server failed")
+		return
+	}
 }
 
 // defer closer
