@@ -74,6 +74,7 @@ func (wc *WitesandCatalog) UpdateRemoteFailCount(clusterId string) {
 // update the context with received remoteK8s
 func (wc *WitesandCatalog) UpdateRemoteK8s(remoteClusterId string, remoteIP string) {
 	if remoteClusterId == "" {
+		log.Error().Msgf("[UpdateRemoteK8s] clusterId:%s remoteIP=%s", remoteClusterId, remoteIP)
 		return
 	}
 
