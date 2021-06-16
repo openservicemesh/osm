@@ -42,12 +42,13 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	meshSpec := smi.NewFakeMeshSpecClient()
 
 	stop := make(<-chan struct{})
-	//TODO(whitneygriffith): adjust once kube.NewFakeProvider reflects new kube.Client
+
+	provider := kube.NewFakeProvider()
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
 	}
 	serviceProviders := []service.Provider{
-		service.NewMockProvider(mockCtrl),
+		provider,
 	}
 
 	osmNamespace := "-test-osm-namespace-"
@@ -140,13 +141,15 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmMeshConfigName := "-test-osm-mesh-config-"
 
 	stop := make(chan struct{})
-	//TODO(whitneygriffith): adjust once kube.NewFakeProvider reflects new kube.Client
+
+	provider := kube.NewFakeProvider()
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
 	}
 	serviceProviders := []service.Provider{
-		service.NewMockProvider(mockCtrl),
+		provider,
 	}
+
 	kubeClient := fake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 

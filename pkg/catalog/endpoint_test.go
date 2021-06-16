@@ -139,6 +139,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
@@ -157,7 +158,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockEndpointProvider.EXPECT().GetServicesForServiceAccount(sa).Return(services, nil).AnyTimes()
+				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services, nil).AnyTimes()
 			}
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {

@@ -38,13 +38,15 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
-	//TODO(whitneygriffith): adjust once kube.NewFakeProvider reflects new kube.Client
+
+	provider := kube.NewFakeProvider()
 	endpointProviders := []endpoint.Provider{
-		kube.NewFakeProvider(),
+		provider,
 	}
 	serviceProviders := []service.Provider{
-		service.NewMockProvider(mockCtrl),
+		provider,
 	}
+
 	stop := make(chan struct{})
 
 	certManager := tresor.NewFakeCertManager(mockConfigurator)

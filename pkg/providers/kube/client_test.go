@@ -268,7 +268,6 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		// TODO(whitneygriffith): Update based on if GetTargetPortToProtocolMappingForService should stay apart of endpoint provider vs service provider
 		portToProtocolMap, err := client.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
