@@ -190,7 +190,7 @@ func (c Client) ListMonitoredNamespaces() ([]string, error) {
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c Client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.String())
+	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.NameWithoutCluster())
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -257,7 +257,7 @@ func (c Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.String())
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.NameWithoutCluster())
 	if err != nil {
 		return nil, err
 	}

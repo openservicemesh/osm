@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -537,8 +538,12 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:           "TCP filter for upstream without any traffic split policies",
-			upstream:       service.MeshService{Name: "foo", Namespace: "bar"},
+			name: "TCP filter for upstream without any traffic split policies",
+			upstream: service.MeshService{
+				Name:          "foo",
+				Namespace:     "bar",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
 				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
@@ -547,15 +552,19 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:     "TCP filter for upstream with matching traffic split policy",
-			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			name: "TCP filter for upstream with matching traffic split policy",
+			upstream: service.MeshService{
+				Name:          "foo",
+				Namespace:     "bar",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			clusterWeights: []service.WeightedCluster{
 				{
-					ClusterName: "bar/foo-v1",
+					ClusterName: "bar/foo-v1/local",
 					Weight:      10,
 				},
 				{
-					ClusterName: "bar/foo-v2",
+					ClusterName: "bar/foo-v2/local",
 					Weight:      90,
 				},
 			},

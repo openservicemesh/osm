@@ -53,7 +53,11 @@ var _ = Describe("Test ADS response functions", func() {
 
 	namespace := tests.Namespace
 	proxyUUID := tests.ProxyUUID
-	proxyService := service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: namespace}
+	proxyService := service.MeshService{
+		Name:          tests.BookstoreV1ServiceName,
+		Namespace:     namespace,
+		ClusterDomain: constants.ClusterDomain,
+	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}

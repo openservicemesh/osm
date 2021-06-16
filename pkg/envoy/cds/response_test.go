@@ -154,7 +154,7 @@ func TestNewResponse(t *testing.T) {
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v1",
+		Name:                          "default/bookstore-v1/local",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
@@ -183,7 +183,7 @@ func TestNewResponse(t *testing.T) {
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v2",
+		Name:                          "default/bookstore-v2/local",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
@@ -216,7 +216,7 @@ func TestNewResponse(t *testing.T) {
 			},
 			TlsCertificates: nil,
 			TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
-				Name: "service-cert:default/bookstore-v1",
+				Name: "service-cert:default/bookstore-v1/local",
 				SdsConfig: &xds_core.ConfigSource{
 					ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 						Ads: &xds_core.AggregatedConfigSource{},
@@ -247,7 +247,7 @@ func TestNewResponse(t *testing.T) {
 			},
 			TlsCertificates: nil,
 			TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
-				Name: "service-cert:default/bookstore-v2",
+				Name: "service-cert:default/bookstore-v2/local",
 				SdsConfig: &xds_core.ConfigSource{
 					ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 						Ads: &xds_core.AggregatedConfigSource{},
@@ -309,7 +309,7 @@ func TestNewResponse(t *testing.T) {
 
 	expectedClusters := []string{
 		"default/bookstore-v1",
-		"default/bookstore-v2",
+		"default/bookstore-v2/local",
 		"default/bookbuyer-local",
 		"passthrough-outbound",
 		"envoy-metrics-cluster",
@@ -325,7 +325,7 @@ func TestNewResponse(t *testing.T) {
 			foundClusters = append(foundClusters, "default/bookbuyer-local")
 			continue
 		}
-		if a.Name == "default/bookstore-v1" {
+		if a.Name == "default/bookstore-v1/local" {
 			assert.Truef(cmp.Equal(expectedBookstoreV1Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -340,7 +340,7 @@ func TestNewResponse(t *testing.T) {
 			continue
 		}
 
-		if a.Name == "default/bookstore-v2" {
+		if a.Name == "default/bookstore-v2/local" {
 			assert.Truef(cmp.Equal(expectedBookstoreV2Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -351,7 +351,7 @@ func TestNewResponse(t *testing.T) {
 			assert.Equal("bookstore-v2.default.svc.cluster.local", upstreamTLSContext.Sni)
 			assert.Nil(a.LoadAssignment) //ClusterLoadAssignment setting for non EDS clusters
 
-			foundClusters = append(foundClusters, "default/bookstore-v2")
+			foundClusters = append(foundClusters, "default/bookstore-v2/local")
 			continue
 		}
 
@@ -372,7 +372,6 @@ func TestNewResponse(t *testing.T) {
 			continue
 		}
 	}
-
 	assert.ElementsMatch(expectedClusters, foundClusters)
 }
 
@@ -389,7 +388,11 @@ func TestNewResponseListServicesError(t *testing.T) {
 }
 
 func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
-	svc := service.MeshService{Namespace: "ns", Name: "svc"}
+	svc := service.MeshService{
+		Namespace:     "ns",
+		Name:          "svc",
+		ClusterDomain: constants.ClusterDomain,
+	}
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{svc}, nil

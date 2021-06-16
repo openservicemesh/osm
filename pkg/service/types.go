@@ -36,10 +36,16 @@ type MeshService struct {
 	// The name of the service
 	Name string
 
+	// The ClusterDomain of the service
 	ClusterDomain string
 }
 
 func (ms MeshService) String() string {
+	return fmt.Sprintf("%s%s%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name, namespaceNameSeparator, ms.ClusterDomain)
+}
+
+// NameWithoutCluster returns a string with out the ClusterDomain
+func (ms MeshService) NameWithoutCluster() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
