@@ -18,6 +18,9 @@ spec:
       labels:
         app: opa
     spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: opa-envoy
           image: openpolicyagent/opa:0.28.0-envoy

@@ -33,6 +33,9 @@ spec:
         app: httpbin
     spec:
       serviceAccountName: httpbin
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
       - image: kennethreitz/httpbin
         imagePullPolicy: IfNotPresent
