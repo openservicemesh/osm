@@ -1256,7 +1256,6 @@ func TestBuildInboundPolicies(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
@@ -1269,7 +1268,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockServiceProvider.EXPECT().GetServicesForServiceIdentity(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA, tc.destSA)
 
@@ -1572,7 +1571,6 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
@@ -1587,7 +1585,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockServiceProvider.EXPECT().GetServicesForServiceIdentity(tc.upstreamServiceIdentity).Return(tc.upstreamServices, nil).AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.upstreamServiceIdentity).Return(tc.upstreamServices, nil).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamServiceIdentity, tc.upstreamServiceIdentity)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()

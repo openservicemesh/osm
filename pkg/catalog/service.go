@@ -69,14 +69,13 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 	return apexList
 }
 
-// getServicesForServiceIdentity returns a list of services corresponding to a service identity
-func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
+// getServicesForServiceAccount returns a list of services corresponding to a service account
+func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
-
-	for _, provider := range mc.serviceProviders {
-		providerServices, err := provider.GetServicesForServiceIdentity(svcIdentity)
+	for _, provider := range mc.endpointsProviders {
+		providerServices, err := provider.GetServicesForServiceAccount(sa)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", svcIdentity, provider.GetID())
+			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", sa, provider.GetID())
 			continue
 		}
 		var svcs []string
@@ -84,12 +83,12 @@ func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.Servic
 			svcs = append(svcs, svc.String())
 		}
 
-		log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), svcIdentity, provider.GetID())
+		log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
 		services = append(services, providerServices...)
 	}
 
 	if len(services) == 0 {
-		return nil, errServiceNotFoundForAnyProvider
+		return nil, ErrServiceNotFoundForAnyProvider
 	}
 
 	return services, nil
@@ -98,15 +97,16 @@ func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.Servic
 // ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
 func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
 	// Currently OSM uses kubernetes service accounts as service identities
-	var serviceIdentities []identity.ServiceIdentity
-	for _, provider := range mc.serviceProviders {
-		serviceIds, err := provider.ListServiceIdentitiesForService(svc)
-		if err != nil {
-			log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
-			return nil, err
-		}
+	serviceAccounts, err := mc.kubeController.ListServiceIdentitiesForService(svc)
+	if err != nil {
+		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
+		return nil, err
+	}
 
-		serviceIdentities = append(serviceIdentities, serviceIds...)
+	var serviceIdentities []identity.ServiceIdentity
+	for _, svcAccount := range serviceAccounts {
+		serviceIdentity := svcAccount.ToServiceIdentity()
+		serviceIdentities = append(serviceIdentities, serviceIdentity)
 	}
 
 	return serviceIdentities, nil
@@ -120,7 +120,7 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	var portToProtocolMap, previous map[uint32]string
 
-	for _, provider := range mc.serviceProviders {
+	for _, provider := range mc.endpointsProviders {
 		current, err := provider.GetTargetPortToProtocolMappingForService(svc)
 		if err != nil {
 			return nil, err
@@ -146,46 +146,43 @@ func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.Mesh
 func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
-	for _, provider := range mc.serviceProviders {
-		currentPortToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(svc)
-		if err != nil {
-			return nil, err
-		}
-		for key, value := range currentPortToProtocolMap {
-			if v, ok := portToProtocolMap[key]; ok && v != value {
-				return nil, errors.Errorf("Error fetching port:protocol, multiple entries found on same port for service %s", svc)
-			}
-			portToProtocolMap[key] = value
-		}
+	k8sSvc := mc.kubeController.GetService(svc)
+	if k8sSvc == nil {
+		return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
 	}
 
-	if len(portToProtocolMap) == 0 {
-		return nil, errors.Errorf("Error fetching port:protocol mapping for service %s", svc)
+	for _, portSpec := range k8sSvc.Spec.Ports {
+		var appProtocol string
+		if portSpec.AppProtocol != nil {
+			appProtocol = *portSpec.AppProtocol
+		} else {
+			appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
+		}
+		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
 	}
 
 	return portToProtocolMap, nil
+}
+
+// listMeshServices returns all services in the mesh
+func (mc *MeshCatalog) listMeshServices() []service.MeshService {
+	var services []service.MeshService
+	for _, svc := range mc.kubeController.ListServices() {
+		services = append(services, utils.K8sSvcToMeshSvc(svc))
+	}
+	return services
 }
 
 // GetServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
 func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
-	svc := utils.K8sSvcToMeshSvc(mc.kubeController.GetService(meshService))
-
-	var hostnames []string
-	for _, provider := range mc.serviceProviders {
-		hosts, err := provider.GetHostnamesForService(svc, locality)
-
-		if err != nil {
-			return nil, errors.Errorf("Error fetching service %q", meshService)
-		}
-
-		for _, hostname := range hosts {
-			hostnames = append(hostnames, hostname)
-		}
-
+	svc := mc.kubeController.GetService(meshService)
+	if svc == nil {
+		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
+	hostnames := kubernetes.GetHostnamesForService(svc, locality)
 	return hostnames, nil
 }
 

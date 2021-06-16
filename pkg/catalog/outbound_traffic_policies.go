@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // ListOutboundTrafficPolicies returns all outbound traffic policies
@@ -104,23 +105,17 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		var services []service.MeshService
-
-		for _, provider := range mc.serviceProviders {
-			services := append(services, provider.ListServices())
-		}
-		return services
+		return mc.listMeshServices()
 	}
 
 	serviceSet := mapset.NewSet()
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name == ident.Name && source.Namespace == ident.Namespace { // found outbound
-				sa := identity.K8sServiceAccount{
+				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
-				}
-				destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
+				})
 				if err != nil {
 					log.Error().Err(err).Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
 					break
@@ -143,8 +138,11 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
-	for _, provider := range mc.serviceProviders {
-		destServices, err := provider.ListServices()
+	k8sServices := mc.kubeController.ListServices()
+	var destServices []service.MeshService
+	for _, k8sService := range k8sServices {
+		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
+	}
 
 	for _, destService := range destServices {
 		// TODO(steeling): shouldn't this check the source namespace.... not relevant to this PR though.
@@ -235,7 +233,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
+	destServices, err := mc.getServicesForServiceAccount(sa)
 	if err != nil {
 		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
 	}

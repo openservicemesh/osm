@@ -25,11 +25,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
@@ -41,15 +43,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers/kube"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/validator"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
 	xdsServerCertificateCommonName = "ads"
+	validatingWebhookServiceCN     = "osm-validator"
 )
 
 var (
@@ -181,10 +183,12 @@ func main() {
 		}
 	}
 
-	kubeProvider, err := kube.NewClient(kubernetesClient, constants.KubeProviderName)
+	kubeProvider, err := kube.NewProvider(kubernetesClient, constants.KubeProviderName, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
+
+	endpointsProviders := []endpoint.Provider{kubeProvider}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
@@ -196,9 +200,6 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
 
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-	serviceProviders := []service.Provider{kubeProvider}
-
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
 		meshSpec,
@@ -207,9 +208,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		serviceProviders,
-		endpointsProviders,
-	)
+		endpointsProviders...)
 
 	var proxyMapper registry.ProxyServiceMapper
 	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {
@@ -243,6 +242,19 @@ func main() {
 		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
+
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatingWebhookServiceCN, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
+	}
+
+	if cfg.GetFeatureFlags().EnableValidatingWebhook {
+		if _, err := validator.NewValidatingWebhook(webhookConfigName, constants.OSMHTTPServerPort, webhookHandlerCert, kubeClient, stop); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
+		}
+	}
 	// Metrics
 	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
 	// Version
