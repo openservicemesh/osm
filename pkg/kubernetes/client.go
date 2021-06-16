@@ -198,7 +198,6 @@ func (c Client) GetService(svc service.MeshService) *corev1.Service {
 	return nil
 }
 
-//  TODO(whitneygriffith): remove or call provider.ListServices
 // ListServices returns a list of services that are part of monitored namespaces
 func (c Client) ListServices() []*corev1.Service {
 	var services []*corev1.Service

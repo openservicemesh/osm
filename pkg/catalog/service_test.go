@@ -273,31 +273,31 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	type endpointProviderConfig struct {
-		provider          *endpoint.MockProvider
+	type serviceProviderConfig struct {
+		provider          *service.MockProvider
 		portToProtocolMap map[uint32]string
 		err               error
 	}
 
 	testCases := []struct {
 		name                      string
-		providerConfigs           []endpointProviderConfig
+		providerConfigs           []serviceProviderConfig
 		expectedPortToProtocolMap map[uint32]string
 		expectError               bool
 	}{
 		{
 			// Test case 1
 			name: "multiple providers correctly returning the same port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -309,16 +309,16 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 2
 			name: "multiple providers incorrectly returning different port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
 				{
 					// provider 2
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "tcp", 90: "http"},
 					err:               nil,
 				},
@@ -330,10 +330,10 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		{
 			// Test case 3
 			name: "single provider correctly returning port:protocol mapping",
-			providerConfigs: []endpointProviderConfig{
+			providerConfigs: []serviceProviderConfig{
 				{
 					// provider 1
-					provider:          endpoint.NewMockProvider(mockCtrl),
+					provider:          service.NewMockProvider(mockCtrl),
 					portToProtocolMap: map[uint32]string{80: "http", 90: "tcp"},
 					err:               nil,
 				},
@@ -348,14 +348,14 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			// Create a list of providers for catalog and mock their calls based on the given config
-			var allProviders []endpoint.Provider
+			var allProviders []service.Provider
 			for _, providerConfig := range tc.providerConfigs {
 				allProviders = append(allProviders, providerConfig.provider)
 				providerConfig.provider.EXPECT().GetTargetPortToProtocolMappingForService(testSvc).Return(providerConfig.portToProtocolMap, providerConfig.err).Times(1)
 			}
 
 			mc := &MeshCatalog{
-				endpointsProviders: allProviders,
+				serviceProviders: allProviders,
 			}
 
 			actualPortToProtocolMap, err := mc.GetTargetPortToProtocolMappingForService(testSvc)
@@ -532,7 +532,7 @@ func TestListMeshServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var k8sServices []*corev1.Service
-			var expectedMeshServices []service.MeshService
+			var expectedMeshServices, actual []service.MeshService
 
 			for name, namespace := range tc.services {
 				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))
@@ -540,7 +540,16 @@ func TestListMeshServices(t *testing.T) {
 			}
 
 			mockKubeController.EXPECT().ListServices().Return(k8sServices)
-			actual := mc.listMeshServices()
+			for _, provider := range mc.serviceProviders {
+				services, err := provider.ListServices()
+				if err != nil {
+					panic(err)
+				}
+				for _, svc := range services {
+					actual = append(actual, svc)
+				}
+
+			}
 			assert.Equal(expectedMeshServices, actual)
 		})
 	}

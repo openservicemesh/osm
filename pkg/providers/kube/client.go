@@ -10,8 +10,10 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var (
@@ -100,6 +102,41 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 	return endpoints
 }
 
+// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
+// FQDN is resolved
+func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	var endpoints []endpoint.Endpoint
+	var err error
+
+	// Check if the service has been given Cluster IP
+	kubeService := c.kubeController.GetService(svc)
+	if kubeService == nil {
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
+		return nil, errServiceNotFound
+	}
+
+	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == corev1.ClusterIPNone {
+		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
+		return c.ListEndpointsForService(svc), nil
+	}
+
+	// Cluster IP is present
+	ip := net.ParseIP(kubeService.Spec.ClusterIP)
+	if ip == nil {
+		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
+		return nil, errParseClusterIP
+	}
+
+	for _, svcPort := range kubeService.Spec.Ports {
+		endpoints = append(endpoints, endpoint.Endpoint{
+			IP:   ip,
+			Port: endpoint.Port(svcPort.Port),
+		})
+	}
+
+	return endpoints, err
+}
+
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.
 func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
@@ -117,7 +154,7 @@ func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 		podLabels := pod.ObjectMeta.Labels
 
-		k8sServices, err := c.getServicesByLabels(podLabels, pod.Namespace)
+		k8sServices, err := c.GetServicesByLabels(podLabels, pod.Namespace)
 		if err != nil {
 			log.Error().Err(err).Msgf("[%s] Error retrieving service matching labels %v in namespace %s", c.providerIdent, podLabels, pod.Namespace)
 			return nil, err
@@ -143,6 +180,56 @@ func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 	}
 
 	return servicesSlice, nil
+}
+
+// ListServices returns a list of services that are part of monitored namespaces
+func (c *Client) ListServices() ([]service.MeshService, error) {
+	var services []service.MeshService
+	for _, svc := range c.kubeController.ListServices() {
+		services = append(services, utils.K8sSvcToMeshSvc(svc))
+	}
+	return services, nil
+}
+
+// ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
+func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
+	serviceAccounts, err := c.kubeController.ListServiceIdentitiesForService(svc)
+	if err != nil {
+		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
+		return nil, err
+	}
+
+	var serviceIdentities []identity.ServiceIdentity
+	for _, svcAccount := range serviceAccounts {
+		serviceIdentity := svcAccount.ToServiceIdentity()
+		serviceIdentities = append(serviceIdentities, serviceIdentity)
+	}
+
+	return serviceIdentities, nil
+}
+
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
+// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
+// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	k8sSvc := c.kubeController.GetService(svc)
+	if k8sSvc == nil {
+		return nil, errors.Wrapf(errServiceNotFound, "Error retrieving k8s service %s", svc)
+	}
+
+	for _, portSpec := range k8sSvc.Spec.Ports {
+		var appProtocol string
+		if portSpec.AppProtocol != nil {
+			appProtocol = *portSpec.AppProtocol
+		} else {
+			appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
+		}
+		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
+	}
+
+	return portToProtocolMap, nil
 }
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
@@ -181,34 +268,20 @@ func (c *Client) GetTargetPortToProtocolMappingForService(svc service.MeshServic
 	return portToProtocolMap, nil
 }
 
-// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
-// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
-// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-// TODO(whitneygriffith): implement and find all references
-func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
-	portToProtocolMap := make(map[uint32]string)
+// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
+func (c *Client) GetHostnamesForService(svc service.MeshService, locality service.Locality) ([]string, error) {
+	k8svc := c.kubeController.GetService(svc)
+	if k8svc == nil {
+		return nil, errors.Errorf("Error fetching service %q", svc)
+	}
 
-	// k8sSvc := mc.kubeController.GetService(svc)
-	// if k8sSvc == nil {
-	// 	return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
-	// }
-
-	// for _, portSpec := range k8sSvc.Spec.Ports {
-	// 	var appProtocol string
-	// 	if portSpec.AppProtocol != nil {
-	// 		appProtocol = *portSpec.AppProtocol
-	// 	} else {
-	// 		appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
-	// 	}
-	// 	portToProtocolMap[uint32(portSpec.Port)] = appProtocol
-	// }
-
-	return portToProtocolMap, nil
+	hostnames := kubernetes.GetHostnamesForService(k8svc, locality)
+	return hostnames, nil
 }
 
-// getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
-	var finalList []corev1.Service
+// GetServicesByLabels gets Kubernetes services whose selectors match the given labels
+func (c *Client) GetServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
+	var finalList []service.MeshService
 	serviceList := c.kubeController.ListServices()
 
 	for _, svc := range serviceList {
@@ -225,107 +298,9 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, *svc)
+			finalList = append(finalList, utils.K8sSvcToMeshSvc(svc))
 		}
 	}
 
 	return finalList, nil
-}
-
-// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
-// FQDN is resolved
-func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
-	var endpoints []endpoint.Endpoint
-	var err error
-
-	// Check if the service has been given Cluster IP
-	kubeService := c.kubeController.GetService(svc)
-	if kubeService == nil {
-		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
-		return nil, errServiceNotFound
-	}
-
-	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == corev1.ClusterIPNone {
-		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
-		return c.ListEndpointsForService(svc), nil
-	}
-
-	// Cluster IP is present
-	ip := net.ParseIP(kubeService.Spec.ClusterIP)
-	if ip == nil {
-		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
-		return nil, errParseClusterIP
-	}
-
-	for _, svcPort := range kubeService.Spec.Ports {
-		endpoints = append(endpoints, endpoint.Endpoint{
-			IP:   ip,
-			Port: endpoint.Port(svcPort.Port),
-		})
-	}
-
-	return endpoints, err
-}
-
-// ListServices returns a list of services that are part of monitored namespaces
-// TODO(whitneygriffith): implement and find all references
-func (c *Client) ListServices() ([]service.MeshService, error) {
-	var services []service.MeshService
-
-	// for _, serviceInterface := range c.informers[Services].GetStore().List() {
-	// 	svc := serviceInterface.(*corev1.Service)
-
-	// 	if !c.IsMonitoredNamespace(svc.Namespace) {
-	// 		continue
-	// 	}
-	// 	services = append(services, svc)
-	// }
-	return services, nil
-}
-
-// ListMeshServices returns all services in the mesh
-// TODO(whitneygriffith): implement and find all references
-func (c *Client) ListMeshServices() ([]service.MeshService, error) {
-	var services []service.MeshService
-	// for _, svc := range mc.kubeController.ListServices() {
-	// 	services = append(services, utils.K8sSvcToMeshSvc(svc))
-	// }
-	return services, nil
-}
-
-// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-// If 'sameNamespace' is set to true, then the shorthand hostnames service and service:port are also returned.
-// TODO(whitneygriffith): implement and find all references
-func (c *Client) GetHostnamesForService(service service.MeshService, sameNamespace bool) ([]string, error) {
-	var domains []string
-	// if service == nil {
-	// 	return domains
-	// }
-
-	// serviceName := service.Name
-	// namespace := service.Namespace
-
-	// if sameNamespace {
-	// 	// Within the same namespace, service name is resolvable to its address
-	// 	domains = append(domains, serviceName) // service
-	// }
-
-	// domains = append(domains, fmt.Sprintf("%s.%s", serviceName, namespace))                       // service.namespace
-	// domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))                   // service.namespace.svc
-	// domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))           // service.namespace.svc.cluster
-	// domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, clusterDomain)) // service.namespace.svc.cluster.local
-	// for _, portSpec := range service.Spec.Ports {
-	// 	port := portSpec.Port
-
-	// 	if sameNamespace {
-	// 		// Within the same namespace, service name is resolvable to its address
-	// 		domains = append(domains, fmt.Sprintf("%s:%d", serviceName, port)) // service:port
-	// 	}
-
-	// 	domains = append(domains, fmt.Sprintf("%s.%s:%d", serviceName, namespace, port))                       // service.namespace:port
-	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc:%d", serviceName, namespace, port))                   // service.namespace.svc:port
-	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster:%d", serviceName, namespace, port))           // service.namespace.svc.cluster:port
-	// 	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)) // service.namespace.svc.cluster.local:port
-	// }
-	return domains, nil
 }

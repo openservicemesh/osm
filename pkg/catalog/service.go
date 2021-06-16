@@ -89,7 +89,7 @@ func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.Servic
 	}
 
 	if len(services) == 0 {
-		return nil, ErrServiceNotFoundForAnyProvider
+		return nil, errServiceNotFoundForAnyProvider
 	}
 
 	return services, nil
@@ -98,16 +98,15 @@ func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.Servic
 // ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
 func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
 	// Currently OSM uses kubernetes service accounts as service identities
-	serviceAccounts, err := mc.kubeController.ListServiceIdentitiesForService(svc)
-	if err != nil {
-		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
-		return nil, err
-	}
-
 	var serviceIdentities []identity.ServiceIdentity
-	for _, svcAccount := range serviceAccounts {
-		serviceIdentity := svcAccount.ToServiceIdentity()
-		serviceIdentities = append(serviceIdentities, serviceIdentity)
+	for _, provider := range mc.serviceProviders {
+		serviceIds, err := provider.ListServiceIdentitiesForService(svc)
+		if err != nil {
+			log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
+			return nil, err
+		}
+
+		serviceIdentities = append(serviceIdentities, serviceIds...)
 	}
 
 	return serviceIdentities, nil
@@ -144,48 +143,49 @@ func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.Mesh
 // GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-// TODO(whitneygriffith): rm or reference provider
 func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
-	k8sSvc := mc.kubeController.GetService(svc)
-	if k8sSvc == nil {
-		return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
+	for _, provider := range mc.serviceProviders {
+		currentPortToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(svc)
+		if err != nil {
+			return nil, err
+		}
+		for key, value := range currentPortToProtocolMap {
+			if v, ok := portToProtocolMap[key]; ok && v != value {
+				return nil, errors.Errorf("Error fetching port:protocol, multiple entries found on same port for service %s", svc)
+			}
+			portToProtocolMap[key] = value
+		}
 	}
 
-	for _, portSpec := range k8sSvc.Spec.Ports {
-		var appProtocol string
-		if portSpec.AppProtocol != nil {
-			appProtocol = *portSpec.AppProtocol
-		} else {
-			appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
-		}
-		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
+	if len(portToProtocolMap) == 0 {
+		return nil, errors.Errorf("Error fetching port:protocol mapping for service %s", svc)
 	}
 
 	return portToProtocolMap, nil
-}
-
-// listMeshServices returns all services in the mesh
-// TODO(whitneygriffith): rm or reference provider
-func (mc *MeshCatalog) listMeshServices() []service.MeshService {
-	var services []service.MeshService
-	for _, svc := range mc.kubeController.ListServices() {
-		services = append(services, utils.K8sSvcToMeshSvc(svc))
-	}
-	return services
 }
 
 // GetServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
 func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
-	svc := mc.kubeController.GetService(meshService)
-	if svc == nil {
-		return nil, errors.Errorf("Error fetching service %q", meshService)
+	svc := utils.K8sSvcToMeshSvc(mc.kubeController.GetService(meshService))
+
+	var hostnames []string
+	for _, provider := range mc.serviceProviders {
+		hosts, err := provider.GetHostnamesForService(svc, locality)
+
+		if err != nil {
+			return nil, errors.Errorf("Error fetching service %q", meshService)
+		}
+
+		for _, hostname := range hosts {
+			hostnames = append(hostnames, hostname)
+		}
+
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc, locality)
 	return hostnames, nil
 }
 

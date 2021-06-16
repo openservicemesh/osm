@@ -9,7 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // ListOutboundTrafficPolicies returns all outbound traffic policies
@@ -105,7 +104,12 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return mc.listMeshServices()
+		var services []service.MeshService
+
+		for _, provider := range mc.serviceProviders {
+			services := append(services, provider.ListServices())
+		}
+		return services
 	}
 
 	serviceSet := mapset.NewSet()
@@ -139,11 +143,8 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
-	k8sServices := mc.kubeController.ListServices()
-	var destServices []service.MeshService
-	for _, k8sService := range k8sServices {
-		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
-	}
+	for _, provider := range mc.serviceProviders {
+		destServices, err := provider.ListServices()
 
 	for _, destService := range destServices {
 		// TODO(steeling): shouldn't this check the source namespace.... not relevant to this PR though.

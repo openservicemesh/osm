@@ -35,7 +35,7 @@ func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 }
 
 // GetHostnamesForService mocks base method
-func (m *MockProvider) GetHostnamesForService(arg0 MeshService, arg1 bool) ([]string, error) {
+func (m *MockProvider) GetHostnamesForService(arg0 MeshService, arg1 Locality) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostnamesForService", arg0, arg1)
 	ret0, _ := ret[0].([]string)
@@ -78,6 +78,21 @@ func (mr *MockProviderMockRecorder) GetPortToProtocolMappingForService(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPortToProtocolMappingForService", reflect.TypeOf((*MockProvider)(nil).GetPortToProtocolMappingForService), arg0)
 }
 
+// GetServicesByLabels mocks base method
+func (m *MockProvider) GetServicesByLabels(arg0 map[string]string, arg1 string) ([]MeshService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesByLabels", arg0, arg1)
+	ret0, _ := ret[0].([]MeshService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServicesByLabels indicates an expected call of GetServicesByLabels
+func (mr *MockProviderMockRecorder) GetServicesByLabels(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesByLabels", reflect.TypeOf((*MockProvider)(nil).GetServicesByLabels), arg0, arg1)
+}
+
 // GetServicesForServiceIdentity mocks base method
 func (m *MockProvider) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) ([]MeshService, error) {
 	m.ctrl.T.Helper()
@@ -108,19 +123,19 @@ func (mr *MockProviderMockRecorder) GetTargetPortToProtocolMappingForService(arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortToProtocolMappingForService", reflect.TypeOf((*MockProvider)(nil).GetTargetPortToProtocolMappingForService), arg0)
 }
 
-// ListMeshServices mocks base method
-func (m *MockProvider) ListMeshServices() ([]MeshService, error) {
+// ListServiceIdentitiesForService mocks base method
+func (m *MockProvider) ListServiceIdentitiesForService(arg0 MeshService) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMeshServices")
-	ret0, _ := ret[0].([]MeshService)
+	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
+	ret0, _ := ret[0].([]identity.ServiceIdentity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListMeshServices indicates an expected call of ListMeshServices
-func (mr *MockProviderMockRecorder) ListMeshServices() *gomock.Call {
+// ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService
+func (mr *MockProviderMockRecorder) ListServiceIdentitiesForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshServices", reflect.TypeOf((*MockProvider)(nil).ListMeshServices))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockProvider)(nil).ListServiceIdentitiesForService), arg0)
 }
 
 // ListServices mocks base method
