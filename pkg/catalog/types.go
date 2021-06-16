@@ -25,6 +25,7 @@ var (
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
 	endpointsProviders []endpoint.Provider
+	serviceProviders   []service.Provider
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor

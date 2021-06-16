@@ -34,8 +34,8 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
 
-		provider endpoint.Provider
-		err      error
+		client *Client
+		err    error
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -47,12 +47,12 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		provider, err = NewProvider(mockKubeController, providerID, mockConfigurator)
+		client, err = NewClient(mockKubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("tests GetID", func() {
-		Expect(provider.GetID()).To(Equal(providerID))
+		Expect(client.GetID()).To(Equal(providerID))
 	})
 
 	It("should correctly return a list of endpoints for a service", func() {
@@ -77,7 +77,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		Expect(provider.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(client.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
 				Port: 88,
@@ -105,7 +105,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		})
 
-		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(client.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(192, 168, 0, 1),
 				Port: tests.ServicePort,
@@ -154,7 +154,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(client.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
 				Port: 88,
@@ -205,7 +205,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(client.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
 				Port: 88,
@@ -273,7 +273,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		portToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
+		portToProtocolMap, err := client.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
 		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http", 130: "tcp"}
@@ -287,7 +287,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		kubeController   k8s.Controller
 		mockConfigurator *configurator.MockConfigurator
 		fakeClientSet    *testclient.Clientset
-		provider         endpoint.Provider
+		client           *Client
 		err              error
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -317,7 +317,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}, 3*time.Second).Should(BeTrue())
 
 		Expect(err).ToNot(HaveOccurred())
-		provider, err = NewProvider(kubeController, providerID, mockConfigurator)
+		client, err = NewClient(kubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -346,7 +346,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		services, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
+		services, err := client.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
 		Expect(err).To(HaveOccurred())
 		Expect(services).To(BeNil())
 
@@ -425,7 +425,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		// Expect a MeshService that corresponds to a Service that matches the Pod spec labels
 		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
 
-		meshSvcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		meshSvcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).ToNot(HaveOccurred())
 		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
@@ -498,7 +498,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		svcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).To(HaveOccurred())
 		Expect(svcs).To(BeNil())
 
@@ -566,7 +566,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		svcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).To(HaveOccurred())
 		Expect(svcs).To(BeNil())
 
@@ -652,7 +652,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		meshServices, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		meshServices, err := client.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).ToNot(HaveOccurred())
 		expectedServices := []service.MeshService{
 			{Name: "test-1", Namespace: testNamespace},
@@ -721,7 +721,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			providerID := "provider"
 
-			provider, err := NewProvider(mockKubeController, providerID, mockConfigurator)
+			provider, err := NewClient(mockKubeController, providerID, mockConfigurator)
 			assert.Nil(err)
 
 			var pods []*corev1.Pod
