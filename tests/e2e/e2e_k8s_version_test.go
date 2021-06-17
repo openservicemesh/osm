@@ -21,9 +21,6 @@ var _ = OSMDescribe("Test HTTP traffic for different k8s versions",
 		Context("Version v1.19.7", func() {
 			testK8sVersion("v1.19.7")
 		})
-		Context("Version v1.18.0", func() {
-			testK8sVersion("v1.18.0")
-		})
 	})
 
 func testK8sVersion(version string) {
