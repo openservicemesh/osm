@@ -33,7 +33,7 @@ metadata:
     app: bookwarehouse
 spec:
   ports:
-  - port: 14001
+  - port: $BOOKWAREHOUSE_PORT
     name: bookwarehouse-port
 
   selector:

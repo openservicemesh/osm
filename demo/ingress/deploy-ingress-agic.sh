@@ -34,7 +34,7 @@ spec:
       - path: /
         backend:
           serviceName: bookstore-v1
-          servicePort: 14001
+          servicePort: $BOOKSTORE_PORT
 
   - host: "v2.${INGRESS_HOSTNAME}"
     http:
@@ -42,12 +42,12 @@ spec:
       - path: /
         backend:
           serviceName: bookstore-v2
-          servicePort: 14001
+          servicePort: $BOOKSTORE_PORT
 
   - http:
       paths:
       - path: /
         backend:
           serviceName: bookstore-v1
-          servicePort: 14001
+          servicePort: $BOOKSTORE_PORT
 EOF

@@ -34,9 +34,9 @@ metadata:
 spec:
   ports:
   - name: bookstore-port
-    port: 14001
+    port: $BOOKSTORE_PORT
     protocol: TCP
-    targetPort: 14001
+    targetPort: $BOOKSTORE_PORT
   selector:
     app: bookstore
 EOF

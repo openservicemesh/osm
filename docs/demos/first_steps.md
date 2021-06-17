@@ -163,7 +163,7 @@ spec:
   selector:
     app: bookstore
   ports:
-  - port: 14001
+  - port: $BOOKSTORE_PORT
 EOF
 ```
 
@@ -184,9 +184,9 @@ spec:
   - name: bookstore
     image: openservicemesh/bookstore:v0.8.0
     ports:
-      - containerPort: 14001
+      - containerPort: $BOOKSTORE_PORT
     command: ["/bookstore"]
-    args: ["--port", "14001"]
+    args: ["--port", "$BOOKSTORE_PORT"]
     env:
     - name: BOOKWAREHOUSE_NAMESPACE
       value: bookwarehouse

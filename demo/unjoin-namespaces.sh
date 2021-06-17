@@ -37,7 +37,7 @@ metadata:
 
 spec:
   ports:
-  - port: 14001
+  - port: $BOOKSTORE_PORT
     name: bookstore-port
 
   selector:

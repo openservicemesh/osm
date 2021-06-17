@@ -18,12 +18,6 @@ const (
 	// RestockWarehouseURL is a header string constant.
 	RestockWarehouseURL = "restock-books"
 
-	// bookstorePort is the bookstore service's port
-	bookstorePort = 14001
-
-	// bookwarehousePort is the bookwarehouse service's port
-	bookwarehousePort = 14001
-
 	httpPrefix = "http://"
 
 	httpsPrefix = "https://"
@@ -40,6 +34,8 @@ var (
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+	bookstorePort, _                       = strconv.Atoi(utils.GetEnv(BookstorePortEnvVar, "14001"))
+	bookwarehousePort, _                   = strconv.Atoi(utils.GetEnv(BookwarehousePortEnvVar, "14001"))
 
 	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)         // FQDN
 	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort) // FQDN

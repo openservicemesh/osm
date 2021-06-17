@@ -16,6 +16,7 @@ if [ -z "$backend" ]; then
 fi
 
 BOOKSTORE_LOCAL_PORT="${BOOKSTORE_LOCAL_PORT:-8084}"
+BOOKSTORE_PORT="${BOOKSTORE_PORT:-14001}"
 POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk 'NR==1{print $1}')"
 
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" "$BOOKSTORE_LOCAL_PORT":14001
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" "$BOOKSTORE_LOCAL_PORT":"$BOOKSTORE_PORT"
