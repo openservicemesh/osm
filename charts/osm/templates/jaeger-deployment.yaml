@@ -22,6 +22,9 @@ spec:
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       serviceAccountName: jaeger
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
       - name: jaeger
         image: jaegertracing/all-in-one
