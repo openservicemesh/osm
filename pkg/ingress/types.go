@@ -15,8 +15,8 @@ var (
 	log = logger.New("kube-ingress")
 )
 
-// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
-type Client struct {
+// client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
+type client struct {
 	informerV1      cache.SharedIndexInformer
 	cacheV1         cache.Store
 	informerV1beta1 cache.SharedIndexInformer
