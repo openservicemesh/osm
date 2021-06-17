@@ -200,8 +200,8 @@ func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, same
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		var svc1 corev1.Service
-		svc1.Name =  meshService.Name
-		svc1.Namespace =  meshService.Namespace
+		svc1.Name = meshService.Name
+		svc1.Namespace = meshService.Namespace
 		svc1.Spec.Ports = make([]corev1.ServicePort, 0)
 		svc = &svc1
 	}
@@ -280,7 +280,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	var matchedTrafficTargets []trafficpolicy.TrafficTarget
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+		//log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 		if !isValidTrafficTarget(trafficTargets) {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -289,7 +289,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		for _, trafficSources := range trafficTargets.Spec.Sources {
 			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
 			if err != nil {
-				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+				//log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 				continue
 			}
 			for _, trafficTarget := range trafficTargetPermutations {
@@ -344,7 +344,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		matchedTrafficTargets = append(matchedTrafficTargets, trafficTarget)
 	}
 
-	//log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
+	log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
 	return matchedTrafficTargets, nil
 }
 
@@ -396,7 +396,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 
 	srcServiceList, srcErr := mc.GetServicesForServiceAccount(sourceServiceAccount)
 	if srcErr != nil {
-		log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
+		//log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
 		return nil, srcErr
 	}
 
@@ -406,7 +406,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 	}
 	destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
 	if destErr != nil {
-		log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
+		//log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
 		return nil, destErr
 	}
 

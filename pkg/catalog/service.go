@@ -12,7 +12,7 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
 		if providerServices, err := provider.GetServicesForServiceAccount(sa); err != nil {
-			log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), sa, err)
+			//log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), sa, err)
 		} else {
 			var svcs []string
 			for _, svc := range providerServices {

@@ -32,7 +32,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 
 	sendAnnouncement := func(eventType a.AnnouncementType, obj interface{}) {
 		if emitLogs {
-			log.Trace().Msgf("[%s][%s] %s event: %+v", providerName, informerName, eventType, obj)
+			log.Trace().Msgf("dispachertrack [%s][%s] %s event: %+v", providerName, informerName, eventType, obj)
 		}
 
 		if announce == nil {

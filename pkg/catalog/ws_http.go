@@ -50,12 +50,12 @@ func (mc *MeshCatalog) witesandHttpClient() {
 
 	// run forever
 	for {
-		// learn local pods
+		// learn local edgepods
 		localPods, err := wc.ListLocalEdgePods()
 		if err == nil {
 			wc.UpdateClusterPods(witesand.LocalClusterId, localPods)
 		}
-		// learn remote pods
+		// learn remote edgepods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
 			remoteEdgePods, err := mc.QueryRemoteEdgePods(wc, remoteK8s.OsmIP)
 			if err == nil {
@@ -73,7 +73,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		if err == nil {
 			wc.UpdateAllPods(witesand.LocalClusterId, localPods)
 		}
-		// learn remote pods
+		// learn all remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
 			allRemotePods, err := mc.QueryAllPodRemote(wc, remoteK8s.OsmIP)
 			if err == nil {
@@ -111,7 +111,7 @@ func (mc *MeshCatalog) QueryWaves(wavesIP string) (*map[string][]string, error) 
 	closeChan := make(chan bool)
 	var apigroupToPodMaps map[string][]string
 	var err error
-	go func(wavesIP string, apigroupToPodMaps map[string][]string) {
+	go func(wavesIP string) {
 		defer close(closeChan)
 
 		log.Info().Msgf("[queryWaves] querying waves:%s", wavesIP)
@@ -138,7 +138,7 @@ func (mc *MeshCatalog) QueryWaves(wavesIP string) (*map[string][]string, error) 
 		}
 		log.Info().Msgf("[queryWaves] err:%+v", err)
 		return
-	}(wavesIP, apigroupToPodMaps)
+	}(wavesIP)
 
 	select {
 	case <-time.After(QueryTimeout):
@@ -153,7 +153,7 @@ func (mc *MeshCatalog) QueryAllPodRemote(wc witesand.WitesandCataloger, remoteOs
 	closeChan := make(chan bool)
 	var err error
 	var remotePods witesand.ClusterPods
-	go func(remoteOsmIP string, remotePods witesand.ClusterPods, err error){
+	go func(remoteOsmIP string){
 		defer close(closeChan)
 
 		log.Info().Msgf("[queryAllPodRemote] querying osm:%s", remoteOsmIP)
@@ -181,7 +181,7 @@ func (mc *MeshCatalog) QueryAllPodRemote(wc witesand.WitesandCataloger, remoteOs
 			}
 		}
 		log.Info().Msgf("[queryAllPodRemote] err:%+v", err)
-	} (remoteOsmIP, remotePods, err)
+	} (remoteOsmIP)
 
 	select {
 	case <-time.After(QueryTimeout):
@@ -196,7 +196,7 @@ func (mc *MeshCatalog) QueryRemoteEdgePods(wc witesand.WitesandCataloger, remote
 	var err error
 	var remotePods witesand.ClusterPods
 	closeChan := make(chan bool)
-	go func(remoteOsmIP string, remotePods witesand.ClusterPods, err error) {
+	go func(remoteOsmIP string) {
 		defer close(closeChan)
 
 		log.Info().Msgf(" witesandHttpClient [QueryRemoteEdgePods] querying osm:%s", remoteOsmIP)
@@ -226,7 +226,7 @@ func (mc *MeshCatalog) QueryRemoteEdgePods(wc witesand.WitesandCataloger, remote
 		}
 		log.Info().Msgf("witesandHttpClient [QueryRemoteEdgePods] err:%+v", err)
 		return
-	}(remoteOsmIP, remotePods, err)
+	}(remoteOsmIP)
 
 	select {
 	case <-time.After(QueryTimeout):
@@ -265,7 +265,7 @@ func (mc *MeshCatalog) GetLocalEdgePods(w http.ResponseWriter, r *http.Request) 
 	remoteAddress := r.Header.Get(witesand.HttpRemoteAddrHeader)
 	remoteClusterId := r.Header.Get(witesand.HttpRemoteClusterIdHeader)
 
-	log.Info().Msgf("[GetLocalEdgePods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
+	//log.Info().Msgf("[GetLocalEdgePods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
 	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteClusterId, remoteAddress)
 
 	list, err := mc.GetWitesandCataloger().ListLocalEdgePods()
@@ -283,7 +283,7 @@ func (mc *MeshCatalog) GetAllLocalPods(w http.ResponseWriter, r *http.Request) {
 	remoteAddress := r.Header.Get(witesand.HttpRemoteAddrHeader)
 	remoteClusterId := r.Header.Get(witesand.HttpRemoteClusterIdHeader)
 
-	log.Info().Msgf("[GetAllLocalPods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
+	//log.Info().Msgf("[GetAllLocalPods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
 	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteClusterId, remoteAddress)
 
 	list, err := mc.GetWitesandCataloger().ListAllLocalPods()
