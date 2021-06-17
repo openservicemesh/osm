@@ -429,8 +429,9 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "svc",
-						Namespace: "ns",
+						Name:          "svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 			},
@@ -593,8 +594,9 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "svc",
-						Namespace: "ns",
+						Name:          "svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 			},
@@ -606,14 +608,16 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "svc",
-						Namespace: "ns",
+						Name:          "svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 				envoy.NewCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "svc",
-						Namespace: "ns",
+						Name:          "svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 			},
@@ -647,6 +651,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			k.handlePodUpdate(test.pod)
 
 			tassert.Equal(t, test.expectedCNsToServices, k.servicesForCN)
+
 			tassert.Equal(t, test.expectedServicesToCNs, k.cnsForService)
 		})
 	}
@@ -868,9 +873,9 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "not-svc",
-						Namespace: "ns",
-				ClusterDomain: constants.ClusterDomain,
+						Name:          "not-svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 			},
@@ -882,9 +887,9 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:      "not-svc",
-						Namespace: "ns",
-				ClusterDomain: constants.ClusterDomain,
+						Name:          "not-svc",
+						Namespace:     "ns",
+						ClusterDomain: constants.ClusterDomain,
 					},
 				},
 			},

@@ -1,9 +1,6 @@
 package catalog
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"

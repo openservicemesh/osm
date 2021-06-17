@@ -546,8 +546,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
-				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo/local",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo/local"},
 			},
 			expectError: false,
 		},
@@ -560,16 +560,16 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			},
 			clusterWeights: []service.WeightedCluster{
 				{
-					ClusterName: "bar/foo-v1/local",
+					ClusterName: "bar/foo-v1",
 					Weight:      10,
 				},
 				{
-					ClusterName: "bar/foo-v2/local",
+					ClusterName: "bar/foo-v2",
 					Weight:      90,
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo/local",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
@@ -608,6 +608,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			assert.Equal(wellknown.TCPProxy, filter.Name)
 
 			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
+
 			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
 		})
 	}
