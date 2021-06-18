@@ -95,7 +95,7 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 	return service.MeshService{
 				Namespace: chunks[0], 
 				Name: chunks[1],
-				ClusterDomain: constants.ClusterDomain,
+				ClusterDomain: constants.Local,
 			}, nil
 }
 

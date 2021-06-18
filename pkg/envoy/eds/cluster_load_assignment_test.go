@@ -15,8 +15,8 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 	assert := tassert.New(t)
 
 	namespacedServices := []service.MeshService{
-		{Namespace: "osm", Name: "bookstore-1", ClusterDomain: constants.ClusterDomain},
-		{Namespace: "osm", Name: "bookstore-2", ClusterDomain: constants.ClusterDomain},
+		{Namespace: "osm", Name: "bookstore-1", ClusterDomain: constants.Local},
+		{Namespace: "osm", Name: "bookstore-2", ClusterDomain: constants.Local},
 	}
 
 	allServiceEndpoints := map[service.MeshService][]endpoint.Endpoint{

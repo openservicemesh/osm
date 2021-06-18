@@ -209,8 +209,11 @@ const (
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
 
+// ClusterDomain is a type for a multicluster
+type ClusterDomain string
+
 // Multicluster constants
+//TODO: Change to LocalDomain
 const (
-	// Multicluster domain related constants
-	ClusterDomain = "local"
+	Local  ClusterDomain = "local"
 )

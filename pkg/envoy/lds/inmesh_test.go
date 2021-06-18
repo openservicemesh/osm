@@ -542,7 +542,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.ClusterDomain,
+				ClusterDomain: constants.Local,
 			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
@@ -556,7 +556,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.ClusterDomain,
+				ClusterDomain: constants.Local,
 			},
 			clusterWeights: []service.WeightedCluster{
 				{

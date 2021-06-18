@@ -402,7 +402,12 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 
-	svc := service.MeshService{Namespace: "ns", Name: "svc", ClusterDomain: constants.ClusterDomain}
+	svc := service.MeshService{
+		Namespace:     "ns",
+		Name:          "svc",
+		ClusterDomain: constants.Local,
+	}
+
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{svc}, nil

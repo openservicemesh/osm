@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
@@ -39,7 +40,7 @@ type MeshService struct {
 	Name string
 
 	// The ClusterDomain of the service
-	ClusterDomain string
+	ClusterDomain constants.ClusterDomain
 }
 
 func (ms MeshService) String() string {
@@ -56,7 +57,7 @@ func (ms MeshService) FQDN() string {
 	if ms.ClusterDomain == "" {
 		ms.ClusterDomain = localCluster
 	}
-	return strings.Join([]string{ms.Name, ms.Namespace, ms.ClusterDomain}, ".")
+	return strings.Join([]string{ms.Name, ms.Namespace, string(ms.ClusterDomain)}, ".")
 }
 
 // Local returns whether or not this is service is in the local cluster.

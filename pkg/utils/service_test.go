@@ -18,7 +18,7 @@ func TestK8sSvcToMeshSvc(t *testing.T) {
 	expectedMeshSvc := service.MeshService{
 		Name:          tests.BookstoreV1ServiceName,
 		Namespace:     tests.Namespace,
-		ClusterDomain: constants.ClusterDomain,
+		ClusterDomain: constants.Local,
 	}
 
 	assert.Equal(meshSvc, expectedMeshSvc)

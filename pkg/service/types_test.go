@@ -29,7 +29,7 @@ var _ = Describe("Test pkg/service functions", func() {
 		ms := MeshService{
 			Namespace:     namespace,
 			Name:          name,
-			ClusterDomain: constants.ClusterDomain,
+			ClusterDomain: constants.Local,
 		}
 
 		It("implements stringer correctly", func() {

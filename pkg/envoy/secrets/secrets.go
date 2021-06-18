@@ -66,7 +66,7 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	return &service.MeshService{
 		Namespace:     slices[0],
 		Name:          slices[1],
-		ClusterDomain: constants.ClusterDomain,
+		ClusterDomain: constants.Local,
 	}, nil
 }
 

@@ -43,8 +43,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:            "scenario where proxy is both downstream and upstream",
 			proxySvcAccount: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.ClusterDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.ClusterDomain},
+				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.Local},
+				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.Local},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -66,8 +66,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:            "scenario where proxy is only a downsteam (no service)",
 			proxySvcAccount: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.ClusterDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.ClusterDomain},
+				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.Local},
+				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.Local},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -105,8 +105,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:            "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
 			proxySvcAccount: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.ClusterDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.ClusterDomain},
+				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.Local},
+				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.Local},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
