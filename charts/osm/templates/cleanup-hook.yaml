@@ -16,6 +16,9 @@ spec:
         {{- include "osm.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ .Release.Name }}-cleanup
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       restartPolicy: Never
       nodeSelector:
         kubernetes.io/arch: amd64
