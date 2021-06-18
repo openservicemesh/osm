@@ -52,6 +52,8 @@ func testMultipleServicePerPod() {
 				Ports:     []int{80},
 			})
 
+		Td.T.Log("Wait for injector")
+		time.Sleep(30 * time.Second)
 		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
@@ -143,5 +145,8 @@ func testMultipleServicePerPod() {
 			return true
 		}, 5, 90*time.Second)
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic: %s", srcToDestStr)
+
+		Td.T.Log("Finished. Wait")
+		time.Sleep(30 * time.Minute)
 	})
 }

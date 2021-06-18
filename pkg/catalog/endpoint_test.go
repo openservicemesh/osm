@@ -129,6 +129,29 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 				Port: endpoint.Port(tests.ServicePort),
 			}},
 		},
+		{
+			name: `Traffic target defined for bookstore ServiceAccount.
+			This service account has bookstore-v1 bookstore-v2 services,
+			Only service account bookstore-v2 is allowed in traffic target.
+			Hence, it returns an empty list of endpoints.`,
+			proxyIdentity:  tests.BookbuyerServiceIdentity,
+			upstreamSvc:    tests.BookstoreV1Service,
+			trafficTargets: []*access.TrafficTarget{&tests.BookstoreV2TrafficTarget},
+			services:       []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
+			outboundServices: map[identity.ServiceIdentity][]service.MeshService{
+				tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service},
+				tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
+			},
+			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreV1Service: {tests.Endpoint},
+				tests.BookstoreV2Service: {endpoint.Endpoint{
+					// Deliberately set the endpoint IP to be the same as bookstore v1 pod.
+					IP:   net.ParseIP(tests.ServiceIP),
+					Port: endpoint.Port(6789),
+				}},
+			},
+			expectedEndpoints: []endpoint.Endpoint{},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

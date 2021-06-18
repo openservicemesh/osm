@@ -71,8 +71,12 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 			// check if endpoint IP is allowed
 			if _, ok := outboundEndpointsSet[epIPStr]; ok {
 				// add all allowed endpoints on the pod to result list
-				// TODO(allenlsy): only allow endpoint with matching port
-				allowedEndpoints = append(allowedEndpoints, outboundEndpointsSet[epIPStr]...)
+				for _, allowedEp := range outboundEndpointsSet[epIPStr] {
+					// check if endpoint IP + Port is allowed
+					if ep.String() == allowedEp.String() {
+						allowedEndpoints = append(allowedEndpoints, allowedEp)
+					}
+				}
 			}
 		}
 	}
