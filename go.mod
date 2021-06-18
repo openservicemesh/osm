@@ -11,25 +11,31 @@ require (
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/dustin/go-humanize v1.0.0
 	github.com/envoyproxy/go-control-plane v0.9.9
-	github.com/fatih/color v1.10.0
+	github.com/fatih/color v1.12.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.2.1 // indirect
-	github.com/golang/mock v1.4.1
+	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/golangci/golangci-lint v1.32.2
+	github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6 // indirect
+	github.com/golangci/goconst v0.0.0-20180610141641-041c5f2b40f3 // indirect
+	github.com/golangci/gocyclo v0.0.0-20180528144436-0a533e8fa43d // indirect
+	github.com/golangci/golangci-lint v1.41.0
+	github.com/golangci/ineffassign v0.0.0-20190609212857-42439a7714cc // indirect
+	github.com/golangci/prealloc v0.0.0-20180630174525-215b22d4de21 // indirect
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.1.2
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/jetstack/cert-manager v1.3.1
 	github.com/jinzhu/copier v0.2.4
+	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/matm/gocov-html v0.0.0-20200509184451-71874e2e203b
 	github.com/mitchellh/gox v1.0.1
 	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/norwoodj/helm-docs v1.4.0
-	github.com/olekukonko/tablewriter v0.0.4
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
@@ -38,19 +44,19 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/rs/zerolog v1.18.0
 	github.com/servicemeshinterface/smi-sdk-go v0.5.0
-	github.com/spf13/cobra v1.1.1
+	github.com/shirou/gopsutil v0.0.0-20190901111213-e4ec7b275ada // indirect
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sys v0.0.0-20210414055047-fe65e336abe0 // indirect
-	golang.org/x/tools v0.1.1-0.20210319172145-bda8f5cee399 // indirect
+	github.com/tomarrell/wrapcheck v0.0.0-20200807122107-df9e8bcb914d // indirect
+	github.com/tommy-muehle/go-mnd v1.3.1-0.20200224220436-e6f9a994e8fa // indirect
 	gomodules.xyz/jsonpatch/v2 v2.0.1
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	helm.sh/helm/v3 v3.5.3
-	honnef.co/go/tools v0.1.1 // indirect
 	k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery v0.20.5
@@ -58,7 +64,6 @@ require (
 	k8s.io/client-go v0.20.5
 	k8s.io/code-generator v0.20.5
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
-	mvdan.cc/gofumpt v0.1.0 // indirect
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/kind v0.9.0
 )

@@ -93,10 +93,10 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>, Got: %s", cluster)
 	}
 	return service.MeshService{
-				Namespace: chunks[0], 
-				Name: chunks[1],
-				ClusterDomain: constants.Local,
-			}, nil
+		Namespace:     chunks[0],
+		Name:          chunks[1],
+		ClusterDomain: constants.LocalDomain,
+	}, nil
 }
 
 // getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy

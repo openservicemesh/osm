@@ -14,7 +14,7 @@ func TestServerName(t *testing.T) {
 	namespacedService := MeshService{
 		Namespace:     "namespace-here",
 		Name:          "service-name-here",
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 	actual := namespacedService.ServerName()
 	assert.Equal("service-name-here.namespace-here.svc.cluster.local", actual)
@@ -34,12 +34,12 @@ func TestEquals(t *testing.T) {
 			service: MeshService{
 				Namespace:     "default",
 				Name:          "bookbuyer",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			anotherService: MeshService{
 				Namespace:     "default",
 				Name:          "bookbuyer",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			isEqual: true,
 		},
@@ -48,12 +48,12 @@ func TestEquals(t *testing.T) {
 			service: MeshService{
 				Namespace:     "default",
 				Name:          "bookbuyer",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			anotherService: MeshService{
 				Namespace:     "default",
 				Name:          "bookstore",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			isEqual: false,
 		},
@@ -80,7 +80,7 @@ func TestString(t *testing.T) {
 			service: MeshService{
 				Namespace:     "default",
 				Name:          "bookbuyer",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			serviceString: "default/bookbuyer/local",
 		},
@@ -89,7 +89,7 @@ func TestString(t *testing.T) {
 			service: MeshService{
 				Namespace:     "bookbuyer-ns",
 				Name:          "bookbuyer",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			serviceString: "bookbuyer-ns/bookbuyer/local",
 		},

@@ -104,7 +104,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -156,7 +156,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -218,7 +218,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -498,7 +498,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -525,7 +525,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -552,7 +552,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -579,12 +579,12 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          tests.BookstoreApexServiceName,
 					Namespace:     tests.Namespace,
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 				{
 					Name:          "apex-split-1",
 					Namespace:     "bar",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -624,7 +624,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          "apex-split-1",
 					Namespace:     "bar",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -651,12 +651,12 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				{
 					Name:          "apex-split-1",
 					Namespace:     "bar",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 				{
 					Name:          "apex-split-1",
 					Namespace:     "baz",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -1100,7 +1100,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	destMeshService := service.MeshService{
 		Name:          "bookstore",
 		Namespace:     "bookstore-ns",
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
@@ -1154,7 +1154,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSplits: nil,
 			expected:      nil,
@@ -1164,7 +1164,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1203,7 +1203,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1233,7 +1233,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1291,7 +1291,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			upstream: service.MeshService{
 				Name:          "foo",
 				Namespace:     "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1411,17 +1411,17 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 				{
 					Name:          "split-svc",
 					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 				{
 					Name:          "split-backend-1",
 					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 				{
 					Name:          "split-backend-2",
 					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				},
 			},
 		},

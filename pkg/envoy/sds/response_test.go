@@ -148,7 +148,7 @@ func TestGetRootCert(t *testing.T) {
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
 					Name:          "service-2",
 					Namespace:     "ns-2",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				}).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
@@ -347,7 +347,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				svc := service.MeshService{
 					Name:          "service-2",
 					Namespace:     "ns-2",
-					ClusterDomain: constants.Local,
+					ClusterDomain: constants.LocalDomain,
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)

@@ -405,7 +405,7 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	svc := service.MeshService{
 		Namespace:     "ns",
 		Name:          "svc",
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()

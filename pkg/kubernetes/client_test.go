@@ -197,8 +197,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				announcements.ServiceUpdated)
 			defer events.GetPubSubInstance().Unsub(serviceChannel)
 			testSvcs := []service.MeshService{
-				{Name: uuid.New().String(), Namespace: "ns-1", ClusterDomain: constants.Local},
-				{Name: uuid.New().String(), Namespace: "ns-2", ClusterDomain: constants.Local},
+				{Name: uuid.New().String(), Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
+				{Name: uuid.New().String(), Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
 			}
 
 			// Test services could belong to the same namespace, so ensure we create a list of unique namespaces
@@ -449,7 +449,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			meshSvc := service.MeshService{
 				Name:          svc.Name,
 				Namespace:     svc.Namespace,
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
@@ -549,7 +549,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			meshSvc := service.MeshService{
 				Name:          svc.Name,
 				Namespace:     svc.Namespace,
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}
 
 			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)

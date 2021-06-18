@@ -190,7 +190,7 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceUpdate(svc *v1.Service) {
 	updatedSvc := service.MeshService{
 		Name:          svc.Name,
 		Namespace:     svc.Namespace,
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 	if k.cnsForService[updatedSvc] == nil {
 		k.cnsForService[updatedSvc] = make(map[certificate.CommonName]struct{})
@@ -226,7 +226,7 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceDelete(svc *v1.Service) {
 	deleted := service.MeshService{
 		Name:          svc.Name,
 		Namespace:     svc.Namespace,
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 	for cn := range k.cnsForService[deleted] {
 		var rem []service.MeshService
@@ -253,7 +253,7 @@ func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServ
 		meshServices = append(meshServices, service.MeshService{
 			Namespace:     svc.Namespace,
 			Name:          svc.Name,
-			ClusterDomain: constants.Local,
+			ClusterDomain: constants.LocalDomain,
 		})
 	}
 	return meshServices

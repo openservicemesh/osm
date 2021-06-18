@@ -84,7 +84,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 		{
 			name:          "multiple traffic split matches",
 			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit, &testSplit2},
-			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default", ClusterDomain: constants.Local}},
+			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default", ClusterDomain: constants.LocalDomain}},
 		},
 		{
 			name:          "no traffic splits present, so no backeds returned",
@@ -231,7 +231,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		expectedError       error
 	}{
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.Local},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -239,7 +239,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.Local},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -247,7 +247,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.Local},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			nil,
 			errors.New("test error"),
 		},
@@ -347,7 +347,7 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	testSvc := service.MeshService{
 		Name:          "foo",
 		Namespace:     "bar",
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	for i, tc := range testCases {
@@ -379,7 +379,7 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 	svc := service.MeshService{
 		Namespace:     "foo",
 		Name:          "bar",
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 	appProtocolTCP := "tcp"
 	appProtocolHTTP := "http"

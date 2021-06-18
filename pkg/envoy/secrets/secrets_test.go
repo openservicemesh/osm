@@ -95,7 +95,7 @@ func TestUnmarshalMeshService(t *testing.T) {
 	meshService := &service.MeshService{
 		Namespace:     namespace,
 		Name:          serviceName,
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	str := meshService.String()

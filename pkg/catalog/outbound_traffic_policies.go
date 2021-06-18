@@ -65,7 +65,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		svc := service.MeshService{
 			Name:          kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace:     split.Namespace,
-			ClusterDomain: constants.Local,
+			ClusterDomain: constants.LocalDomain,
 		}
 
 		locality := service.LocalCluster
@@ -84,7 +84,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 			ms := service.MeshService{
 				Name:          backend.Service,
 				Namespace:     split.ObjectMeta.Namespace,
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
@@ -322,7 +322,7 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 					rootMeshService := service.MeshService{
 						Namespace:     split.Namespace,
 						Name:          rootServiceName,
-						ClusterDomain: constants.Local,
+						ClusterDomain: constants.LocalDomain,
 					}
 
 					// Add this root service into the set

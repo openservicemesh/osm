@@ -47,7 +47,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -157,7 +157,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -292,7 +292,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -415,7 +415,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -530,7 +530,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -640,7 +640,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -729,7 +729,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -797,7 +797,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -898,7 +898,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1010,7 +1010,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1148,7 +1148,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1273,7 +1273,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1390,7 +1390,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1502,7 +1502,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1593,7 +1593,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1662,7 +1662,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1764,7 +1764,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingressesV1: []*networkingV1.Ingress{
 				{
@@ -1876,7 +1876,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingressesV1beta1: []*networkingV1beta1.Ingress{
 				{
@@ -1986,7 +1986,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			svc: service.MeshService{
 				Name:          "foo",
 				Namespace:     "testns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			ingressesV1: []*networkingV1.Ingress{
 				{

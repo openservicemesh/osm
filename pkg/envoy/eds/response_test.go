@@ -101,7 +101,7 @@ func TestClusterToMeshSvc(t *testing.T) {
 			expectedMeshSvc: service.MeshService{
 				Namespace:     "foo",
 				Name:          "bar",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			expectError: false,
 		},

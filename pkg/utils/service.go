@@ -14,7 +14,7 @@ func K8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
 	return service.MeshService{
 		Namespace:     svc.Namespace,
 		Name:          svc.Name,
-		ClusterDomain: constants.Local,
+		ClusterDomain: constants.LocalDomain,
 	}
 }
 

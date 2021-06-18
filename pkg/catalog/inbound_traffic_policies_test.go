@@ -47,12 +47,12 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -141,16 +141,16 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}, {
 				Name:          "bookstore-apex",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -299,16 +299,16 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}, {
 				Name:          "bookstore-apex",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -557,12 +557,12 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -611,16 +611,16 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}, {
 				Name:          "bookstore-apex",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -730,16 +730,16 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}, {
 				Name:          "bookstore-apex",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -849,16 +849,16 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}, {
 				Name:          "bookstore-apex",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1020,7 +1020,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			inboundService: service.MeshService{
 				Name:          "bookstore",
 				Namespace:     "bookstore-ns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1112,7 +1112,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 			inboundService: service.MeshService{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1343,7 +1343,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 			meshService: service.MeshService{
 				Name:          "bookstore",
 				Namespace:     "bookstore-ns",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			},
 			serviceAccounts: map[string]string{"bookstore": "bookstore-ns", "bookbuyer": "bookbuyer-ns"},
 		},
@@ -1401,7 +1401,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1493,7 +1493,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 			upstreamServices: []service.MeshService{{
 				Name:          "bookstore",
 				Namespace:     "default",
-				ClusterDomain: constants.Local,
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{

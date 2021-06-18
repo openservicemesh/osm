@@ -215,5 +215,5 @@ type ClusterDomain string
 // Multicluster constants
 //TODO: Change to LocalDomain
 const (
-	Local  ClusterDomain = "local"
+	LocalDomain  ClusterDomain = "local"
 )
