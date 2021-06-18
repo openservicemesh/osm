@@ -19,6 +19,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	testpolicyclient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -44,10 +46,11 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	meshName := "osm"
 	stop := make(chan struct{})
 	kubeClient := testclient.NewSimpleClientset()
+	policyClient := testpolicyclient.NewSimpleClientset()
 	smiTrafficSplitClientSet := testTrafficSplitClient.NewSimpleClientset()
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop)
 	if err != nil {
 		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
 	}

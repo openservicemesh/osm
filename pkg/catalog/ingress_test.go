@@ -14,7 +14,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/ingress"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -28,9 +28,9 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 	meshCatalog := &MeshCatalog{
-		ingressMonitor: mockIngressMonitor,
+		kubeController: mockKubeController,
 	}
 
 	type testCase struct {
@@ -832,7 +832,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingresses, nil).Times(1)
+			mockKubeController.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingresses, nil).Times(1)
 
 			actualPolicies, err := meshCatalog.getIngressPoliciesNetworkingV1beta1(tc.svc)
 
@@ -847,9 +847,9 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 	meshCatalog := &MeshCatalog{
-		ingressMonitor: mockIngressMonitor,
+		kubeController: mockKubeController,
 	}
 
 	type testCase struct {
@@ -1666,7 +1666,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingresses, nil).Times(1)
+			mockKubeController.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingresses, nil).Times(1)
 
 			actualPolicies, err := meshCatalog.getIngressPoliciesNetworkingV1(tc.svc)
 
@@ -1681,9 +1681,10 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+
 	meshCatalog := &MeshCatalog{
-		ingressMonitor: mockIngressMonitor,
+		kubeController: mockKubeController,
 	}
 
 	type testCase struct {
@@ -2041,8 +2042,8 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingressesV1, nil).Times(1)
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingressesV1beta1, nil).Times(1)
+			mockKubeController.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingressesV1, nil).Times(1)
+			mockKubeController.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingressesV1beta1, nil).Times(1)
 
 			actualPolicies, err := meshCatalog.GetIngressPoliciesForService(tc.svc)
 

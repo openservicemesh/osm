@@ -25,7 +25,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	var trafficMatches []*trafficpolicy.TrafficMatch
 	var clusterConfigs []*trafficpolicy.EgressClusterConfig
 	portToRouteConfigMap := make(map[int][]*trafficpolicy.EgressHTTPRouteConfig)
-	egressResources := mc.policyController.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
+	egressResources := mc.kubeController.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
 
 	for _, egress := range egressResources {
 		for _, portSpec := range egress.Spec.Ports {

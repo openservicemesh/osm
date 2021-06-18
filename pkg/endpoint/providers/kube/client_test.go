@@ -20,6 +20,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	testpolicyclient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
@@ -300,7 +302,8 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 	BeforeEach(func() {
 		fakeClientSet = testclient.NewSimpleClientset()
-		kubeController, err = k8s.NewKubernetesController(fakeClientSet, meshName, stop)
+		fakePolicyClient := testpolicyclient.NewSimpleClientset()
+		kubeController, err = k8s.NewKubernetesController(fakeClientSet, fakePolicyClient, meshName, stop)
 
 		// Add the monitored namespace
 		testNamespace := &corev1.Namespace{

@@ -17,7 +17,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -341,17 +341,16 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
+			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			for _, rg := range tc.httpRouteGroups {
 				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
-			mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
+			mockKubeController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
 
 			mc := &MeshCatalog{
-				meshSpec:         mockMeshSpec,
-				configurator:     mockCfg,
-				policyController: mockPolicyController,
+				meshSpec:     mockMeshSpec,
+				configurator: mockCfg,
 			}
 
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableEgressPolicy: true}).Times(1)

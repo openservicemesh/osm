@@ -66,7 +66,7 @@ func buildIngressPolicyName(name, namespace, host string) string {
 func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	var inboundIngressPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	ingresses, err := mc.ingressMonitor.GetIngressNetworkingV1beta1(svc)
+	ingresses, err := mc.kubeController.GetIngressNetworkingV1beta1(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources for service %s", svc)
 		return inboundIngressPolicies, err
@@ -170,7 +170,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	var inboundIngressPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	ingresses, err := mc.ingressMonitor.GetIngressNetworkingV1(svc)
+	ingresses, err := mc.kubeController.GetIngressNetworkingV1(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources for service %s", svc)
 		return inboundIngressPolicies, err

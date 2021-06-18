@@ -1,11 +1,10 @@
-package ingress
+package kubernetes
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-
+	gomock "github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	networkingV1 "k8s.io/api/networking/v1"
@@ -14,12 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/discovery"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -127,7 +125,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 
 func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	mockKubeController := NewMockController(mockCtrl)
 	assert := tassert.New(t)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
@@ -304,7 +302,7 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fakeClient := fake.NewSimpleClientset(tc.ingressResource)
-			fakeClient.Discovery().(*fakeDiscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{
+			fakeClient.Discovery().(*fakediscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{
 				{
 					GroupVersion: networkingV1.SchemeGroupVersion.String(),
 					APIResources: []metav1.APIResource{
@@ -319,7 +317,7 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 				},
 			}
 
-			c, err := NewIngressClient(fakeClient, mockKubeController, make(chan struct{}), nil)
+			c, err := NewKubernetesController(fakeClient, nil, "fake-mesh", make(chan struct{}))
 			assert.Nil(err)
 
 			switch tc.version {

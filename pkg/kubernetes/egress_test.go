@@ -1,4 +1,4 @@
-package policy
+package kubernetes
 
 import (
 	"context"
@@ -8,22 +8,12 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 )
-
-func TestNewPolicyClient(t *testing.T) {
-	assert := tassert.New(t)
-
-	client, err := newPolicyClient(fakePolicyClient.NewSimpleClientset(), nil, nil)
-	assert.Nil(err)
-	assert.NotNil(client)
-	assert.NotNil(client.informers.egress)
-	assert.NotNil(client.caches.egress)
-}
 
 func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	assert := tassert.New(t)
@@ -31,7 +21,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	mockKubeController := NewMockController(mockCtrl)
 	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
 
 	stop := make(chan struct{})
@@ -149,8 +139,9 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 				_, err := fakepolicyClientSet.PolicyV1alpha1().Egresses(egressPolicy.Namespace).Create(context.TODO(), egressPolicy, metav1.CreateOptions{})
 				assert.Nil(err)
 			}
+			kubeClient := testclient.NewSimpleClientset()
 
-			policyClient, err := newPolicyClient(fakepolicyClientSet, mockKubeController, stop)
+			policyClient, err := NewKubernetesController(kubeClient, fakepolicyClientSet, "fake-mesh", stop)
 			assert.Nil(err)
 			assert.NotNil(policyClient)
 

@@ -17,6 +17,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	testpolicyclient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -37,8 +38,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		It("should return monitored namespaces", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
+			policyClient := testpolicyclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, policyClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -65,8 +67,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		It("should return existing namespace if it exists", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
+			policyClient := testpolicyclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, policyClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -103,8 +106,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		It("should work as expected", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
+			policyClient := testpolicyclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, policyClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -136,7 +140,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			policyClient := testpolicyclient.NewSimpleClientset()
+			kubeController, err = NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -252,7 +257,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			policyClient := testpolicyclient.NewSimpleClientset()
+			kubeController, err = NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -356,7 +362,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			policyClient := testpolicyclient.NewSimpleClientset()
+			kubeController, err = NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -563,7 +570,8 @@ func TestGetEndpoint(t *testing.T) {
 	// Create kubernetes controller
 	kubeClient := testclient.NewSimpleClientset()
 	stop := make(chan struct{})
-	kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+	policyClient := testpolicyclient.NewSimpleClientset()
+	kubeController, err := NewKubernetesController(kubeClient, policyClient, testMeshName, stop)
 	assert.Nil(err)
 	assert.NotNil(kubeController)
 
@@ -653,7 +661,8 @@ func TestIsMetricsEnabled(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			policyClient := testpolicyclient.NewSimpleClientset()
+			kubeController, err := NewKubernetesController(kubeClient, policyClient, testMeshName, stop)
 			assert.Nil(err)
 			assert.NotNil(kubeController)
 

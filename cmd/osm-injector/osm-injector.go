@@ -142,7 +142,9 @@ func main() {
 	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, meshConfig)
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController, err := k8s.NewKubernetesController(kubeClient, meshName, stop, k8s.Namespaces)
+	// The kubeController only needs to implement the BasicController, so we pass in nil here for the egress policy
+	// client.
+	kubeController, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop, k8s.Namespaces)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}

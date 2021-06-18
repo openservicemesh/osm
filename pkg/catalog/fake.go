@@ -17,9 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -28,16 +26,12 @@ import (
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versioned.Interface) *MeshCatalog {
 	var (
-		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
-		mockIngressMonitor   *ingress.MockMonitor
-		mockPolicyController *policy.MockController
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
-	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -52,8 +46,8 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
-	mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockKubeController.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockKubeController.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
@@ -110,25 +104,20 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV2Service).Return([]identity.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookbuyerService).Return([]identity.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true).AnyTimes()
-
-	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	mockKubeController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		stop, cfg, endpointProviders...)
 }
 
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
-		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
-		mockIngressMonitor   *ingress.MockMonitor
-		mockPolicyController *policy.MockController
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
-	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
@@ -221,8 +210,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
 
-	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	mockKubeController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, endpointProviders...)
+		stop, cfg, endpointProviders...)
 }

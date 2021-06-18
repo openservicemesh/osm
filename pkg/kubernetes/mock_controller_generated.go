@@ -8,9 +8,12 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
+	v10 "k8s.io/api/networking/v1"
+	v1beta1 "k8s.io/api/networking/v1beta1"
 )
 
 // MockController is a mock of Controller interface
@@ -49,6 +52,36 @@ func (m *MockController) GetEndpoints(arg0 service.MeshService) (*v1.Endpoints, 
 func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
+}
+
+// GetIngressNetworkingV1 mocks base method
+func (m *MockController) GetIngressNetworkingV1(arg0 service.MeshService) ([]*v10.Ingress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressNetworkingV1", arg0)
+	ret0, _ := ret[0].([]*v10.Ingress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIngressNetworkingV1 indicates an expected call of GetIngressNetworkingV1
+func (mr *MockControllerMockRecorder) GetIngressNetworkingV1(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1", reflect.TypeOf((*MockController)(nil).GetIngressNetworkingV1), arg0)
+}
+
+// GetIngressNetworkingV1beta1 mocks base method
+func (m *MockController) GetIngressNetworkingV1beta1(arg0 service.MeshService) ([]*v1beta1.Ingress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressNetworkingV1beta1", arg0)
+	ret0, _ := ret[0].([]*v1beta1.Ingress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIngressNetworkingV1beta1 indicates an expected call of GetIngressNetworkingV1beta1
+func (mr *MockControllerMockRecorder) GetIngressNetworkingV1beta1(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1beta1", reflect.TypeOf((*MockController)(nil).GetIngressNetworkingV1beta1), arg0)
 }
 
 // GetNamespace mocks base method
@@ -105,6 +138,20 @@ func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 func (mr *MockControllerMockRecorder) IsMonitoredNamespace(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockController)(nil).IsMonitoredNamespace), arg0)
+}
+
+// ListEgressPoliciesForSourceIdentity mocks base method
+func (m *MockController) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEgressPoliciesForSourceIdentity", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Egress)
+	return ret0
+}
+
+// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity
+func (mr *MockControllerMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockController)(nil).ListEgressPoliciesForSourceIdentity), arg0)
 }
 
 // ListMonitoredNamespaces mocks base method

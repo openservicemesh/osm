@@ -35,14 +35,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	policyV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -157,7 +156,8 @@ func main() {
 	}
 	log.Info().Msgf("Initial MeshConfig %s: %s", osmMeshConfigName, meshConfig)
 
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	policyClient := policyV1alpha1Client.NewForConfigOrDie(kubeConfig)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
@@ -190,22 +190,10 @@ func main() {
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
-	}
-
-	policyController, err := policy.NewPolicyController(kubeConfig, kubernetesClient, stop)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
-	}
-
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
 		meshSpec,
 		certManager,
-		ingressClient,
-		policyController,
 		stop,
 		cfg,
 		endpointsProviders...)

@@ -9,10 +9,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -27,17 +25,14 @@ type MeshCatalog struct {
 	endpointsProviders []endpoint.Provider
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
-	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local
 	// lookups
+	// TODO(steeling): This should be removed from the mesh catalog, and all instances should be migrated to various
+	// providers.
 	kubeController k8s.Controller
-
-	// policyController implements the functionality related to the resources part of the policy.openrservicemesh.io
-	// API group, such as egress.
-	policyController policy.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
