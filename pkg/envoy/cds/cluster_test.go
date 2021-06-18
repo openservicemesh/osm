@@ -53,8 +53,11 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
-			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator)
+			opts := []clusterOption{withTLS}
+			if tc.permissiveMode {
+				opts = append(opts, permissive)
+			}
+			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator, opts...)
 			assert.Nil(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)

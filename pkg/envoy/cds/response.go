@@ -15,17 +15,6 @@ import (
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	if proxy.Kind() == envoy.KindGateway {
-		// TODO: Configure gateway
-		return nil, nil
-	}
-
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
-		return nil, err
-	}
-
 	var clusters []*xds_cluster.Cluster
 
 	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
@@ -34,15 +23,40 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
+	if proxy.Kind() == envoy.KindGateway {
+		// Build remote clusters based on allowed outbound services
+		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
+			cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
+					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
+				return nil, err
+			}
+
+			clusters = append(clusters, cluster)
+		}
+		return removeDups(clusters), nil
+	}
+
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
-		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+		opts := []clusterOption{withTLS}
+		if cfg.IsPermissiveTrafficPolicyMode() {
+			opts = append(opts, permissive)
+		}
+		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg, opts...)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
 			return nil, err
 		}
 
 		clusters = append(clusters, cluster)
+	}
+
+	svcList, err := proxyRegistry.ListProxyServices(proxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
+		return nil, err
 	}
 
 	// Create a local cluster for each service behind the proxy.
@@ -89,16 +103,20 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		clusters = append(clusters, getTracingCluster(cfg))
 	}
 
+	return removeDups(clusters), nil
+}
+
+func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
 	alreadyAdded := mapset.NewSet()
 	var cdsResources []types.Resource
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy %s", cluster.Name, proxy.String())
+			log.Error().Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy.", cluster.Name)
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)
 		cdsResources = append(cdsResources, cluster)
 	}
 
-	return cdsResources, nil
+	return cdsResources
 }
