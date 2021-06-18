@@ -4,6 +4,8 @@ package service
 import (
 	"fmt"
 	"strings"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 const (
@@ -69,4 +71,32 @@ func (c ClusterName) String() string {
 type WeightedCluster struct {
 	ClusterName ClusterName `json:"cluster_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
+}
+
+// Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
+type Provider interface {
+	// GetServicesForServiceAccount returns a list of services corresponding to a service account
+	GetServicesForServiceAccount(identity.ServiceIdentity) ([]MeshService, error)
+
+	// ListServices returns a list of services that are part of monitored namespaces
+	ListServices() ([]MeshService, error)
+
+	// ListServiceIdentitiesForService returns service identities for given service
+	ListServiceIdentitiesForService(MeshService) ([]identity.ServiceIdentity, error)
+
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
+	// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
+	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+	GetPortToProtocolMappingForService(MeshService) (map[uint32]string, error)
+
+	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
+	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
+	// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
+	GetTargetPortToProtocolMappingForService(MeshService) (map[uint32]string, error)
+
+	// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
+	GetHostnamesForService(MeshService, Locality) ([]string, error)
+
+	// GetID returns the unique identifier of the ServiceProvider.
+	GetID() string
 }
