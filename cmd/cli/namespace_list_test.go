@@ -68,7 +68,7 @@ func TestNamespaceList(t *testing.T) {
 						Name: "ns",
 						Labels: map[string]string{
 							constants.OSMKubeResourceMonitorAnnotation: "my-mesh",
-							ignoreLabel: "any value",
+							constants.IgnoreLabel:                      "any value",
 						},
 						Annotations: map[string]string{
 							constants.SidecarInjectionAnnotation: "enabled",

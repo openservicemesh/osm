@@ -84,7 +84,7 @@ func (l *namespaceListCmd) run() error {
 		if !ok {
 			sidecarInjectionEnabled = "-" // not set
 		}
-		if _, ignored := ns.Labels[ignoreLabel]; ignored {
+		if _, ignored := ns.Labels[constants.IgnoreLabel]; ignored {
 			sidecarInjectionEnabled = "disabled (ignored)"
 		}
 

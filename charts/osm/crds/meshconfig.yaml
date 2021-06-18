@@ -108,6 +108,13 @@ spec:
                         type: integer
                         minimum: 1
                         maximum: 65535
+                    inboundPortExclusionList:
+                      description: Global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
                     useHTTPSIngress:
                       description: Enable HTTPS ingress on the mesh
                       type: boolean

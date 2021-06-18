@@ -97,6 +97,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
 | OpenServiceMesh.image.tag | string | `"v0.9.0"` | Container image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
+| OpenServiceMesh.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | OpenServiceMesh.injector.podLabels | object | `{}` |  |
 | OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
