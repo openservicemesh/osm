@@ -54,7 +54,7 @@ var _ = Describe("Test catalog functions", func() {
 
 })
 
-func TestListAllowedEndpointsForService(t *testing.T) {
+func TestListEndpointsForServiceIdentity(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -197,7 +197,7 @@ func TestListAllowedEndpointsForService(t *testing.T) {
 				}
 			}
 
-			actual, err := mc.ListAllowedEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
+			actual, err := mc.ListEndpointsForServiceIdentity(tc.proxyIdentity, tc.upstreamSvc)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})
