@@ -16,12 +16,7 @@ require (
 	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6 // indirect
-	github.com/golangci/goconst v0.0.0-20180610141641-041c5f2b40f3 // indirect
-	github.com/golangci/gocyclo v0.0.0-20180528144436-0a533e8fa43d // indirect
 	github.com/golangci/golangci-lint v1.41.0
-	github.com/golangci/ineffassign v0.0.0-20190609212857-42439a7714cc // indirect
-	github.com/golangci/prealloc v0.0.0-20180630174525-215b22d4de21 // indirect
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.8.0
@@ -44,18 +39,14 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/rs/zerolog v1.18.0
 	github.com/servicemeshinterface/smi-sdk-go v0.5.0
-	github.com/shirou/gopsutil v0.0.0-20190901111213-e4ec7b275ada // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/tomarrell/wrapcheck v0.0.0-20200807122107-df9e8bcb914d // indirect
-	github.com/tommy-muehle/go-mnd v1.3.1-0.20200224220436-e6f9a994e8fa // indirect
 	gomodules.xyz/jsonpatch/v2 v2.0.1
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	helm.sh/helm/v3 v3.5.3
 	k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver v0.20.2
