@@ -10,11 +10,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -187,8 +188,9 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceUpdate(svc *v1.Service) {
 	}
 
 	updatedSvc := service.MeshService{
-		Name:      svc.Name,
-		Namespace: svc.Namespace,
+		Name:          svc.Name,
+		Namespace:     svc.Namespace,
+		ClusterDomain: constants.ClusterDomain,
 	}
 	if k.cnsForService[updatedSvc] == nil {
 		k.cnsForService[updatedSvc] = make(map[certificate.CommonName]struct{})
@@ -222,8 +224,9 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceDelete(svc *v1.Service) {
 	}
 
 	deleted := service.MeshService{
-		Name:      svc.Name,
-		Namespace: svc.Namespace,
+		Name:          svc.Name,
+		Namespace:     svc.Namespace,
+		ClusterDomain: constants.ClusterDomain,
 	}
 	for cn := range k.cnsForService[deleted] {
 		var rem []service.MeshService
@@ -248,8 +251,9 @@ func (k *AsyncKubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]servi
 func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
+			Namespace:     svc.Namespace,
+			Name:          svc.Name,
+			ClusterDomain: constants.ClusterDomain,
 		})
 	}
 	return meshServices

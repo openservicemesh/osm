@@ -201,7 +201,7 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 		CertType: secrets.ServiceCertType,
 	}
 	upstreamPeerValidationSDSCert := secrets.SDSCert{
-		Name:     upstreamSvc.String(),
+		Name:     upstreamSvc.NameWithoutCluster(),
 		CertType: secrets.RootCertTypeForMTLSOutbound,
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)
@@ -292,7 +292,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 // GetLocalClusterNameForService returns the name of the local cluster for the given service.
 // The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 func GetLocalClusterNameForService(proxyService service.MeshService) string {
-	return GetLocalClusterNameForServiceCluster(proxyService.String())
+	return GetLocalClusterNameForServiceCluster(proxyService.NameWithoutCluster())
 }
 
 // GetLocalClusterNameForServiceCluster returns the name of the local cluster for the given service cluster.

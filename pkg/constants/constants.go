@@ -208,3 +208,9 @@ const (
 	// byte in a TCP connection.
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
+
+// Multicluster constants
+const (
+	// Multicluster domain related constants
+	ClusterDomain = "local"
+)

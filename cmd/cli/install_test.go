@@ -620,6 +620,7 @@ func TestResolveValues(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
 			actual, err := test.installCmd.resolveValues()
+
 			if err != nil && test.expectedErr != nil {
 				assert.Equal(err.Error(), test.expectedErr.Error())
 			} else {

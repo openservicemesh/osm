@@ -44,7 +44,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Ingress rule with multiple rules and no default backend",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -115,7 +119,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -137,7 +141,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -150,7 +154,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with multiple rules and a default backend",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -224,7 +232,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -246,7 +254,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -268,7 +276,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -281,7 +289,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Multiple ingresses matching different hosts",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -365,7 +377,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -387,7 +399,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -400,7 +412,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Multiple ingresses matching same hosts with different rules",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -484,7 +500,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -498,7 +514,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -511,7 +527,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with unset pathType must default to ImplementationSpecific",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -582,7 +602,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -604,7 +624,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -617,7 +637,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with invalid pathType must be ignored",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -689,7 +713,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -702,7 +726,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Wildcard path / with Prefix type should be matched as a string prefix",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -753,7 +781,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -766,7 +794,11 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		},
 		{
 			name: "Prefix path type with trailing slash should be stripped",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -817,7 +849,7 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -863,7 +895,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Ingress rule with multiple rules and no default backend",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -936,7 +972,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -958,7 +994,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -971,7 +1007,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with multiple rules and a default backend",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1048,7 +1088,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1070,7 +1110,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1092,7 +1132,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1105,7 +1145,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Multiple ingresses matching different hosts",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1191,7 +1235,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1213,7 +1257,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1226,7 +1270,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Multiple ingresses matching same hosts with different rules",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1312,7 +1360,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1326,7 +1374,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1339,7 +1387,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with unset pathType must default to ImplementationSpecific",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1412,7 +1464,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1434,7 +1486,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1447,7 +1499,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Ingress rule with invalid pathType must be ignored",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1521,7 +1577,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1534,7 +1590,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Wildcard path / with Prefix type should be matched as a string prefix",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1586,7 +1646,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1599,7 +1659,11 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		},
 		{
 			name: "Prefix path type with trailing slash should be stripped",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingresses: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1651,7 +1715,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1669,7 +1733,6 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingresses, nil).Times(1)
 
 			actualPolicies, err := meshCatalog.getIngressPoliciesNetworkingV1(tc.svc)
-
 			assert.Equal(tc.excpectError, err != nil)
 			assert.ElementsMatch(tc.expectedTrafficPolicies, actualPolicies)
 		})
@@ -1698,7 +1761,11 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Ingress v1 with multiple rules",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingressesV1: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1771,7 +1838,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1793,7 +1860,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1806,7 +1873,11 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 		},
 		{
 			name: "Ingress v1beta1 with with multiple rules",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingressesV1beta1: []*networkingV1beta1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1877,7 +1948,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1899,7 +1970,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -1912,7 +1983,11 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 		},
 		{
 			name: "Ingress v1 and v1beta both present",
-			svc:  service.MeshService{Name: "foo", Namespace: "testns"},
+			svc: service.MeshService{
+				Name:          "foo",
+				Namespace:     "testns",
+				ClusterDomain: constants.ClusterDomain,
+			},
 			ingressesV1: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1999,7 +2074,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},
@@ -2021,7 +2096,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 									Methods:       []string{constants.WildcardHTTPMethod},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "testns/foo",
+									ClusterName: "testns/foo/local",
 									Weight:      100,
 								}),
 							},

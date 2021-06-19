@@ -3,6 +3,7 @@ package secrets
 import (
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -30,7 +31,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 		return nil, errInvalidCertFormat
 	}
 
-	// Make sure the slices are not empty. Split might actually leave empty slices.
+	// Make sure the slices are not empty. Split might actually leave empervices.y slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
 			return nil, errInvalidCertFormat
@@ -51,6 +52,8 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 // GetMeshService unmarshals a NamespaceService type from a SDSCert name
 func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	slices := strings.Split(sdsc.Name, namespaceNameSeparator)
+	log.Error().Msgf("Bruno Error converting Service Account %s from string to K8sServiceAccount", sdsc.Name)
+
 	if len(slices) != 2 {
 		return nil, errInvalidMeshServiceFormat
 	}
@@ -61,8 +64,9 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	}
 
 	return &service.MeshService{
-		Namespace: slices[0],
-		Name:      slices[1],
+		Namespace:     slices[0],
+		Name:          slices[1],
+		ClusterDomain: constants.ClusterDomain,
 	}, nil
 }
 
