@@ -204,7 +204,7 @@ func toInt(val uint32) *wrappers.UInt32Value {
 
 func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedCluster_ClusterWeight {
 	return &xds_route.WeightedCluster_ClusterWeight{
-		Name:   fmt.Sprintf("default/%s", serviceName),
+		Name:   fmt.Sprintf("default/%s/local", serviceName),
 		Weight: toInt(weight),
 	}
 }

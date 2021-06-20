@@ -5,6 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/openservicemesh/osm/pkg/constants"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,12 +27,13 @@ var _ = Describe("Test pkg/service functions", func() {
 		namespace := uuid.New().String()
 		name := uuid.New().String()
 		ms := MeshService{
-			Namespace: namespace,
-			Name:      name,
+			Namespace:     namespace,
+			Name:          name,
+			ClusterDomain: constants.LocalDomain,
 		}
 
 		It("implements stringer correctly", func() {
-			Expect(ms.String()).To(Equal(fmt.Sprintf("%s/%s", namespace, name)))
+			Expect(ms.String()).To(Equal(fmt.Sprintf("%s/%s/%s", namespace, name, constants.LocalDomain)))
 		})
 	})
 

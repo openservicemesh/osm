@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
@@ -83,7 +84,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 		{
 			name:          "multiple traffic split matches",
 			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit, &testSplit2},
-			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default"}},
+			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default", ClusterDomain: constants.LocalDomain}},
 		},
 		{
 			name:          "no traffic splits present, so no backeds returned",
@@ -230,7 +231,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		expectedError       error
 	}{
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1"},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -238,7 +239,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1"},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -246,7 +247,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1"},
+			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
 			nil,
 			errors.New("test error"),
 		},
@@ -343,7 +344,11 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 		},
 	}
 
-	testSvc := service.MeshService{Name: "foo", Namespace: "bar"}
+	testSvc := service.MeshService{
+		Name:          "foo",
+		Namespace:     "bar",
+		ClusterDomain: constants.LocalDomain,
+	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
@@ -372,8 +377,9 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	svc := service.MeshService{
-		Namespace: "foo",
-		Name:      "bar",
+		Namespace:     "foo",
+		Name:          "bar",
+		ClusterDomain: constants.LocalDomain,
 	}
 	appProtocolTCP := "tcp"
 	appProtocolHTTP := "http"
@@ -602,7 +608,7 @@ func TestGetDefaultWeightedClusterForService(t *testing.T) {
 
 	actual := getDefaultWeightedClusterForService(tests.BookstoreV1Service)
 	expected := service.WeightedCluster{
-		ClusterName: "default/bookstore-v1",
+		ClusterName: "default/bookstore-v1/local",
 		Weight:      100,
 	}
 	assert.Equal(actual, expected)

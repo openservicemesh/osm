@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -119,8 +120,9 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 
 		for _, svc := range k8sServices {
 			services.Add(service.MeshService{
-				Namespace: pod.Namespace,
-				Name:      svc.Name,
+				Namespace:     pod.Namespace,
+				Name:          svc.Name,
+				ClusterDomain: constants.LocalDomain,
 			})
 		}
 	}

@@ -106,32 +106,37 @@ const (
 var (
 	// BookstoreV1Service is the bookstore service.
 	BookstoreV1Service = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreV1ServiceName,
+		Namespace:     Namespace,
+		Name:          BookstoreV1ServiceName,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	// BookstoreV2Service is the bookstore service.
 	BookstoreV2Service = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreV2ServiceName,
+		Namespace:     Namespace,
+		Name:          BookstoreV2ServiceName,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	// BookbuyerService is the bookbuyer service.
 	BookbuyerService = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookbuyerServiceName,
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceName,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	// BookstoreApexService is the bookstore-apex service
 	BookstoreApexService = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreApexServiceName,
+		Namespace:     Namespace,
+		Name:          BookstoreApexServiceName,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	// BookwarehouseService is the bookwarehouse service.
 	BookwarehouseService = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookwarehouseServiceName,
+		Namespace:     Namespace,
+		Name:          BookwarehouseServiceName,
+		ClusterDomain: constants.LocalDomain,
 	}
 
 	// BookstoreV1Hostnames are the hostnames for bookstore-v1 service
@@ -424,25 +429,25 @@ var (
 
 	// BookstoreV1DefaultWeightedCluster is a weighted cluster for bookstore-v1
 	BookstoreV1DefaultWeightedCluster = service.WeightedCluster{
-		ClusterName: "default/bookstore-v1",
+		ClusterName: "default/bookstore-v1/local",
 		Weight:      100,
 	}
 
 	// BookstoreV2DefaultWeightedCluster is a weighted cluster for bookstore-v2
 	BookstoreV2DefaultWeightedCluster = service.WeightedCluster{
-		ClusterName: "default/bookstore-v2",
+		ClusterName: "default/bookstore-v2/local",
 		Weight:      100,
 	}
 
 	// BookstoreApexDefaultWeightedCluster is a weighted cluster for bookstore-apex
 	BookstoreApexDefaultWeightedCluster = service.WeightedCluster{
-		ClusterName: "default/bookstore-apex",
+		ClusterName: "default/bookstore-apex/local",
 		Weight:      100,
 	}
 
 	// BookbuyerDefaultWeightedCluster is a weighted cluster for bookbuyer
 	BookbuyerDefaultWeightedCluster = service.WeightedCluster{
-		ClusterName: "default/bookbuyer",
+		ClusterName: "default/bookbuyer/local",
 		Weight:      100,
 	}
 
@@ -509,8 +514,9 @@ func NewServiceAccountFixture(svcAccountName, namespace string) *corev1.ServiceA
 // NewMeshServiceFixture creates a new mesh service
 func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 	return service.MeshService{
-		Name:      serviceName,
-		Namespace: namespace,
+		Name:          serviceName,
+		Namespace:     namespace,
+		ClusterDomain: constants.LocalDomain,
 	}
 }
 

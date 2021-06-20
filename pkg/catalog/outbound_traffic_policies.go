@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -62,8 +63,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
-			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
-			Namespace: split.Namespace,
+			Name:          kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Namespace:     split.Namespace,
+			ClusterDomain: constants.LocalDomain,
 		}
 
 		locality := service.LocalCluster
@@ -79,7 +81,11 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 
 		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
-			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
+			ms := service.MeshService{
+				Name:          backend.Service,
+				Namespace:     split.ObjectMeta.Namespace,
+				ClusterDomain: constants.LocalDomain,
+			}
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
 				Weight:      backend.Weight,
@@ -282,7 +288,8 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 				continue
 			}
 			backendCluster := service.WeightedCluster{
-				ClusterName: service.ClusterName(split.Namespace + "/" + backend.Service),
+				// TODO(steeling) splits only work in the local cluster as of now.
+				ClusterName: service.ClusterName(split.Namespace + "/" + backend.Service + "/" + constants.LocalDomain.String()),
 				Weight:      backend.Weight,
 			}
 			weightedClusters = append(weightedClusters, backendCluster)
@@ -327,8 +334,9 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 				if backend.Service == upstreamSvc.Name {
 					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
 					rootMeshService := service.MeshService{
-						Namespace: split.Namespace,
-						Name:      rootServiceName,
+						Namespace:     split.Namespace,
+						Name:          rootServiceName,
+						ClusterDomain: constants.LocalDomain,
 					}
 
 					// Add this root service into the set
