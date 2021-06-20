@@ -211,3 +211,16 @@ const (
 	// byte in a TCP connection.
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
+
+// ClusterDomain is a type for a multicluster
+type ClusterDomain string
+
+// Multicluster constants
+const (
+	LocalDomain  ClusterDomain = "local"
+	GlobalDomain ClusterDomain = "global"
+)
+
+func (c ClusterDomain) String() string {
+	return string(c)
+}

@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -32,14 +33,23 @@ func (c *Client) GetID() string {
 	return c.providerIdent
 }
 
+/* Placeholder methods
+func GetMultiClusterService(name, namespace string) []*v1alpha1.MultiClusterService {
+
+	return nil
+}
+func ListMultiClusterServices() []*v1alpha1.MultiClusterService {
+	return nil
+}
+*/
+
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
-	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
-		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
+		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, mcsvc)
 		return endpoints
 	}
 
@@ -48,10 +58,53 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		return endpoints
 	}
 
-	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
-		for _, address := range kubernetesEndpoint.Addresses {
-			for _, port := range kubernetesEndpoint.Ports {
-				ip := net.ParseIP(address.IP)
+	// 3 scenarios for getting endpoints: (1) multicluster (2) local (3) global
+
+	// (1) multicluster
+	if !svc.Local() && !svc.Global() {
+		// Using svc name and namespace, get multiclusterservice object
+		// TODO: What is method to get multicluster service?
+		mcsvc := FakeGetMultiClusterService(svc.Name, svc.Namespace)
+		// Loop through endpoints
+		for _, cluster := range mcsvc.Spec.Cluster {
+			// Unclear why to return only 1 because not local or global
+			// Can't a multi-cluster service exist in 2 clusters?
+			if svc.ClusterDomain == cluster.Name {
+				// cluster.Address is remote IP address of gateway
+
+				// TODO: I need to figure out how to create a proper endpoints
+				//       cluster.Address is just a string with IP and Port
+				ip := net.ParseIP(cluster.Address.IP)
+				if ip == nil {
+					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+					break
+				}
+				ept := endpoint.Endpoint{
+					IP:   ip,
+					Port: endpoint.Port(port.Port),
+				}
+				endpoints = append(endpoints, ept)
+				return endpoints
+			}
+		}
+		return nil
+
+	}
+
+	// (2) global
+	if !svc.Local() && svc.Global() {
+		// Using svc name and namespace, get multiclusterservice object
+		// TODO: What is method to get multicluster service?
+		mcsvc := FakeGetMultiClusterService(svc.Name, svc.Namespace)
+		// Loop through endpoints
+		for _, cluster := range mcsvc.Spec.Cluster {
+			// Unclear why to return only 1 because not local or global
+			// Can't a multi-cluster service exist in 2 clusters?
+			if svc.ClusterDomain == cluster.Name {
+
+				// TODO: I need to figure out how to create a proper endpoints
+				//       cluster.Address is just a string with IP and Port
+				ip := net.ParseIP(cluster.Address.IP)
 				if ip == nil {
 					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
 					break
@@ -63,8 +116,41 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 				endpoints = append(endpoints, ept)
 			}
 		}
+		return endpoints
 	}
-	return endpoints
+	// (3) local
+	if svc.Local() && !svc.Global() {
+
+		kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
+		if err != nil || kubernetesEndpoints == nil {
+			log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
+			return endpoints
+		}
+
+		if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+			// Doesn't belong to namespaces we are observing
+			return endpoints
+		}
+
+		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
+			for _, address := range kubernetesEndpoint.Addresses {
+				for _, port := range kubernetesEndpoint.Ports {
+					ip := net.ParseIP(address.IP)
+					if ip == nil {
+						log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+						break
+					}
+					ept := endpoint.Endpoint{
+						IP:   ip,
+						Port: endpoint.Port(port.Port),
+					}
+					endpoints = append(endpoints, ept)
+				}
+			}
+		}
+		return endpoints
+	}
+	return nil
 }
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
@@ -119,8 +205,9 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 
 		for _, svc := range k8sServices {
 			services.Add(service.MeshService{
-				Namespace: pod.Namespace,
-				Name:      svc.Name,
+				Namespace:     pod.Namespace,
+				Name:          svc.Name,
+				ClusterDomain: constants.LocalDomain,
 			})
 		}
 	}
@@ -141,6 +228,14 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+
+	// Add this code every exported function that takes in a MeshService object
+	if !svc.Local() && !svc.Global() {
+		// Get the multicluster service object based on service name
+		mcsvc := GetMultiClusterService(svc.Name, svc.Namespace)
+		// I have the mcsvc object. Now I want to use it to get services and endpoints
+
+	}
 	portToProtocolMap := make(map[uint32]string)
 
 	endpoints, err := c.kubeController.GetEndpoints(svc)
@@ -204,9 +299,17 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 // GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
 // FQDN is resolved
 func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+
 	var endpoints []endpoint.Endpoint
 	var err error
 
+	// Add this code every exported function that takes in a MeshService object
+	if !svc.Local() && !svc.Global() {
+		// Get the multicluster service object based on service name
+		mcsvc := GetMultiClusterService(svc.Name, svc.Namespace)
+		// I have the mcsvc object. Now I want to use it to get services and endpoints
+
+	}
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
@@ -238,6 +341,9 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 
 // ListServices returns a list of services that are part of monitored namespaces
 func (c *Client) ListServices() ([]service.MeshService, error) {
+	// Add this code every exported function that takes in a MeshService object
+	// FIX: This is an array
+	// TODO: Iterate overall the MCSVCs and extract services from each one
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
 		services = append(services, utils.K8sSvcToMeshSvc(svc))
@@ -247,6 +353,13 @@ func (c *Client) ListServices() ([]service.MeshService, error) {
 
 // ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
 func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
+	// Add this code every exported function that takes in a MeshService object
+	if !svc.Local() && !svc.Global() {
+		// Get the multicluster service object based on service name
+		mcsvc := GetMultiClusterService(svc.Name, svc.Namespace)
+		// I have the mcsvc object. Now I want to use it to get services and endpoints
+
+	}
 	serviceAccounts, err := c.kubeController.ListServiceIdentitiesForService(svc)
 	if err != nil {
 		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
@@ -266,6 +379,13 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
 func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	// Add this code every exported function that takes in a MeshService object
+	if !svc.Local() && !svc.Global() {
+		// Get the multicluster service object based on service name
+		mcsvc := GetMultiClusterService(svc.Name, svc.Namespace)
+		// I have the mcsvc object. Now I want to use it to get services and endpoints
+
+	}
 	portToProtocolMap := make(map[uint32]string)
 
 	k8sSvc := c.kubeController.GetService(svc)

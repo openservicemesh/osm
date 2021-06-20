@@ -122,7 +122,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1-local",
+									ClusterName: "default/bookstore-v1/local-local",
 									Weight:      100,
 								}),
 							},
@@ -135,7 +135,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1-local",
+									ClusterName: "default/bookstore-v1/local-local",
 									Weight:      100,
 								}),
 							},
@@ -165,7 +165,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1-local",
+									ClusterName: "default/bookstore-v1/local-local",
 									Weight:      100,
 								}),
 							},
@@ -178,7 +178,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1-local",
+									ClusterName: "default/bookstore-v1/local-local",
 									Weight:      100,
 								}),
 							},

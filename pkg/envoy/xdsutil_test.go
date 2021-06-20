@@ -23,7 +23,7 @@ func TestGetLocalClusterNameForService(t *testing.T) {
 	assert := tassert.New(t)
 
 	actual := GetLocalClusterNameForService(tests.BookbuyerService)
-	assert.Equal(actual, "default/bookbuyer-local")
+	assert.Equal(actual, "default/bookbuyer/local-local")
 }
 
 func TestGetAccessLog(t *testing.T) {

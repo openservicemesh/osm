@@ -71,7 +71,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(serviceAccount.ToServiceIdentity())
 	for _, upstream := range upstreamServices {
 		upstreamRootCertResource := secrets.SDSCert{
-			Name:     upstream.String(),
+			Name:     upstream.NameWithoutCluster(),
 			CertType: secrets.RootCertTypeForMTLSOutbound,
 		}.String()
 		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)
