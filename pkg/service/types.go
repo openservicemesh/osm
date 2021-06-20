@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -38,10 +39,16 @@ type MeshService struct {
 	// The name of the service
 	Name string
 
-	ClusterDomain string
+	// The ClusterDomain of the service
+	ClusterDomain constants.ClusterDomain
 }
 
 func (ms MeshService) String() string {
+	return fmt.Sprintf("%s%s%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name, namespaceNameSeparator, ms.ClusterDomain)
+}
+
+// NameWithoutCluster returns a string with out the ClusterDomain
+func (ms MeshService) NameWithoutCluster() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
@@ -50,7 +57,7 @@ func (ms MeshService) FQDN() string {
 	if ms.ClusterDomain == "" {
 		ms.ClusterDomain = localCluster
 	}
-	return strings.Join([]string{ms.Name, ms.Namespace, ms.ClusterDomain}, ".")
+	return strings.Join([]string{ms.Name, ms.Namespace, string(ms.ClusterDomain)}, ".")
 }
 
 // Local returns whether or not this is service is in the local cluster.

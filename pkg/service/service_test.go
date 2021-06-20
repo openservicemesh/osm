@@ -4,14 +4,17 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func TestServerName(t *testing.T) {
 	assert := tassert.New(t)
 
 	namespacedService := MeshService{
-		Namespace: "namespace-here",
-		Name:      "service-name-here",
+		Namespace:     "namespace-here",
+		Name:          "service-name-here",
+		ClusterDomain: constants.LocalDomain,
 	}
 	actual := namespacedService.ServerName()
 	assert.Equal("service-name-here.namespace-here.svc.cluster.local", actual)
@@ -29,24 +32,28 @@ func TestEquals(t *testing.T) {
 		{
 			name: "services are equal",
 			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace:     "default",
+				Name:          "bookbuyer",
+				ClusterDomain: constants.LocalDomain,
 			},
 			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace:     "default",
+				Name:          "bookbuyer",
+				ClusterDomain: constants.LocalDomain,
 			},
 			isEqual: true,
 		},
 		{
 			name: "services are NOT equal",
 			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace:     "default",
+				Name:          "bookbuyer",
+				ClusterDomain: constants.LocalDomain,
 			},
 			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookstore",
+				Namespace:     "default",
+				Name:          "bookstore",
+				ClusterDomain: constants.LocalDomain,
 			},
 			isEqual: false,
 		},
@@ -71,18 +78,20 @@ func TestString(t *testing.T) {
 		{
 			name: "service in default namespace",
 			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace:     "default",
+				Name:          "bookbuyer",
+				ClusterDomain: constants.LocalDomain,
 			},
-			serviceString: "default/bookbuyer",
+			serviceString: "default/bookbuyer/local",
 		},
 		{
 			name: "service in custom namespace",
 			service: MeshService{
-				Namespace: "bookbuyer-ns",
-				Name:      "bookbuyer",
+				Namespace:     "bookbuyer-ns",
+				Name:          "bookbuyer",
+				ClusterDomain: constants.LocalDomain,
 			},
-			serviceString: "bookbuyer-ns/bookbuyer",
+			serviceString: "bookbuyer-ns/bookbuyer/local",
 		},
 	}
 
