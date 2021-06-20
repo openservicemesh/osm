@@ -274,7 +274,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 	assert := tassert.New(t)
 
 	testWeightedCluster := service.WeightedCluster{
-		ClusterName: "testCluster",
+		ClusterName: "default/testCluster/local",
 		Weight:      100,
 	}
 
@@ -307,7 +307,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 				assert.Equal("GET", actual[0].GetMatch().GetHeaders()[0].GetSafeRegexMatch().Regex)
 				assert.Equal(1, len(actual[0].GetRoute().GetWeightedClusters().Clusters))
 				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().TotalWeight.GetValue())
-				assert.Equal("testCluster-local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
+				assert.Equal("default/testCluster/local-local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
 				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
 				assert.NotNil(actual[0].TypedPerFilterConfig)
 			},
@@ -393,8 +393,8 @@ func TestBuildRoute(t *testing.T) {
 			totalWeight:   100,
 			direction:     outboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2/local"), Weight: 70},
 			}),
 
 			expectedRoute: &xds_route.Route{
@@ -441,11 +441,11 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1",
+										Name:   "osm/bookstore-1/local",
 										Weight: &wrappers.UInt32Value{Value: 30},
 									},
 									{
-										Name:   "osm/bookstore-2",
+										Name:   "osm/bookstore-2/local",
 										Weight: &wrappers.UInt32Value{Value: 70},
 									},
 								},
@@ -465,7 +465,7 @@ func TestBuildRoute(t *testing.T) {
 			totalWeight:   100,
 			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
 			}),
 
 			expectedRoute: &xds_route.Route{
@@ -512,7 +512,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1-local",
+										Name:   "osm/bookstore-1/local-local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -532,7 +532,7 @@ func TestBuildRoute(t *testing.T) {
 			totalWeight:   100,
 			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
 			}),
 
 			expectedRoute: &xds_route.Route{
@@ -558,7 +558,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1-local",
+										Name:   "osm/bookstore-1/local-local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -578,7 +578,7 @@ func TestBuildRoute(t *testing.T) {
 			totalWeight:   100,
 			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
 			}),
 
 			expectedRoute: &xds_route.Route{
@@ -604,7 +604,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1-local",
+										Name:   "osm/bookstore-1/local-local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -635,8 +635,8 @@ func TestBuildWeightedCluster(t *testing.T) {
 	assert := tassert.New(t)
 
 	weightedClusters := mapset.NewSetFromSlice([]interface{}{
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
+		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 30},
+		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2/local"), Weight: 70},
 	})
 
 	testCases := []struct {
