@@ -928,11 +928,13 @@ func TestBuildOutboundPolicies(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:   []service.Provider{mockServiceProvider},
 			}
 
 			destK8sService := tests.NewServiceFixture(tc.destMeshService.Name, tc.destMeshService.Namespace, map[string]string{})
@@ -1074,10 +1076,12 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+	mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 	mc := MeshCatalog{
 		kubeController:     mockKubeController,
 		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+		serviceProviders:   []service.Provider{mockServiceProvider},
 	}
 
 	destSA := identity.K8sServiceAccount{
