@@ -150,8 +150,8 @@ type CertificateSpec struct {
 
 // ExperimentalSpec represents experimental configurations.
 type ExperimentalSpec struct {
-	// ClusterId references _this_ cluster's name/ID. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
-	ClusterId string `json:"clusterId,omitempty"`
+	// ClusterID references _this_ cluster's name/ID. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
+	ClusterID string `json:"clusterID,omitempty"`
 }
 
 // MeshConfigList lists the MeshConfig objects.
