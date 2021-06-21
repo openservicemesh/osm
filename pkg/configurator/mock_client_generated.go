@@ -37,18 +37,18 @@ func (m *MockConfigurator) EXPECT() *MockConfiguratorMockRecorder {
 	return m.recorder
 }
 
-// GetClusterId mocks base method
-func (m *MockConfigurator) GetClusterId() string {
+// GetClusterID mocks base method
+func (m *MockConfigurator) GetClusterID() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClusterId")
+	ret := m.ctrl.Call(m, "GetClusterID")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// GetClusterId indicates an expected call of GetClusterId
-func (mr *MockConfiguratorMockRecorder) GetClusterId() *gomock.Call {
+// GetClusterID indicates an expected call of GetClusterID
+func (mr *MockConfiguratorMockRecorder) GetClusterID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterId", reflect.TypeOf((*MockConfigurator)(nil).GetClusterId))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterID", reflect.TypeOf((*MockConfigurator)(nil).GetClusterID))
 }
 
 // GetConfigResyncInterval mocks base method

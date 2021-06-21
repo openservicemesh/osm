@@ -191,7 +191,7 @@ spec:
                   description: Experimental configurations
                   type: object
                   properties:
-                    clusterId:
+                    clusterID:
                       description: ID for this cluster; will be used by other clusters to reference it in a multi-cluster scenario.
                       type: string
                       default: "clusterID"
