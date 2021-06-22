@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -41,9 +42,6 @@ type Configurator interface {
 
 	// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
 	IsDebugServerEnabled() bool
-
-	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
-	IsPrometheusScrapingEnabled() bool
 
 	// IsTracingEnabled returns whether tracing is enabled
 	IsTracingEnabled() bool
@@ -96,4 +94,7 @@ type Configurator interface {
 
 	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
 	GetInboundExternalAuthConfig() auth.ExtAuthConfig
+
+	// GetFeatureFlags returns OSM's feature flags
+	GetFeatureFlags() v1alpha1.FeatureFlags
 }

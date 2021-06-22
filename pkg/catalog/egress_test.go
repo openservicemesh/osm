@@ -13,26 +13,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
 
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func init() {
-	optionalFeatures := featureflags.OptionalFeatures{
-		EgressPolicy: true,
-	}
-	featureflags.Initialize(optionalFeatures)
-}
-
 func TestGetEgressTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
+	mockCfg := configurator.NewMockConfigurator(mockCtrl)
+
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
@@ -354,8 +350,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 			mc := &MeshCatalog{
 				meshSpec:         mockMeshSpec,
+				configurator:     mockCfg,
 				policyController: mockPolicyController,
 			}
+
+			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableEgressPolicy: true}).Times(1)
 
 			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)

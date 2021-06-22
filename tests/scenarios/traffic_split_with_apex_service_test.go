@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -55,6 +56,11 @@ var _ = Describe(``+
 
 			// ---[  Get the config from rds.NewResponse()  ]-------
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats:    false,
+				EnableEgressPolicy: false,
+			}).AnyTimes()
 
 			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 			It("did not return an error", func() {

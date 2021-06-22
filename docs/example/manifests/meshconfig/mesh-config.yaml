@@ -16,7 +16,6 @@ spec:
     enablePermissiveTrafficPolicyMode: true
   observability:
     enableDebugServer: true
-    prometheusScraping: true
     outboundPortExclusionList: []
     inboundPortExclusionList: []
     outboundIPRangeExclusionList: []

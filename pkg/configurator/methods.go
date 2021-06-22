@@ -60,11 +60,6 @@ func (c *Client) IsDebugServerEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.EnableDebugServer
 }
 
-// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
-func (c *Client) IsPrometheusScrapingEnabled() bool {
-	return c.getMeshConfig().Spec.Observability.PrometheusScraping
-}
-
 // IsTracingEnabled returns whether tracing is enabled
 func (c *Client) IsTracingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.Tracing.Enable
@@ -202,4 +197,9 @@ func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 	extAuthConfig.AuthzTimeout = duration
 
 	return extAuthConfig
+}
+
+// GetFeatureFlags returns OSM's feature flags
+func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
+	return c.getMeshConfig().Spec.FeatureFlags
 }

@@ -10,9 +10,9 @@ import (
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -64,7 +64,7 @@ const (
 )
 
 // BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy) []*xds_route.RouteConfiguration {
+func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) []*xds_route.RouteConfiguration {
 	var routeConfiguration []*xds_route.RouteConfiguration
 
 	// For both Inbound and Outbound routes, we will always generate the route resource stubs and send them even when empty,
@@ -77,7 +77,7 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 		inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
 	}
 
-	if featureflags.IsWASMStatsEnabled() {
+	if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
 		for k, v := range proxy.StatsHeaders() {
 			inboundRouteConfig.ResponseHeadersToAdd = append(inboundRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
 				Header: &core.HeaderValue{
@@ -102,7 +102,7 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 }
 
 // BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
-func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy) *xds_route.RouteConfiguration {
+func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) *xds_route.RouteConfiguration {
 	if len(ingress) == 0 {
 		return nil
 	}
@@ -114,7 +114,7 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, pr
 		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
 	}
 
-	if featureflags.IsWASMStatsEnabled() {
+	if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
 		for k, v := range proxy.StatsHeaders() {
 			ingressRouteConfig.ResponseHeadersToAdd = append(ingressRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
 				Header: &core.HeaderValue{

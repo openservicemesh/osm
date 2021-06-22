@@ -138,7 +138,6 @@
                 "enablePermissiveTrafficPolicy",
                 "enableEgress",
                 "deployPrometheus",
-                "enablePrometheusScraping",
                 "deployGrafana",
                 "enableFluentbit",
                 "fluentBit",
@@ -319,15 +318,6 @@
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
                     "examples": [
                         false
-                    ]
-                },
-                "enablePrometheusScraping": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheusScraping",
-                    "type": "boolean",
-                    "title": "The enablePrometheusScraping schema",
-                    "description": "Indicates whether Prometheus scraping should be enabled.",
-                    "examples": [
-                        true
                     ]
                 },
                 "deployGrafana": {

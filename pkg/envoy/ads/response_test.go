@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
@@ -124,11 +125,14 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+			EnableWASMStats:    false,
+			EnableEgressPolicy: false,
+		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager)
@@ -204,7 +208,6 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()

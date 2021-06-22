@@ -62,8 +62,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					UseHTTPSIngress:                   true,
 				},
 				Observability: v1alpha1.ObservabilitySpec{
-					EnableDebugServer:  true,
-					PrometheusScraping: true,
+					EnableDebugServer: true,
 					Tracing: v1alpha1.TracingSpec{
 						Enable: true,
 					},
@@ -88,8 +87,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 						UseHTTPSIngress:                   true,
 					},
 					Observability: v1alpha1.ObservabilitySpec{
-						EnableDebugServer:  true,
-						PrometheusScraping: true,
+						EnableDebugServer: true,
 						Tracing: v1alpha1.TracingSpec{
 							Enable: true,
 						},
@@ -161,25 +159,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsDebugServerEnabled())
-			},
-		},
-		{
-			name: "IsPrometheusScrapingEnabled",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: true,
-				},
-			},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.True(cfg.IsPrometheusScrapingEnabled())
-			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Observability: v1alpha1.ObservabilitySpec{
-					PrometheusScraping: false,
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.False(cfg.IsPrometheusScrapingEnabled())
 			},
 		},
 		{
@@ -438,6 +417,51 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(resource.MustParse("256M"), res.Requests[v1.ResourceMemory])
 				assert.Equal(resource.MustParse("2"), res.Limits[v1.ResourceCPU])
 				assert.Equal(resource.MustParse("512M"), res.Limits[v1.ResourceMemory])
+			},
+		},
+		{
+			name:                  "IsWASMStatsEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableWASMStats)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableWASMStats: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableWASMStats)
+			},
+		},
+		{
+			name:                  "IsEgressPolicyEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableEgressPolicy)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableEgressPolicy: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableEgressPolicy)
+			},
+		},
+		{
+			name:                  "IsMulticlusterModeEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableMulticlusterMode)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableMulticlusterMode: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableMulticlusterMode)
 			},
 		},
 	}

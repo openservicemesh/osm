@@ -79,6 +79,20 @@ func (mr *MockControllerMockRecorder) GetService(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0)
 }
 
+// IsMetricsEnabled mocks base method
+func (m *MockController) IsMetricsEnabled(arg0 *v1.Pod) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMetricsEnabled", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsMetricsEnabled indicates an expected call of IsMetricsEnabled
+func (mr *MockControllerMockRecorder) IsMetricsEnabled(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMetricsEnabled", reflect.TypeOf((*MockController)(nil).IsMetricsEnabled), arg0)
+}
+
 // IsMonitoredNamespace mocks base method
 func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 	m.ctrl.T.Helper()

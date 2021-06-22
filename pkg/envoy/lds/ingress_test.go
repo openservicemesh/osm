@@ -11,6 +11,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -108,6 +109,8 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 				Enable: false,
 			}).AnyTimes()
+			// Mock configurator call to determine if WASMStats are enabled
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableWASMStats: false}).AnyTimes()
 
 			filterChains := lb.getIngressFilterChains(proxyService)
 

@@ -100,4 +100,7 @@ type Controller interface {
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
+
+	// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
+	IsMetricsEnabled(*corev1.Pod) bool
 }
