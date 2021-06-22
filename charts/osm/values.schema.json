@@ -656,6 +656,15 @@
                         },
                         "autoScale": {
                             "$ref": "#/definitions/autoScale"
+                        },
+                        "webhookTimeoutSeconds": {
+                            "$id": "#/properties/OpenServiceMesh/properties/webhookTimeout",
+                            "type": "integer",
+                            "title": "Webhook Timeout Seconds",
+                            "description": "Timeout for the mutating webhook in seconds",
+                            "examples": [
+                                20
+                            ]
                         }
                     },
                     "additionalProperties": false
