@@ -44,6 +44,4 @@ spec:
     - name: restock-books
       methods:
       - POST
-      headers:
-      - host: "bookwarehouse.$BOOKWAREHOUSE_NAMESPACE"
 EOF
