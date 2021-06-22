@@ -16,18 +16,27 @@ import (
 )
 
 const namespaceAddDescription = `
-This command will add a namespace or a set of namespaces
-to the mesh so that osm-controller can observe resources belonging
-to mesh namespaces, automatic sidecar injection is disabled by
-default. The namespaces will be configured for automatic sidecar,
-which can be optionally disabled.
+This command adds a namespace or set of namespaces to the mesh so that the osm
+control plane with the given mesh name can observe resources within that namespace
+or set of namespaces. It also enables automatic sidecar injection for all pods
+created within the given namespace. Automatic sidecar injection can be disabled
+via the --disable-sidecar-injection flag.
 `
 const namespaceAddExample = `
 # Add namespace 'test' to the mesh with automatic sidecar injection enabled.
 osm namespace add test
 
-# Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
-osm namespace add test --disable-sidecar-injection`
+# Add namespace 'test' to the mesh while disabling automatic sidecar injection.
+# If sidecar injection was previously enabled, it will be disabled by this command.
+osm namespace add test --disable-sidecar-injection
+
+# Add multiple namespaces (test, foo, bar, baz) to the mesh at the same time.
+osm namespace add test foo bar baz
+
+# Specify which mesh (osm control plane) to add the namespace if multiple control planes
+are present or mesh name was overridden at install time
+osm namespace add test --mesh-name=<my-mesh-name>
+`
 
 type namespaceAddCmd struct {
 	out                     io.Writer
@@ -79,6 +88,14 @@ func (a *namespaceAddCmd) run() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		exists, err := meshExists(a.clientSet, a.meshName)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return errors.Errorf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", a.meshName)
+		}
+
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 
@@ -123,7 +140,7 @@ func (a *namespaceAddCmd) run() error {
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
 		}
 
-		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		_, err = a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
 			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 		}
@@ -132,4 +149,21 @@ func (a *namespaceAddCmd) run() error {
 	}
 
 	return nil
+}
+
+// meshExists determines if a mesh with meshName exists within the cluster
+func meshExists(clientSet kubernetes.Interface, meshName string) (bool, error) {
+	// search for the mesh across all namespaces
+	deploymentsClient := clientSet.AppsV1().Deployments("")
+	// search and match using the mesh name provided
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": meshName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
+	if err != nil {
+		return false, errors.Errorf("Cannot obtain information about the mesh [%s]: [%v]", meshName, err)
+	}
+	// the mesh is present if there are osm controllers for the mesh
+	return len(osmControllerDeployments.Items) != 0, nil
 }

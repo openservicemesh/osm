@@ -29,9 +29,6 @@ const (
 	// BookstoreNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
 	BookstoreNamespaceEnvVar = "BOOKSTORE_NAMESPACE"
 
-	// BookWarehouseNamespaceEnvVar is the environment variable for the BookWarehouse namespace.
-	BookWarehouseNamespaceEnvVar = "BOOKWAREHOUSE_NAMESPACE"
-
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "CI_MAX_WAIT_FOR_POD_TIME_SECONDS"
 

@@ -25,7 +25,7 @@ var (
 	booksStolenV1 int64
 	booksStolenV2 int64
 	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	port          = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 	path          = flag.String("path", ".", "path to the HTML template")
 )
 
@@ -67,7 +67,7 @@ func getHandlers() []handler {
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	booksStolen = 0
 	booksStolenV1 = 0
 	booksStolenV2 = 0

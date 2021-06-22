@@ -5,8 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -20,27 +20,44 @@ func NewFakeProvider() endpoint.Provider {
 			tests.BookbuyerService.String():     {tests.Endpoint},
 			tests.BookstoreApexService.String(): {tests.Endpoint},
 		},
-		services: map[service.K8sServiceAccount][]service.MeshService{
-			tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
-			tests.BookbuyerServiceAccount: {tests.BookbuyerService},
+		services: map[identity.K8sServiceAccount][]service.MeshService{
+			tests.BookstoreServiceAccount:   {tests.BookstoreV1Service, tests.BookstoreApexService},
+			tests.BookstoreV2ServiceAccount: {tests.BookstoreV2Service},
+			tests.BookbuyerServiceAccount:   {tests.BookbuyerService},
+		},
+		svcAccountEndpoints: map[identity.K8sServiceAccount][]endpoint.Endpoint{
+			tests.BookstoreServiceAccount:   {tests.Endpoint, tests.Endpoint},
+			tests.BookstoreV2ServiceAccount: {tests.Endpoint},
+			tests.BookbuyerServiceAccount:   {tests.Endpoint},
 		},
 	}
 }
 
 type fakeClient struct {
-	endpoints map[string][]endpoint.Endpoint
-	services  map[service.K8sServiceAccount][]service.MeshService
+	endpoints           map[string][]endpoint.Endpoint
+	services            map[identity.K8sServiceAccount][]service.MeshService
+	svcAccountEndpoints map[identity.K8sServiceAccount][]endpoint.Endpoint
 }
 
-// Retrieve the IP addresses comprising the given service.
+// ListEndpointsForService retrieves the IP addresses comprising the given service.
 func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	if svc, ok := f.endpoints[svc.String()]; ok {
 		return svc
 	}
-	panic(fmt.Sprintf("You are asking for MeshService=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc.String(), f.endpoints))
+	panic(fmt.Sprintf("You are asking for MeshService=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc, f.endpoints))
 }
 
-func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
+// ListEndpointsForIdentity retrieves the IP addresses comprising the given service account.
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (f fakeClient) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+	sa := serviceIdentity.ToK8sServiceAccount()
+	if ep, ok := f.svcAccountEndpoints[sa]; ok {
+		return ep
+	}
+	panic(fmt.Sprintf("You are asking for K8sServiceAccount=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", sa, f.svcAccountEndpoints))
+}
+
+func (f fakeClient) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
 	services, ok := f.services[svcAccount]
 	if !ok {
 		return nil, errors.Errorf("ServiceAccount %s is not in cache: %+v", svcAccount, f.services)
@@ -48,18 +65,13 @@ func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAc
 	return services, nil
 }
 
-func (f fakeClient) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
-	return map[uint32]string{uint32(tests.Endpoint.Port): defaultAppProtocol}, nil
+func (f fakeClient) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	return map[uint32]string{uint32(tests.Endpoint.Port): "http"}, nil
 }
 
 // GetID returns the unique identifier of the EndpointsProvider.
 func (f fakeClient) GetID() string {
 	return "Fake Kubernetes Client"
-}
-
-// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
-func (f fakeClient) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return make(chan announcements.Announcement)
 }
 
 func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {

@@ -4,6 +4,7 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  --ignore-not-found
 
@@ -16,6 +17,11 @@ metadata:
   namespace: $BOOKWAREHOUSE_NAMESPACE
 EOF
 
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    oc adm policy add-scc-to-user privileged -z bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"
+    oc secrets link bookwarehouse "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKWAREHOUSE_NAMESPACE"
+fi
+
 echo -e "Deploy Bookwarehouse Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -27,7 +33,7 @@ metadata:
     app: bookwarehouse
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookwarehouse-port
 
   selector:
@@ -53,13 +59,18 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookwarehouse
-
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         # Main container with APP
         - name: bookwarehouse
           image: "${CTR_REGISTRY}/bookwarehouse:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookwarehouse"]
+          env:
+            - name: IDENTITY
+              value: bookwarehouse
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

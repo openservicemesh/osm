@@ -8,10 +8,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var _ = Describe("Test Rotor", func() {
@@ -52,6 +54,15 @@ var _ = Describe("Test Rotor", func() {
 
 		certA, err := certManager.IssueCertificate(cn, validityPeriod)
 
+		var certAnnouncement chan interface{}
+		BeforeEach(func() {
+			certAnnouncement = events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
+		})
+
+		AfterEach(func() {
+			events.GetPubSubInstance().Unsub(certAnnouncement)
+		})
+
 		It("issued a new certificate", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -67,7 +78,7 @@ var _ = Describe("Test Rotor", func() {
 			start := time.Now()
 			rotor.New(certManager).Start(360 * time.Second)
 			// Wait for one certificate rotation to be announced and terminate
-			<-certManager.GetAnnouncementsChannel()
+			<-certAnnouncement
 			close(done)
 
 			fmt.Printf("It took %+v to rotate certificate %s\n", time.Since(start), cn)

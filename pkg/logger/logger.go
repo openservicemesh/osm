@@ -1,3 +1,4 @@
+// Package logger implements utility routines to initialize the logging facility used by OSM components.
 package logger
 
 import (
@@ -14,11 +15,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
+// AllowedLevels is the list of allowed log levels for OSM Controller.
+var AllowedLevels = []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
+
 // CallerHook implements zerolog.Hook interface.
 type CallerHook struct{}
 
 // Run adds additional context
-func (h CallerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+func (h CallerHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
 	if _, file, line, ok := runtime.Caller(3); ok {
 		e.Str("file", fmt.Sprintf("%s:%d", path.Base(file), line))
 	}
@@ -70,8 +74,7 @@ func SetLogLevel(verbosity string) error {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 
 	default:
-		allowedLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
-		return errors.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
+		return errors.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, AllowedLevels)
 	}
 	return nil
 }

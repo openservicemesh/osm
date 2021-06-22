@@ -1,19 +1,72 @@
+{{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: osm-psp
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  # Required to prevent escalations to root.
+  allowPrivilegeEscalation: false
+  # This is redundant with non-root + disallow privilege escalation,
+  # but we can provide it for defense in depth.
+  requiredDropCapabilities:
+    - ALL
+  # Allow core volume types.
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    # Assume that persistentVolumes set up by the cluster admin are safe to use.
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    # Require the container to run without root privileges.
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    # This policy assumes the nodes are using AppArmor rather than SELinux.
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      # Forbid adding the root group.
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      # Forbid adding the root group.
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+{{- end }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ .Release.Name }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["apps"]
     resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
     verbs: ["list", "get", "watch"]
-  - apiGroups: ["extensions"]
+  - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["list", "get", "watch"]
   - apiGroups: [""]
-    resources: ["endpoints", "namespaces", "pods", "services", "secrets", "configmaps"]
+    resources: ["endpoints", "namespaces", "pods", "services", "secrets", "configmaps", "serviceaccounts"]
     verbs: ["list", "get", "watch"]
 
   # Port forwarding is needed for the OSM pod to be able to connect
@@ -30,8 +83,14 @@ rules:
     resources: ["secrets", "configmaps"]
     verbs: ["create", "update"]
   - apiGroups: ["admissionregistration.k8s.io"]
-    resources: ["mutatingwebhookconfigurations"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["list"]
+  - apiGroups: ["config.openservicemesh.io"]
+    resources: ["meshconfigs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["split.smi-spec.io"]
     resources: ["trafficsplits"]
     verbs: ["list", "get", "watch"]
@@ -42,31 +101,48 @@ rules:
     resources: ["httproutegroups", "tcproutes"]
     verbs: ["list", "get", "watch"]
 
-  # Backpressure is an experimental extension of SMI.
-  # This will be removed once it becomes part of SMI.
+  # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["backpressures"]
+    resources: ["egresses"]
     verbs: ["list", "get", "watch"]
 
   # Used for interacting with cert-manager CertificateRequest resources.
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]
     verbs: ["list", "get", "watch", "create", "delete"]
----
 
+  {{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") .Values.OpenServiceMesh.enableFluentbit }}
+  - apiGroups: ["security.openshift.io"]
+    resourceNames: ["hostaccess"]
+    resources: ["securitycontextconstraints"]
+    verbs: ["use"]
+  {{- end }}
+
+  {{- if .Values.OpenServiceMesh.pspEnabled }}
+  - apiGroups: ["extensions"]
+    resourceNames: ["osm-psp"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+  {{- end }}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Release.Name }}
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ .Release.Name }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "osm.namespace" . }}
 roleRef:
   kind: ClusterRole
   name: {{ .Release.Name }}

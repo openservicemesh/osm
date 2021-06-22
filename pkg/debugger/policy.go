@@ -5,36 +5,35 @@ import (
 	"fmt"
 	"net/http"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 type policies struct {
-	TrafficSplits    []*split.TrafficSplit       `json:"traffic_splits"`
-	WeightedServices []service.WeightedService   `json:"weighted_services"`
-	ServiceAccounts  []service.K8sServiceAccount `json:"service_accounts"`
-	RouteGroups      []*spec.HTTPRouteGroup      `json:"route_groups"`
-	TrafficTargets   []*target.TrafficTarget     `json:"traffic_targets"`
+	TrafficSplits   []*split.TrafficSplit        `json:"traffic_splits"`
+	ServiceAccounts []identity.K8sServiceAccount `json:"service_accounts"`
+	RouteGroups     []*spec.HTTPRouteGroup       `json:"route_groups"`
+	TrafficTargets  []*access.TrafficTarget      `json:"traffic_targets"`
 }
 
-func (ds debugConfig) getOSMConfigHandler() http.Handler {
+func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		confJSON, err := ds.configurator.GetConfigMap()
+		confJSON, err := ds.configurator.GetMeshConfigJSON()
 		if err != nil {
 			log.Error().Err(err)
 			return
 		}
-		_, _ = fmt.Fprint(w, string(confJSON))
+		_, _ = fmt.Fprint(w, confJSON)
 	})
 }
 
-func (ds debugConfig) getSMIPoliciesHandler() http.Handler {
+func (ds DebugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
-		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
+		p.TrafficSplits, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {

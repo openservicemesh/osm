@@ -15,9 +15,24 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 8,
+  "iteration": 1614292699560,
   "links": [],
   "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 22,
+      "panels": [],
+      "title": "Mesh Statistics",
+      "type": "row"
+    },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
@@ -30,10 +45,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -41,16 +52,16 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 3,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 6,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -62,79 +73,18 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "count(count by(source_namespace) (envoy_server_live))",
+          "expr": "osm_k8s_monitored_namespace_count{source_pod_name=~\"$osm_controller_instance\"}",
           "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Number of Namespaces",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": null
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 0
-      },
-      "id": 7,
-      "options": {
-        "showLabels": false,
-        "showTime": false,
-        "sortOrder": "Descending",
-        "wrapLogMessage": false
-      },
-      "pluginVersion": "7.0.1",
-      "targets": [
-        {
-          "expr": "count by(source_namespace) (envoy_server_live)",
-          "format": "table",
-          "hide": false,
           "instant": true,
           "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Namespaces",
-      "transformations": [
-        {
-          "id": "filterFieldsByName",
-          "options": {}
-        }
-      ],
-      "type": "logs"
+      "title": "Monitored Namespaces",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -148,10 +98,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -159,16 +105,16 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 3,
-        "x": 6,
-        "y": 0
+        "x": 3,
+        "y": 1
       },
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -180,78 +126,17 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "count(count by(source_service) (envoy_server_live))",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Number of Services",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": null
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 9,
-        "y": 0
-      },
-      "id": 4,
-      "options": {
-        "showLabels": false,
-        "showTime": false,
-        "sortOrder": "Descending",
-        "wrapLogMessage": false
-      },
-      "pluginVersion": "7.0.1",
-      "repeat": null,
-      "targets": [
-        {
-          "expr": "count by(source_service) (envoy_server_live)",
-          "format": "table",
-          "hide": false,
+          "expr": "sum(osm_k8s_api_event_count{type=\"service-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"service-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
           "instant": true,
           "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Services",
-      "transformations": [
-        {
-          "id": "filterFieldsByName",
-          "options": {}
-        }
-      ],
-      "type": "logs"
+      "title": "Services in the Mesh",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -266,10 +151,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -277,16 +158,16 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 3,
-        "x": 12,
-        "y": 0
+        "x": 6,
+        "y": 1
       },
       "id": 8,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -298,11 +179,11 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "count(count by(source_pod_name) (envoy_server_live))",
+          "expr": "sum(osm_k8s_api_event_count{type=\"pod-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"pod-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
           "format": "time_series",
-          "instant": false,
+          "instant": true,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
@@ -312,79 +193,6 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": null
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 15,
-        "y": 0
-      },
-      "id": 9,
-      "options": {
-        "showLabels": false,
-        "showTime": false,
-        "sortOrder": "Descending",
-        "wrapLogMessage": false
-      },
-      "pluginVersion": "7.0.1",
-      "targets": [
-        {
-          "expr": "count by(source_pod_name) (envoy_server_live)",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Pods",
-      "transformations": [
-        {
-          "id": "filterFieldsByName",
-          "options": {}
-        }
-      ],
-      "type": "logs"
-    },
-    {
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 4
-      },
-      "id": 24,
-      "title": "K8s",
-      "type": "row"
-    },
-    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -399,109 +207,14 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 10,
-        "w": 10,
-        "x": 0,
-        "y": 5
+        "h": 5,
+        "w": 9,
+        "x": 9,
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 11,
       "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "count(count by(source_pod_name) (envoy_server_live))",
-          "interval": "",
-          "legendFormat": "Total N pods in Mesh",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Total number of pods in Mesh",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 10,
-        "w": 10,
-        "x": 10,
-        "y": 5
-      },
-      "hiddenSeries": false,
-      "id": 16,
-      "legend": {
-        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
@@ -522,22 +235,21 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": true,
+      "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(apiserver_watch_events_total[5m])",
-          "hide": false,
+          "expr": "osm_proxy_connect_count{source_pod_name=~\"$osm_controller_instance\"}",
           "interval": "",
-          "legendFormat": "{{kind}}",
-          "refId": "A"
+          "legendFormat": "Connected proxies",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "API Event Rate",
+      "title": "Connected Proxies",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -548,7 +260,7 @@
         "buckets": null,
         "mode": "time",
         "name": null,
-        "show": true,
+        "show": false,
         "values": []
       },
       "yaxes": [
@@ -581,11 +293,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 6
       },
-      "id": 22,
+      "id": 32,
       "panels": [],
-      "title": "OSM",
+      "title": "Control plane resource consumption",
       "type": "row"
     },
     {
@@ -603,13 +315,14 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 11,
-        "w": 10,
+        "h": 9,
+        "w": 9,
         "x": 0,
-        "y": 16
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 14,
+      "interval": "10s",
       "legend": {
         "alignAsTable": false,
         "avg": false,
@@ -637,9 +350,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
+          "expr": "irate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
           "interval": "",
-          "legendFormat": "{{container}}",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -720,10 +433,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 11,
-        "w": 10,
-        "x": 10,
-        "y": 16
+        "h": 9,
+        "w": 9,
+        "x": 9,
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 13,
@@ -757,7 +470,7 @@
         {
           "expr": "container_memory_rss{namespace=\"osm-system\", container!=\"\", container!=\"POD\"}",
           "interval": "",
-          "legendFormat": "{{container}}",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -765,7 +478,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "AnonRss",
+      "title": "RSS Memory footprint",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -815,18 +528,26 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 16
       },
-      "id": 20,
+      "id": 34,
       "panels": [],
-      "title": "Webhook",
+      "title": "OSM Performance",
       "type": "row"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
+      "cards": {
+        "cardPadding": null,
+        "cardRound": null
+      },
+      "color": {
+        "cardColor": "#F2495C",
+        "colorScale": "sqrt",
+        "colorScheme": "interpolateOranges",
+        "exponent": 0.5,
+        "mode": "opacity"
+      },
+      "dataFormat": "tsbuckets",
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
@@ -850,101 +571,157 @@
         },
         "overrides": []
       },
-      "fill": 1,
-      "fillGradient": 0,
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 9,
         "x": 0,
-        "y": 28
+        "y": 17
       },
-      "hiddenSeries": false,
-      "id": 26,
+      "heatmap": {},
+      "hideZeroBuckets": true,
+      "highlightCards": true,
+      "id": 27,
+      "interval": "10s",
       "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
+        "show": false
       },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
       "pluginVersion": "7.0.1",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(rate(apiserver_admission_webhook_admission_duration_seconds_bucket\n[1m])) by (le)",
-          "hide": true,
+          "expr": "idelta(osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])",
+          "format": "heatmap",
+          "interval": "",
+          "legendFormat": "{{le}}",
+          "refId": "B"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Sidecar injector timings (sec)",
+      "tooltip": {
+        "show": true,
+        "showHistogram": false
+      },
+      "type": "heatmap",
+      "xAxis": {
+        "show": true
+      },
+      "xBucketNumber": null,
+      "xBucketSize": null,
+      "yAxis": {
+        "decimals": null,
+        "format": "short",
+        "logBase": 1,
+        "max": null,
+        "min": null,
+        "show": true,
+        "splitFactor": null
+      },
+      "yBucketBound": "auto",
+      "yBucketNumber": null,
+      "yBucketSize": null
+    },
+    {
+      "cards": {
+        "cardPadding": null,
+        "cardRound": null
+      },
+      "color": {
+        "cardColor": "#5794F2",
+        "colorScale": "sqrt",
+        "colorScheme": "interpolateOranges",
+        "exponent": 0.5,
+        "mode": "opacity"
+      },
+      "dataFormat": "tsbuckets",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 9,
+        "y": 17
+      },
+      "heatmap": {},
+      "hideZeroBuckets": true,
+      "highlightCards": true,
+      "id": 30,
+      "interval": "10s",
+      "legend": {
+        "show": false
+      },
+      "pluginVersion": "7.0.1",
+      "reverseYBuckets": false,
+      "targets": [
+        {
+          "expr": "sum(idelta(osm_cert_issued_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
+          "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
           "refId": "A"
-        },
-        {
-          "expr": "rate(apiserver_admission_webhook_admission_duration_seconds_bucket[1m])",
-          "interval": "",
-          "legendFormat": "{{le}}-{{rejected}}",
-          "refId": "B"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
-      "title": "Webhook Admission time-bucket",
+      "title": "Certificate Issue timings (sec)",
       "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
         "show": true,
-        "values": []
+        "showHistogram": false
       },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "heatmap",
+      "xAxis": {
+        "show": true
+      },
+      "xBucketNumber": null,
+      "xBucketSize": null,
+      "yAxis": {
+        "decimals": null,
+        "format": "short",
+        "logBase": 1,
+        "max": null,
+        "min": null,
+        "show": true,
+        "splitFactor": null
+      },
+      "yBucketBound": "auto",
+      "yBucketNumber": null,
+      "yBucketSize": null
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
+      "cards": {
+        "cardPadding": null,
+        "cardRound": null
+      },
+      "color": {
+        "cardColor": "#73BF69",
+        "colorScale": "sqrt",
+        "colorScheme": "interpolateOranges",
+        "exponent": 0.5,
+        "mode": "opacity"
+      },
+      "dataFormat": "tsbuckets",
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
@@ -968,16 +745,96 @@
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 10,
+        "w": 18,
+        "x": 0,
+        "y": 25
+      },
+      "heatmap": {},
+      "hideZeroBuckets": true,
+      "highlightCards": true,
+      "id": 28,
+      "interval": "10s",
+      "legend": {
+        "show": false
+      },
+      "pluginVersion": "7.0.1",
+      "reverseYBuckets": false,
+      "targets": [
+        {
+          "expr": "sum(idelta(osm_proxy_config_update_time_bucket{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])) by (le)",
+          "format": "heatmap",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "xDS Path histogram",
+      "tooltip": {
+        "show": true,
+        "showHistogram": false
+      },
+      "type": "heatmap",
+      "xAxis": {
+        "show": true
+      },
+      "xBucketNumber": null,
+      "xBucketSize": null,
+      "yAxis": {
+        "decimals": null,
+        "format": "short",
+        "logBase": 1,
+        "max": null,
+        "min": null,
+        "show": true,
+        "splitFactor": null
+      },
+      "yBucketBound": "auto",
+      "yBucketNumber": null,
+      "yBucketSize": null
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 10,
-        "x": 10,
-        "y": 28
+        "h": 9,
+        "w": 9,
+        "x": 0,
+        "y": 35
       },
       "hiddenSeries": false,
-      "id": 27,
+      "id": 36,
+      "interval": "10s",
       "legend": {
         "avg": false,
         "current": false,
@@ -987,7 +844,7 @@
         "total": false,
         "values": false
       },
-      "lines": true,
+      "lines": false,
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
@@ -1000,27 +857,27 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(apiserver_admission_webhook_rejection_count[1m])",
+          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"true\", source_pod_name=~\"$osm_injector_instance\"}[1m])\n",
           "interval": "",
-          "legendFormat": "",
-          "refId": "B"
+          "legendFormat": "Success",
+          "refId": "A"
         },
         {
-          "expr": "",
+          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"false\", source_pod_name=~\"$osm_injector_instance\"}[1m])",
           "interval": "",
-          "legendFormat": "",
-          "refId": "A"
+          "legendFormat": "Failure",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Rejected Webhooks",
+      "title": "Injector Webhooks",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1037,7 +894,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "count",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -1058,18 +915,120 @@
       }
     },
     {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 36
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
       },
-      "id": 18,
-      "panels": [],
-      "title": "OSM namespace Stats",
-      "type": "row"
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 9,
+        "x": 9,
+        "y": 35
+      },
+      "hiddenSeries": false,
+      "id": 37,
+      "interval": "10s",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pluginVersion": "7.0.1",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "idelta(osm_proxy_config_update_time_count{success=\"true\", resource_type=~\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])\n",
+          "interval": "",
+          "legendFormat": "{{resource_type}}-{{source_pod_name}}-Success",
+          "refId": "A"
+        },
+        {
+          "expr": "idelta(osm_proxy_config_update_time_count{success=\"false\", resource_type=~\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])",
+          "interval": "",
+          "legendFormat": "{{resource_type}}-{{source_pod_name}}-Failure",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "xDS Updates",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "count",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": "10s",
@@ -1077,7 +1036,90 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_proxy_connect_count, source_pod_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "OSM Controller instance",
+        "multi": true,
+        "name": "osm_controller_instance",
+        "options": [],
+        "query": "label_values(osm_proxy_connect_count, source_pod_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "OSM Injector instance",
+        "multi": true,
+        "name": "osm_injector_instance",
+        "options": [],
+        "query": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "ADS",
+          "value": "ADS"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_proxy_config_update_time_bucket, resource_type)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "xDS Path",
+        "multi": false,
+        "name": "xds_path",
+        "options": [],
+        "query": "label_values(osm_proxy_config_update_time_bucket, resource_type)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
     "from": "now-15m",
@@ -1099,5 +1141,5 @@
   "timezone": "",
   "title": "Mesh and Envoy Details",
   "uid": "PLyKJcHGz",
-  "version": 1
+  "version": 3
 }

@@ -3,7 +3,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentbit-configmap
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 data:
   fluent-bit.conf: |-
     [SERVICE]
@@ -14,13 +16,14 @@ data:
     [INPUT]
       Name    tail
       Tag     kube.*
-      Path    /var/log/containers/osm-controller-*_{{ .Release.Namespace }}_osm-controller-*.log
+      Path    /var/log/containers/osm-controller-*_{{ include "osm.namespace" . }}_osm-controller-*.log
       Parser  cri
       Read_from_Head  on
+    # Adds controller pod name value to help users query logs in output
     [FILTER]
-      name       grep
-      match      *
-      regex       message /"level":"error"/
+      Name           modify
+      Match          kube.*
+      Add            controller_pod_name ${CONTROLLER_POD_NAME}
     [OUTPUT]
       Name    {{ .Values.OpenServiceMesh.fluentBit.outputPlugin }}
       Match   *

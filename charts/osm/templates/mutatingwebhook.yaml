@@ -1,17 +1,20 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   labels:
-    app: osm-controller
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-injector
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
 - name: osm-inject.k8s.io
   clientConfig:
     service:
-      name: osm-controller
-      namespace: {{.Release.Namespace}}
+      name: osm-injector
+      namespace: {{ include "osm.namespace" . }}
       path: /mutate-pod-creation
-      port: 443
+      port: 9090
+  # failurePolicy should always be set to Fail to ensure no new resources get created without a sidecar
+  #   (and bypass TrafficTarget policies) if the webhook server is down
   failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
@@ -27,7 +30,7 @@ webhooks:
       - key: "name"
         operator: NotIn
         values:
-        - {{.Release.Namespace}}
+        - {{ include "osm.namespace" . }}
   rules:
     - apiGroups:
         - ""
@@ -37,3 +40,10 @@ webhooks:
         - CREATE
       resources:
         - pods
+  # Injector's mutating webhook has a side effect of creating k8s secret for the Envoy bootstrap config.
+  # For dry-run requests, this side effect is skipped.
+  # Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
+  sideEffects: NoneOnDryRun
+  # Default timeout is 10s. Set this to 20s to account for slowness in scale environments
+  timeoutSeconds: 20
+  admissionReviewVersions: ["v1"]

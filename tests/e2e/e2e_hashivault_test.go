@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 1,
+		Bucket: 4,
 	},
 	func() {
 		Context("HashivaultSimpleClientServer", func() {
@@ -26,7 +26,6 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.CertManager = "vault"
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 2)).To(Succeed())
 
 				// Create Test NS
 				for _, n := range ns {

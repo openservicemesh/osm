@@ -3,16 +3,16 @@ package strings
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestWhichNotEqual(t *testing.T) {
-	assertion := assert.New(t)
+	assertion := tassert.New(t)
 
 	listOfAlpha := Which{"a", "a"}
 	listOfStuff := Which{"a", "b"}
 
-	assertion.Equal(listOfAlpha.NotEqual("a"), []string{})
+	assertion.Nil(listOfAlpha.NotEqual("a"))
 	assertion.Equal(listOfAlpha.NotEqual("b"), []string{"a", "a"})
 	assertion.Equal(listOfStuff.NotEqual("a"), []string{"b"})
 }

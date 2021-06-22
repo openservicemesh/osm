@@ -5,30 +5,30 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-	"k8s.io/api/admission/v1beta1"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 var (
@@ -51,24 +51,51 @@ const (
 
 	contentTypeJSON       = "application/json"
 	httpHeaderContentType = "Content-Type"
+
+	// injectorServiceName is the name of the OSM sidecar injector service
+	injectorServiceName = "osm-injector"
+
+	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
+	outboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
+
+	// inboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
+	inboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
 )
 
+<<<<<<< HEAD
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmControllerName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", osmControllerName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
+=======
+// NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
+func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+	// This is a certificate issued for the webhook handler
+	// This cert does not have to be related to the Envoy certs, but it does have to match
+	// the cert provisioned with the MutatingWebhookConfiguration
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", injectorServiceName, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
-	wh := webhook{
+	// The following function ensures to atomically create or get the certificate from Kubernetes
+	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	if err != nil {
+		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
+	}
+
+	wh := mutatingWebhook{
 		config:         config,
 		kubeClient:     kubeClient,
 		certManager:    certManager,
-		meshCatalog:    meshCatalog,
 		kubeController: kubeController,
 		osmNamespace:   osmNamespace,
-		cert:           cert,
+		meshName:       meshName,
+		cert:           webhookHandlerCert,
 		configurator:   cfg,
 
 		osmControllerName : osmControllerName,
@@ -85,17 +112,17 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	go wh.run(stop)
 
 	// Update the MutatingWebhookConfig with the OSM CA bundle
-	if err = updateMutatingWebhookCABundle(cert, webhookConfigName, wh.kubeClient); err != nil {
+	if err = updateMutatingWebhookCABundle(webhookHandlerCert, webhookConfigName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 	return nil
 }
 
-func (wh *webhook) run(stop <-chan struct{}) {
+func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mux := http.DefaultServeMux
+	mux := http.NewServeMux()
 
 	mux.HandleFunc(WebhookHealthPath, healthHandler)
 
@@ -113,7 +140,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			log.Error().Err(err).Msgf("Error parsing webhook certificate: %+v", err)
+			log.Error().Err(err).Msg("Error parsing webhook certificate")
 			return
 		}
 
@@ -123,7 +150,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Error().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
+			log.Error().Err(err).Msg("Sidecar injection webhook HTTP server failed to start")
 			return
 		}
 	}()
@@ -142,61 +169,37 @@ func (wh *webhook) run(stop <-chan struct{}) {
 func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte("Health OK")); err != nil {
-		log.Error().Err(err).Msgf("Error writing bytes for mutating webhook health check handler")
+		log.Error().Err(err).Msg("Error writing bytes for mutating webhook health check handler")
 	}
 }
 
-func (wh *webhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp v1beta1.AdmissionReview) {
-	var admissionReq v1beta1.AdmissionReview
+func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
+	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
-		admissionResp.Response = admissionError(err)
+		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
 		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
+	admissionResp.TypeMeta = admissionReq.TypeMeta
+	admissionResp.Kind = admissionReq.Kind
 
 	return admissionReq.Request.Namespace, admissionResp
 }
 
-func getAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
-	emptyBodyError := func() ([]byte, error) {
-		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
-		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
-		return nil, errEmptyAdmissionRequestBody
-	}
-
-	if req.Body == nil {
-		return emptyBodyError()
-	}
-
-	admissionRequestBody, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
-		return admissionRequestBody, nil
-	}
-
-	if len(admissionRequestBody) == 0 {
-		return emptyBodyError()
-	}
-
-	return admissionRequestBody, nil
-}
-
 // podCreationHandler is a MutatingWebhookConfiguration handler exclusive to POD CREATE events.
-func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
-	// For debug/profiling purposes
-	if log.GetLevel() == zerolog.DebugLevel {
-		// Read timeout from request
-		reqTimeout, err := readTimeout(req)
-		if err != nil {
-			log.Error().Msgf("Could not read timeout from request url: %v", err)
-		} else {
-			defer webhookTimeTrack(time.Now(), *reqTimeout)
-		}
+	// Tracks the success of the current injector webhook request
+	success := false
+	// Read timeout from request url
+	reqTimeout, err := readTimeout(req)
+	if err != nil {
+		log.Error().Err(err).Msg("Could not read timeout from request url")
 	}
+	// Execute at return of this handler
+	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
 
 	if contentType := req.Header.Get(httpHeaderContentType); contentType != contentTypeJSON {
 		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, contentTypeJSON)
@@ -205,7 +208,7 @@ func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	admissionRequestBody, err := getAdmissionRequestBody(w, req)
+	admissionRequestBody, err := webhook.GetAdmissionRequestBody(w, req)
 	if err != nil {
 		// Error was already logged and written to the ResponseWriter
 		return
@@ -227,27 +230,32 @@ func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) 
 
 	if _, err := w.Write(resp); err != nil {
 		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
+	} else {
+		success = true // read by the deferred function
 	}
 
 	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 }
 
-func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v1beta1.AdmissionResponse {
+func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) *admissionv1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission Request")
-		return admissionError(errNilAdmissionRequest)
+		return webhook.AdmissionError(errNilAdmissionRequest)
 	}
 
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return admissionError(err)
+		return webhook.AdmissionError(err)
 	}
+<<<<<<< HEAD
 	//log.Trace().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
+=======
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
 	// Start building the response
-	resp := &v1beta1.AdmissionResponse{
+	resp := &admissionv1.AdmissionResponse{
 		Allowed: true,
 		UID:     req.UID,
 	}
@@ -255,16 +263,16 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
 		log.Error().Err(err).Msgf("Error checking if sidecar must be injected for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return admissionError(err)
+		return webhook.AdmissionError(err)
 	} else if !inject {
 		log.Trace().Msgf("Skipping sidecar injection for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return resp
 	}
 
-	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
+	patchBytes, err := wh.createPatch(&pod, req, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create patch for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return admissionError(err)
+		return webhook.AdmissionError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)
@@ -272,7 +280,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v
 	return resp
 }
 
-func (wh *webhook) isNamespaceInjectable(namespace string) bool {
+func (wh *mutatingWebhook) isNamespaceInjectable(namespace string) bool {
 	// Never inject pods in the OSM Controller namespace or kube-public or kube-system
 	isInjectableNS := !wh.nonInjectNamespaces.Contains(namespace)
 
@@ -287,9 +295,9 @@ func (wh *webhook) isNamespaceInjectable(namespace string) bool {
 // 2. The namespace is annotated for sidecar injection and the pod is not explicitly annotated with disabled/no/false
 //
 // The function returns an error when it is unable to determine whether to perform sidecar injection.
-func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
+func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	if !wh.isNamespaceInjectable(namespace) {
-		log.Warn().Msgf("Request is for pod with UUID %s in namespace %s; Injection in namespace %s is not permitted", namespace, pod.Name, namespace)
+		log.Warn().Msgf("Mutation request is for pod with UID %s; Injection in Namespace %s is not permitted", pod.ObjectMeta.UID, namespace)
 		return false, nil
 	}
 
@@ -308,7 +316,7 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	}
 	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, ns.Kind, ns.Name)
 	if err != nil {
-		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
+		log.Error().Err(err).Msgf("Error determining if namespace %s is enabled for sidecar injection", namespace)
 		return false, err
 	}
 
@@ -325,6 +333,27 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 
 	// Conditions to inject the sidecar are not met
 	return false, nil
+}
+
+// getPortExclusionListForPod gets a list of ports to exclude from sidecar traffic interception for the given
+// pod and annotation kind.
+//
+// Ports are excluded from sidecar interception when the pod is explicitly annotated with a single or
+// comma separate list of ports.
+//
+// The kind of exclusion (inbound vs outbound) is determined by the specified annotation.
+//
+// The function returns an error when it is unable to determine whether ports need to be excluded from outbound sidecar interception.
+func (wh *mutatingWebhook) getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]int, error) {
+	var ports []int
+	// Check if the pod is annotated for outbound port exclusion
+	ports, err := isAnnotatedForPortExclusion(pod.Annotations, annotation, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error determining port exclusions for annotation %s on pod %s/%s", annotation, namespace, pod.Name)
+		return ports, err
+	}
+
+	return ports, nil
 }
 
 func isAnnotatedForInjection(annotations map[string]string, objectKind string, objectName string) (exists bool, enabled bool, err error) {
@@ -344,32 +373,50 @@ func isAnnotatedForInjection(annotations map[string]string, objectKind string, o
 	return
 }
 
-func admissionError(err error) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: err.Error(),
-		},
+func isAnnotatedForPortExclusion(annotations map[string]string, portAnnotation string, objectKind string, objectName string) (ports []int, err error) {
+	portsToExcludeStr, ok := annotations[portAnnotation]
+	if !ok {
+		return ports, err
 	}
+
+	log.Trace().Msgf("%s %s has port exclusion annotation: '%s:%s'", objectKind, objectName, portAnnotation, portsToExcludeStr)
+	portsToExclude := strings.Split(portsToExcludeStr, ",")
+	for _, portStr := range portsToExclude {
+		portStr := strings.TrimSpace(portStr)
+		portInt, ok := strconv.Atoi(portStr)
+		if ok != nil || portInt <= 0 {
+			err = errors.Errorf("Invalid port '%s' specified for annotation '%s'", portStr, portAnnotation)
+			ports = nil
+			return ports, err
+		}
+		ports = append(ports, portInt)
+	}
+	return ports, err
 }
 
-func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) {
+func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []byte) {
 	resp.Patch = patchBytes
-	pt := v1beta1.PatchTypeJSONPatch
+	pt := admissionv1.PatchTypeJSONPatch
 	resp.PatchType = &pt
 }
 
 // getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
-func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionv1beta1.MutatingWebhookConfiguration {
-	return admissionv1beta1.MutatingWebhookConfiguration{
+func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionregv1.MutatingWebhookConfiguration {
+	return admissionregv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookConfigName,
 		},
-		Webhooks: []admissionv1beta1.MutatingWebhook{
+		Webhooks: []admissionregv1.MutatingWebhook{
 			{
 				Name: MutatingWebhookName,
-				ClientConfig: admissionv1beta1.WebhookClientConfig{
+				ClientConfig: admissionregv1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				AdmissionReviewVersions: []string{"v1"},
 			},
 		},
 	}
@@ -378,10 +425,7 @@ func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webho
 // updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
 // It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
 func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
-	mwc := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
-	if err := webhookExists(mwc, webhookName); err != nil {
-		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s; Will not update CA Bundle for webhook", webhookName)
-	}
+	mwc := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations()
 
 	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
 	if err != nil {

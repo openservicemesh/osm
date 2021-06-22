@@ -1,3 +1,4 @@
+// Package constants defines the constants that are used by multiple other packages within OSM.
 package constants
 
 import "time"
@@ -37,7 +38,7 @@ const (
 	EnvoyOutboundListenerPortName = "proxy-outbound"
 
 	// EnvoyUID is the Envoy's User ID
-	EnvoyUID int64 = 1337
+	EnvoyUID int64 = 1500
 
 	// LocalhostIPAddress is the local host address.
 	LocalhostIPAddress = "127.0.0.1"
@@ -57,8 +58,14 @@ const (
 	// DefaultTracingPort is the tracing listener port.
 	DefaultTracingPort = uint32(9411)
 
-	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
+	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm MeshConfig
 	DefaultEnvoyLogLevel = "error"
+
+	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
+	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.18.3"
+
+	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
+	DefaultInitContainerImage = "openservicemesh/init:v0.9.0"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
@@ -66,8 +73,8 @@ const (
 	// InjectorWebhookPort is the port on which the sidecar injection webhook listens
 	InjectorWebhookPort = 9090
 
-	// MetricsServerPort is the port on which OSM exposes its own metrics server
-	MetricsServerPort = 9091
+	// OSMHTTPServerPort is the port on which osm-controller and osm-injector serve HTTP requests for metrics, health probes etc.
+	OSMHTTPServerPort = 9091
 
 	//DebugPort is the port on which OSM exposes its debug server
 	DebugPort = 9092
@@ -75,8 +82,8 @@ const (
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
 
-	// OSMControllerPort is the port on which XDS listens for new connections.
-	OSMControllerPort = 15128
+	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Envoy proxies
+	ADSServerPort = 15128
 
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
@@ -89,6 +96,9 @@ const (
 
 	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
 	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
+
+	// WebhookCertificateSecretName is the default value for webhook secret name
+	WebhookCertificateSecretName = "mutating-webhook-cert-secret"
 
 	// RegexMatchAll is a regex pattern match for all
 	RegexMatchAll = ".*"
@@ -131,7 +141,7 @@ const (
 	// DomainDelimiter is a delimiter used in representing domains
 	DomainDelimiter = "."
 
-	// EnvoyContainerName is the name used to identify the envoy sidecard container added on mesh-enabled deployments
+	// EnvoyContainerName is the name used to identify the envoy sidecar container added on mesh-enabled deployments
 	EnvoyContainerName = "envoy"
 
 	// InitContainerName is the name of the init container
@@ -141,11 +151,11 @@ const (
 	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
 	EnvoyServiceNodeSeparator = "/"
 
-	// OSMConfigMap is the name of the OSM ConfigMap
-	OSMConfigMap = "osm-config"
+	// OSMMeshConfig is the name of the OSM MeshConfig
+	OSMMeshConfig = "osm-mesh-config"
 )
 
-// Annotations used by the controller
+// Annotations used by the control plane
 const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
 	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
@@ -154,14 +164,53 @@ const (
 	MetricsAnnotation = "openservicemesh.io/metrics"
 )
 
+// Labels used by the control plane
+const (
+	// IgnoreLabel is the label used to ignore a resource
+	IgnoreLabel = "openservicemesh.io/ignore"
+)
+
 // Annotations used for Metrics
 const (
 	// PrometheusScrapeAnnotation is the annotation used to configure prometheus scraping
 	PrometheusScrapeAnnotation = "prometheus.io/scrape"
 
-	// PrometheusPortAnnotation is the anontation used to configure the port to scrape on
+	// PrometheusPortAnnotation is the annotation used to configure the port to scrape on
 	PrometheusPortAnnotation = "prometheus.io/port"
 
 	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on
 	PrometheusPathAnnotation = "prometheus.io/path"
+)
+
+// App labels as defined in the "osm.labels" template in _helpers.tpl of the Helm chart.
+const (
+	OSMAppNameLabelKey     = "app.kubernetes.io/name"
+	OSMAppNameLabelValue   = "openservicemesh.io"
+	OSMAppInstanceLabelKey = "app.kubernetes.io/instance"
+	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
+)
+
+// OSM HTTP Server Paths
+const (
+	HTTPServerSmiVersionPath = "/smi/version"
+)
+
+// Application protocols
+const (
+	// HTTP protocol
+	ProtocolHTTP = "http"
+
+	// HTTPS protocol
+	ProtocolHTTPS = "https"
+
+	// TCP protocol
+	ProtocolTCP = "tcp"
+
+	// gRPC protocol
+	ProtocolGRPC = "grpc"
+
+	// ProtocolTCPServerFirst implies TCP based server first protocols
+	// Ex. MySQL, SMTP, PostgreSQL etc. where the server initiates the first
+	// byte in a TCP connection.
+	ProtocolTCPServerFirst = "tcp-server-first"
 )

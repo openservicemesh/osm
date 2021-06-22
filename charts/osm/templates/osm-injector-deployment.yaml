@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-injector
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-injector
+    meshName: {{ .Values.OpenServiceMesh.meshName }}
+spec:
+  replicas: {{ .Values.OpenServiceMesh.injector.replicaCount }}
+  selector:
+    matchLabels:
+      app: osm-injector
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-injector
+  {{- if .Values.OpenServiceMesh.injector.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.injector.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+        - name: osm-injector
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-injector:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          ports:
+            - name: "sidecar-inject"
+              containerPort: 9090
+            - name: "metrics"
+              containerPort: 9091
+          command: ['/osm-injector']
+          args: [
+            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
+            "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
+            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
+            {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}
+            "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
+            "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
+            "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
+          ]
+          resources:
+            limits:
+              cpu: "{{.Values.OpenServiceMesh.injector.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.injector.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.OpenServiceMesh.injector.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.injector.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 9090
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 9090
+          env:
+            # The INJECTOR_POD_NAME env variable sets pod name dynamically, used by osm-injector to register events
+            - name: INJECTOR_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.OpenServiceMesh.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.OpenServiceMesh.controlPlaneTolerations | indent 8 }}
+    {{- end }}

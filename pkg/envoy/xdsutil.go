@@ -7,60 +7,43 @@ import (
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/jinzhu/copier"
+	"github.com/google/uuid"
+	v1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.
-type SDSCertType string
+var (
+	// ErrInvalidCertificateCN is an error for when a certificate has a CommonName, which does not match expected string format.
+	ErrInvalidCertificateCN = errors.New("invalid cn")
 
-// SDSDirection is a type to identify TLS certificate connectivity direction.
-type SDSDirection bool
+	// ErrMoreThanOnePodForCertificate is an error for when OSM finds more than one pod for a given xDS certificate. There should always be exactly one Pod for a given xDS certificate.
+	ErrMoreThanOnePodForCertificate = errors.New("found more than one pod for xDS certificate")
 
-// SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
-// this avoids having sprintf/parsing logic all over the place
-type SDSCert struct {
-	// MeshService is a service within the mesh
-	MeshService service.MeshService
+	// ErrDidNotFindPodForCertificate is an error for when OSM cannot not find a pod for the given xDS certificate.
+	ErrDidNotFindPodForCertificate = errors.New("did not find pod for certificate")
 
-	// CertType is the certificate type
-	CertType SDSCertType
-}
+	// ErrServiceAccountDoesNotMatchCertificate is an error for when the service account of a Pod does not match the xDS certificate.
+	ErrServiceAccountDoesNotMatchCertificate = errors.New("service account does not match certificate")
 
-func (ct SDSCertType) String() string {
-	return string(ct)
-}
+	// ErrNamespaceDoesNotMatchCertificate is an error for when the namespace of the Pod does not match the xDS certificate.
+	ErrNamespaceDoesNotMatchCertificate = errors.New("namespace does not match certificate")
+)
 
 const (
-	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
-	ServiceCertType SDSCertType = "service-cert"
-
-	// RootCertTypeForMTLSOutbound is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-outbound:webservice"
-	RootCertTypeForMTLSOutbound SDSCertType = "root-cert-for-mtls-outbound"
-
-	// RootCertTypeForMTLSInbound is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-inbound:webservice"
-	RootCertTypeForMTLSInbound SDSCertType = "root-cert-for-mtls-inbound"
-
-	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
-	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
-
-	// Outbound refers to Envoy upstream connectivity direction for TLS certs
-	Outbound SDSDirection = true
-
-	// Inbound refers to Envoy downstream connectivity direction for TLS certs
-	Inbound SDSDirection = false
-
-	// Separator is the separator between the prefix and the name of the certificate.
-	Separator = ":"
-
 	// TransportProtocolTLS is the TLS transport protocol used in Envoy configurations
 	TransportProtocolTLS = "tls"
 
@@ -68,64 +51,9 @@ const (
 	OutboundPassthroughCluster = "passthrough-outbound"
 )
 
-// Defines valid cert types
-var validCertTypes = map[SDSCertType]interface{}{
-	ServiceCertType:             nil,
-	RootCertTypeForMTLSOutbound: nil,
-	RootCertTypeForMTLSInbound:  nil,
-	RootCertTypeForHTTPS:        nil,
-}
-
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
 // It is set as a part of configuring the UpstreamTLSContext.
 var ALPNInMesh = []string{"osm"}
-
-// UnmarshalSDSCert parses and returns Certificate type and a service given a
-// correctly formatted string, otherwise returns error
-func UnmarshalSDSCert(str string) (*SDSCert, error) {
-	var svc *service.MeshService
-	var ret SDSCert
-
-	// Check separators, ignore empty string fields
-	slices := strings.Split(str, Separator)
-	if len(slices) != 2 {
-		return nil, errInvalidCertFormat
-	}
-
-	// Make sure the slices are not empty. Split might actually leave empty slices.
-	for _, sep := range slices {
-		if len(sep) == 0 {
-			return nil, errInvalidCertFormat
-		}
-	}
-
-	// Check valid certType
-	ret.CertType = SDSCertType(slices[0])
-	if _, ok := validCertTypes[ret.CertType]; !ok {
-		return nil, errInvalidCertFormat
-	}
-
-	// Check valid namespace'd service name
-	svc, err := service.UnmarshalMeshService(slices[1])
-	if err != nil {
-		return nil, err
-	}
-	err = copier.Copy(&ret.MeshService, &svc)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
-}
-
-// String is a common facility/interface to generate a string resource name out of a SDSCert
-// This is to keep the sprintf logic and/or separators used agnostic to other modules
-func (sdsc SDSCert) String() string {
-	return fmt.Sprintf("%s%s%s",
-		sdsc.CertType.String(),
-		Separator,
-		sdsc.MeshService.String())
-}
 
 // GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *xds_core.Address {
@@ -152,7 +80,7 @@ func GetTLSParams() *xds_auth.TlsParameters {
 
 // GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*xds_accesslog_filter.AccessLog {
-	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
+	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
 	if err != nil {
 		log.Error().Err(err).Msg("Error marshalling AccessLog object")
 		return nil
@@ -165,10 +93,9 @@ func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 	}
 }
 
-func getFileAccessLog() *xds_accesslog.FileAccessLog {
-	accessLogger := &xds_accesslog.FileAccessLog{
-		Path: accessLogPath,
-		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+func getStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
+	accessLogger := &xds_accesslog.StdoutAccessLog{
+		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
 			LogFormat: &xds_core.SubstitutionFormatString{
 				Format: &xds_core.SubstitutionFormatString_JsonFormat{
 					JsonFormat: &structpb.Struct{
@@ -212,7 +139,7 @@ func pbStringValue(v string) *structpb.Value {
 // getCommonTLSContext returns a CommonTlsContext type for a given 'tlsSDSCert' and 'peerValidationSDSCert' pair.
 // 'tlsSDSCert' determines the SDS Secret config used to present the TLS certificate.
 // 'peerValidationSDSCert' determines the SDS Secret configs used to validate the peer TLS certificate.
-func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert secrets.SDSCert) *xds_auth.CommonTlsContext {
 	return &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
@@ -230,29 +157,30 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 	}
 }
 
-// GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
-	upstreamSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    ServiceCertType,
+// GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool) *xds_auth.DownstreamTlsContext {
+	upstreamSDSCert := secrets.SDSCert{
+		Name:     upstreamIdentity.GetSDSCSecretName(),
+		CertType: secrets.ServiceCertType,
 	}
 
-	var downstreamPeerValidationCertType SDSCertType
+	var downstreamPeerValidationCertType secrets.SDSCertType
 	if mTLS {
 		// Perform SAN validation for downstream client certificates
-		downstreamPeerValidationCertType = RootCertTypeForMTLSInbound
+		downstreamPeerValidationCertType = secrets.RootCertTypeForMTLSInbound
 	} else {
 		// TLS based cert validation (used for ingress)
-		downstreamPeerValidationCertType = RootCertTypeForHTTPS
+		downstreamPeerValidationCertType = secrets.RootCertTypeForHTTPS
 	}
-	// The downstream peer validation SDS cert points to a cert with the name 'upstreamSvc' only
-	// because we use a single DownstreamTlsContext for all inbound traffic to the given 'upstreamSvc'.
-	// This single DownstreamTlsContext is used to validate all allowed inbound SANs with the
+	// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
+	// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
+	// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
-	downstreamPeerValidationSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    downstreamPeerValidationCertType,
+	downstreamPeerValidationSDSCert := secrets.SDSCert{
+		Name:     upstreamIdentity.GetSDSCSecretName(),
+		CertType: downstreamPeerValidationCertType,
 	}
 
 	tlsConfig := &xds_auth.DownstreamTlsContext{
@@ -263,15 +191,16 @@ func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_au
 	return tlsConfig
 }
 
-// GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream and upstream service pair
-func GetUpstreamTLSContext(downstreamSvc, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
-	downstreamSDSCert := SDSCert{
-		MeshService: downstreamSvc,
-		CertType:    ServiceCertType,
+// GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
+	downstreamSDSCert := secrets.SDSCert{
+		Name:     downstreamIdentity.GetSDSCSecretName(),
+		CertType: secrets.ServiceCertType,
 	}
-	upstreamPeerValidationSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    RootCertTypeForMTLSOutbound,
+	upstreamPeerValidationSDSCert := secrets.SDSCert{
+		Name:     upstreamSvc.String(),
+		CertType: secrets.RootCertTypeForMTLSOutbound,
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)
 
@@ -288,6 +217,25 @@ func GetUpstreamTLSContext(downstreamSvc, upstreamSvc service.MeshService) *xds_
 	return tlsConfig
 }
 
+// GetHTTP2ProtocolOptions creates an Envoy http configuration that matches the downstream protocol
+func GetHTTP2ProtocolOptions() (map[string]*any.Any, error) {
+	marshalledHTTPProtocolOptions, err := ptypes.MarshalAny(
+		&extensions_upstream_http_v3.HttpProtocolOptions{
+			UpstreamProtocolOptions: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
+				UseDownstreamProtocolConfig: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
+					Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+				},
+			},
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]*any.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": marshalledHTTPProtocolOptions,
+	}, nil
+}
+
 // GetADSConfigSource creates an Envoy ConfigSource struct.
 func GetADSConfigSource() *xds_core.ConfigSource {
 	return &xds_core.ConfigSource{
@@ -299,13 +247,16 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 }
 
 // GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeID(nodeID string) string {
+func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
 	items := []string{
 		"$(POD_UID)",
 		"$(POD_NAMESPACE)",
 		"$(POD_IP)",
 		"$(SERVICE_ACCOUNT)",
 		nodeID,
+		"$(POD_NAME)",
+		workloadKind,
+		workloadName,
 	}
 
 	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
@@ -315,17 +266,25 @@ func GetEnvoyServiceNodeID(nodeID string) string {
 func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
-	if len(chunks) != 5 {
+	if len(chunks) < 5 {
 		return nil, errors.New("invalid envoy service node id format")
 	}
 
-	return &PodMetadata{
+	meta := &PodMetadata{
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
-		ServiceAccount: chunks[3],
+		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
 		EnvoyNodeID:    chunks[4],
-	}, nil
+	}
+
+	if len(chunks) >= 8 {
+		meta.Name = chunks[5]
+		meta.WorkloadKind = chunks[6]
+		meta.WorkloadName = chunks[7]
+	}
+
+	return meta, nil
 }
 
 // GetLocalClusterNameForService returns the name of the local cluster for the given service.
@@ -338,4 +297,102 @@ func GetLocalClusterNameForService(proxyService service.MeshService) string {
 // The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 func GetLocalClusterNameForServiceCluster(clusterName string) string {
 	return fmt.Sprintf("%s%s", clusterName, localClusterSuffix)
+}
+
+// certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
+type certificateCommonNameMeta struct {
+	ProxyUUID uuid.UUID
+	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
+	ServiceAccount string
+	Namespace      string
+}
+
+func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
+	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
+	if len(chunks) < 3 {
+		return nil, ErrInvalidCertificateCN
+	}
+	proxyUUID, err := uuid.Parse(chunks[0])
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing %s into uuid.UUID", chunks[0])
+		return nil, err
+	}
+
+	return &certificateCommonNameMeta{
+		ProxyUUID: proxyUUID,
+		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
+		ServiceAccount: chunks[1],
+		Namespace:      chunks[2],
+	}, nil
+}
+
+// GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
+func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.Controller) (*v1.Pod, error) {
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID)
+	podList := kubecontroller.ListPods()
+	var pods []v1.Pod
+	for _, pod := range podList {
+		if pod.Namespace != cnMeta.Namespace {
+			continue
+		}
+		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == cnMeta.ProxyUUID.String() {
+			pods = append(pods, *pod)
+		}
+	}
+
+	if len(pods) == 0 {
+		log.Error().Msgf("Did not find Pod with label %s = %s in namespace %s",
+			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
+		return nil, ErrDidNotFindPodForCertificate
+	}
+
+	// --- CONVENTION ---
+	// By Open Service Mesh convention the number of services a pod can belong to is 1
+	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
+	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
+	if len(pods) > 1 {
+		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
+			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
+		return nil, ErrMoreThanOnePodForCertificate
+	}
+
+	pod := pods[0]
+	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, cnMeta.ProxyUUID)
+
+	// Ensure the Namespace encoded in the certificate matches that of the Pod
+	if pod.Namespace != cnMeta.Namespace {
+		log.Warn().Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
+			pod.ObjectMeta.UID, pod.Namespace, cnMeta.Namespace)
+		return nil, ErrNamespaceDoesNotMatchCertificate
+	}
+
+	// Ensure the Name encoded in the certificate matches that of the Pod
+	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
+	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
+		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
+		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
+			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
+		return nil, ErrServiceAccountDoesNotMatchCertificate
+	}
+
+	return &pod, nil
+}
+
+// GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (identity.K8sServiceAccount, error) {
+	var svcAccount identity.K8sServiceAccount
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return svcAccount, err
+	}
+
+	svcAccount.Name = cnMeta.ServiceAccount
+	svcAccount.Namespace = cnMeta.Namespace
+
+	return svcAccount, nil
 }

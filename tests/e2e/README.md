@@ -8,23 +8,18 @@
   - [Flags](#flags)
 
 ## Overview
-End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected. 
+End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected.
 
 ## Files and structure
 OSM's e2e tests are located in `tests/e2e`.
-The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests ([see instructions below](#running-the-tests)). 
+The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests ([see instructions below](#running-the-tests)).
 
 OSM's framework, helpers and related files are located under `tests/framework`.
 Once imported, it automatically sets up an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [common.go](tests/framework/common.go) for more details about the init, setup and cleanup processes.
 
-Tests are organized by top-level `Describe` blocks into tiers based on priority. A tier's tests will also be run as a part of all the tiers below it.
+### Test organization
 
-- Tier 1: run against every PR and should pass before being merged
-- Tier 2: run against every merge into the main branch
-
-Independent of tiers, tests are also organized into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
-
-**Note**: These tiers and buckets and which tests fall into each are likely to change as the test suite grows.
+Tests are organized by top-level `Describe` blocks into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
 
 To help organize the tests, a custom `Describe` block named `OSMDescribe` is provided which accepts an additional struct parameter which contains fields for test metadata like tier and bucket. `OSMDescribe` will construct a well-formatted name including the test metadata which can be used in CI to run tests accordingly. Ginkgo's original `Describe` should not be used directly at the top-level and `OSMDescribe` should be used instead.
 
@@ -51,15 +46,15 @@ Note: If you use `latest` tag, K8s will try to pull the image by default. If the
 Have your Kubeconfig file point to your testing cluster of choice.
 The following code uses `latest` tag by default. Non-Kind deployments do not push the images on the nodes, so make sure to set the registry accordingly.
 ```
-export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD 
+export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD
 make build-osm
 make docker-push
 go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 ```
 
 ### Flags
-#### (TODO) Kubeconf selection
-Currently, test init will load a `Kubeconf` based on Defalut Kubeconf Loading rules. 
+#### (TODO) Kubeconfig selection
+Currently, test init will load a `Kubeconf` based on default kubeconfig loading rules.
 If Kind is used, the kubeconf is temporarily replaced and Kind's kubeconf is used instead.
 
 #### Container registry
@@ -81,7 +76,7 @@ export CTR_REGISTRY_PASSWORD=<password>        # opt
 ```
 
 #### OSM Tag
-The following flag will refer to the version of the OSM platform containers (OSM and init) for test to use:
+The following flag will refer to the image version of the OSM platform containers (`osm-controller` and `init`) and `tcp-echo-server` for the tests to use:
 ```
 -osmImageTag string
 		OSM image tag (default "latest")
@@ -93,7 +88,7 @@ export CTR_TAG=mytag               # Optional, 'latest' used by default
 make docker-push-init docker-push-osm-controller.    # Use docker-build-* targets instead when using kind
 ```
 
-#### Use Kind for testing 
+#### Use Kind for testing
 Testing implements support for Kind. If `kindCluster` is enabled, a new Kind cluster will be provisioned and it will be automatically used for the test.
 ```
 -kindCluster
@@ -120,3 +115,24 @@ will anyway be destroyed.
 		Wait for effective deletion of resources (default true)
 ```
 Plus, `go test` and `Ginkgo` specific flags, of course.
+
+#### Running individual tests:
+
+The `ginkgo.focus` flag can be used to run individual tests. The flag should specify the "Context" of the test they wish to run, which can be found in the `.go` file for that test. For instance, if you want to run the `e2e_tcp_client_server_test` with SMI policies, you should run:
+
+```console
+go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus="\bSimpleClientServer TCP with SMI policies\b"
+```
+
+#### Setting test timeout:
+
+The `test.timeout` flag sets a total time limit for all the tests that you are running. If you run the e2es without specifying any timeout limit, the tests will terminate after 10 minutes. To run the tests without any time limit, you should set `test.timeout 0`.
+
+To set a specific time limit, a unit must be specified along with a number. For instance, if you want to set the limit to 90 seconds (say for just testing one e2e), you should say `test.timeout 90s`. If you want the tests to run for 60 minutes, you should say `test.timeout 60m`.
+
+#### OpenShift:
+OpenShift compatibility is still a WIP for the e2e tests.
+
+To run these tests on OpenShift
+1. Install the [oc CLI](https://docs.openshift.com/container-platform/4.7/cli_reference/openshift_cli/getting-started-cli.html).
+1. Include `-deployOnOpenShift=true` with your `go test` command.

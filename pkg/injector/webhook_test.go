@@ -2,26 +2,27 @@ package injector
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"k8s.io/api/admission/v1beta1"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	tassert "github.com/stretchr/testify/assert"
+	admissionv1 "k8s.io/api/admission/v1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -37,15 +38,15 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		testWebhookServiceNamespace := "test-namespace"
 		testWebhookServiceName := "test-service-name"
 		testWebhookServicePath := "/path"
-		kubeClient := fake.NewSimpleClientset(&admissionv1beta1.MutatingWebhookConfiguration{
+		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: webhookName,
 			},
-			Webhooks: []admissionv1beta1.MutatingWebhook{
+			Webhooks: []admissionregv1.MutatingWebhook{
 				{
 					Name: MutatingWebhookName,
-					ClientConfig: admissionv1beta1.WebhookClientConfig{
-						Service: &admissionv1beta1.ServiceReference{
+					ClientConfig: admissionregv1.WebhookClientConfig{
+						Service: &admissionregv1.ServiceReference{
 							Namespace: testWebhookServiceNamespace,
 							Name:      testWebhookServiceName,
 							Path:      &testWebhookServicePath,
@@ -60,7 +61,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 		})
 
-		mwc := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+		mwc := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations()
 
 		It("checks if the hook exists", func() {
 			err := webhookExists(mwc, webhookName)
@@ -80,29 +81,29 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		})
 
 		It("ensures webhook is configured correctly", func() {
-			webhooks, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
+			webhooks, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(webhooks.Items)).To(Equal(1))
 
-			webhook := webhooks.Items[0]
-			Expect(len(webhook.Webhooks)).To(Equal(1))
-			Expect(webhook.Webhooks[0].NamespaceSelector.MatchLabels["some-key"]).To(Equal("some-value"))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Namespace).To(Equal(testWebhookServiceNamespace))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
-			Expect(webhook.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
+			wh := webhooks.Items[0]
+			Expect(len(wh.Webhooks)).To(Equal(1))
+			Expect(wh.Webhooks[0].NamespaceSelector.MatchLabels["some-key"]).To(Equal("some-value"))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Namespace).To(Equal(testWebhookServiceNamespace))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
+			Expect(wh.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
 		})
 	})
 })
 
 type mockCertificate struct{}
 
-func (mc mockCertificate) GetCommonName() certificate.CommonName { return "" }
-func (mc mockCertificate) GetCertificateChain() []byte           { return []byte("chain") }
-func (mc mockCertificate) GetPrivateKey() []byte                 { return []byte("key") }
-func (mc mockCertificate) GetIssuingCA() []byte                  { return []byte("ca") }
-func (mc mockCertificate) GetExpiration() time.Time              { return time.Now() }
-func (mc mockCertificate) GetSerialNumber() string               { return "serial_number" }
+func (mc mockCertificate) GetCommonName() certificate.CommonName     { return "" }
+func (mc mockCertificate) GetCertificateChain() []byte               { return []byte("chain") }
+func (mc mockCertificate) GetPrivateKey() []byte                     { return []byte("key") }
+func (mc mockCertificate) GetIssuingCA() []byte                      { return []byte("ca") }
+func (mc mockCertificate) GetExpiration() time.Time                  { return time.Now() }
+func (mc mockCertificate) GetSerialNumber() certificate.SerialNumber { return "serial_number" }
 
 var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation is one of enabled/yes/true", func() {
@@ -181,7 +182,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
 		fakeClientSet      *fake.Clientset
-		wh                 *webhook
+		wh                 *mutatingWebhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -192,7 +193,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		wh = &webhook{
+		wh = &mutatingWebhook{
 			kubeClient:     fakeClientSet,
 			kubeController: mockKubeController,
 			osmNamespace:   osmNamespace,
@@ -444,7 +445,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 var _ = Describe("Testing Injector Functions", func() {
 	admissionRequestBody := `{
   "kind": "AdmissionReview",
-  "apiVersion": "admission.k8s.io/v1beta1",
+  "apiVersion": "admission.k8s.io/v1",
   "request": {
     "uid": "11111111-2222-3333-4444-555555555555",
     "kind": {
@@ -491,12 +492,8 @@ var _ = Describe("Testing Injector Functions", func() {
   }
 }`
 	It("creates new webhook", func() {
-		injectorConfig := Config{
-			InitContainerImage: "-testInitContainerImage-",
-			SidecarImage:       "-testSidecarImage-",
-		}
+		injectorConfig := Config{}
 		kubeClient := fake.NewSimpleClientset()
-		var meshCatalog catalog.MeshCataloger
 		var kubeController k8s.Controller
 		meshName := "-mesh-name-"
 		osmNamespace := "-osm-namespace-"
@@ -506,7 +503,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresor.NewFakeCertManager(cfg)
 
-		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
 		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
 	})
@@ -522,7 +519,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		}
 		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
 			nonInjectNamespaces: mapset.NewSet(),
@@ -538,8 +535,9 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		resp := w.Result()
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		expected := "{\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
+		expected := "{\"kind\":\"AdmissionReview\",\"apiVersion\":\"admission.k8s.io/v1\",\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		log.Debug().Msgf("Actual: %s", string(bodyBytes))
 		Expect(string(bodyBytes)).To(Equal(expected))
 	})
 
@@ -550,7 +548,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockKubeController,
 			nonInjectNamespaces: mapset.NewSet(),
@@ -562,10 +560,10 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		Expect(requestForNamespace).To(Equal("default"))
 
-		expectedAdmissionResponse := v1beta1.AdmissionReview{
-			TypeMeta: metav1.TypeMeta{Kind: "", APIVersion: ""},
+		expectedAdmissionResponse := admissionv1.AdmissionReview{
+			TypeMeta: metav1.TypeMeta{Kind: "AdmissionReview", APIVersion: "admission.k8s.io/v1"},
 			Request:  nil,
-			Response: &v1beta1.AdmissionResponse{
+			Response: &admissionv1.AdmissionResponse{
 				UID:              "11111111-2222-3333-4444-555555555555",
 				Allowed:          true,
 				Result:           nil,
@@ -598,7 +596,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		client := fake.NewSimpleClientset()
 		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
 			nonInjectNamespaces: mapset.NewSet(),
@@ -608,7 +606,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		// Action !!
 		actual := wh.mutate(nil, proxyUUID)
 
-		expected := v1beta1.AdmissionResponse{
+		expected := admissionv1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: "nil admission request",
 			},
@@ -617,31 +615,18 @@ var _ = Describe("Testing Injector Functions", func() {
 	})
 
 	It("patches admission response", func() {
-		admRes := v1beta1.AdmissionResponse{
+		admRes := admissionv1.AdmissionResponse{
 			Patch: []byte(""),
 		}
 		patchBytes := []byte("abc")
 		patchAdmissionResponse(&admRes, patchBytes)
 
-		expectedPatchType := v1beta1.PatchTypeJSONPatch
-		expected := v1beta1.AdmissionResponse{
+		expectedPatchType := admissionv1.PatchTypeJSONPatch
+		expected := admissionv1.AdmissionResponse{
 			Patch:     []byte("abc"),
 			PatchType: &expectedPatchType,
 		}
 		Expect(admRes).To(Equal(expected))
-	})
-
-	It("creates admission error", func() {
-		message := uuid.New().String()
-		err := errors.New(message)
-		actual := admissionError(err)
-
-		expected := v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: message,
-			},
-		}
-		Expect(actual).To(Equal(&expected))
 	})
 
 	It("creates partial mutating webhook configuration", func() {
@@ -650,19 +635,184 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		actual := getPartialMutatingWebhookConfiguration(cert, webhookConfigName)
 
-		expected := admissionv1beta1.MutatingWebhookConfiguration{
+		expected := admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "-webhook-config-name-",
 			},
-			Webhooks: []admissionv1beta1.MutatingWebhook{
+			Webhooks: []admissionregv1.MutatingWebhook{
 				{
 					Name: MutatingWebhookName,
-					ClientConfig: admissionv1beta1.WebhookClientConfig{
+					ClientConfig: admissionregv1.WebhookClientConfig{
 						CABundle: cert.GetCertificateChain(),
 					},
+					SideEffects: func() *admissionregv1.SideEffectClass {
+						sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+						return &sideEffect
+					}(),
+					AdmissionReviewVersions: []string{"v1"},
 				},
 			},
 		}
 		Expect(actual).To(Equal(expected))
 	})
 })
+
+func TestIsAnnotatedForPortExclusion(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		annotations   map[string]string
+		forAnnotation string
+		expectedError error
+		expectedPorts []int
+	}{
+		{
+			name:          "contains outbound port exclusion list annotation",
+			annotations:   map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "contains inbound port exclusion list annotation",
+			annotations:   map[string]string{inboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "does not contains port exclusion list annontation",
+			annotations:   nil,
+			forAnnotation: "",
+			expectedError: nil,
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains outbound port exclusion list annontation but invalid port",
+			annotations:   map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains inbound port exclusion list annontation but invalid port",
+			annotations:   map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ports, err := isAnnotatedForPortExclusion(tc.annotations, tc.forAnnotation, "-kind-", "-name-")
+			if err != nil {
+				assert.EqualError(tc.expectedError, err.Error())
+			} else {
+				assert.Equal(tc.expectedError, err)
+			}
+			assert.ElementsMatch(tc.expectedPorts, ports)
+		})
+	}
+}
+
+func TestGetPodOutboundPortExclusionList(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name          string
+		podAnnotation map[string]string
+		forAnnotation string
+		expectedError error
+		expectedPorts []int
+	}{
+		{
+			name:          "contains outbound port exclusion list annotation",
+			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "contains inbound port exclusion list annotation",
+			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: nil,
+			expectedPorts: []int{6060, 7070},
+		},
+		{
+			name:          "does not contains any port exclusion list annontation",
+			podAnnotation: nil,
+			forAnnotation: "",
+			expectedError: nil,
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains outbound port exclusion list annontation but invalid port",
+			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: outboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+		{
+			name:          "contains inbound port exclusion list annontation but invalid port",
+			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: inboundPortExclusionListAnnotation,
+			expectedError: errors.Errorf("Invalid port '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
+			expectedPorts: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(GinkgoT())
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			fakeClientSet := fake.NewSimpleClientset()
+			namespace := "test"
+			osmNamespace := "osm-namespace"
+
+			wh := &mutatingWebhook{
+				kubeClient:     fakeClientSet,
+				kubeController: mockKubeController,
+				osmNamespace:   osmNamespace,
+				nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+					metav1.NamespaceSystem,
+					metav1.NamespacePublic,
+					osmNamespace,
+				}),
+			}
+
+			testNamespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			}
+			retNs, _ := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pod-test",
+					Annotations: tc.podAnnotation,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "test-SA",
+				},
+			}
+
+			_, err := fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+			mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
+
+			ports, err := wh.getPortExclusionListForPod(pod, namespace, tc.forAnnotation)
+			if err != nil {
+				assert.EqualError(tc.expectedError, err.Error())
+			} else {
+				assert.Equal(tc.expectedError, err)
+			}
+			assert.ElementsMatch(tc.expectedPorts, ports)
+		})
+	}
+}

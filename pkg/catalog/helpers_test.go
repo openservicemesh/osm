@@ -3,28 +3,33 @@ package catalog
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
+type testParams struct {
+	permissiveMode bool
+}
+
+func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatalog {
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 
@@ -32,6 +37,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
+	mockPolicyController := policy.NewMockController(mockCtrl)
 
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
@@ -41,19 +47,19 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 	certManager := tresor.NewFakeCertManager(mockConfigurator)
 
 	// Create a bookstoreV1 pod
-	bookstoreV1Pod := tests.NewPodTestFixtureWithOptions(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName)
+	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV1Service.Namespace).Create(context.TODO(), &bookstoreV1Pod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
 
 	// Create a bookstoreV2 pod
-	bookstoreV2Pod := tests.NewPodTestFixtureWithOptions(tests.BookstoreV2Service.Namespace, tests.BookstoreV2Service.Name, tests.BookstoreServiceAccountName)
+	bookstoreV2Pod := tests.NewPodFixture(tests.BookstoreV2Service.Namespace, tests.BookstoreV2Service.Name, tests.BookstoreV2ServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV2Service.Namespace).Create(context.TODO(), &bookstoreV2Pod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
 
 	// Create a bookbuyer pod
-	bookbuyerPod := tests.NewPodTestFixtureWithOptions(tests.BookbuyerService.Namespace, tests.BookbuyerService.Name, tests.BookbuyerServiceAccountName)
+	bookbuyerPod := tests.NewPodFixture(tests.BookbuyerService.Namespace, tests.BookbuyerService.Name, tests.BookbuyerServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.BookbuyerService.Namespace).Create(context.TODO(), &bookbuyerPod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
@@ -89,11 +95,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 		tests.BookstoreApexService.Namespace,
 	})
 
-	announcementsChan := make(chan announcements.Announcement)
-
-	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
-	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
-
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
 		// play pretend this call queries a controller cache
@@ -109,7 +110,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 
 		return services
 	}).AnyTimes()
-	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *corev1.Service {
 		// simulate lookup on controller cache
 		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
 
@@ -119,16 +120,18 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 
 		return vv
 	}).AnyTimes()
-	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(announcementsChan).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV1Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
 
-	mockMeshSpec.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
-	mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*target.TrafficTarget{&tests.TrafficTarget}).AnyTimes()
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(testParams.permissiveMode).AnyTimes()
+	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0)).AnyTimes()
+
+	mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, mockMeshSpec, certManager,
-		mockIngressMonitor, stop, mockConfigurator, endpointProviders...)
+		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, endpointProviders...)
 }

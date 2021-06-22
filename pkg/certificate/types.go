@@ -1,10 +1,9 @@
+// Package certificate implements utility routines to endcode and decode certificates, and provides the
+// interface definitions for Certificate and Certificate Manager.
 package certificate
 
 import (
 	"time"
-
-	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
@@ -18,6 +17,13 @@ const (
 	// of a certificate requests.
 	TypeCertificateRequest = "CERTIFICATE REQUEST"
 )
+
+// SerialNumber is the Serial Number of the given certificate.
+type SerialNumber string
+
+func (sn SerialNumber) String() string {
+	return string(sn)
+}
 
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
@@ -45,7 +51,7 @@ type Certificater interface {
 	GetExpiration() time.Time
 
 	// GetSerialNumber returns the serial number of the given certificate.
-	GetSerialNumber() string
+	GetSerialNumber() SerialNumber
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.
@@ -68,11 +74,4 @@ type Manager interface {
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
 	ReleaseCertificate(CommonName)
-
-	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
-	GetAnnouncementsChannel() <-chan announcements.Announcement
 }
-
-var (
-	log = logger.New("certificate")
-)

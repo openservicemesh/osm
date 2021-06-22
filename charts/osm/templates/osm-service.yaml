@@ -2,16 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: osm-controller
+  namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
 spec:
   ports:
-    - name: osm-port
+    - name: ads-port
       port: 15128
       targetPort: 15128
-    - name: sidecar-injector
-      port: 443
-      targetPort: 9090
     - name: debug-port
       port: 9092
       targetPort: 9092

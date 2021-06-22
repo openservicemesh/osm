@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
@@ -20,7 +20,7 @@ import (
 )
 
 func TestSetupMutualTLS(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type setupMutualTLStest struct {
 		certPem       []byte
@@ -37,7 +37,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	goodCertPem := adsCert.GetCertificateChain()
 	goodKeyPem := adsCert.GetPrivateKey()
 	goodCA := adsCert.GetIssuingCA()
-	emptyByteArray := []byte{}
+	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{
 		{emptyByteArray, goodKeyPem, goodCA, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key "},
@@ -58,7 +58,7 @@ func TestSetupMutualTLS(t *testing.T) {
 }
 
 func TestValidateClient(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type validateClientTest struct {
 		ctx           context.Context
@@ -83,12 +83,14 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	for _, vct := range validateClientTests {
-		result, err := ValidateClient(vct.ctx, vct.commonNames)
+		certCN, certSerialNumber, err := ValidateClient(vct.ctx, vct.commonNames)
 		if err != nil {
-			assert.Equal(result, certificate.CommonName(""))
+			assert.Equal(certCN, certificate.CommonName(""))
+			assert.Equal(certSerialNumber, certificate.SerialNumber(""))
 			assert.True(errors.Is(err, vct.expectedError))
 		} else {
-			assert.NotNil(result)
+			assert.NotNil(certCN)
+			assert.NotNil(certSerialNumber)
 			assert.Empty(vct.expectedError)
 		}
 	}

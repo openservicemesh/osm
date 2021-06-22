@@ -11,8 +11,9 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -31,19 +32,24 @@ func getIngressTransportProtocol(forHTTPS bool) string {
 	return ""
 }
 
+<<<<<<< HEAD
 func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
 	/* WITESAND_TLS_DISABLE
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svc, false))
+=======
+func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, false /* TLS */))
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
 		return nil
 	}
 	*/
 
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
-	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
+	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil, inbound)
+	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager object for proxy %s", svc)
+		log.Error().Err(err).Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)
 		return nil
 	}
 
@@ -62,7 +68,7 @@ func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshSe
 			{
 				Name: wellknown.HTTPConnectionManager,
 				ConfigType: &xds_listener.Filter_TypedConfig{
-					TypedConfig: marshalledInboundConnManager,
+					TypedConfig: marshalledIngressConnManager,
 				},
 			},
 		},
@@ -72,32 +78,33 @@ func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshSe
 func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
 	var ingressFilterChains []*xds_listener.FilterChain
 
-	protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(svc)
+	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", svc)
 		return ingressFilterChains
 	}
 
-	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
+	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
 	for port, appProtocol := range protocolToPortMap {
 		switch appProtocol {
-		case httpAppProtocol:
+		case constants.ProtocolHTTP:
 			// Ingress filter chain for HTTP port
 			if lb.cfg.UseHTTPSIngress() {
 				// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
-				ingressFilterChainWithSNI := newIngressHTTPFilterChain(lb.cfg, svc, port)
+				ingressFilterChainWithSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
 				ingressFilterChainWithSNI.Name = fmt.Sprintf("%s:%d", inboundIngressHTTPSFilterChain, port)
 				ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.ServerName()}
 				ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
 			}
 
 			// Filter chain without SNI matching enabled for HTTP clients and HTTPS clients that don't set the SNI
-			ingressFilterChainWithoutSNI := newIngressHTTPFilterChain(lb.cfg, svc, port)
+			ingressFilterChainWithoutSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
 			ingressFilterChainWithoutSNI.Name = fmt.Sprintf("%s:%d", inboundIngressNonSNIFilterChain, port)
 			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 
 		default:
-			log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy:port %s:%d", appProtocol, svc, port)
+			log.Error().Msgf("Cannot build ingress filter chain. Protocol %s is not supported for service %s on port %d",
+				appProtocol, svc, port)
 		}
 	}
 

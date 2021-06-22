@@ -5,19 +5,20 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestGetIngressFilterChains(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -92,17 +93,21 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			lb := &listenerBuilder{
-				meshCatalog: mockCatalog,
-				cfg:         mockConfigurator,
-				svcAccount:  tests.BookstoreServiceAccount,
+				meshCatalog:     mockCatalog,
+				cfg:             mockConfigurator,
+				serviceIdentity: tests.BookstoreServiceIdentity,
 			}
 
 			// Mock catalog call to get port:protocol mapping for service
-			mockCatalog.EXPECT().GetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
+			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
 			// Mock configurator calls to determine HTTP vs HTTPS ingress
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
 			// Mock calls used to build the HTTP connection manager
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			// Expect no External Auth config
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+				Enable: false,
+			}).AnyTimes()
 
 			filterChains := lb.getIngressFilterChains(proxyService)
 
@@ -124,7 +129,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 }
 
 func TestGetIngressTransportProtocol(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                      string

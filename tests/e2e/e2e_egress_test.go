@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("HTTP and HTTPS Egress",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 2,
 	},
 	func() {
 		Context("Egress", func() {
@@ -24,6 +24,8 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.EgressEnabled = true
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+				meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 
 				// Create Test NS
 				Expect(Td.CreateNs(sourceNs, nil)).To(Succeed())
@@ -85,8 +87,8 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				}
 
 				By("Disabling Egress")
-
-				err = Td.UpdateOSMConfig("egress", "false")
+				meshConfig.Spec.Traffic.EnableEgress = false
+				_, err = Td.UpdateOSMConfig(meshConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				for _, url := range urls {

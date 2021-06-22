@@ -2,21 +2,19 @@ package configurator
 
 import (
 	"fmt"
-	"strconv"
 
-	"github.com/cskr/pubsub"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 const (
+<<<<<<< HEAD
 	// PermissiveTrafficPolicyModeKey is the key name used for permissive mode in the ConfigMap
 	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 
@@ -49,51 +47,52 @@ const (
 
 	// envoyLogLevel is the key name used to specify the log level of Envoy proxy in the ConfigMap
 	envoyLogLevel = "envoy_log_level"
+=======
+	meshConfigInformerName = "MeshConfig"
+	meshConfigProviderName = "OSM"
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
-	serviceCertValidityDurationKey = "service_cert_validity_duration"
-
-	// defaultPubSubChannelSize is the default size of the buffered channel returned to the  subscriber
-	defaultPubSubChannelSize = 128
+	// DefaultMeshConfigName is the default name of MeshConfig object
+	DefaultMeshConfigName = "osm-mesh-config"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
-	return newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+func NewConfigurator(kubeClient versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string) Configurator {
+	return newConfigurator(kubeClient, stop, osmNamespace, meshConfigName)
 }
 
-func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) *Client {
-	// Ensure this informer exclusively watches only the Namespace where OSM in installed and the particular 'osm-config' ConfigMap
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient,
-		k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace),
-		informers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
-			listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", osmConfigMapName).String()
-		}))
-	informer := informerFactory.Core().V1().ConfigMaps().Informer()
+func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string) *Client {
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+		meshConfigClientSet,
+		k8s.DefaultKubeEventResyncInterval,
+		informers.WithNamespace(osmNamespace),
+	)
+	informer := informerFactory.Config().V1alpha1().MeshConfigs().Informer()
 	client := Client{
-		informer:         informer,
-		cache:            informer.GetStore(),
-		cacheSynced:      make(chan interface{}),
-		announcements:    make(chan a.Announcement),
-		osmNamespace:     osmNamespace,
-		osmConfigMapName: osmConfigMapName,
-		pSub:             pubsub.New(defaultPubSubChannelSize),
+		informer:       informer,
+		cache:          informer.GetStore(),
+		cacheSynced:    make(chan interface{}),
+		osmNamespace:   osmNamespace,
+		meshConfigName: meshConfigName,
 	}
 
-	informerName := "ConfigMap"
-	providerName := "OSMConfigMap"
+	// configure listener
 	eventTypes := k8s.EventTypes{
-		Add:    a.ConfigMapAdded,
-		Update: a.ConfigMapUpdated,
-		Delete: a.ConfigMapDeleted,
+		Add:    announcements.MeshConfigAdded,
+		Update: announcements.MeshConfigUpdated,
+		Delete: announcements.MeshConfigDeleted,
 	}
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, client.announcements, nil, nil, eventTypes))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(meshConfigInformerName, meshConfigProviderName, nil, eventTypes))
+
+	// start listener
+	go client.runMeshConfigListener(stop)
 
 	client.run(stop)
 
 	return &client
 }
 
+<<<<<<< HEAD
 // This struct must match the shape of the "osm-config" ConfigMap
 // which was created in the OSM namespace.
 type osmConfig struct {
@@ -129,45 +128,70 @@ type osmConfig struct {
 
 	// TracingEndpoint is the collector endpoint on the listener
 	TracingEndpoint string `yaml:"tracing_endpoint"`
+=======
+// Listens to MeshConfig events and notifies dispatcher to issue config updates to the envoys based
+// on config seen on the MeshConfig
+func (c *Client) runMeshConfigListener(stop <-chan struct{}) {
+	// Create the subscription channel synchronously
+	cfgSubChannel := events.GetPubSubInstance().Subscribe(
+		announcements.MeshConfigAdded,
+		announcements.MeshConfigDeleted,
+		announcements.MeshConfigUpdated,
+	)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	// EnvoyLogLevel is a string that defines the log level for envoy proxies
-	EnvoyLogLevel string `yaml:"envoy_log_level"`
+	// Defer unsubscription on async routine exit
+	defer events.GetPubSubInstance().Unsub(cfgSubChannel)
 
-	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
-	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
-	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
-	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
-}
-
-// This function captures the Announcements from k8s informer updates, and relays them to the subscribed
-// members on the pubsub interface
-func (c *Client) publish() {
 	for {
-		a := <-c.announcements
-		log.Debug().Msgf("OSM config publish: %s", a.Type.String())
-		c.pSub.Pub(a, a.Type.String())
+		select {
+		case msg := <-cfgSubChannel:
+			psubMsg, ok := msg.(events.PubSubMessage)
+			if !ok {
+				log.Error().Msgf("Type assertion failed for PubSubMessage, %v\n", msg)
+				continue
+			}
+
+			switch psubMsg.AnnouncementType {
+			case announcements.MeshConfigAdded:
+				meshConfigAddedMessageHandler(&psubMsg)
+			case announcements.MeshConfigDeleted:
+				meshConfigDeletedMessageHandler(&psubMsg)
+			case announcements.MeshConfigUpdated:
+				meshConfigUpdatedMessageHandler(&psubMsg)
+			}
+		case <-stop:
+			log.Trace().Msgf("MeshConfig event listener exiting")
+			return
+		}
 	}
 }
 
 func (c *Client) run(stop <-chan struct{}) {
-	go c.publish()          // prepare the publish interface
 	go c.informer.Run(stop) // run the informer synchronization
-	log.Info().Msgf("Started OSM ConfigMap informer - watching for %s", c.getConfigMapCacheKey())
-	log.Info().Msg("[ConfigMap Client] Waiting for ConfigMap informer's cache to sync")
+	log.Debug().Msgf("Started OSM MeshConfig informer")
+	log.Debug().Msg("[MeshConfig Client] Waiting for MeshConfig informer's cache to sync")
 	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
-		log.Error().Msg("Failed initial cache sync for ConfigMap informer")
+		log.Error().Msg("Failed initial cache sync for MeshConfig informer")
 		return
 	}
 
 	// Closing the cacheSynced channel signals to the rest of the system that caches have been synced.
 	close(c.cacheSynced)
-	log.Info().Msg("[ConfigMap Client] Cache sync for ConfigMap informer finished")
+	log.Debug().Msg("[MeshConfig Client] Cache sync for MeshConfig informer finished")
 }
 
-func (c *Client) getConfigMapCacheKey() string {
-	return fmt.Sprintf("%s/%s", c.osmNamespace, c.osmConfigMapName)
+func meshConfigAddedMessageHandler(psubMsg *events.PubSubMessage) {
+	log.Debug().Msgf("[%s] OSM MeshConfig added event triggered a global proxy broadcast",
+		psubMsg.AnnouncementType)
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.ScheduleProxyBroadcast,
+		OldObj:           nil,
+		NewObj:           nil,
+	})
 }
 
+<<<<<<< HEAD
 func (c *Client) getConfigMap() *osmConfig {
 	configMapCacheKey := c.getConfigMapCacheKey()
 	item, exists, err := c.cache.GetByKey(configMapCacheKey)
@@ -224,17 +248,74 @@ func GetBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {
 		//log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
 		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return false, errMissingKeyInConfigMap
-	}
-
-	configMapBoolValue, err := strconv.ParseBool(configMapStringValue)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error converting ConfigMap %s/%s key %s with value %+v to bool", configMap.Namespace, configMap.Name, key, configMapStringValue)
-		return false, err
-	}
-
-	return configMapBoolValue, nil
+=======
+func meshConfigDeletedMessageHandler(psubMsg *events.PubSubMessage) {
+	// Ignore deletion. We expect config to be present
+	log.Debug().Msgf("[%s] OSM MeshConfig deleted event triggered a global proxy broadcast",
+		psubMsg.AnnouncementType)
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.ScheduleProxyBroadcast,
+		OldObj:           nil,
+		NewObj:           nil,
+	})
 }
 
+func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
+	// Get the MeshConfig resource
+	prevMeshConfig, okPrevCast := psubMsg.OldObj.(*v1alpha1.MeshConfig)
+	newMeshConfig, okNewCast := psubMsg.NewObj.(*v1alpha1.MeshConfig)
+	if !okPrevCast || !okNewCast {
+		log.Error().Msgf("[%s] Error casting old/new MeshConfigs objects (%v %v)",
+			psubMsg.AnnouncementType, okPrevCast, okNewCast)
+		return
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
+	}
+
+	prevSpec := prevMeshConfig.Spec
+	newSpec := newMeshConfig.Spec
+
+	// Determine if we should issue new global config update to all envoys
+	triggerGlobalBroadcast := false
+
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Traffic.EnableEgress != newSpec.Traffic.EnableEgress)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Traffic.EnablePermissiveTrafficPolicyMode != newSpec.Traffic.EnablePermissiveTrafficPolicyMode)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Traffic.UseHTTPSIngress != newSpec.Traffic.UseHTTPSIngress)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Observability.Tracing.Enable != newSpec.Observability.Tracing.Enable)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Observability.Tracing.Address != newSpec.Observability.Tracing.Address)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Observability.Tracing.Endpoint != newSpec.Observability.Tracing.Endpoint)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Observability.Tracing.Port != newSpec.Observability.Tracing.Port)
+	triggerGlobalBroadcast = triggerGlobalBroadcast || (prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable)
+
+	// Do not trigger updates on the inner configuration changes of ExtAuthz if disabled,
+	// or otherwise skip checking if the update is to be scheduled anyway
+	if newSpec.Traffic.InboundExternalAuthorization.Enable && !triggerGlobalBroadcast {
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevSpec.Traffic.InboundExternalAuthorization.Address != newSpec.Traffic.InboundExternalAuthorization.Address)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevSpec.Traffic.InboundExternalAuthorization.Port != newSpec.Traffic.InboundExternalAuthorization.Port)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevSpec.Traffic.InboundExternalAuthorization.StatPrefix != newSpec.Traffic.InboundExternalAuthorization.StatPrefix)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevSpec.Traffic.InboundExternalAuthorization.Timeout != newSpec.Traffic.InboundExternalAuthorization.Timeout)
+		triggerGlobalBroadcast = triggerGlobalBroadcast ||
+			(prevSpec.Traffic.InboundExternalAuthorization.FailureModeAllow != newSpec.Traffic.InboundExternalAuthorization.FailureModeAllow)
+	}
+
+	if triggerGlobalBroadcast {
+		log.Debug().Msgf("[%s] OSM MeshConfig update triggered global proxy broadcast",
+			psubMsg.AnnouncementType)
+		events.GetPubSubInstance().Publish(events.PubSubMessage{
+			AnnouncementType: announcements.ScheduleProxyBroadcast,
+			OldObj:           nil,
+			NewObj:           nil,
+		})
+	} else {
+		log.Trace().Msgf("[%s] OSM MeshConfig update, NOT triggering global proxy broadcast",
+			psubMsg.AnnouncementType)
+	}
+}
+
+<<<<<<< HEAD
 // GetIntValueForKey returns the integer value for a key and an error in case of errors
 func GetIntValueForKey(configMap *v1.ConfigMap, key string) (int, error) {
 	configMapStringValue, ok := configMap.Data[key]
@@ -243,13 +324,22 @@ func GetIntValueForKey(configMap *v1.ConfigMap, key string) (int, error) {
 		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return 0, errMissingKeyInConfigMap
 	}
+=======
+func (c *Client) getMeshConfigCacheKey() string {
+	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
+}
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	configMapIntValue, err := strconv.Atoi(configMapStringValue)
+// Returns the current MeshConfig
+func (c *Client) getMeshConfig() *v1alpha1.MeshConfig {
+	meshConfigCacheKey := c.getMeshConfigCacheKey()
+	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error converting ConfigMap %s/%s key %s with value %+v to integer", configMap.Namespace, configMap.Name, key, configMapStringValue)
-		return 0, err
+		log.Error().Err(err).Msgf("Error getting MeshConfig from cache with key %s", meshConfigCacheKey)
+		return &v1alpha1.MeshConfig{}
 	}
 
+<<<<<<< HEAD
 	return configMapIntValue, nil
 }
 
@@ -260,6 +350,15 @@ func GetStringValueForKey(configMap *v1.ConfigMap, key string) (string, error) {
 		//log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
 		//	key, configMap.Namespace, configMap.Name, configMap.Data)
 		return "", errMissingKeyInConfigMap
+=======
+	var meshConfig *v1alpha1.MeshConfig
+	if !exists {
+		log.Warn().Msgf("MeshConfig %s does not exist. Default config values will be used.", meshConfigCacheKey)
+		meshConfig = &v1alpha1.MeshConfig{}
+	} else {
+		meshConfig = item.(*v1alpha1.MeshConfig)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	}
-	return configMapStringValue, nil
+
+	return meshConfig
 }

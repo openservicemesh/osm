@@ -1,3 +1,4 @@
+// Package vault implements the certificate.Manager interface for Hashicorp Vault as the certificate provider.
 package vault
 
 import (
@@ -5,7 +6,6 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
@@ -14,9 +14,6 @@ import (
 type CertManager struct {
 	// The Certificate Authority root certificate to be used by this certificate manager
 	ca certificate.Certificater
-
-	// The channel announcing to the rest of the system when a certificate has changed
-	announcements chan announcements.Announcement
 
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]certificate.Certificater

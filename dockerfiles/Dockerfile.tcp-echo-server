@@ -1,0 +1,2 @@
+FROM gcr.io/distroless/static
+COPY tcp-echo-server /

@@ -8,18 +8,18 @@ import (
 )
 
 const proxyCmdDescription = `
-This command consists of multiple subcommands related to managing the
-sidecar proxy on pods.
+This command consists of subcommands related to the operations
+of the sidecar proxy on pods.
 `
 
 func newProxyCmd(config *action.Configuration, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "proxy",
-		Short: "manage sidecar proxy",
+		Short: "sidecar proxy operations",
 		Long:  proxyCmdDescription,
 		Args:  cobra.NoArgs,
 	}
-	cmd.AddCommand(newProxyDumpConfig(config, out))
+	cmd.AddCommand(newProxyGetCmd(config, out))
 
 	return cmd
 }

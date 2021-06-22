@@ -2,114 +2,187 @@ package configurator
 
 import (
 	"context"
-	"fmt"
-	"reflect"
+	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
+
+	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 const (
-	osmNamespace     = "-test-osm-namespace-"
-	osmConfigMapName = "-test-osm-config-map-"
+	osmNamespace      = "-test-osm-namespace-"
+	osmMeshConfigName = "-test-osm-mesh-config-"
 )
 
-var _ = Describe("Test OSM ConfigMap parsing", func() {
-	defer GinkgoRecover()
+// Tests config map event trigger routine
+func TestMeshConfigEventTriggers(t *testing.T) {
+	assert := tassert.New(t)
+	meshConfigClientSet := testclient.NewSimpleClientset()
 
-	kubeClient := testclient.NewSimpleClientset()
+	confChannel := events.GetPubSubInstance().Subscribe(
+		announcements.MeshConfigAdded,
+		announcements.MeshConfigDeleted,
+		announcements.MeshConfigUpdated)
+	defer events.GetPubSubInstance().Unsub(confChannel)
 
-	stop := make(<-chan struct{})
-	cfg := newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-	confChannel := cfg.Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated)
+	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
+	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
 
-	configMap := v1.ConfigMap{
+	stop := make(chan struct{})
+	defer close(stop)
+	_ = newConfigurator(meshConfigClientSet, stop, osmNamespace, meshConfigInformerName)
+
+	meshConfig := v1alpha1.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: osmNamespace,
-			Name:      osmConfigMapName,
+			Name:      osmMeshConfigName,
 		},
 	}
-	if _, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("[TEST] Error creating ConfigMap %s/%s/: %s", configMap.Namespace, configMap.Name, err.Error())
+
+	if _, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), &meshConfig, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("[TEST] Error creating MeshConfig %s/%s/: %s", meshConfig.Namespace, meshConfig.Name, err.Error())
 	}
+
+	// MeshConfig Create will generate a MeshConfig notification, and Configurator will issue a ProxyBroadcast for a Create as well
 	<-confChannel
+	<-proxyBroadcastChannel
 
-	Context("Ensure we are able to get reasonable defaults from ConfigMap", func() {
+	tests := []struct {
+		caseName             string
+		updateMeshConfigSpec func(*v1alpha1.MeshConfigSpec)
+		expectProxyBroadcast bool
+	}{
+		{
+			caseName: "EnableEgress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.EnableEgress = true
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "EnablePermissiveTrafficPolicyMode",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.EnablePermissiveTrafficPolicyMode = true
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "UseHTTPSIngress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.UseHTTPSIngress = true
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "TracingEnable",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Enable = true
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "TracingAddress",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Address = "jaeger.jagnamespace.cluster.svc.local"
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "TracingEndpoint",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Endpoint = "/my/endpoint"
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "TracingPort",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.Tracing.Port = 3521
+			},
+			expectProxyBroadcast: true,
+		},
+		{
+			caseName: "SidecarLogLevel",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.LogLevel = "warn"
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "EnableDebugServer",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.EnableDebugServer = true
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "ServiceCertValidityDuration",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Certificate.ServiceCertValidityDuration = "30h"
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "EnablePrivilegedInitContainer",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.EnablePrivilegedInitContainer = true
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "OutboundIPRangeExclusionList",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.OutboundIPRangeExclusionList = []string{"1.2.3.4/24", "10.0.0.1/8"}
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "OutboundPortExclusionList",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.OutboundPortExclusionList = []int{7070, 6080}
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "ConfigResyncInterval",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Sidecar.ConfigResyncInterval = "24h"
+			},
+			expectProxyBroadcast: false,
+		},
+		{
+			caseName: "InboundExternalAuthorization",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Traffic.InboundExternalAuthorization.Enable = true
+			},
+			expectProxyBroadcast: true,
+		},
+	}
 
-		It("Tag matches const key for all fields of OSM ConfigMap struct", func() {
-			fieldNameTag := map[string]string{
-				"PermissiveTrafficPolicyMode": PermissiveTrafficPolicyModeKey,
-				"Egress":                      egressKey,
-				"EnableDebugServer":           enableDebugServer,
-				"PrometheusScraping":          prometheusScrapingKey,
-				"TracingEnable":               tracingEnableKey,
-				"TracingAddress":              tracingAddressKey,
-				"TracingPort":                 tracingPortKey,
-				"TracingEndpoint":             tracingEndpointKey,
-				"UseHTTPSIngress":             useHTTPSIngressKey,
-				"EnvoyLogLevel":               envoyLogLevel,
-				"ServiceCertValidityDuration": serviceCertValidityDurationKey,
-			}
-			t := reflect.TypeOf(osmConfig{})
+	for _, tc := range tests {
+		// update meshconfig
+		tc.updateMeshConfigSpec(&meshConfig.Spec)
 
-			expectedNumberOfFields := t.NumField()
-			actualNumberOfFields := len(fieldNameTag)
+		_, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Update(context.TODO(), &meshConfig, metav1.UpdateOptions{})
+		assert.NoError(err)
+		<-confChannel
 
-			Expect(expectedNumberOfFields).To(
-				Equal(actualNumberOfFields),
-				fmt.Sprintf("Fields have been added or removed from the osmConfig struct -- expected %d, actual %d; please correct this unit test", expectedNumberOfFields, actualNumberOfFields))
+		proxyEventReceived := false
+		select {
+		case <-proxyBroadcastChannel:
+			proxyEventReceived = true
 
-			for fieldName, expectedTag := range fieldNameTag {
-				f, _ := t.FieldByName("PermissiveTrafficPolicyMode")
-				actualtag := f.Tag.Get("yaml")
-				Expect(actualtag).To(
-					Equal(PermissiveTrafficPolicyModeKey),
-					fmt.Sprintf("Field %s expected to have tag %s; fuond %s instead", fieldName, expectedTag, actualtag))
-			}
-		})
-
-		It("Test GetBoolValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{tracingEnableKey: "true"}}
-			val, err := GetBoolValueForKey(cm, tracingEnableKey)
-			Expect(val).To(BeTrue())
-			Expect(err).To(BeNil())
-
-			val, err = GetBoolValueForKey(cm, egressKey)
-			Expect(val).To(BeFalse())
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("Test GetIntValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{tracingPortKey: "12345"}}
-			val, err := GetIntValueForKey(cm, tracingPortKey)
-			Expect(val).To(Equal(12345))
-			Expect(err).To(BeNil())
-
-			cm0 := &v1.ConfigMap{Data: map[string]string{}}
-			val, err = GetIntValueForKey(cm0, egressKey)
-			Expect(val).To(Equal(0))
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("Test GetStringValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{tracingEndpointKey: "foo"}}
-			val, err := GetStringValueForKey(cm, tracingEndpointKey)
-			Expect(val).To(Equal("foo"))
-			Expect(err).To(BeNil())
-
-			cm0 := &v1.ConfigMap{Data: map[string]string{}}
-			strval, err := GetStringValueForKey(cm0, tracingEndpointKey)
-			Expect(strval).To(Equal(""))
-			Expect(err).To(HaveOccurred())
-		})
-	})
-})
+		case <-time.NewTimer(300 * time.Millisecond).C:
+			// one third of a second should be plenty
+		}
+		assert.Equal(tc.expectProxyBroadcast, proxyEventReceived, tc.caseName)
+	}
+}

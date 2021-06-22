@@ -1,0 +1,17 @@
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-split
+  namespace: bookstore
+spec:
+# The root service is a Kubernetes Service FQDN. Because a Kubernetes Service FQDN can be a short form as well,
+# any of the following options are allowed and accepted values for the Service:
+#   - bookstore
+#   - bookstore.bookstore
+#   - bookstore.bookstore.svc
+#   - bookstore.bookstore.svc.cluster
+#   - bookstore.bookstore.svc.cluster.local
+  service: bookstore.bookstore # <root-service>.<namespace>
+  backends:
+  - service: bookstore
+    weight: 100

@@ -29,12 +29,14 @@ CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
-DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-true}"
+DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
+DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
-DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-true}"
+DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 ENABLE_PROMETHEUS_SCRAPING="${ENABLE_PROMETHEUS_SCRAPING:-true}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -77,6 +79,10 @@ if [ "$CERT_MANAGER" = "cert-manager" ]; then
     ./demo/deploy-cert-manager.sh
 fi
 
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
+fi
+
 make docker-push
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
@@ -87,21 +93,23 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
-      --certificate-manager="$CERT_MANAGER" \
-      --vault-host="$VAULT_HOST" \
-      --vault-token="$VAULT_TOKEN" \
-      --vault-protocol="$VAULT_PROTOCOL" \
-      --container-registry "$CTR_REGISTRY" \
-      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
-      --osm-image-tag "$CTR_TAG" \
-      --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server="$ENABLE_DEBUG_SERVER" \
-      --enable-egress="$ENABLE_EGRESS" \
-      --deploy-grafana="$DEPLOY_GRAFANA" \
-      --enable-fluentbit="$ENABLE_FLUENTBIT" \
-      --deploy-prometheus="$DEPLOY_PROMETHEUS" \
-      --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
-      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
+      --set=OpenServiceMesh.vault.host="$VAULT_HOST" \
+      --set=OpenServiceMesh.vault.token="$VAULT_TOKEN" \
+      --set=OpenServiceMesh.vault.protocol="$VAULT_PROTOCOL" \
+      --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
+      --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+      --set=OpenServiceMesh.image.tag="$CTR_TAG" \
+      --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
+      --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+      --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
+      --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
+      --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=OpenServiceMesh.enablePrometheusScraping="$ENABLE_PROMETHEUS_SCRAPING" \
+      --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout=90s \
       $optionalInstallArgs
 else
@@ -109,18 +117,20 @@ else
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
-      --certificate-manager="$CERT_MANAGER" \
-      --container-registry "$CTR_REGISTRY" \
-      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
-      --osm-image-tag "$CTR_TAG" \
-      --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server="$ENABLE_DEBUG_SERVER"\
-      --enable-egress="$ENABLE_EGRESS" \
-      --deploy-grafana="$DEPLOY_GRAFANA" \
-      --enable-fluentbit="$ENABLE_FLUENTBIT" \
-      --deploy-prometheus="$DEPLOY_PROMETHEUS" \
-      --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
-      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
+      --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
+      --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+      --set=OpenServiceMesh.image.tag="$CTR_TAG" \
+      --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
+      --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+      --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
+      --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
+      --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=OpenServiceMesh.enablePrometheusScraping="$ENABLE_PROMETHEUS_SCRAPING" \
+      --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout=90s \
       $optionalInstallArgs
 fi

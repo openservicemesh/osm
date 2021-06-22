@@ -23,7 +23,7 @@ var (
 	booksSold int64 = 0
 	log             = logger.NewPretty("bookstore")
 	identity        = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
-	port            = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	port            = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 	path            = flag.String("path", ".", "path to the HTML template")
 )
 
@@ -121,11 +121,18 @@ func getHandlers() []handler {
 		{"/books-bought", updateBooksSold, "POST"},
 		{"/buy-a-book/new", sellBook, "GET"},
 		{"/reset", reset, "GET"},
+		{"/liveness", ok, "GET"},
+		{"/readiness", ok, "GET"},
+		{"/startup", ok, "GET"},
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	booksSold = 0
+	renderTemplate(w)
+}
+
+func ok(w http.ResponseWriter, _ *http.Request) {
 	renderTemplate(w)
 }
 

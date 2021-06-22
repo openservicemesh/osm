@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 func TestPubSubEvents(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -22,18 +22,9 @@ func TestPubSubEvents(t *testing.T) {
 		expectMessage bool
 	}{
 		{
-			register: announcements.BackpressureAdded,
+			register: announcements.EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.ConfigMapAdded,
-				NewObj:           struct{}{},
-				OldObj:           nil,
-			},
-			expectMessage: false,
-		},
-		{
-			register: announcements.BackpressureAdded,
-			publish: PubSubMessage{
-				AnnouncementType: announcements.BackpressureAdded,
+				AnnouncementType: announcements.EndpointAdded,
 				NewObj:           nil,
 				OldObj:           "randomString",
 			},
@@ -62,15 +53,15 @@ func TestPubSubEvents(t *testing.T) {
 }
 
 func TestPubSubClose(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	subChannel := GetPubSubInstance().Subscribe(announcements.BackpressureUpdated)
+	subChannel := GetPubSubInstance().Subscribe(announcements.EndpointUpdated)
 
 	// publish something
 	GetPubSubInstance().Publish(PubSubMessage{
-		AnnouncementType: announcements.BackpressureUpdated,
+		AnnouncementType: announcements.EndpointUpdated,
 	})
 
 	// make sure channel is drained and closed

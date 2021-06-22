@@ -10,4 +10,5 @@ import (
 	_ "github.com/matm/gocov-html"
 	_ "github.com/mitchellh/gox"
 	_ "github.com/norwoodj/helm-docs/cmd/helm-docs"
+	_ "k8s.io/code-generator/cmd/client-gen"
 )

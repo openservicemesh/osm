@@ -1,32 +1,13 @@
-# Deploy bookthief Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookthief
----
-# Deploy bookthief ServiceAccount
+# Create bookthief ServiceAccount
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookthief
   namespace: bookthief
+
 ---
-# Deploy bookthief Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookthief
-  namespace: bookthief
-  labels:
-    app: bookthief
-spec:
-  ports:
-  - port: 9999
-    name: dummy-unused-port
-  selector:
-    app: bookthief
----
-# Deploy bookthief Deployment
+
+# Create bookthief Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -44,9 +25,12 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookthief
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: bookthief
-          image: openservicemesh/bookthief:v0.2.0
+          image: openservicemesh/bookthief:v0.9.0
           imagePullPolicy: Always
           command: ["/bookthief"]
           env:

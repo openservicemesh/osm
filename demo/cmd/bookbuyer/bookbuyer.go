@@ -28,7 +28,7 @@ var (
 	booksBoughtV1     int64
 	booksBoughtV2     int64
 	log               = logger.NewPretty(participantName)
-	port              = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	port              = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 	path              = flag.String("path", ".", "path to the HTML template")
 	numConnectionsStr = utils.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
 )
@@ -85,7 +85,7 @@ func getHandlers() []handler {
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	atomic.StoreInt64(&booksBought, 0)
 	atomic.StoreInt64(&booksBoughtV1, 0)
 	atomic.StoreInt64(&booksBoughtV2, 0)
@@ -111,7 +111,7 @@ func main() {
 	// This is the bookbuyer.  When it tries to buy books from the bookstore - we expect it to see 200 responses.
 	for i := 0; i < numConnections; i++ {
 		wg.Add(1)
-		fmt.Printf("Backpressure: starting bookbuyer connection #%d", i)
+		fmt.Printf("Starting bookbuyer connection #%d", i)
 		go getBooksWrapper(&wg)
 	}
 

@@ -3,6 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
 spec:
   replicas: 1
   strategy:
@@ -13,8 +16,15 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "osm.labels" . | nindent 8 }}
         app: osm-prometheus
     spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
       - name: prometheus
         ports:
@@ -28,11 +38,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: 500m
-            memory: 2G
+            cpu: "{{.Values.OpenServiceMesh.prometheus.resources.limits.cpu}}"
+            memory: "{{.Values.OpenServiceMesh.prometheus.resources.limits.memory}}"
           requests:
-            cpu: 100m
-            memory: 256M
+            cpu: "{{.Values.OpenServiceMesh.prometheus.resources.requests.cpu}}"
+            memory: "{{.Values.OpenServiceMesh.prometheus.resources.requests.memory}}"
         volumeMounts:
         - mountPath: /etc/prometheus/
           name: prometheus-config-volume

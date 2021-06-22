@@ -2,450 +2,490 @@ package configurator
 
 import (
 	"context"
+	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
-var _ = Describe("Test Envoy configuration creation", func() {
-	testErrorEnvoyLogLevel := "error"
-	//noling: goconst
-	defaultConfigMap := map[string]string{
-		PermissiveTrafficPolicyModeKey: "false",
-		egressKey:                      "true",
-		enableDebugServer:              "true",
-		prometheusScrapingKey:          "true",
-		tracingEnableKey:               "true",
-		envoyLogLevel:                  testErrorEnvoyLogLevel,
-		serviceCertValidityDurationKey: "24h",
+func TestGetMeshConfigCacheKey(t *testing.T) {
+	c := Client{
+		meshConfigName: "configName",
+		osmNamespace:   "namespaceName",
+	}
+	expected := "namespaceName/configName"
+	actual := c.getMeshConfigCacheKey()
+	tassert.Equal(t, expected, actual)
+}
+
+func TestCreateUpdateConfig(t *testing.T) {
+	t.Run("MeshConfig doesn't exist", func(t *testing.T) {
+		meshConfigClientSet := testclient.NewSimpleClientset()
+
+		stop := make(chan struct{})
+		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+		tassert.Equal(t, &v1alpha1.MeshConfig{}, cfg.getMeshConfig())
+	})
+
+	tests := []struct {
+		name                  string
+		initialMeshConfigData *v1alpha1.MeshConfigSpec
+		checkCreate           func(*tassert.Assertions, Configurator)
+		updatedMeshConfigData *v1alpha1.MeshConfigSpec
+		checkUpdate           func(*tassert.Assertions, Configurator)
+	}{
+		{
+			name: "default",
+
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					EnablePrivilegedInitContainer: true,
+					LogLevel:                      "error",
+					MaxDataPlaneConnections:       0,
+					ConfigResyncInterval:          "2m",
+					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+					InitContainerImage:            "openservicemesh/init:v0.0.0",
+				},
+				Traffic: v1alpha1.TrafficSpec{
+					EnablePermissiveTrafficPolicyMode: false,
+					EnableEgress:                      true,
+					UseHTTPSIngress:                   true,
+				},
+				Observability: v1alpha1.ObservabilitySpec{
+					EnableDebugServer:  true,
+					PrometheusScraping: true,
+					Tracing: v1alpha1.TracingSpec{
+						Enable: true,
+					},
+				},
+				Certificate: v1alpha1.CertificateSpec{
+					ServiceCertValidityDuration: "24h",
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				expectedConfig := &v1alpha1.MeshConfigSpec{
+					Sidecar: v1alpha1.SidecarSpec{
+						EnablePrivilegedInitContainer: true,
+						LogLevel:                      "error",
+						MaxDataPlaneConnections:       0,
+						ConfigResyncInterval:          "2m",
+						EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+						InitContainerImage:            "openservicemesh/init:v0.0.0",
+					},
+					Traffic: v1alpha1.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: false,
+						EnableEgress:                      true,
+						UseHTTPSIngress:                   true,
+					},
+					Observability: v1alpha1.ObservabilitySpec{
+						EnableDebugServer:  true,
+						PrometheusScraping: true,
+						Tracing: v1alpha1.TracingSpec{
+							Enable: true,
+						},
+					},
+					Certificate: v1alpha1.CertificateSpec{
+						ServiceCertValidityDuration: "24h",
+					},
+				}
+				expectedConfigJSON, err := marshalConfigToJSON(expectedConfig)
+				assert.Nil(err)
+
+				configJSON, err := cfg.GetMeshConfigJSON()
+				assert.Nil(err)
+				assert.Equal(expectedConfigJSON, configJSON)
+			},
+		},
+		{
+			name: "IsPermissiveTrafficPolicyMode",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					EnablePermissiveTrafficPolicyMode: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsPermissiveTrafficPolicyMode())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					EnablePermissiveTrafficPolicyMode: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsPermissiveTrafficPolicyMode())
+			},
+		},
+		{
+			name: "IsEgressEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					EnableEgress: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsEgressEnabled())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					EnableEgress: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsEgressEnabled())
+			},
+		},
+		{
+			name: "IsDebugServerEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					EnableDebugServer: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsDebugServerEnabled())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					EnableDebugServer: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsDebugServerEnabled())
+			},
+		},
+		{
+			name: "IsPrometheusScrapingEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					PrometheusScraping: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsPrometheusScrapingEnabled())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					PrometheusScraping: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsPrometheusScrapingEnabled())
+			},
+		},
+		{
+			name: "IsTracingEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					Tracing: v1alpha1.TracingSpec{
+						Enable:   true,
+						Address:  "myjaeger",
+						Port:     12121,
+						Endpoint: "/my/endpoint",
+					},
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsTracingEnabled())
+				assert.Equal("myjaeger", cfg.GetTracingHost())
+				assert.Equal(uint32(12121), cfg.GetTracingPort())
+				assert.Equal("/my/endpoint", cfg.GetTracingEndpoint())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					Tracing: v1alpha1.TracingSpec{
+						Enable:   false,
+						Address:  "myjaeger",
+						Port:     12121,
+						Endpoint: "/my/endpoint",
+					},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsTracingEnabled())
+			},
+		},
+		{
+			name: "UseHTTPSIngress",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					UseHTTPSIngress: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.UseHTTPSIngress())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					UseHTTPSIngress: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.UseHTTPSIngress())
+			},
+		},
+		{
+			name:                  "GetEnvoyLogLevel",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("error", cfg.GetEnvoyLogLevel())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					LogLevel: "info",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("info", cfg.GetEnvoyLogLevel())
+			},
+		},
+		{
+			name:                  "GetEnvoyImage",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("envoyproxy/envoy-alpine:v1.18.3", cfg.GetEnvoyImage())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					EnvoyImage: "envoyproxy/envoy-alpine:v1.17.1",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetEnvoyImage())
+			},
+		},
+		{
+			name:                  "GetInitContainerImage",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("openservicemesh/init:v0.9.0", cfg.GetInitContainerImage())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					InitContainerImage: "openservicemesh/init:v0.8.2",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("openservicemesh/init:v0.8.2", cfg.GetInitContainerImage())
+			},
+		},
+		{
+			name: "GetServiceCertValidityDuration",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Certificate: v1alpha1.CertificateSpec{
+					ServiceCertValidityDuration: "24h",
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(24*time.Hour, cfg.GetServiceCertValidityPeriod())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Certificate: v1alpha1.CertificateSpec{
+					ServiceCertValidityDuration: "1h",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(1*time.Hour, cfg.GetServiceCertValidityPeriod())
+			},
+		},
+		{
+			name:                  "GetOutboundIPRangeExclusionList",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Nil(cfg.GetOutboundIPRangeExclusionList())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					OutboundIPRangeExclusionList: []string{"1.1.1.1/32", "2.2.2.2/24"},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal([]string{"1.1.1.1/32", "2.2.2.2/24"}, cfg.GetOutboundIPRangeExclusionList())
+			},
+		},
+		{
+			name:                  "GetOutboundPortExclusionList",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Nil(cfg.GetOutboundPortExclusionList())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					OutboundPortExclusionList: []int{7070, 6080},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal([]int{7070, 6080}, cfg.GetOutboundPortExclusionList())
+			},
+		},
+		{
+			name:                  "GetIboundPortExclusionList",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Nil(cfg.GetInboundPortExclusionList())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Traffic: v1alpha1.TrafficSpec{
+					InboundPortExclusionList: []int{7070, 6080},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal([]int{7070, 6080}, cfg.GetInboundPortExclusionList())
+			},
+		},
+		{
+			name: "IsPrivilegedInitContainer",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					EnablePrivilegedInitContainer: true,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.True(cfg.IsPrivilegedInitContainer())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					EnablePrivilegedInitContainer: false,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.False(cfg.IsPrivilegedInitContainer())
+			},
+		},
+		{
+			name:                  "GetResyncInterval",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					ConfigResyncInterval: "2m",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(time.Duration(2*time.Minute), interval)
+			},
+		},
+		{
+			name:                  "NegativeGetResyncInterval",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					ConfigResyncInterval: "Non-duration string",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				interval := cfg.GetConfigResyncInterval()
+				assert.Equal(interval, time.Duration(0))
+			},
+		},
+		{
+			name:                  "GetMaxDataplaneConnections",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(0, cfg.GetMaxDataPlaneConnections())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					MaxDataPlaneConnections: 1000,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(1000, cfg.GetMaxDataPlaneConnections())
+			},
+		},
+		{
+			name:                  "GetProxyResources",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				res := cfg.GetProxyResources()
+				assert.Equal(0, len(res.Limits))
+				assert.Equal(0, len(res.Requests))
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Sidecar: v1alpha1.SidecarSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceCPU:    resource.MustParse("1"),
+							v1.ResourceMemory: resource.MustParse("256M"),
+						},
+						Limits: v1.ResourceList{
+							v1.ResourceCPU:    resource.MustParse("2"),
+							v1.ResourceMemory: resource.MustParse("512M"),
+						},
+					},
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				res := cfg.GetProxyResources()
+				assert.Equal(resource.MustParse("1"), res.Requests[v1.ResourceCPU])
+				assert.Equal(resource.MustParse("256M"), res.Requests[v1.ResourceMemory])
+				assert.Equal(resource.MustParse("2"), res.Limits[v1.ResourceCPU])
+				assert.Equal(resource.MustParse("512M"), res.Limits[v1.ResourceMemory])
+			},
+		},
 	}
 
-	Context("create OSM configurator client", func() {
-		It("correctly creates a cache key", func() {
-			c := Client{
-				osmConfigMapName: "mapName",
-				osmNamespace:     "namespaceName",
-			}
-			expected := "namespaceName/mapName"
-			actual := c.getConfigMapCacheKey()
-			Expect(actual).To(Equal(expected))
-		})
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			meshConfigClientSet := testclient.NewSimpleClientset()
 
-	Context("create OSM config with default values", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
+			// Prepare the pubsub channel
+			confChannel := events.GetPubSubInstance().Subscribe(
+				announcements.MeshConfigAdded,
+				announcements.MeshConfigUpdated)
+			defer events.GetPubSubInstance().Unsub(confChannel)
 
-		It("test GetConfigMap", func() {
-			configMap := v1.ConfigMap{
+			// Create configurator
+			stop := make(chan struct{})
+			defer close(stop)
+			cfg := NewConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+
+			meshConfig := v1alpha1.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
+					Name:      osmMeshConfigName,
 				},
-				Data: defaultConfigMap,
+				Spec: *test.initialMeshConfigData,
 			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
 
+			_, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), &meshConfig, metav1.CreateOptions{})
+			assert.Nil(err)
+			log.Info().Msg("Waiting for create announcement")
 			<-confChannel
 
-			expectedConfig := &osmConfig{
-				PermissiveTrafficPolicyMode: false,
-				Egress:                      true,
-				EnableDebugServer:           true,
-				PrometheusScraping:          true,
-				TracingEnable:               true,
-				EnvoyLogLevel:               testErrorEnvoyLogLevel,
-				ServiceCertValidityDuration: "24h",
+			test.checkCreate(assert, cfg)
+
+			if test.checkUpdate == nil {
+				return
 			}
-			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
-			Expect(err).ToNot(HaveOccurred())
 
-			configBytes, err := cfg.GetConfigMap()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(configBytes)).To(Equal(string(expectedConfigBytes)))
-		})
-	})
-
-	Context("create OSM config for permissive_traffic_policy_mode", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
-			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
-			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "true"
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
+			meshConfig.Spec = *test.updatedMeshConfigData
+			_, err = meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Update(context.TODO(), &meshConfig, metav1.UpdateOptions{})
+			assert.Nil(err)
 
 			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
+			log.Info().Msg("Waiting for update announcement")
 			<-confChannel
 
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeTrue())
+			test.checkUpdate(assert, cfg)
 		})
-
-		It("correctly identifies that permissive_traffic_policy_mode is disabled", func() {
-			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "false" //nolint: goconst
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
-		})
-	})
-
-	Context("create OSM config for egress", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that egress is enabled", func() {
-			Expect(cfg.IsEgressEnabled()).To(BeFalse())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsEgressEnabled()).To(BeTrue())
-		})
-
-		It("correctly identifies that egress is disabled", func() {
-			defaultConfigMap[egressKey] = "false"
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsEgressEnabled()).To(BeFalse())
-		})
-	})
-
-	Context("create OSM config for osm debug HTTP server", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that the debug server is enabled", func() {
-			Expect(cfg.IsDebugServerEnabled()).To(BeFalse())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsDebugServerEnabled()).To(BeTrue())
-		})
-	})
-
-	Context("create OSM config for Prometheus scraping", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that the config is enabled", func() {
-			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeFalse())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeTrue())
-		})
-
-		It("correctly identifies that the config is disabled", func() {
-			defaultConfigMap[prometheusScrapingKey] = "false"
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeFalse())
-		})
-	})
-
-	Context("create OSM config for tracing", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that the config is enabled", func() {
-			Expect(cfg.IsTracingEnabled()).To(BeFalse())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsTracingEnabled()).To(BeTrue())
-		})
-
-		It("correctly identifies that the config is disabled", func() {
-			defaultConfigMap[tracingEnableKey] = "false"
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.IsTracingEnabled()).To(BeFalse())
-		})
-	})
-
-	Context("create OSM config for the Envoy proxy log level", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		testInfoEnvoyLogLevel := "info"
-		testDebugEnvoyLogLevel := "debug"
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly identifies that the Envoy log level is error", func() {
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
-		})
-
-		It("correctly identifies that Envoy log level is info", func() {
-			defaultConfigMap[envoyLogLevel] = testInfoEnvoyLogLevel
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testInfoEnvoyLogLevel))
-		})
-
-		It("correctly identifies that Envoy log level is debug", func() {
-			defaultConfigMap[envoyLogLevel] = testDebugEnvoyLogLevel
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-confChannel
-
-			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
-		})
-	})
-
-	Context("create OSM config service cert validity period", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-		confChannel := cfg.Subscribe(
-			announcements.ConfigMapAdded,
-			announcements.ConfigMapDeleted,
-			announcements.ConfigMapUpdated)
-
-		It("correctly retrieves the default service cert validity duration when an invalid value is specified", func() {
-			defaultConfigMap[serviceCertValidityDurationKey] = "5" // no units, so invalid
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			<-confChannel
-
-			Expect(cfg.GetServiceCertValidityPeriod()).To(Equal(time.Duration(24 * time.Hour)))
-		})
-
-		It("correctly retrieves the service cert validity duration", func() {
-			defaultConfigMap[serviceCertValidityDurationKey] = "1h"
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			<-confChannel
-
-			Expect(cfg.GetServiceCertValidityPeriod()).To(Equal(time.Duration(1 * time.Hour)))
-		})
-	})
-})
+	}
+}

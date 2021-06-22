@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 )
 
 func TestGenerate(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                string
@@ -36,8 +36,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_AndIds{
 						AndIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -68,8 +68,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_OrIds{
 						OrIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -91,7 +91,7 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			expectedPrincipals: []*xds_rbac.Principal{
-				getPrincipalAny(),
+				getAnyPrincipal(),
 			},
 			expectedPermissions: []*xds_rbac.Permission{
 				{
@@ -105,7 +105,7 @@ func TestGenerate(t *testing.T) {
 			name: "testing rule for no principal specified",
 			p:    &Policy{},
 			expectedPrincipals: []*xds_rbac.Principal{
-				getPrincipalAny(),
+				getAnyPrincipal(),
 			},
 			expectedPermissions: []*xds_rbac.Permission{
 				{
@@ -138,8 +138,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_AndIds{
 						AndIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -148,8 +148,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_OrIds{
 						OrIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -207,8 +207,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_AndIds{
 						AndIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -219,8 +219,8 @@ func TestGenerate(t *testing.T) {
 					Rule: &xds_rbac.Permission_AndRules{
 						AndRules: &xds_rbac.Permission_Set{
 							Rules: []*xds_rbac.Permission{
-								getPermissionDestinationPort(80),
-								getPermissionDestinationPort(90),
+								GetDestinationPortPermission(80),
+								GetDestinationPortPermission(90),
 							},
 						},
 					},
@@ -253,8 +253,8 @@ func TestGenerate(t *testing.T) {
 					Identifier: &xds_rbac.Principal_AndIds{
 						AndIds: &xds_rbac.Principal_Set{
 							Ids: []*xds_rbac.Principal{
-								getPrincipalAuthenticated("foo.domain"),
-								getPrincipalAuthenticated("bar.domain"),
+								GetAuthenticatedPrincipal("foo.domain"),
+								GetAuthenticatedPrincipal("bar.domain"),
 							},
 						},
 					},
@@ -265,7 +265,7 @@ func TestGenerate(t *testing.T) {
 					Rule: &xds_rbac.Permission_OrRules{
 						OrRules: &xds_rbac.Permission_Set{
 							Rules: []*xds_rbac.Permission{
-								getPermissionDestinationPort(80),
+								GetDestinationPortPermission(80),
 							},
 						},
 					},

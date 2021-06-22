@@ -13,13 +13,13 @@ source .env
 echo -e "Enable SMI Spec policies"
 kubectl apply -f - <<EOF
 apiVersion: v1
-kind: ConfigMap
+kind: MeshConfig
 
 metadata:
-  name: osm-config
+  name: osm-mesh-config
   namespace: $K8S_NAMESPACE
-
-data:
-  permissive_traffic_policy_mode: "false"
+spec:
+  traffic:
+    enablePermissiveTrafficPolicyMode: false
 
 EOF

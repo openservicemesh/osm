@@ -1,3 +1,4 @@
+// Package certmanager implements the certificate.Manager interface for cert-manager.io as the certificate provider.
 package certmanager
 
 import (
@@ -8,7 +9,6 @@ import (
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1beta1"
 	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1beta1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -19,7 +19,7 @@ const (
 	// How many bits to use for the RSA key
 	rsaBits = 4096
 
-	// checkCertificateExpirationInterval is the interval to check wether a
+	// checkCertificateExpirationInterval is the interval to check whether a
 	// certificate is close to expiration and needs renewal.
 	checkCertificateExpirationInterval = 5 * time.Second
 )
@@ -38,10 +38,6 @@ type CertManager struct {
 	// certificate.Certificaters
 	cache     map[certificate.CommonName]certificate.Certificater
 	cacheLock sync.RWMutex
-
-	// The channel announcing to the rest of the system when a certificate has
-	// changed.
-	announcements chan announcements.Announcement
 
 	// Control plane namespace where CertificateRequests are created.
 	namespace string
@@ -62,6 +58,9 @@ type CertManager struct {
 type Certificate struct {
 	// The commonName of the certificate
 	commonName certificate.CommonName
+
+	// The serial number of the certificate
+	serialNumber certificate.SerialNumber
 
 	// When the cert expires
 	expiration time.Time

@@ -1,3 +1,5 @@
+// Package announcements provides the types and constants required to contextualize events received from the
+// Kubernetes API server that are propagated internally within the control plane to trigger configuration changes.
 package announcements
 
 // AnnouncementType is used to record the type of announcement
@@ -10,6 +12,12 @@ func (at AnnouncementType) String() string {
 const (
 	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
 	ScheduleProxyBroadcast AnnouncementType = "schedule-proxy-broadcast"
+
+	// TickerStart starts Ticker to trigger time-based proxy updates
+	TickerStart AnnouncementType = "ticker-start"
+
+	// TickerStop stops Ticker to stop time-based proxy updates
+	TickerStop AnnouncementType = "ticker-stop"
 
 	// ProxyBroadcast is used to notify all Proxy streams that they need to trigger an update
 	ProxyBroadcast AnnouncementType = "proxy-broadcast"
@@ -58,6 +66,17 @@ const (
 
 	// ---
 
+	// ServiceAccountAdded is the type of announcement emitted when we observe an addition of a Kubernetes Service Account
+	ServiceAccountAdded AnnouncementType = "serviceaccount-added"
+
+	// ServiceAccountDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Service Account
+	ServiceAccountDeleted AnnouncementType = "serviceaccount-deleted"
+
+	// ServiceAccountUpdated is the type of announcement emitted when we observe an update to a Kubernetes Service
+	ServiceAccountUpdated AnnouncementType = "serviceaccount-updated"
+
+	// ---
+
 	// TrafficSplitAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficSplit
 	TrafficSplitAdded AnnouncementType = "trafficsplit-added"
 
@@ -102,28 +121,6 @@ const (
 
 	// ---
 
-	// BackpressureAdded is the type of announcement emitted when we observe an addition of a Kubernetes Backpressure
-	BackpressureAdded AnnouncementType = "backpressure-added"
-
-	// BackpressureDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Backpressure
-	BackpressureDeleted AnnouncementType = "backpressure-deleted"
-
-	// BackpressureUpdated is the type of announcement emitted when we observe an update to a Kubernetes Backpressure
-	BackpressureUpdated AnnouncementType = "backpressure-updated"
-
-	// ---
-
-	// ConfigMapAdded is the type of announcement emitted when we observe an addition of a Kubernetes ConfigMap
-	ConfigMapAdded AnnouncementType = "configmap-added"
-
-	// ConfigMapDeleted the type of announcement emitted when we observe the deletion of a Kubernetes ConfigMap
-	ConfigMapDeleted AnnouncementType = "configmap-deleted"
-
-	// ConfigMapUpdated is the type of announcement emitted when we observe an update to a Kubernetes ConfigMap
-	ConfigMapUpdated AnnouncementType = "configmap-updated"
-
-	// ---
-
 	// IngressAdded is the type of announcement emitted when we observe an addition of a Kubernetes Ingress
 	IngressAdded AnnouncementType = "ingress-added"
 
@@ -132,6 +129,33 @@ const (
 
 	// IngressUpdated is the type of announcement emitted when we observe an update to a Kubernetes Ingress
 	IngressUpdated AnnouncementType = "ingress-updated"
+
+	// ---
+
+	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
+	CertificateRotated AnnouncementType = "certificate-rotated"
+
+	// ---
+
+	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig
+	MeshConfigAdded AnnouncementType = "meshconfig-added"
+
+	// MeshConfigDeleted the type of announcement emitted when we observe the deletion of a Kubernetes MeshConfig
+	MeshConfigDeleted AnnouncementType = "meshconfig-deleted"
+
+	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
+	MeshConfigUpdated AnnouncementType = "meshconfig-updated"
+
+	// ---
+
+	// EgressAdded is the type of announcement emitted when we observe an addition of egress.policy.openservicemesh.io
+	EgressAdded AnnouncementType = "egress-added"
+
+	// EgressDeleted the type of announcement emitted when we observe a deletion of egress.policy.openservicemesh.io
+	EgressDeleted AnnouncementType = "egress-deleted"
+
+	// EgressUpdated is the type of announcement emitted when we observe an update to egress.policy.openservicemesh.io
+	EgressUpdated AnnouncementType = "egress-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration

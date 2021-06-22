@@ -8,7 +8,6 @@ import (
 	"os/signal"
 
 	"github.com/pkg/browser"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	corev1 "k8s.io/api/core/v1"
@@ -69,7 +68,7 @@ func (d *dashboardCmd) run() error {
 
 	conf, err := d.config.RESTClientGetter.ToRESTConfig()
 	if err != nil {
-		return errors.Errorf("Failed to get REST config from Helm %s\n", err)
+		return annotateErrorMessageWithOsmNamespace("Failed to get REST config from Helm %s\n", err)
 	}
 
 	// Get v1 interface to our cluster. Do or die trying
@@ -81,7 +80,7 @@ func (d *dashboardCmd) run() error {
 		Get(context.TODO(), grafanaServiceName, metav1.GetOptions{})
 
 	if err != nil {
-		return errors.Errorf("Failed to get OSM Grafana service data: %s", err)
+		return annotateErrorMessageWithOsmNamespace("Failed to get OSM Grafana service data: %s", err)
 	}
 
 	// Select pod/s given the service data available
@@ -89,7 +88,7 @@ func (d *dashboardCmd) run() error {
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
 	pods, err := v1ClientSet.Pods(settings.Namespace()).List(context.TODO(), listOptions)
 	if err != nil {
-		return errors.Errorf("Error listing pods: %s", err)
+		return annotateErrorMessageWithOsmNamespace("Error listing pods: %s", err)
 	}
 
 	// Will select first running Pod available
@@ -102,15 +101,19 @@ func (d *dashboardCmd) run() error {
 		}
 	}
 	if grafanaPod == nil {
-		return errors.Errorf("No running Grafana pod available")
+		return annotateErrorMessageWithOsmNamespace("No running Grafana pod available")
 	}
 
-	portForwarder, err := k8s.NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
+	dialer, err := k8s.DialerToPod(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace)
 	if err != nil {
-		return errors.Errorf("Error setting up port forwarding: %s", err)
+		return err
+	}
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", d.localPort, d.remotePort))
+	if err != nil {
+		return annotateErrorMessageWithOsmNamespace("Error setting up port forwarding: %s", err)
 	}
 
-	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
+	err = portForwarder.Start(func(*k8s.PortForwarder) error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
 			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
@@ -119,7 +122,7 @@ func (d *dashboardCmd) run() error {
 		return nil
 	})
 	if err != nil {
-		return errors.Errorf("Port forwarding failed: %s", err)
+		return annotateErrorMessageWithOsmNamespace("Port forwarding failed: %s", err)
 	}
 
 	// The command should only exit when a signal is received from the OS.
@@ -128,6 +131,10 @@ func (d *dashboardCmd) run() error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
+
+	// portforwarder.Stop() triggered implicitly by SIGINT. Ensure it completes
+	// before exiting.
+	<-portForwarder.Done()
 
 	return nil
 }

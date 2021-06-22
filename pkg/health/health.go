@@ -1,3 +1,6 @@
+// Package health implements functionality for readiness and liveness health probes. The probes are served
+// by an HTTP server that exposes HTTP paths to probe on, with this package providing the necessary HTTP
+// handlers to respond to probe requests.
 package health
 
 import (
@@ -9,9 +12,6 @@ import (
 )
 
 var log = logger.New("health")
-
-// ProbeFunc is a type alias for a function that can be probed
-type ProbeFunc func() bool
 
 // Probes is the interface for liveness and readiness probes
 type Probes interface {
@@ -104,7 +104,7 @@ func LivenessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 		// Probe on all configured probes
 		for _, probe := range probes {
 			if !probe.Liveness() {
-				msg := fmt.Sprintf("Libeness probe for %s indicates it is not alive", probe.GetID())
+				msg := fmt.Sprintf("Liveness probe for %s indicates it is not alive", probe.GetID())
 				log.Warn().Msgf(msg)
 				setProbeResponse(w, http.StatusServiceUnavailable, msg)
 				return

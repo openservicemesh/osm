@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	. "github.com/onsi/ginkgo"
 )
 
 const (
@@ -28,6 +29,42 @@ type HTTPRequestDef struct {
 	Destination string
 }
 
+// TCPRequestDef defines a remote TCP request intent
+type TCPRequestDef struct {
+	// Source pod where to run the HTTP request from
+	SourceNs        string
+	SourcePod       string
+	SourceContainer string
+
+	// The destination server host (FQDN or IP address) and port the request is directed to
+	DestinationHost string
+	DestinationPort int
+
+	// Message to send as a part of the request
+	Message string
+}
+
+// GRPCRequestDef defines a remote GRPC request intent
+type GRPCRequestDef struct {
+	// Source pod where to run the HTTP request from
+	SourceNs        string
+	SourcePod       string
+	SourceContainer string
+
+	// The entire destination URL processed by curl, including host name and
+	// optionally protocol, port, and path
+	Destination string
+
+	// JSONRequest is the JSON request body
+	JSONRequest string
+
+	// Symbol is the fully qualified grpc service name, ex. hello.HelloService/SayHello
+	Symbol string
+
+	// UseTLS indicates if the request should be encrypted with TLS
+	UseTLS bool
+}
+
 // HTTPRequestResult represents results of an HTTPRequest call
 type HTTPRequestResult struct {
 	StatusCode int
@@ -35,12 +72,25 @@ type HTTPRequestResult struct {
 	Err        error
 }
 
+// TCPRequestResult represents the result of a TCPRequest call
+type TCPRequestResult struct {
+	Response string
+	Err      error
+}
+
+// GRPCRequestResult represents the result of a GRPCRequest call
+type GRPCRequestResult struct {
+	Response string
+	Err      error
+}
+
 // HTTPRequest runs a synchronous call to run the HTTPRequestDef and return a HTTPRequestResult
 func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -s silent progress, -o output to devnull, '-D -' dump headers to "-" (stdout), -i Status code
 	// -I skip body download, '-w StatusCode:%{http_code}' prints Status code label-like for easy parsing
 	// -L follow redirects
-	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	commandStr := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	command := strings.Fields(commandStr)
 
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
@@ -72,6 +122,62 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	return HTTPRequestResult{
 		statusCode,
 		curlMappedReturn,
+		nil,
+	}
+}
+
+// TCPRequest runs a synchronous TCP request to run the TCPRequestDef and return a TCPRequestResult
+func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
+	commandArgs := fmt.Sprintf("echo \"%s\" | nc %s %d", req.Message, req.DestinationHost, req.DestinationPort)
+	command := []string{"sh", "-c", commandArgs}
+
+	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
+	if err != nil {
+		// Error codes from the execution come through err
+		return TCPRequestResult{
+			stdout,
+			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+		}
+	}
+	if len(stderr) > 0 {
+		// no error from execution and proper exit code, we got some stderr though
+		td.T.Logf("[warn] Stderr: %v", stderr)
+	}
+
+	return TCPRequestResult{
+		stdout,
+		nil,
+	}
+}
+
+// GRPCRequest runs a GRPC request to run the GRPCRequestDef and return a GRPCRequestResult
+func (td *OsmTestData) GRPCRequest(req GRPCRequestDef) GRPCRequestResult {
+	var command []string
+
+	if req.UseTLS {
+		// '-insecure' is to indicate to grpcurl to not validate the server certificate. This is suitable
+		// for testing purpose and does not mean the channel is not encrypted using TLS.
+		command = []string{"/grpcurl", "-d", req.JSONRequest, "-insecure", req.Destination, req.Symbol}
+	} else {
+		// '-plaintext' is to indicate to the grpcurl to send plaintext requests; not encrypted with TLS
+		command = []string{"/grpcurl", "-d", req.JSONRequest, "-plaintext", req.Destination, req.Symbol}
+	}
+
+	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
+	if err != nil {
+		// Error codes from the execution come through err
+		return GRPCRequestResult{
+			stdout,
+			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+		}
+	}
+	if len(stderr) > 0 {
+		// no error from execution and proper exit code, we got some stderr though
+		td.T.Logf("[warn] Stderr: %v", stderr)
+	}
+
+	return GRPCRequestResult{
+		stdout,
 		nil,
 	}
 }
@@ -131,6 +237,7 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 
 		wg.Add(1)
 		go func(ns string, podname string, htReq HTTPRequestDef) {
+			defer GinkgoRecover()
 			defer wg.Done()
 			r := td.HTTPRequest(htReq)
 
@@ -148,14 +255,14 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 // PrettyPrintHTTPResults prints pod results per namespace
 func (td *OsmTestData) PrettyPrintHTTPResults(results *HTTPMultipleResults) {
 	// We sort the keys to always walk the maps deterministically.
-	namespaceKeys := []string{}
+	var namespaceKeys []string
 	for nsKey := range *results {
 		namespaceKeys = append(namespaceKeys, nsKey)
 	}
 	sort.Strings(namespaceKeys)
 
 	for _, ns := range namespaceKeys {
-		podKeys := []string{}
+		var podKeys []string
 		for podKey := range (*results)[ns] {
 			podKeys = append(podKeys, podKey)
 		}

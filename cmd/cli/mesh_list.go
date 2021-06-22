@@ -1,31 +1,38 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const meshListDescription = `
-This command will list all the osm control planes running in a Kubernetes cluster and their namespaces.`
+This command will list all the osm control planes running in a Kubernetes cluster and controller pods.`
 
 type meshListCmd struct {
 	out       io.Writer
+	config    *rest.Config
 	clientSet kubernetes.Interface
+	localPort uint16
+}
+
+type meshInfo struct {
+	name                 string
+	namespace            string
+	controllerPods       []string
+	version              string
+	smiSupportedVersions []string
+	monitoredNamespaces  []string
 }
 
 func newMeshList(out io.Writer) *cobra.Command {
-	meshList := &meshListCmd{
+	listCmd := &meshListCmd{
 		out: out,
 	}
 
@@ -39,58 +46,36 @@ func newMeshList(out io.Writer) *cobra.Command {
 			if err != nil {
 				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
+			listCmd.config = config
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
-			meshList.clientSet = clientset
-			return meshList.run()
+			listCmd.clientSet = clientset
+			return listCmd.run()
 		},
 	}
+
+	f := cmd.Flags()
+	f.Uint16VarP(&listCmd.localPort, "local-port", "p", constants.OSMHTTPServerPort, "Local port to use for port forwarding")
 
 	return cmd
 }
 
 func (l *meshListCmd) run() error {
-	list, err := getControllerDeployments(l.clientSet)
+	meshInfoList, err := getMeshInfoList(l.config, l.clientSet, l.localPort)
 	if err != nil {
-		return errors.Errorf("Could not list deployments %v", err)
+		fmt.Fprintf(l.out, "Unable to list meshes within the cluster.\n")
+		return err
 	}
-	if len(list.Items) == 0 {
-		fmt.Fprintf(l.out, "No control planes found\n")
+	if len(meshInfoList) == 0 {
+		fmt.Fprintf(l.out, "No osm mesh control planes found\n")
 		return nil
 	}
 
 	w := newTabWriter(l.out)
-	fmt.Fprintln(w, "MESH NAME\tNAMESPACE\t")
-	for _, elem := range list.Items {
-		m := elem.ObjectMeta.Labels["meshName"]
-		ns := elem.ObjectMeta.Namespace
-		fmt.Fprintf(w, "%s\t%s\t\n", m, ns)
-	}
+	fmt.Fprint(w, getPrettyPrintedMeshInfoList(meshInfoList))
 	_ = w.Flush()
 
 	return nil
-}
-
-// getControllerDeployments returns a list of Deployments corresponding to osm-controller
-func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentList, error) {
-	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	return deploymentsClient.List(context.TODO(), listOptions)
-}
-
-// getMeshNames returns a set of mesh names corresponding to meshes within the cluster
-func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
-	meshList := mapset.NewSet()
-
-	deploymentList, _ := getControllerDeployments(clientSet)
-	for _, elem := range deploymentList.Items {
-		meshList.Add(elem.ObjectMeta.Labels["meshName"])
-	}
-
-	return meshList
 }

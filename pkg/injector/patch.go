@@ -3,60 +3,58 @@ package injector
 import (
 	"encoding/json"
 	"fmt"
-	"path"
-	"sort"
 	"strconv"
-	"strings"
+	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
+	"gomodules.xyz/jsonpatch/v2"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
-const (
-	// Patch Operations
-	addOperation     = "add"
-	replaceOperation = "replace"
-
-	volumesBasePath        = "/spec/volumes"
-	initContainersBasePath = "/spec/initContainers"
-	labelsBasePath         = "/metadata/labels"
-	annotationsBasePath    = "/metadata/annotations"
-	containersBasePath     = "/spec/containers"
-)
-
-func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid.UUID) ([]byte, error) {
-	// Start patching the spec
-	var patches []JSONPatchOperation
+func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
+	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
-	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
-	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	cn := envoy.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
+	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	startTime := time.Now()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
 		return nil, err
 	}
+	elapsed := time.Since(startTime)
 
-	wh.meshCatalog.ExpectProxy(cn)
+	metricsstore.DefaultMetricsStore.CertIssuedCount.Inc()
+	metricsstore.DefaultMetricsStore.CertIssuedTime.
+		WithLabelValues().Observe(elapsed.Seconds())
+	originalHealthProbes := rewriteHealthProbes(pod)
 
-	// Create kube secret for Envoy bootstrap config
+	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
-	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
+
+	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
+	// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
+	// when the request is a DryRun.
+	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
+	if req.DryRun != nil && *req.DryRun {
+		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
+	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
 		return nil, err
 	}
 
 	// Create volume for envoy TLS secret
-	patches = append(patches, addVolume(
-		pod.Spec.Volumes,
-		getVolumeSpec(envoyBootstrapConfigName),
-		volumesBasePath)...,
-	)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
+<<<<<<< HEAD
 	// Add the Init Container
 	cidrRanges := wh.configurator.GetMeshCIDRRanges()
 	initContainerData := InitContainer{
@@ -74,18 +72,25 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid
 		[]corev1.Container{initContainerSpec},
 		initContainersBasePath)...,
 	)
+=======
+	// Build outbound port exclusion list
+	podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
+	globalOutboundPortExclusionList := wh.configurator.GetOutboundPortExclusionList()
+	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.
-	envoyNodeID := pod.Spec.ServiceAccountName
+	// Build inbound port exclusion list
+	podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
+	globalInboundPortExclusionList := wh.configurator.GetInboundPortExclusionList()
+	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
-	// envoyCluster ID will be used as an identifier to the tracing sink
-	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
+	// Add the Init Container
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
-	patches = append(patches, addContainer(
-		pod.Spec.Containers,
-		getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator),
-		containersBasePath)...,
-	)
+	// Add the Envoy sidecar
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes)
+	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
 	if err != nil {
@@ -93,141 +98,52 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid
 		return nil, err
 	}
 	if enableMetrics {
-		// Patch annotations
-		prometheusAnnotations := map[string]string{
-			constants.PrometheusScrapeAnnotation: strconv.FormatBool(true),
-			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
-			constants.PrometheusPathAnnotation:   constants.PrometheusScrapePath,
+		if pod.Annotations == nil {
+			pod.Annotations = make(map[string]string)
 		}
-		patches = append(patches, updateMapType(
-			pod.Annotations,
-			prometheusAnnotations,
-			annotationsBasePath)...,
-		)
+		pod.Annotations[constants.PrometheusScrapeAnnotation] = strconv.FormatBool(true)
+		pod.Annotations[constants.PrometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
+		pod.Annotations[constants.PrometheusPathAnnotation] = constants.PrometheusScrapePath
 	}
 
 	// This will append a label to the pod, which points to the unique Envoy ID used in the
 	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
 	// connects to xDS (with the certificate's CN matching this label).
-	labelsToAdd := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	patches = append(patches, updateMapType(
-		pod.Labels,
-		labelsToAdd,
-		labelsBasePath)...,
-	)
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string)
+	}
+	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
-	return json.Marshal(patches)
+	return json.Marshal(makePatches(req, pod))
 }
 
-func addVolume(target, add []corev1.Volume, basePath string) (patch []JSONPatchOperation) {
-	isFirst := len(target) == 0 // target is empty, use this to create the first item
-	var value interface{}
-	for _, volume := range add {
-		value = volume
-		volumePath := basePath
-		if isFirst {
-			isFirst = false
-			value = []corev1.Volume{volume}
-		} else {
-			volumePath += "/-"
+func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch.JsonPatchOperation {
+	original := req.Object.Raw
+	current, err := json.Marshal(pod)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshaling Pod with UID=%s", pod.ObjectMeta.UID)
+	}
+	admissionResponse := admission.PatchResponseFromRaw(original, current)
+	return admissionResponse.Patches
+}
+
+func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionList []int) []int {
+	portExclusionListMap := mapset.NewSet()
+	var portExclusionListMerged []int
+
+	// iterate over the global outbound ports to be excluded
+	for _, port := range globalPortExclusionList {
+		if addedToSet := portExclusionListMap.Add(port); addedToSet {
+			portExclusionListMerged = append(portExclusionListMerged, port)
 		}
-		patch = append(patch, JSONPatchOperation{
-			Op:    addOperation,
-			Path:  volumePath,
-			Value: value,
-		})
 	}
-	return patch
-}
 
-func addContainer(target, add []corev1.Container, basePath string) (patch []JSONPatchOperation) {
-	isFirst := len(target) == 0 // target is empty, use this to create the first item
-	var value interface{}
-	for _, container := range add {
-		value = container
-		path := basePath
-		if isFirst {
-			isFirst = false
-			value = []corev1.Container{container}
-		} else {
-			path += "/-"
+	// iterate over the pod specific ports to be excluded
+	for _, port := range podSpecificPortExclusionList {
+		if addedToSet := portExclusionListMap.Add(port); addedToSet {
+			portExclusionListMerged = append(portExclusionListMerged, port)
 		}
-		patch = append(patch, JSONPatchOperation{
-			Op:    addOperation,
-			Path:  path,
-			Value: value,
-		})
-	}
-	return patch
-}
-
-// createMapPatchOperation is used specifically for the very first 'add' operation
-// for a non-existent 'path'.
-func createMapPatchOperation(key, path, value string) JSONPatchOperation {
-	return JSONPatchOperation{
-		Op:   addOperation,
-		Path: path,
-		Value: map[string]string{
-			key: value,
-		},
-	}
-}
-
-// createPatch is used for add and replace operations on existing paths.
-func createPatch(key, basePath, patchOp, value string) JSONPatchOperation {
-	return JSONPatchOperation{
-		Op:    patchOp,
-		Path:  path.Join(basePath, escapeJSONPointerValue(key)),
-		Value: value,
-	}
-}
-
-// getSortedKeys returns the keys of a map in sorted string slice.
-// The purpose of this is to provide determinism when iterating over a map.
-func getSortedKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-// updateMaptType returns a list of JSONPatchOperation objects to reflect how the 'target' map should be patched
-// given the key-value pairs specified by the 'add` map and a 'basePath' corresponding to the API object.
-// It is used to patch Annotations and Labels.
-func updateMapType(target, add map[string]string, basePath string) []JSONPatchOperation {
-	var patches []JSONPatchOperation
-
-	// If the target does not exist we need to create it
-	noTarget := len(target) == 0
-
-	// We iterate over the sorted keys in order to have a deterministic output from this function.
-	// One of many areas where determinism is useful and worth the cost is testing this function.
-	for _, key := range getSortedKeys(add) {
-		value := add[key]
-		if noTarget {
-			patches = append(patches, createMapPatchOperation(key, basePath, value))
-			noTarget = false
-			continue
-		}
-
-		patchOp := addOperation
-		if target[key] != "" {
-			patchOp = replaceOperation
-		}
-
-		patches = append(patches, createPatch(key, basePath, patchOp, value))
 	}
 
-	return patches
-}
-
-// escapeJSONPointerValue escapes a JSON value as per https://tools.ietf.org/html/rfc6901.
-// Character '~' is encoded to '~0' and '/' is encoded to '~1' because
-// they have special meanings in JSON Pointer.
-func escapeJSONPointerValue(s string) string {
-	s = strings.Replace(s, "~", "~0", -1)
-	s = strings.Replace(s, "/", "~1", -1)
-	return s
+	return portExclusionListMerged
 }

@@ -2,10 +2,11 @@ package framework
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/pkg/errors"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -43,18 +44,27 @@ func (td *OsmTestData) InitSMIClients() error {
 	return nil
 }
 
-// CreateHTTPRouteGroup Creates an SMI Route Group
+// CreateHTTPRouteGroup Creates an SMI HTTPRouteGroup
 func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGroup) (*smiSpecs.HTTPRouteGroup, error) {
-	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create HTTPRouteGroup")
 	}
 	return hrg, nil
 }
 
+// CreateTCPRoute Creates an SMI TCPRoute
+func (td *OsmTestData) CreateTCPRoute(ns string, route smiSpecs.TCPRoute) (*smiSpecs.TCPRoute, error) {
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create TCPRoute")
+	}
+	return hrg, nil
+}
+
 // CreateTrafficTarget Creates an SMI TrafficTarget
 func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarget) (*smiAccess.TrafficTarget, error) {
-	tt, err := td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
+	tt, err := td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrafficTarget")
 	}
@@ -65,7 +75,7 @@ func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarge
 func (td *OsmTestData) CreateTrafficSplit(ns string, tar smiSplit.TrafficSplit) (*smiSplit.TrafficSplit, error) {
 	tt, err := td.SmiClients.SplitClient.SplitV1alpha2().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create TrafficTarget")
+		return nil, errors.Wrap(err, "failed to create TrafficSplit")
 	}
 	return tt, nil
 }
@@ -130,6 +140,49 @@ func (td *OsmTestData) CreateSimpleAllowPolicy(def SimpleAllowPolicy) (smiSpecs.
 	}
 
 	return routeGroup, trafficTarget
+}
+
+// CreateSimpleTCPAllowPolicy returns an allow policy to allow all TCP traffic from source to destination
+func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy, port int) (smiSpecs.TCPRoute, smiAccess.TrafficTarget) {
+	tcpRoute := smiSpecs.TCPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: def.RouteGroupName,
+		},
+		Spec: smiSpecs.TCPRouteSpec{
+			Matches: smiSpecs.TCPMatch{
+				Name:  strconv.Itoa(port),
+				Ports: []int{port},
+			},
+		},
+	}
+
+	trafficTarget := smiAccess.TrafficTarget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: def.TrafficTargetName,
+		},
+		Spec: smiAccess.TrafficTargetSpec{
+			Sources: []smiAccess.IdentityBindingSubject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      def.SourceSVCAccountName,
+					Namespace: def.SourceNamespace,
+				},
+			},
+			Destination: smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      def.DestinationSvcAccountName,
+				Namespace: def.DestinationNamespace,
+			},
+			Rules: []smiAccess.TrafficTargetRule{
+				{
+					Kind: "TCPRoute",
+					Name: def.RouteGroupName,
+				},
+			},
+		},
+	}
+
+	return tcpRoute, trafficTarget
 }
 
 // TrafficSplitBackend is a simple define to refer to a TrafficSplit backend

@@ -1,18 +1,16 @@
 package catalog
 
 import (
-	"time"
-
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/smi"
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
@@ -24,12 +22,20 @@ const (
 
 // NewMeshCatalog creates a new service catalog
 func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, wc *witesand.WitesandCatalog, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+=======
+	"github.com/openservicemesh/osm/pkg/ticker"
+)
+
+// NewMeshCatalog creates a new service catalog
+func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, policyController policy.Controller, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	mc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
+		policyController:   policyController,
 		configurator:       cfg,
 
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
@@ -41,20 +47,18 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		witesandCatalog: wc,
 	}
 
+<<<<<<< HEAD
 	// Run release certificate handler, which listens to podDelete events
 	mc.releaseCertificateHandler()
 
 	mc.witesandHttpServerAndClient()
 
+=======
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	go mc.dispatcher()
-	return &mc
-}
+	ticker.InitTicker(cfg)
 
-// GetSMISpec returns a MeshCatalog's SMI Spec
-func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
-	return mc.meshSpec
-}
-
+<<<<<<< HEAD
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	ticking := make(chan announcements.Announcement)
 	announcementChannels := []announcementChannel{
@@ -87,3 +91,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 
 	return announcementChannels
 }
+=======
+	return &mc
+}
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7

@@ -1,63 +1,26 @@
-{{/* vim: set filetype=mustache: */}}
-{{/*
-Expand the name of the chart.
-*/}}
-{{- define "osm.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{/* Determine osm namespace */}}
+{{- define "osm.namespace" -}} 
+{{ default .Release.Namespace .Values.OpenServiceMesh.osmNamespace}} 
 {{- end -}}
 
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "osm.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
+{{/* Default tracing address */}}
+{{- define "osm.tracingAddress" -}}
+{{- $address := printf "jaeger.%s.svc.cluster.local" (include "osm.namespace" .) -}}
+{{ default $address .Values.OpenServiceMesh.tracing.address}} 
 {{- end -}}
 
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "osm.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Common labels
-*/}}
+{{/* Labels to be added to all resources */}}
 {{- define "osm.labels" -}}
-helm.sh/chart: {{ include "osm.chart" . }}
-{{ include "osm.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/name: openservicemesh.io
+app.kubernetes.io/instance: {{ .Values.OpenServiceMesh.meshName }}
+app.kubernetes.io/version: {{ .Chart.AppVersion }}
 {{- end -}}
 
-{{/*
-Selector labels
-*/}}
-{{- define "osm.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "osm.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "osm.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-    {{ default (include "osm.fullname" .) .Values.serviceAccount.name }}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.name }}
-{{- end -}}
+{{/* Security context values that ensure restricted access to host resources */}}
+{{- define "restricted.securityContext" -}}
+securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+    supplementalGroups: [5555]
 {{- end -}}

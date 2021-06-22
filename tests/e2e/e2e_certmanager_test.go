@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 2,
+		Bucket: 1,
 	},
 	func() {
 		Context("CertManagerSimpleClientServer", func() {
@@ -26,7 +26,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.CertManager = "cert-manager"
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 4)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 5 /* 3 cert-manager pods, 1 controller, 1 injector */)).To(Succeed())
 
 				// Create Test NS
 				for _, n := range ns {

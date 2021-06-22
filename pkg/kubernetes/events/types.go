@@ -1,3 +1,5 @@
+// Package events implements the eventing framework to receive and relay kubernetes events, and a framework to
+// publish events to the Kubernetes API server.
 package events
 
 import (

@@ -61,7 +61,7 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 }
 
 func (l *namespaceListCmd) run() error {
-	namespaces, err := l.selectNamespaces()
+	namespaces, err := selectNamespacesMonitoredByMesh(l.meshName, l.clientSet)
 	if err != nil {
 		return errors.Errorf("Could not list namespaces related to osm [%s]: %v", l.meshName, err)
 	}
@@ -77,31 +77,34 @@ func (l *namespaceListCmd) run() error {
 	}
 
 	w := newTabWriter(l.out)
-	fmt.Fprintln(w, "NAMESPACE\tMESH\tSIDECAR-INJECTION\t")
+	fmt.Fprintln(w, "NAMESPACE\tMESH\tSIDECAR-INJECTION")
 	for _, ns := range namespaces.Items {
 		osmName := ns.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
 		sidecarInjectionEnabled, ok := ns.ObjectMeta.Annotations[constants.SidecarInjectionAnnotation]
 		if !ok {
 			sidecarInjectionEnabled = "-" // not set
 		}
+		if _, ignored := ns.Labels[constants.IgnoreLabel]; ignored {
+			sidecarInjectionEnabled = "disabled (ignored)"
+		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t\n", ns.Name, osmName, sidecarInjectionEnabled)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", ns.Name, osmName, sidecarInjectionEnabled)
 	}
 	_ = w.Flush()
 
 	return nil
 }
 
-func (l *namespaceListCmd) selectNamespaces() (*v1.NamespaceList, error) {
+func selectNamespacesMonitoredByMesh(meshName string, clientSet kubernetes.Interface) (*v1.NamespaceList, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	selector := constants.OSMKubeResourceMonitorAnnotation
-	if l.meshName != "" {
-		selector = fmt.Sprintf("%s=%s", selector, l.meshName)
+	if meshName != "" {
+		selector = fmt.Sprintf("%s=%s", selector, meshName)
 	}
 
-	return l.clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
+	return clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 		LabelSelector: selector,
 	})
 }

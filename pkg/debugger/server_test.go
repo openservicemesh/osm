@@ -3,17 +3,18 @@ package debugger
 import (
 	"testing"
 
-	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
 func TestGetHandlers(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 
 	mockCertDebugger := NewMockCertificateManagerDebugger(mockCtrl)
@@ -22,10 +23,12 @@ func TestGetHandlers(t *testing.T) {
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
+	proxyRegistry := registry.NewProxyRegistry(nil)
 
 	ds := NewDebugConfig(mockCertDebugger,
 		mockXdsDebugger,
 		mockCatalogDebugger,
+		proxyRegistry,
 		nil,
 		client,
 		mockConfig,

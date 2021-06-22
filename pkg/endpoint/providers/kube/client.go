@@ -2,73 +2,26 @@ package kube
 
 import (
 	"net"
-	"reflect"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-const (
-	// defaultAppProtocol is the default application protocol for a port if unspecified
-	defaultAppProtocol = "http"
-)
-
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
-
-	informerCollection := InformerCollection{
-		Endpoints: informerFactory.Core().V1().Endpoints().Informer(),
-		Pods:      informerFactory.Core().V1().Pods().Informer(),
-	}
-
-	cacheCollection := CacheCollection{
-		Endpoints: informerCollection.Endpoints.GetStore(),
-		Pods:      informerCollection.Pods.GetStore(),
-	}
-
+func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	client := Client{
 		providerIdent:  providerIdent,
 		kubeClient:     kubeClient,
-		informers:      &informerCollection,
-		caches:         &cacheCollection,
-		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan a.Announcement),
 		kubeController: kubeController,
-	}
-
-	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return kubeController.IsMonitoredNamespace(ns)
-	}
-	eptEventTypes := k8s.EventTypes{
-		Add:    a.EndpointAdded,
-		Update: a.EndpointUpdated,
-		Delete: a.EndpointDeleted,
-	}
-	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve, nil, eptEventTypes))
-
-	podEventTypes := k8s.EventTypes{
-		Add:    a.PodAdded,
-		Update: a.PodUpdated,
-		Delete: a.PodDeleted,
-	}
-	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve, getPodUID, podEventTypes))
-
-	if err := client.run(stop); err != nil {
-		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
 	}
 
 	return &client, nil
@@ -84,17 +37,19 @@ func (c *Client) GetID() string {
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
-	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
-	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
+
+	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
+	if err != nil || kubernetesEndpoints == nil {
+		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
 		return endpoints
 	}
 
-	if !exist {
-		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: MeshService %s does not exist", c.providerIdent, svc)
+	if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+		// Doesn't belong to namespaces we are observing
 		return endpoints
 	}
 
+<<<<<<< HEAD
 	kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints)
 	if kubernetesEndpoints != nil {
 		if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
@@ -120,7 +75,21 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 						PodName: podName,
 					}
 					endpoints = append(endpoints, ept)
+=======
+	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
+		for _, address := range kubernetesEndpoint.Addresses {
+			for _, port := range kubernetesEndpoint.Ports {
+				ip := net.ParseIP(address.IP)
+				if ip == nil {
+					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+					break
 				}
+				ept := endpoint.Endpoint{
+					IP:   ip,
+					Port: endpoint.Port(port.Port),
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
+				}
+				endpoints = append(endpoints, ept)
 			}
 		}
 	}
@@ -128,16 +97,40 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 	return endpoints
 }
 
-// GetServicesForServiceAccount retrieves a list of services for the given service account.
-func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
-	services := mapset.NewSet()
+// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
+// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+	sa := serviceIdentity.ToK8sServiceAccount()
+	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
+	var endpoints []endpoint.Endpoint
 
-	for _, podInterface := range c.caches.Pods.List() {
-		pod := podInterface.(*corev1.Pod)
-		if pod == nil {
+	podList := c.kubeController.ListPods()
+	for _, pod := range podList {
+		if pod.Namespace != sa.Namespace {
+			continue
+		}
+		if pod.Spec.ServiceAccountName != sa.Name {
 			continue
 		}
 
+		for _, podIP := range pod.Status.PodIPs {
+			ip := net.ParseIP(podIP.IP)
+			if ip == nil {
+				log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, podIP.IP)
+				break
+			}
+			ept := endpoint.Endpoint{IP: ip}
+			endpoints = append(endpoints, ept)
+		}
+	}
+	return endpoints
+}
+
+// GetServicesForServiceAccount retrieves a list of services for the given service account.
+func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
+	services := mapset.NewSet()
+
+	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
 			continue
 		}
@@ -170,6 +163,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	}
 
 	if services.Cardinality() == 0 {
+<<<<<<< HEAD
 		// Add a service, which is a representation of the ServiceAccount, but not a real K8s service.
 		// This will ensure that all pods in the service account are represented as one service.
 		/* WITESAND START COMMENTED */
@@ -182,8 +176,13 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 		return make([]service.MeshService, 0), errServiceNotFound
 	} else {
 		//log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
+=======
+		log.Error().Err(errServiceNotFound).Msgf("[%s] No services for service account %s", c.providerIdent, svcAccount)
+		return nil, errServiceNotFound
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	}
 
+	log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
 	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
 	for svc := range services.Iterator().C {
 		servicesSlice = append(servicesSlice, svc.(service.MeshService))
@@ -192,22 +191,16 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	return servicesSlice, nil
 }
 
-// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
-	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
-	if err != nil {
+	endpoints, err := c.kubeController.GetEndpoints(svc)
+	if err != nil || endpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
 		return nil, err
 	}
 
-	if !exist {
-		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: MeshService %s does not exist", c.providerIdent, svc)
-		return nil, errServiceNotFound
-	}
-
-	endpoints := endpointsInterface.(*corev1.Endpoints)
 	if !c.kubeController.IsMonitoredNamespace(endpoints.Namespace) {
 		return nil, errors.Errorf("Error fetching endpoints for service %s, namespace %s is not monitored", svc, endpoints.Namespace)
 	}
@@ -219,9 +212,12 @@ func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map
 	// to worry about different application protocols being set.
 	for _, endpointSet := range endpoints.Subsets {
 		for _, port := range endpointSet.Ports {
-			appProtocol := defaultAppProtocol
+			var appProtocol string
 			if port.AppProtocol != nil {
 				appProtocol = *port.AppProtocol
+			} else {
+				appProtocol = k8s.GetAppProtocolFromPortName(port.Name)
+				log.Debug().Msgf("endpoint port name: %s, appProtocol: %s", port.Name, appProtocol)
 			}
 
 			portToProtocolMap[uint32(port.Port)] = appProtocol
@@ -229,47 +225,6 @@ func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map
 	}
 
 	return portToProtocolMap, nil
-}
-
-// GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan a.Announcement {
-	return c.announcements
-}
-
-func (c *Client) run(stop <-chan struct{}) error {
-	var hasSynced []cache.InformerSynced
-
-	if c.informers == nil {
-		return errInitInformers
-	}
-
-	sharedInformers := map[string]cache.SharedInformer{
-		"Endpoints": c.informers.Endpoints,
-		"Pods":      c.informers.Pods,
-	}
-
-	var names []string
-	for name, informer := range sharedInformers {
-		// Depending on the use-case, some Informers from the collection may not have been initialized.
-		if informer == nil {
-			continue
-		}
-		names = append(names, name)
-		log.Info().Msgf("[%s] Starting informer %s", c.providerIdent, name)
-		go informer.Run(stop)
-		hasSynced = append(hasSynced, informer.HasSynced)
-	}
-
-	log.Info().Msgf("[%s] Waiting for informer's cache to sync: %+v", c.providerIdent, strings.Join(names, ", "))
-	if !cache.WaitForCacheSync(stop, hasSynced...) {
-		return errSyncingCaches
-	}
-
-	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
-	close(c.cacheSynced)
-
-	log.Info().Msgf("[%s] Cache sync finished for %+v", c.providerIdent, names)
-	return nil
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
@@ -285,6 +240,10 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 
 		svcRawSelector := svc.Spec.Selector
+<<<<<<< HEAD
+=======
+		// service has no selectors, we do not need to match against the pod label
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 		if len(svcRawSelector) == 0 {
 			continue
 		}
@@ -306,12 +265,17 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
-		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc.String())
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
 		return nil, errServiceNotFound
 	}
 
+<<<<<<< HEAD
 	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == "None" {
 		// If service has no cluster IP, use final endpoint as resolvable destinations
+=======
+	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == corev1.ClusterIPNone {
+		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 		return c.ListEndpointsForService(svc), nil
 	}
 

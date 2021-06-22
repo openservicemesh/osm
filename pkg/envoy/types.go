@@ -1,3 +1,5 @@
+// Package envoy implements utility routines related to Envoy proxy, and models an instance of a proxy
+// to be able to generate XDS configurations for it.
 package envoy
 
 import (
@@ -19,8 +21,14 @@ func (t TypeURI) String() string {
 	return string(t)
 }
 
+// Short returns an abbreviated version of the TypeURI, which is easier to spot in logs and metrics.
+func (t TypeURI) Short() string {
+	return XDSShortURINames[t]
+}
+
 // ValidURI defines valid URIs
 var ValidURI = map[string]TypeURI{
+	string(TypeEmptyURI):           TypeEmptyURI,
 	string(TypeSDS):                TypeSDS,
 	string(TypeCDS):                TypeCDS,
 	string(TypeLDS):                TypeLDS,
@@ -30,7 +38,21 @@ var ValidURI = map[string]TypeURI{
 	string(TypeZipkinConfig):       TypeZipkinConfig,
 }
 
+// XDSShortURINames are shortened versions of the URI types
+var XDSShortURINames = map[TypeURI]string{
+	TypeEmptyURI: "EmptyURI",
+	TypeSDS:      "SDS",
+	TypeCDS:      "CDS",
+	TypeLDS:      "LDS",
+	TypeRDS:      "RDS",
+	TypeEDS:      "EDS",
+}
+
+// Envoy TypeURIs
 const (
+	// TypeEmptyURI is an Empty URI type representation
+	TypeEmptyURI TypeURI = ""
+
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
 
@@ -52,8 +74,11 @@ const (
 	// TypeZipkinConfig is an Envoy type URI.
 	TypeZipkinConfig TypeURI = "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig"
 
-	accessLogPath = "/dev/stdout"
+	// TypeADS is not actually used by Envoy - but useful within OSM for logging
+	TypeADS TypeURI = "ADS"
+)
 
+const (
 	// localClusterSuffix is the tag to append to the local cluster name corresponding to a service cluster.
 	// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 	localClusterSuffix = "-local"

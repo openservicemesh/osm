@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -34,9 +35,8 @@ const (
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
 func NewCertManager(vaultAddr, token string, role string, cfg configurator.Configurator) (*CertManager, error) {
 	c := &CertManager{
-		announcements: make(chan announcements.Announcement),
-		role:          vaultRole(role),
-		cfg:           cfg,
+		role: vaultRole(role),
+		cfg:  cfg,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -50,16 +50,17 @@ func NewCertManager(vaultAddr, token string, role string, cfg configurator.Confi
 
 	c.client.SetToken(token)
 
-	issuingCA, err := c.getIssuingCA(c.issue)
+	issuingCA, serialNumber, err := c.getIssuingCA(c.issue)
 	if err != nil {
 		return nil, err
 	}
 
 	c.ca = &Certificate{
-		commonName: constants.CertificationAuthorityCommonName,
-		expiration: time.Now().Add(decade),
-		certChain:  issuingCA,
-		issuingCA:  issuingCA,
+		commonName:   constants.CertificationAuthorityCommonName,
+		serialNumber: serialNumber,
+		expiration:   time.Now().Add(decade),
+		certChain:    issuingCA,
+		issuingCA:    issuingCA,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
@@ -68,11 +69,11 @@ func NewCertManager(vaultAddr, token string, role string, cfg configurator.Confi
 	return c, nil
 }
 
-func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (certificate.Certificater, error)) ([]byte, error) {
+func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (certificate.Certificater, error)) ([]byte, certificate.SerialNumber, error) {
 	// Create a temp certificate to determine the public part of the issuing CA
 	cert, err := issue("localhost", decade)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	issuingCA := cert.GetIssuingCA()
@@ -80,7 +81,7 @@ func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Dura
 	// We are not going to need this certificate - remove it
 	cm.ReleaseCertificate(cert.GetCommonName())
 
-	return issuingCA, err
+	return issuingCA, cert.GetSerialNumber(), err
 }
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
@@ -100,9 +101,9 @@ func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
 	if certificateInterface, exists := cm.cache.Load(cn); exists {
 		cert := certificateInterface.(certificate.Certificater)
-		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
-			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
 			return nil
 		}
 		return cert
@@ -112,8 +113,6 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault CertManager.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
-	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
-
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -127,7 +126,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 	cm.cache.Store(cn, cert)
 
-	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
+	log.Trace().Msgf("Issued new certificate with SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
 	return cert, nil
 }
@@ -143,7 +142,7 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	var certs []certificate.Certificater
 	cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
 		certs = append(certs, certInterface.(certificate.Certificater))
-		return true
+		return true // continue the iteration
 	})
 	return certs, nil
 }
@@ -161,28 +160,31 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil
 }
 
-// GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
-}
-
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Rotating certificate for CN=%s", cn)
-
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
-	if err != nil {
-		return cert, err
+	oldCert, ok := cm.cache.Load(cn)
+	if !ok {
+		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	cm.cache.Store(cn, cert)
-	cm.announcements <- announcements.Announcement{}
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if err != nil {
+		return nil, err
+	}
 
-	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+	cm.cache.Store(cn, newCert)
 
-	return cert, nil
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           newCert,
+		OldObj:           oldCert.(certificate.Certificater),
+	})
+
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+
+	return newCert, nil
 }
 
 // Certificate implements certificate.Certificater
@@ -201,7 +203,7 @@ type Certificate struct {
 	issuingCA pem.RootCertificate
 
 	// serialNumber is the serial_number value in the Data field assigned to the Certificate Hashicorp Vault issued
-	serialNumber string
+	serialNumber certificate.SerialNumber
 }
 
 // GetCommonName returns the common name of the given certificate.
@@ -232,15 +234,15 @@ func (c Certificate) GetExpiration() time.Time {
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *Certificate {
 	return &Certificate{
 		commonName:   cn,
+		serialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
 		expiration:   expiration,
 		certChain:    pem.Certificate(secret.Data[certificateField].(string)),
 		privateKey:   []byte(secret.Data[privateKeyField].(string)),
 		issuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
-		serialNumber: secret.Data[serialNumberField].(string),
 	}
 }
 
 // GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() string {
+func (c Certificate) GetSerialNumber() certificate.SerialNumber {
 	return c.serialNumber
 }

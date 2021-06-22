@@ -3,6 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
   annotations:
     prometheus.io/port: "{{.Values.OpenServiceMesh.prometheus.port}}"
     prometheus.io/scrape: "true"

@@ -7,7 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -31,7 +31,7 @@ func newNamespace(name string, annotations map[string]string) *corev1.Namespace 
 }
 
 func TestIsMetricsEnabled(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 
 	// create namespace with metrics enabled
@@ -67,7 +67,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 	}
 
 	mockController := k8s.NewMockController(gomock.NewController(t))
-	wh := &webhook{
+	wh := &mutatingWebhook{
 		kubeClient:          fakeClient,
 		kubeController:      mockController,
 		nonInjectNamespaces: mapset.NewSet(),
@@ -81,29 +81,6 @@ func TestIsMetricsEnabled(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Namespace %s", tc.namespace), func(t *testing.T) {
 			enabled, err := wh.isMetricsEnabled(tc.namespace)
-			assert.Equal(enabled, tc.expectMetricsToBeEnabled)
-			assert.Equal(err != nil, tc.expectedErr)
-		})
-	}
-}
-
-func TestIsAnnotatedForMetrics(t *testing.T) {
-	assert := assert.New(t)
-
-	testCases := []struct {
-		annotations              map[string]string
-		expectMetricsToBeEnabled bool // set to true if metrics is expected to be enabled
-		expectedErr              bool // set to true if error is expected
-	}{
-		{map[string]string{constants.MetricsAnnotation: "enabled"}, true, false},
-		{map[string]string{constants.MetricsAnnotation: "disabled"}, false, false},
-		{nil, false, false},
-		{map[string]string{constants.MetricsAnnotation: "invalid"}, false, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Annotation %v", tc.annotations), func(t *testing.T) {
-			enabled, err := isAnnotatedForMetrics(tc.annotations)
 			assert.Equal(enabled, tc.expectMetricsToBeEnabled)
 			assert.Equal(err != nil, tc.expectedErr)
 		})

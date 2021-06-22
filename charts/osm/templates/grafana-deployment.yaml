@@ -3,7 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: osm-grafana
 spec:
   replicas: 1
@@ -15,9 +17,16 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "osm.labels" . | nindent 8 }}
         app: osm-grafana
     spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
       serviceAccountName: osm-grafana
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: grafana
           image: "grafana/grafana:7.0.1"

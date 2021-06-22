@@ -5,14 +5,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/gomega/gstruct"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	fake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -32,11 +31,43 @@ var _ = Describe("Running the namespace add command", func() {
 			err           error
 		)
 
+		Context("adding pre-existing namespace to non-existent mesh", func() {
+
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				nsSpec := createNamespaceSpec(testNamespace, "", false)
+				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+				Expect(err).To(BeNil())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("should give error about non-existent mesh", func() {
+				Expect(err.Error()).To(Equal(fmt.Sprintf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", testMeshName)))
+			})
+		})
+
 		Context("given one namespace as an arg without sidecar injection enabled", func() {
 
 			BeforeEach(func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
+
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
@@ -79,6 +110,9 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -119,6 +153,9 @@ var _ = Describe("Running the namespace add command", func() {
 			BeforeEach(func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
+
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", true)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
@@ -167,6 +204,9 @@ var _ = Describe("Running the namespace add command", func() {
 				fakeClientSet = fake.NewSimpleClientset()
 				testNamespace2 = "namespace2"
 
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
@@ -213,6 +253,9 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
@@ -237,29 +280,71 @@ var _ = Describe("Running the namespace add command", func() {
 	})
 
 	Describe("with non-existent namespace", func() {
-		var (
-			out           *bytes.Buffer
-			fakeClientSet kubernetes.Interface
-			err           error
-		)
 
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			fakeClientSet = fake.NewSimpleClientset()
+		Context("adding non-existent namespace to a non-existent mesh", func() {
 
-			namespaceAddCmd := &namespaceAddCmd{
-				out:        out,
-				meshName:   testMeshName,
-				namespaces: []string{testNamespace},
-				clientSet:  fakeClientSet,
-			}
+			var (
+				out           *bytes.Buffer
+				fakeClientSet kubernetes.Interface
+				err           error
+			)
 
-			err = namespaceAddCmd.run()
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				nsSpec := createNamespaceSpec(testNamespace, "", false)
+				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+				Expect(err).To(BeNil())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("should give error about non-existent mesh", func() {
+				Expect(err.Error()).To(Equal(fmt.Sprintf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", testMeshName)))
+			})
 		})
 
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(fmt.Sprintf("Could not add namespace [%s] to mesh [%s]: namespaces \"%s\" not found", testNamespace, testMeshName, testNamespace)))
+		Context("adding non-existent namespace to a mesh that exists", func() {
+
+			var (
+				out           *bytes.Buffer
+				fakeClientSet kubernetes.Interface
+				err           error
+			)
+
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(fmt.Sprintf("Could not add namespace [%s] to mesh [%s]: namespaces \"%s\" not found", testNamespace, testMeshName, testNamespace)))
+			})
 		})
 	})
 })
@@ -485,7 +570,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted2", "mesh2", false)
 			addNamespace("not-enlisted", "", false)
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -511,7 +596,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted2", "mesh2", false)
 			listCmd.meshName = "mesh2"
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -529,7 +614,7 @@ var _ = Describe("Running the namespace list command", func() {
 			addNamespace("enlisted1", "mesh1", true)
 			addNamespace("enlisted2", "mesh2", false)
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
@@ -556,7 +641,7 @@ var _ = Describe("Running the namespace list command", func() {
 
 			listCmd.meshName = "someothermesh"
 
-			namespaces, err = listCmd.selectNamespaces()
+			namespaces, err = selectNamespacesMonitoredByMesh(listCmd.meshName, listCmd.clientSet)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(namespaces.Items)).To(Equal(0))
 		})
@@ -618,7 +703,7 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespace", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
 		})
 	})
 
@@ -653,11 +738,11 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespaces", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
 
 			ns2, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace2, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns2.Labels[ignoreLabel]).To(Equal("true"))
+			Expect(ns2.Labels[constants.IgnoreLabel]).To(Equal("true"))
 		})
 	})
 })

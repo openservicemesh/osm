@@ -8,11 +8,12 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 // GetHandlers implements DebugConfig interface and returns the rest of URLs and the handling functions.
-func (ds debugConfig) GetHandlers() map[string]http.Handler {
+func (ds DebugConfig) GetHandlers() map[string]http.Handler {
 	handlers := map[string]http.Handler{
 		"/debug/certs":         ds.getCertHandler(),
 		"/debug/xds":           ds.getXDSHandler(),
@@ -37,11 +38,12 @@ func (ds debugConfig) GetHandlers() map[string]http.Handler {
 }
 
 // NewDebugConfig returns an implementation of DebugConfig interface.
-func NewDebugConfig(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator, kubeController k8s.Controller) DebugConfig {
-	return debugConfig{
+func NewDebugConfig(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, proxyRegistry *registry.ProxyRegistry, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator, kubeController k8s.Controller) DebugConfig {
+	return DebugConfig{
 		certDebugger:        certDebugger,
 		xdsDebugger:         xdsDebugger,
 		meshCatalogDebugger: meshCatalogDebugger,
+		proxyRegistry:       proxyRegistry,
 		kubeClient:          kubeClient,
 		kubeController:      kubeController,
 

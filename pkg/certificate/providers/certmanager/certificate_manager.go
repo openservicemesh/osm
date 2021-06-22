@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -36,7 +37,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 
-	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
+	log.Debug().Msgf("It took %+v to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
 
 	return cert, nil
 }
@@ -64,9 +65,9 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 	cm.cacheLock.RLock()
 	defer cm.cacheLock.RUnlock()
 	if cert, exists := cm.cache[cn]; exists {
-		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		log.Trace().Msgf("Certificate with SerialNumber=%s found in cache", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
-			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			log.Trace().Msgf("Certificate with SerialNumber=%s found in cache but has expired", cert.GetSerialNumber())
 			return nil
 		}
 		return cert
@@ -78,23 +79,27 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 // certificate. When a certificate is successfully created, garbage collect
 // old CertificateRequests.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Rotating certificate for CN=%s", cn)
-
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
-		return cert, err
+		return newCert, err
 	}
 
 	cm.cacheLock.Lock()
-	cm.cache[cn] = cert
+	oldCert := cm.cache[cn]
+	cm.cache[cn] = newCert
 	cm.cacheLock.Unlock()
-	cm.announcements <- announcements.Announcement{}
 
-	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+	events.GetPubSubInstance().Publish(events.PubSubMessage{
+		AnnouncementType: announcements.CertificateRotated,
+		NewObj:           newCert,
+		OldObj:           oldCert,
+	})
 
-	return cert, nil
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+
+	return newCert, nil
 }
 
 // GetRootCertificate returns the root certificate in PEM format and its expiration.
@@ -113,12 +118,6 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	return certs, nil
 }
 
-// GetAnnouncementsChannel returns a channel, which is used to announce when
-// changes have been made to the issued certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return cm.announcements
-}
-
 // certificaterFromCertificateRequest will construct a certificate.Certificater
 // from a give CertificateRequest and private key.
 func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateRequest, privateKey []byte) (certificate.Certificater, error) {
@@ -132,11 +131,12 @@ func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateR
 	}
 
 	return Certificate{
-		commonName: certificate.CommonName(cert.Subject.CommonName),
-		expiration: cert.NotAfter,
-		certChain:  cr.Status.Certificate,
-		privateKey: privateKey,
-		issuingCA:  cm.ca.GetIssuingCA(),
+		commonName:   certificate.CommonName(cert.Subject.CommonName),
+		serialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
+		expiration:   cert.NotAfter,
+		certChain:    cr.Status.Certificate,
+		privateKey:   privateKey,
+		issuingCA:    cm.ca.GetIssuingCA(),
 	}, nil
 }
 
@@ -150,8 +150,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s",
-			cn, err)
+		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
@@ -177,8 +176,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s",
-			cn, err)
+		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
 	}
 
 	cr := &cmapi.CertificateRequest{
@@ -202,7 +200,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, err
 	}
 
-	log.Info().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
+	log.Debug().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
 
 	// TODO: add timeout option instead of 60s hard coded.
 	cr, err = cm.waitForCertificateReady(cr.Name, time.Second*60)
@@ -244,14 +242,13 @@ func NewCertManager(
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:            ca,
-		cache:         make(map[certificate.CommonName]certificate.Certificater),
-		announcements: make(chan announcements.Announcement),
-		namespace:     namespace,
-		client:        client.CertmanagerV1beta1().CertificateRequests(namespace),
-		issuerRef:     issuerRef,
-		crLister:      crLister,
-		cfg:           cfg,
+		ca:        ca,
+		cache:     make(map[certificate.CommonName]certificate.Certificater),
+		namespace: namespace,
+		client:    client.CertmanagerV1beta1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		cfg:       cfg,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

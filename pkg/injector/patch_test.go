@@ -3,6 +3,7 @@ package injector
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,11 +11,12 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	tassert "github.com/stretchr/testify/assert"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -26,118 +28,9 @@ var _ = Describe("Test all patch operations", func() {
 	// Setup all constants and variables needed for the tests
 	proxyUUID := uuid.New()
 	const (
-		namespace    = "-namespace-"
-		podName      = "-pod-name-"
-		volumeOne    = "-volume-one-"
-		volumeTwo    = "-volume-two-"
-		containerOne = "-container-one-"
-		containerTwo = "-container-two-"
-		basePath     = "/base/path"
+		namespace = "-namespace-"
+		podName   = "-pod-name-"
 	)
-
-	Context("test addVolume() function", func() {
-		It("adds volume", func() {
-			target := []corev1.Volume{{
-				Name: volumeOne,
-			}}
-			add := []corev1.Volume{{
-				Name: volumeTwo,
-			}}
-
-			actualPatch := addVolume(target, add, basePath)
-			addVolume := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
-				Value: corev1.Volume{
-					Name: volumeTwo,
-				},
-			}
-			Expect(len(actualPatch)).To(Equal(1))
-			Expect(actualPatch).To(ContainElement(addVolume))
-		})
-	})
-
-	Context("test addContainer() function", func() {
-		It("adds container", func() {
-			target := []corev1.Container{{
-				Name: containerOne,
-			}}
-
-			add := []corev1.Container{{
-				Name: containerTwo,
-			}}
-
-			actualPatches := addContainer(target, add, basePath)
-
-			expectedAddContainer := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
-				Value: corev1.Container{
-					Name: containerTwo,
-				},
-			}
-			Expect(len(actualPatches)).To(Equal(1))
-			Expect(actualPatches).To(ContainElement(expectedAddContainer))
-		})
-	})
-
-	Context("test updateMapType() function", func() {
-		It("creates a list of patches", func() {
-			target := map[string]string{
-				"one": "1",
-				"two": "2",
-			}
-
-			add := map[string]string{
-				"two":   "2",
-				"three": "3",
-			}
-
-			actual := updateMapType(target, add, basePath)
-
-			expectedReplaceTwo := JSONPatchOperation{
-				Op:    replaceOperation,
-				Path:  "/base/path/two",
-				Value: "2",
-			}
-			Expect(actual).To(ContainElement(expectedReplaceTwo))
-
-			expectedAddThree := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/three",
-				Value: "3",
-			}
-			Expect(actual).To(ContainElement(expectedAddThree))
-		})
-
-		It("creates a list of patches", func() {
-			annotationsToAdd := map[string]string{
-				"three": "3",
-				"two":   "2",
-			}
-
-			// Target here is NIL -- this means we will be CREATING
-			actual := updateMapType(nil, annotationsToAdd, basePath)
-
-			// The first operation is "three" ("three" comes before "two" alphabetically)
-			// This is a CREATE operation since target is NIL
-			expectedCreateThree := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path",
-				Value: map[string]string{
-					"three": "3",
-				},
-			}
-			Expect(actual).To(ContainElement(expectedCreateThree))
-
-			expectedAddTwo := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/two",
-				Value: "2",
-			}
-			Expect(actual).To(ContainElement(expectedAddTwo))
-		})
-	})
 
 	Context("test createPatch() function", func() {
 		It("creates a patch", func() {
@@ -154,19 +47,27 @@ var _ = Describe("Test all patch operations", func() {
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			wh := &webhook{
+			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresor.NewFakeCertManager(mockConfigurator),
-				meshCatalog:         catalog.NewFakeMeshCatalog(client),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			pod := tests.NewPodTestFixture(namespace, podName)
+			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
+			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
+			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
+			mockConfigurator.EXPECT().GetInitContainerImage().Return("").Times(1)
+			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
+			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
+			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
+			mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
+			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 
-			jsonPatches, err := wh.createPatch(&pod, namespace, proxyUUID)
+			req := &admissionv1.AdmissionRequest{Namespace: namespace}
+			jsonPatches, err := wh.createPatch(&pod, req, proxyUUID)
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -179,7 +80,7 @@ var _ = Describe("Test all patch operations", func() {
 				// Add Init Container
 				`{"op":addOperation,` +
 				`"path":"/spec/initContainers",` +
-				`"value":[{"name":"osm-init","env":[{"name":"OSM_PROXY_UID","value":"1337"},` +
+				`"value":[{"name":"osm-init","env":[{"name":"OSM_PROXY_UID","value":"1500"},` +
 				`{"name":"OSM_ENVOY_INBOUND_PORT","value":"15003"},{"name":"OSM_ENVOY_OUTBOUND_PORT","value":"15001"}],` +
 				`"resources":{},"securityContext":{"capabilities":{addOperation:["NET_ADMIN"]}}}]},` +
 
@@ -190,7 +91,7 @@ var _ = Describe("Test all patch operations", func() {
 				`"ports":[{"name":"proxy-admin","containerPort":15000},{"name":"proxy-inbound","containerPort":15003},{"name":"proxy-metrics","containerPort":15010}],` +
 				`"resources":{},"volumeMounts":[{"name":"envoy-bootstrap-config-volume","readOnly":true,"mountPath":"/etc/envoy"}],` +
 				`"imagePullPolicy":"Always",` +
-				`"securityContext":{"runAsUser":1337}}]},{"op":addOperation,"path":"/metadata/annotations",` +
+				`"securityContext":{"runAsUser":1500}}]},{"op":addOperation,"path":"/metadata/annotations",` +
 				`"value":{"prometheus.io/scrape":"true"}},` +
 
 				// Add Prometheus Port Annotation
@@ -209,3 +110,52 @@ var _ = Describe("Test all patch operations", func() {
 		})
 	})
 })
+
+func TestMergePortExclusionLists(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                              string
+		podOutboundPortExclusionList      []int
+		globalOutboundPortExclusionList   []int
+		expectedOutboundPortExclusionList []int
+	}{
+		{
+			name:                              "overlap in global and pod outbound exclusion list",
+			podOutboundPortExclusionList:      []int{6060, 7070},
+			globalOutboundPortExclusionList:   []int{6060, 8080},
+			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
+		},
+		{
+			name:                              "no overlap in global and pod outbound exclusion list",
+			podOutboundPortExclusionList:      []int{6060, 7070},
+			globalOutboundPortExclusionList:   []int{8080},
+			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
+		},
+		{
+			name:                              "pod outbound exclusion list is nil",
+			podOutboundPortExclusionList:      nil,
+			globalOutboundPortExclusionList:   []int{8080},
+			expectedOutboundPortExclusionList: []int{8080},
+		},
+		{
+			name:                              "global outbound exclusion list is nil",
+			podOutboundPortExclusionList:      []int{6060, 7070},
+			globalOutboundPortExclusionList:   nil,
+			expectedOutboundPortExclusionList: []int{6060, 7070},
+		},
+		{
+			name:                              "no global or pod level outbound exclusion list",
+			podOutboundPortExclusionList:      nil,
+			globalOutboundPortExclusionList:   nil,
+			expectedOutboundPortExclusionList: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
+			assert.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
+		})
+	}
+}

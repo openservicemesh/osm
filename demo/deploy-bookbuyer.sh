@@ -9,6 +9,7 @@ CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
@@ -21,24 +22,10 @@ metadata:
   namespace: $BOOKBUYER_NAMESPACE
 EOF
 
-echo -e "Deploy BookBuyer Service"
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookbuyer
-  namespace: "$BOOKBUYER_NAMESPACE"
-  labels:
-    app: bookbuyer
-spec:
-  ports:
-
-  - port: 9999
-    name: dummy-unused-port
-
-  selector:
-    app: bookbuyer
-EOF
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    oc adm policy add-scc-to-user privileged -z bookbuyer -n "$BOOKBUYER_NAMESPACE"
+    oc secrets link bookbuyer "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKBUYER_NAMESPACE"
+fi
 
 echo -e "Deploy BookBuyer Deployment"
 kubectl apply -f - <<EOF
@@ -52,6 +39,7 @@ spec:
   selector:
     matchLabels:
       app: bookbuyer
+      version: v1
   template:
     metadata:
       labels:
@@ -59,7 +47,9 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookbuyer
-
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         # Main container with APP
         - name: bookbuyer

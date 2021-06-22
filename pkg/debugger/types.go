@@ -1,11 +1,11 @@
+// Package debugger implements functionality to provide information to debug the control plane via the debug HTTP server.
 package debugger
 
 import (
-	"net/http"
 	"time"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -13,18 +13,20 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var log = logger.New("debugger")
 
-// debugConfig implements the DebugServer interface.
-type debugConfig struct {
+// DebugConfig implements the DebugServer interface.
+type DebugConfig struct {
 	certDebugger        CertificateManagerDebugger
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
+	proxyRegistry       *registry.ProxyRegistry
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller
@@ -39,17 +41,8 @@ type CertificateManagerDebugger interface {
 
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
 type MeshCatalogDebugger interface {
-	// ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
-	ListExpectedProxies() map[certificate.CommonName]time.Time
-
-	// ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-	ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy
-
-	// ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
-	ListDisconnectedProxies() map[certificate.CommonName]time.Time
-
 	// ListSMIPolicies lists the SMI policies detected by OSM.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
+	ListSMIPolicies() ([]*split.TrafficSplit, []identity.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
 
 	// ListMonitoredNamespaces lists the namespaces that the control plan knows about.
 	ListMonitoredNamespaces() []string
@@ -59,10 +52,4 @@ type MeshCatalogDebugger interface {
 type XDSDebugger interface {
 	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies.
 	GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time
-}
-
-// DebugConfig is the interface of the debug config for debug HTTP server
-type DebugConfig interface {
-	// GetHandlers returns the HTTP handlers available for the debug server.
-	GetHandlers() map[string]http.Handler
 }

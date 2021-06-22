@@ -1,32 +1,13 @@
-# Deploy bookbuyer Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookbuyer
----
-# Deploy bookbuyer Service Account
+# Create bookbuyer Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookbuyer
   namespace: bookbuyer
+
 ---
-# Deploy bookbuyer Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookbuyer
-  namespace: bookbuyer
-  labels:
-    app: bookbuyer
-spec:
-  ports:
-  - port: 9999
-    name: dummy-unused-port
-  selector:
-    app: bookbuyer
----
-# Deploy bookbuyer Deployment
+
+# Create bookbuyer Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,9 +26,12 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookbuyer
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: bookbuyer
-          image: openservicemesh/bookbuyer:v0.2.0
+          image: openservicemesh/bookbuyer:v0.9.0
           imagePullPolicy: Always
           command: ["/bookbuyer"]
           env:

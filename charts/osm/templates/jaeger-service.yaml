@@ -3,7 +3,9 @@ kind: Service
 apiVersion: v1
 metadata:
   name: jaeger
+  namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: jaeger
 spec:
   selector:

@@ -55,7 +55,7 @@ func GrpcServe(ctx context.Context, grpcServer *grpc.Server, lis net.Listener, c
 		}
 		cancel()
 	}()
-	log.Info().Msgf("[grpc][%s] Started server on: %s", serverType, lis.Addr().String())
+	log.Info().Msgf("[grpc][%s] Started server on: %s", serverType, lis.Addr())
 
 	<-ctx.Done()
 

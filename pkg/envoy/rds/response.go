@@ -1,34 +1,40 @@
 package rds
 
 import (
+<<<<<<< HEAD
 	"fmt"
 
 	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+=======
+	mapset "github.com/deckarep/golang-set"
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/route"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
+	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
+	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
+
+	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
 	}
-	// Github Issue #1575
-	proxyServiceName := svcList[0]
 
+<<<<<<< HEAD
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
@@ -36,11 +42,27 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		return nil, err
 	}
 	//log.Debug().Msgf("RDS proxy:%+v trafficPolicies:%+v", proxy, allTrafficPolicies)
+=======
+	services, err := proxyRegistry.ListProxyServices(proxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+		return nil, err
+	}
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	resp := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeRDS),
+	// Build traffic policies from  either SMI Traffic Target and Traffic Split or service discovery
+	// depending on whether permissive mode is enabled or not
+	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity.ToServiceIdentity(), services)
+	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity.ToServiceIdentity())
+
+	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy)
+	var rdsResources []types.Resource
+
+	for _, config := range routeConfiguration {
+		rdsResources = append(rdsResources, config)
 	}
 
+<<<<<<< HEAD
 	allTrafficSplits, _, _, _, _ := catalog.ListSMIPolicies()
 	var routeConfiguration []*xds_route.RouteConfiguration
 	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
@@ -101,9 +123,24 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	/* do not include ingress routes for now as iptables should take care of it
 	if err = updateRoutesForIngress(proxyServiceName, catalog, inboundAggregatedRoutesByHostnames); err != nil {
 		return nil, err
+=======
+	// Build Ingress inbound policies for the services associated with this proxy
+	for _, svc := range services {
+		ingressInboundPolicies, err := cataloger.GetIngressPoliciesForService(svc)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc)
+			return nil, err
+		}
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressInboundPolicies...)
+	}
+	if len(ingressTrafficPolicies) > 0 {
+		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, proxy)
+		rdsResources = append(rdsResources, ingressRouteConfig)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	}
 	*/
 
+<<<<<<< HEAD
 	route.UpdateRouteConfiguration(catalog, outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
 	route.UpdateRouteConfiguration(catalog, inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
 	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
@@ -116,21 +153,31 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
 			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledRouteConfig)
+=======
+	// Build Egress route configurations based on Egress HTTP routing rules associated with this proxy
+	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxyIdentity)
 	}
-	return resp, nil
+	if egressTrafficPolicy != nil {
+		egressRouteConfigs := route.BuildEgressRouteConfiguration(egressTrafficPolicy.HTTPRouteConfigsPerPort)
+		for _, egressConfig := range egressRouteConfigs {
+			rdsResources = append(rdsResources, egressConfig)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
+		}
+	}
+
+	if discoveryReq != nil {
+		// Ensure all RDS resources are responded to a given non-nil and non-empty request
+		// Empty RDS RouteConfig will be provided for resources requested that our logic did not fulfill
+		// due to policy logic
+		rdsResources = ensureRDSRequestCompletion(discoveryReq, rdsResources)
+	}
+
+	return rdsResources, nil
 }
 
-func isTrafficSplitService(svc service.MeshService, allTrafficSplits []*split.TrafficSplit) bool {
-	for _, split := range allTrafficSplits {
-		if split.Namespace == svc.Namespace && split.Spec.Service == svc.Name {
-			return true
-		}
-	}
-	return false
-}
-
+<<<<<<< HEAD
 func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRouteMatch, weightedCluster service.WeightedCluster, hostname string, targetPort int) {
 	host := kubernetes.GetServiceFromHostname(hostname)
 	if targetPort != 0 {
@@ -140,30 +187,30 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 	if !exists {
 		// no host found, create a new route map
 		routesPerHost[host] = make(map[string]trafficpolicy.RouteWeightedClusters)
+=======
+// ensureRDSRequestCompletion computes delta between requested resources and response resources.
+// If any resources requested were not responded to, this function will fill those in with empty RouteConfig stubs
+func ensureRDSRequestCompletion(discoveryReq *xds_discovery.DiscoveryRequest, rdsResources []types.Resource) []types.Resource {
+	requestMapset := mapset.NewSet()
+	for _, resourceName := range discoveryReq.ResourceNames {
+		requestMapset.Add(resourceName)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	}
-	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
-	if routeFound {
-		// add the cluster to the existing route
-		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
-		routePolicyWeightedCluster.HTTPRouteMatch.Methods = append(routePolicyWeightedCluster.HTTPRouteMatch.Methods, routePolicy.Methods...)
-		if routePolicyWeightedCluster.HTTPRouteMatch.Headers == nil {
-			routePolicyWeightedCluster.HTTPRouteMatch.Headers = make(map[string]string)
-		}
-		for headerKey, headerValue := range routePolicy.Headers {
-			routePolicyWeightedCluster.HTTPRouteMatch.Headers[headerKey] = headerValue
-		}
-		routePolicyWeightedCluster.Hostnames.Add(hostname)
-		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
-	} else {
-		// no route found, create a new route and cluster mapping on host
-		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster, hostname)
-	}
-}
 
-func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRouteMatch, weightedCluster service.WeightedCluster, hostname string) trafficpolicy.RouteWeightedClusters {
-	return trafficpolicy.RouteWeightedClusters{
-		HTTPRouteMatch:   routePolicy,
-		WeightedClusters: set.NewSet(weightedCluster),
-		Hostnames:        set.NewSet(hostname),
+	responseMapset := mapset.NewSet()
+	for _, resourceName := range rdsResources {
+		responseMapset.Add(cache.GetResourceName(resourceName))
 	}
+
+	// If there were any requested elements we didn't reply to, create empty RDS resources
+	// for those now
+	requestDifference := requestMapset.Difference(responseMapset)
+	for reqDif := range requestDifference.Iterator().C {
+		unfulfilledRequestedResource := reqDif.(string)
+		rdsResources = append(rdsResources, route.NewRouteConfigurationStub(unfulfilledRequestedResource))
+	}
+
+	log.Info().Msgf("RDS did not fulfill all requested resources (diff: %v). Fulfill with empty RouteConfigs.", requestDifference)
+
+	return rdsResources
 }

@@ -1,15 +1,20 @@
 package lds
 
 import (
+	"fmt"
+
+	mapset "github.com/deckarep/golang-set"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/envoy/route"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -17,10 +22,22 @@ import (
 
 const (
 	outboundMeshFilterChainName   = "outbound-mesh-filter-chain"
+=======
+	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+)
+
+const (
+	inboundListenerName           = "inbound-listener"
+	outboundListenerName          = "outbound-listener"
+	prometheusListenerName        = "inbound-prometheus-listener"
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
+	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
 	singleIpv4Mask                = 32
 )
 
+<<<<<<< HEAD
 func (lb *listenerBuilder) newOutboundListener(downstreamSvc []service.MeshService) (*xds_listener.Listener, error) {
 	/* WITESAND_DISABLE
 	 * We do not want enumerate each and every (service)endpoint
@@ -42,8 +59,12 @@ func (lb *listenerBuilder) newOutboundListener(downstreamSvc []service.MeshServi
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
+=======
+func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
+	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
-	return &xds_listener.Listener{
+	listener := &xds_listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
@@ -66,13 +87,65 @@ func (lb *listenerBuilder) newOutboundListener(downstreamSvc []service.MeshServi
 				// to its original destination.
 				Name: wellknown.OriginalDestination,
 			},
-			{
-				// The HttpInspector ListenerFilter is used to inspect plaintext traffic
-				// for HTTP protocols.
-				Name: wellknown.HttpInspector,
-			},
 		},
-	}, nil
+	}
+
+	// Create a default passthrough filter chain when global egress is enabled.
+	// This filter chain matches any traffic not matching any of the filter chains built from
+	// mesh (SMI or permissive mode) or egress traffic policies. Traffic matching this default
+	// passthrough filter chain will be allowed to passthrough to its original destination.
+	if lb.cfg.IsEgressEnabled() {
+		egressFilterChain, err := getDefaultPassthroughFilterChain()
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
+			return nil, err
+		}
+		listener.DefaultFilterChain = egressFilterChain
+	}
+
+	if featureflags.IsEgressPolicyEnabled() {
+		var filterDisableMatchPredicate *xds_listener.ListenerFilterChainMatchPredicate
+		// Create filter chains for egress based on policies
+		if egressTrafficPolicy, err := lb.meshCatalog.GetEgressTrafficPolicy(lb.serviceIdentity); err != nil {
+			log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress filters", lb.serviceIdentity)
+		} else if egressTrafficPolicy != nil {
+			egressFilterChains := lb.getEgressFilterChainsForMatches(egressTrafficPolicy.TrafficMatches)
+			listener.FilterChains = append(listener.FilterChains, egressFilterChains...)
+			filterDisableMatchPredicate = getFilterMatchPredicateForTrafficMatches(egressTrafficPolicy.TrafficMatches)
+		}
+		additionalListenerFilters := []*xds_listener.ListenerFilter{
+			// Configure match predicate for ports serving server-first protocols (ex. mySQL, postgreSQL etc.).
+			// Ports corresponding to server-first protocols, where the server initiates the first byte of a connection, will
+			// cause the HttpInspector ListenerFilter to timeout because it waits for data from the client to inspect the protocol.
+			// Such ports will set the protocol to 'tcp-server-first' in an Egress policy.
+			// The 'FilterDisabled' field configures the match predicate.
+			{
+				// To inspect TLS metadata, such as the transport protocol and SNI
+				Name:           wellknown.TlsInspector,
+				FilterDisabled: filterDisableMatchPredicate,
+			},
+			{
+				// To inspect if the application protocol is HTTP based
+				Name:           wellknown.HttpInspector,
+				FilterDisabled: filterDisableMatchPredicate,
+			},
+		}
+		listener.ListenerFilters = append(listener.ListenerFilters, additionalListenerFilters...)
+
+		// ListenerFilter can timeout for server-first protocols. In such cases, continue the processing of the connection
+		// and fallback to the default filter chain.
+		listener.ContinueOnListenerFiltersTimeout = true
+	}
+
+	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {
+		// Programming a listener with no filter chains is an error.
+		// It is possible for the outbound listener to have no filter chains if
+		// there are no allowed upstreams for this proxy and egress is disabled.
+		// In this case, return a nil filter chain so that it doesn't get programmed.
+		return nil, nil
+	}
+
+	return listener, nil
 }
 
 func newInboundListener() *xds_listener.Listener {
@@ -123,9 +196,11 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 	}, nil
 }
 
-func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
+// getDefaultPassthroughFilterChain returns a filter chain that matches any traffic, allowing such
+// traffic to be proxied to its original destination via the OutboundPassthroughCluster.
+func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       envoy.OutboundPassthroughCluster,
+		StatPrefix:       fmt.Sprintf("%s.%s", egressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
@@ -145,17 +220,25 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
-	var filterChains []*xds_listener.FilterChain
-	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
+// getFilterMatchPredicateForTrafficMatches returns a ListenerFilterChainMatchPredicate corresponding to server-first ports.
+// If there are no server-first ports, a nil object is returned.
+func getFilterMatchPredicateForTrafficMatches(matches []*trafficpolicy.TrafficMatch) *xds_listener.ListenerFilterChainMatchPredicate {
+	var ports []int
+	portSet := mapset.NewSet()
 
-	// Assuming single service in pod till #1682, #1575 get addressed
-	outboundSvc, err := lb.meshCatalog.ListAllowedOutboundServices(downstreamSvc[0])
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting allowed outbound services for %q", downstreamSvc[0].String())
-		return nil, err
+	for _, match := range matches {
+		// Only configure match predicate for server first protocol
+		if match.DestinationProtocol != constants.ProtocolTCPServerFirst {
+			continue
+		}
+
+		newlyAdded := portSet.Add(match.DestinationPort)
+		if newlyAdded {
+			ports = append(ports, match.DestinationPort)
+		}
 	}
 
+<<<<<<< HEAD
 	// Transform into set, when listing apex services we might face repetitions
 	for _, meshSvc := range outboundSvc {
 		dstServicesSet[meshSvc.GetMeshService()] = struct{}{}
@@ -178,29 +261,47 @@ func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshS
 				dstServicesSet[rootMeshService] = struct{}{}
 			}
 		}
+=======
+	if len(ports) == 0 {
+		return nil
 	}
 
-	// Iterate all destination services
-	for upstream := range dstServicesSet {
-		// Construct HTTP filter chain
-		if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbount HTTP filter chain for upstream service %q", upstream)
-		} else {
-			filterChains = append(filterChains, httpFilterChain)
+	return getFilterMatchPredicateForPorts(ports)
+}
+
+// getFilterMatchPredicateForPorts returns a ListenerFilterChainMatchPredicate that matches the given set of ports
+func getFilterMatchPredicateForPorts(ports []int) *xds_listener.ListenerFilterChainMatchPredicate {
+	if len(ports) == 0 {
+		return nil
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
+	}
+
+	matchPredicates := []*xds_listener.ListenerFilterChainMatchPredicate{}
+
+	// Create a match predicate for each port
+	for _, port := range ports {
+		matchRule := &xds_listener.ListenerFilterChainMatchPredicate{
+			Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+				DestinationPortRange: &xds_type.Int32Range{
+					Start: int32(port),     // Start is inclusive
+					End:   int32(port + 1), // End is exclusive
+				},
+			},
+		}
+		matchPredicates = append(matchPredicates, matchRule)
+	}
+
+	if len(matchPredicates) > 1 {
+		// Proto constraint validation requirers at least 2 items to be able
+		// to use an OR based match set.
+		return &xds_listener.ListenerFilterChainMatchPredicate{
+			Rule: &xds_listener.ListenerFilterChainMatchPredicate_OrMatch{
+				OrMatch: &xds_listener.ListenerFilterChainMatchPredicate_MatchSet{
+					Rules: matchPredicates,
+				},
+			},
 		}
 	}
 
-	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
-	// traffic when enabled
-	if lb.cfg.IsEgressEnabled() {
-		egressFilterChgain, err := buildEgressFilterChain()
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
-			return nil, err
-		}
-
-		filterChains = append(filterChains, egressFilterChgain)
-	}
-
-	return filterChains, nil
+	return &xds_listener.ListenerFilterChainMatchPredicate{Rule: matchPredicates[0].GetRule()}
 }

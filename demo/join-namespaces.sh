@@ -18,20 +18,28 @@ source .env
 ./bin/osm namespace add "${BOOKTHIEF_NAMESPACE:-bookthief}"         --mesh-name "${MESH_NAME:-osm}"
 ./bin/osm namespace add "${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}" --mesh-name "${MESH_NAME:-osm}"
 
+kubectl patch meshconfig osm-mesh-config -n "${K8S_NAMESPACE}" -p '{"spec":{"traffic":{"enablePermissiveTrafficPolicyMode":false}}}'  --type=merge
 
+
+# Create a top level service
+echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
-kind: ConfigMap
-
+kind: Service
 metadata:
-  name: osm-config
-  namespace: $K8S_NAMESPACE
-
-data:
-  permissive_traffic_policy_mode: "true"
-
+  labels:
+    app: bookstore
+  name: bookstore
+  namespace: bookstore
+spec:
+  ports:
+  - name: bookstore-port
+    port: 14001
+    protocol: TCP
+    targetPort: 14001
+  selector:
+    app: bookstore
 EOF
-
 
 sleep 3
 

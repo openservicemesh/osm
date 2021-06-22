@@ -6,6 +6,7 @@ set -aueo pipefail
 source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
+DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
@@ -21,7 +22,7 @@ metadata:
     app: bookstore
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
   selector:
     app: bookstore
@@ -36,6 +37,11 @@ metadata:
   namespace: $BOOKSTORE_NAMESPACE
 EOF
 
+if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
+    oc adm policy add-scc-to-user privileged -z "$SVC" -n "$BOOKSTORE_NAMESPACE"
+    oc secrets link "$SVC" "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKSTORE_NAMESPACE"
+fi
+
 echo -e "Deploy $SVC Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -47,7 +53,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 80
+  - port: 14001
     name: bookstore-port
 
   selector:
@@ -74,20 +80,50 @@ spec:
         version: $VERSION
     spec:
       serviceAccountName: "$SVC"
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 80
+            - containerPort: 14001
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "80"]
+          args: ["--path", "./", "--port", "14001"]
           env:
             - name: IDENTITY
               value: ${SVC}
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
+
+          # OSM's mutating webhook will rewrite this liveness probe to /osm-liveness-probe and
+          # Envoy will have a dedicated listener on port 15901 for this liveness probe
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 14001
+            initialDelaySeconds: 3
+            periodSeconds: 3
+
+          # OSM's mutating webhook will rewrite this readiness probe to /osm-readiness-probe and
+          # Envoy will have a dedicated listener on port 15902 for this readiness probe
+          readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /readiness
+              port: 14001
+              scheme: HTTP
+
+          # OSM's mutating webhook will rewrite this startup probe to /osm-startup-probe and
+          # Envoy will have a dedicated listener on port 15903 for this startup probe
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 14001
+            failureThreshold: 30
+            periodSeconds: 5
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

@@ -1,5 +1,7 @@
+// Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
+<<<<<<< HEAD
 import (
 	"fmt"
 	"reflect"
@@ -8,15 +10,15 @@ import (
 
 	"github.com/google/uuid"
 )
+=======
+import "fmt"
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
 	// or viceversa
 	namespaceNameSeparator = "/"
 )
-
-// SyntheticServiceSuffix is a random string appended to the name of the synthetic service created for each K8s service account
-var SyntheticServiceSuffix = uuid.New().String()
 
 // MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
 type MeshService struct {
@@ -28,6 +30,7 @@ type MeshService struct {
 }
 
 func (ms MeshService) String() string {
+<<<<<<< HEAD
 	return strings.Join([]string{ms.Namespace, namespaceNameSeparator, ms.Name}, "")
 }
 
@@ -143,6 +146,9 @@ func (sa K8sServiceAccount) GetSyntheticService() MeshService {
 		Namespace: sa.Namespace,
 		Name:      fmt.Sprintf("%s.%s.osm.synthetic-%s", sa.Name, sa.Namespace, SyntheticServiceSuffix),
 	}
+=======
+	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
+>>>>>>> 865c66ed45ee888b5719d2e56a32f1534b61d1e7
 }
 
 // ClusterName is a type for a service name
@@ -151,13 +157,6 @@ type ClusterName string
 // String returns the given ClusterName type as a string
 func (c ClusterName) String() string {
 	return string(c)
-}
-
-//WeightedService is a struct of a service name, its weight and its root service
-type WeightedService struct {
-	Service     MeshService `json:"service_name:omitempty"`
-	Weight      int         `json:"weight:omitempty"`
-	RootService string      `json:"root_service:omitempty"`
 }
 
 // WeightedCluster is a struct of a cluster and is weight that is backing a service

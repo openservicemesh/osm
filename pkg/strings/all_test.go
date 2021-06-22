@@ -3,11 +3,11 @@ package strings
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestAllEqual(t *testing.T) {
-	assertion := assert.New(t)
+	assertion := tassert.New(t)
 
 	listOfAlpha := All{"a", "a"}
 	listOfStuff := All{"a", "b"}

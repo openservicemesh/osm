@@ -20,6 +20,7 @@ jobs:
     needs: version
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
@@ -52,8 +53,9 @@ jobs:
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          release_name: ${{ github.ref }}
           body_path: release-notes.md
+          prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') }}
       - name: Upload macOS .zip
         uses: actions/upload-release-asset@v1
         with:
@@ -135,7 +137,7 @@ jobs:
       - name: Push images with version tag
         env:
           CTR_TAG: ${{ needs.version.outputs.version }}
-        run: make docker-push
+        run: make docker-push VERIFY_TAGS=1
       - name: Push images with latest tag
         env:
           CTR_TAG: latest

@@ -3,7 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jaeger
+  namespace: {{ include "osm.namespace" . }}
   labels:
+    {{- include "osm.labels" . | nindent 4 }}
     app: jaeger
 spec:
   replicas: 1
@@ -13,8 +15,16 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "osm.labels" . | nindent 8 }}
         app: jaeger
     spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      serviceAccountName: jaeger
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
       - name: jaeger
         image: jaegertracing/all-in-one

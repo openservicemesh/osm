@@ -3,18 +3,28 @@ package envoy
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	certificate.CommonName
+	// The Subject Common Name of the certificate used for Envoy to XDS communication.
+	xDSCertificateCommonName certificate.CommonName
+
+	// The Serial Number of the certificate used for Envoy to XDS communication.
+	xDSCertificateSerialNumber certificate.SerialNumber
+
 	net.Addr
-	announcements chan announcements.Announcement
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -23,6 +33,12 @@ type Proxy struct {
 	lastAppliedVersion map[TypeURI]uint64
 	lastNonce          map[TypeURI]string
 
+	// Contains the last resource names sent for a given proxy and TypeURL
+	lastxDSResourcesSent map[TypeURI]mapset.Set
+
+	// hash is based on CommonName
+	hash uint64
+
 	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
@@ -30,20 +46,68 @@ type Proxy struct {
 	PodMetadata *PodMetadata
 }
 
+func (p *Proxy) String() string {
+	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
+}
+
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
 	UID            string
+	Name           string
 	Namespace      string
 	IP             string
-	ServiceAccount string
+	ServiceAccount identity.K8sServiceAccount
 	Cluster        string
 	EnvoyNodeID    string
+	WorkloadKind   string
+	WorkloadName   string
 }
 
 // HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
 func (p *Proxy) HasPodMetadata() bool {
 	return p.PodMetadata != nil
+}
+
+// StatsHeaders returns the headers required for SMI metrics
+func (p *Proxy) StatsHeaders() map[string]string {
+	unknown := "unknown"
+	podName := unknown
+	podNamespace := unknown
+	podControllerKind := unknown
+	podControllerName := unknown
+
+	if p.PodMetadata != nil {
+		if len(p.PodMetadata.Name) > 0 {
+			podName = p.PodMetadata.Name
+		}
+		if len(p.PodMetadata.Namespace) > 0 {
+			podNamespace = p.PodMetadata.Namespace
+		}
+		if len(p.PodMetadata.WorkloadKind) > 0 {
+			podControllerKind = p.PodMetadata.WorkloadKind
+		}
+		if len(p.PodMetadata.WorkloadName) > 0 {
+			podControllerName = p.PodMetadata.WorkloadName
+		}
+	}
+
+	// Assume ReplicaSets are controlled by a Deployment unless their names
+	// do not contain a hyphen. This aligns with the behavior of the
+	// Prometheus config in the OSM Helm chart.
+	if podControllerKind == "ReplicaSet" {
+		if hyp := strings.LastIndex(podControllerName, "-"); hyp >= 0 {
+			podControllerKind = "Deployment"
+			podControllerName = podControllerName[:hyp]
+		}
+	}
+
+	return map[string]string{
+		"osm-stats-pod":       podName,
+		"osm-stats-namespace": podNamespace,
+		"osm-stats-kind":      podControllerKind,
+		"osm-stats-name":      podControllerName,
+	}
 }
 
 // SetLastAppliedVersion records the version of the given Envoy proxy that was last acknowledged.
@@ -52,12 +116,12 @@ func (p *Proxy) SetLastAppliedVersion(typeURI TypeURI, version uint64) {
 }
 
 // GetLastAppliedVersion returns the last version successfully applied to the given Envoy proxy.
-func (p Proxy) GetLastAppliedVersion(typeURI TypeURI) uint64 {
+func (p *Proxy) GetLastAppliedVersion(typeURI TypeURI) uint64 {
 	return p.lastAppliedVersion[typeURI]
 }
 
 // GetLastSentVersion returns the last sent version.
-func (p Proxy) GetLastSentVersion(typeURI TypeURI) uint64 {
+func (p *Proxy) GetLastSentVersion(typeURI TypeURI) uint64 {
 	return p.lastSentVersion[typeURI]
 }
 
@@ -88,42 +152,79 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 	return p.lastNonce[typeURI]
 }
 
-// String returns the CommonName of the proxy.
-func (p Proxy) String() string {
-	return string(p.GetCommonName())
+// GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
+func (p *Proxy) GetPodUID() string {
+	if p.PodMetadata == nil {
+		return ""
+	}
+	return p.PodMetadata.UID
 }
 
-// GetCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
-func (p Proxy) GetCommonName() certificate.CommonName {
-	return p.CommonName
+// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
+func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
+	return p.xDSCertificateCommonName
+}
+
+// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
+func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
+	return p.xDSCertificateSerialNumber
+}
+
+// GetHash returns the proxy hash based on its xDSCertificateCommonName
+func (p *Proxy) GetHash() uint64 {
+	return p.hash
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
-func (p Proxy) GetConnectedAt() time.Time {
+func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
 // GetIP returns the IP address of the Envoy proxy connected to xDS.
-func (p Proxy) GetIP() net.Addr {
+func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
 }
 
-// GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
-func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
-	return p.announcements
+// GetLastResourcesSent returns a set of resources last sent for a proxy givne a TypeURL
+// If none were sent, empty set is returned
+func (p *Proxy) GetLastResourcesSent(typeURI TypeURI) mapset.Set {
+	sentResources, ok := p.lastxDSResourcesSent[typeURI]
+	if !ok {
+		return mapset.NewSet()
+	}
+	return sentResources
+}
+
+// SetLastResourcesSent sets the last sent resources given a proxy for a TypeURL
+func (p *Proxy) SetLastResourcesSent(typeURI TypeURI, resourcesSet mapset.Set) {
+	p.lastxDSResourcesSent[typeURI] = resourcesSet
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
+	// Get CommonName hash for this proxy
+	hash, err := utils.HashFromString(certCommonName.String())
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
+	}
+
 	return &Proxy{
-		CommonName: cn,
-		Addr:       ip,
+		xDSCertificateCommonName:   certCommonName,
+		xDSCertificateSerialNumber: certSerialNumber,
+
+		Addr: ip,
 
 		connectedAt: time.Now(),
+		hash:        hash,
 
-		announcements:      make(chan announcements.Announcement),
-		lastNonce:          make(map[TypeURI]string),
-		lastSentVersion:    make(map[TypeURI]uint64),
-		lastAppliedVersion: make(map[TypeURI]uint64),
+		lastNonce:            make(map[TypeURI]string),
+		lastSentVersion:      make(map[TypeURI]uint64),
+		lastAppliedVersion:   make(map[TypeURI]uint64),
+		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 	}
+}
+
+// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<serviceAccount>.<namespace>
+func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
 }

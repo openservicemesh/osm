@@ -7,13 +7,24 @@ import (
 	. "github.com/onsi/gomega"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
+	"github.com/onsi/ginkgo"
+	"k8s.io/client-go/kubernetes"
+	testclient "k8s.io/client-go/kubernetes/fake"
+
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe(``+
@@ -26,39 +37,44 @@ var _ = Describe(``+
 		Context("Test rds.NewResponse()", func() {
 
 			// ---[  Setup the test context  ]---------
-			var meshCatalog catalog.MeshCataloger
-			var proxy *envoy.Proxy
-
+			mockCtrl := gomock.NewController(ginkgo.GinkgoT())
+			kubeClient := testclient.NewSimpleClientset()
+			configClient := configFake.NewSimpleClientset()
+			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			proxy, err := getProxy(kubeClient)
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {
-				var err error
-				meshCatalog, proxy, err = getMeshCatalogAndProxy()
 				Expect(err).ToNot(HaveOccurred())
+				Expect(meshCatalog).ToNot(BeNil())
+				Expect(proxy).ToNot(BeNil())
 			})
 
+			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+				return nil, nil
+			}))
+
 			// ---[  Get the config from rds.NewResponse()  ]-------
-			var actual *xds_discovery.DiscoveryResponse
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 			It("did not return an error", func() {
-				var err error
-				actual, err = rds.NewResponse(meshCatalog, proxy, nil, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(resources).ToNot(BeNil())
+				Expect(len(resources)).To(Equal(2))
 			})
 
 			// ---[  Prepare the config for testing  ]-------
-			routeCfg := xds_route.RouteConfiguration{}
-
+			// Order matters, inbound is returned always in first index, outbound second one
+			routeCfg, ok := resources[1].(*xds_route.RouteConfiguration)
 			It("returns a response that can be unmarshalled into an xds RouteConfiguration struct", func() {
-				err := ptypes.UnmarshalAny(actual.Resources[0], &routeCfg)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("created an XDS Route Configuration with the correct name", func() {
-				Expect(routeCfg.Name).To(Equal("RDS_Outbound"))
+				Expect(ok).To(BeTrue())
+				Expect(routeCfg.Name).To(Equal("rds-outbound"))
 			})
 
 			const (
-				apexName = "outbound_virtualHost|bookstore-apex"
-				v1Name   = "outbound_virtualHost|bookstore-v1"
-				v2Name   = "outbound_virtualHost|bookstore-v2"
+				apexName = "outbound_virtual-host|bookstore-apex"
+				v1Name   = "outbound_virtual-host|bookstore-v1"
+				v2Name   = "outbound_virtual-host|bookstore-v2"
 			)
 			expectedVHostNames := []string{apexName, v1Name, v2Name}
 
@@ -101,9 +117,9 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-v1", 90),
+						weightedCluster("bookstore-v1", 100),
 					},
-					TotalWeight: toInt(90),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, v1)
@@ -126,9 +142,9 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-v2", 10),
+						weightedCluster("bookstore-v2", 100),
 					},
-					TotalWeight: toInt(10),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, v2)
@@ -151,11 +167,11 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-apex", 100),
+						// weightedCluster("bookstore-apex", 100),
 						weightedCluster("bookstore-v1", 90),
 						weightedCluster("bookstore-v2", 10),
 					},
-					TotalWeight: toInt(200),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, apex)
@@ -185,4 +201,43 @@ func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedClust
 		Name:   fmt.Sprintf("default/%s", serviceName),
 		Weight: toInt(weight),
 	}
+}
+
+func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+	bookbuyerPodLabels := map[string]string{
+		tests.SelectorKey:                tests.BookbuyerService.Name,
+		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
+	}
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
+		return nil, err
+	}
+
+	bookstorePodLabels := map[string]string{
+		tests.SelectorKey:                "bookstore",
+		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+	}
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, bookstorePodLabels); err != nil {
+		return nil, err
+	}
+
+	selectors := map[string]string{
+		tests.SelectorKey: tests.BookbuyerServiceName,
+	}
+	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
+		return nil, err
+	}
+
+	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
+		selectors := map[string]string{
+			tests.SelectorKey: "bookstore",
+		}
+		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
+			return nil, err
+		}
+	}
+
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
+	certSerialNumber := certificate.SerialNumber("123456")
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return proxy, nil
 }
