@@ -289,7 +289,7 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	}
 
 	// Check if the pod is annotated for injection
-	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations, "Pod", fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
 		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
 		return false, err
@@ -301,7 +301,7 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
 		return false, err
 	}
-	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, ns.Kind, ns.Name)
+	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, "Namespace", ns.Name)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error determining if namespace %s is enabled for sidecar injection", namespace)
 		return false, err
@@ -344,18 +344,20 @@ func (wh *mutatingWebhook) getPortExclusionListForPod(pod *corev1.Pod, namespace
 }
 
 func isAnnotatedForInjection(annotations map[string]string, objectKind string, objectName string) (exists bool, enabled bool, err error) {
-	inject := strings.ToLower(annotations[constants.SidecarInjectionAnnotation])
-	log.Trace().Msgf("%s %s has sidecar injection annotation: '%s:%s'", objectKind, objectName, constants.SidecarInjectionAnnotation, inject)
-	if inject != "" {
-		exists = true
-		switch inject {
-		case "enabled", "yes", "true":
-			enabled = true
-		case "disabled", "no", "false":
-			enabled = false
-		default:
-			err = errors.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
-		}
+	inject, ok := annotations[constants.SidecarInjectionAnnotation]
+	if !ok {
+		return
+	}
+
+	log.Trace().Msgf("%s '%s' has sidecar injection annotation: '%s:%s'", objectKind, objectName, constants.SidecarInjectionAnnotation, inject)
+	exists = true
+	switch strings.ToLower(inject) {
+	case "enabled", "yes", "true":
+		enabled = true
+	case "disabled", "no", "false":
+		enabled = false
+	default:
+		err = errors.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
 	}
 	return
 }
