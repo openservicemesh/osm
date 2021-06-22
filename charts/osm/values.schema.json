@@ -320,6 +320,15 @@
                         false
                     ]
                 },
+                "enablePrometheusScraping": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheusScraping",
+                    "type": "boolean",
+                    "title": "Deprecated: The enablePrometheusScraping schema",
+                    "description": "Deprecated: Indicates whether Prometheus scraping should be enabled.",
+                    "examples": [
+                        true
+                    ]
+                },
                 "deployGrafana": {
                     "$id": "#/properties/OpenServiceMesh/properties/deployGrafana",
                     "type": "boolean",
