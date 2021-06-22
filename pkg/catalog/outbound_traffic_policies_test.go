@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -334,7 +335,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 			for _, ms := range tc.apexMeshServices {
 				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
@@ -733,6 +734,12 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 		{
 			name:           "permissive mode enabled",
 			svcIdentity:    tests.BookstoreServiceIdentity,
+			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
+			permissiveMode: true,
+		},
+		{
+			name:           "gateway",
+			svcIdentity:    "gateway.osm-system.cluster.local",
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -1318,6 +1325,8 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockController := k8s.NewMockController(mockCtrl)
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 	mc := MeshCatalog{
 		meshSpec:       mockMeshSpec,
