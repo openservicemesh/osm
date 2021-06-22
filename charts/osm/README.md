@@ -109,6 +109,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
 | OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
+| OpenServiceMesh.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
 | OpenServiceMesh.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |

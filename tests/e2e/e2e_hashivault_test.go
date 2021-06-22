@@ -25,6 +25,11 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 				// Install OSM
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.CertManager = "vault"
+				installOpts.SetOverrides = []string{
+					// increase timeout when using an external certificate provider due to
+					// potential slowness issuing certs
+					"OpenServiceMesh.injector.webhookTimeoutSeconds=30",
+				}
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				// Create Test NS

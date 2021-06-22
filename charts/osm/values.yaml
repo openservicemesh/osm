@@ -231,6 +231,8 @@ OpenServiceMesh:
       maxReplicas: 5
       # -- Average target CPU utilization (%)
       targetAverageUtilization: 80
+    # -- Mutating webhook timeout
+    webhookTimeoutSeconds: 20
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
