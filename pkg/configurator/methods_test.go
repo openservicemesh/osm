@@ -15,6 +15,7 @@ import (
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
@@ -62,6 +63,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					UseHTTPSIngress:                   true,
 				},
 				Observability: v1alpha1.ObservabilitySpec{
+					OSMLogLevel:       constants.DefaultOSMLogLevel,
 					EnableDebugServer: true,
 					Tracing: v1alpha1.TracingSpec{
 						Enable: true,
@@ -87,6 +89,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 						UseHTTPSIngress:                   true,
 					},
 					Observability: v1alpha1.ObservabilitySpec{
+						OSMLogLevel:       constants.DefaultOSMLogLevel,
 						EnableDebugServer: true,
 						Tracing: v1alpha1.TracingSpec{
 							Enable: true,
@@ -464,6 +467,43 @@ func TestCreateUpdateConfig(t *testing.T) {
 				assert.Equal(true, cfg.GetFeatureFlags().EnableMulticlusterMode)
 			},
 		},
+<<<<<<< HEAD
+=======
+		{
+			name:                  "IsAsyncProxyServiceMappingEnabled",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(false, cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping)
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				FeatureFlags: v1alpha1.FeatureFlags{
+					EnableAsyncProxyServiceMapping: true,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(true, cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping)
+			},
+		},
+		{
+			name: "OSMLogLevel",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					OSMLogLevel: constants.DefaultOSMLogLevel,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(constants.DefaultOSMLogLevel, cfg.GetOSMLogLevel())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Observability: v1alpha1.ObservabilitySpec{
+					OSMLogLevel: "warn",
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal("warn", cfg.GetOSMLogLevel())
+			},
+		},
+>>>>>>> 0411db44 (logger: making log level configurable through meshconfig)
 	}
 
 	for _, test := range tests {
