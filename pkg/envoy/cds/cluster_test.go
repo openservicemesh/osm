@@ -322,7 +322,7 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 			},
 			expectedCluster: &xds_cluster.Cluster{
 				Name:           "foo.com:80",
-				AltStatName:    "foo.com:80",
+				AltStatName:    "foo_com_80",
 				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_STRICT_DNS,
@@ -382,6 +382,39 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 			actual, err := getDNSResolvableEgressCluster(tc.clusterConfig)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedCluster, actual)
+		})
+	}
+}
+
+func TestFormatAltStatNameForPrometheus(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                string
+		clusterName         string
+		expectedAltStatName string
+	}{
+		{
+			name:                "configure cluster name containing '.' and ':'",
+			clusterName:         "foo.com:80",
+			expectedAltStatName: "foo_com_80",
+		},
+		{
+			name:                "configure cluster name containing multiple '.' and :''",
+			clusterName:         "foo.bar.com:80",
+			expectedAltStatName: "foo_bar_com_80",
+		},
+		{
+			name:                "configure cluster name not containing '.' and ':'",
+			clusterName:         "foo",
+			expectedAltStatName: "foo",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := formatAltStatNameForPrometheus(tc.clusterName)
+			assert.Equal(tc.expectedAltStatName, actual)
 		})
 	}
 }
