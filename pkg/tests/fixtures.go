@@ -44,6 +44,10 @@ const (
 	// BookbuyerServiceName is the name of the bookbuyer service
 	BookbuyerServiceName = "bookbuyer"
 
+	BookbuyerServiceNameGlobal = "bookbuyerglobal"
+
+	BookbuyerServiceNameMultiCluster = "bookbuyermulticluster"
+
 	// BookwarehouseServiceName is the name of the bookwarehouse service
 	BookwarehouseServiceName = "bookwarehouse"
 
@@ -126,6 +130,18 @@ var (
 		Namespace:     Namespace,
 		Name:          BookbuyerServiceName,
 		ClusterDomain: constants.LocalDomain,
+	}
+	// BookbuyerService is the bookbuyer service. Global Version.
+	BookbuyerServiceGlobal = service.MeshService{
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceNameGlobal,
+		ClusterDomain: constants.GlobalDomain,
+	}
+	// BookbuyerService is the bookbuyer service. Global Version.
+	BookbuyerServiceMultiCluster = service.MeshService{
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceNameMultiCluster,
+		ClusterDomain: "clusterX",
 	}
 
 	// BookstoreApexService is the bookstore-apex service

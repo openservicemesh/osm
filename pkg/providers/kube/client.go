@@ -1,7 +1,10 @@
 package kube
 
 import (
+	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -38,63 +41,81 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
-	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
-	if err != nil || kubernetesEndpoints == nil {
-		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
-		return endpoints
-	}
+	// 3 scenarios for getting endpoints: (1) multicluster (2) global (3) local
 
-	if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
-		// Doesn't belong to namespaces we are observing
-		return endpoints
-	}
-
-	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
-		for _, address := range kubernetesEndpoint.Addresses {
-			for _, port := range kubernetesEndpoint.Ports {
-				ip := net.ParseIP(address.IP)
-				if ip == nil {
-					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
-					break
-				}
+	// (1) multicluster
+	if !svc.Local() && !svc.Global() {
+		// Using svc name and namespace, get multiclusterservice object
+		// TODO: What is method to get multicluster service?
+		mcsvc := c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+		for _, cluster := range mcsvc.Spec.Cluster {
+			if cluster.Name == string(svc.ClusterDomain) {
+				s := strings.Split(cluster.Address, ":")
+				port, _ := strconv.ParseUint(s[1], 10, 32)
+				fmt.Println(port)
 				ept := endpoint.Endpoint{
-					IP:   ip,
-					Port: endpoint.Port(port.Port),
+					IP:   net.ParseIP(s[0]),
+					Port: endpoint.Port(port),
 				}
 				endpoints = append(endpoints, ept)
+				// Return right away because should be just one endpoint
+				return endpoints
 			}
 		}
+		return nil
 	}
-	return endpoints
-}
-
-// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
-	sa := serviceIdentity.ToK8sServiceAccount()
-	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
-	var endpoints []endpoint.Endpoint
-
-	podList := c.kubeController.ListPods()
-	for _, pod := range podList {
-		if pod.Namespace != sa.Namespace {
-			continue
-		}
-		if pod.Spec.ServiceAccountName != sa.Name {
-			continue
-		}
-
-		for _, podIP := range pod.Status.PodIPs {
-			ip := net.ParseIP(podIP.IP)
-			if ip == nil {
-				log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, podIP.IP)
-				break
+	// (2) global
+	if !svc.Local() && svc.Global() {
+		// Using svc name and namespace, get multiclusterservice object
+		// TODO: What is method to get multicluster service?
+		mcsvc := c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+		for _, cluster := range mcsvc.Spec.Cluster {
+			if cluster.Name == string(svc.ClusterDomain) {
+				s := strings.Split(cluster.Address, ":")
+				port, _ := strconv.ParseUint(s[1], 10, 32)
+				fmt.Println(port)
+				ept := endpoint.Endpoint{
+					IP:   net.ParseIP(s[0]),
+					Port: endpoint.Port(port),
+				}
+				endpoints = append(endpoints, ept)
+				// Return right away because should be just one endpoint
 			}
-			ept := endpoint.Endpoint{IP: ip}
-			endpoints = append(endpoints, ept)
 		}
+		return endpoints
 	}
-	return endpoints
+	// (3) local
+	if svc.Local() && !svc.Global() {
+		kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
+		if err != nil || kubernetesEndpoints == nil {
+			log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
+			return endpoints
+		}
+
+		if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+			// Doesn't belong to namespaces we are observing
+			return endpoints
+		}
+
+		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
+			for _, address := range kubernetesEndpoint.Addresses {
+				for _, port := range kubernetesEndpoint.Ports {
+					ip := net.ParseIP(address.IP)
+					if ip == nil {
+						log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+						break
+					}
+					ept := endpoint.Endpoint{
+						IP:   ip,
+						Port: endpoint.Port(port.Port),
+					}
+					endpoints = append(endpoints, ept)
+				}
+			}
+		}
+		return endpoints
+	}
+	return nil
 }
 
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.
