@@ -230,4 +230,7 @@ spec:
                     enableIngressBackendPolicy:
                       type: boolean
                       default: false
+                    enableEnvoyActiveHealthChecks:
+                      type: boolean
+                      default: false
 

@@ -111,6 +111,24 @@ func TestHTTPConnbuild(t *testing.T) {
 				a.True(notContains(connManager.HttpFilters, wellknown.HTTPExternalAuthorization))
 			},
 		},
+		{
+			name: "health check config present when enabled",
+			option: httpConnManagerOptions{
+				enableActiveHealthChecks: true,
+			},
+			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
+				a.True(contains(connManager.HttpFilters, wellknown.HealthCheck))
+			},
+		},
+		{
+			name: "health check config absent when disabled",
+			option: httpConnManagerOptions{
+				enableActiveHealthChecks: false,
+			},
+			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
+				a.True(notContains(connManager.HttpFilters, wellknown.HealthCheck))
+			},
+		},
 	}
 
 	for _, tc := range testCases {

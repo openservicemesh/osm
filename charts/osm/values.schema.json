@@ -741,7 +741,8 @@
                         "enableAsyncProxyServiceMapping",
                         "enableValidatingWebhook",
                         "enableCRDConverter",
-                        "enableIngressBackendPolicy"
+                        "enableIngressBackendPolicy",
+                        "enableEnvoyActiveHealthChecks"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -812,6 +813,15 @@
                             "type": "boolean",
                             "title": "Enable OSM to use the IngressBackend API",
                             "description": "Enable OSM to use the IngressBackend API for allowing ingress to mesh backends",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableEnvoyActiveHealthChecks": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableEnvoyActiveHealthChecks",
+                            "type": "boolean",
+                            "title": "Enable Envoy active health checks",
+                            "description": "EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health checks between services allowed to communicate",
                             "examples": [
                                 true
                             ]

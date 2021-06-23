@@ -90,8 +90,9 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		rdsRoutConfigName: route.InboundRouteConfigName,
 
 		// Additional filters
-		wasmStatsHeaders: lb.getWASMStatsHeaders(),
-		extAuthConfig:    lb.getExtAuthConfig(),
+		wasmStatsHeaders:         lb.getWASMStatsHeaders(),
+		extAuthConfig:            lb.getExtAuthConfig(),
+		enableActiveHealthChecks: lb.cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
 
 		// Tracing options
 		enableTracing:      lb.cfg.IsTracingEnabled(),

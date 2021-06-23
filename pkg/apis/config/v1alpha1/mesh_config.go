@@ -195,4 +195,8 @@ type FeatureFlags struct {
 	// EnableIngressBackendPolicy defines if OSM will use the IngressBackend API to allow ingress traffic to
 	// service mesh backends.
 	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy,omitempty"`
+
+	// EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health
+	// checks between services allowed to communicate.
+	EnableEnvoyActiveHealthChecks bool `json:"enableEnvoyActiveHealthChecks,omitempty"`
 }

@@ -83,6 +83,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | OpenServiceMesh.featureFlags.enableCRDConverter | bool | `true` | Enable CRD conversion webhook. When enabled, a conversion webhook will be deployed to perform API version conversions for custom resources. |
 | OpenServiceMesh.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced |
+| OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks | bool | `false` | Enable Envoy active health checks |
 | OpenServiceMesh.featureFlags.enableIngressBackendPolicy | bool | `false` | Enables OSM's IngressBackend policy API. When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends |
 | OpenServiceMesh.featureFlags.enableMulticlusterMode | bool | `false` | Enable Multicluster mode. When enabled, multicluster mode will be enabled in OSM |
 | OpenServiceMesh.featureFlags.enableOSMGateway | bool | `false` | Enable OSM gateway for ingress or multicluster |

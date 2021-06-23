@@ -11,6 +11,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -31,8 +33,9 @@ const (
 var replacer = strings.NewReplacer(".", "_", ":", "_")
 
 type clusterOptions struct {
-	permissive bool
-	withTLS    bool
+	permissive             bool
+	withTLS                bool
+	withActiveHealthChecks bool
 }
 
 // clusterOption is type of function that edits the defaults of the options struct.
@@ -46,6 +49,12 @@ func withTLS(o *clusterOptions) {
 // permissive is an option to not generate permissive endpoints discovery for clusters.
 func permissive(o *clusterOptions) {
 	o.permissive = true
+}
+
+// withActiveHealthChecks is an option to configure active health checks for upstream
+// clusters.
+func withActiveHealthChecks(o *clusterOptions) {
+	o.withActiveHealthChecks = true
 }
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
@@ -93,6 +102,31 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
 		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	}
+
+	if o.withActiveHealthChecks {
+		remoteCluster.HealthChecks = []*xds_core.HealthCheck{
+			{
+				Timeout:            durationpb.New(1 * time.Second),
+				Interval:           durationpb.New(10 * time.Second),
+				HealthyThreshold:   wrapperspb.UInt32(1),
+				UnhealthyThreshold: wrapperspb.UInt32(3),
+				HealthChecker: &xds_core.HealthCheck_HttpHealthCheck_{
+					HttpHealthCheck: &xds_core.HealthCheck_HttpHealthCheck{
+						Host: upstreamSvc.ServerName(),
+						Path: envoy.EnvoyActiveHealthCheckPath,
+						RequestHeadersToAdd: []*xds_core.HeaderValueOption{
+							{
+								Header: &xds_core.HeaderValue{
+									Key:   envoy.EnvoyActiveHealthCheckHeaderKey,
+									Value: "1",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
 	}
 
 	return remoteCluster, nil
