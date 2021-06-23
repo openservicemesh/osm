@@ -41,8 +41,11 @@ var (
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
-	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)         // FQDN
-	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort) // FQDN
+	bookstoreServiceNamespace              = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)
+	bookstoreClusterID                     = os.Getenv("BOOKSTORE_CLUSTER_ID")
+
+	bookstoreService = fmt.Sprintf("%s:%d", utils.AppendClusterID(bookstoreServiceNamespace, bookstoreClusterID), bookstorePort) // FQDN
+	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort)                  // FQDN
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
