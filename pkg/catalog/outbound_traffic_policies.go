@@ -20,7 +20,7 @@ func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.S
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
-		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
+		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies(downstreamServiceAccount.Namespace)...)
 		outboundPolicies = mergedPolicies
 		return outboundPolicies
 	}
@@ -145,7 +145,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 	return allowedServices
 }
 
-func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	k8sServices := mc.kubeController.ListServices()
@@ -155,8 +155,11 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	}
 
 	for _, destService := range destServices {
-		// TODO(steeling): shouldn't this check the source namespace.... not relevant to this PR though.
-		hostnames, err := mc.GetServiceHostnames(destService, service.LocalCluster)
+		locality := service.LocalCluster
+		if destService.Namespace == sourceNamespace {
+			locality = service.LocalNS
+		}
+		hostnames, err := mc.GetServiceHostnames(destService, locality)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 			continue
