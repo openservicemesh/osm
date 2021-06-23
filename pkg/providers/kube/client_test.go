@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -35,20 +36,19 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockConfigurator   *configurator.MockConfigurator
 
 		client *Client
-		err    error
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockConfigController := config.NewMockController(mockCtrl)
 
 	providerID := "provider"
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		client, err = NewClient(mockKubeController, providerID, mockConfigurator)
-		Expect(err).ToNot(HaveOccurred())
+		client = NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 	})
 
 	It("tests GetID", func() {
@@ -292,6 +292,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockConfigController := config.NewMockController(mockCtrl)
 
 	providerID := "test-provider"
 	testNamespace := "testNamespace"
@@ -317,7 +318,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}, 3*time.Second).Should(BeTrue())
 
 		Expect(err).ToNot(HaveOccurred())
-		client, err = NewClient(kubeController, providerID, mockConfigurator)
+		client = NewClient(kubeController, mockConfigController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -719,10 +720,10 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockConfigController := config.NewMockController(mockCtrl)
 			providerID := "provider"
 
-			provider, err := NewClient(mockKubeController, providerID, mockConfigurator)
-			assert.Nil(err)
+			provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
