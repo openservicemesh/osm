@@ -28,10 +28,6 @@ func validateCLIParams() error {
 		return errors.Errorf("Please specify the CA bundle secret name using --ca-bundle-secret-name")
 	}
 
-	if caBundleSecretName == "" {
-		return errors.Errorf("Please specify the CA bundle secret name using --ca-bundle-secret-name containing the cert-manager CA at 'ca.crt'")
-	}
-
 	return nil
 }
 
