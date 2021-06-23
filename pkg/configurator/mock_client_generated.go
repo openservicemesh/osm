@@ -164,6 +164,20 @@ func (mr *MockConfiguratorMockRecorder) GetMeshConfigJSON() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfigJSON", reflect.TypeOf((*MockConfigurator)(nil).GetMeshConfigJSON))
 }
 
+// GetOSMLogLevel mocks base method
+func (m *MockConfigurator) GetOSMLogLevel() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOSMLogLevel")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetOSMLogLevel indicates an expected call of GetOSMLogLevel
+func (mr *MockConfiguratorMockRecorder) GetOSMLogLevel() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetOSMLogLevel))
+}
+
 // GetOSMNamespace mocks base method
 func (m *MockConfigurator) GetOSMNamespace() string {
 	m.ctrl.T.Helper()

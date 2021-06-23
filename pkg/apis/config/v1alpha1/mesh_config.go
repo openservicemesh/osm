@@ -91,6 +91,9 @@ type TrafficSpec struct {
 
 // ObservabilitySpec is the type to represent OSM's observability configurations.
 type ObservabilitySpec struct {
+	// OSMLogLevel defines the log level for OSM control plane logs.
+	OSMLogLevel string `json:"osmLogLevel,omitempty"`
+
 	// EnableDebugServer defines if the debug endpoint on the OSM controller pod is enabled.
 	EnableDebugServer bool `json:"enableDebugServer,omitempty"`
 

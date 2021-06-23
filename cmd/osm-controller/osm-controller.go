@@ -79,7 +79,7 @@ var (
 )
 
 func init() {
-	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
+	flags.StringVarP(&verbosity, "verbosity", "v", constants.DefaultOSMLogLevel, "Set boot log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "OSM controller's namespace")
@@ -156,6 +156,9 @@ func main() {
 		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
 	}
 	log.Info().Msgf("Initial MeshConfig %s: %s", osmMeshConfigName, meshConfig)
+
+	// Start Global log level handler, reads from configurator (meshconfig)
+	StartGlobalLogLevelHandler(cfg, stop)
 
 	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {
