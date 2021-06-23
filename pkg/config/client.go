@@ -48,7 +48,6 @@ func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller,
 	if err != nil {
 		return client, errors.Errorf("Could not start %s client: %s", apiGroup, err)
 	}
-
 	return client, err
 }
 
@@ -79,6 +78,22 @@ func (c client) ListMultiClusterServices() []*v1alpha1.MultiClusterService {
 			services = append(services, mcs)
 		}
 	}
+	return services
+}
+
+func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []*v1alpha1.MultiClusterService {
+	if !c.kubeController.IsMonitoredNamespace(namespace) {
+		return nil
+	}
+
+	var services []*v1alpha1.MultiClusterService
+
+	for _, mcs := range c.ListMultiClusterServices() {
+		if mcs.Spec.ServiceAccount == serviceAccount && mcs.Namespace == namespace {
+			services = append(services, mcs)
+		}
+	}
+
 	return services
 }
 

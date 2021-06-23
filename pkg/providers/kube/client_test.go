@@ -16,7 +16,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -36,13 +39,12 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockConfigurator   *configurator.MockConfigurator
 		client             *Client
 	)
+	const providerID = "provider"
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
-
-	providerID := "provider"
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
@@ -75,6 +77,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(client.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 			{
@@ -670,6 +673,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 func TestListEndpointsForIdentity(t *testing.T) {
 	assert := tassert.New(t)
+	providerID := "provider"
 
 	testCases := []struct {
 		name                            string
@@ -720,7 +724,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockConfigController := config.NewMockController(mockCtrl)
-			providerID := "provider"
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 			provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 
@@ -748,4 +752,60 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})
 	}
+}
+
+func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
+	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigController := config.NewMockController(mockCtrl)
+	providerID := "provider"
+	provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+
+	destServiceIdentity := tests.BookstoreServiceIdentity
+	destSA := destServiceIdentity.ToK8sServiceAccount()
+
+	mcServices := []*v1alpha1.MultiClusterService{
+		{
+			Spec: v1alpha1.MultiClusterServiceSpec{
+				Cluster: []v1alpha1.ClusterSpec{
+					{
+						Address: "1.2.3.4:8080",
+						Name:    "remote-cluster-1",
+					},
+					{
+						Address: "5.6.7.8:8080",
+						Name:    "remote-cluster-2",
+					},
+				},
+				ServiceAccount: destSA.Name,
+			},
+		},
+	}
+
+	configClient := fakeConfig.NewSimpleClientset()
+	for _, mcService := range mcServices {
+		_, err := configClient.ConfigV1alpha1().MultiClusterServices(tests.Namespace).Create(context.TODO(), mcService, metav1.CreateOptions{})
+		assert.Nil(err)
+	}
+
+	mockConfigController.EXPECT().GetMultiClusterServiceByServiceAccount(destSA.Name, destSA.Namespace).Return(mcServices).AnyTimes()
+
+	endpoints := provider.getMultiClusterServiceEndpointsForServiceAccount(destSA.Name, destSA.Namespace)
+	assert.Equal(len(endpoints), 2)
+
+	assert.ElementsMatch(endpoints, []endpoint.Endpoint{
+		{
+			IP:   net.ParseIP("1.2.3.4"),
+			Port: 8080,
+		},
+		{
+			IP:   net.ParseIP("5.6.7.8"),
+			Port: 8080,
+		},
+	})
 }
