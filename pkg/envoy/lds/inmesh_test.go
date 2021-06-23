@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -537,18 +538,26 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:           "TCP filter for upstream without any traffic split policies",
-			upstream:       service.MeshService{Name: "foo", Namespace: "bar"},
+			name: "TCP filter for upstream without any traffic split policies",
+			upstream: service.MeshService{
+				Name:          "foo",
+				Namespace:     "bar",
+				ClusterDomain: constants.LocalDomain,
+			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
-				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo/local",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo/local"},
 			},
 			expectError: false,
 		},
 		{
-			name:     "TCP filter for upstream with matching traffic split policy",
-			upstream: service.MeshService{Name: "foo", Namespace: "bar"},
+			name: "TCP filter for upstream with matching traffic split policy",
+			upstream: service.MeshService{
+				Name:          "foo",
+				Namespace:     "bar",
+				ClusterDomain: constants.LocalDomain,
+			},
 			clusterWeights: []service.WeightedCluster{
 				{
 					ClusterName: "bar/foo-v1",
@@ -560,7 +569,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo/local",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
@@ -599,6 +608,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			assert.Equal(wellknown.TCPProxy, filter.Name)
 
 			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
+
 			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
 		})
 	}

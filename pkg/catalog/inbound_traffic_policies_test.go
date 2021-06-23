@@ -15,6 +15,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -44,12 +45,14 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			upstreamSA:   tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -104,7 +107,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -117,7 +120,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -136,15 +139,18 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			upstreamSA:   tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}, {
-				Name:      "bookstore-apex",
-				Namespace: "default",
+				Name:          "bookstore-apex",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -216,7 +222,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -229,7 +235,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -259,7 +265,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -272,7 +278,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -291,15 +297,18 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			upstreamSA:   tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}, {
-				Name:      "bookstore-apex",
-				Namespace: "default",
+				Name:          "bookstore-apex",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServiceAccounts: []identity.K8sServiceAccount{},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -372,7 +381,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -402,7 +411,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -421,7 +430,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -546,12 +555,14 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -598,15 +609,18 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}, {
-				Name:      "bookstore-apex",
-				Namespace: "default",
+				Name:          "bookstore-apex",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -677,7 +691,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -690,7 +704,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -714,15 +728,18 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}, {
-				Name:      "bookstore-apex",
-				Namespace: "default",
+				Name:          "bookstore-apex",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -793,7 +810,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -806,7 +823,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -830,15 +847,18 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			meshServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}, {
-				Name:      "bookstore-apex",
-				Namespace: "default",
+				Name:          "bookstore-apex",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -910,7 +930,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -929,7 +949,7 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -998,8 +1018,9 @@ func TestBuildInboundPolicies(t *testing.T) {
 				Namespace: "bookstore-ns",
 			}.ToServiceIdentity(),
 			inboundService: service.MeshService{
-				Name:      "bookstore",
-				Namespace: "bookstore-ns",
+				Name:          "bookstore",
+				Namespace:     "bookstore-ns",
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1052,7 +1073,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "bookstore-ns/bookstore",
+									ClusterName: "bookstore-ns/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1065,7 +1086,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "bookstore-ns/bookstore",
+									ClusterName: "bookstore-ns/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1089,8 +1110,9 @@ func TestBuildInboundPolicies(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			inboundService: service.MeshService{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1143,7 +1165,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1156,7 +1178,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1215,7 +1237,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1/local",
 									Weight:      100,
 								}),
 							},
@@ -1234,7 +1256,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRouteWithHost,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1/local",
 									Weight:      100,
 								}),
 							},
@@ -1311,7 +1333,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "bookstore-ns/bookstore",
+									ClusterName: "bookstore-ns/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1321,8 +1343,9 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 				},
 			},
 			meshService: service.MeshService{
-				Name:      "bookstore",
-				Namespace: "bookstore-ns",
+				Name:          "bookstore",
+				Namespace:     "bookstore-ns",
+				ClusterDomain: constants.LocalDomain,
 			},
 			serviceAccounts: map[string]string{"bookstore": "bookstore-ns", "bookbuyer": "bookbuyer-ns"},
 		},
@@ -1378,8 +1401,9 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1432,7 +1456,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1445,7 +1469,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1469,8 +1493,9 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 				Namespace: "default",
 			}.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{{
-				Name:      "bookstore",
-				Namespace: "default",
+				Name:          "bookstore",
+				Namespace:     "default",
+				ClusterDomain: constants.LocalDomain,
 			}},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -1524,7 +1549,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
@@ -1551,7 +1576,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									},
 								},
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore",
+									ClusterName: "default/bookstore/local",
 									Weight:      100,
 								}),
 							},
