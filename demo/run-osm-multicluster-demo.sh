@@ -61,6 +61,7 @@ make build-osm
 # Create Cluster 1 AND registry
 CLUSTER_ONE_NAME="multicluster-osm-1"
 KIND_CLUSTER_NAME=$CLUSTER_ONE_NAME
+BOOKSTORE_CLUSTER_ID=$CLUSTER_ONE_NAME # Bookstore will run on the first cluster TODO: Remove bookstore deployments from cluster 2
 echo "Creating first cluster named: $KIND_CLUSTER_NAME"
 ./scripts/kind-with-registry.sh
 
