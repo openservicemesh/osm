@@ -61,6 +61,9 @@ type Configurator interface {
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
 
+	// GetOsmLogLevel returns the configured OSM log level
+	GetOSMLogLevel() string
+
 	// GetEnvoyLogLevel returns the envoy log level
 	GetEnvoyLogLevel() string
 
