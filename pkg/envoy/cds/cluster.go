@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"strings"
 	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -24,6 +25,9 @@ const (
 	// clusterConnectTimeout is the timeout duration used by Envoy to timeout connections to the cluster
 	clusterConnectTimeout = 1 * time.Second
 )
+
+// replacer used to configure an Envoy cluster's altStatName
+var replacer = strings.NewReplacer(".", "_", ":", "_")
 
 type clusterOptions struct {
 	permissive bool
@@ -230,7 +234,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 
 	return &xds_cluster.Cluster{
 		Name:           config.Name,
-		AltStatName:    config.Name,
+		AltStatName:    formatAltStatNameForPrometheus(config.Name),
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STRICT_DNS,
@@ -273,4 +277,12 @@ func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, err
 		LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}, nil
+}
+
+// formatAltStatNameForPrometheus returns an altStatName for a Envoy cluster. If the cluster name contains
+// periods or colons the characters must be removed so that the name is correctly interpreted by Envoy when
+// generating stats/prometheus. The Envoy cluster's name can remain the same, and the formatted cluster name
+// can be assigned to the cluster's altStatName.
+func formatAltStatNameForPrometheus(clusterName string) string {
+	return replacer.Replace(clusterName)
 }
