@@ -156,19 +156,6 @@ func shortenResName(res Resource) string {
 	return fmt.Sprintf("%s/%s", podShortened, contShortened)
 }
 
-// Given two floats, return the signed relative percentual difference as a string
-func percentDiff(a float64, b float64) string {
-	s := ""
-	if a > b {
-		s = fmt.Sprintf("+%.2f%%", (((a / b) - 1) * 100))
-	} else if a < b {
-		s = fmt.Sprintf("-%.2f%%", ((1 - (a / b)) * 100))
-	} else {
-		s = "0%"
-	}
-	return s
-}
-
 // Output functions/boiler plate for information display below.
 
 // OutputIteration prints on file <f> the results of iteration <iterNumber>
@@ -228,24 +215,16 @@ func (sd *DataHandle) OutputIteration(iterNumber int, f *os.File) {
 func (sd *DataHandle) OutputIterationTable(f *os.File) {
 	// Print all iteration information for all seen resources
 	table := tablewriter.NewWriter(f)
-	header := []string{"It", "Duration", "NPods"}
+	header := []string{"Iteration", "Duration", "Num Pods"}
 	var rows [][]string
 
 	// Set up columns "It", "Duration", "NPods"
-	var prevItDuration time.Duration
 	for it := 0; it < sd.Iterations; it++ {
 		itDurationString := ""
 
 		// Duration of this iteration
 		itDuration := sd.ItEndTime[it].Sub(sd.ItStartTime[it])
-		itDurationString += itDuration.String()
-
-		// Delta compared to previous iteration, if any
-		if it > 0 {
-			deltaString := percentDiff(float64(itDuration), float64(prevItDuration))
-			itDurationString += fmt.Sprintf(" (%s)", deltaString)
-		}
-		prevItDuration = itDuration
+		itDurationString += itDuration.Round(time.Second).String()
 
 		nPods, err := sd.PromHandle.GetNumEnvoysInMesh(sd.ItEndTime[it])
 		var nPodsString string
@@ -270,7 +249,6 @@ func (sd *DataHandle) OutputIterationTable(f *os.File) {
 		header = append(header, shortResName)
 
 		// Delta vars, to calculate deltas between iterations
-		var previousMem float64
 		for it := 0; it < sd.Iterations; it++ {
 			// CPU
 			var cpuString string
@@ -289,16 +267,8 @@ func (sd *DataHandle) OutputIterationTable(f *os.File) {
 				seenRes.Namespace, seenRes.PodName, seenRes.ContainerName, sd.ItEndTime[it])
 			if err != nil {
 				memString = errStr
-				previousMem = -1
 			} else {
 				memString += humanize.Bytes(uint64(memIt))
-
-				// Check delta with previous iteration
-				if it > 0 && previousMem != -1 {
-					deltaString := percentDiff(float64(memIt), float64(previousMem))
-					memString = fmt.Sprintf("%s (%s)", memString, deltaString)
-				}
-				previousMem = memIt
 			}
 
 			rows[it] = append(rows[it], fmt.Sprintf("%s / %s", cpuString, memString))
