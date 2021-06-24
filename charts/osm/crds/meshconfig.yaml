@@ -191,6 +191,17 @@ spec:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
                       default: "24h"
+                experimental:
+                  description: Experimental configurations
+                  type: object
+                  properties:
+                    multicluster:
+                      description: Multicluster scenario configurations
+                      type: object
+                      properties:
+                        clusterDomain:
+                          description: Domain name for this cluster; will be used by other clusters to reference it in a multi-cluster scenario.
+                          type: string
                 featureFlags:
                   description: OSM feature flags
                   type: object

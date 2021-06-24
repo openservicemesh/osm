@@ -199,6 +199,11 @@ func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 	return extAuthConfig
 }
 
+// GetClusterDomain returns the cluster domain name (experimental - multicluster)
+func (c *Client) GetClusterDomain() string {
+	return c.getMeshConfig().Spec.Experimental.MulticlusterSpec.ClusterDomain
+}
+
 // GetFeatureFlags returns OSM's feature flags
 func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
