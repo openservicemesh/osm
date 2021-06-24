@@ -21,7 +21,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
@@ -35,8 +35,8 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 
 	// Build traffic policies from  either SMI Traffic Target and Traffic Split or service discovery
 	// depending on whether permissive mode is enabled or not
-	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity.ToServiceIdentity(), services)
-	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity.ToServiceIdentity())
+	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity, services)
+	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity)
 
 	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies, proxy, cfg)
 	var rdsResources []types.Resource
@@ -60,7 +60,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	}
 
 	// Build Egress route configurations based on Egress HTTP routing rules associated with this proxy
-	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity())
+	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxyIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxyIdentity)
 	}

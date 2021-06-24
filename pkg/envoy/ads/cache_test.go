@@ -22,7 +22,7 @@ func TestGetProxyFromPod(t *testing.T) {
 		namespace       = "namespace"
 		serviceAccount  = "serviceAccount"
 		validUUID       = uuid.New()
-		validCommonName = envoy.NewCertCommonName(validUUID, envoy.KindSidecar, serviceAccount, namespace)
+		validCommonName = envoy.NewXDSCertCommonName(validUUID, envoy.KindSidecar, serviceAccount, namespace)
 	)
 
 	testCases := []struct {

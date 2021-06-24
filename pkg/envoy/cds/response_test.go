@@ -52,7 +52,7 @@ func TestNewResponse(t *testing.T) {
 
 	proxyUUID := uuid.New()
 	// The format of the CN matters
-	xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
+	xdsCertificate := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace)
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy, err := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 	assert.Nil(err)
@@ -384,12 +384,12 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(cn)
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
 	tassert.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()).Return(nil).AnyTimes()
+	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil, proxyRegistry)
 	tassert.Error(t, err)
@@ -412,7 +412,7 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{svc}, nil
 	}))
-	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
@@ -432,7 +432,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
@@ -458,7 +458,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
@@ -489,7 +489,7 @@ func TestNewResponseForGateway(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewCertCommonName(uuid.New(), envoy.KindGateway, "gateway", "osm-system")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "gateway", "osm-system")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
