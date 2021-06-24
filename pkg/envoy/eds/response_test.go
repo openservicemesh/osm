@@ -67,7 +67,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(proxy)
 
 	request := &xds_discovery.DiscoveryRequest{
-		ResourceNames: []string{"default/bookstore-v1"},
+		ResourceNames: []string{"default/bookstore-v1/local"},
 	}
 	resources, err := NewResponse(meshCatalog, proxy, request, mockConfigurator, nil, nil)
 	assert.Nil(err)
@@ -97,7 +97,7 @@ func TestClusterToMeshSvc(t *testing.T) {
 	}{
 		{
 			name:    "valid cluster name",
-			cluster: "foo/bar",
+			cluster: "foo/bar/local",
 			expectedMeshSvc: service.MeshService{
 				Namespace:     "foo",
 				Name:          "bar",
@@ -113,7 +113,7 @@ func TestClusterToMeshSvc(t *testing.T) {
 		},
 		{
 			name:            "invalid cluster name",
-			cluster:         "foo/bar/baz",
+			cluster:         "foo/barbaz",
 			expectedMeshSvc: service.MeshService{},
 			expectError:     true,
 		},
