@@ -163,7 +163,7 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert secrets.SDSCert) *xds
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := secrets.SDSCert{
-		Name:     upstreamIdentity.GetSDSCSecretName(),
+		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
 		CertType: secrets.ServiceCertType,
 	}
 
@@ -181,7 +181,7 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
 	downstreamPeerValidationSDSCert := secrets.SDSCert{
-		Name:     upstreamIdentity.GetSDSCSecretName(),
+		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
 		CertType: downstreamPeerValidationCertType,
 	}
 
@@ -197,7 +197,7 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
 	downstreamSDSCert := secrets.SDSCert{
-		Name:     downstreamIdentity.GetSDSCSecretName(),
+		Name:     secrets.GetSecretNameForIdentity(downstreamIdentity),
 		CertType: secrets.ServiceCertType,
 	}
 	upstreamPeerValidationSDSCert := secrets.SDSCert{

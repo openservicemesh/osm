@@ -4,8 +4,6 @@ package identity
 import (
 	"fmt"
 	"strings"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const (
@@ -20,20 +18,6 @@ type ServiceIdentity string
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
 	return string(si)
-}
-
-// GetSDSCSecretName returns a string key used as the name of Certificate in all SDS structs.
-// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
-func (si ServiceIdentity) GetSDSCSecretName() string {
-	// TODO(draychev): The cert names can be redone to move away from using "namespace/name" format [https://github.com/openservicemesh/osm/issues/2218]
-	// Currently this will be: "service-cert:default/bookbuyer"
-	return si.ToK8sServiceAccount().String()
-}
-
-// GetCertificateCommonName returns a certificate CommonName compliant with RFC-1123 (https://tools.ietf.org/html/rfc1123) DNS name.
-// TODO(draychev): Remove this once the transition to ServiceIdentity is complete [https://github.com/openservicemesh/osm/issues/3182]
-func (si ServiceIdentity) GetCertificateCommonName() certificate.CommonName {
-	return certificate.CommonName(si)
 }
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity

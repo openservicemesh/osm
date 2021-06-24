@@ -87,3 +87,10 @@ func (sdsc *SDSCert) GetK8sServiceAccount() (*identity.K8sServiceAccount, error)
 		Name:      slices[1],
 	}, nil
 }
+
+// GetSecretNameForIdentity returns the SDS secret name corresponding to the given ServiceIdentity
+func GetSecretNameForIdentity(si identity.ServiceIdentity) string {
+	// TODO(draychev): The cert names can be redone to move away from using "namespace/name" format [https://github.com/openservicemesh/osm/issues/2218]
+	// Currently this will be: "service-cert:default/bookbuyer"
+	return si.ToK8sServiceAccount().String()
+}
