@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"github.com/openservicemesh/osm/pkg/config"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -13,4 +14,5 @@ var (
 type Client struct {
 	providerIdent  string
 	kubeController k8s.Controller
+	configClient   config.Controller
 }

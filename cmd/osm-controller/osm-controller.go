@@ -27,6 +27,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -186,10 +187,16 @@ func main() {
 		}
 	}
 
-	kubeProvider, err := kube.NewClient(kubernetesClient, constants.KubeProviderName, cfg)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
+	var configClient config.Controller
+
+	if cfg.GetFeatureFlags().EnableMulticlusterMode {
+		if configClient, err = config.NewConfigController(kubeConfig, kubernetesClient, stop); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes config client")
+		}
 	}
+
+	// A nil configClient is passed in if multi cluster mode is not enabled.
+	kubeProvider := kube.NewClient(kubernetesClient, configClient, constants.KubeProviderName, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 
