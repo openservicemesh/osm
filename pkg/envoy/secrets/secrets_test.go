@@ -251,3 +251,28 @@ func TestUnmarshalK8sServiceAccount(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSecretNameForIdentity(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		si       identity.ServiceIdentity
+		expected string
+	}{
+		{
+			si:       identity.ServiceIdentity("foo.bar.cluster.local"),
+			expected: "bar/foo",
+		},
+		{
+			si:       identity.ServiceIdentity("foo.baz.cluster.local"),
+			expected: "baz/foo",
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Test case %d", i), func(t *testing.T) {
+			actual := GetSecretNameForIdentity(tc.si)
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}
