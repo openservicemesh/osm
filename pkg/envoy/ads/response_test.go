@@ -52,7 +52,7 @@ var _ = Describe("Test ADS response functions", func() {
 	configClient := configFake.NewSimpleClientset()
 
 	namespace := tests.Namespace
-	proxyUUID := tests.ProxyUUID
+	proxyUUID := uuid.New()
 	proxyService := service.MeshService{
 		Name:          tests.BookstoreV1ServiceName,
 		Namespace:     namespace,
@@ -60,7 +60,7 @@ var _ = Describe("Test ADS response functions", func() {
 	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
-	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
+	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
@@ -68,7 +68,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID
+	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
@@ -87,7 +87,7 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+	certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
@@ -128,7 +128,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())

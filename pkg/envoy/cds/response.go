@@ -17,7 +17,7 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var clusters []*xds_cluster.Cluster
 
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
@@ -25,8 +25,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	if proxy.Kind() == envoy.KindGateway {
 		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
-			cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
@@ -39,12 +39,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build remote clusters based on allowed outbound services
-	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
+	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
 		opts := []clusterOption{withTLS}
 		if cfg.IsPermissiveTrafficPolicyMode() {
 			opts = append(opts, permissive)
 		}
-		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg, opts...)
+		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg, opts...)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
 			return nil, err
@@ -72,7 +72,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add egress clusters based on applied policies
-	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity()); err != nil {
+	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxyIdentity); err != nil {
 		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxyIdentity)
 	} else {
 		if egressTrafficPolicy != nil {

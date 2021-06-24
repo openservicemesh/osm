@@ -23,7 +23,7 @@ import (
 // The proxy itself did not ask for these. We know it needs them - so we send them.
 func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
 	// TODO(draychev): The proxy Certificate should revolve around ServiceIdentity, not specific to ServiceAccount [https://github.com/openservicemesh/osm/issues/3186]
-	serviceAccount, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy %s", proxy.String())
 		return nil
@@ -37,7 +37,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// listener's DownstreamTlsContext.
 			// The secret name is of the form <namespace>/<service-account>
 			secrets.SDSCert{
-				Name:     serviceAccount.String(),
+				Name:     proxyIdentity.ToK8sServiceAccount().String(),
 				CertType: secrets.ServiceCertType,
 			}.String(),
 
@@ -51,7 +51,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// by downstream clients during mTLS handshake.
 			// The secret name is of the form <namespace>/<upstream-service>
 			secrets.SDSCert{
-				Name:     serviceAccount.String(),
+				Name:     proxyIdentity.ToK8sServiceAccount().String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String(),
 
@@ -59,7 +59,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// by downstream clients during TLS handshake.
 			// The secret name is of the form <namespace>/<upstream-service>
 			secrets.SDSCert{
-				Name:     serviceAccount.String(),
+				Name:     proxyIdentity.ToK8sServiceAccount().String(),
 				CertType: secrets.RootCertTypeForHTTPS,
 			}.String(),
 		},
@@ -68,7 +68,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 
 	// Create an SDS validation cert corresponding to each upstream service that this proxy can connect to.
 	// Each cert is used to validate the certificate presented by the corresponding upstream service.
-	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(serviceAccount.ToServiceIdentity())
+	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 	for _, upstream := range upstreamServices {
 		upstreamRootCertResource := secrets.SDSCert{
 			Name:     upstream.NameWithoutCluster(),

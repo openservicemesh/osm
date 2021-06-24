@@ -26,7 +26,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	type testCase struct {
 		name                     string
-		proxySvcAccount          identity.ServiceIdentity
+		proxyIdentity            identity.ServiceIdentity
 		allowedOutboundServices  []service.MeshService
 		expectedDiscoveryRequest *xds_discovery.DiscoveryRequest
 	}
@@ -34,14 +34,14 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 	proxyServiceIdentity := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}.ToServiceIdentity()
 	proxySvcAccount := proxyServiceIdentity.ToK8sServiceAccount()
 	certSerialNumber := certificate.SerialNumber("123456")
-	proxyXDSCertCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+	proxyXDSCertCN := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 	testProxy, err := envoy.NewProxy(proxyXDSCertCN, certSerialNumber, nil)
 	assert.Nil(err)
 
 	testCases := []testCase{
 		{
-			name:            "scenario where proxy is both downstream and upstream",
-			proxySvcAccount: proxyServiceIdentity,
+			name:          "scenario where proxy is both downstream and upstream",
+			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
 				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
@@ -63,8 +63,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			},
 		},
 		{
-			name:            "scenario where proxy is only a downsteam (no service)",
-			proxySvcAccount: proxyServiceIdentity,
+			name:          "scenario where proxy is only a downsteam (no service)",
+			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
 				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
@@ -87,7 +87,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		},
 		{
 			name:                    "scenario where proxy does not have allowed upstreams to connect to",
-			proxySvcAccount:         proxyServiceIdentity,
+			proxyIdentity:           proxyServiceIdentity,
 			allowedOutboundServices: nil,
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -102,8 +102,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			},
 		},
 		{
-			name:            "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
-			proxySvcAccount: proxyServiceIdentity,
+			name:          "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
+			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
 				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
 				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
@@ -128,7 +128,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxySvcAccount).Return(tc.allowedOutboundServices).Times(1)
+			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxyIdentity).Return(tc.allowedOutboundServices).Times(1)
 
 			actual := makeRequestForAllSecrets(testProxy, mockCatalog)
 

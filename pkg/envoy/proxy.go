@@ -243,7 +243,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	}, nil
 }
 
-// NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
-func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace))
+// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
+func NewXDSCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
 }
