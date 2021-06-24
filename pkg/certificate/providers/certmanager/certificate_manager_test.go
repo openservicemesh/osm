@@ -3,7 +3,10 @@ package certmanager
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"testing"
 	"time"
+
+	tassert "github.com/stretchr/testify/assert"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,28 +18,30 @@ import (
 	cmfakeapi "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/testing"
+	test "k8s.io/client-go/testing"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+var (
+	mockCtrl         = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	cn               = certificate.CommonName("bookbuyer.azure.mesh")
+	crNotReady       = &cmapi.CertificateRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "osm-123",
+			Namespace: "osm-system",
+		},
+	}
+)
+
 var _ = Describe("Test cert-manager Certificate Manager", func() {
 	defer GinkgoRecover()
 
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-
 	Context("Test Getting a certificate from the cache", func() {
 		validity := 1 * time.Hour
-
-		cn := certificate.CommonName("bookbuyer.azure.mesh")
 
 		rootCertPEM, err := tests.GetPEMCert()
 		if err != nil {
@@ -75,12 +80,6 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			GinkgoT().Fatalf("Error loading ca %s: %s", rootCertPEM, err.Error())
 		}
 
-		crNotReady := &cmapi.CertificateRequest{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "osm-123",
-				Namespace: "osm-system",
-			},
-		}
 		crReady := crNotReady.DeepCopy()
 		crReady.Status = cmapi.CertificateRequestStatus{
 			Certificate: signedCertPEM,
@@ -94,7 +93,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 		}
 
 		fakeClient := cmfakeclient.NewSimpleClientset()
-		fakeClient.CertmanagerV1().(*cmfakeapi.FakeCertmanagerV1).Fake.PrependReactor("*", "*", func(action testing.Action) (bool, runtime.Object, error) {
+		fakeClient.CertmanagerV1().(*cmfakeapi.FakeCertmanagerV1).Fake.PrependReactor("*", "*", func(action test.Action) (bool, runtime.Object, error) {
 			switch action.GetVerb() {
 			case "create":
 				return true, crNotReady, nil
@@ -120,5 +119,135 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			Expect(getCertificateError).ToNot(HaveOccurred())
 			Expect(cachedCert).To(Equal(cert))
 		})
+
+		It("should rotate the certificate", func() {
+			mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
+			cert, err := cm.RotateCertificate(cn)
+			Expect(err).Should(BeNil())
+			cachedCert, err := cm.GetCertificate(cn)
+			Expect(cachedCert).To(Equal(cert))
+			Expect(err).Should(BeNil())
+		})
 	})
 })
+
+func TestReleaseCertificate(t *testing.T) {
+	cert := &Certificate{
+		commonName: cn,
+		expiration: time.Now().Add(1 * time.Hour),
+	}
+	manager := &CertManager{cache: map[certificate.CommonName]certificate.Certificater{cn: cert}}
+
+	testCases := []struct {
+		name       string
+		commonName certificate.CommonName
+	}{
+		{
+			name:       "release existing certificate",
+			commonName: cn,
+		},
+		{
+			name:       "release non-existing certificate",
+			commonName: cn,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			manager.ReleaseCertificate(tc.commonName)
+			_, err := manager.GetCertificate(tc.commonName)
+			assert.ErrorIs(err, errCertNotFound)
+		})
+	}
+}
+
+func TestGetRootCertificate(t *testing.T) {
+	assert := tassert.New(t)
+
+	manager := &CertManager{
+		ca: &Certificate{
+			commonName: cn,
+			expiration: time.Now().Add(1 * time.Hour),
+		},
+	}
+	cert, err := manager.GetRootCertificate()
+
+	assert.Nil(err)
+	assert.Equal(manager.ca, cert)
+}
+
+func TestCertificaterFromCertificateRequest(t *testing.T) {
+	assert := tassert.New(t)
+	fakeClient := cmfakeclient.NewSimpleClientset()
+
+	rootCertPEM, err := tests.GetPEMCert()
+	assert.Nil(err)
+
+	rootCert, err := certificate.DecodePEMCertificate(rootCertPEM)
+	assert.Nil(err)
+
+	rootKeyPEM, err := tests.GetPEMPrivateKey()
+	assert.Nil(err)
+
+	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
+	assert.Nil(err)
+
+	rootCertificator, err := NewRootCertificateFromPEM(rootCertPEM)
+	assert.Nil(err)
+
+	cm, err := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
+	assert.Nil(err)
+
+	signedCertDER, err := x509.CreateCertificate(rand.Reader, rootCert, rootCert, rootKey.Public(), rootKey)
+	assert.Nil(err)
+
+	signedCertPEM, err := certificate.EncodeCertDERtoPEM(signedCertDER)
+	assert.Nil(err)
+
+	crReady := crNotReady.DeepCopy()
+	crReady.Status = cmapi.CertificateRequestStatus{
+		Certificate: signedCertPEM,
+		CA:          signedCertPEM,
+		Conditions: []cmapi.CertificateRequestCondition{
+			{
+				Type:   cmapi.CertificateRequestConditionReady,
+				Status: cmmeta.ConditionTrue,
+			},
+		},
+	}
+	emptyArr := []byte{}
+	testCases := []struct {
+		name              string
+		cr                cmapi.CertificateRequest
+		expectedCertIsNil bool
+		expectedError     error
+	}{
+		{
+			name:              "Could not decode PEM Cert",
+			cr:                *crNotReady,
+			expectedCertIsNil: true,
+			expectedError:     certificate.ErrNoCertificateInPEM,
+		},
+		{
+			name:              "default",
+			cr:                *crReady,
+			expectedCertIsNil: false,
+			expectedError:     nil,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cert, err := cm.certificaterFromCertificateRequest(&tc.cr, emptyArr)
+
+			assert.Equal(tc.expectedCertIsNil, cert == nil)
+			assert.Equal(tc.expectedError, err)
+		})
+	}
+	// Tests if cmapi.CertificateRequest is nil
+	cert, err := cm.certificaterFromCertificateRequest(nil, emptyArr)
+	assert.Nil(cert)
+	assert.Nil(err)
+}
