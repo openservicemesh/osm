@@ -15,10 +15,10 @@ spec:
     useHTTPSIngress: {{.Values.OpenServiceMesh.useHTTPSIngress}}
     enablePermissiveTrafficPolicyMode: {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy}}
     outboundPortExclusionList: {{.Values.OpenServiceMesh.outboundPortExclusionList}}
+    inboundPortExclusionList: {{.Values.OpenServiceMesh.inboundPortExclusionList}}
     outboundIPRangeExclusionList: {{.Values.OpenServiceMesh.outboundIPRangeExclusionList}}
   observability:
     enableDebugServer: {{.Values.OpenServiceMesh.enableDebugServer}}
-    prometheusScraping: {{.Values.OpenServiceMesh.enablePrometheusScraping}}
     tracing:
       enable: {{.Values.OpenServiceMesh.tracing.enable}}
       {{- if .Values.OpenServiceMesh.tracing.enable }}
@@ -28,3 +28,7 @@ spec:
       {{- end }}
   certificate:
     serviceCertValidityDuration: {{.Values.OpenServiceMesh.serviceCertValidityDuration}}
+  featureFlags: 
+    enableWASMStats: {{.Values.OpenServiceMesh.featureFlags.enableWASMStats}}
+    enableEgressPolicy: {{.Values.OpenServiceMesh.featureFlags.enableEgressPolicy}}
+    enableMulticlusterMode: {{.Values.OpenServiceMesh.featureFlags.enableMulticlusterMode}}

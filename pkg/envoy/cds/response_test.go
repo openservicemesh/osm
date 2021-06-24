@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -19,6 +20,9 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -27,6 +31,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -36,8 +41,10 @@ func TestNewResponse(t *testing.T) {
 	require := trequire.New(t)
 
 	mockCtrl := gomock.NewController(t)
+	kubeClient := testclient.NewSimpleClientset()
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 
 	proxyUUID := uuid.New()
 	// The format of the CN matters
@@ -53,10 +60,25 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
-	mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+
+	podlabels := map[string]string{
+		tests.SelectorKey:                tests.BookbuyerServiceName,
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	}
+
+	newPod1 := tests.NewPodFixture(tests.Namespace, fmt.Sprintf("pod-1-%s", proxyUUID), tests.BookbuyerServiceAccountName, podlabels)
+	newPod1.Annotations = map[string]string{
+		constants.PrometheusScrapeAnnotation: "true",
+	}
+	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod1})
+	mockKubeController.EXPECT().IsMetricsEnabled(&newPod1).Return(true)
 
 	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)

@@ -12,7 +12,7 @@ OpenServiceMesh:
     # -- Container image pull policy
     pullPolicy: IfNotPresent
     # -- Container image tag
-    tag: v0.9.0-rc.2
+    tag: v0.9.0
 
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
@@ -34,6 +34,18 @@ OpenServiceMesh:
         memory: "128M"
     # -- OSM controller's pod labels
     podLabels: {}
+    # -- Enable Pod Disruption Budget
+    enablePodDisruptionBudget: false
+    # -- Auto scale configuration
+    autoScale:
+      # -- Enable Autoscale
+      enable: false
+      # -- Minimum replicas for autoscale
+      minReplicas: 1
+      # -- Maximum replicas for autoscale
+      maxReplicas: 5
+      # -- Average target CPU utilization (%)
+      targetAverageUtilization: 80
 
   #
   # -- Prometheus parameters
@@ -103,9 +115,6 @@ OpenServiceMesh:
 
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
-
-  # -- Enable Prometheus metrics scraping on sidecar proxies
-  enablePrometheusScraping: true
 
   # -- Deploy Grafana with OSM installation
   deployGrafana: false
@@ -191,6 +200,10 @@ OpenServiceMesh:
   # If specified, must be a list of positive integers.
   outboundPortExclusionList: []
 
+  # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  inboundPortExclusionList: []
+
   #
   # -- OSM's sidecar injector parameters
   injector:
@@ -204,7 +217,20 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
+    # -- Sidecar injector's pod labels
     podLabels: {}
+    # -- Enable Pod Disruption Budget
+    enablePodDisruptionBudget: false
+    # -- Auto scale configuration
+    autoScale:
+      # -- Enable Autoscale
+      enable: false
+      # -- Minimum replicas for autoscale
+      minReplicas: 1
+      # -- Maximum replicas for autoscale
+      maxReplicas: 5
+      # -- Average target CPU utilization (%)
+      targetAverageUtilization: 80
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false

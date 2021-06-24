@@ -11,6 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const namespaceIgnoreDescription = `
@@ -20,8 +22,6 @@ belonging to the given namespace or set of namespaces will be prevented.
 The command will not remove previously injected sidecars on pods belonging
 to the given namespaces.
 `
-
-const ignoreLabel = "openservicemesh.io/ignore"
 
 type namespaceIgnoreCmd struct {
 	out        io.Writer
@@ -77,7 +77,7 @@ func (cmd *namespaceIgnoreCmd) run() error {
 			"%s": "true"
 		}
 	}
-}`, ignoreLabel)
+}`, constants.IgnoreLabel)
 
 		_, err := cmd.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {

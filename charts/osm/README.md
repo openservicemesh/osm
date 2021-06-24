@@ -75,7 +75,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | OpenServiceMesh.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
-| OpenServiceMesh.enablePrometheusScraping | bool | `true` | Enable Prometheus metrics scraping on sidecar proxies |
 | OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar |
 | OpenServiceMesh.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. If specified, fine grained control over Egress (external) traffic is enforced |
@@ -95,13 +94,26 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
-| OpenServiceMesh.image.tag | string | `"v0.9.0-rc.2"` | Container image tag |
+| OpenServiceMesh.image.tag | string | `"v0.9.0"` | Container image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
-| OpenServiceMesh.injector.podLabels | object | `{}` |  |
+| OpenServiceMesh.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| OpenServiceMesh.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
+| OpenServiceMesh.injector.autoScale.enable | bool | `false` | Enable Autoscale |
+| OpenServiceMesh.injector.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |
+| OpenServiceMesh.injector.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
+| OpenServiceMesh.injector.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
+| OpenServiceMesh.injector.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
+| OpenServiceMesh.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
 | OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
+| OpenServiceMesh.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
+| OpenServiceMesh.osmController.autoScale.enable | bool | `false` | Enable Autoscale |
+| OpenServiceMesh.osmController.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |
+| OpenServiceMesh.osmController.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
+| OpenServiceMesh.osmController.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
+| OpenServiceMesh.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | OpenServiceMesh.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | OpenServiceMesh.osmController.replicaCount | int | `1` | OSM controller's replica count |
 | OpenServiceMesh.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"512M"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters |

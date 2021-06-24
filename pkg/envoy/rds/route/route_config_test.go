@@ -7,12 +7,14 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -21,6 +23,10 @@ import (
 
 func TestBuildRouteConfiguration(t *testing.T) {
 	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockCfg := configurator.NewMockConfigurator(mockCtrl)
+
 	testInbound := &trafficpolicy.InboundTrafficPolicy{
 		Name:      "bookstore-v1-default",
 		Hostnames: tests.BookstoreV1Hostnames,
@@ -90,7 +96,10 @@ func TestBuildRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := BuildRouteConfiguration(tc.inbound, tc.outbound, nil)
+			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).Times(1)
+			actual := BuildRouteConfiguration(tc.inbound, tc.outbound, nil, mockCfg)
 			assert.Equal(tc.expectedRouteConfigLen, len(actual))
 		})
 	}
@@ -114,20 +123,21 @@ func TestBuildRouteConfiguration(t *testing.T) {
 
 	for _, tc := range statsWASMTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			oldWASMflag := featureflags.IsWASMStatsEnabled()
-			featureflags.Features.WASMStats = tc.wasmEnabled
-
-			actual := BuildRouteConfiguration([]*trafficpolicy.InboundTrafficPolicy{testInbound}, nil, &envoy.Proxy{})
+			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: tc.wasmEnabled,
+			}).Times(1)
+			actual := BuildRouteConfiguration([]*trafficpolicy.InboundTrafficPolicy{testInbound}, nil, &envoy.Proxy{}, mockCfg)
 			tassert.Len(t, actual, 2)
 			tassert.Len(t, actual[0].ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
-
-			featureflags.Features.WASMStats = oldWASMflag
 		})
 	}
 }
 
 func TestBuildIngressRouteConfiguration(t *testing.T) {
 	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
 	testCases := []struct {
 		name                      string
@@ -205,7 +215,10 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := BuildIngressConfiguration(tc.ingressPolicies, nil)
+			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).AnyTimes()
+			actual := BuildIngressConfiguration(tc.ingressPolicies, nil, mockCfg)
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)

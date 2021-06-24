@@ -23,12 +23,10 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	Context("test getInitContainerSpec()", func() {
-		It("Creates init container without outbound ip range exclusion list", func() {
+		It("Creates init container without ip range exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			var outboundIPRangeExclusionList []string = nil
-			var outboundPortExclusionList []int = nil
 			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, outboundPortExclusionList, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, privileged)
 
 			expected := corev1.Container{
 				Name:    "-container-name-",
@@ -59,9 +57,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		It("Creates init container with outbound exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
 			outboundIPRangeExclusionList := []string{"1.1.1.1/32", "10.0.0.10/24"}
-			var outboundPortExclusionList []int = nil
 			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, outboundPortExclusionList, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, nil, nil, privileged)
 
 			expected := corev1.Container{
 				Name:    "-container-name-",
@@ -91,10 +88,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 		It("Creates init container with privileged true", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			var outboundIPRangeExclusionList []string = nil
-			var outboundPortExclusionList []int = nil
 			privileged := privilegedTrue
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, outboundPortExclusionList, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, privileged)
 
 			expected := corev1.Container{
 				Name:    "-container-name-",
@@ -124,10 +119,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 		It("Creates init container without outbound port exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			var outboundIPRangeExclusionList []string = nil
-			var outboundPortExclusionList []int = nil
 			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, outboundPortExclusionList, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, privileged)
 
 			expected := corev1.Container{
 				Name:    "-container-name-",
@@ -157,10 +150,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 		It("init container with outbound port exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			var outboundIPRangeExclusionList []string = nil
 			outboundPortExclusionList := []int{6060, 7070}
 			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, outboundPortExclusionList, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, outboundPortExclusionList, nil, privileged)
 
 			expected := corev1.Container{
 				Name:    "-container-name-",

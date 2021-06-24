@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	auth "github.com/openservicemesh/osm/pkg/auth"
 	v1 "k8s.io/api/core/v1"
 )
@@ -78,6 +79,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetFeatureFlags mocks base method
+func (m *MockConfigurator) GetFeatureFlags() v1alpha1.FeatureFlags {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeatureFlags")
+	ret0, _ := ret[0].(v1alpha1.FeatureFlags)
+	return ret0
+}
+
+// GetFeatureFlags indicates an expected call of GetFeatureFlags
+func (mr *MockConfiguratorMockRecorder) GetFeatureFlags() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureFlags", reflect.TypeOf((*MockConfigurator)(nil).GetFeatureFlags))
+}
+
 // GetInboundExternalAuthConfig mocks base method
 func (m *MockConfigurator) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 	m.ctrl.T.Helper()
@@ -90,6 +105,20 @@ func (m *MockConfigurator) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthConfig() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthConfig", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthConfig))
+}
+
+// GetInboundPortExclusionList mocks base method
+func (m *MockConfigurator) GetInboundPortExclusionList() []int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundPortExclusionList")
+	ret0, _ := ret[0].([]int)
+	return ret0
+}
+
+// GetInboundPortExclusionList indicates an expected call of GetInboundPortExclusionList
+func (mr *MockConfiguratorMockRecorder) GetInboundPortExclusionList() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetInboundPortExclusionList))
 }
 
 // GetInitContainerImage mocks base method
@@ -301,20 +330,6 @@ func (m *MockConfigurator) IsPrivilegedInitContainer() bool {
 func (mr *MockConfiguratorMockRecorder) IsPrivilegedInitContainer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrivilegedInitContainer", reflect.TypeOf((*MockConfigurator)(nil).IsPrivilegedInitContainer))
-}
-
-// IsPrometheusScrapingEnabled mocks base method
-func (m *MockConfigurator) IsPrometheusScrapingEnabled() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsPrometheusScrapingEnabled")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// IsPrometheusScrapingEnabled indicates an expected call of IsPrometheusScrapingEnabled
-func (mr *MockConfiguratorMockRecorder) IsPrometheusScrapingEnabled() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrometheusScrapingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsPrometheusScrapingEnabled))
 }
 
 // IsTracingEnabled mocks base method

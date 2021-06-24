@@ -63,6 +63,7 @@ var _ = Describe("Test all patch operations", func() {
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
+			mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 
 			req := &admissionv1.AdmissionRequest{Namespace: namespace}

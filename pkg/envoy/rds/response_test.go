@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -276,6 +277,10 @@ func TestNewResponse(t *testing.T) {
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableWASMStats: false,
+			}).AnyTimes()
+
 			mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
 			mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(tc.ingressInboundPolicies, nil).AnyTimes()
@@ -530,6 +535,10 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
 
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats: false,
+	}).AnyTimes()
+
 	resources, err := NewResponse(mockCatalog, testProxy, &discoveryRequest, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
 
@@ -593,6 +602,9 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return([]*trafficpolicy.InboundTrafficPolicy{}, nil).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats: false,
+	}).AnyTimes()
 
 	testCases := []struct {
 		request *xds_discovery.DiscoveryRequest

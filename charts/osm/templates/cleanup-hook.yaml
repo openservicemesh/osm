@@ -17,6 +17,9 @@ spec:
     spec:
       serviceAccountName: {{ .Release.Name }}-cleanup
       restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
       containers:
         - name: garbage-collector
           image: bitnami/kubectl

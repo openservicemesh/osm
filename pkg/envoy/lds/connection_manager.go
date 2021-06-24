@@ -14,7 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 // trafficDirection defines, for filter terms, the direction of the traffic from an application
@@ -77,7 +76,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 		connManager.Tracing = tracing
 	}
 
-	if featureflags.IsWASMStatsEnabled() {
+	if cfg.GetFeatureFlags().EnableWASMStats {
 		statsFilter, err := getStatsWASMFilter()
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get stats WASM filter")

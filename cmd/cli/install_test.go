@@ -534,7 +534,6 @@ var _ = Describe("deployPrometheus is true", func() {
 		installCmd := getDefaultInstallCmd(out)
 		installCmd.setOptions = []string{
 			"OpenServiceMesh.deployPrometheus=true",
-			"OpenServiceMesh.enablePrometheusScraping=false",
 		}
 
 		err = installCmd.run(config)
@@ -542,7 +541,6 @@ var _ = Describe("deployPrometheus is true", func() {
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
-		Expect(out.String()).To(Equal("Prometheus scraping is disabled. To enable it, set prometheus_scraping in osm-system/osm-mesh-config to true.\nOSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 	})
 })
 

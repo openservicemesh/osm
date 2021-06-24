@@ -54,13 +54,18 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// Create volume for envoy TLS secret
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
-	podOutboundPortExclusionList, _ := wh.getPodOutboundPortExclusionList(pod, namespace)
+	// Build outbound port exclusion list
+	podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
 	globalOutboundPortExclusionList := wh.configurator.GetOutboundPortExclusionList()
-
 	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
+	// Build inbound port exclusion list
+	podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
+	globalInboundPortExclusionList := wh.configurator.GetInboundPortExclusionList()
+	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
+
 	// Add the Init Container
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	// Add the Envoy sidecar
@@ -102,22 +107,20 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	return admissionResponse.Patches
 }
 
-func mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList []int) []int {
+func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionList []int) []int {
 	portExclusionListMap := mapset.NewSet()
 	var portExclusionListMerged []int
 
 	// iterate over the global outbound ports to be excluded
-	for _, port := range globalOutboundPortExclusionList {
-		addedToSet := portExclusionListMap.Add(port)
-		if addedToSet {
+	for _, port := range globalPortExclusionList {
+		if addedToSet := portExclusionListMap.Add(port); addedToSet {
 			portExclusionListMerged = append(portExclusionListMerged, port)
 		}
 	}
 
-	// iterate over the pod level outbound ports to be excluded
-	for _, port := range podOutboundPortExclusionList {
-		addedToSet := portExclusionListMap.Add(port)
-		if addedToSet {
+	// iterate over the pod specific ports to be excluded
+	for _, port := range podSpecificPortExclusionList {
+		if addedToSet := portExclusionListMap.Add(port); addedToSet {
 			portExclusionListMerged = append(portExclusionListMerged, port)
 		}
 	}

@@ -59,7 +59,7 @@ const (
 	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.18.3"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
-	DefaultInitContainerImage = "openservicemesh/init:v0.9.0-rc.2"
+	DefaultInitContainerImage = "openservicemesh/init:v0.9.0"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
@@ -149,13 +149,19 @@ const (
 	OSMMeshConfig = "osm-mesh-config"
 )
 
-// Annotations used by the controller
+// Annotations used by the control plane
 const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
 	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
 
 	// MetricsAnnotation is the annotation used for enabling/disabling metrics
 	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Labels used by the control plane
+const (
+	// IgnoreLabel is the label used to ignore a resource
+	IgnoreLabel = "openservicemesh.io/ignore"
 )
 
 // Annotations used for Metrics
