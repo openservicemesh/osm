@@ -203,3 +203,8 @@ func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
 }
+
+// GetOSMLogLevel returns the configured OSM log level
+func (c *Client) GetOSMLogLevel() string {
+	return c.getMeshConfig().Spec.Observability.OSMLogLevel
+}

@@ -165,6 +165,13 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 			},
 			expectProxyBroadcast: true,
 		},
+		{
+			caseName: "osmLogLevel",
+			updateMeshConfigSpec: func(spec *v1alpha1.MeshConfigSpec) {
+				spec.Observability.OSMLogLevel = "warn"
+			},
+			expectProxyBroadcast: false,
+		},
 	}
 
 	for _, tc := range tests {
