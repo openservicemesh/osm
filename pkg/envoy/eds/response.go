@@ -89,8 +89,8 @@ func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([
 
 func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 	chunks := strings.Split(cluster, namespacedNameDelimiter)
-	if len(chunks) != 2 {
-		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>, Got: %s", cluster)
+	if len(chunks) != 3 {
+		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>/<cluster>, Got: %s", cluster)
 	}
 	return service.MeshService{
 		Namespace:     chunks[0],
