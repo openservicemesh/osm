@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -43,11 +44,12 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	providerID := "provider"
+	mockConfigController := config.NewMockController(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		client, err = NewClient(mockKubeController, providerID, mockConfigurator)
+		client, err = NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -285,6 +287,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	var (
 		mockCtrl         *gomock.Controller
 		kubeController   k8s.Controller
+		configController config.Controller
 		mockConfigurator *configurator.MockConfigurator
 		fakeClientSet    *testclient.Clientset
 		client           *Client
@@ -317,7 +320,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}, 3*time.Second).Should(BeTrue())
 
 		Expect(err).ToNot(HaveOccurred())
-		client, err = NewClient(kubeController, providerID, mockConfigurator)
+		client, err = NewClient(kubeController, configController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -719,9 +722,10 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockConfigController := config.NewMockController(mockCtrl)
 			providerID := "provider"
 
-			provider, err := NewClient(mockKubeController, providerID, mockConfigurator)
+			provider, err := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 			assert.Nil(err)
 
 			var pods []*corev1.Pod
@@ -741,6 +745,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 				assert.Nil(err)
 				pods = append(pods, &pod)
 			}
+			mockConfigController.EXPECT().ListMultiClusterServices().Times(1)
 			mockKubeController.EXPECT().ListPods().Return(pods).AnyTimes()
 
 			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)

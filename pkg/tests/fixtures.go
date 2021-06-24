@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -247,6 +248,27 @@ var (
 					Weight:  Weight10,
 				},
 			},
+		},
+	}
+
+	// MultiClusterStoreService represents a multiclusterservice
+	MultiClusterStoreService = v1alpha1.MultiClusterService{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "MultiClusterService",
+			APIVersion: "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      Namespace,
+			Namespace: Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Cluster: []v1alpha1.ClusterSpec{
+				{
+					Address: "",
+					Name:    "",
+				},
+			},
+			ServiceAccount: BookstoreServiceAccountName,
 		},
 	}
 

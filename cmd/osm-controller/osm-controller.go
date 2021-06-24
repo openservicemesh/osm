@@ -27,6 +27,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -160,7 +161,8 @@ func main() {
 	// Start Global log level handler, reads from configurator (meshconfig)
 	StartGlobalLogLevelHandler(cfg, stop)
 
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	kubernetesClient, _ := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	configController, err := config.NewConfigController(kubeConfig, kubernetesClient, make(chan struct{}))
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
@@ -186,7 +188,7 @@ func main() {
 		}
 	}
 
-	kubeProvider, err := kube.NewClient(kubernetesClient, constants.KubeProviderName, cfg)
+	kubeProvider, err := kube.NewClient(kubernetesClient, configController, constants.KubeProviderName, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
