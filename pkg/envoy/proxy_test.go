@@ -388,16 +388,15 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			testNamespace := uuid.New().String()
 			serviceAccount := uuid.New().String()
 
-			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, testNamespace))
+			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, testNamespace, identity.ClusterLocalTrustDomain))
 
 			cnMeta, err := getCertificateCommonNameMeta(cn)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &certificateCommonNameMeta{
-				ProxyUUID:      proxyUUID,
-				ProxyKind:      KindSidecar,
-				ServiceAccount: serviceAccount,
-				Namespace:      testNamespace,
+				ProxyUUID:       proxyUUID,
+				ProxyKind:       KindSidecar,
+				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, testNamespace, identity.ClusterLocalTrustDomain)),
 			}
 			Expect(cnMeta).To(Equal(expected))
 		})
@@ -408,40 +407,38 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 	})
 
-	Context("Test NewCertCommonName() and getCertificateCommonNameMeta() together", func() {
+	Context("Test NewXDSCertCommonName() and getCertificateCommonNameMeta() together", func() {
 		It("returns the the CommonName of the form <proxyID>.<kind>.<service-account>.<namespace>", func() {
-
 			proxyUUID := uuid.New()
 			serviceAccount := uuid.New().String()
 			namespace := uuid.New().String()
 
-			cn := NewCertCommonName(proxyUUID, KindSidecar, serviceAccount, namespace)
-			Expect(cn).To(Equal(certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, namespace))))
+			cn := NewXDSCertCommonName(proxyUUID, KindSidecar, serviceAccount, namespace)
+			Expect(cn).To(Equal(certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, namespace, identity.ClusterLocalTrustDomain))))
 
 			actualMeta, err := getCertificateCommonNameMeta(cn)
 			expectedMeta := certificateCommonNameMeta{
-				ProxyUUID:      proxyUUID,
-				ProxyKind:      KindSidecar,
-				ServiceAccount: serviceAccount,
-				Namespace:      namespace,
+				ProxyUUID:       proxyUUID,
+				ProxyKind:       KindSidecar,
+				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, namespace, identity.ClusterLocalTrustDomain)),
 			}
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actualMeta).To(Equal(&expectedMeta))
 		})
 	})
 
-	Context("Test GetServiceAccountFromProxyCertificate", func() {
+	Context("Test GetServiceIdentityFromProxyCertificate", func() {
 		It("should correctly return the ServiceAccount encoded in the XDS certificate CN", func() {
-			cn := certificate.CommonName(fmt.Sprintf("%s.sidecar.sa-name.sa-namespace", uuid.New()))
-			svcAccount, err := GetServiceAccountFromProxyCertificate(cn)
+			cn := certificate.CommonName(fmt.Sprintf("%s.sidecar.sa-name.sa-namespace.cluster.local", uuid.New()))
+			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(svcAccount).To(Equal(identity.K8sServiceAccount{Name: "sa-name", Namespace: "sa-namespace"}))
+			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("sa-name.sa-namespace.cluster.local")))
 		})
 
 		It("should correctly error when the XDS certificate CN is invalid", func() {
-			svcAccount, err := GetServiceAccountFromProxyCertificate(certificate.CommonName("invalid"))
+			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(certificate.CommonName("invalid"))
 			Expect(err).To(HaveOccurred())
-			Expect(svcAccount).To(Equal(identity.K8sServiceAccount{}))
+			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("")))
 		})
 	})
 })

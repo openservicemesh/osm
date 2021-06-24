@@ -306,13 +306,13 @@ type certificateCommonNameMeta struct {
 	ProxyUUID uuid.UUID
 	ProxyKind ProxyKind
 	// TODO(draychev): Change this to ServiceIdentity type (instead of string)
-	ServiceAccount string
-	Namespace      string
+	ServiceIdentity identity.ServiceIdentity
 }
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
-	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
-	if len(chunks) < 4 {
+	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>
+	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 3)
+	if len(chunks) < 3 {
 		return nil, ErrInvalidCertificateCN
 	}
 	proxyUUID, err := uuid.Parse(chunks[0])
@@ -322,11 +322,9 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	}
 
 	return &certificateCommonNameMeta{
-		ProxyUUID: proxyUUID,
-		ProxyKind: ProxyKind(chunks[1]),
-		// TODO(draychev): Use ServiceIdentity vs ServiceAccount
-		ServiceAccount: chunks[2],
-		Namespace:      chunks[3],
+		ProxyUUID:       proxyUUID,
+		ProxyKind:       ProxyKind(chunks[1]),
+		ServiceIdentity: identity.ServiceIdentity(chunks[2]),
 	}, nil
 }
 
@@ -341,7 +339,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.
 	podList := kubecontroller.ListPods()
 	var pods []v1.Pod
 	for _, pod := range podList {
-		if pod.Namespace != cnMeta.Namespace {
+		if pod.Namespace != cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace {
 			continue
 		}
 		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == cnMeta.ProxyUUID.String() {
@@ -351,7 +349,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.
 
 	if len(pods) == 0 {
 		log.Error().Msgf("Did not find Pod with label %s = %s in namespace %s",
-			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
+			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrDidNotFindPodForCertificate
 	}
 
@@ -361,7 +359,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.
 	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
 	if len(pods) > 1 {
 		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
-			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
+			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrMoreThanOnePodForCertificate
 	}
 
@@ -369,34 +367,31 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.
 	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, cnMeta.ProxyUUID)
 
 	// Ensure the Namespace encoded in the certificate matches that of the Pod
-	if pod.Namespace != cnMeta.Namespace {
+	if pod.Namespace != cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace {
 		log.Warn().Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
-			pod.ObjectMeta.UID, pod.Namespace, cnMeta.Namespace)
+			pod.ObjectMeta.UID, pod.Namespace, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrNamespaceDoesNotMatchCertificate
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
 	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
-	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
+	if pod.Spec.ServiceAccountName != cnMeta.ServiceIdentity.ToK8sServiceAccount().Name {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
 		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
-			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
+			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, cnMeta.ServiceIdentity.ToK8sServiceAccount())
 		return nil, ErrServiceAccountDoesNotMatchCertificate
 	}
 
 	return &pod, nil
 }
 
-// GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
-func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (identity.K8sServiceAccount, error) {
-	var svcAccount identity.K8sServiceAccount
+// GetServiceIdentityFromProxyCertificate returns the ServiceIdentity information encoded in the XDS certificate CN
+func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity.ServiceIdentity, error) {
+	var identity identity.ServiceIdentity
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
-		return svcAccount, err
+		return identity, err
 	}
 
-	svcAccount.Name = cnMeta.ServiceAccount
-	svcAccount.Namespace = cnMeta.Namespace
-
-	return svcAccount, nil
+	return cnMeta.ServiceIdentity, nil
 }

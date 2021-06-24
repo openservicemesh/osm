@@ -73,7 +73,7 @@ func GetProxyFromPod(pod *v1.Pod) (*envoy.Proxy, error) {
 
 	// construct CN for this pod/proxy
 	// TODO: Infer proxy type from Pod
-	commonName := envoy.NewCertCommonName(proxyUUID, envoy.KindSidecar, serviceAccount, namespace)
+	commonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, serviceAccount, namespace)
 	tempProxy, err := envoy.NewProxy(certificate.CommonName(commonName), "NoSerial", &net.IPAddr{IP: net.IPv4zero})
 
 	return tempProxy, err

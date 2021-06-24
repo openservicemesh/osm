@@ -35,7 +35,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 // fulfillEDSRequest replies only to requested EDS endpoints on Discovery Request
 func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
@@ -52,7 +52,7 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
 			continue
 		}
-		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity.ToServiceIdentity(), meshSvc)
+		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity, meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s, for proxy identity %s", meshSvc, proxyIdentity)
 			continue
@@ -66,13 +66,13 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 
 // generateEDSConfig generates all endpoints expected for a given proxy
 func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
 	}
 
-	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity.ToServiceIdentity())
+	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for proxy %s", proxy.String())
 		return nil, err

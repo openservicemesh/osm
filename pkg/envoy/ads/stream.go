@@ -287,7 +287,7 @@ func getRequestedResourceNamesSet(discoveryRequest *xds_discovery.DiscoveryReque
 // Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
 // <svc-account>.<namespace>.<trust-domain>.
 func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
-	proxyIdentity, err := envoy.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy %s", proxy.String())
 		return false
@@ -300,7 +300,7 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	}
 
 	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
-	return identityForCN == proxyIdentity
+	return identityForCN == proxyIdentity.ToK8sServiceAccount()
 }
 
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
@@ -341,13 +341,13 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 
 	// Verify Service account matches (cert to pod Service Account)
 	cn := p.GetCertificateCommonName()
-	certSA, err := envoy.GetServiceAccountFromProxyCertificate(cn)
+	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
 	if err != nil {
 		log.Err(err).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
 		return err
 	}
 
-	if certSA != p.PodMetadata.ServiceAccount {
+	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
 		log.Error().Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
 		return errServiceAccountMismatch
 	}
