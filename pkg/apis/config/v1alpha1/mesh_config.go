@@ -145,10 +145,16 @@ type CertificateSpec struct {
 	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty"`
 }
 
-// ExperimentalSpec represents experimental configurations.
+// MulticlusterSpec represents multicluster configurations.
+type MulticlusterSpec struct {
+	// ClusterDomain references _this_ cluster's domain name. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
+	ClusterDomain string `json:"clusterDomain,omitempty"`
+}
+
+// ExperimentalSpec holds other Specs that are currently considered experimental.
 type ExperimentalSpec struct {
-	// ClusterID references _this_ cluster's name/ID. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
-	ClusterID string `json:"clusterID,omitempty"`
+	// Multicluster configurations
+	MulticlusterSpec MulticlusterSpec `json:"multicluster,omitempty"`
 }
 
 // MeshConfigList lists the MeshConfig objects.
