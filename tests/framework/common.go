@@ -97,26 +97,12 @@ var (
 	defaultImageTag = "latest"
 	// default cert manager
 	defaultCertManager = "tresor"
-	// default enable NS metrics tag
-	defaultEnableNsMetricTag = true
-	// default enable debug server
-	defaultEnableDebugServer = true
-	// default deploy Prometheus
-	defaultDeployPrometheus = false
-	// default deploy Grafana
-	defaultDeployGrafana = false
-	// default deploy Jaeger
-	defaultDeployJaeger = false
-	// default deploy Fluentbit
-	defaultDeployFluentbit = false
 	// default envoy loglevel
 	defaultEnvoyLogLevel = "debug"
 	// default OSM loglevel
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
 	testFolderBase = "/tmp"
-	// default enable privileged init container
-	defaultEnablePrivilegedInitContainer = false
 )
 
 // OSMDescribeInfo is a struct to represent the Tier and Bucket of a given e2e test
@@ -259,7 +245,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.OsmNamespace, "OsmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
 	flag.StringVar(&td.OsmMeshConfigName, "OsmMeshConfig", defaultMeshConfigName, "OSM MeshConfig name")
 
-	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable tagging Namespaces for metrics collection")
+	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", true, "Enable tagging Namespaces for metrics collection")
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 }
 
@@ -448,7 +434,7 @@ type InstallOSMOpts struct {
 
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
-	enablePrivilegedInitContainer := defaultEnablePrivilegedInitContainer
+	enablePrivilegedInitContainer := false
 	if td.DeployOnOpenShift {
 		enablePrivilegedInitContainer = true
 	}
@@ -458,10 +444,10 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		ContainerRegistryLoc:    td.CtrRegistryServer,
 		ContainerRegistrySecret: td.CtrRegistryPassword,
 		OsmImagetag:             td.OsmImageTag,
-		DeployGrafana:           defaultDeployGrafana,
-		DeployPrometheus:        defaultDeployPrometheus,
-		DeployJaeger:            defaultDeployJaeger,
-		DeployFluentbit:         defaultDeployFluentbit,
+		DeployGrafana:           false,
+		DeployPrometheus:        false,
+		DeployJaeger:            false,
+		DeployFluentbit:         false,
 
 		VaultHost:     "vault." + td.OsmNamespace + ".svc.cluster.local",
 		VaultProtocol: "http",
@@ -473,7 +459,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerName:  "osm-ca",
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
-		EnableDebugServer:      defaultEnableDebugServer,
+		EnableDebugServer:      true,
 		SetOverrides:           []string{},
 
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
@@ -568,11 +554,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.InstType == NoInstall {
-		if instOpts.CertManager != defaultCertManager ||
-			instOpts.DeployPrometheus != defaultDeployPrometheus ||
-			instOpts.DeployGrafana != defaultDeployGrafana ||
-			instOpts.DeployJaeger != defaultDeployJaeger ||
-			instOpts.DeployFluentbit != defaultDeployFluentbit {
+		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
