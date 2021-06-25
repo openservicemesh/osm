@@ -223,7 +223,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 
 			// TODO: Find a decent way to do this without relying on the kubectl binary
-			stdout, stderr, err := Td.RunLocal("kubectl", []string{"apply", "-f", filepath.FromSlash("../../charts/osm/crds")})
+			stdout, stderr, err := Td.RunLocal("kubectl", "apply", "-f", filepath.FromSlash("../../charts/osm/crds"))
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())
@@ -236,7 +236,7 @@ var _ = OSMDescribe("Upgrade from latest",
 				Expect(Td.LoadOSMImagesIntoKind()).To(Succeed())
 			}
 
-			stdout, stderr, err = Td.RunLocal(filepath.FromSlash("../../bin/osm"), []string{"mesh", "upgrade", "--osm-namespace=" + Td.OsmNamespace, "--container-registry=" + Td.CtrRegistryServer, "--osm-image-tag=" + Td.OsmImageTag})
+			stdout, stderr, err = Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, "--container-registry="+Td.CtrRegistryServer, "--osm-image-tag="+Td.OsmImageTag)
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())

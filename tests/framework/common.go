@@ -482,7 +482,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 
 	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s,OpenServiceMesh.meshName=%s", td.CtrRegistryServer, td.OsmImageTag, release)
 	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
-	stdout, stderr, err := td.RunLocal("helm", args)
+	stdout, stderr, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Logf("stdout:\n%s", stdout)
 		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
@@ -494,7 +494,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 // DeleteHelmRelease uninstalls a particular helm release
 func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	args := []string{"uninstall", name, "--namespace", namespace}
-	_, _, err := td.RunLocal("helm", args)
+	_, _, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Fatal(err)
 	}
@@ -664,7 +664,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	td.T.Log("Installing OSM")
-	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
+	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
 	if err != nil {
 		td.T.Logf("error running osm install")
 		td.T.Logf("stdout:\n%s", stdout)
@@ -1118,7 +1118,7 @@ func (td *OsmTestData) WaitForPodsDeleted(pods *corev1.PodList, namespace string
 }
 
 // RunLocal Executes command on local
-func (td *OsmTestData) RunLocal(path string, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
+func (td *OsmTestData) RunLocal(path string, args ...string) (*bytes.Buffer, *bytes.Buffer, error) {
 	cmd := exec.Command(path, args...) // #nosec G204
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
@@ -1485,14 +1485,14 @@ func (td *OsmTestData) GrabLogs() error {
 
 	td.T.Logf("Collecting logs, using \"%s %s\"", absLogCollectorPath, absTestDirPath)
 	// Assumes testing has been launched from repo's root
-	stdout, stderr, err := td.RunLocal(absLogCollectorPath, []string{absTestDirPath})
+	stdout, stderr, err := td.RunLocal(absLogCollectorPath, absTestDirPath)
 	if err != nil {
 		td.T.Logf("error running get-osm-namespace-logs script")
 		td.T.Logf("stdout:\n%s", stdout)
 		td.T.Logf("stderr:\n%s", stderr)
 	}
 
-	stdout, stderr, err = td.RunLocal("kubectl", []string{"get", "events", "-A"})
+	stdout, stderr, err = td.RunLocal("kubectl", "get", "events", "-A")
 	if err != nil {
 		td.T.Logf("error running kubectl get events")
 		td.T.Logf("stdout:\n%s", stdout)
@@ -1511,7 +1511,7 @@ func (td *OsmTestData) GrabLogs() error {
 		kindExportPath := td.GetTestFilePath("kindExport")
 		td.T.Logf("Collecting kind cluster")
 
-		stdout, stderr, err := td.RunLocal("kind", []string{"export", "logs", "--name", td.ClusterName, kindExportPath})
+		stdout, stderr, err := td.RunLocal("kind", "export", "logs", "--name", td.ClusterName, kindExportPath)
 		if err != nil {
 			td.T.Logf("error running get-osm-namespace-logs script")
 			td.T.Logf("stdout:\n%s", stdout)
@@ -1566,7 +1566,7 @@ func (td *OsmTestData) GrabLogs() error {
 				strings.Join([]string{podEnvoyConfigFilepath, fmt.Sprintf("%s.txt", dbgEnvoyPath)}, "/"),
 			}
 
-			stdout, stderr, err := td.RunLocal(cmd, args)
+			stdout, stderr, err := td.RunLocal(cmd, args...)
 			if err != nil {
 				td.T.Logf("error running cmd: %s args: %v", cmd, args)
 				td.T.Logf("stdout:\n%s", stdout)
@@ -1584,7 +1584,7 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
 	args := []string{"adm", "policy", "add-scc-to-user", scc, "-z", serviceAccount, "-n", namespace}
-	stdout, stderr, err := td.RunLocal("oc", args)
+	stdout, stderr, err := td.RunLocal("oc", args...)
 	if err != nil {
 		td.T.Logf("stdout:\n%s", stdout)
 		return errors.Errorf("failed to add SCC %s to %s/%s: %s", scc, namespace, serviceAccount, stderr)

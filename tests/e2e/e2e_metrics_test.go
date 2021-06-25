@@ -41,7 +41,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 				Expect(Td.CreateNs(n, nil)).To(Succeed())
 				Expect(Td.AddNsToMesh(true, n)).To(Succeed())
 			}
-			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), []string{"metrics", "enable", "--namespace", strings.Join(ns, ",")})
+			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "metrics", "enable", "--namespace", strings.Join(ns, ","))
 			Td.T.Log(stdout)
 			if err != nil {
 				Td.T.Logf("stderr:\n%s", stderr)
