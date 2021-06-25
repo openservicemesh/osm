@@ -1618,6 +1618,7 @@ func (td *OsmTestData) GrabLogs() error {
 
 		for _, dbgEnvoyPath := range envoyDebugPaths {
 			cmd := "../../bin/osm"
+			filePath := fmt.Sprintf("%s/%s.txt", podEnvoyConfigFilepath, dbgEnvoyPath)
 			args := []string{
 				"proxy",
 				"get",
@@ -1626,7 +1627,7 @@ func (td *OsmTestData) GrabLogs() error {
 				"--namespace",
 				pod.Namespace,
 				"-f",
-				strings.Join([]string{podEnvoyConfigFilepath, fmt.Sprintf("%s.txt", dbgEnvoyPath)}, "/"),
+				filePath,
 			}
 
 			stdout, stderr, err := td.RunLocal(cmd, args)
