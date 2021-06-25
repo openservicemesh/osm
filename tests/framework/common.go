@@ -263,7 +263,7 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 }
 
-// ValidateStringParams validates input string parametres are valid
+// ValidateStringParams validates input string parameters are valid
 func (td *OsmTestData) ValidateStringParams() error {
 	err := verifyValidInstallType(td.InstType)
 	if err != nil {
@@ -319,7 +319,7 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 }
 
 // InitTestData Initializes the test structures
-// Called by Gingkgo BeforeEach
+// Called by Ginkgo BeforeEach
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
 
@@ -332,7 +332,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.TestDirName = fmt.Sprintf("test-%d", td.TestID)
 	td.T.Log(color.HiGreenString("> ID for test: %d, Test dir (abs): %s", td.TestID, td.GetTestDirPath()))
 
-	// String parametre validation
+	// String parameter validation
 	err = td.ValidateStringParams()
 	if err != nil {
 		return err
@@ -706,7 +706,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 	// Delete the pod and let k8s spin it up again
 	err = td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return errors.Wrap(err, "erorr deleting osm-controller pod")
+		return errors.Wrap(err, "error deleting osm-controller pod")
 	}
 
 	return nil
@@ -1279,7 +1279,7 @@ func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration,
 		td.T.Logf("Pod %s:\n%s", pod.Name, status)
 	}
 
-	return fmt.Errorf("Not all pods were Running & Ready in NS %s after %v", ns, timeout)
+	return fmt.Errorf("not all pods were Running & Ready in NS %s after %v", ns, timeout)
 }
 
 // SuccessFunction is a simple definition for a success function.
@@ -1328,7 +1328,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 	}
 
 	// Verify no crashes/restarts of OSM and control plane components were observed during the test
-	// We will not inmediately call Fail() here to not disturb the cleanup process, and instead
+	// We will not immediately call Fail() here to not disturb the cleanup process, and instead
 	// call it at the end of cleanup
 	restartSeen := td.VerifyRestarts()
 
@@ -1490,14 +1490,14 @@ func (td *OsmTestData) VerifyRestarts() bool {
 	restartOccurred := false
 
 	for podContKey, endRestarts := range restartsAtTestEnd {
-		intitialRestarts, found := td.InitialRestartValues[podContKey]
+		initialRestarts, found := td.InitialRestartValues[podContKey]
 		if !found {
 			td.T.Logf("Pod/cont %s not found in initial map. Skipping.", podContKey)
 			continue
 		}
 
-		if intitialRestarts != endRestarts {
-			td.T.Logf("!! Restarts detected for pod/cont %s: Initial %d End %d", podContKey, intitialRestarts, endRestarts)
+		if initialRestarts != endRestarts {
+			td.T.Logf("!! Restarts detected for pod/cont %s: Initial %d End %d", podContKey, initialRestarts, endRestarts)
 			restartOccurred = true
 		}
 	}
