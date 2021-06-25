@@ -1,8 +1,6 @@
 package e2e
 
 import (
-	"bytes"
-	"context"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -12,7 +10,6 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -203,40 +200,13 @@ var _ = OSMDescribe("Upgrade from latest",
 			checkProxiesConnected()
 			checkClientToServerOK()
 
-			// TODO: Only delete and recreate the CRDs if needed
-			By("Upgrading CRDs")
-
-			err = Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(ns).Delete(context.Background(), httpRG.Name, metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			err = Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(ns).Delete(context.Background(), trafficTarget.Name, metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			helm := &action.Configuration{}
-			Expect(helm.Init(Td.Env.RESTClientGetter(), Td.OsmNamespace, "secret", Td.T.Logf)).To(Succeed())
-			rel, err := action.NewGet(helm).Run(releaseName)
-			Expect(err).NotTo(HaveOccurred())
-			for _, crd := range rel.Chart.CRDs() {
-				res, err := helm.KubeClient.Build(bytes.NewReader(crd.Data), false)
-				Expect(err).NotTo(HaveOccurred())
-				_, errs := helm.KubeClient.Delete(res)
-				Expect(errs).To(BeNil())
-			}
-
-			// TODO: Find a decent way to do this without relying on the kubectl binary
-			stdout, stderr, err := Td.RunLocal("kubectl", "apply", "-f", filepath.FromSlash("../../charts/osm/crds"))
-			Td.T.Log(stdout.String())
-			if err != nil {
-				Td.T.Log("stderr:\n" + stderr.String())
-			}
-			Expect(err).NotTo(HaveOccurred())
-
 			By("Upgrading OSM")
 
 			if Td.InstType == KindCluster {
 				Expect(Td.LoadOSMImagesIntoKind()).To(Succeed())
 			}
 
-			stdout, stderr, err = Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, "--container-registry="+Td.CtrRegistryServer, "--osm-image-tag="+Td.OsmImageTag)
+			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, "--container-registry="+Td.CtrRegistryServer, "--osm-image-tag="+Td.OsmImageTag)
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())
