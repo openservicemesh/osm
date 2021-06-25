@@ -41,9 +41,9 @@ and any configuration changes needed can be done by patching this resource prior
 post an upgrade.
 
 If any CustomResourceDefinitions (CRDs) are different between the installed
-chart and the upgraded chart, the CRDs (and any corresponding custom resources)
-need to be deleted and recreated using the CRDs in the new chart prior to
-updating the mesh to ensure compatibility.
+chart and the upgraded chart, the CRDs will be updated to include the latest versions.
+Any corresponding custom resources that wish to reference the newer CRD version can 
+be updated post upgrade.
 `
 
 const meshUpgradeExample = `

@@ -1,0 +1,71 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-upgrade-crds
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-upgrade-crds
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-upgrade-crds
+    namespace: {{ include "osm.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Release.Name }}-upgrade-crds
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-upgrade-crds
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-upgrade-crds
+  namespace: {{ include "osm.namespace" . }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+spec:
+  serviceAccountName: {{ .Release.Name }}-upgrade-crds
+  restartPolicy: OnFailure
+  containers:
+  - name: crds-upgrade
+    image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-crds:{{ .Values.OpenServiceMesh.image.tag }}"
+    imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+    command:
+            - sh
+            - -c
+            - >
+             kubectl apply -f /osm-crds;
+{{- if .Values.OpenServiceMesh.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+{{- end }}
