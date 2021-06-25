@@ -1442,8 +1442,11 @@ func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 		Auths: map[string]DockerConfigEntry{td.CtrRegistryServer: dockercfgAuth},
 	}
 
-	json, _ := json.Marshal(dockerCfgJSON)
-	secret.Data[corev1.DockerConfigJsonKey] = json
+	if jsonConfig, err := json.Marshal(dockerCfgJSON); err != nil {
+		td.T.Fatalf("Error marshaling Docker config", err)
+	} else {
+		secret.Data[corev1.DockerConfigJsonKey] = jsonConfig
+	}
 
 	td.T.Logf("Pushing Registry secret '%s' for namespace %s... ", RegistrySecretName, ns)
 	_, err := td.Client.CoreV1().Secrets(ns).Create(context.Background(), secret, metav1.CreateOptions{})
