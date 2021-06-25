@@ -135,7 +135,7 @@ func (o OSMDescribeInfo) String() string {
 
 // OSMDescribe givens the description of an e2e test
 func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
-	return Describe(opts.String()+" "+name, body)
+	return Describe(fmt.Sprintf("%s %s", opts, name), body)
 }
 
 // InstallType defines several OSM test deployment scenarios
@@ -159,7 +159,7 @@ func verifyValidInstallType(t InstallType) error {
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid InstallType (%s, %s, %s) ",
-			string(t), SelfInstall, KindCluster, NoInstall)
+			t, SelfInstall, KindCluster, NoInstall)
 	}
 }
 
@@ -184,7 +184,7 @@ func verifyValidCollectLogs(t CollectLogsType) error {
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid CollectLogsType (%s, %s, %s)",
-			string(t), CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs)
+			t, CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs)
 	}
 }
 
@@ -376,12 +376,12 @@ nodeRegistration:
 
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s client", configV1alpha1.SchemeGroupVersion.String())
+		return errors.Wrapf(err, "failed to create %s client", configV1alpha1.SchemeGroupVersion)
 	}
 
 	policyClient, err := policyV1alpha1Client.NewForConfig(kubeConfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s client", policyV1alpha1.SchemeGroupVersion.String())
+		return errors.Wrapf(err, "failed to create %s client", policyV1alpha1.SchemeGroupVersion)
 	}
 
 	td.RestConfig = kubeConfig
@@ -1372,7 +1372,7 @@ func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 		Username: td.CtrRegistryUser,
 		Password: td.CtrRegistryPassword,
 		Email:    "osm@osm.com",
-		Auth:     base64.StdEncoding.EncodeToString([]byte(td.CtrRegistryUser + ":" + td.CtrRegistryPassword)),
+		Auth:     base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", td.CtrRegistryUser, td.CtrRegistryPassword))),
 	}
 
 	dockerCfgJSON := DockerConfigJSON{
