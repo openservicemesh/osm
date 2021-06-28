@@ -67,6 +67,9 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | OpenServiceMesh.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
+| OpenServiceMesh.crdConverter.podLabels | object | `{}` | CRD converter's pod labels |
+| OpenServiceMesh.crdConverter.replicaCount | int | `1` | CRD converter's replica count |
+| OpenServiceMesh.crdConverter.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | CRD converter's container resource parameters |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
@@ -78,6 +81,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar |
 | OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
+| OpenServiceMesh.featureFlags.enableCRDConverter | bool | `false` | If specified, a conversion webhook for OSM's CRD's will be enabled |
 | OpenServiceMesh.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API If specified, fine grained control over Egress (external) traffic is enforced |
 | OpenServiceMesh.featureFlags.enableMulticlusterMode | bool | `false` | Enable Multicluster mode If specified, multicluster mode will be enabled in OSM |
 | OpenServiceMesh.featureFlags.enableOSMGateway | bool | `false` | Enable OSM gateway for ingress or multicluster |

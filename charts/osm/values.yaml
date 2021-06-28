@@ -254,6 +254,8 @@ OpenServiceMesh:
     enableAsyncProxyServiceMapping: false
     # -- Enable kubernetes validating webhook
     enableValidatingWebhook: false
+    # -- If specified, a conversion webhook for OSM's CRD's will be enabled
+    enableCRDConverter: false
 
 
   # -- Run OSM with PodSecurityPolicy configured
@@ -262,3 +264,20 @@ OpenServiceMesh:
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
   controlPlaneTolerations: []
+
+  #
+  # -- OSM's CRD converter parameters
+  crdConverter:
+    # -- CRD converter's replica count
+    replicaCount: 1
+    # -- CRD converter's container resource parameters
+    resource:
+      limits:
+        cpu: "0.5"
+        memory: "64M"
+      requests:
+        cpu: "0.3"
+        memory: "64M"
+    # -- CRD converter's pod labels
+    podLabels: {}
+

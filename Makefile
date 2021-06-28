@@ -61,8 +61,12 @@ clean-osm-injector:
 clean-osm-crds:
 	@rm -rf bin/osm-crds
 
+.PHONY: clean-osm-crd-converter
+clean-osm-crd-converter:
+	@rm -rf bin/osm-crd-converter
+
 .PHONY: build
-build: build-init-osm-controller build-osm-controller build-osm-injector build-osm-crds
+build: build-init-osm-controller build-osm-controller build-osm-injector build-osm-crds build-osm-crd-converter
 
 .PHONY: build-init-osm-controller
 build-init-osm-controller: clean-init-osm-controller
@@ -79,6 +83,10 @@ build-osm-injector: clean-osm-injector
 .PHONY: build-osm-crds
 build-osm-crds: clean-osm-crds
 	cp -R ./charts/osm/crds ./bin/osm-crds
+
+.PHONY: build-osm-crd-converter
+build-osm-crd-converter: clean-osm-crd-converter
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-crd-converter/osm-crd-converter -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-crd-converter
 
 .PHONY: build-osm
 build-osm: cmd/cli/chart.tgz
@@ -151,7 +159,7 @@ kind-reset:
 	kind delete cluster --name osm
 
 .PHONY: test-e2e
-test-e2e: docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-init build-osm docker-build-tcp-echo-server
+test-e2e: docker-build-init-osm-controller docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-crd-converter docker-build-init build-osm docker-build-tcp-echo-server
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -172,7 +180,7 @@ $(DEMO_BUILD_TARGETS):
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONY: demo-build
-demo-build: $(DEMO_BUILD_TARGETS) build-init-osm-controller build-osm-controller build-osm-injector build-osm-crds
+demo-build: $(DEMO_BUILD_TARGETS) build-init-osm-controller build-osm-controller build-osm-injector build-osm-crds build-osm-crd-converter
 
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
@@ -197,11 +205,15 @@ docker-build-osm-injector: build-osm-injector
 docker-build-osm-crds: build-osm-crds
 	docker build -t $(CTR_REGISTRY)/osm-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds bin/osm-crds
 
+docker-build-osm-crd-converter: build-osm-crd-converter
+	docker build -t $(CTR_REGISTRY)/osm-crd-converter:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crd-converter bin/osm-crd-converter
+
 pkg/envoy/lds/stats.wasm: wasm/stats.cc wasm/Makefile
 	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
 	@mv wasm/stats.wasm $@
+
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-init-osm-controller  docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-crd-converter 
 
 .PHONY: embed-files
 embed-files: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
@@ -215,7 +227,7 @@ build-ci: embed-files
 	go build -v ./...
 
 # docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector osm-crds)
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init init-osm-controller osm-controller osm-injector osm-crds osm-crd-converter)
 VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)

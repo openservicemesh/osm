@@ -1,0 +1,94 @@
+{{- if .Values.OpenServiceMesh.featureFlags.enableCRDConverter }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-crd-converter
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-crd-converter
+    meshName: {{ .Values.OpenServiceMesh.meshName }}
+spec:
+  replicas: {{ .Values.OpenServiceMesh.crdConverter.replicaCount }}
+  selector:
+    matchLabels:
+      app: osm-crd-converter
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-crd-converter
+  {{- if .Values.OpenServiceMesh.crdConverter.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.crdConverter.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+        - name: osm-crd-converter
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-crd-converter:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          ports:
+            - name: "tls"
+              containerPort: 443
+            - name: "metrics"
+              containerPort: 9091
+          command: ['/osm-crd-converter']
+          args: [
+            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
+            {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}
+            "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
+            "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
+            "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
+          ]
+          resources:
+            limits:
+              cpu: "{{.Values.OpenServiceMesh.crdConverter.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.crdConverter.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.OpenServiceMesh.crdConverter.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.crdConverter.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 443
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 443
+          env:
+            # The CRD_CONVERTER_POD_NAME env variable sets pod name dynamically, used by osm-crd-converter to register events
+            - name: CRD_CONVERTER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.OpenServiceMesh.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.OpenServiceMesh.controlPlaneTolerations | indent 8 }}
+    {{- end }}
+{{- end }}

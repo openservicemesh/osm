@@ -1,0 +1,18 @@
+{{- if .Values.OpenServiceMesh.featureFlags.enableCRDConverter }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-crd-converter
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-crd-converter
+spec:
+  ports:
+    - name: tls
+      port: 443
+      targetPort: tls
+  selector:
+    app: osm-crd-converter
+{{- end }}
+

@@ -153,6 +153,7 @@
                 "osmController",
                 "enablePrivilegedInitContainer",
                 "injector",
+                "crdConverter",
                 "featureFlags"
             ],
             "properties": {
@@ -669,6 +670,38 @@
                     },
                     "additionalProperties": false
                 },
+                "crdConverter": {
+                    "$id": "#/properties/OpenServiceMesh/properties/crdConverter",
+                    "type": "object",
+                    "title": "The CRD converter schema",
+                    "description": "CRD converter's configurations",
+                    "required": [
+                        "replicaCount",
+                        "resource"
+                    ],
+                    "properties": {
+                        "replicaCount": {
+                            "$id": "#/properties/OpenServiceMesh/properties/crdConverter/properties/replicaCount",
+                            "type": "integer",
+                            "title": "The replicaCount schema",
+                            "description": "The number of replicas of the CRD converter pod.",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "resource": {
+                            "$ref": "#/definitions/containerResources"
+                        },
+                        "podLabels": {
+                            "$id": "#/properties/OpenServiceMesh/properties/crdConverter/properties/podLabels",
+                            "type": "object",
+                            "title": "The podLabels schema",
+                            "description": "Labels for the CRD converter pod.",
+                            "default": {}
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "featureFlags": {
                     "$id": "#/properties/OpenServiceMesh/properties/featureFlags",
                     "type": "object",
@@ -686,7 +719,8 @@
                         "enableMulticlusterMode",
                         "enableOSMGateway",
                         "enableAsyncProxyServiceMapping",
-                        "enableValidatingWebhook"
+                        "enableValidatingWebhook",
+                        "enableCRDConverter"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -739,6 +773,15 @@
                             "type": "boolean",
                             "title": "Enable kubernetes validating webhook",
                             "description": "Enable kubernetes validating webhook",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableCRDConverter": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableCRDConverter",
+                            "type": "boolean",
+                            "title": "Enable CRD Conversion Webhook",
+                            "description": "Enable CRD Conversion Webhook in OSM",
                             "examples": [
                                 true
                             ]
