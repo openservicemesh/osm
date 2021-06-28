@@ -15,8 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -220,7 +219,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 	mc := &MeshCatalog{
 		kubeController: mockKubeController,
 	}
@@ -496,7 +495,7 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockKubeController := kubernetes.NewMockController(mockCtrl)
+			mockKubeController := k8s.NewMockController(mockCtrl)
 			mc := &MeshCatalog{
 				kubeController: mockKubeController,
 			}

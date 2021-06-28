@@ -14,7 +14,7 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 var (
@@ -26,7 +26,7 @@ type Prometheus struct {
 	Client api.Client
 	API    v1.API
 
-	pfwd *kubernetes.PortForwarder
+	pfwd *k8s.PortForwarder
 }
 
 // Stop gracefully stops the port forwarding to Prometheus
@@ -120,7 +120,7 @@ type Grafana struct {
 	User     string
 	Password string
 
-	pfwd *kubernetes.PortForwarder
+	pfwd *k8s.PortForwarder
 }
 
 // Stop gracefully stops the port forwarding to Grafana

@@ -7,7 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -63,7 +63,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
-			Name:          kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Name:          k8s.GetServiceFromHostname(split.Spec.Service),
 			Namespace:     split.Namespace,
 			ClusterDomain: constants.LocalDomain,
 		}
@@ -270,7 +270,7 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 		if split.Namespace != upstream.Namespace {
 			continue
 		}
-		rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
+		rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
 		if rootServiceName != upstream.Name {
 			// This split policy does not correspond to the upstream service
 			continue
@@ -332,7 +332,7 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 			}
 			for _, backend := range split.Spec.Backends {
 				if backend.Service == upstreamSvc.Name {
-					rootServiceName := kubernetes.GetServiceFromHostname(split.Spec.Service)
+					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
 					rootMeshService := service.MeshService{
 						Namespace:     split.Namespace,
 						Name:          rootServiceName,

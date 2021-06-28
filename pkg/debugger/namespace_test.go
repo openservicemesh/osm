@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"

@@ -21,7 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -329,7 +329,7 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 }
 
 // GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
-func GetPodFromCertificate(cn certificate.CommonName, kubecontroller kubernetes.Controller) (*v1.Pod, error) {
+func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Controller) (*v1.Pod, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return nil, err

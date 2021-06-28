@@ -1,4 +1,4 @@
-package kubernetes
+package k8s
 
 import (
 	"testing"

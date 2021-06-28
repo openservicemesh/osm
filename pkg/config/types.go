@@ -5,7 +5,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	kubernetes "github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 

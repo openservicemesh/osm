@@ -8,12 +8,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
-
 	configV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const (
@@ -22,7 +21,7 @@ const (
 )
 
 // NewConfigController returns a config.Controller struct related to functionality provided by the resources in the config.openservicemesh.io API group
-func NewConfigController(kubeConfig *rest.Config, kubeController kubernetes.Controller, stop chan struct{}) (Controller, error) {
+func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}) (Controller, error) {
 	configClient := configV1alpha1Client.NewForConfigOrDie(kubeConfig)
 	client, err := newConfigClient(
 		configClient,
@@ -34,8 +33,8 @@ func NewConfigController(kubeConfig *rest.Config, kubeController kubernetes.Cont
 }
 
 // newConfigClient creates k8s clients for the resources in the config.openservicemesh.io API group
-func newConfigClient(configClient configV1alpha1Client.Interface, kubeController kubernetes.Controller, stop chan struct{}) (client, error) {
-	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, kubernetes.DefaultKubeEventResyncInterval)
+func newConfigClient(configClient configV1alpha1Client.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
+	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
 		multiClusterService: informerFactory.Config().V1alpha1().MultiClusterServices().Informer(),
@@ -57,12 +56,12 @@ func newConfigClient(configClient configV1alpha1Client.Interface, kubeController
 		return kubeController.IsMonitoredNamespace(ns)
 	}
 
-	remoteServiceEventTypes := kubernetes.EventTypes{
+	remoteServiceEventTypes := k8s.EventTypes{
 		Add:    announcements.MultiClusterServiceAdded,
 		Update: announcements.MultiClusterServiceUpdated,
 		Delete: announcements.MultiClusterServiceDeleted,
 	}
-	informerCollection.multiClusterService.AddEventHandler(kubernetes.GetKubernetesEventHandlers("MultiClusterService", "Kube", shouldObserve, remoteServiceEventTypes))
+	informerCollection.multiClusterService.AddEventHandler(k8s.GetKubernetesEventHandlers("MultiClusterService", "Kube", shouldObserve, remoteServiceEventTypes))
 
 	err := client.run(stop)
 	if err != nil {
