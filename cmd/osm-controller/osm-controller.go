@@ -58,7 +58,6 @@ const (
 var (
 	verbosity          string
 	meshName           string // An ID that uniquely identifies an OSM instance
-	kubeConfigFile     string
 	osmNamespace       string
 	osmServiceAccount  string
 	webhookConfigName  string
@@ -82,7 +81,6 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", constants.DefaultOSMLogLevel, "Set boot log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
-	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "OSM controller's namespace")
 	flags.StringVar(&osmServiceAccount, "osm-service-account", "", "OSM controller's service account")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
@@ -121,9 +119,9 @@ func main() {
 	events.GetPubSubInstance() // Just to generate the interface, single routine context
 
 	// Initialize kube config and client
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", "")
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
+		log.Fatal().Err(err).Msg("Error creating kube configs using in-cluster config")
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
