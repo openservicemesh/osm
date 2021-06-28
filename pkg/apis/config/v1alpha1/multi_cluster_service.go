@@ -47,6 +47,9 @@ type ClusterSpec struct {
 
 	// Name defines the name of the remote cluster.
 	Name string `json:"name,omitempty"`
+
+	// Weight defines the load balancing weight of the remote cluster
+	Weight int `json:"weight,omitempty"`
 }
 
 // PortSpec contains information on service's port.
