@@ -1,4 +1,4 @@
-package kubernetes
+package k8s
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	a "github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 

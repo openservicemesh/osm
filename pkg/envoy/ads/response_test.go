@@ -20,7 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -30,6 +29,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -133,7 +133,7 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		kubectrlMock := kubernetes.NewMockController(mockCtrl)
+		kubectrlMock := k8s.NewMockController(mockCtrl)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
@@ -217,7 +217,7 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		kubectrlMock := kubernetes.NewMockController(mockCtrl)
+		kubectrlMock := k8s.NewMockController(mockCtrl)
 
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()

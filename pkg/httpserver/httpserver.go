@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 

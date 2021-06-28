@@ -6,7 +6,7 @@ import (
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -29,7 +29,7 @@ type client struct {
 	informers      *informerCollection
 	caches         *cacheCollection
 	cacheSynced    chan interface{}
-	kubeController kubernetes.Controller
+	kubeController k8s.Controller
 }
 
 // Controller is the interface for the functionality provided by the resources part of the policy.openservicemesh.io API group
