@@ -35,10 +35,10 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // GetMultiClusterService mocks base method
-func (m *MockController) GetMultiClusterService(arg0, arg1 string) []*v1alpha1.MultiClusterService {
+func (m *MockController) GetMultiClusterService(arg0, arg1 string) *v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterService", arg0, arg1)
-	ret0, _ := ret[0].([]*v1alpha1.MultiClusterService)
+	ret0, _ := ret[0].(*v1alpha1.MultiClusterService)
 	return ret0
 }
 
