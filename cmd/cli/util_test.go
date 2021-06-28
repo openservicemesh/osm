@@ -93,7 +93,7 @@ var _ = Describe("Test getting pretty printed output of a list of meshes", func(
 		pp := getPrettyPrintedMeshInfoList(meshInfoList)
 
 		It("should have correct output", func() {
-			Expect(pp).To(Equal("\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\n"))
+			Expect(pp).To(Equal("\nMESH NAME\tMESH NAMESPACE\tVERSION\tADDED NAMESPACES\n"))
 		})
 	})
 
@@ -101,27 +101,59 @@ var _ = Describe("Test getting pretty printed output of a list of meshes", func(
 
 		meshInfoList = []meshInfo{
 			{
-				name:                 "m1",
-				namespace:            "ns1",
-				controllerPods:       []string{"p1", "p2", "p3"},
-				version:              "v1",
-				smiSupportedVersions: []string{"s1", "s2", "s3"},
-				monitoredNamespaces:  []string{"mn1", "mn2", "mn3"},
+				name:                "m1",
+				namespace:           "ns1",
+				version:             "v1",
+				monitoredNamespaces: []string{"mn1", "mn2", "mn3"},
 			},
 			{
-				name:                 "m2",
-				namespace:            "ns2",
-				controllerPods:       []string{"p4", "p5", "p6"},
-				version:              "v2",
-				smiSupportedVersions: []string{"s4", "s5", "s6"},
-				monitoredNamespaces:  []string{"mn4", "mn5", "mn6"},
+				name:                "m2",
+				namespace:           "ns2",
+				version:             "v2",
+				monitoredNamespaces: []string{"mn4", "mn5", "mn6"},
 			},
 		}
 
 		It("should have correct output", func() {
-			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\nm1\tns1\tp1,p2,p3\tv1\ts1,s2,s3\tmn1,mn2,mn3\nm2\tns2\tp4,p5,p6\tv2\ts4,s5,s6\tmn4,mn5,mn6\n"))
+			Expect(getPrettyPrintedMeshInfoList(meshInfoList)).To(Equal("\nMESH NAME\tMESH NAMESPACE\tVERSION\tADDED NAMESPACES\nm1\tns1\tv1\tmn1,mn2,mn3\nm2\tns2\tv2\tmn4,mn5,mn6\n"))
 		})
 
+	})
+})
+
+var _ = Describe("Test getting pretty printed output of smi info of a list of meshes", func() {
+	var (
+		meshSmiInfoList []meshSmiInfo
+	)
+
+	Context("empty mesh list", func() {
+		meshSmiInfoList = []meshSmiInfo{}
+		pp := getPrettyPrintedMeshSmiInfoList(meshSmiInfoList)
+
+		It("should have correct output", func() {
+			Expect(pp).To(Equal("\nMESH NAME\tMESH NAMESPACE\tSMI SUPPORTED\n"))
+		})
+	})
+
+	Context("non-empty mesh list", func() {
+		meshSmiInfoList = []meshSmiInfo{
+			{
+				name:                 "m1",
+				namespace:            "ns1",
+				smiSupportedVersions: []string{"smi1", "smi2", "smi3"},
+			},
+			{
+				name:                 "m2",
+				namespace:            "ns2",
+				smiSupportedVersions: []string{"smi4", "smi5", "smi6"},
+			},
+		}
+
+		pp := getPrettyPrintedMeshSmiInfoList(meshSmiInfoList)
+
+		It("should have correct output", func() {
+			Expect(pp).To(Equal("\nMESH NAME\tMESH NAMESPACE\tSMI SUPPORTED\nm1\tns1\tsmi1,smi2,smi3\nm2\tns2\tsmi4,smi5,smi6\n"))
+		})
 	})
 })
 
