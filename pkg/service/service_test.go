@@ -16,8 +16,14 @@ func TestServerName(t *testing.T) {
 		Name:          "service-name-here",
 		ClusterDomain: constants.LocalDomain,
 	}
-	actual := namespacedService.ServerName()
-	assert.Equal("service-name-here.namespace-here.svc.cluster.local", actual)
+	assert.Equal("service-name-here.namespace-here.svc.cluster.local", namespacedService.ServerName())
+
+	clusterService := MeshService{
+		Namespace:     "namespace-here",
+		Name:          "service-name-here",
+		ClusterDomain: constants.ClusterDomain("cluster-x"),
+	}
+	assert.Equal("service-name-here.namespace-here.svc.cluster.cluster-x", clusterService.ServerName())
 }
 
 func TestEquals(t *testing.T) {

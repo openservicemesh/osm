@@ -30,6 +30,7 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 	// Mock calls used to build the HTTP connection manager
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
+	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
 	id := identity.K8sServiceAccount{Name: "gateway", Namespace: "osm-system"}.ToServiceIdentity()
 	mockCatalog.EXPECT().ListMeshServicesForIdentity(id).Return([]service.MeshService{
 		tests.BookbuyerService,
@@ -52,15 +53,6 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 	mockCatalog.EXPECT().GetWeightedClustersForUpstream(tests.BookbuyerService).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetWeightedClustersForUpstream(tests.BookwarehouseService).Return(nil).AnyTimes()
 
-	mockCatalog.EXPECT().GetServiceHostnames(tests.BookbuyerService, service.RemoteCluster).Return([]string{
-		"bookbuyer.default.svc.cluster.cluster-x",
-		"bookbuyer.default.svc.cluster.global",
-	}, nil).AnyTimes()
-	mockCatalog.EXPECT().GetServiceHostnames(tests.BookwarehouseService, service.RemoteCluster).Return([]string{
-		"bookwarehouse.default.svc.cluster.cluster-x",
-		"bookwarehouse.default.svc.cluster.global",
-	}, nil).AnyTimes()
-
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
 		cfg:             mockConfigurator,
@@ -80,7 +72,6 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 				DestinationPort: &wrapperspb.UInt32Value{Value: 80},
 				ServerNames: []string{
 					"bookbuyer.default.svc.cluster.cluster-x",
-					"bookbuyer.default.svc.cluster.global",
 				},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
@@ -93,7 +84,6 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 				DestinationPort: &wrapperspb.UInt32Value{Value: 80},
 				ServerNames: []string{
 					"bookwarehouse.default.svc.cluster.cluster-x",
-					"bookwarehouse.default.svc.cluster.global",
 				},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},

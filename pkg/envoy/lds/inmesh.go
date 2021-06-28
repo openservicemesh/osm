@@ -116,6 +116,18 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	}
 
 	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshHTTPFilterChainPrefix, proxyService, servicePort)
+
+	serverNames := []string{proxyService.ServerName()}
+	// The sidecar needs to be aware of the names a remote cluster might refer to this service as.
+	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
+		serverNames = append(serverNames,
+			service.MeshService{
+				Name:          proxyService.Name,
+				Namespace:     proxyService.Namespace,
+				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+		)
+	}
+
 	filterChain := &xds_listener.FilterChain{
 		Name:    filterchainName,
 		Filters: filters,
@@ -129,7 +141,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
 			// This is not a field obtained from the mTLS Certificate.
-			ServerNames: []string{proxyService.ServerName()},
+			ServerNames: serverNames,
 
 			// Only match when transport protocol is TLS
 			TransportProtocol: envoy.TransportProtocolTLS,
@@ -164,6 +176,17 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 		return nil, err
 	}
 
+	serverNames := []string{proxyService.ServerName()}
+	// The sidecar needs to be aware of the names a remote cluster might refer to this service as.
+	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
+		serverNames = append(serverNames,
+			service.MeshService{
+				Name:          proxyService.Name,
+				Namespace:     proxyService.Namespace,
+				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+		)
+	}
+
 	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshTCPFilterChainPrefix, proxyService, servicePort)
 	return &xds_listener.FilterChain{
 		Name: filterchainName,
@@ -175,7 +198,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
 			// This is not a field obtained from the mTLS Certificate.
-			ServerNames: []string{proxyService.ServerName()},
+			ServerNames: serverNames,
 
 			// Only match when transport protocol is TLS
 			TransportProtocol: envoy.TransportProtocolTLS,
@@ -342,8 +365,7 @@ func (lb *listenerBuilder) getOutboundTCPFilterChainForService(upstream service.
 
 func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*xds_listener.Filter, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%s", outboundMeshTCPProxyStatPrefix, upstream),
-		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: upstream.String()},
+		StatPrefix: fmt.Sprintf("%s.%s", outboundMeshTCPProxyStatPrefix, upstream),
 	}
 
 	weightedClusters := lb.meshCatalog.GetWeightedClustersForUpstream(upstream)
