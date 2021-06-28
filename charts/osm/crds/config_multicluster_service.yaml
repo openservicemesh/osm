@@ -81,6 +81,11 @@ spec:
                       name:
                         description: Name of the remote cluster
                         type: string
+                      weight:
+                        description: Load balancing weight of the remote cluster
+                        type: integer
+                        minimum: 0
+                        default: 0
                       certificate:
                         description: mTLS certificates (optional)
                         type: string
