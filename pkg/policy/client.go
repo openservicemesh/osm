@@ -13,7 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(kubeConfig *rest.Config, kubeController kubernetes.Controller, stop chan struct{}) (Controller, error) {
+func NewPolicyController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}) (Controller, error) {
 	policyClient := policyV1alpha1Client.NewForConfigOrDie(kubeConfig)
 
 	client, err := newPolicyClient(
@@ -38,8 +38,8 @@ func NewPolicyController(kubeConfig *rest.Config, kubeController kubernetes.Cont
 }
 
 // newPolicyClient creates k8s clients for the resources in the policy.openservicemesh.io API group
-func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController kubernetes.Controller, stop chan struct{}) (client, error) {
-	informerFactory := policyV1alpha1Informers.NewSharedInformerFactory(policyClient, kubernetes.DefaultKubeEventResyncInterval)
+func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
+	informerFactory := policyV1alpha1Informers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
 		egress: informerFactory.Policy().V1alpha1().Egresses().Informer(),
@@ -61,12 +61,12 @@ func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController
 		return kubeController.IsMonitoredNamespace(ns)
 	}
 
-	egressEventTypes := kubernetes.EventTypes{
+	egressEventTypes := k8s.EventTypes{
 		Add:    announcements.EgressAdded,
 		Update: announcements.EgressUpdated,
 		Delete: announcements.EgressDeleted,
 	}
-	informerCollection.egress.AddEventHandler(kubernetes.GetKubernetesEventHandlers("Egress", "Policy", shouldObserve, egressEventTypes))
+	informerCollection.egress.AddEventHandler(k8s.GetKubernetesEventHandlers("Egress", "Policy", shouldObserve, egressEventTypes))
 
 	err := client.run(stop)
 	if err != nil {

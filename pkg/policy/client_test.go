@@ -12,7 +12,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 func TestNewPolicyClient(t *testing.T) {
@@ -31,7 +31,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
 
 	stop := make(chan struct{})
