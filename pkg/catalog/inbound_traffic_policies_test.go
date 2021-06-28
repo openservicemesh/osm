@@ -531,10 +531,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 				locality := service.LocalCluster
 				if ms.Namespace == tc.downstreamSA.ToK8sServiceAccount().Namespace {
 					locality = service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name]).AnyTimes()
 				} else {
 					if ms.Name == tests.BookstoreApexServiceName {
-						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"], nil).AnyTimes()
+						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"]).AnyTimes()
 					}
 				}
 			}
@@ -1011,10 +1011,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 				locality := service.LocalCluster
 				if ms.Namespace == tc.downstreamSA.ToK8sServiceAccount().Namespace {
 					locality = service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name]).AnyTimes()
 				} else {
 					if ms.Name == tests.BookstoreApexServiceName {
-						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"], nil).AnyTimes()
+						mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames["BookstoreApexServiceName"]).AnyTimes()
 					}
 				}
 			}
@@ -1336,7 +1336,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 				fmt.Sprintf("%s.%s.svc:8888", tc.inboundService.Name, tc.inboundService.Namespace),
 				fmt.Sprintf("%s.%s.svc.cluster:8888", tc.inboundService.Name, tc.inboundService.Namespace),
 				fmt.Sprintf("%s.%s.svc.cluster.local:8888", tc.inboundService.Name, tc.inboundService.Namespace),
-			}, nil).AnyTimes()
+			}).AnyTimes()
 
 			actual := mc.buildInboundPolicies(&trafficTarget, tc.inboundService)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
@@ -1413,7 +1413,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 			k8sService := tests.NewServiceFixture(tc.meshService.Name, tc.meshService.Namespace, map[string]string{})
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockKubeController.EXPECT().GetService(tc.meshService).Return(k8sService)
+			mockKubeController.EXPECT().GetService(tc.meshService).Return(k8sService).AnyTimes()
 			mockServiceProvider.EXPECT().GetHostnamesForService(tc.meshService, service.LocalNS).Return([]string{
 				tc.meshService.Name,
 				fmt.Sprintf("%s.%s", tc.meshService.Name, tc.meshService.Namespace),
@@ -1425,7 +1425,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 				fmt.Sprintf("%s.%s.svc:8888", tc.meshService.Name, tc.meshService.Namespace),
 				fmt.Sprintf("%s.%s.svc.cluster:8888", tc.meshService.Name, tc.meshService.Namespace),
 				fmt.Sprintf("%s.%s.svc.cluster.local:8888", tc.meshService.Name, tc.meshService.Namespace),
-			}, nil).AnyTimes()
+			}).AnyTimes()
 
 			actual := mc.buildInboundPermissiveModePolicies(tc.meshService)
 			assert.Len(actual, len(tc.expectedInboundPolicies))
@@ -1691,7 +1691,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 						fmt.Sprintf("%s.%s.svc:8888", ms.Name, ms.Namespace),
 						fmt.Sprintf("%s.%s.svc.cluster:8888", ms.Name, ms.Namespace),
 						fmt.Sprintf("%s.%s.svc.cluster.%s:8888", ms.Name, ms.Namespace, ms.ClusterDomain),
-					}, nil).AnyTimes()
+					}).AnyTimes()
 				} else {
 					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return([]string{
 						fmt.Sprintf("%s.%s", ms.Name, ms.Namespace),
@@ -1702,7 +1702,7 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 						fmt.Sprintf("%s.%s.svc:8888", ms.Name, ms.Namespace),
 						fmt.Sprintf("%s.%s.svc.cluster:8888", ms.Name, ms.Namespace),
 						fmt.Sprintf("%s.%s.svc.cluster.%s:8888", ms.Name, ms.Namespace, ms.ClusterDomain),
-					}, nil).AnyTimes()
+					}).AnyTimes()
 				}
 			}
 

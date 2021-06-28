@@ -160,7 +160,6 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace strin
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
 	destServices := mc.listMeshServices()
-
 	for _, destService := range destServices {
 		locality := service.LocalCluster
 		if destService.Namespace == sourceNamespace {

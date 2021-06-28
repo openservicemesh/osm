@@ -95,7 +95,7 @@ type Controller interface {
 	ListPods() []*corev1.Pod
 
 	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-	ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
+	ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)

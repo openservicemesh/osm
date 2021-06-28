@@ -65,10 +65,16 @@ func (ms MeshService) Local() bool {
 	return ms.ClusterDomain == constants.LocalDomain || ms.ClusterDomain == ""
 }
 
-// Global returns whether or not this is service points to the global clusterset.
+// Global returns whether or not this service points to the global clusterset.
 func (ms MeshService) Global() bool {
 	// TODO(steeling): if it's unset consider it local for now.
 	return ms.ClusterDomain == constants.GlobalDomain
+}
+
+// SingleRemoteCluster returns whether or not this service points a specific remote cluster.
+func (ms MeshService) SingleRemoteCluster() bool {
+	// TODO(steeling): if it's unset consider it local for now.
+	return ms.ClusterDomain != constants.GlobalDomain && ms.ClusterDomain != constants.LocalDomain
 }
 
 // ClusterName is a type for a service name
@@ -107,7 +113,7 @@ type Provider interface {
 	GetTargetPortToProtocolMappingForService(MeshService) (map[uint32]string, error)
 
 	// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-	GetHostnamesForService(MeshService, Locality) ([]string, error)
+	GetHostnamesForService(MeshService, Locality) []string
 
 	// GetID returns the unique identifier of the ServiceProvider.
 	GetID() string

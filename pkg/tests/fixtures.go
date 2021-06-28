@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -126,6 +127,48 @@ var (
 		Namespace:     Namespace,
 		Name:          BookbuyerServiceName,
 		ClusterDomain: constants.LocalDomain,
+	}
+
+	// BookbuyerClusterXService is the bookbuyer service in cluster-x.
+	BookbuyerClusterXService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceName,
+		ClusterDomain: constants.ClusterDomain("cluster-x"),
+	}
+
+	// BookbuyerClusterYService is the bookbuyer service in cluster-y.
+	BookbuyerClusterYService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceName,
+		ClusterDomain: constants.ClusterDomain("cluster-y"),
+	}
+
+	// BookbuyerGlobalService is the bookbuyer global service.
+	BookbuyerGlobalService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          BookbuyerServiceName,
+		ClusterDomain: constants.ClusterDomain(constants.GlobalDomain),
+	}
+
+	// BookstoreClusterXService is the bookstore service in cluster-x.
+	BookstoreClusterXService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          "bookstore",
+		ClusterDomain: constants.ClusterDomain("cluster-x"),
+	}
+
+	// BookstoreClusterYService is the bookstore service in cluster-y.
+	BookstoreClusterYService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          "bookstore",
+		ClusterDomain: constants.ClusterDomain("cluster-y"),
+	}
+
+	// BookstoreGlobalService is the bookstore global service.
+	BookstoreGlobalService = service.MeshService{
+		Namespace:     Namespace,
+		Name:          "bookstore",
+		ClusterDomain: constants.ClusterDomain(constants.GlobalDomain),
 	}
 
 	// BookstoreApexService is the bookstore-apex service
@@ -560,6 +603,73 @@ var (
 	}
 )
 
+// MultiClusterService objects
+var (
+	// BookstoreMCS is the bookstore multi cluster service object.
+	BookstoreMCS = &v1alpha1.MultiClusterService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "bookstore",
+			Namespace: Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			ServiceAccount: BookstoreServiceAccountName,
+			GlobalIP:       "10.10.10.20",
+			Ports: []v1alpha1.PortSpec{
+				{
+					Port:     8081,
+					Protocol: "TCP",
+				},
+				{
+					Port:     9090,
+					Protocol: "TCP",
+				},
+			},
+			Cluster: []v1alpha1.ClusterSpec{
+				{
+					Name:    "cluster-x",
+					Address: "10.10.10.15:80",
+				},
+				{
+					Name:    "cluster-y",
+					Address: "10.10.10.16:90",
+				},
+			},
+		},
+	}
+
+	// BookbuyerMCS is the bookstore multi cluster service object.
+	BookbuyerMCS = &v1alpha1.MultiClusterService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      BookbuyerServiceName,
+			Namespace: Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			ServiceAccount: BookbuyerServiceAccountName,
+			GlobalIP:       "10.10.10.30",
+			Ports: []v1alpha1.PortSpec{
+				{
+					Port:     8082,
+					Protocol: "TCP",
+				},
+				{
+					Port:     9091,
+					Protocol: "TCP",
+				},
+			},
+			Cluster: []v1alpha1.ClusterSpec{
+				{
+					Name:    "cluster-x",
+					Address: "10.10.10.11:80",
+				},
+				{
+					Name:    "cluster-y",
+					Address: "10.10.10.12:90",
+				},
+			},
+		},
+	}
+)
+
 // NewPodFixture creates a new Pod struct for testing.
 func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) corev1.Pod {
 	return corev1.Pod{
@@ -591,6 +701,39 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 				Protocol: corev1.ProtocolTCP,
 				Port:     ServicePort,
 			}},
+			Selector: selectors,
+		},
+	}
+}
+
+// NewServiceFixtureWithMultiplePorts creates a new Kubernetes service with 2 ports
+func NewServiceFixtureWithMultiplePorts(serviceName, namespace string, selectors map[string]string) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "servicePort1",
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: "backendName",
+					},
+					Protocol: corev1.ProtocolTCP,
+					Port:     8082,
+				},
+				{
+					Name: "servicePort2",
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: "backendName",
+					},
+					Protocol: corev1.ProtocolTCP,
+					Port:     9091,
+				},
+			},
 			Selector: selectors,
 		},
 	}

@@ -35,12 +35,11 @@ func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 }
 
 // GetHostnamesForService mocks base method
-func (m *MockProvider) GetHostnamesForService(arg0 MeshService, arg1 Locality) ([]string, error) {
+func (m *MockProvider) GetHostnamesForService(arg0 MeshService, arg1 Locality) []string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostnamesForService", arg0, arg1)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetHostnamesForService indicates an expected call of GetHostnamesForService

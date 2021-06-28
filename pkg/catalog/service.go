@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // isTrafficSplitBackendService returns true if the given service is a backend service in any traffic split
@@ -189,17 +188,13 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 // GetServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
-func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
-	svc := utils.K8sSvcToMeshSvc(mc.kubeController.GetService(meshService))
-
+func (mc *MeshCatalog) GetServiceHostnames(svc service.MeshService, locality service.Locality) ([]string, error) {
 	var hostnames []string
 	for _, provider := range mc.serviceProviders {
-		hosts, err := provider.GetHostnamesForService(svc, locality)
-
-		if err != nil {
-			return nil, errors.Errorf("Error fetching hostnames for sercice: %s, provider: %s", meshService, provider.GetID())
-		}
-		hostnames = append(hostnames, hosts...)
+		hostnames = append(hostnames, provider.GetHostnamesForService(svc, locality)...)
+	}
+	if len(hostnames) == 0 {
+		return nil, errors.Errorf("Error fetching service %q", svc)
 	}
 
 	return hostnames, nil

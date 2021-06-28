@@ -58,13 +58,13 @@ spec:
                         minimum: 1
                         maximum: 65535
                       protocol:
-                        description: The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
+                        description: The protocol for this port. Supports "tcp", "http", and "grpc". Default is tcp.
                         type: string
-                        default: "TCP"
+                        default: "tcp"
                         enum:
-                          - TCP
-                          - UDP
-                          - SCTP
+                          - tcp
+                          - http
+                          - grpc
                   type: string
                 clusters:
                   description: The clusters the service accounts are hosted on.

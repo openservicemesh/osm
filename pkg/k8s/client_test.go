@@ -348,7 +348,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		})
 	})
 
-	Context("Test ListServiceIdentitiesForService()", func() {
+	Context("Test ListServiceAccountsForService()", func() {
 		var kubeClient *testclient.Clientset
 		var kubeController Controller
 		var err error
@@ -452,7 +452,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				ClusterDomain: constants.LocalDomain,
 			}
 
-			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
+			svcAccounts, err := kubeController.ListServiceAccountsForService(meshSvc)
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -552,7 +552,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				ClusterDomain: constants.LocalDomain,
 			}
 
-			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
+			svcAccounts, err := kubeController.ListServiceAccountsForService(meshSvc)
 
 			Expect(err).ToNot(HaveOccurred())
 

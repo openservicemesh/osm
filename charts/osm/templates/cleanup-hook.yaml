@@ -64,7 +64,7 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["meshconfigs"]
+    resources: ["meshconfigs", "multiclusterservices"]
     verbs: ["delete"]
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -133,6 +133,7 @@ spec:
         - >
          kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
          kubectl delete crd meshconfigs.config.openservicemesh.io --ignore-not-found;
+         kubectl delete crd multiclusterservices.config.openservicemesh.io --ignore-not-found;
          kubectl delete crd traffictargets.access.smi-spec.io --ignore-not-found;
          kubectl delete crd httproutegroups.specs.smi-spec.io --ignore-not-found;
          kubectl delete crd multiclusterservices.config.openservicemesh.io --ignore-not-found;
