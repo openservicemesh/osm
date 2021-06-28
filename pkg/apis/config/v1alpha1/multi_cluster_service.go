@@ -29,6 +29,9 @@ type MultiClusterServiceSpec struct {
 
 	// ServiceAccount represents the service account of the multicluster service.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+
+	// Ports is the list of ports exported by this service.
+	Ports []PortSpec `json:"ports,omitempty"`
 }
 
 // ClusterSpec is the type used to represent a remote cluster in multicluster scenarios.
@@ -39,6 +42,14 @@ type ClusterSpec struct {
 
 	// Name defines the name of the remote cluster.
 	Name string `json:"name,omitempty"`
+}
+
+// PortSpec contains information on service's port.
+type PortSpec struct {
+	// The port that will be exposed by this service.
+	Port uint32
+	// Protocol is The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
+	Protocol string
 }
 
 // MultiClusterServiceList defines the list of MultiClusterService objects.

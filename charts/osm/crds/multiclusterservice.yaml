@@ -43,6 +43,29 @@ spec:
               properties:
                 serviceAccount:
                   type: string
+                ports:
+                  description: The list of ports that are exposed by this service.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - port
+                      - protocol
+                    properties:
+                      port: 
+                        description: The port that will be exposed by this service.
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                      protocol:
+                        description: The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
+                        type: string
+                        default: "TCP"
+                        enum:
+                          - TCP
+                          - UDP
+                          - SCTP
+                  type: string
                 clusters:
                   description: The clusters the service accounts are hosted on.
                   type: array
