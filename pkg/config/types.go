@@ -2,9 +2,8 @@
 package config
 
 import (
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions/config/v1alpha1"
 	kubernetes "github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -13,20 +12,9 @@ var (
 	log = logger.New("multiclusterservice-controller")
 )
 
-// informerCollection is the type used to represent the collection of informers for the multiclusterservice.openservicemesh.io API group
-type informerCollection struct {
-	multiClusterService cache.SharedIndexInformer
-}
-
-// cacheCollection is the type used to represent the collection of caches for the multiclusterservice.openservicemesh.io API group
-type cacheCollection struct {
-	multiClusterService cache.Store
-}
-
 // client is the type used to represent the Kubernetes client for the multiclusterservice.openservicemesh.io API group
 type client struct {
-	informers      *informerCollection
-	caches         *cacheCollection
+	informer       configV1alpha1Informers.MultiClusterServiceInformer
 	kubeController kubernetes.Controller
 }
 
@@ -34,5 +22,5 @@ type client struct {
 type Controller interface {
 	// TODO: specify required functions
 	ListMultiClusterServices() []*v1alpha1.MultiClusterService
-	GetMultiClusterService(name, namespace string) []*v1alpha1.MultiClusterService
+	GetMultiClusterService(name, namespace string) *v1alpha1.MultiClusterService
 }
