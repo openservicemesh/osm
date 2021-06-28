@@ -71,7 +71,7 @@ spec:
                     initContainerImage:
                       description: Image for the init container
                       type: string
-                      default: "openservicemesh/init:v0.9.0"
+                      default: "openservicemesh/init:v0.9.1-rc.1"
                     resources:
                       type: object
                       properties:
@@ -155,6 +155,10 @@ spec:
                   description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
                   type: object
                   properties:
+                    osmLogLevel:
+                      description: Allows setting OSM control plane log level at runtime
+                      type: string
+                      default: "info"
                     enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
                       type: boolean
