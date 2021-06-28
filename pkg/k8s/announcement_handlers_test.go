@@ -1,4 +1,4 @@
-package kubernetes
+package k8s
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
 var _ = Describe("Test Announcement Handlers", func() {

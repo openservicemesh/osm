@@ -19,7 +19,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -127,7 +127,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 
 func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockKubeController := kubernetes.NewMockController(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
 	assert := tassert.New(t)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()

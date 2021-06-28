@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 func newNamespace(name string, annotations map[string]string) *corev1.Namespace {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -35,7 +35,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		apexService := service.MeshService{
-			Name:          kubernetes.GetServiceFromHostname(split.Spec.Service),
+			Name:          k8s.GetServiceFromHostname(split.Spec.Service),
 			Namespace:     split.Namespace,
 			ClusterDomain: constants.LocalDomain,
 		}
@@ -55,7 +55,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 		for _, backend := range split.Spec.Backends {
 			if backend.Service == targetService.Name && split.Namespace == targetService.Namespace {
 				meshService := service.MeshService{
-					Name:          kubernetes.GetServiceFromHostname(split.Spec.Service),
+					Name:          k8s.GetServiceFromHostname(split.Spec.Service),
 					Namespace:     split.Namespace,
 					ClusterDomain: constants.LocalDomain,
 				}
@@ -159,7 +159,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 		if portSpec.AppProtocol != nil {
 			appProtocol = *portSpec.AppProtocol
 		} else {
-			appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
+			appProtocol = k8s.GetAppProtocolFromPortName(portSpec.Name)
 		}
 		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
 	}
@@ -185,7 +185,7 @@ func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, loca
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc, locality)
+	hostnames := k8s.GetHostnamesForService(svc, locality)
 	return hostnames, nil
 }
 

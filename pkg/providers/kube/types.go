@@ -2,7 +2,7 @@ package kube
 
 import (
 	"github.com/openservicemesh/osm/pkg/config"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 

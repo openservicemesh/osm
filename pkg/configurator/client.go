@@ -5,12 +5,13 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
 const (
