@@ -16,7 +16,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 
 	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s,OpenServiceMesh.meshName=%s", td.CtrRegistryServer, td.OsmImageTag, release)
 	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
-	stdout, stderr, err := td.RunLocal("helm", args)
+	stdout, stderr, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Logf("stdout:\n%s", stdout)
 		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
@@ -28,7 +28,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 // DeleteHelmRelease uninstalls a particular helm release
 func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	args := []string{"uninstall", name, "--namespace", namespace}
-	_, _, err := td.RunLocal("helm", args)
+	_, _, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Fatal(err)
 	}
