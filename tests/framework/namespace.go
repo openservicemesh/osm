@@ -22,7 +22,7 @@ func (td *OsmTestData) AddNsToMesh(shouldInjectSidecar bool, ns ...string) error
 			args = append(args, "--disable-sidecar-injection")
 		}
 
-		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
+		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
 		if err != nil {
 			td.T.Logf("error running osm namespace add")
 			td.T.Logf("stdout:\n%s", stdout)
@@ -32,7 +32,7 @@ func (td *OsmTestData) AddNsToMesh(shouldInjectSidecar bool, ns ...string) error
 
 		if Td.EnableNsMetricTag {
 			args = []string{"metrics", "enable", "--namespace", namespace}
-			stdout, stderr, err = td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
+			stdout, stderr, err = td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
 			if err != nil {
 				td.T.Logf("error running osm namespace add")
 				td.T.Logf("stdout:\n%s", stdout)
