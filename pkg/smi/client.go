@@ -84,11 +84,6 @@ func (c *client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-// GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *client) GetAnnouncementsChannel() <-chan a.Announcement {
-	return c.announcements
-}
-
 // newClient creates a provider based on a Kubernetes client instance.
 func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{}) (*client, error) {
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
@@ -113,7 +108,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		providerIdent:  providerIdent,
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
-		announcements:  make(chan a.Announcement),
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
