@@ -43,9 +43,17 @@ func getIdentity() string {
 	return ident
 }
 
-func setHeaders(w http.ResponseWriter) {
+func setHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksSold))
 	w.Header().Set(common.IdentityHeader, getIdentity())
+
+	if r != nil {
+		for _, header := range common.GetTracingHeaders() {
+			if v := r.Header.Get(header); v != "" {
+				w.Header().Set(header, v)
+			}
+		}
+	}
 }
 
 func renderTemplate(w http.ResponseWriter) {
@@ -64,13 +72,13 @@ func renderTemplate(w http.ResponseWriter) {
 }
 
 func getBooksSold(w http.ResponseWriter, r *http.Request) {
-	setHeaders(w)
+	setHeaders(w, r)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
-	setHeaders(w)
+	setHeaders(w, r)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 }
@@ -83,7 +91,7 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 		log.Fatal().Err(err).Msg("Could not decode request body")
 	}
 	atomic.StoreInt64(&booksSold, updatedBooksSold)
-	setHeaders(w)
+	setHeaders(w, r)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
 }
@@ -92,7 +100,7 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 func sellBook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Selling a book!")
 	atomic.AddInt64(&booksSold, 1)
-	setHeaders(w)
+	setHeaders(w, r)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 	// Loop through headers
