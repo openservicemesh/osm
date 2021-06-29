@@ -123,12 +123,22 @@ func TestRunProxyGet(t *testing.T) {
 					Name: "pod-1",
 					Namespace: "mesh-ns-1",
 				},
-				Spec: corev1.PodSpec{       // TODO: do I even need an SA?
-					ServiceAccountName: "sa-1",
-				},
 			},
 			true,
 			true,
+		},
+		// third test case: run does not err and proxyGet returns nil
+		{
+			"mesh-ns-1",
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mesh-pod-1",
+					Namespace: "mesh-ns-1",
+					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+				},
+			},
+			true,
+			false,
 		},
 	}
 
@@ -149,16 +159,6 @@ func TestRunProxyGet(t *testing.T) {
 	}
 
 	_, err = fakeK8sClient.CoreV1().Namespaces().Create(context.TODO(), ns1, metav1.CreateOptions{})
-	assert.Nil(err)
-
-	// Create service account
-	sa1 := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "sa-1",
-		},
-	}
-
-	_, err = fakeK8sClient.CoreV1().ServiceAccounts(ns1.Name).Create(context.TODO(), sa1, metav1.CreateOptions{})
 	assert.Nil(err)
 
 	// Create MeshConfig
