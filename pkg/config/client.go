@@ -47,7 +47,6 @@ func newConfigClient(configClient configV1alpha1Client.Interface, kubeController
 	client := client{
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
-		cacheSynced:    make(chan interface{}),
 		kubeController: kubeController,
 	}
 
@@ -84,9 +83,6 @@ func (c client) run(stop <-chan struct{}) error {
 	if !cache.WaitForCacheSync(stop, c.informers.multiClusterService.HasSynced) {
 		return errSyncingCaches
 	}
-
-	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
-	close(c.cacheSynced)
 
 	log.Info().Msgf("Cache sync finished for %s RemoteService informers", apiGroup)
 	return nil

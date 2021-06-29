@@ -52,7 +52,6 @@ func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController
 	client := client{
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
-		cacheSynced:    make(chan interface{}),
 		kubeController: kubeController,
 	}
 
@@ -89,9 +88,6 @@ func (c client) run(stop <-chan struct{}) error {
 	if !cache.WaitForCacheSync(stop, c.informers.egress.HasSynced) {
 		return errSyncingCaches
 	}
-
-	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
-	close(c.cacheSynced)
 
 	log.Info().Msgf("Cache sync finished for %s Egress informers", apiGroup)
 	return nil

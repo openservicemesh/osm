@@ -55,7 +55,6 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	}
 
 	c := client{
-		cacheSynced:    make(chan interface{}),
 		kubeController: kubeController,
 	}
 
@@ -108,9 +107,6 @@ func (c *client) run(stop <-chan struct{}) error {
 	if !cache.WaitForCacheSync(stop, pendingCacheSync...) {
 		return errSyncingCaches
 	}
-
-	// Closing the cacheSynced channel signals to the rest of the system that caches have been synced.
-	close(c.cacheSynced)
 
 	log.Info().Msgf("Cache sync finished for ingress informer")
 	return nil

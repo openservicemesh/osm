@@ -38,7 +38,6 @@ type cacheCollection struct {
 // client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
 type client struct {
 	caches         *cacheCollection
-	cacheSynced    chan interface{}
 	providerIdent  string
 	informers      *informerCollection
 	announcements  chan announcements.Announcement

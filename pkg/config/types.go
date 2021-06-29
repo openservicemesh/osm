@@ -27,7 +27,6 @@ type cacheCollection struct {
 type client struct {
 	informers      *informerCollection
 	caches         *cacheCollection
-	cacheSynced    chan interface{}
 	kubeController kubernetes.Controller
 }
 

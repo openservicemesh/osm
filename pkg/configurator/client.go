@@ -37,7 +37,6 @@ func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct
 	client := Client{
 		informer:       informer,
 		cache:          informer.GetStore(),
-		cacheSynced:    make(chan interface{}),
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
@@ -104,8 +103,6 @@ func (c *Client) run(stop <-chan struct{}) {
 		return
 	}
 
-	// Closing the cacheSynced channel signals to the rest of the system that caches have been synced.
-	close(c.cacheSynced)
 	log.Debug().Msg("[MeshConfig Client] Cache sync for MeshConfig informer finished")
 }
 
