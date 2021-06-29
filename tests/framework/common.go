@@ -532,6 +532,7 @@ func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 		"osm-controller",
 		"osm-injector",
 		"init",
+		"osm-crds",
 	}
 
 	return td.LoadImagesToKind(imageNames)

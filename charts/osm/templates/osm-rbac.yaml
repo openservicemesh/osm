@@ -108,7 +108,7 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
-    verbs: ["list"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["config.openservicemesh.io"]
     resources: ["meshconfigs"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

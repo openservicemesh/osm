@@ -1,0 +1,2 @@
+FROM bitnami/kubectl
+COPY * /osm-crds/
