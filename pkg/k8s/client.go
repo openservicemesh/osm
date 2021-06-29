@@ -24,10 +24,9 @@ import (
 func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
 	// Initialize client object
 	client := Client{
-		kubeClient:  kubeClient,
-		meshName:    meshName,
-		informers:   informerCollection{},
-		cacheSynced: make(chan interface{}),
+		kubeClient: kubeClient,
+		meshName:   meshName,
+		informers:  informerCollection{},
 	}
 
 	// Initialize informers
@@ -159,9 +158,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		return errSyncingCaches
 	}
 
-	// Closing the cacheSynced channel signals to the rest of the system that caches have synced.
-	close(c.cacheSynced)
-	log.Info().Msgf("Caches for %+s synced successfully", names)
+	log.Info().Msgf("Caches for %v synced successfully", names)
 
 	return nil
 }

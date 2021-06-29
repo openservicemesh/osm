@@ -80,9 +80,6 @@ func (c *client) run(stop <-chan struct{}) error {
 		return errSyncingCaches
 	}
 
-	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
-	close(c.cacheSynced)
-
 	log.Info().Msgf("Cache sync finished for informers %v", names)
 	return nil
 }
@@ -116,7 +113,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		providerIdent:  providerIdent,
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
-		cacheSynced:    make(chan interface{}),
 		announcements:  make(chan a.Announcement),
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
