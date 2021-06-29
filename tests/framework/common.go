@@ -483,6 +483,11 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
+	// Ensure osm-injector and osm-controller are ready (#3665)
+	if !td.waitPodsReady(td.OsmNamespace, []string{"osm-injector", "osm-controller"}, 30*time.Second) {
+		return errors.Wrap(err, "Pods were not marked ready post-install")
+	}
+
 	// Store current restart values for CTL processes
 	td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
@@ -1029,6 +1034,45 @@ func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration,
 	}
 
 	return fmt.Errorf("not all pods were Running & Ready in NS %s after %v", ns, timeout)
+}
+
+// waitPodsReady waits for pods fetched by app label in a namespace to be ready in N seconds of time
+func (td *OsmTestData) waitPodsReady(ns string, appLabels []string, timeout time.Duration) bool {
+	start := time.Now()
+
+	for _, label := range appLabels {
+		currentPodsLabelReady := false
+		for !currentPodsLabelReady && time.Since(start) < timeout {
+			pods, err := td.GetPodsForLabel(ns, metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": label,
+				},
+			})
+			if err != nil || len(pods) == 0 {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			currentPodsLabelReady = td.podsReady(pods)
+			if !currentPodsLabelReady {
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}
+
+	return time.Since(start) < timeout
+}
+
+// podsReady returns true if all pods in given slice are ready
+func (td *OsmTestData) podsReady(pods []corev1.Pod) bool {
+	for _, pod := range pods {
+		for _, cond := range pod.Status.Conditions {
+			if cond.Type == corev1.PodReady && cond.Status != corev1.ConditionTrue {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // WaitForRepeatedSuccess runs and expects a certain result for a certain operation a set number of consecutive times
