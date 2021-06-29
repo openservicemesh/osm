@@ -1,10 +1,9 @@
 package k8s
 
 import (
-	"reflect"
-
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,8 +22,11 @@ const (
 var _ = Describe("Testing event handlers", func() {
 	Context("Test add on a monitored namespace", func() {
 		shouldObserve := func(obj interface{}) bool {
-			ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-			return ns == testNamespace
+			object, ok := obj.(metav1.Object)
+			if !ok {
+				return false
+			}
+			return testNamespace == object.GetNamespace()
 		}
 
 		It("Should add the event to the announcement channel", func() {
