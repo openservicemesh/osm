@@ -21,7 +21,6 @@ type client struct {
 	cacheV1         cache.Store
 	informerV1beta1 cache.SharedIndexInformer
 	cacheV1Beta1    cache.Store
-	cacheSynced     chan interface{}
 	kubeController  k8s.Controller
 }
 

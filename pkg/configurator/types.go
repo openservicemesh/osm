@@ -22,7 +22,6 @@ type Client struct {
 	osmNamespace   string
 	informer       cache.SharedIndexInformer
 	cache          cache.Store
-	cacheSynced    chan interface{}
 	meshConfigName string
 }
 

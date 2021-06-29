@@ -65,10 +65,9 @@ type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	meshName    string
-	kubeClient  kubernetes.Interface
-	informers   informerCollection
-	cacheSynced chan interface{}
+	meshName   string
+	kubeClient kubernetes.Interface
+	informers  informerCollection
 }
 
 // Controller is the controller interface for K8s services
