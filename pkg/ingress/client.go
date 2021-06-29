@@ -1,8 +1,6 @@
 package ingress
 
 import (
-	"reflect"
-
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,8 +48,11 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	}
 
 	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return kubeController.IsMonitoredNamespace(ns)
+		object, ok := obj.(metav1.Object)
+		if !ok {
+			return false
+		}
+		return kubeController.IsMonitoredNamespace(object.GetNamespace())
 	}
 
 	c := client{

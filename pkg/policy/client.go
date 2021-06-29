@@ -1,9 +1,8 @@
 package policy
 
 import (
-	"reflect"
-
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -56,8 +55,11 @@ func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController
 	}
 
 	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return kubeController.IsMonitoredNamespace(ns)
+		object, ok := obj.(metav1.Object)
+		if !ok {
+			return false
+		}
+		return kubeController.IsMonitoredNamespace(object.GetNamespace())
 	}
 
 	egressEventTypes := k8s.EventTypes{

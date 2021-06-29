@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"reflect"
 	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
@@ -80,8 +79,11 @@ func (c *Client) initNamespaceMonitor() {
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
 func (c *Client) shouldObserve(obj interface{}) bool {
-	ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-	return c.IsMonitoredNamespace(ns)
+	object, ok := obj.(metav1.Object)
+	if !ok {
+		return false
+	}
+	return c.IsMonitoredNamespace(object.GetNamespace())
 }
 
 // Initializes Service monitoring
