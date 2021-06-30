@@ -33,7 +33,7 @@ var _ = OSMDescribe("Testing HTTP Traffic from one mesh to another",
 func testMultimesh(withSourceKubernetesService bool) {
 	const destName = "server"   // osm
 	const sourceName = "client" //source
-    const sourceMeshName = "client-mesh"
+	const sourceMeshName = "client-mesh"
 
 	It("Tests HTTP traffic for client pod -> server pod", func() {
 
