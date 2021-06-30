@@ -41,6 +41,9 @@ spec:
                 - serviceAccount
                 - clusters
               properties:
+                globalIP:
+                  type: string
+                  description: globalIP is the IP address for the implicit global service which references every defined cluster. It is usually assigned at random by OSM.
                 serviceAccount:
                   type: string
                 ports:
