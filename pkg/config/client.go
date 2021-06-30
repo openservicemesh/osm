@@ -22,30 +22,10 @@ const (
 // NewConfigController returns a config.Controller struct related to functionality provided by the resources in the config.openservicemesh.io API group
 func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}) (Controller, error) {
 	configClient := configV1alpha1Client.NewForConfigOrDie(kubeConfig)
-	client, err := newConfigClient(
-		configClient,
-		kubeController,
-		stop,
-	)
-
-	return client, err
-}
-
-// newConfigClient creates k8s clients for the resources in the config.openservicemesh.io API group
-func newConfigClient(configClient configV1alpha1Client.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
 	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
 
-	informerCollection := informerCollection{
-		multiClusterService: informerFactory.Config().V1alpha1().MultiClusterServices().Informer(),
-	}
-
-	cacheCollection := cacheCollection{
-		multiClusterService: informerCollection.multiClusterService.GetStore(),
-	}
-
 	client := client{
-		informers:      &informerCollection,
-		caches:         &cacheCollection,
+		informer:       informerFactory.Config().V1alpha1().MultiClusterServices(),
 		kubeController: kubeController,
 	}
 
@@ -62,7 +42,7 @@ func newConfigClient(configClient configV1alpha1Client.Interface, kubeController
 		Update: announcements.MultiClusterServiceUpdated,
 		Delete: announcements.MultiClusterServiceDeleted,
 	}
-	informerCollection.multiClusterService.AddEventHandler(k8s.GetKubernetesEventHandlers("MultiClusterService", "Kube", shouldObserve, remoteServiceEventTypes))
+	client.informer.Informer().AddEventHandler(k8s.GetKubernetesEventHandlers("MultiClusterService", "Kube", shouldObserve, remoteServiceEventTypes))
 
 	err := client.run(stop)
 	if err != nil {
@@ -75,14 +55,14 @@ func newConfigClient(configClient configV1alpha1Client.Interface, kubeController
 func (c client) run(stop <-chan struct{}) error {
 	log.Info().Msgf("%s client started", apiGroup)
 
-	if c.informers == nil {
+	if c.informer == nil {
 		return errInitInformers
 	}
 
-	go c.informers.multiClusterService.Run(stop)
+	go c.informer.Informer().Run(stop)
 
 	log.Info().Msgf("Waiting for %s RemoteService informers' cache to sync", apiGroup)
-	if !cache.WaitForCacheSync(stop, c.informers.multiClusterService.HasSynced) {
+	if !cache.WaitForCacheSync(stop, c.informer.Informer().HasSynced) {
 		return errSyncingCaches
 	}
 
@@ -93,26 +73,23 @@ func (c client) run(stop <-chan struct{}) error {
 func (c client) ListMultiClusterServices() []*v1alpha1.MultiClusterService {
 	var services []*v1alpha1.MultiClusterService
 
-	for _, obj := range c.caches.multiClusterService.List() {
-		mcservice := obj.(*v1alpha1.MultiClusterService)
-		services = append(services, mcservice)
+	for _, obj := range c.informer.Informer().GetStore().List() {
+		mcs := obj.(*v1alpha1.MultiClusterService)
+		if c.kubeController.IsMonitoredNamespace(mcs.Namespace) {
+			services = append(services, mcs)
+		}
 	}
 	return services
 }
 
-func (c client) GetMultiClusterService(name, namespace string) []*v1alpha1.MultiClusterService {
-	var services []*v1alpha1.MultiClusterService
-
-	for _, obj := range c.caches.multiClusterService.List() {
-		mcservice := obj.(*v1alpha1.MultiClusterService)
-		if mcservice.Name == name && mcservice.Namespace == namespace {
-			services = append(services, mcservice)
-		}
+func (c client) GetMultiClusterService(name, namespace string) *v1alpha1.MultiClusterService {
+	if !c.kubeController.IsMonitoredNamespace(namespace) {
+		return nil
 	}
-
-	if len(services) > 0 {
-		return services
+	mcs, ok, err := c.informer.Informer().GetStore().GetByKey(namespace + "/" + name)
+	if err != nil || !ok {
+		log.Error().Err(err).Msgf("Error getting MultiClusterService %s in namespace %s from informer ", name, namespace)
+		return nil
 	}
-
-	return nil
+	return mcs.(*v1alpha1.MultiClusterService)
 }
