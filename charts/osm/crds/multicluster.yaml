@@ -17,16 +17,16 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: multiclusterservices.config.openservicemesh.io
+  name: multiclusters.config.openservicemesh.io
 spec:
   group: config.openservicemesh.io
   scope: Namespaced # osm-system is the required namespace
   names:
-    kind: MultiClusterService
+    kind: MultiCluster
     shortNames:
       - mcs
-    plural: multiclusterservices
-    singular: multiclusterservice
+    plural: multiclusters
+    singular: multicluster
   versions:
     - name: v1alpha1
       served: true
@@ -38,36 +38,17 @@ spec:
             spec:
               type: object
               required:
-                - serviceAccount
-                - clusters
+                - sourceCluster
+                - remoteClusters
+                - services
               properties:
-                serviceAccount:
-                  type: string
-                ports:
-                  description: The list of ports that are exposed by this service.
-                  type: array
-                  items:
-                    type: object
-                    required:
-                      - port
-                      - protocol
-                    properties:
-                      port:
-                        description: The port that will be exposed by this service.
-                        type: integer
-                        minimum: 1
-                        maximum: 65535
-                      protocol:
-                        description: The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
-                        type: string
-                        default: "TCP"
-                        enum:
-                          - TCP
-                          - UDP
-                          - SCTP
-                  type: string
-                clusters:
-                  description: The clusters the service accounts are hosted on.
+                sourceCluster:
+                  type: object
+                  properties:
+                    name:
+                      description: ID of the local cluster
+                      type: string
+                remoteClusters:
                   type: array
                   items:
                     type: object
@@ -84,3 +65,27 @@ spec:
                       certificate:
                         description: mTLS certificates (optional)
                         type: string
+                services:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - serviceAccount
+                      - clusters
+                    properties:
+                      serviceAccount:
+                        description: matched with local service account
+                        type: string
+                      clusters:
+                        description: remote clusters that have the service deployed
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - name
+                          properties:
+                            name:
+                              description: name of remote cluster
+                              type: string
+
+
