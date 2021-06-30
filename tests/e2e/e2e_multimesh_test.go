@@ -40,6 +40,10 @@ func testMultimesh(withSourceKubernetesService bool) {
 		// Install OSM
 		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
+		// Verify default OSM installation
+		_, err := Td.GetMeshConfig(Td.OsmNamespace)
+		Expect(err).ShouldNot(HaveOccurred())
+
 		// Create namespace for "osm"
 		Expect(Td.CreateNs(destName, nil)).To(Succeed())
 		Expect(Td.AddNsToMesh(true, destName)).To(Succeed())
@@ -53,7 +57,7 @@ func testMultimesh(withSourceKubernetesService bool) {
 				Ports:     []int{80},
 			})
 
-		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -67,6 +71,10 @@ func testMultimesh(withSourceKubernetesService bool) {
 		clientMeshInstallOpts := Td.GetOSMInstallOpts()
 		clientMeshInstallOpts.ControlPlaneNS = sourceMeshName
 		Expect(Td.InstallOSM(clientMeshInstallOpts)).To(Succeed())
+
+		// Verify client mesh installation
+		_, err = Td.GetMeshConfig(sourceMeshName)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		// Create namespace for source/client"
 		Expect(Td.CreateNs(sourceName, nil)).To(Succeed())
