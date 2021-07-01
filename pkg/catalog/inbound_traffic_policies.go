@@ -6,6 +6,7 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -85,7 +86,8 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 		// fetch all routes referenced in traffic target
 		routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget.String()).
+				Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
 			continue
 		}
 
@@ -104,7 +106,8 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 				}
 				hostnames, err := mc.GetServiceHostnames(apexService, locality)
 				if err != nil {
-					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
+					log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+						Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
 				}
 				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(apexService.FQDN(), hostnames)
@@ -137,13 +140,15 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget.String()).
+			Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
 		return inboundPolicies
 	}
 
 	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+			Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
 
@@ -175,7 +180,8 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 
 	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+			Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
 
@@ -225,7 +231,8 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Spec.Matches == nil {
-			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
+			log.Error().Str(errcode.Kind, errcode.ErrSMIHTTPRouteGroupNoMatch.String()).
+				Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
 
