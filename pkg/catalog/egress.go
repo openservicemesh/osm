@@ -11,6 +11,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -84,14 +85,16 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	// Deduplicate the list of TrafficMatch objects
 	trafficMatches, err = trafficpolicy.DeduplicateTrafficMatches(trafficMatches)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDedupEgressTrafficMatches.String()).
+			Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
 		return nil, err
 	}
 
 	// Deduplicate the list of EgressClusterConfig objects
 	clusterConfigs, err = trafficpolicy.DeduplicateClusterConfigs(clusterConfigs)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDedupEgressClusterConfigs.String()).
+			Msgf("Error deduplicating egress clusters configs for service identity %s", serviceIdentity)
 		return nil, err
 	}
 
@@ -116,7 +119,8 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 	destIPSet := mapset.NewSet()
 	for _, ipRange := range egressPolicy.Spec.IPAddresses {
 		if _, _, err := net.ParseCIDR(ipRange); err != nil {
-			log.Error().Err(err).Msgf("Invalid IP range [%s] specified in egress policy %s/%s; will be skipped", ipRange, egressPolicy.Namespace, egressPolicy.Name)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
+				Msgf("Invalid IP range [%s] specified in egress policy %s/%s; will be skipped", ipRange, egressPolicy.Namespace, egressPolicy.Name)
 			continue
 		}
 		newlyAdded := destIPSet.Add(ipRange)
@@ -138,13 +142,15 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 			// A TypedLocalObjectReference (Spec.Matches) is a reference to another object in the same namespace
 			httpRouteName := fmt.Sprintf("%s/%s", egressPolicy.Namespace, match.Name)
 			if httpRouteGroup := mc.meshSpec.GetHTTPRouteGroup(httpRouteName); httpRouteGroup == nil {
-				log.Error().Msgf("Error fetching HTTPRouteGroup resource %s referenced in Egress policy %s/%s", httpRouteName, egressPolicy.Namespace, egressPolicy.Name)
+				log.Error().Str(errcode.Kind, errcode.ErrEgressSMIHTTPRouteGroupNotFound.String()).
+					Msgf("Error fetching HTTPRouteGroup resource %s referenced in Egress policy %s/%s", httpRouteName, egressPolicy.Namespace, egressPolicy.Name)
 			} else {
 				matches := getHTTPRouteMatchesFromHTTPRouteGroup(httpRouteGroup)
 				httpRouteMatches = append(httpRouteMatches, matches...)
 			}
 		} else {
-			log.Error().Msgf("Unsupported match object specified: %v, ignoring it", match)
+			log.Error().Str(errcode.Kind, errcode.ErrInvalidEgressMatches.String()).
+				Msgf("Unsupported match object specified: %v, ignoring it", match)
 		}
 	}
 
