@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 )
 
@@ -15,8 +17,7 @@ func createReconciler(kubeClient *kubernetes.Clientset) error {
 		Namespace:          osmNamespace,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating controller manager")
-		return err
+		return errors.Wrap(err, "Error creating controller-runtime Manager for MutatingWebhookConfiguration's reconciler")
 	}
 
 	// Add a reconciler for osm-injector's mutatingwehbookconfiguration
@@ -27,15 +28,15 @@ func createReconciler(kubeClient *kubernetes.Clientset) error {
 		OsmWebhook:   webhookConfigName,
 		OsmNamespace: osmNamespace,
 	}).SetupWithManager(mgr); err != nil {
-		log.Error().Err(err).Msg("Error creating controller to reconcile MutatingWebhookConfiguration")
-		return err
+		return errors.Wrap(err, "Error creating controller to reconcile MutatingWebhookConfiguration")
 	}
 
 	go func() {
 		// mgr.Start() below will block until stopped
 		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			log.Error().Err(err).Msg("Error setting up signal handler for reconciler")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingReconcileManager.String()).
+				Msg("Error starting controller-runtime manager for MutatingWebhookConfigurartion's reconciler")
 		}
 	}()
 

@@ -20,6 +20,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openservicemesh/osm/pkg/errcode"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -138,7 +139,8 @@ func main() {
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 	meshConfig, err := cfg.GetMeshConfigJSON()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingMeshConfig.String()).
+			Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
 	}
 	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, meshConfig)
 
@@ -204,7 +206,8 @@ func getInjectorPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving osm-injector pod %s", podName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingInjectorPod.String()).
+			Msgf("Error retrieving osm-injector pod %s", podName)
 		return nil, err
 	}
 

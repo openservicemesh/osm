@@ -153,7 +153,8 @@ func main() {
 	cfg := configurator.NewConfigurator(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 	meshConfig, err := cfg.GetMeshConfigJSON()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingMeshConfig.String()).
+			Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
 	}
 	log.Info().Msgf("Initial MeshConfig %s: %s", osmMeshConfigName, meshConfig)
 
@@ -336,7 +337,8 @@ func getOSMControllerPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving osm-controller pod %s", podName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingControllerPod.String()).
+			Msgf("Error retrieving osm-controller pod %s", podName)
 		return nil, err
 	}
 

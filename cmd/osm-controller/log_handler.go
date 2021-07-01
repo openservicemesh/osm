@@ -6,6 +6,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -25,7 +26,8 @@ func StartGlobalLogLevelHandler(cfg configurator.Configurator, stop <-chan struc
 	log.Info().Msgf("Setting initial log level from meshconfig: %s", logLevel)
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
-		log.Error().Msgf("Error setting initial log level from meshconfig: %v", err)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrSettingLogLevel.String()).
+			Msg("Error setting initial log level from meshconfig")
 	} else {
 		currentLogLevel = logLevel
 	}
@@ -38,7 +40,8 @@ func StartGlobalLogLevelHandler(cfg configurator.Configurator, stop <-chan struc
 				if logLevel != currentLogLevel {
 					err := logger.SetLogLevel(logLevel)
 					if err != nil {
-						log.Error().Msgf("Error setting log level from meshconfig: %v", err)
+						log.Error().Err(err).Str(errcode.Kind, errcode.ErrSettingLogLevel.String()).
+							Msg("Error setting log level from meshconfig")
 					} else {
 						log.Info().Msgf("Global log level changed to: %s", logLevel)
 						currentLogLevel = logLevel
