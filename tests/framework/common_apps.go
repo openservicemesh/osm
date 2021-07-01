@@ -33,6 +33,8 @@ const (
 	OsmPrometheusAppLabel = "osm-prometheus"
 	// OsmInjectorAppLabel is the OSM injector deployment app label
 	OsmInjectorAppLabel = "osm-injector"
+	// OsmCrdConverterAppLabel is the OSM crd converter deployment app label
+	OsmCrdConverterAppLabel = "osm-crd-converter"
 
 	// OSM Grafana Dashboard specifics
 
@@ -48,7 +50,7 @@ const (
 
 var (
 	// OsmCtlLabels is the list of app labels for OSM CTL
-	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel}
+	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel, OsmCrdConverterAppLabel}
 )
 
 // CreateServiceAccount is a wrapper to create a service account
