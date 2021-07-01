@@ -12,5 +12,5 @@ func (ms MeshService) Equals(service MeshService) bool {
 
 // ServerName returns the Server Name Identifier (SNI) for TLS connections
 func (ms MeshService) ServerName() string {
-	return strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, ".")
+	return strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", ms.ClusterDomain.String()}, ".")
 }

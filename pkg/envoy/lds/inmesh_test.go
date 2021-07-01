@@ -208,8 +208,10 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
+	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
-		EnableWASMStats: false,
+		EnableWASMStats:        false,
+		EnableMulticlusterMode: true,
 	}).AnyTimes()
 
 	lb := &listenerBuilder{
@@ -235,7 +237,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			port:           80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -249,7 +251,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			port:           90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -305,6 +307,11 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		Enable: false,
 	}).AnyTimes()
 
+	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
 		cfg:             mockConfigurator,
@@ -328,7 +335,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			port:           80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -342,7 +349,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			port:           90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},

@@ -24,9 +24,9 @@ func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 			FilterChains: lb.getMultiClusterGatewayFilterChainPerUpstream(),
 			ListenerFilters: []*xds_listener.ListenerFilter{
 				{
-					// The OriginalDestination ListenerFilter is used to redirect traffic
-					// to its original destination.
-					Name: wellknown.OriginalDestination,
+					// The ProxyProtocol ListenerFilter is used to redirect traffic
+					// to its intended destination.
+					Name: wellknown.ProxyProtocol,
 				},
 			},
 		},
@@ -64,7 +64,6 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 				continue
 			}
 
-			hostnames, _ := lb.meshCatalog.GetServiceHostnames(upstream, service.RemoteCluster)
 			filterChains = append(filterChains, &xds_listener.FilterChain{
 				Name:    fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream),
 				Filters: []*xds_listener.Filter{filter},
@@ -72,7 +71,12 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 					DestinationPort: &wrapperspb.UInt32Value{
 						Value: port,
 					},
-					ServerNames:          hostnames,
+					ServerNames: []string{
+						service.MeshService{
+							Name:          upstream.Name,
+							Namespace:     upstream.Namespace,
+							ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+					},
 					ApplicationProtocols: envoy.ALPNInMesh,
 					TransportProtocol:    envoy.TransportProtocolTLS,
 				},
