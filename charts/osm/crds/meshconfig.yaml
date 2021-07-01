@@ -71,7 +71,7 @@ spec:
                     initContainerImage:
                       description: Image for the init container
                       type: string
-                      default: "openservicemesh/init:v0.9.1-rc.1"
+                      default: "openservicemesh/init:v0.9.1"
                     resources:
                       type: object
                       properties:

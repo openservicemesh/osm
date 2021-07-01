@@ -46,7 +46,7 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: bookstore
-          image: openservicemesh/bookstore:v0.9.1-rc.1
+          image: openservicemesh/bookstore:v0.9.1
           imagePullPolicy: Always
           ports:
             - containerPort: 14001

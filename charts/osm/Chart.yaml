@@ -14,11 +14,11 @@ type: application
 
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 0.9.1-rc.1
+version: 0.9.1
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
-appVersion: v0.9.1-rc.1
+appVersion: v0.9.1
 
 # This specifies a particular range of k8s versions that the application is compatible with.
 kubeVersion: ">= 1.18.0"

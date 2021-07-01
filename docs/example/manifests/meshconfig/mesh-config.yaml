@@ -8,7 +8,7 @@ spec:
     logLevel: error
     maxDataPlaneConnections: 0
     envoyImage: "envoyproxy/envoy-alpine:v1.18.3"
-    initContainerImage: "openservicemesh/init:v0.9.1-rc.1"
+    initContainerImage: "openservicemesh/init:v0.9.1"
     configResyncInterval: "0s"
   traffic:
     enableEgress: false

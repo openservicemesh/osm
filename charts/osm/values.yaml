@@ -12,7 +12,7 @@ OpenServiceMesh:
     # -- Container image pull policy
     pullPolicy: IfNotPresent
     # -- Container image tag
-    tag: v0.9.1-rc.1
+    tag: v0.9.1
 
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
