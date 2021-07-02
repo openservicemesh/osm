@@ -34,8 +34,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
-
-		client *Client
+		client             *Client
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -347,7 +346,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		services, err := client.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
+		services, err := client.GetServicesForServiceIdentity(tests.BookbuyerServiceIdentity)
 		Expect(err).To(HaveOccurred())
 		Expect(services).To(BeNil())
 
@@ -426,7 +425,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		// Expect a MeshService that corresponds to a Service that matches the Pod spec labels
 		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
 
-		meshSvcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
+		meshSvcs, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
 		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
@@ -499,7 +498,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
+		svcs, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).To(HaveOccurred())
 		Expect(svcs).To(BeNil())
 
@@ -567,7 +566,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := client.GetServicesForServiceAccount(givenSvcAccount)
+		svcs, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).To(HaveOccurred())
 		Expect(svcs).To(BeNil())
 
@@ -653,7 +652,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		meshServices, err := client.GetServicesForServiceAccount(givenSvcAccount)
+		meshServices, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
 		expectedServices := []service.MeshService{
 			{Name: "test-1", Namespace: testNamespace, ClusterDomain: constants.LocalDomain},

@@ -34,7 +34,7 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
+func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
@@ -70,7 +70,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
 	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 	var endpoints []endpoint.Endpoint
@@ -97,9 +97,11 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 	return endpoints
 }
 
-// GetServicesForServiceAccount retrieves a list of services for the given service account.
-func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
+// GetServicesForServiceIdentity retrieves a list of services for the given service identity.
+func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
+
+	svcAccount := svcIdentity.ToK8sServiceAccount()
 
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
@@ -142,7 +144,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 }
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (c *Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	endpoints, err := c.kubeController.GetEndpoints(svc)
@@ -178,8 +180,8 @@ func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
-	var finalList []corev1.Service
+func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
+	var finalList []service.MeshService
 	serviceList := c.kubeController.ListServices()
 
 	for _, svc := range serviceList {
@@ -196,7 +198,7 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, *svc)
+			finalList = append(finalList, utils.K8sSvcToMeshSvc(svc))
 		}
 	}
 
@@ -297,30 +299,4 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 
 	hostnames := k8s.GetHostnamesForService(k8svc, locality)
 	return hostnames, nil
-}
-
-// GetServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) GetServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
-	var finalList []service.MeshService
-	serviceList := c.kubeController.ListServices()
-
-	for _, svc := range serviceList {
-		// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
-		// filtering themselves
-		if svc.Namespace != namespace {
-			continue
-		}
-
-		svcRawSelector := svc.Spec.Selector
-		// service has no selectors, we do not need to match against the pod label
-		if len(svcRawSelector) == 0 {
-			continue
-		}
-		selector := labels.Set(svcRawSelector).AsSelector()
-		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, utils.K8sSvcToMeshSvc(svc))
-		}
-	}
-
-	return finalList, nil
 }

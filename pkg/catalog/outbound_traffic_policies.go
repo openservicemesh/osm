@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // ListOutboundTrafficPolicies returns all outbound traffic policies
@@ -132,10 +131,11 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name == ident.Name && source.Namespace == ident.Namespace { // found outbound
-				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
+				sa := identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
-				})
+				}
+				destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 				if err != nil {
 					log.Error().Err(err).Str(errcode.Kind, errcode.ErrNoMatchingServiceForServiceAccount.String()).
 						Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
@@ -159,11 +159,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
-	k8sServices := mc.kubeController.ListServices()
-	var destServices []service.MeshService
-	for _, k8sService := range k8sServices {
-		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
-	}
+	destServices := mc.listMeshServices()
 
 	for _, destService := range destServices {
 		locality := service.LocalCluster
@@ -264,7 +260,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	destServices, err := mc.getServicesForServiceAccount(sa)
+	destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 	if err != nil {
 		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
 	}

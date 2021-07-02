@@ -20,12 +20,6 @@ type Provider interface {
 	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 	ListEndpointsForIdentity(identity.ServiceIdentity) []Endpoint
 
-	// GetServicesForServiceAccount retrieves the namespaced services for a given service account
-	GetServicesForServiceAccount(identity.K8sServiceAccount) ([]service.MeshService, error)
-
-	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
-
 	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
 	// the scope of the provider
 	GetResolvableEndpointsForService(service.MeshService) ([]Endpoint, error)

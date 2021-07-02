@@ -294,7 +294,7 @@ connected Envoy proxies with a list of clusters, mapping of service name to list
 The `ListEndpointsForService` method will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
-The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
+The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s and `ServiceProvider`s.
 
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -330,8 +330,8 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServicesForServiceAccount returns a list of services corresponding to a service account
-	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
+	// GetServicesForServiceIdentity returns a list of services corresponding to a service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentityt) ([]service.MeshService, error)
 
   // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
   GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
