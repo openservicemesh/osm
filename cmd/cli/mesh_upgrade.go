@@ -16,7 +16,7 @@ import (
 
 const (
 	defaultContainerRegistry = "openservicemesh"
-	defaultOsmImageTag       = "v0.9.1-rc.1"
+	defaultOsmImageTag       = "v0.9.1"
 )
 
 const upgradeDesc = `
