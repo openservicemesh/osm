@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	admissionv1 "k8s.io/api/admission/v1"
@@ -27,8 +30,14 @@ func init() {
 		Group:   "config.openservicemesh.io",
 		Version: "v1alpha1",
 	}
+	multiClusterServiceGvk := metav1.GroupVersionKind{
+		Kind:    "MultiClusterService",
+		Group:   "config.openservicemesh.io",
+		Version: "v1alpha1",
+	}
 	RegisterValidator(egressGvk.String(), EgressValidator)
 	RegisterValidator(meshConfigGvk.String(), MeshConfigValidator)
+	RegisterValidator(multiClusterServiceGvk.String(), MeshConfigValidator)
 }
 
 // EgressValidator validates the Egress CRD.
@@ -65,6 +74,40 @@ func MeshConfigValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Admiss
 
 	if d < MinDuration {
 		return nil, fmt.Errorf("Certificate.ServiceCertValidityDuration %d is lower than %d", d, MinDuration)
+	}
+
+	return nil, nil
+}
+
+// MultiClusterServiceValidator validates the MultiClusterService CRD.
+func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	config := &cv1alpha1.MultiClusterService{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
+		return nil, err
+	}
+
+	clusterNames := make(map[string]bool)
+
+	for _, cluster := range config.Spec.Cluster {
+		if cluster.Name == "global" || len(strings.TrimSpace(cluster.Name)) == 0 {
+			return nil, fmt.Errorf("Cluster name %s is not valid", cluster.Name)
+		}
+
+		if _, ok := clusterNames[cluster.Name]; ok {
+			return nil, fmt.Errorf("Cluster named %s already exists", cluster.Name)
+		}
+		if len(strings.TrimSpace(cluster.Address)) == 0 {
+			return nil, fmt.Errorf("Cluster address %s is not valid", cluster.Address)
+		}
+		clusterAddress := strings.Split(cluster.Address, ":")
+		if net.ParseIP(clusterAddress[0]) == nil {
+			return nil, fmt.Errorf("Error parsing IP address %s", cluster.Address)
+		}
+		_, err := strconv.ParseUint(clusterAddress[1], 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing port value %s", cluster.Address)
+		}
+		clusterNames[cluster.Name] = true
 	}
 
 	return nil, nil
