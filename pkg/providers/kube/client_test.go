@@ -761,6 +761,17 @@ func TestListEndpointsForServiceMulticluster(t *testing.T) {
 
 	providerID := "provider"
 	mockKubeController := k8s.NewMockController(mockCtrl)
+	// Mock mockConfigController
+	// mcsvc := c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(&corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tests.BookbuyerService.Name,
+			Namespace: tests.BookbuyerService.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+
+		} ,
+	})
 
 	// Mock c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
 	mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
@@ -795,7 +806,14 @@ func TestListEndpointsForServiceMulticluster(t *testing.T) {
 				},
 				Ports: []corev1.EndpointPort{
 					{
-						Port: 88,
+						Name:     "http-port3", // appProtocol derived from port name
+						Port:     90,
+						Protocol: corev1.ProtocolTCP,
+					},
+					{
+						Name:     "tcp-port4", // appProtocol derived from port name
+						Port:     100,
+						Protocol: corev1.ProtocolTCP,
 					},
 				},
 			},
