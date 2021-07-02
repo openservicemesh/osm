@@ -46,6 +46,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 		newProxyCmd(config, out),
 		newTrafficPolicyCmd(out),
 		newUninstallCmd(config, in, out),
+		newSupportCmd(out),
 	)
 
 	_ = flags.Parse(args)

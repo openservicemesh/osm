@@ -4,9 +4,14 @@ package errcode
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
-type errCode int
+// ErrCode defines the type to represent error codes
+type ErrCode int
 
 const (
 	// Kind defines the kind for the error code constants
@@ -16,7 +21,7 @@ const (
 // Range 1000-1050 is reserved for errors related to application startup or bootstrapping
 const (
 	// ErrInvalidCLIArgument indicates an invalid CLI argument
-	ErrInvalidCLIArgument errCode = iota + 1000
+	ErrInvalidCLIArgument ErrCode = iota + 1000
 
 	// ErrSettingLogLevel indicates the specified log level could not be set
 	ErrSettingLogLevel
@@ -37,7 +42,7 @@ const (
 // Range 2000-2500 is reserved for errors related to traffic policies
 const (
 	// ErrDedupEgressTrafficMatches indicates an error related to deduplicating egress traffic matches
-	ErrDedupEgressTrafficMatches errCode = iota + 2000
+	ErrDedupEgressTrafficMatches ErrCode = iota + 2000
 
 	// ErrDedupEgressClusterConfigs indicates an error related to deduplicating egress cluster configs
 	ErrDedupEgressClusterConfigs
@@ -71,27 +76,38 @@ const (
 // Range 3000-3500 is reserved for errors related to k8s constructs (service accounts, namespaces, etc.)
 const (
 	// ErrServiceHostnames indicates the hostnames associated with a service could not be computed
-	ErrServiceHostnames errCode = iota + 3000
+	ErrServiceHostnames ErrCode = iota + 3000
 
 	// ErrNoMatchingServiceForServiceAccount indicates there are no services associated with the service account
 	ErrNoMatchingServiceForServiceAccount
 )
 
 // String returns the error code as a string, ex. E1000
-func (e errCode) String() string {
+func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
 }
 
+// FromStr returns the ErrCode representation for the given error code string
+// Ex. E1000 is converted to ErrInvalidCLIArgument
+func FromStr(e string) (ErrCode, error) {
+	errStr := strings.TrimLeft(e, "E")
+	errInt, err := strconv.Atoi(errStr)
+	if err != nil {
+		return ErrCode(0), errors.Errorf("Error code '%s' is not a valid error code format. Should be of the form Exxxx, ex. E1000.", e)
+	}
+	return ErrCode(errInt), nil
+}
+
+// ErrCodeMap defines the mapping of error codes to their description.
 // Note: error code description mappings must be defined in the same order
 // as they appear in the error code definitions - from lowest to highest
 // ranges in the order they appear within the range.
-//nolint: deadcode,varcheck,unused
-var errCodeMap = map[errCode]string{
+var ErrCodeMap = map[ErrCode]string{
 	//
 	// Range 1000-1050
 	//
 	ErrInvalidCLIArgument: `
-An invalid comment line argument was passed to the application.
+An invalid command line argument was passed to the application.
 `,
 
 	ErrSettingLogLevel: `
