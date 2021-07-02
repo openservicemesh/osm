@@ -15,7 +15,7 @@ import (
 
 const (
 	defaultContainerRegistry = "openservicemesh"
-	defaultOsmImageTag       = "v0.9.0"
+	defaultOsmImageTag       = "v0.9.1"
 )
 
 const upgradeDesc = `
@@ -42,7 +42,7 @@ post an upgrade.
 
 If any CustomResourceDefinitions (CRDs) are different between the installed
 chart and the upgraded chart, the CRDs will be updated to include the latest versions.
-Any corresponding custom resources that wish to reference the newer CRD version can 
+Any corresponding custom resources that wish to reference the newer CRD version can
 be updated post upgrade.
 `
 
