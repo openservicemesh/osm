@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
@@ -33,7 +34,8 @@ func (s *Server) allPodUpdater() {
 	for _, pod := range allpods {
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
-			log.Error().Err(err).Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingProxyFromPod.String()).
+				Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
 			continue
 		}
 

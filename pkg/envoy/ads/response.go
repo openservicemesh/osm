@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // getTypeResource invokes the XDS handler (LDS, CDS etc.) to respond to the XDS request containing the requests' type and associated resources
@@ -73,7 +74,8 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 		// Generate the resources for this request
 		resources, err := s.getTypeResources(proxy, finalReq)
 		if err != nil {
-			log.Error().Err(err).Msgf("Creating %s update for Proxy %s", typeURI.Short(), proxy.GetCertificateCommonName())
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingReqResource.String()).
+				Msgf("Error generating response for typeURI: %s, proxy %s", typeURI.Short(), proxy.String())
 			thereWereErrors = true
 			continue
 		}
@@ -93,7 +95,8 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	if s.cacheEnabled {
 		// Store the aggregated resources as a full snapshot
 		if err := s.RecordFullSnapshot(proxy, cacheResourceMap); err != nil {
-			log.Error().Err(err).Msgf("Failed to record snapshot for proxy %s: %v", proxy.GetCertificateCommonName(), err)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrRecordingSnapshot.String()).
+				Msgf("Failed to record snapshot for proxy %s: %v", proxy.GetCertificateCommonName(), err)
 			thereWereErrors = true
 		}
 	}
@@ -122,7 +125,8 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 	for _, res := range resourcesToSend {
 		proto, err := ptypes.MarshalAny(res)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())
 			continue
 		}
 		response.Resources = append(response.Resources, proto)
@@ -137,7 +141,8 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		log.Error().Err(err).Msgf("Error sending response for type %s to proxy %s", typeURI.Short(), proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrSendingDiscoveryResponse.String()).
+			Msgf("Error sending response for type %s to proxy %s", typeURI.Short(), proxy.String())
 		return err
 	}
 

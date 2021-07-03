@@ -6,6 +6,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // makeRequestForAllSecrets constructs an SDS DiscoveryRequest as if an Envoy proxy sent it.
@@ -25,7 +26,8 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	// TODO(draychev): The proxy Certificate should revolve around ServiceIdentity, not specific to ServiceAccount [https://github.com/openservicemesh/osm/issues/3186]
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentity.String()).
+			Msgf("Error looking up proxy identity for proxy %s", proxy.String())
 		return nil
 	}
 
