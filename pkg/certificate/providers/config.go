@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -183,7 +184,8 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 	} else if apierrors.IsAlreadyExists(err) {
 		log.Info().Msg("CA already exists in kubernetes, loading.")
 	} else {
-		log.Error().Err(err).Msgf("Error creating/retrieving root certificate from secret %s/%s", ns, secretName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrCreatingCertSecret.String()).
+			Msgf("Error creating/retrieving root certificate from secret %s/%s", ns, secretName)
 		return nil, err
 	}
 
@@ -240,37 +242,42 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.Interface) (certificate.Certificater, error) {
 	certSecret, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
-		log.Debug().Msgf("Could not retrieve certificate secret %q from namespace %q", secretName, ns)
+		log.Error().Str(errcode.Kind, errcode.ErrFetchingCertSecret.String()).
+			Msgf("Could not retrieve certificate secret %q from namespace %q", secretName, ns)
 		return nil, errSecretNotFound
 	}
 
 	pemCert, ok := certSecret.Data[constants.KubernetesOpaqueSecretCAKey]
 	if !ok {
-		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAKey)
+		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.ErrObtainingCertFromSecret.String()).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAKey)
 		return nil, errInvalidCertSecret
 	}
 
 	pemKey, ok := certSecret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey]
 	if !ok {
-		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
+		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.ErrObtainingPrivateKeyFromSecret.String()).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
 		return nil, errInvalidCertSecret
 	}
 
 	expirationBytes, ok := certSecret.Data[constants.KubernetesOpaqueSecretCAExpiration]
 	if !ok {
-		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAExpiration)
+		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.ErrObtainingCertExpirationFromSecret.String()).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAExpiration)
 		return nil, errInvalidCertSecret
 	}
 
 	expiration, err := time.Parse(constants.TimeDateLayout, string(expirationBytes))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing cert expiration %q from Kubernetes rootCertSecret %q from namespace %q", string(expirationBytes), secretName, ns)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingCertExpiration.String()).
+			Msgf("Error parsing cert expiration %q from Kubernetes rootCertSecret %q from namespace %q", string(expirationBytes), secretName, ns)
 		return nil, err
 	}
 
 	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, expiration)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to create new Certificate from PEM")
+		log.Error().Err(err).Msg("Failed to create new Certificate from PEM")
 		return nil, err
 	}
 

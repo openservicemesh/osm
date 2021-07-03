@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
@@ -119,7 +120,7 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 }
 
 // certificaterFromCertificateRequest will construct a certificate.Certificater
-// from a give CertificateRequest and private key.
+// from a given CertificateRequest and private key.
 func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateRequest, privateKey []byte) (certificate.Certificater, error) {
 	if cr == nil {
 		return nil, nil
@@ -149,13 +150,15 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
+			Msgf("Error generating private key for certificate with CN=%s", cn)
 		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", cn)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingKeyDERtoPEM.String()).
+			Msgf("Error encoding private key for certificate with CN=%s", cn)
 		return nil, err
 	}
 
@@ -171,11 +174,13 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)
 	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrCreatingCertReq.String())
 		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingCertDERtoPEM.String())
 		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
 	}
 
