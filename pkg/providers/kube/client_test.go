@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -761,19 +763,28 @@ func TestListEndpointsForServiceMulticluster(t *testing.T) {
 
 	providerID := "provider"
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	// Mock mockConfigController
-	// mcsvc := c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
-	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(&corev1.Service{
+
+	// Mock c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(&v1alpha1.MultiClusterService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tests.BookbuyerService.Name,
 			Namespace: tests.BookbuyerService.Namespace,
 		},
-		Spec: corev1.ServiceSpec{
-
-		} ,
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Cluster: []v1alpha1.ClusterSpec{{
+				Address: "8.8.8.8:999",
+			},
+			},
+		},
 	})
-
-	// Mock c.configClient.GetMultiClusterService(svc.Name, svc.Namespace)
+	mcsvc := mockConfigController.GetMultiClusterService(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace)
+	for _, cluster := range mcsvc.Spec.Cluster {
+		for _, address := range cluster.Address {
+			fmt.Println(address)
+		}
+	}
+	fmt.Println(mcsvc)
+	// mock KubeController Services
 	mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tests.BookbuyerService.Name,
@@ -806,26 +817,31 @@ func TestListEndpointsForServiceMulticluster(t *testing.T) {
 				},
 				Ports: []corev1.EndpointPort{
 					{
-						Name:     "http-port3", // appProtocol derived from port name
-						Port:     90,
-						Protocol: corev1.ProtocolTCP,
-					},
-					{
-						Name:     "tcp-port4", // appProtocol derived from port name
-						Port:     100,
-						Protocol: corev1.ProtocolTCP,
+						Port: 88,
 					},
 				},
 			},
 		},
 	}, nil)
+
+	myendpoints, _ := mockKubeController.GetEndpoints(tests.BookbuyerService)
+	for _, endpoint := range myendpoints.Subsets {
+		for _, address := range endpoint.Addresses {
+			fmt.Println(address)
+			for _, port := range endpoint.Ports {
+				fmt.Println(port)
+			}
+		}
+	}
+	fmt.Println(myendpoints)
+
 	// Mock c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace)
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(false).Times(1)
 
 	testCases := []struct {
-		name              string
-		meshService       service.MeshService
-		expectedEndpoints []endpoint.Endpoint
+		name              string              // name of test
+		meshService       service.MeshService // input param
+		expectedEndpoints []endpoint.Endpoint // return results
 	}{
 		{
 			name:        "Local should have 1 endpoint",
@@ -839,10 +855,12 @@ func TestListEndpointsForServiceMulticluster(t *testing.T) {
 		},
 	}
 	// Mock methods on mockConfigController
+	// "c" is loaded up with the mocking info
 	c := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Mock ListEndpointsForService
+			// I need to get endpoints,  []endpoint.Endpoint
 			assert.ElementsMatch(tc.expectedEndpoints, c.ListEndpointsForService(tc.meshService))
 		})
 	}
