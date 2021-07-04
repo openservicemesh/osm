@@ -218,6 +218,27 @@ const (
 
 	// ErrParsingDiscoveryReqVersion indicates the discovery request response version could not be parsed
 	ErrParsingDiscoveryReqVersion
+
+	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
+	ErrGettingServicePorts
+
+	// ErrGettingOrgDstEgressCluster indicates that an Envoy egress cluster that routes traffic to its original destination could not be configured
+	ErrGettingOrgDstEgressCluster
+
+	// ErrGettingDNSEgressCluster indicates that an Envoy egress cluster that routes traffic based on the specified Host resolved using DNS could not be configured
+	ErrGettingDNSEgressCluster
+
+	// ErrObtainingUpstreamServiceCluster indicates an Envoy cluster corresponding to an upstream service could not be configured
+	ErrObtainingUpstreamServiceCluster
+
+	// ErrFetchingServiceList indicates the services corresponding to a specified proxy could not be listed
+	ErrFetchingServiceList
+
+	// ErrGettingLocalServiceCluster indicates that an Envoy cluster for a local service behind the Envoy proxy could not be configured
+	ErrGettingLocalServiceCluster
+
+	// ErrDuplicateluster indicates Envoy clusters with the same name were found
+	ErrDuplicateClusters
 )
 
 // String returns the error code as a string, ex. E1000
@@ -540,5 +561,39 @@ The TypeURL of the resource being requested in the DiscoveryRequest is invalid.
 
 	ErrParsingDiscoveryReqVersion: `
 The version of the DiscoveryRequest could not be parsed by ADS.
+`,
+
+	ErrGettingServicePorts: `
+The mapping of ports the application is exposing a service on to their corresponding
+application protocol could not be obtained for a specified service.
+`,
+
+	ErrGettingOrgDstEgressCluster: `
+An Envoy egress cluster which routes traffic to its original destination could not
+be configured. When a Host is not specified in the cluster config, the original 
+destination is used.
+`,
+
+	ErrGettingDNSEgressCluster: `
+An Envoy egress cluster that routes traffic based on the specified Host resolved
+using DNS could not be configured.
+`,
+
+	ErrObtainingUpstreamServiceCluster: `
+An Envoy cluster that corresponds to a specified upstream service could not be
+configured. 
+`,
+
+	ErrFetchingServiceList: `
+The meshed services corresponding a specified Envoy proxy could not be listed.
+`,
+
+	ErrGettingLocalServiceCluster: `
+An Envoy cluster for a local service behind an Envoy proxy could not be configured.
+`,
+
+	ErrDuplicateClusters: `
+Multiple Envoy clusters with the same name were configured. The duplicate clusters
+will not be sent to the Envoy proxy in a ClusterDiscovery response.
 `,
 }
