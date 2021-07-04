@@ -7,11 +7,13 @@ jobs:
   test:
     name: NoInstall Nightly Job
     runs-on: ubuntu-latest
-    env: 
-      KUBECONFIG: ./kind-kubeconfig
+    env:
+      KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
     steps:
+      - name: Checkout v2
+        uses: actions/checkout@v2
       - name: Set random cluster name
-        run: echo "$KIND_CLUSTER_NAME=kind-e2e-$(openssl rand -hex 6)" >> $GITHUB_ENV
+        run: echo "KIND_CLUSTER_NAME=kind-e2e-$(openssl rand -hex 6)" >> $GITHUB_ENV
       - name: Setup Kind
         run: |
           # config for 1 control plane node and 2 workers (necessary for conformance)
@@ -20,23 +22,30 @@ jobs:
           apiVersion: kind.x-k8s.io/v1alpha4
           nodes:
           - role: control-plane
-          - role: worker
-          - role: worker
+            kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+            extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
           EOF
 
           cat kind-config.yaml
 
           # use local kindest/node:latest image from kind build node-image
-          kind create cluster --name $KIND_CLUSTER_NAME --image kindest/node:$NODE_IMAGE_TAG -v=3 --wait=1m --config=kind-config.yaml --kubeconfig=kind-kubeconfig
-        env:
-          NODE_IMAGE_TAG: "v1.19.1"
-          KUBECONFIG: ./kind-kubeconfig
+          kind create cluster --name $KIND_CLUSTER_NAME -v=3 --wait=1m --config=kind-config.yaml --kubeconfig=kind-kubeconfig
       - name: Get cluster version and nodes
         run: |
           kubectl version
           kubectl get nodes
-      - name: Checkout v2
-        uses: actions/checkout@v2
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
       - name: Install OSM via OSM CLI
         run: |
           make build-osm
