@@ -115,6 +115,8 @@ var (
 	defaultOSMLogLevel = "trace"
 	// Test folder base default value
 	testFolderBase = "/tmp"
+	// default enable privileged init container
+	defaultEnablePrivilegedInitContainer = false
 )
 
 // OSMDescribeInfo is a struct to represent the Tier and Bucket of a given e2e test
@@ -440,10 +442,16 @@ type InstallOSMOpts struct {
 	EnableDebugServer    bool
 
 	SetOverrides []string
+
+	EnablePrivilegedInitContainer bool
 }
 
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
+	enablePrivilegedInitContainer := defaultEnablePrivilegedInitContainer
+	if td.DeployOnOpenShift {
+		enablePrivilegedInitContainer = true
+	}
 	return InstallOSMOpts{
 		ControlPlaneNS:          td.OsmNamespace,
 		CertManager:             defaultCertManager,
@@ -467,6 +475,8 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      defaultEnableDebugServer,
 		SetOverrides:           []string{},
+
+		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 	}
 }
 
@@ -608,6 +618,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%v", instOpts.DeployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
+		fmt.Sprintf("OpenServiceMesh.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
 	)
 
 	switch instOpts.CertManager {
@@ -1625,7 +1636,6 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 	if !td.DeployOnOpenShift {
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
-	//oc adm policy add-scc-to-user privileged -z bookbuyer -n "$BOOKBUYER_NAMESPACE"
 	args := []string{"adm", "policy", "add-scc-to-user", scc, "-z", serviceAccount, "-n", namespace}
 	stdout, stderr, err := td.RunLocal("oc", args)
 	if err != nil {
