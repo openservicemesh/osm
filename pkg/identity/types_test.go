@@ -34,12 +34,12 @@ var _ = Describe("Test pkg/service functions", func() {
 				Namespace: "ns",
 				Name:      "name",
 			}.ToServiceIdentity()
-			expected := ServiceIdentity("name.ns.cluster.local")
+			expected := ServiceIdentity{"name", "ns", "cluster.local"}
 			Expect(actual).To(Equal(expected))
 		})
 
 		It("implements ServiceIdentity{}.ToK8sServiceAccount() correctly", func() {
-			actual := ServiceIdentity("name.ns.cluster.local").ToK8sServiceAccount()
+			actual := ServiceIdentity{"name", "ns", "cluster.local"}.ToK8sServiceAccount()
 			expected := K8sServiceAccount{
 				Namespace: "ns",
 				Name:      "name",

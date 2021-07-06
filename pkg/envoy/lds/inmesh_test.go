@@ -262,11 +262,23 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 
 	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
 		{
-			Name:        "ns-1/test-1",
-			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Name: "ns-1/test-1",
+			Destination: identity.ServiceIdentity{
+				ServiceAccount: "sa-1",
+				Namespace:      "ns-1",
+				ClusterDomain:  "cluster.local",
+			},
 			Sources: []identity.ServiceIdentity{
-				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				{
+					ServiceAccount: "sa-2",
+					Namespace:      "ns-2",
+					ClusterDomain:  "cluster.local",
+				},
+				{
+					ServiceAccount: "sa-3",
+					Namespace:      "ns-3",
+					ClusterDomain:  "cluster.local",
+				},
 			},
 			TCPRouteMatches: nil,
 		},
@@ -360,11 +372,23 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 
 	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
 		{
-			Name:        "ns-1/test-1",
-			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Name: "ns-1/test-1",
+			Destination: identity.ServiceIdentity{
+				ServiceAccount: "sa-1",
+				Namespace:      "ns-1",
+				ClusterDomain:  "cluster.local",
+			},
 			Sources: []identity.ServiceIdentity{
-				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				{
+					ServiceAccount: "sa-2",
+					Namespace:      "ns-2",
+					ClusterDomain:  "cluster.local",
+				},
+				{
+					ServiceAccount: "sa-3",
+					Namespace:      "ns-3",
+					ClusterDomain:  "cluster.local",
+				},
 			},
 			TCPRouteMatches: nil,
 		},

@@ -394,9 +394,13 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &certificateCommonNameMeta{
-				ProxyUUID:       proxyUUID,
-				ProxyKind:       KindSidecar,
-				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, testNamespace, identity.ClusterLocalTrustDomain)),
+				ProxyUUID: proxyUUID,
+				ProxyKind: KindSidecar,
+				ServiceIdentity: identity.ServiceIdentity{
+					ServiceAccount: serviceAccount,
+					Namespace:      testNamespace,
+					ClusterDomain:  identity.ClusterLocalTrustDomain,
+				},
 			}
 			Expect(cnMeta).To(Equal(expected))
 		})
@@ -418,9 +422,13 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			actualMeta, err := getCertificateCommonNameMeta(cn)
 			expectedMeta := certificateCommonNameMeta{
-				ProxyUUID:       proxyUUID,
-				ProxyKind:       KindSidecar,
-				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, namespace, identity.ClusterLocalTrustDomain)),
+				ProxyUUID: proxyUUID,
+				ProxyKind: KindSidecar,
+				ServiceIdentity: identity.ServiceIdentity{
+					ServiceAccount: serviceAccount,
+					Namespace:      namespace,
+					ClusterDomain:  identity.ClusterLocalTrustDomain,
+				},
 			}
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actualMeta).To(Equal(&expectedMeta))
@@ -432,13 +440,16 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			cn := certificate.CommonName(fmt.Sprintf("%s.sidecar.sa-name.sa-namespace.cluster.local", uuid.New()))
 			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("sa-name.sa-namespace.cluster.local")))
+			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity{
+				ServiceAccount: "sa-name",
+				Namespace:      "sa-namespace",
+				ClusterDomain:  "cluster.local"}))
 		})
 
 		It("should correctly error when the XDS certificate CN is invalid", func() {
 			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(certificate.CommonName("invalid"))
 			Expect(err).To(HaveOccurred())
-			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("")))
+			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity{}))
 		})
 	})
 })

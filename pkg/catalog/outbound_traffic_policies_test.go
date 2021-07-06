@@ -784,8 +784,12 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 			permissiveMode: true,
 		},
 		{
-			name:           "gateway",
-			svcIdentity:    "gateway.osm-system.cluster.local",
+			name: "gateway",
+			svcIdentity: identity.ServiceIdentity{
+				ServiceAccount: "gateway",
+				Namespace:      "osm-system",
+				ClusterDomain:  "cluster.local",
+			},
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -1450,13 +1454,21 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 		expected      []service.MeshService
 	}{
 		{
-			name:     "no allowed outbound services",
-			id:       "foo.bar",
+			name: "no allowed outbound services",
+			id: identity.ServiceIdentity{
+				ServiceAccount: "foo",
+				Namespace:      "bar",
+				ClusterDomain:  "",
+			},
 			expected: nil,
 		},
 		{
 			name: "some allowed service",
-			id:   "my-src-ns.my-src-name",
+			id: identity.ServiceIdentity{
+				ServiceAccount: "my-src-ns",
+				Namespace:      "my-src-name",
+				ClusterDomain:  "",
+			},
 			services: []*corev1.Service{
 				{
 					ObjectMeta: v1.ObjectMeta{

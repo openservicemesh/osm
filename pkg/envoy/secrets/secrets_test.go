@@ -260,11 +260,19 @@ func TestGetSecretNameForIdentity(t *testing.T) {
 		expected string
 	}{
 		{
-			si:       identity.ServiceIdentity("foo.bar.cluster.local"),
+			si: identity.ServiceIdentity{
+				ServiceAccount: "foo",
+				Namespace:      "bar",
+				ClusterDomain:  "cluster.local",
+			},
 			expected: "bar/foo",
 		},
 		{
-			si:       identity.ServiceIdentity("foo.baz.cluster.local"),
+			si: identity.ServiceIdentity{
+				ServiceAccount: "foo",
+				Namespace:      "baz",
+				ClusterDomain:  "cluster.local",
+			},
 			expected: "baz/foo",
 		},
 	}
