@@ -54,7 +54,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 	return cmd
 }
 
-func main() {
+func initCommands() *cobra.Command {
 	actionConfig := new(action.Configuration)
 	cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Args[1:])
 	_ = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
@@ -66,6 +66,11 @@ func main() {
 		}
 	})
 
+	return cmd
+}
+
+func main() {
+	cmd := initCommands()
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
