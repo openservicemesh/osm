@@ -217,3 +217,210 @@ func TestMeshConfigValidator(t *testing.T) {
 		})
 	}
 }
+
+func TestMulticlusterServiceValidator(t *testing.T) {
+	assert := tassert.New(t)
+	testCases := []struct {
+		name    string
+		input   *admissionv1.AdmissionRequest
+		expResp *admissionv1.AdmissionResponse
+		expErr  error
+	}{
+		{
+			name: "MultiClusterService with empty name fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"serviceAccount" : "sdf",
+							"cluster": [{
+								"name": "",
+								"address": "0.0.0.0:8080"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Cluster name  is not valid"),
+		},
+		{
+			name: "MultiClusterService with global name fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"cluster": [{
+								"name": "global",
+								"address": "0.0.0.0:8080"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Cluster name global is not valid"),
+		},
+		{
+			name: "MultiClusterService with duplicate cluster names fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"cluster": [{
+								"name": "test",
+								"address": "0.0.0.0:8080"
+							},{
+								"name": "test",
+								"address": "0.0.0.0:8080"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Cluster named test already exists"),
+		},
+		{
+			name: "MultiClusterService has an acceptable name",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"cluster": [{
+								"name": "test",
+								"address": "0.0.0.0:8080"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  nil,
+		},
+		{
+			name: "MultiClusterService with empty address fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"serviceAccount" : "sdf",
+							"cluster": [{
+								"name": "test",
+								"address": ""
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Cluster address  is not valid"),
+		},
+		{
+			name: "MultiClusterService with invalid IP fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"cluster": [{
+								"name": "test",
+								"address": "0.0.00:22"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Error parsing IP address 0.0.00:22"),
+		},
+		{
+			name: "MultiClusterService with invalid port fails",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "config.openservicemesh.io",
+					Kind:    "MultiClusterService",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "MultiClusterService",
+						"spec": {
+							"cluster": [{
+								"name": "test",
+								"address": "0.0.0.0:a"
+							}]
+						}
+					}
+					`),
+				},
+			},
+			expResp: nil,
+			expErr:  errors.New("Error parsing port value 0.0.0.0:a"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := MultiClusterServiceValidator(tc.input)
+			t.Log(tc.input.Kind.Kind)
+			assert.Equal(tc.expResp, resp)
+			assert.Equal(tc.expErr, err)
+		})
+	}
+}
