@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 const (
@@ -36,7 +37,7 @@ func marshalConfigToJSON(config *v1alpha1.MeshConfigSpec) (string, error) {
 func (c *Client) GetMeshConfigJSON() (string, error) {
 	cm, err := marshalConfigToJSON(&c.getMeshConfig().Spec)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMeshConfigMarshaling.String()).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
 		return "", err
 	}
 	return cm, nil

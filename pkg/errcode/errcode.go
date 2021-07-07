@@ -139,6 +139,27 @@ const (
 	ErrRotatingCert
 )
 
+// Range 4100-4150 reserved for PubSub system
+const (
+	// ErrPubSubMessageFormat indicates error when parsing an object to a pubsub message
+	ErrPubSubMessageFormat ErrCode = iota + 4100
+)
+
+// Range 4150-4200 reserved for MeshConfig related errors
+const (
+	// ErrMeshConfigInformerInitCache indicates failed to init cache sync for MeshConfig informer
+	ErrMeshConfigInformerInitCache ErrCode = iota + 4150
+
+	// ErrMeshConfigStructParsing indicates failed to cast object to MeshConfig
+	ErrMeshConfigStructCasting
+
+	// ErrMeshConfigFetchFromCache indicates failed to fetch MeshConfig from cache with specific key
+	ErrMeshConfigFetchFromCache
+
+	// ErrMeshConfigMarshaling indicates failed to marshal MeshConfig into other format like JSON
+	ErrMeshConfigMarshaling
+)
+
 // String returns the error code as a string, ex. E1000
 func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
@@ -330,5 +351,28 @@ The certificate authority privided when issuing a certificate was invalid.
 `,
 	ErrRotatingCert: `
 The specified certificate could not be rotated.
+`,
+
+	//
+	// Range 4100-4150
+	//
+	ErrPubSubMessageFormat: `
+Failed parsing object into PubSub message.
+`,
+
+	//
+	// Range 4150-4200
+	//
+	ErrMeshConfigInformerInitCache: `
+Failed initial cache sync for MeshConfig informer.
+`,
+	ErrMeshConfigStructCasting: `
+Failed to cast object to MeshConfig.
+`,
+	ErrMeshConfigFetchFromCache: `
+Failed to fetch MeshConfig from cache with specific key.
+`,
+	ErrMeshConfigMarshaling: `
+Failed to marshal MeshConfig into other format.
 `,
 }
