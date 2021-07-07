@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -87,7 +88,7 @@ func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Dura
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	secret, err := cm.client.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrIssuingCert.String()).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
 	}
 

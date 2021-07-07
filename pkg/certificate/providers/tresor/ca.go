@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // NewCA creates a new Certificate Authority.
@@ -38,26 +39,30 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error generating key for CA for org %s", rootCertOrganization)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
+			Msgf("Error generating key for CA for org %s", rootCertOrganization)
 		return nil, err
 	}
 
 	// Self-sign the root certificate
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrCreatingRootCert.String()).
+			Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingCertDERtoPEM.String()).
+			Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
 	pemKey, err := certificate.EncodeKeyDERtoPEM(rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingKeyDERtoPEM.String()).
+			Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
@@ -78,7 +83,8 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expiration time.Time) (certificate.Certificater, error) {
 	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
-		log.Err(err).Msg("Error converting PEM cert to x509 to obtain serial number")
+		log.Err(err).Str(errcode.Kind, errcode.ErrDecodingPEMCert.String()).
+			Msg("Error converting PEM cert to x509 to obtain serial number")
 		return nil, err
 	}
 	rootCertificate := Certificate{
