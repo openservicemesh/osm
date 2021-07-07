@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -746,6 +748,146 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
 			assert.NotNil(actual)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
+		})
+	}
+}
+
+func TestListEndpointsForServiceMulticluster(t *testing.T) {
+	// For this test to work
+
+	assert := tassert.New(t)
+	var mockCtrl *gomock.Controller
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigController := config.NewMockController(mockCtrl)
+
+	providerID := "provider"
+	mockKubeController := k8s.NewMockController(mockCtrl)
+
+	// Local
+	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tests.BookbuyerService.Name,
+			Namespace: tests.BookbuyerService.Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Cluster: []v1alpha1.ClusterSpec{{
+				Name:    "local",
+				Address: "8.8.8.8:999",
+			},
+			},
+		},
+	})
+
+	// MultiCluster
+	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerServiceMultiCluster.Name,
+		tests.BookbuyerServiceMultiCluster.Namespace).Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tests.BookbuyerServiceMultiCluster.Name,
+			Namespace: tests.BookbuyerServiceMultiCluster.Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Cluster: []v1alpha1.ClusterSpec{
+				{
+					Name:    "clusterX",
+					Address: "2.2.2.2:333",
+				},
+			},
+		},
+	})
+	// Global
+	mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerServiceGlobal.Name,
+		tests.BookbuyerServiceGlobal.Namespace).Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tests.BookbuyerServiceGlobal.Name,
+			Namespace: tests.BookbuyerServiceGlobal.Namespace,
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Cluster: []v1alpha1.ClusterSpec{
+				{
+					Name:    "global",
+					Address: "7.7.7.7:888",
+				},
+				{
+					Name:    "global",
+					Address: "8.8.8.8:999",
+				},
+			},
+		},
+	})
+
+	// For traditional K8s service
+	mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: tests.BookbuyerService.Namespace,
+		},
+		Subsets: []corev1.EndpointSubset{
+			{
+				Addresses: []corev1.EndpointAddress{
+					{
+						IP: "8.8.8.8",
+					},
+				},
+				Ports: []corev1.EndpointPort{
+					{
+						Port: 999,
+					},
+				},
+			},
+		},
+	}, nil)
+
+	// Mock c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace)
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).Times(1)
+
+	testCases := []struct {
+		name              string              // name of test
+		meshService       service.MeshService // input param
+		expectedEndpoints []endpoint.Endpoint // return results
+	}{
+		{
+			name:        "Local should have 1 endpoint",
+			meshService: tests.BookbuyerService,
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP:   net.ParseIP("8.8.8.8"),
+					Port: 999,
+				},
+			},
+		},
+		{
+			name:        "Multicluster should have 1 or more endpoint",
+			meshService: tests.BookbuyerServiceMultiCluster,
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP:   net.ParseIP("2.2.2.2"),
+					Port: 333,
+				},
+			},
+		},
+		{
+			name:        "Global should have 1 or more endpoint",
+			meshService: tests.BookbuyerServiceGlobal,
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP:   net.ParseIP("7.7.7.7"),
+					Port: 888,
+				},
+				{
+					IP:   net.ParseIP("8.8.8.8"),
+					Port: 999,
+				},
+			},
+		},
+	}
+	// Mock methods on mockConfigController
+	// "c" is loaded up with the mocking info
+	c := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			expectedEndpoints := tc.expectedEndpoints
+			actualEndpoints := c.ListEndpointsForService(tc.meshService)
+			assert.ElementsMatch(expectedEndpoints, actualEndpoints)
 		})
 	}
 }
