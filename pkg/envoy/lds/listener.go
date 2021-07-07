@@ -91,6 +91,15 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 		listener.ContinueOnListenerFiltersTimeout = true
 	}
 
+	if featureFlag := lb.cfg.GetFeatureFlags(); featureFlag.EnableWASMStats {
+		statsFilter, err := getStatsNetworkWASMFilter()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to get stats WASM filter")
+		} else {
+			listener.ListenerFilters = append(listener.ListenerFilters, statsFilter)
+		}
+	}
+
 	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {
 		// Programming a listener with no filter chains is an error.
 		// It is possible for the outbound listener to have no filter chains if
