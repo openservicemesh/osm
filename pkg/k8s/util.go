@@ -1,57 +1,14 @@
 package k8s
 
 import (
-	"fmt"
 	"strings"
 
 	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/service"
 )
-
-const (
-	clusterDomain = "cluster.local"
-)
-
-// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-// If 'sameNamespace' is set to true, then the shorthand hostnames service and service:port are also returned.
-func GetHostnamesForService(svc *corev1.Service, locality service.Locality) []string {
-	var domains []string
-	if svc == nil {
-		return domains
-	}
-
-	serviceName := svc.Name
-	namespace := svc.Namespace
-
-	if locality == service.LocalNS {
-		// Within the same namespace, service name is resolvable to its address
-		domains = append(domains, serviceName) // service
-	}
-
-	domains = append(domains, fmt.Sprintf("%s.%s", serviceName, namespace))                       // service.namespace
-	domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))                   // service.namespace.svc
-	domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))           // service.namespace.svc.cluster
-	domains = append(domains, fmt.Sprintf("%s.%s.svc.%s", serviceName, namespace, clusterDomain)) // service.namespace.svc.cluster.local
-	for _, portSpec := range svc.Spec.Ports {
-		port := portSpec.Port
-
-		if locality == service.LocalNS {
-			// Within the same namespace, service name is resolvable to its address
-			domains = append(domains, fmt.Sprintf("%s:%d", serviceName, port)) // service:port
-		}
-
-		domains = append(domains, fmt.Sprintf("%s.%s:%d", serviceName, namespace, port))                       // service.namespace:port
-		domains = append(domains, fmt.Sprintf("%s.%s.svc:%d", serviceName, namespace, port))                   // service.namespace.svc:port
-		domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster:%d", serviceName, namespace, port))           // service.namespace.svc.cluster:port
-		domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)) // service.namespace.svc.cluster.local:port
-	}
-	return domains
-}
 
 // GetServiceFromHostname returns the service name from its hostname
 func GetServiceFromHostname(host string) string {

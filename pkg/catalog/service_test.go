@@ -605,7 +605,7 @@ func TestGetServiceHostnames(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing hostnames for svc %s with locality=%d", tc.svc, tc.locality), func(t *testing.T) {
 			k8sService := tests.NewServiceFixture(tc.svc.Name, tc.svc.Namespace, map[string]string{})
 			mockKubeController.EXPECT().GetService(tc.svc).Return(k8sService).Times(1)
-			mockServiceProvider.EXPECT().GetHostnamesForService(tc.svc, tc.locality).Return(tc.expected, nil).Times(1)
+			mockServiceProvider.EXPECT().GetHostnamesForService(tc.svc, tc.locality).Return(tc.expected).Times(1)
 			actual, err := mc.GetServiceHostnames(tc.svc, tc.locality)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expected)

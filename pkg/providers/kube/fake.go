@@ -90,30 +90,41 @@ func (f fakeClient) ListServiceIdentitiesForService(svc service.MeshService) ([]
 	return serviceIdentities, nil
 }
 
-func (f fakeClient) GetHostnamesForService(svc service.MeshService, locality service.Locality) ([]string, error) {
-	var hostnames []string
+func (f fakeClient) GetHostnamesForService(svc service.MeshService, locality service.Locality) []string {
+	var domains []string
 
 	serviceName := svc.Name
 	namespace := svc.Namespace
-	port := tests.Endpoint.Port
 
-	if locality == service.LocalNS {
-		hostnames = append(hostnames, serviceName)
-	}
-
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s", serviceName, namespace))                   // service.namespace
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc", serviceName, namespace))               // service.namespace.svc
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace))       // service.namespace.svc.cluster
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)) // service.namespace.svc.cluster.local
-	if locality == service.LocalNS {
+	// Referencing a local service in the local namespace
+	if locality == service.LocalNS && svc.Local() {
 		// Within the same namespace, service name is resolvable to its address
-		hostnames = append(hostnames, fmt.Sprintf("%s:%d", serviceName, port)) // service:port
+		domains = append(domains, serviceName) // service
 	}
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s:%d", serviceName, namespace, port))                   // service.namespace:port
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc:%d", serviceName, namespace, port))               // service.namespace.svc:port
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc.cluster:%d", serviceName, namespace, port))       // service.namespace.svc.cluster:port
-	hostnames = append(hostnames, fmt.Sprintf("%s.%s.svc.cluster.local:%d", serviceName, namespace, port)) // service.namespace.svc.cluster.local:port
-	return hostnames, nil
+
+	// Referencing a local service in the local cluster
+	if svc.Local() && locality != service.RemoteCluster {
+		domains = append(domains, fmt.Sprintf("%s.%s", serviceName, namespace))             // service.namespace
+		domains = append(domains, fmt.Sprintf("%s.%s.svc", serviceName, namespace))         // service.namespace.svc
+		domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster", serviceName, namespace)) // service.namespace.svc.cluster
+		// Always add the name of the service. This can be local, global, or the remote specific remote cluster.
+		domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)) // service.namespace.svc.cluster.local
+	}
+
+	cp := make([]string, len(domains))
+	copy(cp, domains)
+
+	// Only used to get the ports...
+	ports, err := f.GetPortToProtocolMappingForService(svc)
+	if err != nil {
+		log.Err(err).Msgf("Error getting ports for service %s", svc)
+	}
+	for _, domain := range cp {
+		for port := range ports {
+			domains = append(domains, fmt.Sprintf("%s:%d", domain, port)) // Add the port
+		}
+	}
+	return domains
 }
 
 func (f fakeClient) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {

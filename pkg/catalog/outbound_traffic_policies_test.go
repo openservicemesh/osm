@@ -389,7 +389,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			for _, ms := range expectedServices {
 				if ms.Namespace == tc.downstreamSA.ToK8sServiceAccount().Namespace {
 					locality := service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name]).AnyTimes()
 				}
 			}
 
@@ -738,11 +738,11 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 				locality := service.LocalCluster
 				if ms.Namespace == tc.sourceNamespace && ms.Namespace == "default" {
 					locality = service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name]).AnyTimes()
 				} else if ms.Namespace == "baz" {
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-baz-namespaced"], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-baz-namespaced"]).AnyTimes()
 				} else {
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-namespaced"], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-namespaced"]).AnyTimes()
 				}
 			}
 
@@ -822,13 +822,35 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 	testCases := []struct {
 		name                     string
 		sourceNamespace          string
-		services                 map[string]string
+		services                 map[service.MeshService][]string
 		expectedOutboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
 			name:            "outbound traffic policies for permissive mode",
 			sourceNamespace: "test",
-			services:        map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "test"},
+			services: map[service.MeshService][]string{
+				tests.BookstoreV1Service: {
+					"bookstore-v1.default",
+					"bookstore-v1.default.svc",
+					"bookstore-v1.default.svc.cluster",
+					"bookstore-v1.default.svc.cluster.local",
+					"bookstore-v1.default:8888",
+					"bookstore-v1.default.svc:8888",
+					"bookstore-v1.default.svc.cluster:8888",
+					"bookstore-v1.default.svc.cluster.local:8888",
+				},
+				tests.BookstoreApexService: {
+					"bookstore-apex.default",
+					"bookstore-apex.default.svc",
+					"bookstore-apex.default.svc.cluster",
+					"bookstore-apex.default.svc.cluster.local",
+					"bookstore-apex.default:8888",
+					"bookstore-apex.default.svc:8888",
+					"bookstore-apex.default.svc.cluster:8888",
+					"bookstore-apex.default.svc.cluster.local:8888",
+				},
+				{Name: "bookbuyer", Namespace: "test", ClusterDomain: constants.LocalDomain}: tests.BookbuyerTestHostnames,
+			},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name: "bookstore-apex.default.local",
@@ -898,30 +920,23 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var meshServices []service.MeshService
-
-			for name, namespace := range tc.services {
-				svcFixture := tests.NewServiceFixture(name, namespace, map[string]string{})
-				meshSvc := tests.NewMeshServiceFixture(name, namespace)
-				meshServices = append(meshServices, meshSvc)
-				mockKubeController.EXPECT().GetService(meshSvc).Return(svcFixture)
-			}
-
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockServiceProvider.EXPECT().ListServices().Return(meshServices, nil)
-
-			for _, ms := range meshServices {
-				locality := service.LocalCluster
-				if ms.Namespace == tc.sourceNamespace && ms.Namespace == "default" {
-					locality = service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
-				} else if ms.Namespace == tc.sourceNamespace && ms.Namespace == "test" {
-					locality = service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-test"], nil).AnyTimes()
-				} else {
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name+"-namespaced"], nil).AnyTimes()
+			var services []service.MeshService
+			for svc, hostnames := range tc.services {
+				services = append(services, svc)
+				svcFixture := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
+				locality := service.LocalNS
+				if !svc.Local() {
+					locality = service.RemoteCluster
+				} else if svc.Namespace != tc.sourceNamespace {
+					locality = service.LocalCluster
 				}
+
+				mockServiceProvider.EXPECT().GetHostnamesForService(svc, locality).Return(hostnames).AnyTimes()
+				mockKubeController.EXPECT().GetService(svc).Return(svcFixture).AnyTimes()
 			}
+			mockServiceProvider.EXPECT().ListServices().Return(services, nil)
+
 			actual := mc.buildOutboundPermissiveModePolicies(tc.sourceNamespace)
 			assert.Len(actual, len(tc.expectedOutboundPolicies))
 			assert.ElementsMatch(tc.expectedOutboundPolicies, actual)
@@ -1022,7 +1037,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA.ToServiceIdentity(), tc.destSA.ToServiceIdentity())
 
-			mockServiceProvider.EXPECT().GetHostnamesForService(tc.destMeshService, service.LocalNS).Return(tests.ExpectedHostnames[tc.destMeshService.Name], nil).AnyTimes()
+			mockServiceProvider.EXPECT().GetHostnamesForService(tc.destMeshService, service.LocalNS).Return(tests.ExpectedHostnames[tc.destMeshService.Name]).AnyTimes()
 
 			actual := mc.buildOutboundPolicies(tc.sourceSA.ToServiceIdentity(), &trafficTarget)
 			assert.ElementsMatch(tc.expectedOutbound, actual)
@@ -1152,7 +1167,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			for _, ms := range meshServices {
 				if ms.Namespace == tc.serviceIdentity.ToK8sServiceAccount().Namespace {
 					locality := service.LocalNS
-					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetHostnamesForService(ms, locality).Return(tests.ExpectedHostnames[ms.Name]).AnyTimes()
 				}
 			}
 			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceIdentity)

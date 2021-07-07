@@ -266,8 +266,8 @@ func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 	return nil, nil
 }
 
-// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-func (c Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+// ListServiceAccountsForService lists ServiceAccounts associated with the given service
+func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	var svcAccounts []identity.K8sServiceAccount
 
 	k8sSvc := c.GetService(svc)

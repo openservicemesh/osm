@@ -58,8 +58,9 @@ var _ = Describe(``+
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
-				EnableWASMStats:    false,
-				EnableEgressPolicy: false,
+				EnableWASMStats:        false,
+				EnableEgressPolicy:     false,
+				EnableMulticlusterMode: false,
 			}).AnyTimes()
 
 			resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
@@ -99,6 +100,7 @@ var _ = Describe(``+
 			// test them (they are stored in a slice w/ non-deterministic order)
 			var apex, v1, v2 *xds_route.VirtualHost
 			for _, virtualHost := range routeCfg.VirtualHosts {
+				fmt.Println("||||||| got a virtual host::: ", virtualHost)
 				map[string]func(){
 					apexName: func() { apex = virtualHost },
 					v1Name:   func() { v1 = virtualHost },
@@ -186,14 +188,13 @@ var _ = Describe(``+
 	})
 
 func checkExpectations(expectedDomains []string, expectedWeightedCluster *xds_route.WeightedCluster, virtualHost *xds_route.VirtualHost) {
-	Expect(len(virtualHost.Domains)).To(Equal(len(expectedDomains)))
-	Expect(virtualHost.Domains).To(ContainElements(expectedDomains))
+	Expect(virtualHost.Domains).To(ConsistOf(expectedDomains))
 
 	Expect(len(virtualHost.Routes)).To(Equal(1))
 
 	Expect(len(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters)).To(Equal(len(expectedWeightedCluster.Clusters)))
-	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters[0]).To(Equal(expectedWeightedCluster.Clusters[0]))
-	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(expectedWeightedCluster.TotalWeight))
+	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters[0].Name).To(Equal(expectedWeightedCluster.Clusters[0].Name))
+	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().TotalWeight.Value).To(Equal(expectedWeightedCluster.TotalWeight.Value))
 }
 
 func toInt(val uint32) *wrappers.UInt32Value {

@@ -110,7 +110,7 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["meshconfigs"]
+    resources: ["meshconfigs", "multiclusterservices"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["split.smi-spec.io"]
     resources: ["trafficsplits"]

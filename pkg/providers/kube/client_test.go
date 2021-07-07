@@ -2,12 +2,14 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -27,6 +30,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/utils"
+)
+
+const (
+	providerID    = "test-provider"
+	testNamespace = "testNamespace"
+	meshName      = "meshName"
 )
 
 var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
@@ -42,10 +51,15 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 
-	providerID := "provider"
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
-
+	mockConfigController.EXPECT().ListMultiClusterServices().Return(
+		[]*v1alpha1.MultiClusterService{tests.BookstoreMCS, tests.BookbuyerMCS}).AnyTimes()
+	mockConfigController.EXPECT().GetMultiClusterService(
+		tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(tests.BookbuyerMCS).AnyTimes()
 	BeforeEach(func() {
 		client = NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 	})
@@ -80,6 +94,32 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
 				Port: 88,
+			},
+		}))
+	})
+
+	It("should correctly return a list of endpoints for a global service", func() {
+		mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerGlobalService.Name, tests.BookbuyerGlobalService.Namespace).Return(tests.BookbuyerMCS)
+
+		Expect(client.ListEndpointsForService(tests.BookbuyerGlobalService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(10, 10, 10, 11),
+				Port: 80,
+			},
+			{
+				IP:   net.IPv4(10, 10, 10, 12),
+				Port: 90,
+			},
+		}))
+	})
+
+	It("should correctly return a list of endpoints for a remote service", func() {
+		mockConfigController.EXPECT().GetMultiClusterService(tests.BookbuyerClusterXService.Name, tests.BookbuyerClusterXService.Namespace).Return(tests.BookbuyerMCS)
+
+		Expect(client.ListEndpointsForService(tests.BookbuyerClusterXService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(10, 10, 10, 11),
+				Port: 80,
 			},
 		}))
 	})
@@ -212,6 +252,32 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		}))
 	})
 
+	It("GetResolvableEndpoints should properly return the global IP when the service is global", func() {
+		Expect(client.GetResolvableEndpointsForService(tests.BookbuyerGlobalService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(10, 10, 10, 30),
+				Port: 8082,
+			},
+			{
+				IP:   net.IPv4(10, 10, 10, 30),
+				Port: 9091,
+			},
+		}))
+	})
+
+	It("GetResolvableEndpoints should properly return a single endpoint when domain is a remote cluster", func() {
+		Expect(client.GetResolvableEndpointsForService(tests.BookbuyerClusterXService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(10, 10, 10, 11),
+				Port: 8082,
+			},
+			{
+				IP:   net.IPv4(10, 10, 10, 11),
+				Port: 9091,
+			},
+		}))
+	})
+
 	It("should correctly return the port to protocol mapping for a service's endpoints", func() {
 
 		appProtoHTTP := "http"
@@ -278,6 +344,16 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http", 130: "tcp"}
 		Expect(portToProtocolMap).To(Equal(expectedPortToProtocolMap))
 	})
+
+	It("should return an error for remote service", func() {
+		_, err := client.GetTargetPortToProtocolMappingForService(tests.BookbuyerClusterXService)
+		Expect(err).NotTo(BeNil())
+	})
+
+	It("should return an error for global service", func() {
+		_, err := client.GetTargetPortToProtocolMappingForService(tests.BookbuyerGlobalService)
+		Expect(err).NotTo(BeNil())
+	})
 })
 
 var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
@@ -293,10 +369,46 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 
-	providerID := "test-provider"
-	testNamespace := "testNamespace"
-	meshName := "meshName"
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
 	stop := make(chan struct{})
+
+	mockConfigController.EXPECT().ListMultiClusterServices().Return(
+		[]*v1alpha1.MultiClusterService{tests.BookstoreMCS, tests.BookbuyerMCS,
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-2",
+					Namespace: testNamespace,
+				},
+				Spec: v1alpha1.MultiClusterServiceSpec{
+					ServiceAccount: "test-service-account",
+					Ports: []v1alpha1.PortSpec{
+						{
+							Port:     8082,
+							Protocol: "HTTP",
+						},
+						{
+							Port:     9091,
+							Protocol: "TCP",
+						},
+					},
+					Cluster: []v1alpha1.ClusterSpec{
+						{
+							Name:    "cluster-x",
+							Address: "10.10.10.11:80",
+						},
+						{
+							Name:    "cluster-y",
+							Address: "10.10.10.12:90",
+						},
+					},
+				},
+			},
+		}).AnyTimes()
+	mockConfigController.EXPECT().GetMultiClusterService(
+		tests.BookbuyerService.Name, tests.BookbuyerService.Namespace).Return(tests.BookbuyerMCS).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = testclient.NewSimpleClientset()
@@ -326,6 +438,18 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when a pod matching the selector doesn't exist", func() {
+		// create a separate client scoped to this function only
+		mockCtrl := gomock.NewController(GinkgoT())
+		mockConfigController := config.NewMockController(mockCtrl)
+
+		stop := make(chan struct{})
+
+		mockConfigController.EXPECT().ListMultiClusterServices().Return(nil)
+		kubeController, err := k8s.NewKubernetesController(fakeClientSet, meshName, stop)
+		Expect(err).To(BeNil())
+
+		client := NewClient(kubeController, mockConfigController, providerID, mockConfigurator)
+
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -343,18 +467,19 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			},
 		}
 
-		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		services, err := client.GetServicesForServiceIdentity(tests.BookbuyerServiceIdentity)
 		Expect(err).To(HaveOccurred())
+
 		Expect(services).To(BeNil())
 
 		err = fakeClientSet.CoreV1().Services(testNamespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return a service that matches the ServiceAccount associated with the Pod", func() {
+	It("should return a service that matches the ServiceAccount associated with the Pod and MultiClusterServices", func() {
 		podsAndServiceChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated,
@@ -427,8 +552,19 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 		meshSvcs, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
-		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
-		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
+		expectedMeshSvcs := []service.MeshService{expectedMeshSvc,
+			{
+				Namespace:     "testNamespace",
+				Name:          "test-2",
+				ClusterDomain: "cluster-x",
+			},
+			{
+				Namespace:     "testNamespace",
+				Name:          "test-2",
+				ClusterDomain: "cluster-y",
+			},
+		}
+		Expect(meshSvcs).To(ConsistOf(expectedMeshSvcs))
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -440,6 +576,17 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			announcements.PodDeleted,
 			announcements.PodUpdated)
 		defer events.GetPubSubInstance().Unsub(podsChannel)
+
+		// create a separate client scoped to this function only so it doesn't return multi cluster services
+		mockCtrl := gomock.NewController(GinkgoT())
+		mockConfigController := config.NewMockController(mockCtrl)
+
+		stop := make(chan struct{})
+
+		mockConfigController.EXPECT().ListMultiClusterServices().Return(nil)
+		kubeController, err := k8s.NewKubernetesController(fakeClientSet, meshName, stop)
+		Expect(err).To(BeNil())
+		client := NewClient(kubeController, mockConfigController, providerID, mockConfigurator)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -460,7 +607,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			},
 		}
 
-		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create a Pod with labels that match the service selector
@@ -471,7 +618,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 				},
 			},
 			Spec: corev1.PodSpec{
-				ServiceAccountName: "test-service-account",
+				ServiceAccountName: "test-service-account-2",
 				Containers: []corev1.Container{
 					{
 						Name:  "BookbuyerContainerA",
@@ -494,7 +641,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
-			Name:      "test-service-account", // Should match the service account in the Deployment spec above
+			Name:      "test-service-account-2", // Should match the service account in the Deployment spec above
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
@@ -508,6 +655,17 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when the service doesn't have a selector", func() {
+		// create a separate client scoped to this function only
+		mockCtrl := gomock.NewController(GinkgoT())
+		mockConfigController := config.NewMockController(mockCtrl)
+
+		stop := make(chan struct{})
+
+		mockConfigController.EXPECT().ListMultiClusterServices().Return(nil)
+		kubeController, err := k8s.NewKubernetesController(fakeClientSet, meshName, stop)
+		Expect(err).To(BeNil())
+		client := NewClient(kubeController, mockConfigController, providerID, mockConfigurator)
+
 		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -528,7 +686,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			},
 		}
 
-		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create a Pod with labels that match the service selector
@@ -539,7 +697,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 				},
 			},
 			Spec: corev1.PodSpec{
-				ServiceAccountName: "test-service-account",
+				ServiceAccountName: "test-service-account-2",
 				Containers: []corev1.Container{
 					{
 						Name:  "BookbuyerContainerA",
@@ -562,7 +720,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 		givenSvcAccount := identity.K8sServiceAccount{
 			Namespace: testNamespace,
-			Name:      "test-service-account", // Should match the service account in the Deployment spec above
+			Name:      "test-service-account-2", // Should match the service account in the Deployment spec above
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
@@ -657,6 +815,8 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		expectedServices := []service.MeshService{
 			{Name: "test-1", Namespace: testNamespace, ClusterDomain: constants.LocalDomain},
 			{Name: "test-2", Namespace: testNamespace, ClusterDomain: constants.LocalDomain},
+			{Name: "test-2", Namespace: testNamespace, ClusterDomain: constants.ClusterDomain("cluster-x")},
+			{Name: "test-2", Namespace: testNamespace, ClusterDomain: constants.ClusterDomain("cluster-y")},
 		}
 		Expect(len(meshServices)).To(Equal(len(expectedServices)))
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))
@@ -685,9 +845,20 @@ func TestListEndpointsForIdentity(t *testing.T) {
 					IP: net.ParseIP(tests.ServiceIP),
 				}},
 			},
-			expectedEndpoints: []endpoint.Endpoint{{
-				IP: net.ParseIP(tests.ServiceIP),
-			}},
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP: net.ParseIP(tests.ServiceIP),
+				},
+				// Values taken from the tests.BookstoreMCS fixture
+				{
+					IP:   net.ParseIP("10.10.10.15"),
+					Port: 80,
+				},
+				{
+					IP:   net.ParseIP("10.10.10.16"),
+					Port: 90,
+				},
+			},
 		},
 		{
 			name:           "get endpoints for pod with multiple ips",
@@ -702,12 +873,23 @@ func TestListEndpointsForIdentity(t *testing.T) {
 					},
 				},
 			},
-			expectedEndpoints: []endpoint.Endpoint{{
-				IP: net.ParseIP(tests.ServiceIP),
-			},
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP: net.ParseIP(tests.ServiceIP),
+				},
 				{
 					IP: net.ParseIP("9.9.9.9"),
-				}},
+				},
+				// Values taken from the tests.BookstoreMCS fixture
+				{
+					IP:   net.ParseIP("10.10.10.15"),
+					Port: 80,
+				},
+				{
+					IP:   net.ParseIP("10.10.10.16"),
+					Port: 90,
+				},
+			},
 		},
 	}
 
@@ -719,8 +901,14 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+				EnableMulticlusterMode: true,
+			}).AnyTimes()
 			mockConfigController := config.NewMockController(mockCtrl)
-			providerID := "provider"
+
+			mockConfigController.EXPECT().ListMultiClusterServices().Return(
+				[]*v1alpha1.MultiClusterService{tests.BookstoreMCS, tests.BookbuyerMCS}).AnyTimes()
 
 			provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 
@@ -746,6 +934,327 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
 			assert.NotNil(actual)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
+		})
+	}
+}
+
+func TestListServices(t *testing.T) {
+	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(GinkgoT())
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockConfigClient := config.NewMockController(mockCtrl)
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
+	mockKubeController.EXPECT().ListServices().Return([]*corev1.Service{
+		tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
+			tests.SelectorKey: tests.SelectorValue,
+		}),
+		tests.NewServiceFixture(tests.BookwarehouseServiceName, tests.Namespace, map[string]string{
+			tests.SelectorKey: tests.SelectorValue,
+		}),
+	}).AnyTimes()
+
+	mockConfigClient.EXPECT().ListMultiClusterServices().Return([]*v1alpha1.MultiClusterService{tests.BookbuyerMCS, tests.BookstoreMCS}).AnyTimes()
+
+	c := Client{configurator: mockConfigurator, kubeController: mockKubeController, configClient: mockConfigClient}
+
+	svcs, err := c.ListServices()
+	assert.NoError(err)
+	assert.ElementsMatch([]service.MeshService{
+		tests.BookbuyerService,
+		tests.BookwarehouseService,
+		tests.BookbuyerClusterXService,
+		tests.BookbuyerClusterYService,
+		tests.BookstoreClusterXService,
+		tests.BookstoreClusterYService,
+	}, svcs)
+}
+
+func TestListServiceIdentitiesForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	// create a separate client scoped to this function only so it doesn't return multi cluster services
+	mockCtrl := gomock.NewController(GinkgoT())
+	mockConfigController := config.NewMockController(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
+	client := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+
+	unknownLocal := service.MeshService{Name: "unknown", Namespace: "unknown", ClusterDomain: constants.LocalDomain}
+	unknownRemote := service.MeshService{Name: "unknown", Namespace: "unknown", ClusterDomain: "cluster-x"}
+	knownLocal := service.MeshService{Name: "known", Namespace: "known", ClusterDomain: constants.LocalDomain}
+	knownRemote := service.MeshService{Name: "known", Namespace: "known", ClusterDomain: "cluster-x"}
+
+	mockKubeController.EXPECT().ListServiceAccountsForService(unknownLocal).Return(nil,
+		errors.New("Error fetching service \"unknown/unknown/local\": Service not found")).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccountsForService(knownLocal).Return(
+		[]identity.K8sServiceAccount{{Namespace: "known", Name: "local-identity"}},
+		nil).AnyTimes()
+
+	mockConfigController.EXPECT().GetMultiClusterService(unknownRemote.Name, unknownRemote.Namespace).Return(nil).AnyTimes()
+	mockConfigController.EXPECT().GetMultiClusterService(knownRemote.Name, knownRemote.Namespace).Return(
+		&v1alpha1.MultiClusterService{ObjectMeta: metav1.ObjectMeta{Namespace: knownRemote.Namespace}, Spec: v1alpha1.MultiClusterServiceSpec{ServiceAccount: "remote-identity"}}).AnyTimes()
+
+	testCases := []struct {
+		name               string
+		svc                service.MeshService
+		expectedIdentities []identity.ServiceIdentity
+		expectedErr        error
+	}{
+		{
+			name:        "no local service accounts returns an error",
+			svc:         unknownLocal,
+			expectedErr: errors.New("Error fetching service \"unknown/unknown/local\": Service not found"),
+		},
+		{
+			name:        "no remote service accounts returns an error",
+			svc:         unknownRemote,
+			expectedErr: fmt.Errorf("Error getting ServiceAccounts for Service unknown/unknown/cluster-x"),
+		},
+		{
+			name:               "local service with identities",
+			svc:                knownLocal,
+			expectedIdentities: []identity.ServiceIdentity{"local-identity.known.cluster.local"},
+		},
+		{
+			name:               "remote service with identities",
+			svc:                knownRemote,
+			expectedIdentities: []identity.ServiceIdentity{"remote-identity.known.cluster.local"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			identities, err := client.ListServiceIdentitiesForService(tc.svc)
+			if tc.expectedErr != nil {
+				assert.Error(err)
+				assert.Equal(tc.expectedErr.Error(), err.Error())
+			}
+			assert.ElementsMatch(identities, tc.expectedIdentities)
+		})
+	}
+}
+
+func TestGetPortToProtocolMappingForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	// create a separate client scoped to this function only so it doesn't return multi cluster services
+	mockCtrl := gomock.NewController(GinkgoT())
+	mockConfigController := config.NewMockController(mockCtrl)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
+	unknownLocal := service.MeshService{Name: "unknown", Namespace: "unknown", ClusterDomain: constants.LocalDomain}
+	unknownRemote := service.MeshService{Name: "unknown", Namespace: "unknown", ClusterDomain: "cluster-x"}
+	knownLocal := service.MeshService{Name: "known", Namespace: "known", ClusterDomain: constants.LocalDomain}
+	knownRemote := service.MeshService{Name: "known", Namespace: "known", ClusterDomain: "cluster-x"}
+
+	protocol := string(constants.ProtocolHTTP)
+	mockKubeController.EXPECT().GetService(unknownLocal).Return(nil)
+	mockKubeController.EXPECT().GetService(knownLocal).Return(&corev1.Service{
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Port:        80,
+					AppProtocol: &protocol,
+				},
+				{
+					Port: 90,
+					Name: "tcp-test",
+				},
+			},
+		},
+	})
+	mockConfigController.EXPECT().GetMultiClusterService(unknownRemote.Name, unknownRemote.Namespace).Return(nil)
+	mockConfigController.EXPECT().GetMultiClusterService(knownRemote.Name, knownRemote.Namespace).Return(
+		&v1alpha1.MultiClusterService{
+			Spec: v1alpha1.MultiClusterServiceSpec{
+				Ports: []v1alpha1.PortSpec{
+					{
+						Port:     8080,
+						Protocol: "grpc",
+					},
+					{
+						Port:     9090,
+						Protocol: "tcp",
+					},
+				},
+			},
+		})
+
+	client := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+
+	testCases := []struct {
+		name          string
+		svc           service.MeshService
+		expectedPorts map[uint32]string
+		expectedErr   error
+	}{
+		{
+			name:          "unknown local returns error",
+			svc:           unknownLocal,
+			expectedPorts: nil,
+			expectedErr:   errors.Wrapf(errServiceNotFound, "Error retrieving k8s service %s", unknownLocal),
+		},
+		{
+			name:          "unknown remote returns error",
+			svc:           unknownRemote,
+			expectedPorts: nil,
+			expectedErr:   fmt.Errorf("Error getting MultiClusterService for Service %s", unknownRemote),
+		},
+		{
+			name: "known local returns mapping",
+			svc:  knownLocal,
+			expectedPorts: map[uint32]string{
+				80: "http",
+				90: "tcp",
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "known remote returns mapping",
+			svc:  knownRemote,
+			expectedPorts: map[uint32]string{
+				8080: "grpc",
+				9090: "tcp",
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mappings, err := client.GetPortToProtocolMappingForService(tc.svc)
+			if tc.expectedErr != nil {
+				assert.Error(err)
+				assert.Equal(tc.expectedErr.Error(), err.Error())
+			}
+			assert.Equal(mappings, tc.expectedPorts)
+		})
+	}
+}
+
+func TestGetHostnamesForService(t *testing.T) {
+	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(GinkgoT())
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigClient := config.NewMockController(mockCtrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+	mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(tests.NewServiceFixtureWithMultiplePorts(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
+		tests.SelectorKey: tests.SelectorValue,
+	})).AnyTimes()
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
+	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
+
+	mockConfigClient.EXPECT().GetMultiClusterService(tests.BookbuyerClusterYService.Name,
+		tests.BookbuyerClusterYService.Namespace).Return(tests.BookbuyerMCS).AnyTimes()
+	testCases := []struct {
+		name              string
+		service           service.MeshService
+		locality          service.Locality
+		expectedHostnames []string
+	}{
+		{
+			name:     "hostnames corresponding to a service in the same namespace",
+			service:  tests.BookbuyerService,
+			locality: service.LocalNS,
+			expectedHostnames: []string{
+				tests.BookbuyerServiceName,
+				fmt.Sprintf("%s:8082", tests.BookbuyerServiceName),
+				fmt.Sprintf("%s:9091", tests.BookbuyerServiceName),
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:9091", tests.BookbuyerServiceName, tests.Namespace),
+			},
+		},
+		{
+			name:     "hostnames corresponding to a service NOT in the same namespace",
+			service:  tests.BookbuyerService,
+			locality: service.LocalCluster,
+			expectedHostnames: []string{
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:9091", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:9091", tests.BookbuyerServiceName, tests.Namespace),
+			},
+		},
+		{
+			name:     "hostnames corresponding to a local service from outside the local cluster",
+			service:  tests.BookbuyerService,
+			locality: service.RemoteCluster,
+			expectedHostnames: []string{
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-x:9091", tests.BookbuyerServiceName, tests.Namespace),
+			},
+		},
+		{
+			name:     "hostnames corresponding to a remote service from the local cluster",
+			service:  tests.BookbuyerClusterYService,
+			locality: service.LocalCluster,
+			expectedHostnames: []string{
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-y", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-y:8082", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.cluster-y:9091", tests.BookbuyerServiceName, tests.Namespace),
+			},
+		},
+	}
+	c := Client{configurator: mockConfigurator, kubeController: mockKubeController, configClient: mockConfigClient}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			log.Error().Msgf("running test %s", tc.name)
+
+			actual := c.GetHostnamesForService(tc.service, tc.locality)
+			assert.ElementsMatch(tc.expectedHostnames, actual)
+			assert.Len(actual, len(tc.expectedHostnames))
 		})
 	}
 }
