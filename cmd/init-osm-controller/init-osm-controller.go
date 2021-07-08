@@ -2,28 +2,25 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"os"
 
 	"github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/version"
+
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
-	meshConfigName          = "osm-mesh-config"
-	presetMeshConfigName    = "preset-mesh-config"
-	presetMeshConfigJSONKey = "preset-mesh-config.json"
+	meshConfigName       = "osm-mesh-config"
+	presetMeshConfigName = "preset-mesh-config"
 )
 
 var (
@@ -58,14 +55,7 @@ func validateCLIParams() error {
 	return nil
 }
 
-func createDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.MeshConfig {
-	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
-	presetMeshConfigSpec := v1alpha1.MeshConfigSpec{}
-	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
-	}
-
+func createDefaultMeshConfig(presetMeshConfig *v1alpha1.MeshConfig) *v1alpha1.MeshConfig {
 	return &v1alpha1.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
@@ -74,7 +64,7 @@ func createDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.Me
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,
 		},
-		Spec: presetMeshConfigSpec,
+		Spec: presetMeshConfig.Spec,
 	}
 }
 
@@ -96,14 +86,13 @@ func main() {
 		log.Fatal().Err(err).Msgf("Failed creating kube config (kubeconfig=%s)", kubeConfigFilePath)
 	}
 
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not access Kubernetes cluster, check kubeconfig.")
 		return
 	}
 
-	presetMeshConfigMap, presetConfigErr := kubeClient.CoreV1().ConfigMaps(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
+	presetMeshConfig, presetConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
 	_, meshConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 
 	// If the presetMeshConfig could not be loaded and a default meshConfig doesn't exist, return the error
@@ -112,7 +101,7 @@ func main() {
 		return
 	}
 
-	defaultMeshConfig := createDefaultMeshConfig(presetMeshConfigMap)
+	defaultMeshConfig := createDefaultMeshConfig(presetMeshConfig)
 
 	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
