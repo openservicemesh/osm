@@ -8,7 +8,9 @@ metadata:
     app: osm-injector
     meshName: {{ .Values.OpenServiceMesh.meshName }}
 spec:
+  {{- if not .Values.OpenServiceMesh.injector.autoScale.enable }}
   replicas: {{ .Values.OpenServiceMesh.injector.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: osm-injector

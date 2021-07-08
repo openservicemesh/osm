@@ -111,7 +111,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.injector.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | OpenServiceMesh.injector.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | OpenServiceMesh.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
-| OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count |
+| OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | OpenServiceMesh.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
@@ -123,7 +123,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.osmController.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | OpenServiceMesh.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | OpenServiceMesh.osmController.podLabels | object | `{}` | OSM controller's pod labels |
-| OpenServiceMesh.osmController.replicaCount | int | `1` | OSM controller's replica count |
+| OpenServiceMesh.osmController.replicaCount | int | `1` | OSM controller's replica count (ignored when autoscale.enable is true) |
 | OpenServiceMesh.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"512M"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters |
 | OpenServiceMesh.osmNamespace | string | `""` | Namespace to deploy OSM in. If not specified, the Helm release namespace is used. |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
