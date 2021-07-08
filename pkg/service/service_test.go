@@ -27,8 +27,6 @@ func TestServerName(t *testing.T) {
 }
 
 func TestEquals(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name           string
 		service        MeshService
@@ -67,6 +65,8 @@ func TestEquals(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := tc.service.Equals(tc.anotherService)
 			assert.Equal(actual, tc.isEqual)
 		})
@@ -74,8 +74,6 @@ func TestEquals(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		service       MeshService
@@ -103,6 +101,8 @@ func TestString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := tc.service.String()
 			assert.Equal(actual, tc.serviceString)
 		})

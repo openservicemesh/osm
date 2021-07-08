@@ -240,6 +240,8 @@ func TestCertificaterFromCertificateRequest(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			cert, err := cm.certificaterFromCertificateRequest(&tc.cr, emptyArr)
 
 			assert.Equal(tc.expectedCertIsNil, cert == nil)

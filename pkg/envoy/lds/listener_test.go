@@ -261,8 +261,6 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 })
 
 func TestGetFilterMatchPredicateForPorts(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		ports         []int
@@ -317,6 +315,8 @@ func TestGetFilterMatchPredicateForPorts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getFilterMatchPredicateForPorts(tc.ports)
 			assert.Equal(tc.expectedMatch, actual)
 		})
@@ -324,8 +324,6 @@ func TestGetFilterMatchPredicateForPorts(t *testing.T) {
 }
 
 func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		matches       []*trafficpolicy.TrafficMatch
@@ -366,6 +364,8 @@ func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getFilterMatchPredicateForTrafficMatches(tc.matches)
 			assert.Equal(tc.expectedMatch, actual)
 		})

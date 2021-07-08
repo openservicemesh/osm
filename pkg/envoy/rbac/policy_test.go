@@ -10,8 +10,6 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                string
 		p                   *Policy
@@ -277,6 +275,8 @@ func TestGenerate(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			policy, err := tc.p.Generate()
 
 			assert.Equal(err != nil, tc.expectError)

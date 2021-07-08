@@ -60,8 +60,6 @@ var (
 )
 
 func TestAddRule(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                  string
 		existingRules         []*Rule
@@ -119,6 +117,8 @@ func TestAddRule(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			inboundPolicy := newTestInboundPolicy(tc.name, tc.existingRules)
 			inboundPolicy.AddRule(tc.route, tc.allowedServiceAccount)
 			assert.Equal(tc.expectedRules, inboundPolicy.Rules)
@@ -127,8 +127,6 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestAddRoute(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                  string
 		existingRoutes        []*RouteWeightedClusters
@@ -234,6 +232,8 @@ func TestAddRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			outboundPolicy := newTestOutboundPolicy(tc.name, tc.existingRoutes)
 			err := outboundPolicy.AddRoute(tc.givenRouteMatch, tc.givenWeightedClusters...)
 			if tc.expectedErr {
@@ -247,8 +247,6 @@ func TestAddRoute(t *testing.T) {
 }
 
 func TestMergeInboundPolicies(t *testing.T) {
-	assert := tassert.New(t)
-
 	testRule1 := Rule{
 		Route:                  testRoute,
 		AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
@@ -344,6 +342,8 @@ func TestMergeInboundPolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := MergeInboundPolicies(false, tc.originalInbound, tc.newInbound...)
 			assert.ElementsMatch(tc.expectedInbound, actual)
 		})
@@ -351,8 +351,6 @@ func TestMergeInboundPolicies(t *testing.T) {
 }
 
 func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
-	assert := tassert.New(t)
-
 	testRule1 := Rule{
 		Route:                  testRoute,
 		AllowedServiceAccounts: mapset.NewSet(testServiceAccount1),
@@ -423,6 +421,8 @@ func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newInbound...)
 			assert.ElementsMatch(actual, tc.expectedInbound)
 		})
@@ -430,8 +430,6 @@ func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 }
 
 func TestMergeRules(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		originalRules []*Rule
@@ -509,6 +507,8 @@ func TestMergeRules(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := mergeRules(tc.originalRules, tc.newRules)
 			assert.ElementsMatch(tc.expectedRules, actual)
 		})
@@ -516,8 +516,6 @@ func TestMergeRules(t *testing.T) {
 }
 
 func TestMergeOutboundPolicies(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                                               string
 		originalPolicies, latestPolicies, expectedPolicies []*OutboundTrafficPolicy
@@ -643,6 +641,8 @@ func TestMergeOutboundPolicies(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := MergeOutboundPolicies(tc.allowPartialHostnamesMatch, tc.originalPolicies, tc.latestPolicies...)
 			assert.ElementsMatch(actual, tc.expectedPolicies)
 		})
@@ -650,8 +650,6 @@ func TestMergeOutboundPolicies(t *testing.T) {
 }
 
 func TestMergeRouteWeightedClusters(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                                         string
 		originalRoutes, latestRoutes, expectedRoutes []*RouteWeightedClusters
@@ -683,6 +681,8 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes)
 			assert.Equal(tc.expectedRoutes, actual)
 		})
@@ -700,8 +700,6 @@ func TestNewInboundTrafficPolicy(t *testing.T) {
 }
 
 func TestNewRouteWeightedCluster(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name             string
 		route            HTTPRouteMatch
@@ -718,6 +716,8 @@ func TestNewRouteWeightedCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := NewRouteWeightedCluster(tc.route, tc.weightedClusters)
 			assert.Equal(tc.expected, actual)
 		})
@@ -736,8 +736,6 @@ func TestNewOutboundPolicy(t *testing.T) {
 }
 
 func TestTotalClustersWeight(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name           string
 		route          RouteWeightedClusters
@@ -760,6 +758,8 @@ func TestTotalClustersWeight(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := tc.route.TotalClustersWeight()
 			assert.Equal(tc.expectedWeight, actual)
 		})
@@ -814,8 +814,6 @@ func TestSlicesUnionIfSubset(t *testing.T) {
 }
 
 func TestDeduplicateTrafficMatches(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name     string
 		input    []*TrafficMatch
@@ -939,6 +937,8 @@ func TestDeduplicateTrafficMatches(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := DeduplicateTrafficMatches(tc.input)
 			assert.Nil(err)
 			assert.Len(actual, len(tc.expected))
@@ -947,8 +947,6 @@ func TestDeduplicateTrafficMatches(t *testing.T) {
 }
 
 func TestDeduplicateClusterConfigs(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name     string
 		input    []*EgressClusterConfig
@@ -1026,6 +1024,8 @@ func TestDeduplicateClusterConfigs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := DeduplicateClusterConfigs(tc.input)
 			assert.Nil(err)
 			assert.Len(actual, len(tc.expected))

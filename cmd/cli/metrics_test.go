@@ -215,8 +215,6 @@ func TestRun_MetricsDisable(t *testing.T) {
 }
 
 func TestIsMonitoredNamespace(t *testing.T) {
-	assert := tassert.New(t)
-
 	meshList := mapset.NewSet(testMesh)
 
 	nsMonitored := corev1.Namespace{
@@ -259,6 +257,8 @@ func TestIsMonitoredNamespace(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing if %s exists is monitored", tc.ns.Name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			monitored, err := isMonitoredNamespace(tc.ns, meshList)
 			assert.Equal(monitored, tc.exists)
 			assert.Equal(err != nil, tc.expectErr)

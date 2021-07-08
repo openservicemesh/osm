@@ -12,8 +12,6 @@ import (
 )
 
 func TestIsCNForProxy(t *testing.T) {
-	assert := tassert.New(t)
-
 	type testCase struct {
 		name     string
 		cn       certificate.CommonName
@@ -46,6 +44,8 @@ func TestIsCNForProxy(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := isCNforProxy(tc.proxy, tc.cn)
 			assert.Equal(tc.expected, actual)
 		})

@@ -98,6 +98,8 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			assert.Equal(listener.FilterChains[i].FilterChainMatch.ServerNames, tc.expectedFilterChainMatch.ServerNames)
 			assert.Equal(listener.FilterChains[i].FilterChainMatch.ApplicationProtocols, tc.expectedFilterChainMatch.ApplicationProtocols)
 			assert.Equal(listener.FilterChains[i].FilterChainMatch.TransportProtocol, tc.expectedFilterChainMatch.TransportProtocol)

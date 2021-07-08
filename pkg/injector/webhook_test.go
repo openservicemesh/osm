@@ -106,8 +106,6 @@ func (mc mockCertificate) GetExpiration() time.Time                  { return ti
 func (mc mockCertificate) GetSerialNumber() certificate.SerialNumber { return "serial_number" }
 
 func TestIsAnnotatedForInjection(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name        string
 		annotations map[string]string
@@ -175,6 +173,8 @@ func TestIsAnnotatedForInjection(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actualExists, actualEnabled, actualErr := isAnnotatedForInjection(tc.annotations, "-kind-", "-name-")
 			assert.Equal(tc.exists, actualExists)
 			assert.Equal(tc.enabled, actualEnabled)
@@ -664,8 +664,6 @@ var _ = Describe("Testing Injector Functions", func() {
 })
 
 func TestIsAnnotatedForPortExclusion(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		annotations   map[string]string
@@ -712,6 +710,8 @@ func TestIsAnnotatedForPortExclusion(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			ports, err := isAnnotatedForPortExclusion(tc.annotations, tc.forAnnotation, "-kind-", "-name-")
 			if err != nil {
 				assert.EqualError(tc.expectedError, err.Error())
@@ -724,8 +724,6 @@ func TestIsAnnotatedForPortExclusion(t *testing.T) {
 }
 
 func TestGetPodOutboundPortExclusionList(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		podAnnotation map[string]string
@@ -772,6 +770,8 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCtrl := gomock.NewController(GinkgoT())
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			fakeClientSet := fake.NewSimpleClientset()

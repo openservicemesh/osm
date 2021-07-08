@@ -16,8 +16,6 @@ import (
 )
 
 func TestGetHostnamesForService(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name              string
 		service           *corev1.Service
@@ -64,6 +62,8 @@ func TestGetHostnamesForService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := GetHostnamesForService(tc.service, tc.locality)
 			assert.ElementsMatch(actual, tc.expectedHostnames)
 			assert.Len(actual, len(tc.expectedHostnames))
@@ -72,8 +72,6 @@ func TestGetHostnamesForService(t *testing.T) {
 }
 
 func TestGetServiceFromHostname(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name            string
 		hostnames       []string
@@ -99,6 +97,8 @@ func TestGetServiceFromHostname(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			for _, hostname := range tc.hostnames {
 				actual := GetServiceFromHostname(hostname)
 				assert.Equal(actual, tc.expectedService)
@@ -108,8 +108,6 @@ func TestGetServiceFromHostname(t *testing.T) {
 }
 
 func TestGetAppProtocolFromPortName(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name             string
 		portName         string
@@ -139,6 +137,8 @@ func TestGetAppProtocolFromPortName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := GetAppProtocolFromPortName(tc.portName)
 			assert.Equal(tc.expectedProtocal, actual)
 		})
@@ -146,8 +146,6 @@ func TestGetAppProtocolFromPortName(t *testing.T) {
 }
 
 func TestGetKubernetesServerVersionNumber(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name            string
 		kubeClient      kubernetes.Interface
@@ -179,6 +177,8 @@ func TestGetKubernetesServerVersionNumber(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			if tc.kubeClient != nil {
 				tc.kubeClient.Discovery().(*fakediscovery.FakeDiscovery).FakedServerVersion = &version.Info{
 					GitVersion: tc.version,

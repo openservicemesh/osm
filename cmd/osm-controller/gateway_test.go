@@ -16,7 +16,6 @@ import (
 )
 
 func TestBootstrapOSMGateway(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -126,6 +125,8 @@ static_resources:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			fakeClient := fake.NewSimpleClientset()
 
 			testNs := "test"
@@ -150,8 +151,6 @@ static_resources:
 }
 
 func TestIsValidBootstrapData(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name         string
 		boostrapYAML string
@@ -258,6 +257,8 @@ node:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := isValidBootstrapData([]byte(tc.boostrapYAML))
 			assert.Equal(tc.expected, actual)
 		})

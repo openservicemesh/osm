@@ -18,7 +18,6 @@ var (
 )
 
 func TestGetAdmissionRequestBody(t *testing.T) {
-	assert := tassert.New(t)
 	w := httptest.NewRecorder()
 
 	testCases := []struct {
@@ -55,6 +54,8 @@ func TestGetAdmissionRequestBody(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			b, err := GetAdmissionRequestBody(w, tc.req)
 			assert.Equal(tc.expErr, err)
 			assert.Equal(tc.expBody, b)

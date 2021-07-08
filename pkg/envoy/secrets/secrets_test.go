@@ -87,7 +87,6 @@ var _ = Describe("Test secert tools", func() {
 })
 
 func TestUnmarshalMeshService(t *testing.T) {
-	assert := tassert.New(t)
 	require := trequire.New(t)
 
 	namespace := "randomNamespace"
@@ -159,6 +158,8 @@ func TestUnmarshalMeshService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := tc.sdsCert.GetMeshService()
 			if tc.expectedErr {
 				assert.NotNil(err)
@@ -171,7 +172,6 @@ func TestUnmarshalMeshService(t *testing.T) {
 }
 
 func TestUnmarshalK8sServiceAccount(t *testing.T) {
-	assert := tassert.New(t)
 	require := trequire.New(t)
 
 	namespace := "randomNamespace"
@@ -241,6 +241,8 @@ func TestUnmarshalK8sServiceAccount(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := tc.sdsCert.GetK8sServiceAccount()
 			if tc.expectedErr {
 				assert.NotNil(err)
@@ -253,8 +255,6 @@ func TestUnmarshalK8sServiceAccount(t *testing.T) {
 }
 
 func TestGetSecretNameForIdentity(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		si       identity.ServiceIdentity
 		expected string
@@ -271,6 +271,8 @@ func TestGetSecretNameForIdentity(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Test case %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := GetSecretNameForIdentity(tc.si)
 			assert.Equal(tc.expected, actual)
 		})

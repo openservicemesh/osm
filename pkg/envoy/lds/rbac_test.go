@@ -18,8 +18,6 @@ import (
 )
 
 func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name          string
 		trafficTarget trafficpolicy.TrafficTargetWithRoutes
@@ -139,6 +137,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// Test the RBAC policies
 			policy, err := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
 
@@ -149,7 +149,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 }
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -216,6 +215,8 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// Mock catalog calls
 			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount.ToServiceIdentity()).Return(tc.trafficTargets, nil).Times(1)
 
@@ -236,7 +237,6 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 }
 
 func TestBuildRBACFilter(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -299,6 +299,8 @@ func TestBuildRBACFilter(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// Mock catalog calls
 			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount).Return(tc.trafficTargets, nil).Times(1)
 

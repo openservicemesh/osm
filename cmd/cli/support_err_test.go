@@ -10,8 +10,6 @@ import (
 // TestErrInfoRun tests errInfoCmd.run()
 
 func TestErrInfoRun(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name      string
 		errCode   string
@@ -41,6 +39,8 @@ func TestErrInfoRun(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			var out bytes.Buffer
 			cmd := &errInfoCmd{out: &out}
 			err := cmd.run(tc.errCode)

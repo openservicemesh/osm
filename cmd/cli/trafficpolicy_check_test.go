@@ -20,8 +20,6 @@ import (
 )
 
 func TestUnmarshalNamespacedPod(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		namespacedPod     string
 		expectedNamespace string
@@ -36,6 +34,8 @@ func TestUnmarshalNamespacedPod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing if %s", tc.namespacedPod), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actualNamespace, actualPodName, err := unmarshalNamespacedPod(tc.namespacedPod)
 			assert.Equal(actualNamespace, tc.expectedNamespace)
 			assert.Equal(actualPodName, tc.expectedPodName)
@@ -104,6 +104,8 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing testcase %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// create the MeshConfig
 			_, err := fakeConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
 			assert.Nil(err)
@@ -283,6 +285,8 @@ func TestRun(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing testcase %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			cmd.sourcePod = tc.srcNamespacedPod
 			cmd.destinationPod = tc.dstNamespacedPod
 
@@ -541,6 +545,8 @@ func TestCheckTrafficPolicy(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing testcase %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// create MeshConfig
 			_, err := fakeConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
 			assert.Nil(err)

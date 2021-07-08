@@ -23,8 +23,6 @@ import (
 )
 
 func TestGetUpstreamServiceCluster(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
@@ -53,6 +51,8 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			opts := []clusterOption{withTLS}
 			if tc.permissiveMode {
 				opts = append(opts, permissive)
@@ -66,8 +66,6 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 }
 
 func TestGetLocalServiceCluster(t *testing.T) {
-	assert := tassert.New(t)
-
 	clusterName := "default/bookbuyer/local-local"
 	proxyService := service.MeshService{
 		Name:          "bookbuyer",
@@ -124,6 +122,8 @@ func TestGetLocalServiceCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			if tc.expectedPortToProtocolMappingErr {
 				mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tc.proxyService).Return(tc.portToProtocolMapping, errors.New("error")).Times(1)
 			} else {
@@ -238,6 +238,8 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := getOriginalDestinationEgressCluster(tc.clusterName)
 			assert.Nil(err)
 			assert.Equal(tc.expected, actual)
@@ -246,8 +248,6 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 }
 
 func TestGetEgressClusters(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                 string
 		clusterConfigs       []*trafficpolicy.EgressClusterConfig
@@ -293,6 +293,8 @@ func TestGetEgressClusters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getEgressClusters(tc.clusterConfigs)
 			assert.Len(actual, tc.expectedClusterCount)
 		})
@@ -300,8 +302,6 @@ func TestGetEgressClusters(t *testing.T) {
 }
 
 func TestGetDNSResolvableEgressCluster(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name            string
 		clusterConfig   *trafficpolicy.EgressClusterConfig
@@ -380,6 +380,8 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := getDNSResolvableEgressCluster(tc.clusterConfig)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedCluster, actual)
@@ -388,8 +390,6 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 }
 
 func TestFormatAltStatNameForPrometheus(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                string
 		clusterName         string
@@ -414,6 +414,8 @@ func TestFormatAltStatNameForPrometheus(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := formatAltStatNameForPrometheus(tc.clusterName)
 			assert.Equal(tc.expectedAltStatName, actual)
 		})

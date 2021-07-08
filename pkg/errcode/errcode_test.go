@@ -12,8 +12,6 @@ func TestString(t *testing.T) {
 }
 
 func TestFromStr(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name            string
 		str             string
@@ -36,6 +34,8 @@ func TestFromStr(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := FromStr(tc.str)
 
 			assert.Equal(tc.expectError, err != nil)
