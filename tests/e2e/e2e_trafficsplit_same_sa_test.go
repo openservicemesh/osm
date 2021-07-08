@@ -80,7 +80,8 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							Namespace:    serverNamespace,
 							ReplicaCount: int32(serverReplicaSet),
 							Image:        "simonkowallik/httpbin",
-							Ports:        []int{80},
+							Ports:        []int{appPort},
+							Command:      []string{"gunicorn", "-b", fmt.Sprintf("0.0.0.0:%d", appPort), "httpbin:app", "-k", "gevent"},
 						})
 
 					// Expose an env variable such as XHTTPBIN_X_POD_NAME:
@@ -121,7 +122,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							Command:      []string{"/bin/bash", "-c", "--"},
 							Args:         []string{"while true; do sleep 30; done;"},
 							Image:        "songrgg/alpine-debug",
-							Ports:        []int{80},
+							Ports:        []int{appPort},
 						})
 
 					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
@@ -164,7 +165,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
 					Name:      trafficSplitName,
 					Namespace: serverNamespace,
-					Ports:     []int{80},
+					Ports:     []int{appPort},
 				})
 
 				// Creating trafficsplit service in K8s
@@ -211,7 +212,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							SourceContainer: ns, // container_name == NS for this test
 
 							// Targeting the trafficsplit FQDN
-							Destination: fmt.Sprintf("%s.%s", trafficSplitName, serverNamespace),
+							Destination: fmt.Sprintf("%s.%s:%d", trafficSplitName, serverNamespace, appPort),
 						})
 					}
 				}
