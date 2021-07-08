@@ -9,7 +9,9 @@ metadata:
     meshName: {{ .Values.OpenServiceMesh.meshName }}
     {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
+  {{- if not .Values.OpenServiceMesh.osmController.autoScale.enable }}
   replicas: {{ .Values.OpenServiceMesh.osmController.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: osm-controller
