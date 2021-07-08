@@ -227,3 +227,11 @@ const (
 func (c ClusterDomain) String() string {
 	return string(c)
 }
+
+// Retry Policy
+const (
+	EnableRetryKey   = "openservicemesh.io/retrypolicy/enabled"
+	RetryOnKey       = "openservicemesh.io/retrypolicy/retry-on"
+	NumRetriesKey    = "openservicemesh.io/retrypolicy/num-retries"
+	PerTryTimeoutKey = "openservicemesh.io/retrypolicy/per-try-timeout"
+)

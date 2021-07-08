@@ -1,9 +1,14 @@
 package catalog
 
 import (
+	"strconv"
+	"time"
+
 	mapset "github.com/deckarep/golang-set"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -44,13 +49,27 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		if !isValidTrafficTarget(t) {
 			continue
 		}
+		var retryPolicy trafficpolicy.RetryPolicy
+		retryPolicyHasReqField := 0
+		addRetryPolicy := false
+		for annotationKey, annotationVal := range t.Annotations {
+			addRetryPolicy, retryPolicyHasReqField = getRetryPolicy(retryPolicy, annotationKey, annotationVal)
+		}
+		if retryPolicyHasReqField != 2 {
+			addRetryPolicy = false
+			log.Error().Msgf("Retry policy does not have all required fields: %v, %v", constants.EnableRetryKey, constants.RetryOnKey)
+		}
 
 		for _, source := range t.Spec.Sources {
 			// TODO(draychev): must check for the correct type of ServiceIdentity as well
 			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
-				mergedPolicies := trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
-				outboundPolicies = mergedPolicies
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				break
+			}
+		}
+		for _, out := range outboundPolicies {
+			if addRetryPolicy {
+				trafficpolicy.MergeRoutesRetryPolicy(out.Routes, retryPolicy)
 			}
 		}
 	}
@@ -361,4 +380,39 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	}
 
 	return dstServices
+}
+
+func getRetryPolicy(retryPolicy trafficpolicy.RetryPolicy, key, val string) (bool, int) {
+	retryPolicyHasReqField := 0
+	addRetryPolicy := false
+	switch val {
+	case constants.RetryOnKey:
+		retryPolicy.RetryOn = val
+		retryPolicyHasReqField++
+	case constants.NumRetriesKey:
+		retryNum, err := strconv.Atoi(val)
+		if err != nil {
+			log.Error().Err(err).Msgf("Cannot use %v as value for %v, must be a uint32", val, key)
+			break
+		}
+		retryPolicy.NumRetries = &wrapperspb.UInt32Value{Value: uint32(retryNum)}
+	case constants.PerTryTimeoutKey:
+		timeoutTime, err := time.ParseDuration(val)
+		if err != nil {
+			log.Error().Err(err).Msgf("Cannot use %v as value for %v, must be a time", val, key)
+			break
+		}
+		retryPolicy.PerTryTimeout = ptypes.DurationProto(timeoutTime)
+	case constants.EnableRetryKey:
+		retryPolicyHasReqField++
+		enabled, err := strconv.ParseBool(val)
+		if err != nil {
+			log.Error().Err(err).Msgf("Cannot use %v as value for %v, must be a boolean", val, key)
+			break
+		}
+		if enabled {
+			addRetryPolicy = true
+		}
+	}
+	return addRetryPolicy, retryPolicyHasReqField
 }
