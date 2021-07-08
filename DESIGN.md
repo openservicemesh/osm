@@ -302,11 +302,11 @@ type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
-	// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given service account
-	ListAllowedInboundServiceIdentities(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+	// ListInboundServiceIdentities lists the downstream service identities that can connect to the given service account
+	ListInboundServiceIdentities(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 
-	// ListAllowedOutboundServiceIdentities lists the upstream service identities the given service account can connect to
-	ListAllowedOutboundServiceIdentities(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+	// ListOutboundServiceIdentities lists the upstream service identities the given service account can connect to
+	ListOutboundServiceIdentities(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 
 	// ListServiceIdentitiesForService lists the service identities associated with the given service
 	ListServiceIdentitiesForService(service.MeshService) ([]service.K8sServiceAccount, error)

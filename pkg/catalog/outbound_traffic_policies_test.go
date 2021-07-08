@@ -753,7 +753,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 	}
 }
 
-func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
+func TestListOutboundServicesForIdentity(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -796,7 +796,7 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 			mc := newFakeMeshCatalogForRoutes(t, testParams{
 				permissiveMode: tc.permissiveMode,
 			})
-			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.svcIdentity)
+			actualList := mc.ListOutboundServicesForIdentity(tc.svcIdentity)
 			assert.ElementsMatch(actualList, tc.expectedList)
 		})
 	}

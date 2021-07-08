@@ -17,7 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func TestListAllowedInboundServiceIdentities(t *testing.T) {
+func TestListInboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -189,14 +189,14 @@ func TestListAllowedInboundServiceIdentities(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedInboundServiceIdentities(tc.serviceIdentity)
+			actual, err := meshCatalog.ListInboundServiceIdentities(tc.serviceIdentity)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(actual, tc.expectedInboundServiceIdentities)
 		})
 	}
 }
 
-func TestListAllowedOutboundServiceIdentities(t *testing.T) {
+func TestListOutboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -372,7 +372,7 @@ func TestListAllowedOutboundServiceIdentities(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListAllowedOutboundServiceIdentities(tc.serviceIdentity)
+			actual, err := meshCatalog.ListOutboundServiceIdentities(tc.serviceIdentity)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(actual, tc.expectedOutboundServiceIdentities)
 		})

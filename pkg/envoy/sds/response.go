@@ -191,7 +191,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
-		svcIdentities, err := meshCatalog.ListAllowedInboundServiceIdentities(serviceIdentity)
+		svcIdentities, err := meshCatalog.ListInboundServiceIdentities(serviceIdentity)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", serviceIdentity)
 			return nil, err

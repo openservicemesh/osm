@@ -109,9 +109,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	return outboundPoliciesFromSplits
 }
 
-// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
+// ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
+func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.isOSMGateway(serviceIdentity) {
 		var services []service.MeshService
@@ -312,7 +312,7 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 // ListMeshServicesForIdentity returns a list of services the service with the
 // given identity can communicate with, including apex TrafficSplit services.
 func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIdentity) []service.MeshService {
-	upstreamServices := mc.ListAllowedOutboundServicesForIdentity(identity)
+	upstreamServices := mc.ListOutboundServicesForIdentity(identity)
 	if len(upstreamServices) == 0 {
 		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", identity)
 		return nil

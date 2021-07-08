@@ -25,7 +25,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	if proxy.Kind() == envoy.KindGateway {
 		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+		for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -39,7 +39,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build remote clusters based on allowed outbound services
-	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+	for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 		opts := []clusterOption{withTLS}
 		if cfg.IsPermissiveTrafficPolicyMode() {
 			opts = append(opts, permissive)

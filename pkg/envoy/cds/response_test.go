@@ -61,7 +61,7 @@ func TestNewResponse(t *testing.T) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}))
 
-	mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
+	mockCatalog.EXPECT().ListOutboundServicesForIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service}).AnyTimes()
 	mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookbuyerService).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
@@ -389,7 +389,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).AnyTimes()
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(nil).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil, proxyRegistry)
 	tassert.Error(t, err)
@@ -416,7 +416,7 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetTargetPortToProtocolMappingForService(svc).Return(nil, errors.New("some error")).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
@@ -441,7 +441,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	mockKubeController := k8s.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, errors.New("some error")).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
@@ -466,7 +466,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	mockKubeController := k8s.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(&trafficpolicy.EgressTrafficPolicy{
@@ -497,7 +497,7 @@ func TestNewResponseForGateway(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	mockKubeController := k8s.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	meshCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(proxyIdentity).Return([]service.MeshService{
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return([]service.MeshService{
 		tests.BookbuyerService,
 		tests.BookwarehouseService,
 	}).AnyTimes()
