@@ -78,7 +78,7 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 		}
 
 		if svc.SingleRemoteCluster() {
-			for _, cluster := range mcs.Spec.Cluster {
+			for _, cluster := range mcs.Spec.Clusters {
 				if cluster.Name == svc.ClusterDomain.String() {
 					ep, err := epFromCluster(cluster.Address)
 					if err == nil {
@@ -91,7 +91,7 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 		}
 
 		if svc.Global() {
-			for _, cluster := range mcs.Spec.Cluster {
+			for _, cluster := range mcs.Spec.Clusters {
 				ep, err := epFromCluster(cluster.Address)
 				if err != nil {
 					log.Error().Err(err).Msgf("error parsing endpoint from %s", cluster.Address)
@@ -161,7 +161,7 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 			if mcs.Spec.ServiceAccount != sa.Name {
 				continue
 			}
-			for _, cluster := range mcs.Spec.Cluster {
+			for _, cluster := range mcs.Spec.Clusters {
 				ep, err := epFromCluster(cluster.Address)
 				if err != nil {
 					log.Error().Err(err).Msgf("[%s] Error parsing IP address from MultiClusterService %s", c.providerIdent, cluster.Address)
@@ -202,20 +202,30 @@ func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 	if c.configurator.GetFeatureFlags().EnableMulticlusterMode {
 		mcservices := c.configClient.ListMultiClusterServices()
+		log.Debug().Msgf("Checking listservices for identity %s in multicluster mode! %d, %+v", svcIdentity, len(mcservices), mcservices)
+
 		for _, mcs := range mcservices {
+			log.Debug().Msgf("checking mcs against svc account: %s, %s", svcAccount.Namespace, svcAccount.Name)
 			if mcs.Namespace != svcAccount.Namespace {
 				continue
 			}
 			if mcs.Spec.ServiceAccount != svcAccount.Name {
 				continue
 			}
-			for _, cluster := range mcs.Spec.Cluster {
+			log.Debug().Msgf("passed mcs check %d", len(mcs.Spec.Clusters))
+
+			for _, cluster := range mcs.Spec.Clusters {
 				services.Add(service.MeshService{
 					Namespace:     mcs.Namespace,
 					Name:          mcs.Name,
 					ClusterDomain: constants.ClusterDomain(cluster.Name),
 				})
 			}
+			services.Add(service.MeshService{
+				Namespace:     mcs.Namespace,
+				Name:          mcs.Name,
+				ClusterDomain: constants.GlobalDomain,
+			})
 		}
 	}
 
@@ -344,7 +354,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 			ipStr = mcs.Spec.GlobalIP
 		} else {
 			// Refers to a specific cluster
-			for _, cluster := range mcs.Spec.Cluster {
+			for _, cluster := range mcs.Spec.Clusters {
 				if cluster.Name == svc.ClusterDomain.String() {
 					parts := strings.Split(cluster.Address, ":")
 					if len(parts) != 2 {
@@ -382,7 +392,7 @@ func (c *Client) ListServices() ([]service.MeshService, error) {
 
 	if c.configurator.GetFeatureFlags().EnableMulticlusterMode {
 		for _, mcs := range c.configClient.ListMultiClusterServices() {
-			for _, cluster := range mcs.Spec.Cluster {
+			for _, cluster := range mcs.Spec.Clusters {
 				services = append(services, service.MeshService{
 					Namespace:     mcs.Namespace,
 					Name:          mcs.Name,
@@ -453,11 +463,12 @@ func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (ma
 		if mcs == nil {
 			return nil, fmt.Errorf("Error getting MultiClusterService for Service %s", svc)
 		}
-
+		log.Debug().Msgf("got a port to protocol mapping for the ports: %d, %+v", len(mcs.Spec.Ports), mcs.Spec.Ports)
 		for _, port := range mcs.Spec.Ports {
 			if protocol, ok := portToProtocolMap[port.Port]; ok && protocol != port.Protocol {
 				log.Error().Msgf("received conflicting port to protocol mapping for service %s", svc)
 			}
+			log.Debug().Msgf("adding protocol for mcs: %s on port %d from %+v", port.Protocol, port.Port, port)
 			portToProtocolMap[port.Port] = port.Protocol
 		}
 	}
@@ -488,7 +499,6 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 
 	// Allow the local cluster name for all local services
 	if svc.Local() && c.configurator.GetFeatureFlags().EnableMulticlusterMode {
-		fmt.Println("||||||||||||| allowed multicluster mode")
 		// Allow reference to the self cluster id.
 		domains = append(domains, fmt.Sprintf("%s.%s.svc.cluster.%s", serviceName, namespace, c.configurator.GetClusterDomain()))
 	}
@@ -512,4 +522,33 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 		}
 	}
 	return domains
+}
+
+// GetServicesByNameNamespace returns the list of mesh services with the given name in the given namespace across
+// all clusters.
+func (c Client) GetServicesByNameNamespace(name, namespace string) []service.MeshService {
+	var services []service.MeshService
+
+	localSvc := service.MeshService{
+		Name:          name,
+		Namespace:     namespace,
+		ClusterDomain: constants.LocalDomain,
+	}
+	// Append localSvc if it exists
+	if exists := c.kubeController.GetService(localSvc); exists != nil {
+		services = append(services, localSvc)
+	}
+
+	mcs := c.configClient.GetMultiClusterService(name, namespace)
+	if mcs == nil {
+		return services
+	}
+
+	for _, cluster := range mcs.Spec.Clusters {
+		services = append(services, service.MeshService{
+			Name:          name,
+			Namespace:     namespace,
+			ClusterDomain: constants.ClusterDomain(cluster.Name)})
+	}
+	return services
 }

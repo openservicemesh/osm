@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-controller
-  namespace: {{ include "osm.namespace" . }}
+  namespace: osm-system
   labels:
     {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
@@ -25,7 +25,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
-      serviceAccountName: {{ .Release.Name }}
+      serviceAccountName: osm
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
@@ -55,7 +55,7 @@ spec:
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
-            "--osm-service-account", "{{ .Release.Name }}",
+            "--osm-service-account", "osm",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",

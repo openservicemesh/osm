@@ -10,14 +10,17 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -1240,6 +1243,61 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	configClient := config.NewMockController(mockCtrl)
+
+	mockKubeController.EXPECT().GetService(service.MeshService{
+		Name:          "foo",
+		Namespace:     "bar",
+		ClusterDomain: constants.LocalDomain,
+	}).Return(nil).AnyTimes()
+
+	mockKubeController.EXPECT().GetService(service.MeshService{
+		Name:          "baz",
+		Namespace:     "qux",
+		ClusterDomain: constants.LocalDomain,
+	}).Return(&corev1.Service{}).AnyTimes()
+
+	configClient.EXPECT().GetMultiClusterService("baz", "qux").Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "baz",
+			Namespace: "qux",
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Clusters: []v1alpha1.ClusterSpec{
+				{
+					Name: "cluster-x",
+				},
+				{
+					Name: "cluster-y",
+				},
+				{
+					Name: "cluster-z",
+				},
+			},
+		},
+	}).AnyTimes()
+
+	configClient.EXPECT().GetMultiClusterService("foo", "bar").Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Clusters: []v1alpha1.ClusterSpec{
+				{
+					Name: "cluster-a",
+				},
+				{
+					Name: "cluster-b",
+				},
+				{
+					Name: "cluster-c",
+				},
+			},
+		},
+	}).AnyTimes()
+
 	type testCase struct {
 		name          string
 		upstream      service.MeshService
@@ -1420,15 +1478,64 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "Global service with only remote backends",
+			upstream: service.MeshService{
+				Name:          "foo",
+				Namespace:     "bar",
+				ClusterDomain: constants.GlobalDomain,
+			},
+			expected: []service.WeightedCluster{
+				{
+					ClusterName: "bar/foo/cluster-a",
+				},
+				{
+					ClusterName: "bar/foo/cluster-b",
+				},
+				{
+					ClusterName: "bar/foo/cluster-c",
+				},
+			},
+		},
+
+		{
+			name: "Global service with remote and local backends",
+			upstream: service.MeshService{
+				Name:          "baz",
+				Namespace:     "qux",
+				ClusterDomain: constants.GlobalDomain,
+			},
+			expected: []service.WeightedCluster{
+				{
+					ClusterName: "qux/baz/local",
+				},
+				{
+					ClusterName: "qux/baz/cluster-x",
+				},
+				{
+					ClusterName: "qux/baz/cluster-y",
+				},
+				{
+					ClusterName: "qux/baz/cluster-z",
+				},
+			},
+		},
 	}
+
+	provider := kube.NewClient(mockKubeController, configClient, "fake-provider", nil)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
+			if !tc.upstream.Global() {
+				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
+
+			}
 
 			mc := MeshCatalog{
-				meshSpec: mockMeshSpec,
+				serviceProviders: []service.Provider{provider},
+				meshSpec:         mockMeshSpec,
 			}
 
 			clusterWeights := mc.GetWeightedClustersForUpstream(tc.upstream)

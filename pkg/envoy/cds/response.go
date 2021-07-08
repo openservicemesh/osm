@@ -23,23 +23,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	if proxy.Kind() == envoy.KindGateway {
-		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
-			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
-				return nil, err
-			}
-
-			clusters = append(clusters, cluster)
-		}
-		return removeDups(clusters), nil
-	}
-
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+		// The global service is comprised of other weighted clusters, so doesn't need it's own specific cluster.
+		if dstService.Global() {
+			continue
+		}
 		opts := []clusterOption{withTLS}
 		if cfg.IsPermissiveTrafficPolicyMode() {
 			opts = append(opts, permissive)
@@ -51,6 +40,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 
 		clusters = append(clusters, cluster)
+	}
+
+	if proxy.Kind() == envoy.KindGateway {
+		return removeDups(clusters), nil
 	}
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)

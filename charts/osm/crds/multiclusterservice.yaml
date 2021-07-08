@@ -41,6 +41,8 @@ spec:
                 - serviceAccount
                 - clusters
               properties:
+                globalIP:
+                  type: string
                 serviceAccount:
                   type: string
                 ports:
@@ -65,7 +67,6 @@ spec:
                           - tcp
                           - http
                           - grpc
-                  type: string
                 clusters:
                   description: The clusters the service accounts are hosted on.
                   type: array

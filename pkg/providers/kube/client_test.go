@@ -394,7 +394,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 							Protocol: "TCP",
 						},
 					},
-					Cluster: []v1alpha1.ClusterSpec{
+					Clusters: []v1alpha1.ClusterSpec{
 						{
 							Name:    "cluster-x",
 							Address: "10.10.10.11:80",
@@ -1255,6 +1255,135 @@ func TestGetHostnamesForService(t *testing.T) {
 			actual := c.GetHostnamesForService(tc.service, tc.locality)
 			assert.ElementsMatch(tc.expectedHostnames, actual)
 			assert.Len(actual, len(tc.expectedHostnames))
+		})
+	}
+}
+
+func TestGetServiceByNameNamespace(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	configClient := config.NewMockController(mockCtrl)
+
+	mockKubeController.EXPECT().GetService(service.MeshService{
+		Name:          "foo",
+		Namespace:     "bar",
+		ClusterDomain: constants.LocalDomain,
+	}).Return(nil).AnyTimes()
+
+	mockKubeController.EXPECT().GetService(service.MeshService{
+		Name:          "baz",
+		Namespace:     "qux",
+		ClusterDomain: constants.LocalDomain,
+	}).Return(&corev1.Service{}).AnyTimes()
+
+	configClient.EXPECT().GetMultiClusterService("baz", "qux").Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "baz",
+			Namespace: "qux",
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Clusters: []v1alpha1.ClusterSpec{
+				{
+					Name: "cluster-x",
+				},
+				{
+					Name: "cluster-y",
+				},
+				{
+					Name: "cluster-z",
+				},
+			},
+		},
+	}).AnyTimes()
+
+	configClient.EXPECT().GetMultiClusterService("foo", "bar").Return(&v1alpha1.MultiClusterService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+		Spec: v1alpha1.MultiClusterServiceSpec{
+			Clusters: []v1alpha1.ClusterSpec{
+				{
+					Name: "cluster-a",
+				},
+				{
+					Name: "cluster-b",
+				},
+				{
+					Name: "cluster-c",
+				},
+			},
+		},
+	}).AnyTimes()
+
+	type testCase struct {
+		name         string
+		svcName      string
+		svcNamespace string
+		expected     []service.MeshService
+	}
+
+	testCases := []testCase{
+		{
+			name:         "Global service with only remote backends",
+			svcName:      "foo",
+			svcNamespace: "bar",
+			expected: []service.MeshService{
+				{
+					Name:          "foo",
+					Namespace:     "bar",
+					ClusterDomain: "cluster-a",
+				},
+				{
+					Name:          "foo",
+					Namespace:     "bar",
+					ClusterDomain: "cluster-b",
+				},
+				{
+					Name:          "foo",
+					Namespace:     "bar",
+					ClusterDomain: "cluster-c",
+				},
+			},
+		},
+
+		{
+			name:         "Global service with remote and local backends",
+			svcName:      "baz",
+			svcNamespace: "qux",
+			expected: []service.MeshService{
+				{
+					Name:          "baz",
+					Namespace:     "qux",
+					ClusterDomain: constants.LocalDomain,
+				},
+				{
+					Name:          "baz",
+					Namespace:     "qux",
+					ClusterDomain: "cluster-x",
+				},
+				{
+					Name:          "baz",
+					Namespace:     "qux",
+					ClusterDomain: "cluster-y",
+				},
+				{
+					Name:          "baz",
+					Namespace:     "qux",
+					ClusterDomain: "cluster-z",
+				},
+			},
+		},
+	}
+
+	provider := NewClient(mockKubeController, configClient, "fake-provider", nil)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			assert.Equal(tc.expected, provider.GetServicesByNameNamespace(tc.svcName, tc.svcNamespace))
 		})
 	}
 }

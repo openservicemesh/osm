@@ -147,3 +147,14 @@ func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) ([
 	}
 	return endpoints, nil
 }
+
+func (f fakeClient) GetServicesByNameNamespace(name, namespace string) (ret []service.MeshService) {
+	for _, services := range f.services {
+		for _, svc := range services {
+			if svc.Name == name && svc.Namespace == namespace {
+				ret = append(ret, svc)
+			}
+		}
+	}
+	return
+}

@@ -17,6 +17,7 @@ spec:
         app: osm-gateway
       name: osm-gateway
     spec:
+      serviceAccountName: gateway
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
@@ -54,4 +55,14 @@ spec:
         - name: envoy-bootstrap-config-volume
           secret:
             secretName: osm-gateway-bootstrap-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-gateway
+  name: gateway
+  namespace: {{ include "osm.namespace" . }}
+
 {{- end }}

@@ -624,7 +624,7 @@ var (
 					Protocol: "TCP",
 				},
 			},
-			Cluster: []v1alpha1.ClusterSpec{
+			Clusters: []v1alpha1.ClusterSpec{
 				{
 					Name:    "cluster-x",
 					Address: "10.10.10.15:80",
@@ -656,7 +656,7 @@ var (
 					Protocol: "TCP",
 				},
 			},
-			Cluster: []v1alpha1.ClusterSpec{
+			Clusters: []v1alpha1.ClusterSpec{
 				{
 					Name:    "cluster-x",
 					Address: "10.10.10.11:80",

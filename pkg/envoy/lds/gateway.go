@@ -75,7 +75,7 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 						service.MeshService{
 							Name:          upstream.Name,
 							Namespace:     upstream.Namespace,
-							ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+							ClusterDomain: constants.LocalDomain}.ServerName(),
 					},
 					ApplicationProtocols: envoy.ALPNInMesh,
 					TransportProtocol:    envoy.TransportProtocolTLS,

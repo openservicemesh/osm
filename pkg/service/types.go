@@ -117,4 +117,6 @@ type Provider interface {
 
 	// GetID returns the unique identifier of the ServiceProvider.
 	GetID() string
+
+	GetServicesByNameNamespace(string, string) []MeshService
 }

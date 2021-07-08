@@ -41,7 +41,7 @@ func bootstrapOSMGateway(kubeClient kubernetes.Interface, certManager certificat
 		return nil
 	}
 
-	gatewayCN := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, osmServiceAccount, osmNamespace)
+	gatewayCN := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "gateway", osmNamespace)
 	bootstrapCert, err := certManager.IssueCertificate(gatewayCN, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing bootstrap certificate for OSM gateway: %s", err)

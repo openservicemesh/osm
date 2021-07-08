@@ -36,6 +36,11 @@ data:
       "certificate": {
         "serviceCertValidityDuration": "{{.Values.OpenServiceMesh.serviceCertValidityDuration}}"
       },
+      "experimental": {
+        "multicluster": {
+          "clusterDomain": "cluster-x"
+        }
+      },
       "featureFlags": {
         "enableWASMStats": {{.Values.OpenServiceMesh.featureFlags.enableWASMStats}},
         "enableEgressPolicy": {{.Values.OpenServiceMesh.featureFlags.enableEgressPolicy}},

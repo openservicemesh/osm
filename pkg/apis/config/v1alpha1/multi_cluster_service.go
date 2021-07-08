@@ -28,7 +28,7 @@ type MultiClusterServiceSpec struct {
 	GlobalIP string `json:"globalIP,omitempty" protobuf:"bytes,3,opt,name=globalIP"`
 
 	// ClusterSpec defines the configuration of other clusters
-	Cluster []ClusterSpec `json:"cluster,omitempty"`
+	Clusters []ClusterSpec `json:"clusters,omitempty"`
 
 	// ServiceAccount represents the service account of the multicluster service.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
@@ -50,9 +50,9 @@ type ClusterSpec struct {
 // PortSpec contains information on service's port.
 type PortSpec struct {
 	// The port that will be exposed by this service.
-	Port uint32
+	Port uint32 `json:"port,omitempty"`
 	// Protocol is The IP protocol for this port. Supports "grpc", "http", and "tcp". Default is tcp.
-	Protocol string
+	Protocol string `json:"protocol,omitempty"`
 }
 
 // MultiClusterServiceList defines the list of MultiClusterService objects.
