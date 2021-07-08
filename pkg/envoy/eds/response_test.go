@@ -87,8 +87,6 @@ func TestEndpointConfiguration(t *testing.T) {
 }
 
 func TestClusterToMeshSvc(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name            string
 		cluster         string
@@ -121,6 +119,8 @@ func TestClusterToMeshSvc(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			meshSvc, err := clusterToMeshSvc(tc.cluster)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedMeshSvc, meshSvc)

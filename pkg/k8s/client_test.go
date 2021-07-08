@@ -623,8 +623,6 @@ func TestGetEndpoint(t *testing.T) {
 }
 
 func TestIsMetricsEnabled(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                    string
 		addPrometheusAnnotation bool
@@ -659,6 +657,8 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
 			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)

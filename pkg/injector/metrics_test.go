@@ -80,6 +80,8 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Namespace %s", tc.namespace), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			enabled, err := wh.isMetricsEnabled(tc.namespace)
 			assert.Equal(enabled, tc.expectMetricsToBeEnabled)
 			assert.Equal(err != nil, tc.expectedErr)

@@ -240,7 +240,6 @@ func TestGetRootCert(t *testing.T) {
 }
 
 func TestGetServiceCert(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -260,6 +259,8 @@ func TestGetServiceCert(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// Mock cert
 			mockCertificater.EXPECT().GetCertificateChain().Return(tc.certChain).Times(1)
 			mockCertificater.EXPECT().GetPrivateKey().Return(tc.privKey).Times(1)
@@ -479,8 +480,6 @@ func TestGetSDSSecrets(t *testing.T) {
 }
 
 func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
-	assert := tassert.New(t)
-
 	type testCase struct {
 		serviceIdentities   []identity.ServiceIdentity
 		expectedSANMatchers []*xds_matcher.StringMatcher
@@ -509,6 +508,8 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities)
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
@@ -516,8 +517,6 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 }
 
 func TestSubjectAltNamesToStr(t *testing.T) {
-	assert := tassert.New(t)
-
 	type testCase struct {
 		sanMatchers []*xds_matcher.StringMatcher
 		strSANs     []string
@@ -546,6 +545,8 @@ func TestSubjectAltNamesToStr(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := subjectAltNamesToStr(tc.sanMatchers)
 			assert.ElementsMatch(actual, tc.strSANs)
 		})

@@ -444,8 +444,6 @@ var _ = Describe("Test XDS certificate tooling", func() {
 })
 
 func TestPodMetadataString(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name     string
 		proxy    *Proxy
@@ -474,6 +472,8 @@ func TestPodMetadataString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := tc.proxy.PodMetadataString()
 			assert.Equal(tc.expected, actual)
 		})

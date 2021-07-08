@@ -26,8 +26,6 @@ func TestNewPolicyClient(t *testing.T) {
 }
 
 func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -142,6 +140,8 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			fakepolicyClientSet := fakePolicyClient.NewSimpleClientset()
 
 			// Create fake egress policies

@@ -18,8 +18,6 @@ import (
 )
 
 func TestBuildInboundRBACFilterForRule(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name               string
 		rule               *trafficpolicy.Rule
@@ -108,6 +106,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			rbacFilter, err := buildInboundRBACFilterForRule(tc.rule)
 
 			assert.Equal(tc.expectError, err != nil)

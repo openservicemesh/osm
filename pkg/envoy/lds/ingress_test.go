@@ -19,7 +19,6 @@ import (
 )
 
 func TestGetIngressFilterChains(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -90,6 +89,8 @@ func TestGetIngressFilterChains(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
@@ -132,8 +133,6 @@ func TestGetIngressFilterChains(t *testing.T) {
 }
 
 func TestGetIngressTransportProtocol(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                      string
 		forHTTPS                  bool
@@ -153,6 +152,8 @@ func TestGetIngressTransportProtocol(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getIngressTransportProtocol(tc.forHTTPS)
 			assert.Equal(tc.expectedTransportProtocol, actual)
 		})

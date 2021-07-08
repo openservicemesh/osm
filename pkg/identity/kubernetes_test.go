@@ -29,6 +29,8 @@ func TestGetKubernetesServiceIdentity(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing GetKubernetesServiceIdentity for test case: %v", tc), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			si := GetKubernetesServiceIdentity(tc.svcAccount, tc.trustDomain)
 			assert.Equal(si, tc.expectedServiceIdentity)
 		})

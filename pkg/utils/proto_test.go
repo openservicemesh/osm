@@ -15,8 +15,6 @@ import (
 )
 
 func TestProtoToYAML(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name         string
 		proto        protoreflect.ProtoMessage
@@ -90,6 +88,8 @@ tls_minimum_protocol_version: TLSv1_2
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual, err := ProtoToYAML(tc.proto)
 			assert.Nil(err)
 			assert.Equal(tc.expectedYAML, string(actual))

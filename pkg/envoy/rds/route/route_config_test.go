@@ -22,8 +22,6 @@ import (
 )
 
 func TestBuildRouteConfiguration(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
@@ -96,6 +94,8 @@ func TestBuildRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableWASMStats: false,
 			}).Times(1)
@@ -134,8 +134,6 @@ func TestBuildRouteConfiguration(t *testing.T) {
 }
 
 func TestBuildIngressRouteConfiguration(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
@@ -215,6 +213,8 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableWASMStats: false,
 			}).AnyTimes()
@@ -237,8 +237,6 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 }
 
 func TestBuildVirtualHostStub(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name         string
 		namePrefix   string
@@ -264,6 +262,8 @@ func TestBuildVirtualHostStub(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := buildVirtualHostStub(tc.namePrefix, tc.host, tc.domains)
 			assert.Equal(tc.expectedName, actual.Name)
 			assert.Equal(tc.domains, actual.Domains)
@@ -271,8 +271,6 @@ func TestBuildVirtualHostStub(t *testing.T) {
 	}
 }
 func TestBuildInboundRoutes(t *testing.T) {
-	assert := tassert.New(t)
-
 	testWeightedCluster := service.WeightedCluster{
 		ClusterName: "default/testCluster/local",
 		Weight:      100,
@@ -281,7 +279,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 	testCases := []struct {
 		name       string
 		inputRules []*trafficpolicy.Rule
-		expectFunc func(actual []*xds_route.Route)
+		expectFunc func(assert *tassert.Assertions, actual []*xds_route.Route)
 	}{
 		{
 			name: "valid route rule",
@@ -301,7 +299,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 					),
 				},
 			},
-			expectFunc: func(actual []*xds_route.Route) {
+			expectFunc: func(assert *tassert.Assertions, actual []*xds_route.Route) {
 				assert.Equal(1, len(actual))
 				assert.Equal("/hello", actual[0].GetMatch().GetSafeRegex().Regex)
 				assert.Equal("GET", actual[0].GetMatch().GetHeaders()[0].GetSafeRegexMatch().Regex)
@@ -328,7 +326,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 					AllowedServiceAccounts: nil,
 				},
 			},
-			expectFunc: func(actual []*xds_route.Route) {
+			expectFunc: func(assert *tassert.Assertions, actual []*xds_route.Route) {
 				assert.Equal(0, len(actual))
 			},
 		},
@@ -337,7 +335,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			actual := buildInboundRoutes(tc.inputRules)
-			tc.expectFunc(actual)
+			tc.expectFunc(tassert.New(t), actual)
 		})
 	}
 }
@@ -371,8 +369,6 @@ func TestBuildOutboundRoutes(t *testing.T) {
 }
 
 func TestBuildRoute(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name             string
 		weightedClusters mapset.Set
@@ -619,6 +615,8 @@ func TestBuildRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := buildRoute(tc.pathMatchType, tc.path, tc.method, tc.headersMap, tc.weightedClusters, tc.totalWeight, tc.direction)
 
 			// Assert route.Match
@@ -632,8 +630,6 @@ func TestBuildRoute(t *testing.T) {
 }
 
 func TestBuildWeightedCluster(t *testing.T) {
-	assert := tassert.New(t)
-
 	weightedClusters := mapset.NewSetFromSlice([]interface{}{
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 30},
 		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2/local"), Weight: 70},
@@ -661,6 +657,8 @@ func TestBuildWeightedCluster(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := buildWeightedCluster(tc.weightedClusters, tc.totalWeight, tc.direction)
 			assert.Len(actual.Clusters, 2)
 			assert.EqualValues(uint32(tc.totalWeight), actual.TotalWeight.GetValue())
@@ -669,8 +667,6 @@ func TestBuildWeightedCluster(t *testing.T) {
 }
 
 func TestSanitizeHTTPMethods(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                   string
 		allowedMethods         []string
@@ -691,6 +687,8 @@ func TestSanitizeHTTPMethods(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := sanitizeHTTPMethods(tc.allowedMethods)
 			assert.Equal(tc.expectedAllowedMethods, actual)
 		})
@@ -709,8 +707,6 @@ func TestNewRouteConfigurationStub(t *testing.T) {
 }
 
 func TestGetRegexForMethod(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name     string
 		input    string
@@ -730,6 +726,8 @@ func TestGetRegexForMethod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := getRegexForMethod(tc.input)
 			assert.Equal(tc.expected, actual)
 		})
@@ -869,8 +867,6 @@ func TestLess(t *testing.T) {
 }
 
 func TestBuildEgressRoute(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name           string
 		routingRules   []*trafficpolicy.EgressHTTPRoutingRule
@@ -988,6 +984,8 @@ func TestBuildEgressRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := buildEgressRoutes(tc.routingRules)
 			assert.ElementsMatch(tc.expectedRoutes, actual)
 		})
@@ -995,8 +993,6 @@ func TestBuildEgressRoute(t *testing.T) {
 }
 
 func TestBuildEgressRouteConfiguration(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                     string
 		portSpecificRouteConfigs map[int][]*trafficpolicy.EgressHTTPRouteConfig
@@ -1220,6 +1216,8 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := BuildEgressRouteConfiguration(tc.portSpecificRouteConfigs)
 			assert.ElementsMatch(tc.expectedRouteConfigs, actual)
 		})
@@ -1227,8 +1225,6 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 }
 
 func TestGetEgressRouteConfigNameForPort(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name         string
 		port         int
@@ -1248,6 +1244,8 @@ func TestGetEgressRouteConfigNameForPort(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := GetEgressRouteConfigNameForPort(tc.port)
 			assert.Equal(tc.expectedName, actual)
 		})

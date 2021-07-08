@@ -16,8 +16,6 @@ import (
 )
 
 func TestAnnotateErrorMessageWithActionableMessage(t *testing.T) {
-	assert := tassert.New(t)
-
 	type test struct {
 		errorMsg     string
 		name         string
@@ -40,6 +38,8 @@ func TestAnnotateErrorMessageWithActionableMessage(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("Testing annotated error message", func(t *testing.T) {
+			assert := tassert.New(t)
+
 			assert.Equal(
 				tc.annotatedMsg,
 				annotateErrorMessageWithActionableMessage(actionableMsg, tc.errorMsg, tc.name, tc.namespace, tc.exceptionMsg).Error())
@@ -48,8 +48,6 @@ func TestAnnotateErrorMessageWithActionableMessage(t *testing.T) {
 }
 
 func TestAnnotateErrorMessageWithOsmNamespace(t *testing.T) {
-	assert := tassert.New(t)
-
 	type test struct {
 		errorMsg     string
 		name         string
@@ -75,6 +73,8 @@ func TestAnnotateErrorMessageWithOsmNamespace(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("Testing annotated error message", func(t *testing.T) {
+			assert := tassert.New(t)
+
 			assert.Equal(
 				tc.annotatedMsg,
 				annotateErrorMessageWithOsmNamespace(tc.errorMsg, tc.name, tc.namespace, tc.exceptionMsg).Error())

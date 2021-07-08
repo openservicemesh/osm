@@ -22,7 +22,6 @@ import (
 )
 
 func TestGetCertificateManager(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
@@ -49,6 +48,8 @@ func TestGetCertificateManager(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			manager, _, err := tc.util.GetCertificateManager()
 			assert.NotNil(manager)
 			assert.Equal(tc.expectError, err != nil)

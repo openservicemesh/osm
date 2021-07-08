@@ -16,8 +16,6 @@ import (
 )
 
 func TestGetEgressHTTPFilterChain(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -51,6 +49,8 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			lb := &listenerBuilder{
 				cfg: mockConfigurator,
 			}
@@ -69,8 +69,6 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 }
 
 func TestGetEgressTCPFilterChain(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -151,6 +149,8 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false,
@@ -169,8 +169,6 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 }
 
 func TestGetEgressFilterChainsForMatches(t *testing.T) {
-	assert := tassert.New(t)
-
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -222,6 +220,8 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			lb := &listenerBuilder{
 				cfg: mockConfigurator,
 			}

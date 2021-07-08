@@ -36,8 +36,6 @@ func (f *fakeDiscoveryClient) ServerResourcesForGroupVersion(groupVersion string
 }
 
 func TestGetSupportedIngressVersions(t *testing.T) {
-	assert := tassert.New(t)
-
 	type testCase struct {
 		name             string
 		discoveryClient  discovery.ServerResourcesInterface
@@ -117,6 +115,8 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			versions, err := getSupportedIngressVersions(tc.discoveryClient)
 
 			assert.Equal(tc.exepectError, err != nil)
@@ -128,7 +128,6 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	assert := tassert.New(t)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 	meshSvc := service.MeshService{Name: "foo", Namespace: "test"}
@@ -303,6 +302,8 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			fakeClient := fake.NewSimpleClientset(tc.ingressResource)
 			fakeClient.Discovery().(*fakeDiscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{
 				{

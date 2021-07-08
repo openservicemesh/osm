@@ -27,7 +27,6 @@ import (
 )
 
 func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -95,6 +94,8 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.expectedEndpoints, nil)
 			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(tests.BookstoreApexService, tc.servicePort)
 
@@ -115,7 +116,6 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 }
 
 func TestGetOutboundTCPFilterChainForService(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -173,6 +173,8 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.expectedEndpoints, nil)
 			mockCatalog.EXPECT().GetWeightedClustersForUpstream(tests.BookstoreApexService).Times(1)
 
@@ -195,7 +197,6 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 }
 
 func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -274,6 +275,8 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
@@ -293,7 +296,6 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 }
 
 func TestGetInboundMeshTCPFilterChain(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -372,6 +374,8 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
@@ -392,7 +396,6 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 
 // Tests getOutboundFilterChainMatchForService and ensures the filter chain match returned is as expected
 func TestGetOutboundFilterChainMatchForService(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
@@ -521,6 +524,8 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			// mock endpoints returned
 			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.endpoints, nil)
 

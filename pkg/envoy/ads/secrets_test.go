@@ -128,6 +128,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			mockCatalog.EXPECT().ListAllowedOutboundServicesForIdentity(tc.proxyIdentity).Return(tc.allowedOutboundServices).Times(1)
 
 			actual := makeRequestForAllSecrets(testProxy, mockCatalog)

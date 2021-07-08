@@ -135,8 +135,6 @@ func TestCreatePatch(t *testing.T) {
 }
 
 func TestMergePortExclusionLists(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name                              string
 		podOutboundPortExclusionList      []int
@@ -177,6 +175,8 @@ func TestMergePortExclusionLists(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
 			assert.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
 		})

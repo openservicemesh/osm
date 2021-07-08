@@ -12,8 +12,6 @@ import (
 )
 
 func TestIsMeshedPod(t *testing.T) {
-	assert := tassert.New(t)
-
 	type test struct {
 		pod      corev1.Pod
 		isMeshed bool
@@ -41,6 +39,8 @@ func TestIsMeshedPod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing if pod %s is meshed", tc.pod.Name), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			isMeshed := isMeshedPod(tc.pod)
 			assert.Equal(isMeshed, tc.isMeshed)
 		})
@@ -48,8 +48,6 @@ func TestIsMeshedPod(t *testing.T) {
 }
 
 func TestAnnotateErrMsgWithPodNamespaceMsg(t *testing.T) {
-	assert := tassert.New(t)
-
 	type test struct {
 		errorMsg     string
 		podName      string
@@ -70,6 +68,8 @@ func TestAnnotateErrMsgWithPodNamespaceMsg(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing annotated error message for pod name [%s] in pod namespace [%s]", tc.podName, tc.podNamespace), func(t *testing.T) {
+			assert := tassert.New(t)
+
 			assert.Equal(
 				tc.annotatedMsg,
 				annotateErrMsgWithPodNamespaceMsg(tc.errorMsg, tc.podName, tc.podNamespace).Error())
