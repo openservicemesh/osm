@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}, proxyRegistry *registry.ProxyRegistry) {
@@ -23,7 +24,8 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 				log.Debug().Err(recvErr).Msgf("[grpc] Connection terminated")
 				return
 			}
-			log.Error().Err(recvErr).Msgf("[grpc] Connection error")
+			log.Error().Err(recvErr).Str(errcode.Kind, errcode.ErrGRPCConnectionFailed.String()).
+				Msgf("[grpc] Connection error")
 			return
 		}
 		log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())

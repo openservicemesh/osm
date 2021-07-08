@@ -160,6 +160,66 @@ const (
 	ErrMeshConfigMarshaling
 )
 
+// Range 5000-5500 reserved for errors related to Envoy XDS control plane
+const (
+	// ErrMarshallingXDSResource indicates an XDS resource could not be marshalled
+	ErrMarshallingXDSResource ErrCode = iota + 5000
+
+	// ErrParsingXDSCertCN indicates the configured XDS certificate common name could not be parsed
+	ErrParsingXDSCertCN
+
+	// ErrFetchingPodFromCert indicates the proxy UUID obtained from a certificate's common name metadata was not
+	// found as a osm-proxy-uuid label value for any pod
+	ErrFetchingPodFromCert
+
+	// ErrPodBelongsToMultipleServices indicates a pod in the mesh belongs to more than one service
+	ErrPodBelongsToMultipleServices
+
+	// ErrGettingProxyFromPod indicates the proxy data structure could not be obtained from the osm-proxy-uuid
+	// label value on a pods
+	ErrGettingProxyFromPod
+
+	// ErrGRPCConnectionFailed indicates discovery requests cannot be received by ADS due to a GRPC connection failure
+	ErrGRPCConnectionFailed
+
+	// ErrSendingDiscoveryResponse indicates the configured discovery response could not be sent
+	ErrSendingDiscoveryResponse
+
+	// ErrGeneratingReqResource indicates the resources for the discovery response could not be generated
+	ErrGeneratingReqResource
+
+	// ErrRecordingSnapshot indicates the aggregated resources generate for a discovery response could not be created
+	ErrRecordingSnapshot
+
+	// ErrGettingServiceIdentity indicates the ServiceIdentity name encoded in the XDS certificate CN could not be
+	// obtained
+	ErrGettingServiceIdentity
+
+	// ErrStartingADSServer indicates the gPRC service failed to start
+	ErrStartingADSServer
+
+	// ERRInitializingProxy indicates an instance of the Envoy proxy that connected to the XDS server could not be
+	// initialized
+	ErrInitializingProxy
+
+	// ErrMismatchedServiceAccount inicates the ServiceAccount referenced in the NodeID does not match the
+	// ServiceAccount specified in the proxy certificate
+	ErrMismatchedServiceAccount
+
+	// ErrGRPCStreamClosedByProxy indicates the gRPC stream was closed by the proxy
+	ErrGRPCStreamClosedByProxy
+
+	// ErrUnexpectedXDSRequest indicates that a proxy has not completed its init phase and is not ready to
+	// receive updates
+	ErrUnexpectedXDSRequest
+
+	// ErrInvalidXDSTypeURI indicates the TypeURL of the discovery request is invalid
+	ErrInvalidXDSTypeURI
+
+	// ErrParsingDiscoveryReqVersion indicates the discovery request response version could not be parsed
+	ErrParsingDiscoveryReqVersion
+)
+
 // String returns the error code as a string, ex. E1000
 func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
@@ -296,59 +356,76 @@ belong to the service account.
 	ErrFetchingCertSecret: `
 The Kubernetes secret containing the certificate could not be retrieved by the system.
 `,
+
 	ErrObtainingCertFromSecret: `
 The certificate specified by name could not be obtained by key from the secret's data.
 `,
+
 	ErrObtainingPrivateKeyFromSecret: `
 The private key specified by name could not be obtained by key from the secret's data.
 `,
+
 	ErrObtainingCertExpirationFromSecret: `
 The certificate expiration specified by name could not be obtained by key from the secret's
 data.
 `,
+
 	ErrParsingCertExpiration: `
 The certificate expiration obtained from the secret's data by name could not be parsed.
 `,
+
 	ErrCreatingCertSecret: `
 The secret containing a certificate could not be created by the system.
 `,
+
 	ErrGeneratingPrivateKey: `
 A private key failed to be generated.
 `,
+
 	ErrEncodingKeyDERtoPEM: `
 The specified private key could be be could not be converted from a DER encoded key to a
 PEM encoded key.
 `,
+
 	ErrCreatingCertReq: `
 The certificate request fails to be created when attempting to issue a certificate.
 `,
+
 	ErrDeletingCertReq: `
 The certificate request could not be deleted.
 `,
+
 	ErrCreatingRootCert: `
 When creating a new certificate authority, the root certificate could not be obtained by
 the system.
 `,
+
 	ErrEncodingCertDERtoPEM: `
 The specified certificate could not be converted from a DER encoded certificate to a PEM
 encoded certificate.
 `,
+
 	ErrDecodingPEMCert: `
 The specified PEM encoded certificate could not be decoded.
 `,
+
 	ErrDecodingPEMPrivateKey: `
 The specified PEM privateKey for the certificate authority's root certificate could not
 be decoded.
 `,
+
 	ErrIssuingCert: `
 An unspecified error occurred when issuing a certificate from the certificate manager.
 `,
+
 	ErrCreatingCert: `
 An error occurred when creating a certificate to issue from the certificate manager.
 `,
+
 	ErrInvalidCA: `
 The certificate authority privided when issuing a certificate was invalid.
 `,
+
 	ErrRotatingCert: `
 The specified certificate could not be rotated.
 `,
@@ -374,5 +451,94 @@ Failed to fetch MeshConfig from cache with specific key.
 `,
 	ErrMeshConfigMarshaling: `
 Failed to marshal MeshConfig into other format.
+`,
+
+	//
+	// Range 5000-5500
+	//
+	ErrMarshallingXDSResource: `
+A XDS resource could not be marshalled.
+`,
+
+	ErrParsingXDSCertCN: `
+The XDS certificate common name could not be parsed. The CN should be of the form 
+<proxy-UUID>.<kind>.<proxy-identity>.
+`,
+
+	ErrFetchingPodFromCert: `
+The proxy UUID obtained from parsing the XDS certificate's common name did not match
+the osm-proxy-uuid label value for any pod. The pod associated with the specified Envoy
+proxy could not be found.
+`,
+
+	ErrPodBelongsToMultipleServices: `
+A pod in the mesh belongs to more than one service. By Open Service Mesh convention
+the number of services a pod can belong to is 1. This is a limitation we set in place
+in order to make the mesh easy to understand and reason about. When a pod belongs to
+more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
+`,
+
+	ErrGettingProxyFromPod: `
+The Envoy proxy data structure created by ADS to reference an Envoy proxy sidecar from
+a pod's osm-proxy-uuid label could not be configured. 
+`,
+
+	ErrGRPCConnectionFailed: `
+A GRPC connection failure occurred and the ADS is no longer able to receive
+DiscoveryRequests.
+`,
+
+	ErrSendingDiscoveryResponse: `
+The DiscoveryResponse configured by ADS failed to send to the Envoy proxy.
+`,
+
+	ErrGeneratingReqResource: `
+The resources to be included in the DiscoveryResponse could not be generated.
+`,
+
+	ErrRecordingSnapshot: `
+The aggregated resources generated for a DiscoveryResponse failed to be configured as
+a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
+`,
+
+	ErrGettingServiceIdentity: `
+The ServiceIdentity specified in the XDS certificate CN could not be obtained when
+creating SDS DiscoveryRequests corresponding to all types of secrets associated with
+the proxy.
+`,
+
+	ErrStartingADSServer: `
+The Aggregate Discovery Server (ADS) created by the OSM controller failed to start.
+`,
+
+	ErrInitializingProxy: `
+An Envoy proxy data structure representing a newly connected envoy proxy to the XDS
+server could not be initialized.
+`,
+
+	ErrMismatchedServiceAccount: `
+The ServiceAccount referenced in the NodeID does not match the ServiceAccount
+specified in the proxy certificate. In this case, the proxy is not allowed to be a
+part of the mesh.
+`,
+
+	ErrGRPCStreamClosedByProxy: `
+The gRPC stream is closed by the proxy and no DiscoveryRequests can be received. 
+The Stream Agreggated Resource server is terminated for the specified proxy
+`,
+
+	ErrUnexpectedXDSRequest: `
+The envoy proxy has not completed the initialization phase and it is not ready
+to receive broadcast updates from control plane related changes. New versions
+should not be pushed if the first request has not be received.
+The broadcast update is ignored for that proxy.
+`,
+
+	ErrInvalidXDSTypeURI: `
+The TypeURL of the resource being requested in the DiscoveryRequest is invalid.
+`,
+
+	ErrParsingDiscoveryReqVersion: `
+The version of the DiscoveryRequest could not be parsed by ADS.
 `,
 }
