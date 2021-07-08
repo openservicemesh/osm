@@ -21,15 +21,15 @@ const (
 	httpRouteGroupKind = "HTTPRouteGroup"
 )
 
-// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given upstream service account
+// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListAllowedInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (mc *MeshCatalog) ListInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
-// ListAllowedOutboundServiceIdentities lists the upstream service identities the given downstream service account can connect to
+// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (mc *MeshCatalog) ListOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 

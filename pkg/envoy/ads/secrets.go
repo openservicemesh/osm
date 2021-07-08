@@ -70,7 +70,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 
 	// Create an SDS validation cert corresponding to each upstream service that this proxy can connect to.
 	// Each cert is used to validate the certificate presented by the corresponding upstream service.
-	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
+	upstreamServices := meshCatalog.ListOutboundServicesForIdentity(proxyIdentity)
 	for _, upstream := range upstreamServices {
 		upstreamRootCertResource := secrets.SDSCert{
 			Name:     upstream.NameWithoutCluster(),

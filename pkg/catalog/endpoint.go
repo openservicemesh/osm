@@ -38,8 +38,8 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 	return endpoints, nil
 }
 
-// ListEndpointsForServiceIdentity returns only those endpoints for a allowed outbound service accounts
-// for the given downstream identity
+// ListEndpointsForServiceIdentity returns a list of endpoints that belongs to an upstream service accounts
+// from the given downstream identity's perspective
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
 	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
@@ -52,9 +52,8 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 		ipStr := ep.IP.String()
 		outboundEndpointsSet[ipStr] = append(outboundEndpointsSet[ipStr], ep)
 	}
-	log.Info().Msgf("outbound endpoints: %v", outboundEndpointsSet)
 
-	destSvcIdentities, err := mc.ListAllowedOutboundServiceIdentities(downstreamIdentity)
+	destSvcIdentities, err := mc.ListOutboundServiceIdentities(downstreamIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up outbound service accounts for downstream identity %s", downstreamIdentity)
 		return nil, err
@@ -64,14 +63,11 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 	// i.e. only those interseting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
 	for _, destSvcIdentity := range destSvcIdentities {
-		log.Info().Msgf("ups svc endpoints: %v, %v", destSvcIdentity, mc.listEndpointsForServiceIdentity(destSvcIdentity))
-
 		for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {
 			epIPStr := ep.IP.String()
 			// check if endpoint IP is allowed
 			if _, ok := outboundEndpointsSet[epIPStr]; ok {
 				// add all allowed endpoints on the pod to result list
-				// TODO(allenlsy): only allow endpoint with matching port
 				allowedEndpoints = append(allowedEndpoints, outboundEndpointsSet[epIPStr]...)
 			}
 		}

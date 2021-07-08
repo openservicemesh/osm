@@ -104,7 +104,7 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) (map[service.MeshService][]endpoint.Endpoint, error) {
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
-	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 		endpoints, err := meshCatalog.ListEndpointsForServiceIdentity(proxyIdentity, dstSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)

@@ -49,14 +49,14 @@ type MeshCataloger interface {
 	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service identity
 	ListOutboundTrafficPolicies(identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy
 
-	// ListAllowedOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
-	ListAllowedOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
+	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
+	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given service identity
-	ListAllowedInboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
+	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
+	ListInboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
 
-	// ListAllowedOutboundServiceIdentities lists the upstream service identities the given service identity can connect to
-	ListAllowedOutboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
+	// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
+	ListOutboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
 
 	// ListServiceIdentitiesForService lists the service identities associated with the given service
 	ListServiceIdentitiesForService(service.MeshService) ([]identity.ServiceIdentity, error)
