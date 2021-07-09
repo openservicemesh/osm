@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -25,7 +26,8 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 
 	marshalledNetworkRBACPolicy, err := ptypes.MarshalAny(networkRBACPolicy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling RBAC policy: %v", networkRBACPolicy)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling RBAC policy: %v", networkRBACPolicy)
 		return nil, err
 	}
 
@@ -42,7 +44,8 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	proxyIdentity := identity.ServiceIdentity(lb.serviceIdentity.String())
 	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingInboundTrafficTargets.String()).
+			Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)
 		return nil, err
 	}
 
@@ -50,7 +53,8 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	// Build an RBAC policies based on SMI TrafficTarget policies
 	for _, targetPolicy := range trafficTargets {
 		if policy, err := buildRBACPolicyFromTrafficTarget(targetPolicy); err != nil {
-			log.Error().Err(err).Msgf("Error building RBAC policy for proxy identity %s from TrafficTarget %s", proxyIdentity, targetPolicy.Name)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrBuildingRBACPolicy.String()).
+				Msgf("Error building RBAC policy for proxy identity %s from TrafficTarget %s", proxyIdentity, targetPolicy.Name)
 		} else {
 			rbacPolicies[targetPolicy.Name] = policy
 		}

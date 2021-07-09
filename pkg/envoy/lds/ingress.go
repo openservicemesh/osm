@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -35,14 +36,16 @@ func getIngressTransportProtocol(forHTTPS bool) string {
 func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, false /* TLS */))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
 		return nil
 	}
 
 	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil, inbound)
 	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)
 		return nil
 	}
 
@@ -71,7 +74,8 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 
 	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(svc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", svc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+			Msgf("Error retrieving port to protocol mapping for service %s", svc)
 		return ingressFilterChains
 	}
 
@@ -94,8 +98,9 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 
 		default:
-			log.Error().Msgf("Cannot build ingress filter chain. Protocol %s is not supported for service %s on port %d",
-				appProtocol, svc, port)
+			log.Error().Str(errcode.Kind, errcode.ErrUnsupportedProtocolForService.String()).
+				Msgf("Cannot build ingress filter chain. Protocol %s is not supported for service %s on port %d",
+					appProtocol, svc, port)
 		}
 	}
 

@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -35,7 +36,8 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 
 	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(proxyService)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+			Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
 		return filterChains
 	}
 
@@ -86,7 +88,8 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, lb.cfg, lb.statsHeaders, inbound)
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager for proxy  service %s", proxyService)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling inbound HttpConnectionManager for proxy  service %s", proxyService)
 		return nil, err
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
@@ -111,7 +114,8 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	// Construct downstream TLS context
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
 	}
 
@@ -172,7 +176,8 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	// Construct downstream TLS context
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
 	}
 
@@ -239,7 +244,8 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
 		return nil, err
 	}
 	tcpProxyFilter := &xds_listener.Filter{
@@ -259,7 +265,8 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 	marshalledFilter, err = ptypes.MarshalAny(
 		getHTTPConnectionManager(routeConfigName, lb.cfg, lb.statsHeaders, outbound))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
 	}
 
@@ -282,13 +289,15 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 
 	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingResolvableServiceEndpoints.String()).
+			Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
 		return nil, err
 	}
 
 	if len(endpoints) == 0 {
 		err := errors.Errorf("Endpoints not found for service %q", dstSvc)
-		log.Error().Err(err).Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEndpointsNotFound.String()).
+			Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
 		return nil, err
 	}
 
@@ -391,7 +400,8 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for upstream service %s", upstream)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for upstream service %s", upstream)
 		return nil, err
 	}
 
@@ -416,7 +426,8 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstreamSvc, lb.serviceIdentity)
 		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstreamSvc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for upstream service %s", upstreamSvc)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+				Msgf("Error retrieving port to protocol mapping for upstream service %s", upstreamSvc)
 			continue
 		}
 

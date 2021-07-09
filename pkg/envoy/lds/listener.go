@@ -14,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -125,7 +126,8 @@ func newInboundListener() *xds_listener.Listener {
 func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
@@ -157,7 +159,8 @@ func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
 		return nil, err
 	}
 
