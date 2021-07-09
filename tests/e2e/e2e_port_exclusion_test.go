@@ -102,8 +102,9 @@ func testGlobalPortExclusion() {
 }
 
 func testPodLevelPortExclusion() {
-	const sourceName = "client"
-	const destName = "server"
+	// XXX(3755): use a different namespace due to test pollution
+	const sourceName = "client1"
+	const destName = "server1"
 	var ns = []string{sourceName, destName}
 
 	It("Tests HTTP traffic to external server via pod level port exclusion", func() {
