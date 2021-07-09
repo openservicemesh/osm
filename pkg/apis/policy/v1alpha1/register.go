@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// SchemeGroupVersion is group version used to register Egresss
+	// SchemeGroupVersion is group version used to register API objects in the policy.openservicemesh.io v1alpha1 API group
 	SchemeGroupVersion = schema.GroupVersion{
 		Group:   "policy.openservicemesh.io",
 		Version: "v1alpha1",
@@ -39,6 +39,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Egress{},
 		&EgressList{},
+		&IngressBackend{},
+		&IngressBackendList{},
 	)
 
 	metav1.AddToGroupVersion(

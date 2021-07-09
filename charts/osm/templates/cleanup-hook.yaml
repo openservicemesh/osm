@@ -137,6 +137,7 @@ spec:
          kubectl delete crd httproutegroups.specs.smi-spec.io --ignore-not-found;
          kubectl delete crd multiclusterservices.config.openservicemesh.io --ignore-not-found;
          kubectl delete crd egresses.policy.openservicemesh.io --ignore-not-found;
+         kubectl delete crd ingressbackends.policy.openservicemesh.io --ignore-not-found;
          kubectl delete crd trafficsplits.split.smi-spec.io --ignore-not-found;
          kubectl delete crd tcproutes.specs.smi-spec.io --ignore-not-found;
 

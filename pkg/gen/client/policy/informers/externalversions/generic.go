@@ -52,6 +52,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=policy.openservicemesh.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("egresses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().Egresses().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("ingressbackends"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().IngressBackends().Informer()}, nil
 
 	}
 

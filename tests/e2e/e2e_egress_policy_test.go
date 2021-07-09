@@ -162,7 +162,7 @@ func getTestAttributes(srcSvcAcc corev1.ServiceAccount, scenario testScenario) (
 				Namespace: srcSvcAcc.Namespace,
 			},
 			Spec: policyV1alpha1.EgressSpec{
-				Sources: []policyV1alpha1.SourceSpec{
+				Sources: []policyV1alpha1.EgressSourceSpec{
 					{
 						Kind:      "ServiceAccount",
 						Name:      srcSvcAcc.Name,
@@ -192,7 +192,7 @@ func getTestAttributes(srcSvcAcc corev1.ServiceAccount, scenario testScenario) (
 					Namespace: srcSvcAcc.Namespace,
 				},
 				Spec: policyV1alpha1.EgressSpec{
-					Sources: []policyV1alpha1.SourceSpec{
+					Sources: []policyV1alpha1.EgressSourceSpec{
 						{
 							Kind:      "ServiceAccount",
 							Name:      srcSvcAcc.Name,
@@ -246,7 +246,7 @@ func getTestAttributes(srcSvcAcc corev1.ServiceAccount, scenario testScenario) (
 				Namespace: srcSvcAcc.Namespace,
 			},
 			Spec: policyV1alpha1.EgressSpec{
-				Sources: []policyV1alpha1.SourceSpec{
+				Sources: []policyV1alpha1.EgressSourceSpec{
 					{
 						Kind:      "ServiceAccount",
 						Name:      srcSvcAcc.Name,
@@ -276,7 +276,7 @@ func getTestAttributes(srcSvcAcc corev1.ServiceAccount, scenario testScenario) (
 				Namespace: srcSvcAcc.Namespace,
 			},
 			Spec: policyV1alpha1.EgressSpec{
-				Sources: []policyV1alpha1.SourceSpec{
+				Sources: []policyV1alpha1.EgressSourceSpec{
 					{
 						Kind:      "ServiceAccount",
 						Name:      srcSvcAcc.Name,

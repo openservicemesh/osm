@@ -23,6 +23,8 @@ import (
 type Interface interface {
 	// Egresses returns a EgressInformer.
 	Egresses() EgressInformer
+	// IngressBackends returns a IngressBackendInformer.
+	IngressBackends() IngressBackendInformer
 }
 
 type version struct {
@@ -39,4 +41,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Egresses returns a EgressInformer.
 func (v *version) Egresses() EgressInformer {
 	return &egressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// IngressBackends returns a IngressBackendInformer.
+func (v *version) IngressBackends() IngressBackendInformer {
+	return &ingressBackendInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

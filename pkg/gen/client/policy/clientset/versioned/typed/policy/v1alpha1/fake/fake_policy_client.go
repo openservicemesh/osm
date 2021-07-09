@@ -29,6 +29,10 @@ func (c *FakePolicyV1alpha1) Egresses(namespace string) v1alpha1.EgressInterface
 	return &FakeEgresses{c, namespace}
 }
 
+func (c *FakePolicyV1alpha1) IngressBackends(namespace string) v1alpha1.IngressBackendInterface {
+	return &FakeIngressBackends{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakePolicyV1alpha1) RESTClient() rest.Interface {

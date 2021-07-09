@@ -28,7 +28,7 @@ type Egress struct {
 // EgressSpec is the type used to represent the Egress policy specification.
 type EgressSpec struct {
 	// Sources defines the list of sources the Egress policy applies to.
-	Sources []SourceSpec `json:"sources"`
+	Sources []EgressSourceSpec `json:"sources"`
 
 	// Hosts defines the list of external hosts the Egress policy will allow
 	// access to.
@@ -58,8 +58,8 @@ type EgressSpec struct {
 	Matches []corev1.TypedLocalObjectReference `json:"matches,omitempty"`
 }
 
-// SourceSpec is the type used to represent the Source in the list of Sources specified in an Egress policy specification.
-type SourceSpec struct {
+// EgressSourceSpec is the type used to represent the Source in the list of Sources specified in an Egress policy specification.
+type EgressSourceSpec struct {
 	// Kind defines the kind for the source in the Egress policy, ex. ServiceAccount.
 	Kind string `json:"kind"`
 

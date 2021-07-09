@@ -24,6 +24,7 @@ import (
 type PolicyV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	EgressesGetter
+	IngressBackendsGetter
 }
 
 // PolicyV1alpha1Client is used to interact with features provided by the policy.openservicemesh.io group.
@@ -33,6 +34,10 @@ type PolicyV1alpha1Client struct {
 
 func (c *PolicyV1alpha1Client) Egresses(namespace string) EgressInterface {
 	return newEgresses(c, namespace)
+}
+
+func (c *PolicyV1alpha1Client) IngressBackends(namespace string) IngressBackendInterface {
+	return newIngressBackends(c, namespace)
 }
 
 // NewForConfig creates a new PolicyV1alpha1Client for the given config.
