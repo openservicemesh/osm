@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -182,7 +183,8 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 		// Each route is associated with an RBAC policy
 		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrBuildingRBACPolicyForRoute.String()).
+				Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)
 			continue
 		}
 

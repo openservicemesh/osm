@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -23,13 +24,15 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentity.String()).
+			Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
 	}
 
 	services, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingServiceList.String()).
+			Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
 		return nil, err
 	}
 
