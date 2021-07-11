@@ -25,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
@@ -121,7 +122,8 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			log.Error().Err(err).Msg("Error parsing webhook certificate")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingMutatingWebhookCert.String()).
+				Msg("Error parsing webhook certificate")
 			return
 		}
 
@@ -131,7 +133,8 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Error().Err(err).Msg("Sidecar injection webhook HTTP server failed to start")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingInjectionWebhookHTTPServer.String()).
+				Msg("Sidecar injection webhook HTTP server failed to start")
 			return
 		}
 	}()
@@ -157,7 +160,8 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
 	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := webhook.Deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
-		log.Error().Err(err).Msg("Error decoding admission request body")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDecodingAdmissionReqBody.String()).
+			Msg("Error decoding admission request body")
 		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
 		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
@@ -177,7 +181,8 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// Read timeout from request url
 	reqTimeout, err := readTimeout(req)
 	if err != nil {
-		log.Error().Err(err).Msg("Could not read timeout from request url")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingReqTimeout.String()).
+			Msg("Could not read timeout from request url")
 	}
 	// Execute at return of this handler
 	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
@@ -185,7 +190,8 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
 		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
-		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidAdmissionReqHeader.String()).
+			Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -205,12 +211,14 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, requestForNamespace, http.StatusInternalServerError)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingKubernetesResource.String()).
+			Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, requestForNamespace, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrWritingAdmissionResp.String()).
+			Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 	} else {
 		success = true // read by the deferred function
 	}
@@ -220,14 +228,15 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 
 func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) *admissionv1.AdmissionResponse {
 	if req == nil {
-		log.Error().Msg("nil admission Request")
+		log.Error().Str(errcode.Kind, errcode.ErrNilAdmissionReq.String()).Msg("nil admission Request")
 		return webhook.AdmissionError(errNilAdmissionRequest)
 	}
 
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrUnmarshallingKubernetesResource.String()).
+			Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return webhook.AdmissionError(err)
 	}
 
@@ -281,7 +290,8 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	// Check if the pod is annotated for injection
 	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations, "Pod", fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
-		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDetermingPodInjectionEnablement.String()).
+			Msg("Error determining if the pod is enabled for sidecar injection")
 		return false, err
 	}
 
@@ -293,7 +303,8 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	}
 	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, "Namespace", ns.Name)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error determining if namespace %s is enabled for sidecar injection", namespace)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDetermingNamespaceInjectionEnablement.String()).
+			Msgf("Error determining if namespace %s is enabled for sidecar injection", namespace)
 		return false, err
 	}
 
@@ -326,7 +337,8 @@ func (wh *mutatingWebhook) getPortExclusionListForPod(pod *corev1.Pod, namespace
 	// Check if the pod is annotated for outbound port exclusion
 	ports, err := isAnnotatedForPortExclusion(pod.Annotations, annotation, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error determining port exclusions for annotation %s on pod %s/%s", annotation, namespace, pod.Name)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDeterminingPodPortExclusions.String()).
+			Msgf("Error determining port exclusions for annotation %s on pod %s/%s", annotation, namespace, pod.Name)
 		return ports, err
 	}
 
@@ -412,7 +424,8 @@ func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName st
 	}
 
 	if _, err = mwc.Patch(context.Background(), webhookName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		log.Error().Err(err).Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrUpdatingMutatingWebhookCABundle.String()).
+			Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 		return err
 	}
 

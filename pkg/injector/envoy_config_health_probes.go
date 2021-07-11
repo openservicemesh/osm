@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -138,7 +139,8 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		}
 		pbHTTPConnectionManager, err := ptypes.MarshalAny(httpConnectionManager)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+				Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
 			return nil, err
 		}
 		filterChain = &xds_listener.FilterChain{
@@ -167,7 +169,8 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		}
 		pbTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+				Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
 			return nil, err
 		}
 		filterChain = &xds_listener.FilterChain{
@@ -230,7 +233,8 @@ func getVirtualHost(newPath, clusterName, originalProbePath string) *xds_route.V
 func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
 	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling AccessLog object")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msg("Error marshalling AccessLog object")
 		return nil, err
 	}
 	return &xds_accesslog_filter.AccessLog{
@@ -245,7 +249,8 @@ func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 	accessLog, err := ptypes.MarshalAny(getTCPStdoutAccessLog())
 	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling tcp AccessLog object")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msg("Error marshalling tcp AccessLog object")
 		return nil, err
 	}
 	return &xds_accesslog_filter.AccessLog{

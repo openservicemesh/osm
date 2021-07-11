@@ -37,6 +37,9 @@ const (
 
 	// ErrStartingReconcileManager indicates the controller-runtime Manager failed to start
 	ErrStartingReconcileManager
+
+	// ErrStartingIngressClient indicates the Ingress client failed to start
+	ErrStartingIngressClient
 )
 
 // Range 2000-2500 is reserved for errors related to traffic policies
@@ -102,6 +105,16 @@ const (
 
 	// ErrGettingServiceIdentitiesForService indicates the ServiceIdentities associated with a specified MeshService could not be listed
 	ErrGettingServiceIdentitiesForService
+
+	// ErrMarshallingKubernetesResource indicates that a Kubernetes resource could not be marshalled
+	ErrMarshallingKubernetesResource
+
+	// ErrUnmarshallingKubernetesResource indicates that a Kubernetes resource could not be unmarshalled
+	ErrUnmarshallingKubernetesResource
+
+	// ErrGettingSupportedIngressVersions indicates the mapping of Ingress API versions to the corresponding values indicating
+	// if they are supported could not be configured
+	ErrGettingSupportedIngressVersions
 )
 
 // Range 4000-4100 reserved for errors related to certificate providers
@@ -293,6 +306,68 @@ const (
 	ErrSDSCertMismatch
 )
 
+// Range 6000-6500 reserved for errors related to the OSM Injector
+const (
+	// ErrMarshallingProtoToYAML indicates a ProtoMessage could not be converted into YAML
+	ErrMarshallingProtoToYAML ErrCode = iota + 6100
+
+	// ErrParsingMutatingWebhookCert indicates the mutating webhook certificate could not be parsed
+	ErrParsingMutatingWebhookCert
+
+	// ErrStartingInjectionWebhookHTTPServer indicates the sidecar injection webhook HTTP server failed to start
+	ErrStartingInjectionWebhookHTTPServer
+
+	// ErrDecodingAdmissionReqBody indicates the admission request received by the mutating webhook could not be decoded
+	ErrDecodingAdmissionReqBody
+
+	// ErrParsingReqTimeout indicates an admission request timeout could not be parsed
+	ErrParsingReqTimeout
+
+	// ErrInvalidAdmissionReqHeader indicates the received admission request's header was invalid
+	ErrInvalidAdmissionReqHeader
+
+	// ErrWritingAdmissionResp indicates the response to an admission request could not be written
+	ErrWritingAdmissionResp
+
+	// ErrNilAdmissionReq indicates the received admission request was nil
+	ErrNilAdmissionReq
+
+	// ErrDetermingPodInjectionEnablement indicates the enablement of a pod for sidecar injection could not be determined
+	ErrDetermingPodInjectionEnablement
+
+	// ErrDetermingNamespaceInjectionEnablement indicates the enablement of a namespace for sidecar injection could not
+	// be determined
+	ErrDetermingNamespaceInjectionEnablement
+
+	// ErrDeterminingPodPortExclusions indicates the oubound port exclusions for a pod could not be obtained
+	ErrDeterminingPodPortExclusions
+
+	// ErrUpdatingMutatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
+	ErrUpdatingMutatingWebhookCABundle
+
+	// ErrReadingAdmissionReqBody indicates the AdmissionRequest body could not be read
+	ErrReadingAdmissionReqBody
+
+	// ErrNilAdmissionReqBody indicates the admissionRequest body was nil
+	ErrNilAdmissionReqBody
+)
+
+// Range 6700-6800 reserved for errors related to the validating webhook
+const (
+	// ErrShuttingDownValidatingWebhookHTTPServer indicates an error occurred when shutting down the validating webhook
+	// HTTP server
+	ErrShuttingDownValidatingWebhookHTTPServer ErrCode = iota + 6700
+
+	// ErrStartingValidatingWebhookHTTPServer indicates the validating webhook HTTP server failed to start
+	ErrStartingValidatingWebhookHTTPServer
+
+	// ErrUpdatingValidatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
+	ErrUpdatingValidatingWebhookCABundle
+
+	// ErrParsingWebhookCert indicates the validating webhook certificate could not be parsed
+	ErrParsingValidatingWebhookCert
+)
+
 // String returns the error code as a string, ex. E1000
 func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
@@ -338,8 +413,13 @@ The osm-injector k8s pod resource was not able to be retrieved by the system.
 `,
 
 	ErrStartingReconcileManager: `
-The controller-runtime manager to manage the controller used to reconcile the
-sidecar injector's MutatingWebhookConfiguration resource failed to start.
+The controller-runtime manager for the MutatingWebhookConfigurartion's
+reconciler failed to start.
+`,
+
+	ErrStartingIngressClient: `
+The Ingress client created by the osm-controller to monitor Ingress resources
+failed to start.
 `,
 
 	//
@@ -452,6 +532,18 @@ The system found 0 endpoints to be reached when the service's FQDN was resolved.
 
 	ErrGettingServiceIdentitiesForService: `
 The ServiceIdentities associated with a specified MeshService could not be listed.
+`,
+
+	ErrMarshallingKubernetesResource: `
+A Kubernetes resource could not be marshalled.
+`,
+
+	ErrUnmarshallingKubernetesResource: `
+A Kubernetes resource could not be unmarshalled.
+`,
+
+	ErrGettingSupportedIngressVersions: `
+The Ingress API versions supported by the k8s API server could not be obtained.
 `,
 
 	//
@@ -724,5 +816,89 @@ The SDS secret does not correspond to a ServiceAccount.
 The identity obtained from the SDS certificate request does not match the
 identity of the proxy.
 The corresponding certificate request was ignored by the system.
+`,
+
+	//
+	// Range 6000-6500
+	//
+	ErrMarshallingProtoToYAML: `
+A protobuf ProtoMessage could not be converted into YAML.
+`,
+
+	ErrParsingMutatingWebhookCert: `
+The mutating webhook certificate could not be parsed. 
+The mutating webhook HTTP server was not started.
+`,
+
+	ErrStartingInjectionWebhookHTTPServer: `
+The sidecar injection webhook HTTP server failed to start.
+`,
+
+	ErrDecodingAdmissionReqBody: `
+An AdmissionRequest could not be decoded.
+`,
+
+	ErrParsingReqTimeout: `
+The timeout from an AdmissionRequest could not be parsed.
+`,
+
+	ErrInvalidAdmissionReqHeader: `
+The AdmissionRequest's header was invalid. The content type obtained from the 
+header is not supported. 
+`,
+
+	ErrWritingAdmissionResp: `
+The AdmissionResponse could not be written.
+`,
+
+	ErrNilAdmissionReq: `
+The AdmissionRequest was empty.
+`,
+
+	ErrDetermingPodInjectionEnablement: `
+It could not be determined if the pod specified in the AdmissionRequest is
+enabled for sidecar injection.
+`,
+
+	ErrDetermingNamespaceInjectionEnablement: `
+It could not be determined if the namespace specified in the
+AdmissionRequest is enabled for sidecar injection.
+`,
+
+	ErrDeterminingPodPortExclusions: `
+The port exclusions for a pod could not be obtained.
+No port exclusions are added to the init container's spec.
+`,
+
+	ErrUpdatingMutatingWebhookCABundle: `
+The MutatingWebhookConfiguration could not be patched with the CA Bundle.
+`,
+
+	ErrReadingAdmissionReqBody: `
+The AdmissionRequest body could not be read.
+`,
+
+	ErrNilAdmissionReqBody: `
+The AdmissionRequest body was nil.
+`,
+
+	//
+	// Range 6700-6800
+	//
+	ErrShuttingDownValidatingWebhookHTTPServer: `
+An error occurred when shutting down the validating webhook HTTP server.
+`,
+
+	ErrStartingValidatingWebhookHTTPServer: `
+The validating webhook HTTP server failed to start.
+`,
+
+	ErrUpdatingValidatingWebhookCABundle: `
+The ValidatingWebhookConfiguration could not be patched with the CA Bundle.
+`,
+
+	ErrParsingValidatingWebhookCert: `
+The validating webhook certificate could not be parsed. 
+The validating webhook HTTP server was not started.
 `,
 }

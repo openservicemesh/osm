@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -29,7 +30,8 @@ var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), netwo
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, _ configurator.Configurator) (Monitor, error) {
 	supportedIngressVersions, err := getSupportedIngressVersions(kubeClient.Discovery())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ingress API versions supported by k8s API server")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingSupportedIngressVersions.String()).
+			Msgf("Error retrieving ingress API versions supported by k8s API server")
 		return nil, err
 	}
 
@@ -72,7 +74,8 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	}
 
 	if err := c.run(stop); err != nil {
-		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingIngressClient.String()).
+			Msg("Could not start Kubernetes Ingress client")
 		return nil, err
 	}
 

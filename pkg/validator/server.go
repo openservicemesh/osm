@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -105,7 +106,8 @@ func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
 		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
-		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidAdmissionReqHeader.String()).
+			Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -120,12 +122,14 @@ func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request in namespace %s with HTTP %v", requestForNamespace, http.StatusInternalServerError)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingKubernetesResource.String()).
+			Msgf("Error marshalling admission response; Responded to admission request in namespace %s with HTTP %v", requestForNamespace, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		log.Error().Err(err).Msgf("Error writing admission response for request in namespace %s", requestForNamespace)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrWritingAdmissionResp.String()).
+			Msgf("Error writing admission response for request in namespace %s", requestForNamespace)
 	}
 
 	log.Trace().Msgf("Done responding to admission request in namespace %s", requestForNamespace)
@@ -134,7 +138,8 @@ func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.
 func (s *ValidatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
 	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := webhook.Deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
-		log.Error().Err(err).Msg("Error decoding admission request body")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDecodingAdmissionReqBody.String()).
+			Msg("Error decoding admission request body")
 		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
 		admissionResp.Response = s.handleValidation(admissionReq.Request)
@@ -193,7 +198,8 @@ func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certifi
 		// Generate a key pair from your pem-encoded cert and key
 		cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
 		if err != nil {
-			log.Error().Err(err).Msg("Error parsing webhook certificate")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingValidatingWebhookCert.String()).
+				Msg("Error parsing webhook certificate")
 			return
 		}
 
@@ -203,7 +209,8 @@ func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certifi
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Error().Err(err).Msg("Resource validator webhook HTTP server failed to start")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingValidatingWebhookHTTPServer.String()).
+				Msg("Resource validator webhook HTTP server failed to start")
 			return
 		}
 	}()
@@ -213,7 +220,8 @@ func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certifi
 
 	// Stop the server
 	if err := server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Error shutting down resource validator webhook HTTP server")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrShuttingDownValidatingWebhookHTTPServer.String()).
+			Msg("Error shutting down resource validator webhook HTTP server")
 	} else {
 		log.Info().Msg("Done shutting down resource validator webhook HTTP server")
 	}
