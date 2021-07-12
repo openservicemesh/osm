@@ -4,159 +4,186 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	tassert "github.com/stretchr/testify/assert"
-
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGetIngressFilterChains(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	proxyService := tests.BookstoreV1Service
-
 	testCases := []struct {
-		name                 string
-		httpsIngress         bool // true for https, false for http
-		svcPortToProtocolMap map[uint32]string
-		portToProtocolErr    error // error to return if port:protocol mapping returns an error
-
-		expectedFilterChainCount               int
-		expectedFilterNamesPerFilterChain      []string
-		expectedFilterChainMatchPerFilterChain []*xds_listener.FilterChainMatch
+		name                     string
+		ingressPolicy            *trafficpolicy.IngressTrafficPolicy
+		expectedFilterChainCount int
 	}{
 		{
-			// Test case 1
-			name:                 "HTTP ingress filter chain for service with multiple ports",
-			httpsIngress:         false,
-			svcPortToProtocolMap: map[uint32]string{80: "http", 90: "http"},
-			portToProtocolErr:    nil,
-
-			expectedFilterChainCount:          2, // 1 per http port on the service
-			expectedFilterNamesPerFilterChain: []string{wellknown.HTTPConnectionManager},
-			expectedFilterChainMatchPerFilterChain: []*xds_listener.FilterChainMatch{
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
-					TransportProtocol: "",
-				},
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 90},
-					TransportProtocol: "",
+			name: "HTTP ingress",
+			ingressPolicy: &trafficpolicy.IngressTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:     "http-ingress",
+						Port:     80,
+						Protocol: "http",
+					},
 				},
 			},
+			expectedFilterChainCount: 1,
 		},
-
 		{
-			// Test case 2
-			name:                 "HTTPS ingress filter chain for service with multiple ports",
-			httpsIngress:         true,
-			svcPortToProtocolMap: map[uint32]string{80: "http", 90: "http"},
-			portToProtocolErr:    nil,
-
-			expectedFilterChainCount:          4, // number of ports * 2; 2 because for HTTPS 2 filter chains are created: with and without SNI matching
-			expectedFilterNamesPerFilterChain: []string{wellknown.HTTPConnectionManager},
-			expectedFilterChainMatchPerFilterChain: []*xds_listener.FilterChainMatch{
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
-					TransportProtocol: "tls",
-				},
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 90},
-					TransportProtocol: "tls",
-				},
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
-					TransportProtocol: "tls",
-					ServerNames:       []string{proxyService.ServerName()},
-				},
-				{
-					DestinationPort:   &wrapperspb.UInt32Value{Value: 90},
-					TransportProtocol: "tls",
-					ServerNames:       []string{proxyService.ServerName()},
+			name: "HTTPS ingress",
+			ingressPolicy: &trafficpolicy.IngressTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:     "https-ingress",
+						Port:     80,
+						Protocol: "https",
+					},
+					{
+						Name:        "https-ingress_with_sni",
+						Port:        80,
+						Protocol:    "https",
+						ServerNames: []string{"foo.bar.svc.cluster.local"},
+					},
 				},
 			},
+			expectedFilterChainCount: 2,
+		},
+		{
+			name:                     "no ingress",
+			ingressPolicy:            nil,
+			expectedFilterChainCount: 0,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 
-			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
 			lb := &listenerBuilder{
-				meshCatalog:     mockCatalog,
-				cfg:             mockConfigurator,
 				serviceIdentity: tests.BookstoreServiceIdentity,
+				cfg:             mockConfigurator,
+				meshCatalog:     mockCatalog,
 			}
 
-			// Mock catalog call to get port:protocol mapping for service
-			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
-			// Mock configurator calls to determine HTTP vs HTTPS ingress
-			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
-			// Mock calls used to build the HTTP connection manager
+			testSvc := tests.BookstoreV1Service
+
+			mockCatalog.EXPECT().GetIngressTrafficPolicy(testSvc).Return(tc.ingressPolicy, nil)
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-			// Expect no External Auth config
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return("test").AnyTimes()
 			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 				Enable: false,
 			}).AnyTimes()
-			// Mock configurator call to determine if WASMStats are enabled
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableWASMStats: false}).AnyTimes()
 
-			filterChains := lb.getIngressFilterChains(proxyService)
-
-			// Test the filter chains
-			assert.Len(filterChains, tc.expectedFilterChainCount)
-
-			var actualFilterChainMatchPerFilterChain []*xds_listener.FilterChainMatch
-			for _, filterChain := range filterChains {
-				assert.Len(filterChain.Filters, len(tc.expectedFilterNamesPerFilterChain))
-				for i, filter := range filterChain.Filters {
-					assert.Equal(tc.expectedFilterNamesPerFilterChain[i], filter.Name)
-				}
-				actualFilterChainMatchPerFilterChain = append(actualFilterChainMatchPerFilterChain, filterChain.FilterChainMatch)
-			}
-
-			assert.ElementsMatch(tc.expectedFilterChainMatchPerFilterChain, actualFilterChainMatchPerFilterChain)
+			actual := lb.getIngressFilterChains(testSvc)
+			assert.Len(actual, tc.expectedFilterChainCount)
 		})
 	}
 }
 
-func TestGetIngressTransportProtocol(t *testing.T) {
+func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 	testCases := []struct {
-		name                      string
-		forHTTPS                  bool
-		expectedTransportProtocol string
+		name                     string
+		trafficMatch             *trafficpolicy.IngressTrafficMatch
+		expectedEnvoyFilters     []string
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectError              bool
 	}{
 		{
-			name:                      "for HTTP",
-			forHTTPS:                  false,
-			expectedTransportProtocol: "",
+			name: "HTTP traffic match",
+			trafficMatch: &trafficpolicy.IngressTrafficMatch{
+				Name:     "http-ingress",
+				Port:     80,
+				Protocol: "http",
+			},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
+				TransportProtocol: "",
+			},
+			expectError: false,
 		},
 		{
-			name:                      "for HTTPS",
-			forHTTPS:                  true,
-			expectedTransportProtocol: "tls",
+			name: "HTTPS traffic match with SNI",
+			trafficMatch: &trafficpolicy.IngressTrafficMatch{
+				Name:        "https-ingress",
+				Port:        80,
+				Protocol:    "https",
+				ServerNames: []string{"foo.bar.svc.cluster.local"},
+			},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
+				TransportProtocol: "tls",
+				ServerNames:       []string{"foo.bar.svc.cluster.local"},
+			},
+			expectError: false,
+		},
+		{
+			name: "HTTPS traffic match without SNI",
+			trafficMatch: &trafficpolicy.IngressTrafficMatch{
+				Name:     "https-ingress",
+				Port:     80,
+				Protocol: "https",
+			},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
+				TransportProtocol: "tls",
+			},
+			expectError: false,
+		},
+		{
+			name: "unsupported protocol",
+			trafficMatch: &trafficpolicy.IngressTrafficMatch{
+				Name:     "invalid-ingress",
+				Port:     80,
+				Protocol: "invalid",
+			},
+			expectedEnvoyFilters:     nil,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 
-			actual := getIngressTransportProtocol(tc.forHTTPS)
-			assert.Equal(tc.expectedTransportProtocol, actual)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+			lb := &listenerBuilder{
+				serviceIdentity: tests.BookstoreServiceIdentity,
+				cfg:             mockConfigurator,
+			}
+
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false)
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return("test")
+			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+				Enable: false,
+			})
+
+			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch)
+			assert.Equal(tc.expectError, err != nil)
+
+			if err == nil {
+				assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
+				assert.Len(actual.Filters, 1) // Single HTTPConnectionManager filter
+				assert.Equal(wellknown.HTTPConnectionManager, actual.Filters[0].Name)
+			}
 		})
 	}
 }

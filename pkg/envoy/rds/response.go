@@ -47,12 +47,16 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 
 	// Build Ingress inbound policies for the services associated with this proxy
 	for _, svc := range services {
-		ingressInboundPolicies, err := cataloger.GetIngressPoliciesForService(svc)
+		ingressPolicy, err := cataloger.GetIngressTrafficPolicy(svc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc)
-			return nil, err
+			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping", svc)
+			continue
 		}
-		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressInboundPolicies...)
+		if ingressPolicy == nil {
+			log.Trace().Msgf("No ingress policy confiugred for service %s", svc)
+			continue
+		}
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
 		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, proxy, cfg)

@@ -50,6 +50,14 @@ type BackendSpec struct {
 	TLS TLSSpec `json:"tls,omitempty"`
 }
 
+const (
+	// KindService is the kind corresponding to a Service resource.
+	KindService = "Service"
+
+	// KindAuthenticatedPrincipal is the kind corresponding to an authenticated principal.
+	KindAuthenticatedPrincipal = "AuthenticatedPrincipal"
+)
+
 // IngressSourceSpec is the type used to represent the Source in the list of Sources specified in an
 // IngressBackend policy specification.
 type IngressSourceSpec struct {

@@ -1,44 +1,52 @@
 package lds
 
 import (
-	"fmt"
+	"net"
+	"strings"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-const (
-	// inboundIngressHTTPSFilterChain is the name of the ingress filter chain to handle HTTPS traffic with SNI set
-	inboundIngressHTTPSFilterChain = "inbound-ingress-https-filter-chain"
-
-	// inboundIngressNonSNIFilterChain is the name of the ingress filter chain that handles either HTTP or HTTPS traffic without SNI set
-	inboundIngressNonSNIFilterChain = "inbound-ingress-non-sni-filter-chain"
-)
-
-func getIngressTransportProtocol(forHTTPS bool) string {
-	if forHTTPS {
-		return envoy.TransportProtocolTLS
+func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
+	ingressPolicy, err := lb.meshCatalog.GetIngressTrafficPolicy(svc)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrIngressFilterChain.String()).
+			Msgf("Error getting ingress filter chain for proxy with identity %s and service %s", lb.serviceIdentity, svc)
+		return nil
 	}
-	return ""
+
+	if ingressPolicy == nil {
+		log.Trace().Msgf("No ingress policy confiugred for proxy with identity %s and service %s", lb.serviceIdentity, svc)
+		return nil
+	}
+
+	var filterChains []*xds_listener.FilterChain
+	for _, trafficMatch := range ingressPolicy.TrafficMatches {
+		if filterChain, err := lb.getIngressFilterChainFromTrafficMatch(trafficMatch); err != nil {
+			log.Error().Err(err).Msgf("Error building ingress filter chain for proxy with identity %s service %s", lb.serviceIdentity, svc)
+		} else {
+			filterChains = append(filterChains, filterChain)
+		}
+	}
+
+	return filterChains
 }
 
-func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshService, svcPort uint32) *xds_listener.FilterChain {
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, false /* TLS */))
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
-			Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
-		return nil
+func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch) (*xds_listener.FilterChain, error) {
+	if trafficMatch == nil {
+		return nil, errors.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
 	}
 
 	// Build the HTTP Connection Manager filter from its options
@@ -55,26 +63,40 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, svc)
-		return nil
+		return nil, errors.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
 	}
 
 	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
-			Msgf("Error marshalling inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, svc)
-		return nil
+		return nil, errors.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
 	}
 
-	return &xds_listener.FilterChain{
-		// Filter chain with SNI matching enabled for clients that set the SNI
+	// TODO(shashankram): add helper to convert string IP ranges to xds_core.CidirRange
+	var sourcePrefixes []*xds_core.CidrRange
+	for _, ipRange := range trafficMatch.SourceIPRanges {
+		ip, ipNet, err := net.ParseCIDR(ipRange)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error parsing IP range %s while building Ingress filter chain for match %v, skipping", ipRange, trafficMatch)
+			continue
+		}
+
+		prefixLen, _ := ipNet.Mask.Size()
+		sourcePrefixes = append(sourcePrefixes, &xds_core.CidrRange{
+			AddressPrefix: ip.String(),
+			PrefixLen: &wrapperspb.UInt32Value{
+				Value: uint32(prefixLen),
+			},
+		})
+	}
+
+	filterChain := &xds_listener.FilterChain{
+		Name: trafficMatch.Name,
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: svcPort,
+				Value: uint32(trafficMatch.Port),
 			},
-			TransportProtocol: getIngressTransportProtocol(cfg.UseHTTPSIngress()),
+			SourcePrefixRanges: sourcePrefixes,
 		},
-		TransportSocket: getIngressTransportSocket(cfg.UseHTTPSIngress(), marshalledDownstreamTLSContext),
 		Filters: []*xds_listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,
@@ -84,54 +106,39 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 			},
 		},
 	}
-}
 
-func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
-	var ingressFilterChains []*xds_listener.FilterChain
-
-	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(svc)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
-			Msgf("Error retrieving port to protocol mapping for service %s", svc)
-		return ingressFilterChains
-	}
-
-	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
-	for port, appProtocol := range protocolToPortMap {
-		switch appProtocol {
-		case constants.ProtocolHTTP:
-			// Ingress filter chain for HTTP port
-			if lb.cfg.UseHTTPSIngress() {
-				// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
-				ingressFilterChainWithSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
-				ingressFilterChainWithSNI.Name = fmt.Sprintf("%s:%d", inboundIngressHTTPSFilterChain, port)
-				ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.ServerName()}
-				ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
-			}
-
-			// Filter chain without SNI matching enabled for HTTP clients and HTTPS clients that don't set the SNI
-			ingressFilterChainWithoutSNI := lb.newIngressHTTPFilterChain(lb.cfg, svc, port)
-			ingressFilterChainWithoutSNI.Name = fmt.Sprintf("%s:%d", inboundIngressNonSNIFilterChain, port)
-			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
-
-		default:
-			log.Error().Str(errcode.Kind, errcode.ErrUnsupportedProtocolForService.String()).
-				Msgf("Cannot build ingress filter chain. Protocol %s is not supported for service %s on port %d",
-					appProtocol, svc, port)
+	switch strings.ToLower(trafficMatch.Protocol) {
+	case constants.ProtocolHTTP:
+		// For HTTP backend, only allow traffic from authorized
+		if filterChain.FilterChainMatch.SourcePrefixRanges == nil {
+			log.Warn().Msgf("Allowing HTTP ingress on proxy with identity %s is insecure, use IngressBackend.Spec.Sources to restrict clients", lb.serviceIdentity)
 		}
-	}
 
-	return ingressFilterChains
-}
+	case constants.ProtocolHTTPS:
+		// For HTTPS backend, configure the following:
+		// 1. TransportProtocol to match TLS
+		// 2. ServerNames (SNI)
+		// 3. TransportSocket to terminate TLS from downstream connections
+		filterChain.FilterChainMatch.TransportProtocol = envoy.TransportProtocolTLS
+		filterChain.FilterChainMatch.ServerNames = trafficMatch.ServerNames
 
-func getIngressTransportSocket(forHTTPS bool, marshalledDownstreamTLSContext *any.Any) *xds_core.TransportSocket {
-	if forHTTPS {
-		return &xds_core.TransportSocket{
+		marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation))
+		if err != nil {
+			return nil, errors.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
+		}
+
+		filterChain.TransportSocket = &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
 		}
+
+	default:
+		err := errors.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.serviceIdentity)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrUnsupportedProtocolForService.String()).Msg("Error building filter chain for ingress")
+		return nil, err
 	}
-	return nil
+
+	return filterChain, nil
 }

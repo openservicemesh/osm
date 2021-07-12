@@ -13,6 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 
+	configV1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
@@ -1740,7 +1744,7 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 	}
 }
 
-func TestGetIngressPoliciesForService(t *testing.T) {
+func TestGetIngressPoliciesFromK8s(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -2120,7 +2124,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(tc.svc).Return(tc.ingressesV1, nil).Times(1)
 			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(tc.svc).Return(tc.ingressesV1beta1, nil).Times(1)
 
-			actualPolicies, err := meshCatalog.GetIngressPoliciesForService(tc.svc)
+			actualPolicies, err := meshCatalog.getIngressPoliciesFromK8s(tc.svc)
 
 			assert.Equal(tc.excpectError, err != nil)
 			assert.ElementsMatch(tc.expectedTrafficPolicies, actualPolicies)
@@ -2128,7 +2132,7 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 	}
 }
 
-func TestBuildIngressPolicyName(t *testing.T) {
+func TestGetIngressPolicyName(t *testing.T) {
 	assert := tassert.New(t)
 	testCases := []struct {
 		name         string
@@ -2152,8 +2156,220 @@ func TestBuildIngressPolicyName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := buildIngressPolicyName(tc.name, tc.namespace, tc.host)
+			actual := getIngressTrafficPolicyName(tc.name, tc.namespace, tc.host)
 			assert.Equal(tc.expectedName, actual)
+		})
+	}
+}
+
+func TestGetIngressTrafficPolicy(t *testing.T) {
+	testCases := []struct {
+		name                        string
+		ingressBackendPolicyEnabled bool
+		enableHTTPSIngress          bool
+		meshSvc                     service.MeshService
+		ingressV1                   []*networkingV1.Ingress
+		ingressBackend              *policyV1alpha1.IngressBackend
+		expectedPolicy              *trafficpolicy.IngressTrafficPolicy
+		expectError                 bool
+	}{
+		{
+			name:                        "HTTP ingress with k8s ingress enabled",
+			ingressBackendPolicyEnabled: false,
+			enableHTTPSIngress:          false,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressV1: []*networkingV1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1.IngressSpec{
+						Rules: []networkingV1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1.IngressRuleValue{
+									HTTP: &networkingV1.HTTPIngressRuleValue{
+										Paths: []networkingV1.HTTPIngressPath{
+											{
+												Path:     "/fake1-path1",
+												PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypeImplementationSpecific))),
+												Backend: networkingV1.IngressBackend{
+													Service: &networkingV1.IngressServiceBackend{
+														Name: "foo",
+														Port: networkingV1.ServiceBackendPort{
+															Number: fakeIngressPort,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ingressBackend: nil,
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "ingress-1.testns|fake1.com",
+						Hostnames: []string{
+							"fake1.com",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/fake1-path1",
+										PathMatchType: trafficpolicy.PathMatchPrefix,
+										Methods:       []string{constants.WildcardHTTPMethod},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo/local",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:     "ingress_testns/foo/local_80_http",
+						Protocol: "http",
+						Port:     80,
+					},
+				},
+			},
+		},
+		{
+			name:                        "HTTPS ingress with k8s ingress enabled",
+			ingressBackendPolicyEnabled: false,
+			enableHTTPSIngress:          true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressV1: []*networkingV1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-1",
+						Namespace: "testns",
+						Annotations: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "enabled",
+						},
+					},
+					Spec: networkingV1.IngressSpec{
+						Rules: []networkingV1.IngressRule{
+							{
+								Host: "fake1.com",
+								IngressRuleValue: networkingV1.IngressRuleValue{
+									HTTP: &networkingV1.HTTPIngressRuleValue{
+										Paths: []networkingV1.HTTPIngressPath{
+											{
+												Path:     "/fake1-path1",
+												PathType: (*networkingV1.PathType)(pointer.StringPtr(string(networkingV1.PathTypeImplementationSpecific))),
+												Backend: networkingV1.IngressBackend{
+													Service: &networkingV1.IngressServiceBackend{
+														Name: "foo",
+														Port: networkingV1.ServiceBackendPort{
+															Number: fakeIngressPort,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ingressBackend: nil,
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "ingress-1.testns|fake1.com",
+						Hostnames: []string{
+							"fake1.com",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/fake1-path1",
+										PathMatchType: trafficpolicy.PathMatchPrefix,
+										Methods:       []string{constants.WildcardHTTPMethod},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo/local",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:                     "ingress_testns/foo/local_80_https",
+						Protocol:                 "https",
+						Port:                     80,
+						SkipClientCertValidation: true,
+					},
+					{
+						Name:                     "ingress_testns/foo/local_80_https_with_sni",
+						Protocol:                 "https",
+						Port:                     80,
+						SkipClientCertValidation: true,
+						ServerNames:              []string{"foo.testns.svc.cluster.local"},
+					},
+				},
+			},
+		},
+		{
+			name:                        "No ingress routes",
+			ingressBackendPolicyEnabled: false,
+			enableHTTPSIngress:          false,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressBackend:              nil,
+			expectedPolicy:              nil,
+		},
+	}
+
+	portToProtocolMapping := map[uint32]string{80: "http", 443: "tcp"}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+
+			meshCatalog := &MeshCatalog{
+				ingressMonitor:   mockIngressMonitor,
+				serviceProviders: []service.Provider{mockServiceProvider},
+				configurator:     mockCfg,
+			}
+
+			mockCfg.EXPECT().GetFeatureFlags().Return(configV1alpha1.FeatureFlags{EnableIngressBackendPolicy: tc.ingressBackendPolicyEnabled}).Times(1)
+			mockCfg.EXPECT().UseHTTPSIngress().Return(tc.enableHTTPSIngress).Times(1).AnyTimes()                                            // may or may not be called
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(tc.ingressV1, nil).AnyTimes()                           // may or may not be called
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()                               // may or may not be called
+			mockServiceProvider.EXPECT().GetTargetPortToProtocolMappingForService(tc.meshSvc).Return(portToProtocolMapping, nil).AnyTimes() // may or may not be called
+
+			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
+			assert.Equal(tc.expectError, err != nil)
+			assert.Equal(tc.expectedPolicy, actual)
 		})
 	}
 }
