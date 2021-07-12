@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
@@ -19,7 +20,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentity.String()).
+			Msgf("Error looking up identity for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -28,8 +30,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
+				log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).
+					Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
+						dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
 				return nil, err
 			}
 
@@ -46,7 +49,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg, opts...)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).
+				Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
 			return nil, err
 		}
 
@@ -55,7 +59,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingServiceList.String()).
+			Msgf("Error looking up MeshService for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -65,7 +70,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		localClusterName := envoy.GetLocalClusterNameForService(proxyService)
 		localCluster, err := getLocalServiceCluster(meshCatalog, proxyService, localClusterName)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyService)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingLocalServiceCluster.String()).
+				Msgf("Failed to get local cluster config for proxy %s", proxyService)
 			return nil, err
 		}
 		clusters = append(clusters, localCluster)
@@ -82,7 +88,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingOrgDstEgressCluster.String()).
+			Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
 		return nil, err
 	}
 
@@ -111,7 +118,8 @@ func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
 	var cdsResources []types.Resource
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy.", cluster.Name)
+			log.Error().Str(errcode.Kind, errcode.ErrDuplicateClusters.String()).
+				Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy.", cluster.Name)
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // BuildFromConfig builds and returns an Envoy Bootstrap object from the given config
@@ -30,14 +31,16 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 	}
 	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
 		return nil, err
 	}
 
 	accessLogger := &xds_accesslog_stream.StdoutAccessLog{}
 	pbAccessLog, err := ptypes.MarshalAny(accessLogger)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling StdoutAccessLog struct into an anypb.Any message")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshaling StdoutAccessLog struct into an anypb.Any message")
 		return nil, err
 	}
 
@@ -77,7 +80,8 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 	}
 	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
 		return nil, err
 	}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -127,7 +128,8 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 
 	ports, err := catalog.GetTargetPortToProtocolMappingForService(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get ports for service %s", proxyServiceName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+			Msgf("Failed to get ports for service %s", proxyServiceName)
 		return nil, err
 	}
 
@@ -198,7 +200,8 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 			// Cluster config does not have a Host specified, route it to its original destination.
 			// Used for TCP based clusters
 			if originalDestinationEgressCluster, err := getOriginalDestinationEgressCluster(config.Name); err != nil {
-				log.Error().Err(err).Msg("Error building the original destination cluster for the given egress cluster config")
+				log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingOrgDstEgressCluster.String()).
+					Msg("Error building the original destination cluster for the given egress cluster config")
 			} else {
 				egressClusters = append(egressClusters, originalDestinationEgressCluster)
 			}
@@ -206,7 +209,8 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 			// Cluster config has a Host specified, route it based on the Host resolved using DNS.
 			// Used for HTTP based clusters
 			if cluster, err := getDNSResolvableEgressCluster(config); err != nil {
-				log.Error().Err(err).Msg("Error building cluster for the given egress cluster config")
+				log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingDNSEgressCluster.String()).
+					Msg("Error building cluster for the given egress cluster config")
 			} else {
 				egressClusters = append(egressClusters, cluster)
 			}
