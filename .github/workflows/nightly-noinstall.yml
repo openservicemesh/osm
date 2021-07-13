@@ -2,6 +2,9 @@ name: OSM NoInstall Nightly Job
 on: 
   schedule:
     - cron: "0 0 * * *"
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
@@ -50,17 +53,18 @@ jobs:
           go-version: 1.16
       - name: Install OSM via OSM CLI
         run: |
+          echo $CTR_TAG
           make build-osm
           ./bin/osm install \
             --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
             --set=OpenServiceMesh.image.tag="$CTR_TAG"
         env: 
           CTR_REGISTRY: openservicemesh
-          CTR_TAG: ${{ github.sha }}
+          CTR_TAG: 53e8bc32f341bbf5172be7685d46fac5518bcd7e
       - name: Run e2es
         run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 60m -installType=NoInstall
         env: 
           CTR_REGISTRY: openservicemesh
-          CTR_TAG: ${{ github.sha }}
+          CTR_TAG: 53e8bc32f341bbf5172be7685d46fac5518bcd7e
       - name: Kind cleanup
         run: kind delete cluster --name $KIND_CLUSTER_NAME
