@@ -2,15 +2,12 @@ package kube
 
 import (
 	"net"
-	"strconv"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -40,19 +37,18 @@ func (c *Client) GetID() string {
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []endpoint.Endpoint
-
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
-		return endpoints
+		return nil
 	}
 
 	if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 		// Doesn't belong to namespaces we are observing
-		return endpoints
+		return nil
 	}
 
+	var endpoints []endpoint.Endpoint
 	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 		for _, address := range kubernetesEndpoint.Addresses {
 			for _, port := range kubernetesEndpoint.Ports {
@@ -72,12 +68,14 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 
 	// include multicluster services if exists
 	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 		serviceIdentities, err := c.kubeController.ListServiceIdentitiesForService(svc)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Error get service identities for service %s", c.providerIdent, svc.Name)
+			log.Error().Err(err).Msgf("[%s] Error getting Multicluster service identities for service %s", c.providerIdent, svc.Name)
 		} else {
-			for _, identity := range serviceIdentities {
-				remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(identity.Name, identity.Namespace)
+			for _, ident := range serviceIdentities {
+				remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(ident.Name, ident.Namespace)
+				log.Trace().Msgf("[%s] Getting Multicluster Endpoints for identity %s: %+v", c.providerIdent, ident, remoteEndpoints)
 				endpoints = append(endpoints, remoteEndpoints...)
 			}
 		}
@@ -89,10 +87,10 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
-	sa := serviceIdentity.ToK8sServiceAccount()
-	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
+	log.Trace().Msgf("[%s] Getting Endpoints for identity %s on Kubernetes", c.providerIdent, serviceIdentity)
 	var endpoints []endpoint.Endpoint
 
+	sa := serviceIdentity.ToK8sServiceAccount()
 	podList := c.kubeController.ListPods()
 	for _, pod := range podList {
 		if pod.Namespace != sa.Namespace {
@@ -116,8 +114,11 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 	// include multicluster services if exists
 	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
 		remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for identity %s: %+v", c.providerIdent, serviceIdentity, remoteEndpoints)
 		endpoints = append(endpoints, remoteEndpoints...)
 	}
+
+	log.Trace().Msgf("[%s] Endpoints for service account %s on Kubernetes: %+v", c.providerIdent, sa, endpoints)
 
 	return endpoints
 }
@@ -236,7 +237,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	var endpoints []endpoint.Endpoint
 	var err error
 
-	// Check if the service has been given Cluster IP
+	// Check if the service has been given Clusters IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
 		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
@@ -248,10 +249,10 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 		return c.ListEndpointsForService(svc), nil
 	}
 
-	// Cluster IP is present
+	// Clusters IP is present
 	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {
-		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
+		log.Error().Msgf("[%s] Could not parse Clusters IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
 		return nil, errParseClusterIP
 	}
 
@@ -324,37 +325,4 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 
 	hostnames := k8s.GetHostnamesForService(k8svc, locality)
 	return hostnames, nil
-}
-
-func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount, namespace string) []endpoint.Endpoint {
-	return getEndpointsFromMultiClusterServices(c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace))
-}
-
-func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterService) []endpoint.Endpoint {
-	endpoints := []endpoint.Endpoint{}
-	if len(services) > 0 {
-		for _, service := range services {
-			for _, cluster := range service.Spec.Cluster {
-				tokens := strings.Split(cluster.Address, ":")
-				if len(tokens) != 2 {
-					log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", service.Name, cluster.Address)
-					continue
-				}
-
-				ip, portStr := tokens[0], tokens[1]
-				port, err := strconv.Atoi(portStr)
-				if err != nil {
-					log.Error().Msgf("Remote service %s port number format invalid. Remote cluster address: %s", service.Name, cluster.Address)
-					continue
-				}
-
-				ept := endpoint.Endpoint{
-					IP:   net.ParseIP(ip),
-					Port: endpoint.Port(port),
-				}
-				endpoints = append(endpoints, ept)
-			}
-		}
-	}
-	return endpoints
 }

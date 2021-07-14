@@ -67,7 +67,7 @@ func testTrafficSplit(appProtocol string) {
 	// Used across the test to wait for concurrent steps to finish
 	var wg sync.WaitGroup
 
-	It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
+	It("Tests HTTP traffic from Clients to the traffic split Clusters IP", func() {
 		// Install OSM
 		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 

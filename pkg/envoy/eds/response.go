@@ -49,7 +49,7 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 	for _, cluster := range request.ResourceNames {
 		meshSvc, err := clusterToMeshSvc(cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
+			log.Error().Err(err).Msgf("Error retrieving MeshService from Clusters %s", cluster)
 			continue
 		}
 		endpoints, err := meshCatalog.ListEndpointsForServiceIdentity(proxyIdentity, meshSvc)

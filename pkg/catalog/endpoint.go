@@ -10,12 +10,11 @@ import (
 func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
-		ep := provider.ListEndpointsForService(svc)
-		if len(ep) == 0 {
+		if ep := provider.ListEndpointsForService(svc); len(ep) == 0 {
 			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), svc)
-			continue
+		} else {
+			endpoints = append(endpoints, ep...)
 		}
-		endpoints = append(endpoints, ep...)
 	}
 	return endpoints, nil
 }
@@ -49,8 +48,7 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 	}
 	outboundEndpointsSet := make(map[string][]endpoint.Endpoint)
 	for _, ep := range outboundEndpoints {
-		ipStr := ep.IP.String()
-		outboundEndpointsSet[ipStr] = append(outboundEndpointsSet[ipStr], ep)
+		outboundEndpointsSet[ep.IP.String()] = append(outboundEndpointsSet[ep.IP.String()], ep)
 	}
 
 	destSvcIdentities, err := mc.ListOutboundServiceIdentities(downstreamIdentity)
@@ -62,15 +60,18 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 	// allowedEndpoints comprises of only those endpoints from outboundEndpoints that matches the endpoints from listEndpointsForServiceIdentity
 	// i.e. only those interseting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
+
+	allowedEndpoints = append(allowedEndpoints, outboundEndpoints...)
+
 	for _, destSvcIdentity := range destSvcIdentities {
-		for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {
-			epIPStr := ep.IP.String()
-			// check if endpoint IP is allowed
-			if _, ok := outboundEndpointsSet[epIPStr]; ok {
-				// add all allowed endpoints on the pod to result list
-				allowedEndpoints = append(allowedEndpoints, outboundEndpointsSet[epIPStr]...)
-			}
-		}
+		allowedEndpoints = append(allowedEndpoints, mc.listEndpointsForServiceIdentity(destSvcIdentity)...)
+		//for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {
+		// Is the endpoint IP allowed?
+		// TODO(draychev): Why is this needed?
+		// if _, ok := outboundEndpointsSet[ep.IP.String()]; ok {
+		// allowedEndpoints = append(allowedEndpoints, outboundEndpointsSet[ep.IP.String()]...)
+		// }
+		//}
 	}
 
 	return allowedEndpoints, nil
@@ -80,12 +81,11 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 func (mc *MeshCatalog) listEndpointsForServiceIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
-		ep := provider.ListEndpointsForIdentity(serviceIdentity)
-		if len(ep) == 0 {
+		if ep := provider.ListEndpointsForIdentity(serviceIdentity); len(ep) == 0 {
 			log.Trace().Msgf("[%s] No endpoints found for service account=%s", provider.GetID(), serviceIdentity)
-			continue
+		} else {
+			endpoints = append(endpoints, ep...)
 		}
-		endpoints = append(endpoints, ep...)
 	}
 	return endpoints
 }

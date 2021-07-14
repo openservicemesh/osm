@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,14 +20,17 @@ type MultiClusterService struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec is the MultiClusterService specification.
-	// +optional
 	Spec MultiClusterServiceSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
+}
+
+func (mcs MultiClusterService) String() string {
+	return fmt.Sprintf("%s/%s with SA=%s", mcs.Namespace, mcs.Name, mcs.Spec.ServiceAccount)
 }
 
 // MultiClusterServiceSpec is the type used to represent the multicluster service specification.
 type MultiClusterServiceSpec struct {
 	// ClusterSpec defines the configuration of other clusters
-	Cluster []ClusterSpec `json:"cluster,omitempty"`
+	Clusters []ClusterSpec `json:"clusters,omitempty"`
 
 	// ServiceAccount represents the service account of the multicluster service.
 	ServiceAccount string `json:"serviceAccount,omitempty"`

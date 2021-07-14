@@ -14,7 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
-// NewResponse creates a new Cluster Discovery Response.
+// NewResponse creates a new Clusters Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var clusters []*xds_cluster.Cluster
 
