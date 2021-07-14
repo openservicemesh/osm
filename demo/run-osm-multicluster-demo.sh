@@ -95,7 +95,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     bin/osm install \
         --osm-namespace "$K8S_NAMESPACE" \
         --mesh-name "$MESH_NAME" \
-        --set=OpenServiceMesh.certificateManager="tresor" \
         --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
         --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
         --set=OpenServiceMesh.image.tag="$CTR_TAG" \
