@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NS=bookstore
-NAME=bookstore-v1
+NAME=bookstore
 
 kubectl delete MultiClusterService -n $NS $NAME || true
 

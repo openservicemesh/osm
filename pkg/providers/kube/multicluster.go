@@ -11,9 +11,9 @@ import (
 
 const portIPSeparator = `:`
 
-func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount, namespace string) []endpoint.Endpoint {
-	multiclusterServices := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace)
-	log.Trace().Msgf("Multicluster services for service account %s: %+v", serviceAccount, multiclusterServices)
+func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccountName, namespace string) []endpoint.Endpoint {
+	multiclusterServices := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccountName, namespace)
+	log.Trace().Msgf("Multicluster services for service account %s: %+v", serviceAccountName, multiclusterServices)
 	return getEndpointsFromMultiClusterServices(multiclusterServices...)
 }
 

@@ -37,19 +37,18 @@ func (c *Client) GetID() string {
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []endpoint.Endpoint
-
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache for service %s", c.providerIdent, svc)
-		return endpoints
+		return nil
 	}
 
 	if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 		// Doesn't belong to namespaces we are observing
-		return endpoints
+		return nil
 	}
 
+	var endpoints []endpoint.Endpoint
 	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 		for _, address := range kubernetesEndpoint.Addresses {
 			for _, port := range kubernetesEndpoint.Ports {
@@ -76,11 +75,10 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 		} else {
 			for _, ident := range serviceIdentities {
 				remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(ident.Name, ident.Namespace)
+				log.Trace().Msgf("[%s] Getting Multicluster Endpoints for identity %s: %+v", c.providerIdent, ident, remoteEndpoints)
 				endpoints = append(endpoints, remoteEndpoints...)
 			}
 		}
-	} else {
-		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for... MULTICLUSTER IS DISABLED", c.providerIdent)
 	}
 
 	return endpoints
@@ -89,10 +87,10 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
-	sa := serviceIdentity.ToK8sServiceAccount()
-	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
+	log.Trace().Msgf("[%s] Getting Endpoints for identity %s on Kubernetes", c.providerIdent, serviceIdentity)
 	var endpoints []endpoint.Endpoint
 
+	sa := serviceIdentity.ToK8sServiceAccount()
 	podList := c.kubeController.ListPods()
 	for _, pod := range podList {
 		if pod.Namespace != sa.Namespace {
@@ -115,11 +113,9 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 
 	// include multicluster services if exists
 	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
-		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for service account %s", c.providerIdent, sa)
 		remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for identity %s: %+v", c.providerIdent, serviceIdentity, remoteEndpoints)
 		endpoints = append(endpoints, remoteEndpoints...)
-	} else {
-		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for... MULTICLUSTER IS DISABLED", c.providerIdent)
 	}
 
 	log.Trace().Msgf("[%s] Endpoints for service account %s on Kubernetes: %+v", c.providerIdent, sa, endpoints)
