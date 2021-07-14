@@ -4,7 +4,7 @@
 # This script will deploy Open Service Mesh on two appointed kubernetes clusters.
 # The result will be, bookbuyer service on cluster can communicate with the bookstore service on another cluster.
 
-set -aueo pipefail
+set -auexo pipefail
 
 if [ ! -f .env ]; then
     echo -e "\nThere is no .env file in the root of this repository."
