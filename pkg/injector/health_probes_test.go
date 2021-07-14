@@ -198,40 +198,60 @@ func TestRewriteProbe(t *testing.T) {
 }
 
 func TestGetPort(t *testing.T) {
-	containerPorts := &[]v1.ContainerPort{
-		{
-			Name:          "-some-port-",
-			ContainerPort: 2344,
-		},
-		{
-			Name:          "-some-other-port-",
-			ContainerPort: 8877,
-		},
-	}
-
 	tests := []struct {
-		name     string
-		port     intstr.IntOrString
-		expected int32
+		name           string
+		port           intstr.IntOrString
+		containerPorts *[]v1.ContainerPort
+		expectedPort   int32
+		expectedErr    error
 	}{
 		{
-			name:     "named port",
-			port:     intstr.FromString("-some-port-"),
-			expected: 2344,
+			name:           "no container ports",
+			port:           intstr.FromString("-some-port-"),
+			containerPorts: &[]v1.ContainerPort{},
+			expectedErr:    errNoMatchingPort,
 		},
 		{
-			name:     "numbered port",
-			port:     intstr.FromInt(9955),
-			expected: 9955,
+			name: "named port",
+			port: intstr.FromString("-some-port-"),
+			containerPorts: &[]v1.ContainerPort{
+				{Name: "-some-port-", ContainerPort: 2344},
+				{Name: "-some-other-port-", ContainerPort: 8877},
+			},
+			expectedPort: 2344,
+		},
+		{
+			name: "numbered port",
+			port: intstr.FromInt(9955),
+			containerPorts: &[]v1.ContainerPort{
+				{Name: "-some-port-", ContainerPort: 2344},
+				{Name: "-some-other-port-", ContainerPort: 8877},
+			},
+			expectedPort: 9955,
+		},
+		{
+			name: "no matching named ports",
+			port: intstr.FromString("-another-port-"),
+			containerPorts: &[]v1.ContainerPort{
+				{Name: "-some-port-", ContainerPort: 2344},
+				{Name: "-some-other-port-", ContainerPort: 8877},
+			},
+			expectedErr: errNoMatchingPort,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			actual, err := getPort(test.port, containerPorts)
+			actual, err := getPort(test.port, test.containerPorts)
+
+			if test.expectedErr != nil {
+				assert.ErrorIs(err, errNoMatchingPort)
+				return
+			}
+
 			assert.Nil(err)
-			assert.Equal(test.expected, actual)
+			assert.Equal(test.expectedPort, actual)
 		})
 	}
 }
