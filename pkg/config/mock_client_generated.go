@@ -49,10 +49,10 @@ func (mr *MockControllerMockRecorder) GetMultiClusterService(arg0, arg1 interfac
 }
 
 // GetMultiClusterServiceByServiceAccount mocks base method
-func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 string) []*v1alpha1.MultiClusterService {
+func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 string) []v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterServiceByServiceAccount", arg0, arg1)
-	ret0, _ := ret[0].([]*v1alpha1.MultiClusterService)
+	ret0, _ := ret[0].([]v1alpha1.MultiClusterService)
 	return ret0
 }
 
@@ -63,10 +63,10 @@ func (mr *MockControllerMockRecorder) GetMultiClusterServiceByServiceAccount(arg
 }
 
 // ListMultiClusterServices mocks base method
-func (m *MockController) ListMultiClusterServices() []*v1alpha1.MultiClusterService {
+func (m *MockController) ListMultiClusterServices() []v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListMultiClusterServices")
-	ret0, _ := ret[0].([]*v1alpha1.MultiClusterService)
+	ret0, _ := ret[0].([]v1alpha1.MultiClusterService)
 	return ret0
 }
 

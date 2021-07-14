@@ -3,7 +3,7 @@
 NS=bookstore
 NAME=bookstore-v1
 
-kubectl delete MultiClusterService -n $NS $NAME
+kubectl delete MultiClusterService -n $NS $NAME || true
 
 kubectl apply -f - <<EOF
 apiVersion: config.openservicemesh.io/v1alpha1
@@ -17,11 +17,11 @@ spec:
   clusters:
   - name: alpha
     # certificate
-    address: 1.1.1.1:8080
+    address: 1.99.99.1:7777
 
   - name: beta
     # certificate
-    address: 2.2.2.2:8080
+    address: 2.2.2.2:5555
 
 #  ports:
 #    - port: 8888
