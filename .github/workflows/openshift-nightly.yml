@@ -1,0 +1,31 @@
+name: OpenShift Nightly Job
+on: 
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  test:
+    name: OpenShift Nightly Job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout v2
+        uses: actions/checkout@v2
+      - name: Authenticate and set context
+        uses: redhat-actions/oc-login@v1
+        with:
+          openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+          openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+          insecure_skip_tls_verify: true
+      - name: Test oc
+        run: oc version --client
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+      - name: Run e2es
+        run: |
+          make build-osm
+          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 180m -deployOnOpenShift=true
+        env: 
+          CTR_REGISTRY: openservicemesh
+          CTR_TAG: ${{ github.sha }}
