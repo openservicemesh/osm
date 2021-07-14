@@ -88,6 +88,15 @@ func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
 	return Describe(fmt.Sprintf("%s %s", opts, name), body)
 }
 
+const (
+	// DefaultUpstreamServicePort is the default port on which the server apps listen for connections from client apps.
+	// Note: Port 80 should not be used because it does not work on OpenShift.
+	DefaultUpstreamServicePort = 14001
+)
+
+// HttpbinCmd is the command to be used for httpbin applications in e2es
+var HttpbinCmd = []string{"gunicorn", "-b", fmt.Sprintf("0.0.0.0:%d", DefaultUpstreamServicePort), "httpbin:app", "-k", "gevent"}
+
 // Verifies the instType string flag option is a valid enum type
 func verifyValidInstallType(t InstallType) error {
 	switch t {
