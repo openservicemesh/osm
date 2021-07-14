@@ -6,6 +6,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -92,7 +93,8 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 
 		if spec.Destination.Kind != serviceAccountKind {
 			// Destination kind is not valid
-			log.Error().Msgf("Applied TrafficTarget policy %s has invalid Destination kind: %s", trafficTarget.Name, spec.Destination.Kind)
+			log.Error().Str(errcode.Kind, errcode.ErrInvalidDestinationKind.String()).
+				Msgf("Applied TrafficTarget policy %s has invalid Destination kind: %s", trafficTarget.Name, spec.Destination.Kind)
 			continue
 		}
 
@@ -105,7 +107,8 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 			for _, source := range spec.Sources {
 				if source.Kind != serviceAccountKind {
 					// Destination kind is not valid
-					log.Error().Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
+					log.Error().Str(errcode.Kind, errcode.ErrInvalidSourceKind.String()).
+						Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
 					continue
 				}
 
@@ -118,7 +121,8 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 			for _, source := range spec.Sources {
 				if source.Kind != serviceAccountKind {
 					// Destination kind is not valid
-					log.Error().Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
+					log.Error().Str(errcode.Kind, errcode.ErrInvalidSourceKind.String()).
+						Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
 					continue
 				}
 

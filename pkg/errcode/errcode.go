@@ -75,6 +75,12 @@ const (
 	// ErrGettingInboundTrafficTargets indicates the inbound traffic targets composed of its routes for a given
 	// desitination ServiceIdentity could not be obtained
 	ErrGettingInboundTrafficTargets
+
+	// ErrInvalidDestinationKind indicates an applied SMI TrafficTarget policy has an invalid destination kind
+	ErrInvalidDestinationKind
+
+	// ErrInvalidSourceKind	indicated an applied SMI TrafficTarget policy has an invalid source kind
+	ErrInvalidSourceKind
 )
 
 // Range 3000-3500 is reserved for errors related to k8s constructs (service accounts, namespaces, etc.)
@@ -93,6 +99,9 @@ const (
 
 	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
 	ErrGettingServicePorts
+
+	// ErrGettingServiceIdentitiesForService indicates the ServiceIdentities associated with a specified MeshService could not be listed
+	ErrGettingServiceIdentitiesForService
 )
 
 // Range 4000-4100 reserved for errors related to certificate providers
@@ -261,6 +270,23 @@ const (
 
 	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
 	ErrGettingWASMFilter
+	// ErrBuildingRBACPolicyForRoute indicates a HTTP RBAC route filter for a specified traffic policy rule could not be configured
+	ErrBuildingRBACPolicyForRoute
+
+	// ErrUnmarshallingSDSCert indicates the SDS resource name could not be parsed and configured as an SDSCert object
+	ErrUnmarshallingSDSCert
+
+	// ErrGettingServiceCertSecret indicates the XDS secret containing the certificate for the service could not be created
+	ErrGettingServiceCertSecret
+
+	// ErrGettingMeshService indicates a MeshService could not be configured from the SDSCert name
+	ErrGettingMeshService
+
+	// ErrGettingK8sServiceAccount indicates a K8sServiceAccount could not be unmarshalled from an SDSCert name
+	ErrGettingK8sServiceAccount
+
+	// ErrSDSCertMismatch indicates the SDSCert request does not match the identity of the proxy
+	ErrSDSCertMismatch
 )
 
 // String returns the error code as a string, ex. E1000
@@ -379,6 +405,14 @@ in the SMI TrafficTarget policy.
 The associated SMI TrafficTarget policy was ignored by the system.
 `,
 
+	ErrInvalidDestinationKind: `
+An applied SMI TrafficTarget policy has an invalid destination kind.
+`,
+
+	ErrInvalidSourceKind: `
+An applied SMI TrafficTarget policy has an invalid source kind.
+`,
+
 	ErrGettingInboundTrafficTargets: `
 The inbound TrafficTargets composed of their routes for a given destination
 ServiceIdentity could not be configured.
@@ -408,10 +442,14 @@ The mapping of ports the application is exposing a service on to their correspon
 application protocol could not be obtained for a specified service.
 `,
 
-	// ErrEndpointsNotFound indicates resolvable service endpoints could not be found
 	ErrEndpointsNotFound: `
 The system found 0 endpoints to be reached when the service's FQDN was resolved.
 `,
+
+	ErrGettingServiceIdentitiesForService: `
+The ServiceIdentities associated with a specified MeshService could not be listed.
+`,
+
 	//
 	// Range 4000-4100
 	//
@@ -643,13 +681,39 @@ A XDS RBAC policy could not be generated from the specified traffic target
 policy.
 `,
 
-	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
 	ErrGettingLuaFilter: `
 The Lua XDS HttpFilter could not be configured.
 `,
 
-	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
 	ErrGettingWASMFilter: `
 The WASM XDS HttpFilter could not be configured.
+`,
+
+	ErrBuildingRBACPolicyForRoute: `
+A traffic policy rule could not be configured into an HTTP RBAC route filter. The
+route built will be built without an HTTP RBAC filter.
+`,
+
+	ErrUnmarshallingSDSCert: `
+The SDS resource name could not be parsed and configured as an SDSCert object. The
+certificate request for the invalid SDS resource name is ignored.
+`,
+
+	ErrGettingServiceCertSecret: `
+An XDS Secret containing a new TLS certificate could not be created for the
+certificate request. The certificate request is ignored.
+`,
+
+	ErrGettingMeshService: `
+An OSM MeshService could not be configured from a SDSCert name.
+`,
+
+	ErrGettingK8sServiceAccount: `
+A kubernetes ServiceAccount could not be unmarshalled from an SDSCert name.
+`,
+
+	ErrSDSCertMismatch: `
+The SDS cert request corresponding to the mTLS root validation certificate
+does not matches the identity of this proxy.
 `,
 }
