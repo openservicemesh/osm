@@ -7,6 +7,7 @@ source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+KUBE_CONTEXT=$(kubectl config current-context)
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
@@ -94,7 +95,7 @@ spec:
           args: ["--path", "./", "--port", "14001"]
           env:
             - name: IDENTITY
-              value: ${SVC}
+              value: ${SVC}.${KUBE_CONTEXT}
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
 

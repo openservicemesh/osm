@@ -4,13 +4,18 @@
 # This script will deploy Open Service Mesh on two appointed kubernetes clusters.
 # The result will be, bookbuyer service on cluster can communicate with the bookstore service on another cluster.
 
-set -aueo pipefail
+set -auexo pipefail
+
+# Colors!
+# shellcheck disable=SC2034
+RESTORE='\e[0m';RESET='\e[0m';BLACK='\e[0;30m';BLUE='\e[0;34m';GREEN='\e[0;32m';CYAN='\e[0;36m';RED='\e[0;31m';PURPLE='\e[0;35m';BROWN='\e[0;33m';DARKGRAY='\e[1;30m';LGRAY='\e[0;37m';LBLUE='\e[1;34m';LGREEN='\e[1;32m';LCYAN='\e[1;36m';LRED='\e[1;31m';LPURPLE='\e[1;35m';YELLOW='\e[1;33m';WHITE='\e[1;37m';BAR="\n-${RESTORE}-${BLACK}-${BLUE}-${GREEN}-${CYAN}-${RED}-${PURPLE}-${BROWN}-${LGRAY}-${DARKGRAY}-${LBLUE}-${LGREEN}-${LCYAN}-${LRED}-${LPURPLE}-${YELLOW}-${WHITE}-${RESTORE}\n"
+
 
 if [ ! -f .env ]; then
-    echo -e "\nThere is no .env file in the root of this repository."
+    echo -e "\n${RED}There is no .env file in the root of this repository."
     echo -e "Copy the values from .env.example into .env."
     echo -e "Modify the values in .env to match your setup.\n"
-    echo -e "    cat .env.example > .env\n\n"
+    echo -e "    cat .env.example > .env\n\n${RESET}"
     exit 1
 fi
 
@@ -41,7 +46,7 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-()}"
+MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-alpha beta}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -57,6 +62,10 @@ docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 
 # Build OSM binaries
 make build-osm
+
+# Push to registry - needs to happen after registry creation
+make docker-push
+
 
 echo "Kubernetes contexts to be deployed to: $MULTICLUSTER_CONTEXTS"
 
@@ -83,22 +92,9 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     kubectl label namespace "$K8S_NAMESPACE" name="$K8S_NAMESPACE"
 
     echo "Certificate Manager in use: $CERT_MANAGER"
-    if [ "$CERT_MANAGER" = "vault" ]; then
-        echo "Installing Hashi Vault"
-        ./demo/deploy-vault.sh
-    fi
-
-    if [ "$CERT_MANAGER" = "cert-manager" ]; then
-        echo "Installing cert-manager"
-        ./demo/deploy-cert-manager.sh
-    fi
-
     if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
         optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
     fi
-
-    # Push to registry - needs to happen after registry creation
-    make docker-push
 
     # Registry credentials
     ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
@@ -106,32 +102,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
 
     # Deploys Xds and Prometheus
     echo "Certificate Manager in use: $CERT_MANAGER"
-    if [ "$CERT_MANAGER" = "vault" ]; then
-    # shellcheck disable=SC2086
-    bin/osm install \
-        --osm-namespace "$K8S_NAMESPACE" \
-        --mesh-name "$MESH_NAME" \
-        --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
-        --set=OpenServiceMesh.vault.host="$VAULT_HOST" \
-        --set=OpenServiceMesh.vault.token="$VAULT_TOKEN" \
-        --set=OpenServiceMesh.vault.protocol="$VAULT_PROTOCOL" \
-        --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-        --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-        --set=OpenServiceMesh.image.tag="$CTR_TAG" \
-        --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
-        --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-        --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
-        --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-        --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
-        --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-        --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-        --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-        --set=OpenServiceMesh.controllerLogLevel="trace" \
-        --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
-        --timeout="$TIMEOUT" \
-
-        $optionalInstallArgs
-    else
     # shellcheck disable=SC2086
     bin/osm install \
         --osm-namespace "$K8S_NAMESPACE" \
@@ -152,7 +122,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
-    fi
 
     ./demo/configure-app-namespaces.sh
 
@@ -170,5 +139,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     else
         ./demo/deploy-traffic-target.sh
     fi
-done
 
+    ./demo/deploy-MulticlusterService.sh
+done

@@ -72,15 +72,18 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 
 	// include multicluster services if exists
 	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 		serviceIdentities, err := c.kubeController.ListServiceIdentitiesForService(svc)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Error get service identities for service %s", c.providerIdent, svc.Name)
+			log.Error().Err(err).Msgf("[%s] Error getting Multicluster service identities for service %s", c.providerIdent, svc.Name)
 		} else {
 			for _, identity := range serviceIdentities {
 				remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(identity.Name, identity.Namespace)
 				endpoints = append(endpoints, remoteEndpoints...)
 			}
 		}
+	} else {
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for... MULTICLUSTER IS DISABLED", c.providerIdent)
 	}
 
 	return endpoints
@@ -115,8 +118,11 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 
 	// include multicluster services if exists
 	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 		remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)
 		endpoints = append(endpoints, remoteEndpoints...)
+	} else {
+		log.Trace().Msgf("[%s] Getting Multicluster Endpoints for... MULTICLUSTER IS DISABLED", c.providerIdent)
 	}
 
 	return endpoints
@@ -327,34 +333,38 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 }
 
 func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount, namespace string) []endpoint.Endpoint {
-	return getEndpointsFromMultiClusterServices(c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace))
+	multiclusterServices := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace)
+	log.Trace().Msgf("Multicluster services for service account %s: %+v", serviceAccount, multiclusterServices)
+	return getEndpointsFromMultiClusterServices(multiclusterServices)
 }
 
 func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterService) []endpoint.Endpoint {
-	endpoints := []endpoint.Endpoint{}
-	if len(services) > 0 {
-		for _, service := range services {
-			for _, cluster := range service.Spec.Cluster {
-				tokens := strings.Split(cluster.Address, ":")
-				if len(tokens) != 2 {
-					log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", service.Name, cluster.Address)
-					continue
-				}
-
-				ip, portStr := tokens[0], tokens[1]
-				port, err := strconv.Atoi(portStr)
-				if err != nil {
-					log.Error().Msgf("Remote service %s port number format invalid. Remote cluster address: %s", service.Name, cluster.Address)
-					continue
-				}
-
-				ept := endpoint.Endpoint{
-					IP:   net.ParseIP(ip),
-					Port: endpoint.Port(port),
-				}
-				endpoints = append(endpoints, ept)
+	if len(services) <= 0 {
+		return nil
+	}
+	var endpoints []endpoint.Endpoint
+	for _, svc := range services {
+		for _, cluster := range svc.Spec.Cluster {
+			tokens := strings.Split(cluster.Address, ":")
+			if len(tokens) != 2 {
+				log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", svc.Name, cluster.Address)
+				continue
 			}
+
+			ip, portStr := tokens[0], tokens[1]
+			port, err := strconv.Atoi(portStr)
+			if err != nil {
+				log.Error().Msgf("Remote service %s port number format invalid. Remote cluster address: %s", svc.Name, cluster.Address)
+				continue
+			}
+
+			endpoints = append(endpoints, endpoint.Endpoint{
+				IP:   net.ParseIP(ip),
+				Port: endpoint.Port(port),
+			})
 		}
 	}
+
+	log.Trace().Msgf("Multicluster endpoints for service %+v: %+v", services, endpoints)
 	return endpoints
 }

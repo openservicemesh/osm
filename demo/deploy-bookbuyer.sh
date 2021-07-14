@@ -74,6 +74,12 @@ spec:
             - name: "CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
               value: "$CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
 
+      hostAliases:
+      - ip: 127.0.0.1
+        hostnames:
+        - "bookstore.bookstore.svc.cluster.alpha"
+        - "bookstore.bookstore.svc.cluster.beta"
+
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
 EOF

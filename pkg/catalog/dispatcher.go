@@ -35,6 +35,7 @@ func (mc *MeshCatalog) dispatcher() {
 		a.PodAdded, a.PodDeleted, a.PodUpdated, // pod
 		a.RouteGroupAdded, a.RouteGroupDeleted, a.RouteGroupUpdated, // routegroup
 		a.ServiceAdded, a.ServiceDeleted, a.ServiceUpdated, // service
+		a.MultiClusterServiceAdded, a.MultiClusterServiceDeleted, a.MultiClusterServiceUpdated, // Multicluster Service
 		a.ServiceAccountAdded, a.ServiceAccountDeleted, a.ServiceAccountUpdated, // serviceaccount
 		a.TrafficSplitAdded, a.TrafficSplitDeleted, a.TrafficSplitUpdated, // traffic split
 		a.TrafficTargetAdded, a.TrafficTargetDeleted, a.TrafficTargetUpdated, // traffic target
