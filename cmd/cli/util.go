@@ -108,7 +108,7 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface, lo
 			}
 		}
 
-		meshMonitoredNamespaces := []string{}
+		var meshMonitoredNamespaces []string
 		nsList, err := selectNamespacesMonitoredByMesh(meshName, clientSet)
 		if err == nil && len(nsList.Items) > 0 {
 			for _, ns := range nsList.Items {

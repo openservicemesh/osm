@@ -206,7 +206,7 @@ func getFilterMatchPredicateForPorts(ports []int) *xds_listener.ListenerFilterCh
 		return nil
 	}
 
-	matchPredicates := []*xds_listener.ListenerFilterChainMatchPredicate{}
+	var matchPredicates []*xds_listener.ListenerFilterChainMatchPredicate
 
 	// Create a match predicate for each port
 	for _, port := range ports {
