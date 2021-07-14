@@ -331,7 +331,7 @@ func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 }
 
 func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterService) []endpoint.Endpoint {
-	endpoints := []endpoint.Endpoint{}
+	var endpoints []endpoint.Endpoint
 	if len(services) > 0 {
 		for _, service := range services {
 			for _, cluster := range service.Spec.Clusters {
