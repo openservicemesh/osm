@@ -26,7 +26,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 			}
 		})
 
-		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
+		It("Tests HTTP traffic from Clients to the traffic split Clusters IP", func() {
 			var err error
 
 			// Install OSM with all the requirements

@@ -57,7 +57,7 @@ const (
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
 
 	// TypeCDS is the CDS type URI.
-	TypeCDS TypeURI = "type.googleapis.com/envoy.config.cluster.v3.Cluster"
+	TypeCDS TypeURI = "type.googleapis.com/envoy.config.cluster.v3.Clusters"
 
 	// TypeLDS is the LDS type URI.
 	TypeLDS TypeURI = "type.googleapis.com/envoy.config.listener.v3.Listener"

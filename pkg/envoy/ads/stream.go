@@ -254,7 +254,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// What's left is to check if the resources listed are the same. If they are not, we must respond
 	// with the new resources requested.
 	//
-	// In case of LDS and CDS, "Envoy will always use wildcard mode for Listener and Cluster resources".
+	// In case of LDS and CDS, "Envoy will always use wildcard mode for Listener and Clusters resources".
 	// The following logic is not needed (though correct) for LDS and CDS as request resources are also empty in ACK case.
 	//
 	// This part of the code was inspired by Istio's `shouldRespond` handling of request resource difference

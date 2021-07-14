@@ -101,7 +101,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	saveActualEnvoyYAML := func(filename string, actualContent []byte) {
 		err := ioutil.WriteFile(filepath.Clean(path.Join(directoryForYAMLFiles, filename)), actualContent, 0600)
 		if err != nil {
-			log.Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filename)
+			log.Err(err).Msgf("Error writing actual Envoy Clusters XDS YAML to file %s", filename)
 		}
 		Expect(err).ToNot(HaveOccurred())
 	}
@@ -182,7 +182,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	})
 
 	Context("Test getXdsCluster()", func() {
-		It("creates XDS Cluster struct without health probes", func() {
+		It("creates XDS Clusters struct without health probes", func() {
 			config.OriginalHealthProbes = probes
 			actualXds, err := getXdsCluster(config)
 			Expect(err).To(BeNil())
@@ -199,7 +199,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					expectedXDSClusterWithoutProbesFileName, actualXDSClusterWithoutProbesFileName, expectedYAML, actualYAML))
 		})
 
-		It("creates XDS Cluster struct with health probes", func() {
+		It("creates XDS Clusters struct with health probes", func() {
 			config.OriginalHealthProbes = probes
 			actualXds, err := getXdsCluster(config)
 			Expect(err).To(BeNil())

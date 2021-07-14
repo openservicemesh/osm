@@ -1,4 +1,4 @@
-// Package cds implements Envoy's Cluster Discovery Service (CDS).
+// Package cds implements Envoy's Clusters Discovery Service (CDS).
 package cds
 
 import (

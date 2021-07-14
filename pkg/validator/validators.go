@@ -88,16 +88,16 @@ func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admission
 
 	clusterNames := make(map[string]bool)
 
-	for _, cluster := range config.Spec.Cluster {
+	for _, cluster := range config.Spec.Clusters {
 		if cluster.Name == "global" || len(strings.TrimSpace(cluster.Name)) == 0 {
-			return nil, fmt.Errorf("Cluster name %s is not valid", cluster.Name)
+			return nil, fmt.Errorf("Clusters name %s is not valid", cluster.Name)
 		}
 
 		if _, ok := clusterNames[cluster.Name]; ok {
-			return nil, fmt.Errorf("Cluster named %s already exists", cluster.Name)
+			return nil, fmt.Errorf("Clusters named %s already exists", cluster.Name)
 		}
 		if len(strings.TrimSpace(cluster.Address)) == 0 {
-			return nil, fmt.Errorf("Cluster address %s is not valid", cluster.Address)
+			return nil, fmt.Errorf("Clusters address %s is not valid", cluster.Address)
 		}
 		clusterAddress := strings.Split(cluster.Address, ":")
 		if net.ParseIP(clusterAddress[0]) == nil {

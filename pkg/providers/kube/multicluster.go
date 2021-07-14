@@ -20,8 +20,8 @@ func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 func getEndpointsFromMultiClusterServices(services ...v1alpha1.MultiClusterService) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, svc := range services {
-		log.Trace().Msgf("Working on service: %s --> spec=%+v", svc, svc.Spec.Cluster)
-		for _, cluster := range svc.Spec.Cluster {
+		log.Trace().Msgf("Working on service: %s --> spec=%+v", svc, svc.Spec.Clusters)
+		for _, cluster := range svc.Spec.Clusters {
 			log.Trace().Msgf("Looking for IP and Port for cluster=%s for service %s", cluster.Name, svc)
 			if ip, port, err := getIPPort(cluster, svc); err != nil {
 				log.Err(err).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)

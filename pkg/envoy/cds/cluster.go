@@ -48,7 +48,7 @@ func permissive(o *clusterOptions) {
 	o.permissive = true
 }
 
-// getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+// getUpstreamServiceCluster returns an Envoy Clusters corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 // The defaults are non-permissive, and *no tls*.
 func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, cfg configurator.Configurator, opts ...clusterOption) (*xds_cluster.Cluster, error) {
@@ -98,7 +98,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 	return remoteCluster, nil
 }
 
-// getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
+// getLocalServiceCluster returns an Envoy Clusters corresponding to the local service
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
 	if err != nil {
@@ -155,7 +155,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 	return &xdsCluster, nil
 }
 
-// getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
+// getPrometheusCluster returns an Envoy Clusters responsible for scraping metrics by Prometheus
 func getPrometheusCluster() *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
 		Name:           constants.EnvoyMetricsCluster,
@@ -197,7 +197,7 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 	for _, config := range clusterConfigs {
 		switch config.Host {
 		case "":
-			// Cluster config does not have a Host specified, route it to its original destination.
+			// Clusters config does not have a Host specified, route it to its original destination.
 			// Used for TCP based clusters
 			if originalDestinationEgressCluster, err := getOriginalDestinationEgressCluster(config.Name); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingOrgDstEgressCluster.String()).
@@ -206,7 +206,7 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 				egressClusters = append(egressClusters, originalDestinationEgressCluster)
 			}
 		default:
-			// Cluster config has a Host specified, route it based on the Host resolved using DNS.
+			// Clusters config has a Host specified, route it based on the Host resolved using DNS.
 			// Used for HTTP based clusters
 			if cluster, err := getDNSResolvableEgressCluster(config); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingDNSEgressCluster.String()).

@@ -57,7 +57,7 @@ type OsmTestData struct {
 	CleanupKindCluster             bool   // Cleanup kind cluster upon test finish
 	ClusterVersion                 string // Kind cluster version, ex. v1.20.2
 
-	// Cluster handles and rest config
+	// Clusters handles and rest config
 	Env        *cli.EnvSettings
 	RestConfig *rest.Config
 	Client     *kubernetes.Clientset

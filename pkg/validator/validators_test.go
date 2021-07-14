@@ -251,7 +251,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 				},
 			},
 			expResp: nil,
-			expErr:  errors.New("Cluster name  is not valid"),
+			expErr:  errors.New("Clusters name  is not valid"),
 		},
 		{
 			name: "MultiClusterService with global name fails",
@@ -277,7 +277,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 				},
 			},
 			expResp: nil,
-			expErr:  errors.New("Cluster name global is not valid"),
+			expErr:  errors.New("Clusters name global is not valid"),
 		},
 		{
 			name: "MultiClusterService with duplicate cluster names fails",
@@ -306,7 +306,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 				},
 			},
 			expResp: nil,
-			expErr:  errors.New("Cluster named test already exists"),
+			expErr:  errors.New("Clusters named test already exists"),
 		},
 		{
 			name: "MultiClusterService has an acceptable name",
@@ -359,7 +359,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 				},
 			},
 			expResp: nil,
-			expErr:  errors.New("Cluster address  is not valid"),
+			expErr:  errors.New("Clusters address  is not valid"),
 		},
 		{
 			name: "MultiClusterService with invalid IP fails",

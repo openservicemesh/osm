@@ -241,7 +241,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	var endpoints []endpoint.Endpoint
 	var err error
 
-	// Check if the service has been given Cluster IP
+	// Check if the service has been given Clusters IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {
 		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc)
@@ -253,10 +253,10 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 		return c.ListEndpointsForService(svc), nil
 	}
 
-	// Cluster IP is present
+	// Clusters IP is present
 	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {
-		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
+		log.Error().Msgf("[%s] Could not parse Clusters IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
 		return nil, errParseClusterIP
 	}
 
