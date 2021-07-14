@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -20,7 +21,8 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentity.String()).
+			Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
 		return nil, err
 	}
 
@@ -56,7 +58,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingServiceList.String()).Msgf("Error looking up MeshService for proxy %s", proxy.String())
 		return nil, err
 	}
 	// Create inbound filter chains per service behind proxy

@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // trafficDirection defines, for filter terms, the direction of the traffic from an application
@@ -79,13 +80,15 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, h
 	if cfg.GetFeatureFlags().EnableWASMStats {
 		statsFilter, err := getStatsWASMFilter()
 		if err != nil {
-			log.Error().Err(err).Msg("failed to get stats WASM filter")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingWASMFilter.String()).
+				Msg("Failed to get stats WASM filter")
 			return connManager
 		}
 
 		headerFilter, err := getAddHeadersFilter(headers)
 		if err != nil {
-			log.Error().Err(err).Msg("Could not get Lua filter definition")
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingLuaFilter.String()).
+				Msg("Could not get Lua filter definition")
 			return connManager
 		}
 

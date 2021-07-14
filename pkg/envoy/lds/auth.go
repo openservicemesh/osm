@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // getExtAuthzHTTPFilter returns an envoy HttpFilter given an ExternAuthConfig configuration
@@ -38,7 +39,8 @@ func getExtAuthzHTTPFilter(extAuthConfig auth.ExtAuthConfig) *xds_hcm.HttpFilter
 
 	extAuthMarshalled, err := ptypes.MarshalAny(extAuth)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to marshal External Authorization config")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msg("Failed to marshal External Authorization config")
 	}
 
 	return &xds_hcm.HttpFilter{

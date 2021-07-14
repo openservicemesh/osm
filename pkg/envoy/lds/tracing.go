@@ -7,6 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // GetTracingConfig returns a configuration tracing struct for a connection manager to use
@@ -19,7 +20,8 @@ func GetTracingConfig(cfg configurator.Configurator) (*xds_hcm.HttpConnectionMan
 
 	zipkinConfMarshalled, err := ptypes.MarshalAny(zipkinTracingConf)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling Zipkin config")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling Zipkin config")
 		return nil, err
 	}
 
