@@ -67,7 +67,7 @@ var _ = Describe("Running the uninstall command", func() {
 			err = cmd.run()
 
 			It("should output list of meshes in the cluster", func() {
-				Expect(out.String()).To(ContainSubstring("\nList of meshes present in the cluster:\n\nMESH NAME   MESH NAMESPACE   CONTROLLER PODS   VERSION            SMI SUPPORTED   ADDED NAMESPACES\ntesting     osm-system"))
+				Expect(out.String()).To(ContainSubstring("\nList of meshes present in the cluster:\n\nMESH NAME   MESH NAMESPACE   VERSION            ADDED NAMESPACES\ntesting     osm-system"))
 			})
 			It("should prompt for confirmation", func() {
 				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] in namespace [" + settings.Namespace() + "] ? [y/n]: "))
@@ -282,7 +282,7 @@ var _ = Describe("Running the uninstall command", func() {
 			err = cmd.run()
 
 			It("should output list of meshes in the cluster", func() {
-				Expect(out.String()).To(ContainSubstring("\nList of meshes present in the cluster:\n\nMESH NAME   MESH NAMESPACE   CONTROLLER PODS   VERSION            SMI SUPPORTED   ADDED NAMESPACES\ntesting     osm-system"))
+				Expect(out.String()).To(ContainSubstring("\nList of meshes present in the cluster:\n\nMESH NAME   MESH NAMESPACE   VERSION            ADDED NAMESPACES\ntesting     osm-system"))
 			})
 			It("should prompt for confirmation", func() {
 				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] in namespace [" + settings.Namespace() + "] ? [y/n]: "))

@@ -93,7 +93,6 @@ func (d *uninstallCmd) run() error {
 			out:       d.out,
 			config:    d.config,
 			clientSet: d.clientSet,
-			localPort: d.localPort,
 		}
 
 		_ = listCmd.run()
