@@ -41,7 +41,7 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-()}"
+MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-alpha beta}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -171,4 +171,3 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         ./demo/deploy-traffic-target.sh
     fi
 done
-
