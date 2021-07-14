@@ -23,12 +23,16 @@ type meshListCmd struct {
 }
 
 type meshInfo struct {
+	name                string
+	namespace           string
+	version             string
+	monitoredNamespaces []string
+}
+
+type meshSmiInfo struct {
 	name                 string
 	namespace            string
-	controllerPods       []string
-	version              string
 	smiSupportedVersions []string
-	monitoredNamespaces  []string
 }
 
 func newMeshList(out io.Writer) *cobra.Command {
@@ -63,7 +67,7 @@ func newMeshList(out io.Writer) *cobra.Command {
 }
 
 func (l *meshListCmd) run() error {
-	meshInfoList, err := getMeshInfoList(l.config, l.clientSet, l.localPort)
+	meshInfoList, err := getMeshInfoList(l.config, l.clientSet)
 	if err != nil {
 		fmt.Fprintf(l.out, "Unable to list meshes within the cluster.\n")
 		return err
@@ -76,6 +80,13 @@ func (l *meshListCmd) run() error {
 	w := newTabWriter(l.out)
 	fmt.Fprint(w, getPrettyPrintedMeshInfoList(meshInfoList))
 	_ = w.Flush()
+
+	meshSmiInfoList := getSupportedSmiInfoForMeshList(meshInfoList, l.clientSet, l.config, l.localPort)
+	fmt.Fprint(w, getPrettyPrintedMeshSmiInfoList(meshSmiInfoList))
+	_ = w.Flush()
+
+	fmt.Fprintf(l.out, "\nTo list the OSM controller pods for a mesh, please run the following command passing in the mesh's namespace\n")
+	fmt.Fprintf(l.out, "\tkubectl get pods -n <osm-mesh-namespace> -l app=osm-controller\n")
 
 	return nil
 }
