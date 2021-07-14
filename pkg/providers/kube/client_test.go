@@ -772,7 +772,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	mcServices := []*v1alpha1.MultiClusterService{
 		{
 			Spec: v1alpha1.MultiClusterServiceSpec{
-				Cluster: []v1alpha1.ClusterSpec{
+				Clusters: []v1alpha1.ClusterSpec{
 					{
 						Address: "1.2.3.4:8080",
 						Name:    "remote-cluster-1",

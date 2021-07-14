@@ -334,7 +334,7 @@ func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterServi
 	endpoints := []endpoint.Endpoint{}
 	if len(services) > 0 {
 		for _, service := range services {
-			for _, cluster := range service.Spec.Cluster {
+			for _, cluster := range service.Spec.Clusters {
 				tokens := strings.Split(cluster.Address, ":")
 				if len(tokens) != 2 {
 					log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", service.Name, cluster.Address)

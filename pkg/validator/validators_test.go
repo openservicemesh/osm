@@ -241,7 +241,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"kind": "MultiClusterService",
 						"spec": {
 							"serviceAccount" : "sdf",
-							"cluster": [{
+							"clusters": [{
 								"name": "",
 								"address": "0.0.0.0:8080"
 							}]
@@ -267,7 +267,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"apiVersion": "v1alpha1",
 						"kind": "MultiClusterService",
 						"spec": {
-							"cluster": [{
+							"clusters": [{
 								"name": "global",
 								"address": "0.0.0.0:8080"
 							}]
@@ -293,7 +293,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"apiVersion": "v1alpha1",
 						"kind": "MultiClusterService",
 						"spec": {
-							"cluster": [{
+							"clusters": [{
 								"name": "test",
 								"address": "0.0.0.0:8080"
 							},{
@@ -322,7 +322,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"apiVersion": "v1alpha1",
 						"kind": "MultiClusterService",
 						"spec": {
-							"cluster": [{
+							"clusters": [{
 								"name": "test",
 								"address": "0.0.0.0:8080"
 							}]
@@ -349,7 +349,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"kind": "MultiClusterService",
 						"spec": {
 							"serviceAccount" : "sdf",
-							"cluster": [{
+							"clusters": [{
 								"name": "test",
 								"address": ""
 							}]
@@ -375,7 +375,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"apiVersion": "v1alpha1",
 						"kind": "MultiClusterService",
 						"spec": {
-							"cluster": [{
+							"clusters": [{
 								"name": "test",
 								"address": "0.0.00:22"
 							}]
@@ -401,7 +401,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 						"apiVersion": "v1alpha1",
 						"kind": "MultiClusterService",
 						"spec": {
-							"cluster": [{
+							"clusters": [{
 								"name": "test",
 								"address": "0.0.0.0:a"
 							}]
