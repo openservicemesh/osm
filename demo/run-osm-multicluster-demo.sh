@@ -26,7 +26,6 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
-CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
@@ -82,17 +81,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # Mimic Helm namespace label behavior: https://github.com/helm/helm/blob/release-3.2/pkg/action/install.go#L292
     kubectl label namespace "$K8S_NAMESPACE" name="$K8S_NAMESPACE"
 
-    echo "Certificate Manager in use: $CERT_MANAGER"
-    if [ "$CERT_MANAGER" = "vault" ]; then
-        echo "Installing Hashi Vault"
-        ./demo/deploy-vault.sh
-    fi
-
-    if [ "$CERT_MANAGER" = "cert-manager" ]; then
-        echo "Installing cert-manager"
-        ./demo/deploy-cert-manager.sh
-    fi
-
     if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
         optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
     fi
@@ -103,40 +91,11 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # Registry credentials
     ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
-
-    # Deploys Xds and Prometheus
-    echo "Certificate Manager in use: $CERT_MANAGER"
-    if [ "$CERT_MANAGER" = "vault" ]; then
     # shellcheck disable=SC2086
     bin/osm install \
         --osm-namespace "$K8S_NAMESPACE" \
         --mesh-name "$MESH_NAME" \
-        --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
-        --set=OpenServiceMesh.vault.host="$VAULT_HOST" \
-        --set=OpenServiceMesh.vault.token="$VAULT_TOKEN" \
-        --set=OpenServiceMesh.vault.protocol="$VAULT_PROTOCOL" \
-        --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-        --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-        --set=OpenServiceMesh.image.tag="$CTR_TAG" \
-        --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
-        --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-        --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
-        --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-        --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
-        --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-        --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-        --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-        --set=OpenServiceMesh.controllerLogLevel="trace" \
-        --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
-        --timeout="$TIMEOUT" \
-
-        $optionalInstallArgs
-    else
-    # shellcheck disable=SC2086
-    bin/osm install \
-        --osm-namespace "$K8S_NAMESPACE" \
-        --mesh-name "$MESH_NAME" \
-        --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
+        --set=OpenServiceMesh.certificateManager="tresor" \
         --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
         --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
         --set=OpenServiceMesh.image.tag="$CTR_TAG" \
@@ -152,7 +111,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
-    fi
 
     ./demo/configure-app-namespaces.sh
 
@@ -171,4 +129,3 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         ./demo/deploy-traffic-target.sh
     fi
 done
-
