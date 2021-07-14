@@ -24,6 +24,9 @@ type MultiClusterService struct {
 
 // MultiClusterServiceSpec is the type used to represent the multicluster service specification.
 type MultiClusterServiceSpec struct {
+	// GlobalIP defines the IP Address for the implicit global service.
+	GlobalIP string `json:"globalIP,omitempty" protobuf:"bytes,3,opt,name=globalIP"`
+
 	// ClusterSpec defines the configuration of other clusters
 	Cluster []ClusterSpec `json:"cluster,omitempty"`
 
