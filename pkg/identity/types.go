@@ -13,11 +13,45 @@ const (
 
 // ServiceIdentity is the type used to represent the identity for a service
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
-type ServiceIdentity string
+type ServiceIdentity struct {
+	ServiceAccount string
+	Namespace      string
+	ClusterDomain  string
+}
+
+// NewServiceIdentityFromString creates a ServiceIdentity from a given string.
+// The string will be splitted using "." into at most 3 chunks. The first two chunks do not contain ".". They will be the ServiceAccount and Namespace of the identity respectively. The chunk after the second "." will be the ClusterDomain. If any required chunk is not found, the corresponding field of the identity will be an empty string.
+func NewServiceIdentityFromString(identityStr string) ServiceIdentity {
+	id := ServiceIdentity{}
+	chunks := strings.SplitN(identityStr, identityDelimiter, 3)
+
+	if len(chunks) > 0 {
+		id.ServiceAccount = chunks[0]
+	}
+	if len(chunks) > 1 {
+		id.Namespace = chunks[1]
+	}
+	if len(chunks) > 2 {
+		id.ClusterDomain = chunks[2]
+	}
+
+	return id
+}
 
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
-	return string(si)
+	result := si.ServiceAccount
+	if si.Namespace == "" {
+		return result
+	}
+	result += fmt.Sprintf(".%s", si.Namespace)
+
+	if si.ClusterDomain == "" {
+		return result
+	}
+	result += fmt.Sprintf(".%s", si.ClusterDomain)
+
+	return result
 }
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
@@ -52,5 +86,5 @@ func (sa K8sServiceAccount) IsEmpty() bool {
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
 // TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
-	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", sa.Name, sa.Namespace, ClusterLocalTrustDomain))
+	return ServiceIdentity{sa.Name, sa.Namespace, ClusterLocalTrustDomain}
 }

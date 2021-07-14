@@ -327,7 +327,7 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	return &certificateCommonNameMeta{
 		ProxyUUID:       proxyUUID,
 		ProxyKind:       ProxyKind(chunks[1]),
-		ServiceIdentity: identity.ServiceIdentity(chunks[2]),
+		ServiceIdentity: identity.NewServiceIdentityFromString(chunks[2]),
 	}, nil
 }
 
