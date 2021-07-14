@@ -25,7 +25,7 @@ type MultiClusterService struct {
 // MultiClusterServiceSpec is the type used to represent the multicluster service specification.
 type MultiClusterServiceSpec struct {
 	// ClusterSpec defines the configuration of other clusters
-	Cluster []ClusterSpec `json:"cluster,omitempty"`
+	Clusters []ClusterSpec `json:"clusters,omitempty"`
 
 	// ServiceAccount represents the service account of the multicluster service.
 	ServiceAccount string `json:"serviceAccount,omitempty"`

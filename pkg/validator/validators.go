@@ -88,7 +88,7 @@ func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admission
 
 	clusterNames := make(map[string]bool)
 
-	for _, cluster := range config.Spec.Cluster {
+	for _, cluster := range config.Spec.Clusters {
 		if cluster.Name == "global" || len(strings.TrimSpace(cluster.Name)) == 0 {
 			return nil, fmt.Errorf("Cluster name %s is not valid", cluster.Name)
 		}
