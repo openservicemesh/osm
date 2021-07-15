@@ -19,7 +19,7 @@ func TestMultiClusterServiceStringer(t *testing.T) {
 		},
 
 		Spec: MultiClusterServiceSpec{
-			Cluster: []ClusterSpec{
+			Clusters: []ClusterSpec{
 				{
 					Address: "1.2.3.4:8080",
 					Name:    "remote-cluster-1",
