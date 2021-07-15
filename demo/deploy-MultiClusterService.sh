@@ -17,17 +17,16 @@ metadata:
 
 spec:
   clusters:
+
   - name: alpha
-    # certificate
-    address: 1.99.99.1:7777
+
+    # TODO: This address and port number must be updated
+    address: 1.1.1.1:1111
 
   - name: beta
-    # certificate
-    address: 2.2.2.2:5555
 
-#  ports:
-#    - port: 8888
-#      protocol: TCP
+    # TODO: This address and port number must be updated
+    address: 2.2.2.2:2222
 
   serviceAccount: bookstore-v1
 EOF
