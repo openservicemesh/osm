@@ -106,6 +106,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
 			// Mock calls used to build the HTTP connection manager
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
 			// Expect no External Auth config
 			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 				Enable: false,

@@ -55,6 +55,7 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 				cfg: mockConfigurator,
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false}).AnyTimes()
@@ -226,6 +227,7 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 				cfg: mockConfigurator,
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false,

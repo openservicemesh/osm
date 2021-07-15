@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -624,4 +625,28 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
 		})
 	}
+}
+
+func TestGetOutboundHTTPFilter(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	lb := &listenerBuilder{
+		cfg: mockConfigurator,
+	}
+
+	mockConfigurator.EXPECT().IsTracingEnabled()
+	mockConfigurator.EXPECT().GetTracingEndpoint()
+	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
+		Enable: false,
+	}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableWASMStats: false,
+	}).AnyTimes()
+
+	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
+	assert.NoError(err)
+	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
