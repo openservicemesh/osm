@@ -112,5 +112,5 @@ func createSimpleApp(appName string, ns string) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 1)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 1, nil)).To(Succeed())
 }

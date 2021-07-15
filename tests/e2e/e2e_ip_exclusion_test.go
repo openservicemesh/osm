@@ -57,7 +57,7 @@ func testIPExclusion() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
 
 		// The destination IP will be programmed as an IP exclusion
 		destinationIPRange := fmt.Sprintf("%s/32", dstSvc.Spec.ClusterIP)

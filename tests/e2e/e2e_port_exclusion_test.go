@@ -61,7 +61,7 @@ func testGlobalPortExclusion() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
 
 		// The destination port will be programmed as an global port exclusion
 		destinationPort := int(dstSvc.Spec.Ports[0].Port)
@@ -137,7 +137,7 @@ func testPodLevelPortExclusion() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
 
 		// Set up the source curl client. It will be a part of the mesh
 		svcAccDef, podDef, svcDef = Td.SimplePodApp(SimplePodAppDef{
@@ -161,7 +161,7 @@ func testPodLevelPortExclusion() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
 
 		By("Using pod level port exclusion to access destination")
 		// All ready. Expect client to reach server

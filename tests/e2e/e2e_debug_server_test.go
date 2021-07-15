@@ -47,7 +47,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 				_, err = Td.CreateService(sourceNs, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1, nil)).To(Succeed())
 
 				controllerDest := "osm-controller." + Td.OsmNamespace + ":9092/debug"
 

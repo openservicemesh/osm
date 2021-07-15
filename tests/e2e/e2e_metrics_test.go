@@ -67,7 +67,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1, nil)).To(Succeed())
 
 			// Get simple Pod definitions for the client
 			svcAccDef, depDef, svcDef = Td.SimpleDeploymentApp(SimpleDeploymentAppDef{
@@ -88,7 +88,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(sourceNs, 60*time.Second, 1)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(sourceNs, 60*time.Second, 1, nil)).To(Succeed())
 
 			// Deploy allow rule client->server
 			httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(

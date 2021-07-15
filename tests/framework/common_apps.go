@@ -3,6 +3,8 @@ package framework
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
@@ -458,6 +460,38 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 		API:    v1api,
 		pfwd:   portForwarder,
 	}, nil
+}
+
+func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
+	var errController, errInjector error
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(2)
+
+	go func() {
+		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "osm-controller",
+			},
+		})
+		waitGroup.Done()
+	}()
+
+	go func() {
+		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "osm-injector",
+			},
+		})
+		waitGroup.Done()
+	}()
+
+	waitGroup.Wait()
+
+	if errController != nil || errInjector != nil {
+		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v)", errController, errInjector))
+	}
+
+	return nil
 }
 
 // GetOSMPrometheusHandle convenience wrapper, will get the Prometheus instance regularly deployed

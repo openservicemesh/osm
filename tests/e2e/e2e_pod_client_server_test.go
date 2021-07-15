@@ -67,7 +67,7 @@ func testTraffic(withSourceKubernetesService bool) {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, withSourceKubernetesService)
 
@@ -162,7 +162,7 @@ func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	}
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
 
 	return srcPod
 }
