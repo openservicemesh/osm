@@ -65,7 +65,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 		_, err = Td.CreateService(destNs, svcDef)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1, nil)).To(Succeed())
 
 		// Get simple Pod definitions for the client
 		svcAccDef, podDef, svcDef = Td.SimplePodApp(SimplePodAppDef{
@@ -87,7 +87,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1, nil)).To(Succeed())
 
 		req := HTTPRequestDef{
 			SourceNs:        srcPod.Namespace,

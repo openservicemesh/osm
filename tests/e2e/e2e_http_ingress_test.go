@@ -53,7 +53,7 @@ var _ = OSMDescribe("HTTP ingress",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1, nil)).To(Succeed())
 
 			// Install nginx ingress controller
 			// Install Service as NodePort on kind, LoadBalancer elsewhere

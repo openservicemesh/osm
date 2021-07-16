@@ -251,7 +251,7 @@ server {
 			}
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, len(pods))).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, len(pods), nil)).To(Succeed())
 		})
 	},
 )

@@ -283,7 +283,7 @@ nodeRegistration:
 	// After client creations, do a wait for kind cluster just in case it's not done yet coming up
 	// Ballparking pod number. kind has a large number of containers to run by default
 	if (td.InstType == KindCluster) && td.ClusterProvider != nil {
-		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5); err != nil {
+		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5, nil); err != nil {
 			return errors.Wrap(err, "failed to wait for kube-system pods")
 		}
 	}
@@ -444,7 +444,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", instOpts.VaultProtocol),
 			fmt.Sprintf("OpenServiceMesh.vault.token=%s", instOpts.VaultToken))
 		// Wait for the vault pod
-		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1); err != nil {
+		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
 			return errors.Wrap(err, "failed waiting for vault pod to become ready")
 		}
 	case "cert-manager":
@@ -490,6 +490,12 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		td.T.Logf("stdout:\n%s", stdout)
 		td.T.Logf("stderr:\n%s", stderr)
 		return errors.Wrap(err, "failed to run osm install")
+	}
+
+	// Ensure osm-injector and osm-controller are ready
+	err = td.waitForOSMControlPlane(30 * time.Second)
+	if err != nil {
+		return err
 	}
 
 	// Store current restart values for CTL processes
@@ -781,7 +787,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		},
 	}
 
-	if err := td.WaitForPodsRunningReady(install.Namespace, 60*time.Second, 3); err != nil {
+	if err := td.WaitForPodsRunningReady(install.Namespace, 60*time.Second, 3, nil); err != nil {
 		return errors.Wrap(err, "failed to wait for cert-manager pods ready")
 	}
 
@@ -997,12 +1003,21 @@ func (td *OsmTestData) RunRemote(
 }
 
 // WaitForPodsRunningReady waits for a <n> number of pods on an NS to be running and ready
-func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration, nExpectedRunningPods int) error {
+// `labelSelector` can be optionally passed to further select the pods to wait for
+func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration, nExpectedRunningPods int, labelSelector *metav1.LabelSelector) error {
 	td.T.Logf("Wait up to %v for %d pods ready in ns [%s]...", timeout, nExpectedRunningPods, ns)
+
+	listOpts := metav1.ListOptions{
+		FieldSelector: "status.phase=Running",
+	}
+
+	if labelSelector != nil {
+		labelMap, _ := metav1.LabelSelectorAsMap(labelSelector)
+		listOpts.LabelSelector = labels.SelectorFromSet(labelMap).String()
+	}
+
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
-		pods, err := td.Client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{
-			FieldSelector: "status.phase=Running",
-		})
+		pods, err := td.Client.CoreV1().Pods(ns).List(context.TODO(), listOpts)
 
 		if err != nil {
 			return errors.Wrap(err, "failed to list pods")

@@ -67,7 +67,7 @@ func testTCPEgressTraffic() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 120*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 120*time.Second, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, false /* no kubernetes service for the client */)
 

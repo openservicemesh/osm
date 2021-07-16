@@ -63,7 +63,7 @@ func testGRPCTraffic() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
 
 		srcPod := setupGRPCClient(sourceName)
 
@@ -156,7 +156,7 @@ func setupGRPCClient(sourceName string) *corev1.Pod {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
 
 	return srcPod
 }
