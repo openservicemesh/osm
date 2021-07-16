@@ -13,8 +13,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
+func (lb *listenerBuilder) getExtAuthConfig() *auth.ExtAuthConfig {
+	extAuthConfig := lb.cfg.GetInboundExternalAuthConfig()
+	if extAuthConfig.Enable {
+		return &extAuthConfig
+	}
+	return nil
+}
+
 // getExtAuthzHTTPFilter returns an envoy HttpFilter given an ExternAuthConfig configuration
-func getExtAuthzHTTPFilter(extAuthConfig auth.ExtAuthConfig) *xds_hcm.HttpFilter {
+func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilter {
 	extAuth := &xds_ext_authz.ExtAuthz{
 		Services: &xds_ext_authz.ExtAuthz_GrpcService{
 			GrpcService: &envoy_config_core_v3.GrpcService{

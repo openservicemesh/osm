@@ -255,12 +255,6 @@ const (
 
 	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
 	ErrBuildingRBACPolicy
-
-	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
-	ErrGettingLuaFilter
-
-	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
-	ErrGettingWASMFilter
 )
 
 // String returns the error code as a string, ex. E1000
@@ -523,7 +517,7 @@ A XDS resource could not be marshalled.
 `,
 
 	ErrParsingXDSCertCN: `
-The XDS certificate common name could not be parsed. The CN should be of the form 
+The XDS certificate common name could not be parsed. The CN should be of the form
 <proxy-UUID>.<kind>.<proxy-identity>.
 `,
 
@@ -542,7 +536,7 @@ more than one service XDS will not program the Envoy proxy, leaving it out of th
 
 	ErrGettingProxyFromPod: `
 The Envoy proxy data structure created by ADS to reference an Envoy proxy sidecar from
-a pod's osm-proxy-uuid label could not be configured. 
+a pod's osm-proxy-uuid label could not be configured.
 `,
 
 	ErrGRPCConnectionFailed: `
@@ -585,7 +579,7 @@ part of the mesh.
 `,
 
 	ErrGRPCStreamClosedByProxy: `
-The gRPC stream is closed by the proxy and no DiscoveryRequests can be received. 
+The gRPC stream is closed by the proxy and no DiscoveryRequests can be received.
 The Stream Agreggated Resource server is terminated for the specified proxy
 `,
 
@@ -606,7 +600,7 @@ The version of the DiscoveryRequest could not be parsed by ADS.
 
 	ErrGettingOrgDstEgressCluster: `
 An Envoy egress cluster which routes traffic to its original destination could not
-be configured. When a Host is not specified in the cluster config, the original 
+be configured. When a Host is not specified in the cluster config, the original
 destination is used.
 `,
 
@@ -617,7 +611,7 @@ using DNS could not be configured.
 
 	ErrObtainingUpstreamServiceCluster: `
 An Envoy cluster that corresponds to a specified upstream service could not be
-configured. 
+configured.
 `,
 
 	ErrFetchingServiceList: `
@@ -641,15 +635,5 @@ traffic. The XDS filter chain for ingress traffic to the port is not created.
 	ErrBuildingRBACPolicy: `
 A XDS RBAC policy could not be generated from the specified traffic target
 policy.
-`,
-
-	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
-	ErrGettingLuaFilter: `
-The Lua XDS HttpFilter could not be configured.
-`,
-
-	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
-	ErrGettingWASMFilter: `
-The WASM XDS HttpFilter could not be configured.
 `,
 }

@@ -84,13 +84,26 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		filters = append(filters, rbacFilter)
 	}
 
-	// Apply the HTTP Connection Manager Filter
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, lb.cfg, lb.statsHeaders, inbound)
+	// Build the HTTP Connection Manager filter from its options
+	inboundConnManager, err := httpConnManagerOptions{
+		direction:         inbound,
+		rdsRoutConfigName: route.InboundRouteConfigName,
+
+		// Additional filters
+		wasmStatsHeaders: lb.getWASMStatsHeaders(),
+		extAuthConfig:    lb.getExtAuthConfig(),
+
+		// Tracing options
+		enableTracing:      lb.cfg.IsTracingEnabled(),
+		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
+	}.build()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
+	}
+
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
-			Msgf("Error marshalling inbound HttpConnectionManager for proxy  service %s", proxyService)
-		return nil, err
+		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
 		Name: wellknown.HTTPConnectionManager,
@@ -262,12 +275,26 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 	var marshalledFilter *any.Any
 	var err error
 
-	marshalledFilter, err = ptypes.MarshalAny(
-		getHTTPConnectionManager(routeConfigName, lb.cfg, lb.statsHeaders, outbound))
+	// Build the HTTP connection manager filter from its options
+	outboundConnManager, err := httpConnManagerOptions{
+		direction:         outbound,
+		rdsRoutConfigName: routeConfigName,
+
+		// Additional filters
+		wasmStatsHeaders: lb.statsHeaders,
+		extAuthConfig:    nil, // Ext auth is not configured for outbound connections
+
+		// Tracing options
+		enableTracing:      lb.cfg.IsTracingEnabled(),
+		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
+	}.build()
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
-			Msgf("Error marshalling HTTP connection manager object")
-		return nil, err
+		return nil, errors.Wrapf(err, "Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
+	}
+
+	marshalledFilter, err = ptypes.MarshalAny(outboundConnManager)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
 	return &xds_listener.Filter{

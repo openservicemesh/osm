@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	envoy_config_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_lua "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	xds_wasm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
@@ -18,6 +19,64 @@ import (
 
 //go:embed stats.wasm
 var statsWASMBytes []byte
+
+func (lb *listenerBuilder) getWASMStatsHeaders() map[string]string {
+	if lb.cfg.GetFeatureFlags().EnableWASMStats {
+		return lb.statsHeaders
+	}
+
+	return nil
+}
+
+func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
+	statsFilter, err := getStatsWASMFilter()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Error gettings WASM Stats filter")
+	}
+
+	headerFilter, err := getAddHeadersFilter(statsHeaders)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Error getting WASM stats Header filter")
+	}
+
+	var filters []*xds_hcm.HttpFilter
+	var localReplyConfig *xds_hcm.LocalReplyConfig
+	if statsFilter != nil {
+		if headerFilter != nil {
+			filters = append(filters, headerFilter)
+		}
+		filters = append(filters, statsFilter)
+
+		// When Envoy responds to an outgoing HTTP request with a local reply,
+		// destination_* tags for WASM metrics are missing. This configures
+		// Envoy's local replies to add the same headers that are expected from
+		// HTTP responses with the "unknown" value hardcoded because we don't
+		// know the intended destination of the request.
+		var localReplyHeaders []*envoy_config_core_v3.HeaderValueOption
+		for k := range statsHeaders {
+			localReplyHeaders = append(localReplyHeaders, &envoy_config_core_v3.HeaderValueOption{
+				Header: &envoy_config_core_v3.HeaderValue{
+					Key:   k,
+					Value: "unknown",
+				},
+			})
+		}
+		if localReplyHeaders != nil {
+			localReplyConfig = &xds_hcm.LocalReplyConfig{
+				Mappers: []*xds_hcm.ResponseMapper{
+					{
+						Filter: &envoy_config_accesslog_v3.AccessLogFilter{
+							FilterSpecifier: &envoy_config_accesslog_v3.AccessLogFilter_NotHealthCheckFilter{},
+						},
+						HeadersToAdd: localReplyHeaders,
+					},
+				},
+			}
+		}
+	}
+
+	return filters, localReplyConfig, nil
+}
 
 func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error) {
 	if len(headers) == 0 {

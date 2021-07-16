@@ -41,11 +41,28 @@ func (lb *listenerBuilder) newIngressHTTPFilterChain(cfg configurator.Configurat
 		return nil
 	}
 
-	ingressConnManager := getHTTPConnectionManager(route.IngressRouteConfigName, cfg, nil, inbound)
+	// Build the HTTP Connection Manager filter from its options
+	ingressConnManager, err := httpConnManagerOptions{
+		direction:         inbound,
+		rdsRoutConfigName: route.IngressRouteConfigName,
+
+		// Additional filters
+		wasmStatsHeaders: nil, // no WASM Stats for ingress traffic
+		extAuthConfig:    lb.getExtAuthConfig(),
+
+		// Tracing options
+		enableTracing:      lb.cfg.IsTracingEnabled(),
+		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
+	}.build()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, svc)
+		return nil
+	}
+
 	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
-			Msgf("Error marshalling ingress HttpConnectionManager object for proxy %s", svc)
+			Msgf("Error marshalling inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, svc)
 		return nil
 	}
 
