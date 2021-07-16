@@ -127,4 +127,8 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     else
         ./demo/deploy-traffic-target.sh
     fi
+
+    # Create the MultiClusterService object.
+    ./demo/deploy-MultiClusterService.sh
+
 done
