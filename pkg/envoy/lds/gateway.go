@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -51,7 +52,8 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstream, lb.serviceIdentity)
 		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstream)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for upstream service %s", upstream)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+				Msgf("Error retrieving port to protocol mapping for upstream service %s", upstream)
 			continue
 		}
 

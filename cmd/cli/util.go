@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -54,19 +55,16 @@ func confirm(stdin io.Reader, stdout io.Writer, s string, tries int) (bool, erro
 	return false, nil
 }
 
-// getPrettyPrintedMeshInfoList a pretty printed list of meshes.
-// If showIndex is true, then a 1-indexed number is prepended before each mesh.
+// getPrettyPrintedMeshInfoList returns a pretty printed list of meshes.
 func getPrettyPrintedMeshInfoList(meshInfoList []meshInfo) string {
-	s := "\nMESH NAME\tMESH NAMESPACE\tCONTROLLER PODS\tVERSION\tSMI SUPPORTED\tADDED NAMESPACES\n"
+	s := "\nMESH NAME\tMESH NAMESPACE\tVERSION\tADDED NAMESPACES\n"
 
 	for _, meshInfo := range meshInfoList {
 		m := fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%s\t%s\n",
+			"%s\t%s\t%s\t%s\n",
 			meshInfo.name,
 			meshInfo.namespace,
-			strings.Join(meshInfo.controllerPods, ","),
 			meshInfo.version,
-			strings.Join(meshInfo.smiSupportedVersions, ","),
 			strings.Join(meshInfo.monitoredNamespaces, ","),
 		)
 		s += m
@@ -76,7 +74,7 @@ func getPrettyPrintedMeshInfoList(meshInfoList []meshInfo) string {
 }
 
 // getMeshInfoList returns a list of meshes (including the info of each mesh) within the cluster
-func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface, localPort uint16) ([]meshInfo, error) {
+func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([]meshInfo, error) {
 	var meshInfoList []meshInfo
 
 	osmControllerDeployments, err := getControllerDeployments(clientSet)
@@ -90,25 +88,13 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface, lo
 	for _, osmControllerDeployment := range osmControllerDeployments.Items {
 		meshName := osmControllerDeployment.ObjectMeta.Labels["meshName"]
 		meshNamespace := osmControllerDeployment.ObjectMeta.Namespace
-		meshControllerPods := getNamespacePods(clientSet, meshName, meshNamespace)
 
 		meshVersion := osmControllerDeployment.ObjectMeta.Labels[constants.OSMAppVersionLabelKey]
 		if meshVersion == "" {
 			meshVersion = "Unknown"
 		}
 
-		meshSmiSupportedVersions := []string{"Unknown"}
-		if pods, ok := meshControllerPods["Pods"]; ok && len(pods) > 0 {
-			smiMap, err := getSupportedSmiForControllerPod(meshControllerPods["Pods"][0], meshNamespace, restConfig, clientSet, localPort)
-			if err == nil {
-				meshSmiSupportedVersions = []string{}
-				for smi, version := range smiMap {
-					meshSmiSupportedVersions = append(meshSmiSupportedVersions, fmt.Sprintf("%s:%s", smi, version))
-				}
-			}
-		}
-
-		meshMonitoredNamespaces := []string{}
+		var meshMonitoredNamespaces []string
 		nsList, err := selectNamespacesMonitoredByMesh(meshName, clientSet)
 		if err == nil && len(nsList.Items) > 0 {
 			for _, ns := range nsList.Items {
@@ -117,12 +103,10 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface, lo
 		}
 
 		meshInfoList = append(meshInfoList, meshInfo{
-			name:                 meshName,
-			namespace:            meshNamespace,
-			controllerPods:       meshControllerPods["Pods"],
-			version:              meshVersion,
-			smiSupportedVersions: meshSmiSupportedVersions,
-			monitoredNamespaces:  meshMonitoredNamespaces,
+			name:                meshName,
+			namespace:           meshNamespace,
+			version:             meshVersion,
+			monitoredNamespaces: meshMonitoredNamespaces,
 		})
 	}
 
@@ -168,6 +152,56 @@ func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
 	return meshList
 }
 
+// getPrettyPrintedMeshSmiInfoList returns a pretty printed list
+// of meshes with supported smi versions
+func getPrettyPrintedMeshSmiInfoList(meshSmiInfoList []meshSmiInfo) string {
+	s := "\nMESH NAME\tMESH NAMESPACE\tSMI SUPPORTED\n"
+
+	for _, mesh := range meshSmiInfoList {
+		m := fmt.Sprintf(
+			"%s\t%s\t%s\n",
+			mesh.name,
+			mesh.namespace,
+			strings.Join(mesh.smiSupportedVersions, ","),
+		)
+		s += m
+	}
+
+	return s
+}
+
+// getSupportedSmiInfoForMeshList returns a meshSmiInfo list showing
+// the supported smi versions for each osm mesh in the mesh list
+func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernetes.Interface, config *rest.Config, localPort uint16) []meshSmiInfo {
+	var meshSmiInfoList []meshSmiInfo
+
+	for _, mesh := range meshInfoList {
+		meshControllerPods := getNamespacePods(clientSet, mesh.name, mesh.namespace)
+
+		meshSmiSupportedVersions := []string{"Unknown"}
+		if pods, ok := meshControllerPods["Pods"]; ok && len(pods) > 0 {
+			smiMap, err := getSupportedSmiForControllerPod(meshControllerPods["Pods"][0], mesh.namespace, config, clientSet, localPort)
+			if err == nil {
+				meshSmiSupportedVersions = []string{}
+				for smi, version := range smiMap {
+					meshSmiSupportedVersions = append(meshSmiSupportedVersions, fmt.Sprintf("%s:%s", smi, version))
+				}
+			}
+		}
+		sort.Strings(meshSmiSupportedVersions)
+
+		meshSmiInfoList = append(meshSmiInfoList, meshSmiInfo{
+			name:                 mesh.name,
+			namespace:            mesh.namespace,
+			smiSupportedVersions: meshSmiSupportedVersions,
+		})
+	}
+
+	return meshSmiInfoList
+}
+
+// getSupportedSmiForControllerPod returns the supported smi versions
+// for a given osm controller pod in a namespace
 func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *rest.Config, clientSet kubernetes.Interface, localPort uint16) (map[string]string, error) {
 	dialer, err := k8s.DialerToPod(restConfig, clientSet, pod, namespace)
 	if err != nil {
@@ -198,6 +232,16 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 	})
 	if err != nil {
 		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
+	}
+
+	for smiAPI, smiAPIVersion := range smiSupported {
+		// smiApi looks like HTTPRouteGroup
+		// smiApiVersion looks like specs.smi-spec.io/v1alpha4
+		// leave out the API group and only keep the version after "/"
+		splitVersionInfo := strings.SplitN(smiAPIVersion, "/", 2)
+		if len(splitVersionInfo) >= 2 {
+			smiSupported[smiAPI] = splitVersionInfo[1]
+		}
 	}
 
 	return smiSupported, nil

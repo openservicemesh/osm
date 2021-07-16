@@ -331,20 +331,20 @@ func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 }
 
 func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterService) []endpoint.Endpoint {
-	endpoints := []endpoint.Endpoint{}
+	var endpoints []endpoint.Endpoint
 	if len(services) > 0 {
-		for _, service := range services {
-			for _, cluster := range service.Spec.Cluster {
+		for _, svc := range services {
+			for _, cluster := range svc.Spec.Clusters {
 				tokens := strings.Split(cluster.Address, ":")
 				if len(tokens) != 2 {
-					log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", service.Name, cluster.Address)
+					log.Error().Msgf("Error parsing remote service %s address %s. It should have IP address and port number", svc.Name, cluster.Address)
 					continue
 				}
 
 				ip, portStr := tokens[0], tokens[1]
 				port, err := strconv.Atoi(portStr)
 				if err != nil {
-					log.Error().Msgf("Remote service %s port number format invalid. Remote cluster address: %s", service.Name, cluster.Address)
+					log.Error().Msgf("Remote service %s port number format invalid. Remote cluster address: %s", svc.Name, cluster.Address)
 					continue
 				}
 

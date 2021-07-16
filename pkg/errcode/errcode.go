@@ -71,6 +71,10 @@ const (
 
 	// ErrFetchingServiceForTrafficTargetDestination indicates an error retrieving services associated with a TrafficTarget destination
 	ErrFetchingServiceForTrafficTargetDestination
+
+	// ErrGettingInboundTrafficTargets indicates the inbound traffic targets composed of its routes for a given
+	// desitination ServiceIdentity could not be obtained
+	ErrGettingInboundTrafficTargets
 )
 
 // Range 3000-3500 is reserved for errors related to k8s constructs (service accounts, namespaces, etc.)
@@ -80,6 +84,15 @@ const (
 
 	// ErrNoMatchingServiceForServiceAccount indicates there are no services associated with the service account
 	ErrNoMatchingServiceForServiceAccount
+
+	// ErrGettingResolvableServiceEndpoints indicates the resolvable set of endpoints over which the service is accessible using its FQDN cannot be obtained
+	ErrGettingResolvableServiceEndpoints
+
+	// ErrEndpointsNotFound indicates resolvable service endpoints could not be found
+	ErrEndpointsNotFound
+
+	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
+	ErrGettingServicePorts
 )
 
 // Range 4000-4100 reserved for errors related to certificate providers
@@ -219,9 +232,6 @@ const (
 	// ErrParsingDiscoveryReqVersion indicates the discovery request response version could not be parsed
 	ErrParsingDiscoveryReqVersion
 
-	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
-	ErrGettingServicePorts
-
 	// ErrGettingOrgDstEgressCluster indicates that an Envoy egress cluster that routes traffic to its original destination could not be configured
 	ErrGettingOrgDstEgressCluster
 
@@ -239,6 +249,18 @@ const (
 
 	// ErrDuplicateluster indicates Envoy clusters with the same name were found
 	ErrDuplicateClusters
+
+	// ErrUnsupportedProtocolForService indicates a port's corresponding application protocol is not supported
+	ErrUnsupportedProtocolForService
+
+	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
+	ErrBuildingRBACPolicy
+
+	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
+	ErrGettingLuaFilter
+
+	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
+	ErrGettingWASMFilter
 )
 
 // String returns the error code as a string, ex. E1000
@@ -357,6 +379,11 @@ in the SMI TrafficTarget policy.
 The associated SMI TrafficTarget policy was ignored by the system.
 `,
 
+	ErrGettingInboundTrafficTargets: `
+The inbound TrafficTargets composed of their routes for a given destination
+ServiceIdentity could not be configured.
+`,
+
 	//
 	// Range 3000-3500
 	//
@@ -371,6 +398,20 @@ service was found. A service matches a service account if the pods backing the s
 belong to the service account.
 `,
 
+	ErrGettingResolvableServiceEndpoints: `
+The expexted endpoints that are reached when the service's FQDN is resolved could not be
+retrieved by the system.
+`,
+
+	ErrGettingServicePorts: `
+The mapping of ports the application is exposing a service on to their corresponding
+application protocol could not be obtained for a specified service.
+`,
+
+	// ErrEndpointsNotFound indicates resolvable service endpoints could not be found
+	ErrEndpointsNotFound: `
+The system found 0 endpoints to be reached when the service's FQDN was resolved.
+`,
 	//
 	// Range 4000-4100
 	//
@@ -563,11 +604,6 @@ The TypeURL of the resource being requested in the DiscoveryRequest is invalid.
 The version of the DiscoveryRequest could not be parsed by ADS.
 `,
 
-	ErrGettingServicePorts: `
-The mapping of ports the application is exposing a service on to their corresponding
-application protocol could not be obtained for a specified service.
-`,
-
 	ErrGettingOrgDstEgressCluster: `
 An Envoy egress cluster which routes traffic to its original destination could not
 be configured. When a Host is not specified in the cluster config, the original 
@@ -595,5 +631,25 @@ An Envoy cluster for a local service behind an Envoy proxy could not be configur
 	ErrDuplicateClusters: `
 Multiple Envoy clusters with the same name were configured. The duplicate clusters
 will not be sent to the Envoy proxy in a ClusterDiscovery response.
+`,
+
+	ErrUnsupportedProtocolForService: `
+The application protocol specified for a port is not supported for ingress
+traffic. The XDS filter chain for ingress traffic to the port is not created.
+`,
+
+	ErrBuildingRBACPolicy: `
+A XDS RBAC policy could not be generated from the specified traffic target
+policy.
+`,
+
+	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
+	ErrGettingLuaFilter: `
+The Lua XDS HttpFilter could not be configured.
+`,
+
+	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
+	ErrGettingWASMFilter: `
+The WASM XDS HttpFilter could not be configured.
 `,
 }

@@ -55,7 +55,8 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 					Name:         "server",
 					Namespace:    destNs,
 					Image:        "kennethreitz/httpbin",
-					Ports:        []int{80},
+					Ports:        []int{DefaultUpstreamServicePort},
+					Command:      HttpbinCmd,
 				})
 
 			_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
@@ -76,7 +77,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 				Command:      []string{"/bin/bash", "-c", "--"},
 				Args:         []string{"while true; do sleep 30; done;"},
 				Image:        "songrgg/alpine-debug",
-				Ports:        []int{80},
+				Ports:        []int{DefaultUpstreamServicePort},
 			})
 
 			_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
@@ -120,7 +121,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 						SourcePod:       srcPod.Name,
 						SourceContainer: "client",
 
-						Destination: fmt.Sprintf("%s.%s/status/200", dstSvc.Name, dstSvc.Namespace),
+						Destination: fmt.Sprintf("%s.%s:%d/status/200", dstSvc.Name, dstSvc.Namespace, DefaultUpstreamServicePort),
 					})
 
 				if result.Err != nil || result.StatusCode != 200 {

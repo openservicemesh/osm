@@ -88,6 +88,15 @@ func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
 	return Describe(fmt.Sprintf("%s %s", opts, name), body)
 }
 
+const (
+	// DefaultUpstreamServicePort is the default port on which the server apps listen for connections from client apps.
+	// Note: Port 80 should not be used because it does not work on OpenShift.
+	DefaultUpstreamServicePort = 14001
+)
+
+// HttpbinCmd is the command to be used for httpbin applications in e2es
+var HttpbinCmd = []string{"gunicorn", "-b", fmt.Sprintf("0.0.0.0:%d", DefaultUpstreamServicePort), "httpbin:app", "-k", "gevent"}
+
 // Verifies the instType string flag option is a valid enum type
 func verifyValidInstallType(t InstallType) error {
 	switch t {
@@ -1078,17 +1087,14 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		}
 	}
 
-	// The condition enters to cleanup K8s resources if
-	// - cleanup is enabled and it's not a kind cluster
-	// - cleanup is enabled and it is a kind cluster, but the kind cluster will NOT be
-	//   destroyed after this test.
-	//   The latter is a condition to speed up and not wait for k8s resources to vanish
-	//   if the current kind cluster has to be destroyed anyway.
-	if td.CleanupTest &&
-		(!(td.InstType == KindCluster) ||
-			(td.InstType == KindCluster &&
-				(ct == Test && !td.CleanupKindClusterBetweenTests) ||
-				(ct == Suite && !td.CleanupKindCluster))) {
+	cleanupTrigger := td.CleanupTest
+	// If we are on kind env
+	if td.InstType == KindCluster {
+		// Check if we can/want to avoid K8s cleanup
+		cleanupTrigger = cleanupTrigger && td.shouldCleanupK8sOnKind(ct)
+	}
+
+	if cleanupTrigger {
 		// Use selector to refer to all namespaces used in this test
 		nsSelector := metav1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(td.GetTestNamespaceSelectorMap()).String(),
@@ -1171,6 +1177,24 @@ func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 	if err != nil {
 		td.T.Fatalf("Could not add registry secret")
 	}
+}
+
+// shouldCleanupK8sOnKind returns whether k8s cleanup can be avoided on kind when the
+// kind cluster is not going to be kept anyway, when the test/suite is running on kind.
+// This optimization considerably speeds up the test suite when running on kind as we don't wait
+// for k8s cleanup after every test.
+func (td *OsmTestData) shouldCleanupK8sOnKind(ct CleanupType) bool {
+	cleanupK8sOnKind := false
+
+	if ct == Test {
+		// If Kind cluster is going away, no need to trigger and wait for k8s cleanup
+		cleanupK8sOnKind = !td.CleanupKindClusterBetweenTests
+	} else if ct == Suite {
+		// If Kind cluster is going away, no need to trigger and wait for k8s cleanup
+		cleanupK8sOnKind = !td.CleanupKindCluster
+	}
+
+	return cleanupK8sOnKind
 }
 
 // RetryFuncOnError runs the given function and retries for the given number of times if an error is encountered

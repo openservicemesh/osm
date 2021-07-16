@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -84,7 +85,8 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling TcpProxy for TrafficMatch %v", match)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshalling TcpProxy for TrafficMatch %v", match)
 		return nil, err
 	}
 
@@ -97,7 +99,8 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 	for _, ipRange := range match.DestinationIPRanges {
 		ip, ipNet, err := net.ParseCIDR(ipRange)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error parsing IP range %s while building TCP filter chain for match %v, skipping", ipRange, match)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
+				Msgf("Error parsing IP range %s while building TCP filter chain for match %v, skipping", ipRange, match)
 			continue
 		}
 
