@@ -109,6 +109,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
         --set=OpenServiceMesh.controllerLogLevel="trace" \
         --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
+        --set=OpenServiceMesh.featureFlags.enableOSMGateway="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
 
