@@ -247,7 +247,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		if needWildCardRoute {
 			if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
-					Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s", source.Namespace, source.Name, destService.Namespace, destService.Name)
+					Msgf("Error adding wildcard route to outbound policy for source %s/%s and destination %s/%s", source.Namespace, source.Name, destService.Namespace, destService.Name)
 				continue
 			}
 		}
