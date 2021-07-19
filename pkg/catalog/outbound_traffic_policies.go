@@ -241,7 +241,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 				}
 				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
 			} else {
-				needWildCardRoute = true
+				needWildcardRoute = true
 			}
 		}
 		if needWildCardRoute {
