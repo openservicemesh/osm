@@ -20,7 +20,6 @@ type MultiClusterService struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec is the MultiClusterService specification.
-	// +optional
 	Spec MultiClusterServiceSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
 }
 
