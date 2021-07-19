@@ -18,5 +18,11 @@ func updateEventSpecificMetrics(eventType announcements.AnnouncementType) {
 
 	case announcements.PodDeleted:
 		metricsstore.DefaultMetricsStore.K8sMeshPodCount.Dec()
+
+	case announcements.ServiceAdded:
+		metricsstore.DefaultMetricsStore.K8sMeshServiceCount.Inc()
+
+	case announcements.ServiceDeleted:
+		metricsstore.DefaultMetricsStore.K8sMeshServiceCount.Dec()
 	}
 }
