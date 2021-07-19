@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
+	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // MockController is a mock of Controller interface
@@ -33,6 +34,20 @@ func NewMockController(ctrl *gomock.Controller) *MockController {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
+}
+
+// GetIngressBackendPolicy mocks base method
+func (m *MockController) GetIngressBackendPolicy(arg0 service.MeshService) *v1alpha1.IngressBackend {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0)
+	ret0, _ := ret[0].(*v1alpha1.IngressBackend)
+	return ret0
+}
+
+// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy
+func (mr *MockControllerMockRecorder) GetIngressBackendPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockController)(nil).GetIngressBackendPolicy), arg0)
 }
 
 // ListEgressPoliciesForSourceIdentity mocks base method

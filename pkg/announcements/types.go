@@ -146,16 +146,25 @@ const (
 	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
 	MeshConfigUpdated AnnouncementType = "meshconfig-updated"
 
-	// ---
+	// --- policy.openservicemesh.io API events
 
-	// EgressAdded is the type of announcement emitted when we observe an addition of egress.policy.openservicemesh.io
+	// EgressAdded is the type of announcement emitted when we observe an addition of egresses.policy.openservicemesh.io
 	EgressAdded AnnouncementType = "egress-added"
 
-	// EgressDeleted the type of announcement emitted when we observe a deletion of egress.policy.openservicemesh.io
+	// EgressDeleted the type of announcement emitted when we observe a deletion of egresses.policy.openservicemesh.io
 	EgressDeleted AnnouncementType = "egress-deleted"
 
-	// EgressUpdated is the type of announcement emitted when we observe an update to egress.policy.openservicemesh.io
+	// EgressUpdated is the type of announcement emitted when we observe an update to egresses.policy.openservicemesh.io
 	EgressUpdated AnnouncementType = "egress-updated"
+
+	// IngressBackendAdded is the type of announcement emitted when we observe an addition of ingressbackends.policy.openservicemesh.io
+	IngressBackendAdded AnnouncementType = "ingressbackend-added"
+
+	// IngressBackendDeleted the type of announcement emitted when we observe a deletion of ingressbackends.policy.openservicemesh.io
+	IngressBackendDeleted AnnouncementType = "ingressbackend-deleted"
+
+	// IngressBackendUpdated is the type of announcement emitted when we observe an update to ingressbackends.policy.openservicemesh.io
+	IngressBackendUpdated AnnouncementType = "ingressbackend-updated"
 
 	// ---
 

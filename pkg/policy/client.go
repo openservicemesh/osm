@@ -9,6 +9,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -16,9 +17,6 @@ import (
 )
 
 const (
-	// apiGroup is the k8s API group that this package interacts with
-	apiGroup = "policy.openservicemesh.io"
-
 	// egressSourceKindSvcAccount is the ServiceAccount kind for a source defined in Egress policy
 	egressSourceKindSvcAccount = "ServiceAccount"
 )
@@ -41,11 +39,13 @@ func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController
 	informerFactory := policyV1alpha1Informers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
-		egress: informerFactory.Policy().V1alpha1().Egresses().Informer(),
+		egress:         informerFactory.Policy().V1alpha1().Egresses().Informer(),
+		ingressBackend: informerFactory.Policy().V1alpha1().IngressBackends().Informer(),
 	}
 
 	cacheCollection := cacheCollection{
-		egress: informerCollection.egress.GetStore(),
+		egress:         informerCollection.egress.GetStore(),
+		ingressBackend: informerCollection.ingressBackend.GetStore(),
 	}
 
 	client := client{
@@ -68,30 +68,52 @@ func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController
 		Delete: announcements.EgressDeleted,
 	}
 	informerCollection.egress.AddEventHandler(k8s.GetKubernetesEventHandlers("Egress", "Policy", shouldObserve, egressEventTypes))
+	ingressBackendEventTypes := k8s.EventTypes{
+		Add:    announcements.IngressBackendAdded,
+		Update: announcements.IngressBackendUpdated,
+		Delete: announcements.IngressBackendDeleted,
+	}
+	informerCollection.ingressBackend.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressBackend", "Policy", shouldObserve, ingressBackendEventTypes))
 
 	err := client.run(stop)
 	if err != nil {
-		return client, errors.Errorf("Could not start %s client: %s", apiGroup, err)
+		return client, errors.Errorf("Could not start %s informer clients: %s", policyV1alpha1.SchemeGroupVersion, err)
 	}
 
 	return client, err
 }
 
 func (c client) run(stop <-chan struct{}) error {
-	log.Info().Msgf("%s client started", apiGroup)
+	log.Info().Msgf("Starting informer clients for API group %s", policyV1alpha1.SchemeGroupVersion)
 
 	if c.informers == nil {
 		return errInitInformers
 	}
 
-	go c.informers.egress.Run(stop)
+	sharedInformers := map[string]cache.SharedInformer{
+		"Egress":         c.informers.egress,
+		"IngressBackend": c.informers.ingressBackend,
+	}
 
-	log.Info().Msgf("Waiting for %s Egress informers' cache to sync", apiGroup)
-	if !cache.WaitForCacheSync(stop, c.informers.egress.HasSynced) {
+	var informerNames []string
+	var hasSynced []cache.InformerSynced
+	for name, informer := range sharedInformers {
+		if informer == nil {
+			log.Error().Msgf("Informer for '%s' not initialized, ignoring it", name) // TODO: log with errcode
+			continue
+		}
+		informerNames = append(informerNames, name)
+		log.Info().Msgf("Starting informer: %s", name)
+		go informer.Run(stop)
+		hasSynced = append(hasSynced, informer.HasSynced)
+	}
+
+	log.Info().Msgf("Waiting for informers %v caches to sync", informerNames)
+	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
 
-	log.Info().Msgf("Cache sync finished for %s Egress informers", apiGroup)
+	log.Info().Msgf("Cache sync finished for %v informers in API group %s", informerNames, policyV1alpha1.SchemeGroupVersion)
 	return nil
 }
 
@@ -114,4 +136,26 @@ func (c client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAc
 	}
 
 	return policies
+}
+
+// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
+func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1.IngressBackend {
+	for _, ingressBackendIface := range c.caches.ingressBackend.List() {
+		ingressBackend := ingressBackendIface.(*policyV1alpha1.IngressBackend)
+
+		if !c.kubeController.IsMonitoredNamespace(ingressBackend.Namespace) {
+			continue
+		}
+
+		// Return the first IngressBackend corresponding to the given MeshService.
+		// Multiple IngressBackend policies for the same backend will be prevented
+		// using a validating webhook.
+		for _, backend := range ingressBackend.Spec.Backends {
+			if ingressBackend.Namespace == svc.Namespace && backend.Name == svc.Name {
+				return ingressBackend
+			}
+		}
+	}
+
+	return nil
 }

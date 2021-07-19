@@ -127,7 +127,7 @@ rules:
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["egresses"]
+    resources: ["egresses", "ingressbackends"]
     verbs: ["list", "get", "watch"]
 
   # Used for interacting with cert-manager CertificateRequest resources.
