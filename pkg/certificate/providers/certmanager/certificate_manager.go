@@ -148,7 +148,8 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		Duration: validityPeriod,
 	}
 
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
+	certKeyBitSize := cm.cfg.GetCertKeyBitSize()
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyBitSize)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
