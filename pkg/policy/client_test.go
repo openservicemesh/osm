@@ -49,7 +49,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 						Namespace: "test",
 					},
 					Spec: policyV1alpha1.EgressSpec{
-						Sources: []policyV1alpha1.SourceSpec{
+						Sources: []policyV1alpha1.EgressSourceSpec{
 							{
 								Kind:      "ServiceAccount",
 								Name:      "sa-1",
@@ -83,7 +83,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 						Namespace: "test",
 					},
 					Spec: policyV1alpha1.EgressSpec{
-						Sources: []policyV1alpha1.SourceSpec{
+						Sources: []policyV1alpha1.EgressSourceSpec{
 							{
 								Kind:      "ServiceAccount",
 								Name:      "sa-1",
@@ -113,7 +113,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 						Namespace: "test",
 					},
 					Spec: policyV1alpha1.EgressSpec{
-						Sources: []policyV1alpha1.SourceSpec{
+						Sources: []policyV1alpha1.EgressSourceSpec{
 							{
 								Kind:      "ServiceAccount",
 								Name:      "sa-1",

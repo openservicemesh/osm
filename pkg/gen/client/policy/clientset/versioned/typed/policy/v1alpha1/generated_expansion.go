@@ -16,3 +16,5 @@ limitations under the License.
 package v1alpha1
 
 type EgressExpansion interface{}
+
+type IngressBackendExpansion interface{}

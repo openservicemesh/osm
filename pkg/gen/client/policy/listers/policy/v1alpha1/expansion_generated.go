@@ -22,3 +22,11 @@ type EgressListerExpansion interface{}
 // EgressNamespaceListerExpansion allows custom methods to be added to
 // EgressNamespaceLister.
 type EgressNamespaceListerExpansion interface{}
+
+// IngressBackendListerExpansion allows custom methods to be added to
+// IngressBackendLister.
+type IngressBackendListerExpansion interface{}
+
+// IngressBackendNamespaceListerExpansion allows custom methods to be added to
+// IngressBackendNamespaceLister.
+type IngressBackendNamespaceListerExpansion interface{}
