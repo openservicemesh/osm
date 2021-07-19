@@ -42,6 +42,7 @@ func (mc *MeshCatalog) dispatcher() {
 		a.IngressAdded, a.IngressDeleted, a.IngressUpdated, // Ingress
 		a.TCPRouteAdded, a.TCPRouteDeleted, a.TCPRouteUpdated, // TCProute
 		a.EgressAdded, a.EgressDeleted, a.EgressUpdated, // Egress
+		a.IngressBackendAdded, a.IngressBackendDeleted, a.IngressBackendUpdated, // IngressBackend
 	)
 
 	// State and channels for event-coalescing
