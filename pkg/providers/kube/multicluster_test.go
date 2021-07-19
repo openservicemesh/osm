@@ -83,4 +83,18 @@ var _ = Describe("Test Multicluster functions of the Kubernetes endpoint", func(
 			Expect(actual).To(Equal(expectedEndpoint))
 		})
 	})
+
+	Context("Test getIPPort()", func() {
+		It("returns the port number specified in a ClusterSpec", func() {
+			clusterSpec := v1alpha1.ClusterSpec{
+				Address: "1.2.3.4:5678",
+			}
+			actualIP, actualPort, err := getIPPort(clusterSpec)
+			Expect(err).ToNot(HaveOccurred())
+			expectedIP := net.ParseIP("1.2.3.4")
+			expectedPort := 5678
+			Expect(actualIP).To(Equal(expectedIP))
+			Expect(actualPort).To(Equal(expectedPort))
+		})
+	})
 })
