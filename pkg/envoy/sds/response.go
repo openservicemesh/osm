@@ -62,7 +62,6 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 	// - "service-cert:namespace/service-account"
 	// - "root-cert-for-mtls-outbound:namespace/service"
 	// - "root-cert-for-mtls-inbound:namespace/service-service-account"
-	// - "root-cert-for-https:namespace/service-service-account"
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
@@ -85,13 +84,16 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			certs = append(certs, envoySecret)
 
 		// A root certificate used to validate a service certificate is requested
-		case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound, secrets.RootCertTypeForHTTPS:
+		case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound:
 			envoySecret, err := s.getRootCert(cert, *sdsCert)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s", requestedCertificate, proxy.String())
 				continue
 			}
 			certs = append(certs, envoySecret)
+
+		default:
+			log.Error().Msgf("Unexpected certificate type %s requested for proxy %s", requestedCertificate, proxy)
 		}
 	}
 

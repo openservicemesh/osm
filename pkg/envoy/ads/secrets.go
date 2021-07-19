@@ -17,7 +17,6 @@ import (
 // 2. Client's root validation certificate to validate upstream services during mTLS handshake: root-cert-for-mtls-outbound:<namespace>/<server-service-name>
 // 3. Server's service certificate when this proxy is an upstream: service-cert:<namespace>/<server-service-name>
 // 4. Server's root validation certificate to validate downstream clients during mTLS handshake: root-cert-for-mtls-inbound:<namespace>/<server-service-name>
-// 5. Server's root validation certificate to validate downstream clients during TLS handshake: root-cert-https:<namespace>/<server-service-name>
 //
 // This request will be sent to SDS which will return certificates encoded in SDS secrets corresponding to the resource names
 // encoded in the DiscoveryRequest this function creates and returns.
@@ -47,7 +46,6 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			// create an SDS resource with the same name.
 			// The DownstreamTlsContext on the inbound filter chain references the following validation cert types:
 			// 1. root-cert-for-mtls-inbound: root validation cert to validate the downstream's cert during mTLS handshake
-			// 2. root-cert-https: root validation cert to validate the downstream's cert during TLS (non-mTLS) handshake
 
 			// This cert is the upstream service's validation certificate used to validate certificates presented
 			// by downstream clients during mTLS handshake.
@@ -55,14 +53,6 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 			secrets.SDSCert{
 				Name:     proxyIdentity.ToK8sServiceAccount().String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
-			}.String(),
-
-			// This cert is the upstream service's validation certificate used to validate certificates presented
-			// by downstream clients during TLS handshake.
-			// The secret name is of the form <namespace>/<upstream-service>
-			secrets.SDSCert{
-				Name:     proxyIdentity.ToK8sServiceAccount().String(),
-				CertType: secrets.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),

@@ -142,23 +142,32 @@ func pbStringValue(v string) *structpb.Value {
 
 // getCommonTLSContext returns a CommonTlsContext type for a given 'tlsSDSCert' and 'peerValidationSDSCert' pair.
 // 'tlsSDSCert' determines the SDS Secret config used to present the TLS certificate.
-// 'peerValidationSDSCert' determines the SDS Secret configs used to validate the peer TLS certificate.
-func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert secrets.SDSCert) *xds_auth.CommonTlsContext {
-	return &xds_auth.CommonTlsContext{
+// 'peerValidationSDSCert' determines the SDS Secret configs used to validate the peer TLS certificate. A nil value
+// is used to indicate peer certificate validation should be skipped, and is used when mTLS is disabled (ex. with TLS
+// based ingress).
+func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secrets.SDSCert) *xds_auth.CommonTlsContext {
+	commonTLSContext := &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name:      tlsSDSCert.String(),
 			SdsConfig: GetADSConfigSource(),
 		}},
-		ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+	}
+
+	// For TLS (non-mTLS) based validation, the client certificate should not be validated and the
+	// 'peerValidationSDSCert' will be set to nil to indicate this.
+	if peerValidationSDSCert != nil {
+		commonTLSContext.ValidationContextType = &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name:      peerValidationSDSCert.String(),
 				SdsConfig: GetADSConfigSource(),
 			},
-		},
+		}
 	}
+
+	return commonTLSContext
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
@@ -169,22 +178,20 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 		CertType: secrets.ServiceCertType,
 	}
 
-	var downstreamPeerValidationCertType secrets.SDSCertType
+	var downstreamPeerValidationSDSCert *secrets.SDSCert
 	if mTLS {
-		// Perform SAN validation for downstream client certificates
-		downstreamPeerValidationCertType = secrets.RootCertTypeForMTLSInbound
+		// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
+		// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
+		// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
+		// 'RootCertTypeForMTLSInbound' cert type is used for in-mesh downstreams.
+		downstreamPeerValidationSDSCert = &secrets.SDSCert{
+			Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
+			CertType: secrets.RootCertTypeForMTLSInbound,
+		}
 	} else {
-		// TLS based cert validation (used for ingress)
-		downstreamPeerValidationCertType = secrets.RootCertTypeForHTTPS
-	}
-	// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
-	// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
-	// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
-	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
-	// cert type is used for non-mesh downstreams such as ingress.
-	downstreamPeerValidationSDSCert := secrets.SDSCert{
-		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: downstreamPeerValidationCertType,
+		// When 'mTLS' is disabled, the upstream should not validate the certificate presented by the downstream.
+		// This is used for HTTPS ingress with mTLS disabled.
+		downstreamPeerValidationSDSCert = nil
 	}
 
 	tlsConfig := &xds_auth.DownstreamTlsContext{
@@ -202,7 +209,7 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 		Name:     secrets.GetSecretNameForIdentity(downstreamIdentity),
 		CertType: secrets.ServiceCertType,
 	}
-	upstreamPeerValidationSDSCert := secrets.SDSCert{
+	upstreamPeerValidationSDSCert := &secrets.SDSCert{
 		Name:     upstreamSvc.NameWithoutCluster(),
 		CertType: secrets.RootCertTypeForMTLSOutbound,
 	}

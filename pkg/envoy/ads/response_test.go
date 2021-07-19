@@ -113,11 +113,6 @@ var _ = Describe("Test ADS response functions", func() {
 						Name:     proxySvcAccount.String(),
 						CertType: secrets.RootCertTypeForMTLSInbound,
 					}.String(),
-					secrets.SDSCert{
-						// Validation ceritificate for TLS when this proxy is an upstream
-						Name:     proxySvcAccount.String(),
-						CertType: secrets.RootCertTypeForHTTPS,
-					}.String(),
 				},
 			}
 			Expect(actual).ToNot(BeNil())
@@ -175,8 +170,7 @@ var _ = Describe("Test ADS response functions", func() {
 			// Expect 3 SDS certs:
 			// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 			// 2. mTLS validation cert when this proxy is an upstream
-			// 3. TLS validation cert when this proxy is an upstream
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(2))
 
 			var tmpResource *any.Any
 
@@ -196,15 +190,6 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
-			}.String()))
-
-			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[2]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
-			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})
@@ -247,8 +232,7 @@ var _ = Describe("Test ADS response functions", func() {
 			// Expect 3 SDS certs:
 			// 1. Proxy's own cert to present to peer during mTLS/TLS handshake
 			// 2. mTLS validation cert when this proxy is an upstream
-			// 3. TLS validation cert when this proxy is an upstream
-			Expect(len(sdsResponse.Resources)).To(Equal(3))
+			Expect(len(sdsResponse.Resources)).To(Equal(2))
 
 			var tmpResource *any.Any
 
@@ -268,15 +252,6 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
-			}.String()))
-
-			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[2]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
-			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})

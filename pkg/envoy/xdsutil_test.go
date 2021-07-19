@@ -241,7 +241,7 @@ var _ = Describe("Test Envoy tools", func() {
 				Name:     "default/bookbuyer",
 				CertType: secrets.ServiceCertType,
 			}
-			peerValidationSDSCert := secrets.SDSCert{
+			peerValidationSDSCert := &secrets.SDSCert{
 				Name:     "default/bookstore-v1",
 				CertType: secrets.RootCertTypeForMTLSOutbound,
 			}
@@ -271,7 +271,7 @@ var _ = Describe("Test Envoy tools", func() {
 				Name:     "default/bookstore-v1",
 				CertType: secrets.ServiceCertType,
 			}
-			peerValidationSDSCert := secrets.SDSCert{
+			peerValidationSDSCert := &secrets.SDSCert{
 				Name:     "default/bookstore-v1",
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			}
@@ -296,17 +296,13 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(actual).To(Equal(expected))
 		})
 
-		It("returns proper auth.CommonTlsContext for non-mTLS (HTTPS)", func() {
+		It("returns proper auth.CommonTlsContext for TLS (non-mTLS)", func() {
 			tlsSDSCert := secrets.SDSCert{
 				Name:     "default/bookstore-v1",
 				CertType: secrets.ServiceCertType,
 			}
-			peerValidationSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForHTTPS,
-			}
 
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
+			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
@@ -314,13 +310,7 @@ var _ = Describe("Test Envoy tools", func() {
 					Name:      "service-cert:default/bookstore-v1",
 					SdsConfig: GetADSConfigSource(),
 				}},
-				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-https:default/bookstore-v1",
-						SdsConfig: GetADSConfigSource(),
-					},
-				},
-				AlpnProtocols: nil,
+				ValidationContextType: nil, // TLS cert type should not validate the client certificate
 			}
 
 			Expect(actual).To(Equal(expected))
