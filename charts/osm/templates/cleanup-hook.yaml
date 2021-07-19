@@ -9,7 +9,7 @@ metadata:
     seccomp.security.alpha.kubernetes.io/defaultProfileName:  'runtime/default'
     apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
     helm.sh/hook-weight: "-1"
-    helm.sh/hook: post-delete
+    helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   privileged: false
@@ -60,7 +60,7 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: post-delete
+    helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups: ["config.openservicemesh.io"]
@@ -85,7 +85,7 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: post-delete
+    helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 subjects:
   - kind: ServiceAccount
@@ -104,7 +104,7 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: post-delete
+    helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
 apiVersion: v1
@@ -115,7 +115,7 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: post-delete
+    helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   serviceAccountName: {{ .Release.Name }}-cleanup
