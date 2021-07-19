@@ -28,6 +28,9 @@ type MetricsStore struct {
 	// K8sMeshPodCount is the metric for the number of pods participating in the mesh
 	K8sMeshPodCount prometheus.Gauge
 
+	// K8sMeshServiceCount is the metric for the number of services in the mesh
+	K8sMeshServiceCount prometheus.Gauge
+
 	/*
 	 * Proxy metrics
 	 */
@@ -90,6 +93,12 @@ func init() {
 		Subsystem: "k8s",
 		Name:      "mesh_pod_count",
 		Help:      "represents the number of pods part of the mesh managed by OSM controller",
+	})
+	defaultMetricsStore.K8sMeshServiceCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "mesh_service_count",
+		Help:      "represents the number of services part of the mesh managed by OSM controller",
 	})
 
 	/*
