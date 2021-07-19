@@ -327,10 +327,11 @@ func (c *Client) GetHostnamesForService(svc service.MeshService, locality servic
 }
 
 func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount, namespace string) []endpoint.Endpoint {
-	return getEndpointsFromMultiClusterServices(c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace))
+	services := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace)
+	return getEndpointsFromMultiClusterServices(services)
 }
 
-func getEndpointsFromMultiClusterServices(services []*v1alpha1.MultiClusterService) []endpoint.Endpoint {
+func getEndpointsFromMultiClusterServices(services []v1alpha1.MultiClusterService) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	if len(services) > 0 {
 		for _, svc := range services {

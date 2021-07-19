@@ -20,8 +20,7 @@ type client struct {
 
 // Controller is the interface for the functionality provided by the resources part of the multiclusterservice.openservicemesh.io API group
 type Controller interface {
-	// TODO: specify required functions
-	ListMultiClusterServices() []*v1alpha1.MultiClusterService
+	ListMultiClusterServices() []v1alpha1.MultiClusterService
 	GetMultiClusterService(name, namespace string) *v1alpha1.MultiClusterService
-	GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []*v1alpha1.MultiClusterService
+	GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []v1alpha1.MultiClusterService
 }
