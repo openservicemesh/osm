@@ -210,47 +210,49 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 	for _, destService := range destServices {
 		// Do not build an outbound policy if the destination service is an apex service in a traffic target
 		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
-		if !mc.isTrafficSplitApexService(destService) {
-			locality := service.LocalCluster
-			if destService.Namespace == source.Namespace {
-				locality = service.LocalNS
-			}
-			hostnames, err := mc.GetServiceHostnames(destService, locality)
-			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
-					Msgf("Error getting service hostnames for service %s", destService)
-				continue
-			}
-			weightedCluster := getDefaultWeightedClusterForService(destService)
+		if mc.isTrafficSplitApexService(destService) {
+			continue
+		}
 
-			policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FQDN(), hostnames)
-			needWildCardRoute := false
-			for _, routeMatch := range routeMatches {
-				// If the traffic target has a route with host headers
-				// we need to create a new outbound traffic policy with the host header as the required hostnames
-				// else the hosnames will be hostnames corresponding to the service
-				if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
-					policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
-					if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-						log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
-							Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s with host header %s", source.Namespace, source.Name, destService.Namespace, destService.Name, routeMatch.Headers[hostHeaderKey])
-						continue
-					}
-					outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
-				} else {
-					needWildCardRoute = true
-				}
-			}
-			if needWildCardRoute {
-				if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+		locality := service.LocalCluster
+		if destService.Namespace == source.Namespace {
+			locality = service.LocalNS
+		}
+		hostnames, err := mc.GetServiceHostnames(destService, locality)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+				Msgf("Error getting service hostnames for service %s", destService)
+			continue
+		}
+		weightedCluster := getDefaultWeightedClusterForService(destService)
+
+		policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FQDN(), hostnames)
+		needWildCardRoute := false
+		for _, routeMatch := range routeMatches {
+			// If the traffic target has a route with host headers
+			// we need to create a new outbound traffic policy with the host header as the required hostnames
+			// else the hosnames will be hostnames corresponding to the service
+			if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
+				policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
+				if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
 					log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
-						Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s", source.Namespace, source.Name, destService.Namespace, destService.Name)
+						Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s with host header %s", source.Namespace, source.Name, destService.Namespace, destService.Name, routeMatch.Headers[hostHeaderKey])
 					continue
 				}
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
+			} else {
+				needWildCardRoute = true
 			}
-
-			outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
 		}
+		if needWildCardRoute {
+			if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
+					Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s", source.Namespace, source.Name, destService.Namespace, destService.Name)
+				continue
+			}
+		}
+
+		outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
 	}
 	return outboundPolicies
 }
