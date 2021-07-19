@@ -76,3 +76,7 @@ docs/public/*
 node_modules/
 vendor/
 rootfs/
+
+
+# Envoy config captured during development
+envoy_*.json
