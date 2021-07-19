@@ -24,5 +24,23 @@ func updateEventSpecificMetrics(eventType announcements.AnnouncementType) {
 
 	case announcements.ServiceDeleted:
 		metricsstore.DefaultMetricsStore.K8sMeshServiceCount.Dec()
+
+	case announcements.ServiceAccountAdded:
+		metricsstore.DefaultMetricsStore.K8sMeshServiceAccountCount.Inc()
+	
+	case announcements.ServiceAccountDeleted:
+		metricsstore.DefaultMetricsStore.K8sMeshServiceAccountCount.Dec()
+
+	case announcements.IngressAdded:
+		metricsstore.DefaultMetricsStore.K8sMeshIngressCount.Inc()
+
+	case announcements.IngressDeleted:
+		metricsstore.DefaultMetricsStore.K8sMeshIngressCount.Dec()
+	
+	case announcements.EndpointAdded:
+		metricsstore.DefaultMetricsStore.K8sMeshEndpointCount.Inc()
+
+	case announcements.EndpointDeleted:
+		metricsstore.DefaultMetricsStore.K8sMeshEndpointCount.Dec()
 	}
 }

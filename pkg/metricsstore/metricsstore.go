@@ -31,6 +31,15 @@ type MetricsStore struct {
 	// K8sMeshServiceCount is the metric for the number of services in the mesh
 	K8sMeshServiceCount prometheus.Gauge
 
+	// K8sMeshServiceAccountCount is the metric for the number of service accounts in the mesh
+	K8sMeshServiceAccountCount prometheus.Gauge
+
+	// K8sMeshIngressCount is the metric for the number of ingress resources in the mesh
+	K8sMeshIngressCount prometheus.Gauge
+
+	// K8sMeshEndpointCount is the metric for the number of endpoints in the mesh
+	K8sMeshEndpointCount prometheus.Gauge
+
 	/*
 	 * Proxy metrics
 	 */
@@ -99,6 +108,24 @@ func init() {
 		Subsystem: "k8s",
 		Name:      "mesh_service_count",
 		Help:      "represents the number of services part of the mesh managed by OSM controller",
+	})
+	defaultMetricsStore.K8sMeshServiceAccountCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "mesh_service_account_count",
+		Help:      "represents the number of service accounts part of the mesh managed by OSM controller",
+	})
+	defaultMetricsStore.K8sMeshIngressCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "mesh_ingress_count",
+		Help:      "represents the number of ingress resources part of the mesh managed by OSM controller",
+	})
+	defaultMetricsStore.K8sMeshEndpointCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "mesh_endpoint_count",
+		Help:      "represents the number of endpoints part of the mesh managed by OSM controller",
 	})
 
 	/*
