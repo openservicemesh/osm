@@ -34,14 +34,14 @@ func TestBuildRouteConfiguration(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
 			},
 			{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
+				AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
 			},
 		},
 	}
@@ -159,14 +159,14 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
+							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
+							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 						},
 					},
 				},
@@ -179,7 +179,7 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{}),
+							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 						},
 					},
 				},
@@ -294,8 +294,8 @@ func TestBuildInboundRoutes(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceAccounts: mapset.NewSetFromSlice(
-						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
+					AllowedServiceIdentities: mapset.NewSetFromSlice(
+						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}.ToServiceIdentity()},
 					),
 				},
 			},
@@ -311,7 +311,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid route rule without Rule.AllowedServiceAccounts",
+			name: "invalid route rule without Rule.AllowedServiceIdentities",
 			inputRules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -323,7 +323,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceAccounts: nil,
+					AllowedServiceIdentities: nil,
 				},
 			},
 			expectFunc: func(assert *tassert.Assertions, actual []*xds_route.Route) {

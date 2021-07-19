@@ -15,9 +15,17 @@ const (
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
 type ServiceIdentity string
 
+// WildcardServiceIdentity is a wildcard to match all service identities
+const WildcardServiceIdentity ServiceIdentity = "*"
+
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
 	return string(si)
+}
+
+// IsWildcard determines if the ServiceIdentity is a wildcard
+func (si ServiceIdentity) IsWildcard() bool {
+	return si == WildcardServiceIdentity
 }
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
@@ -42,11 +50,6 @@ type K8sServiceAccount struct {
 // String returns the string representation of the service account object
 func (sa K8sServiceAccount) String() string {
 	return fmt.Sprintf("%s%s%s", sa.Namespace, namespaceNameSeparator, sa.Name)
-}
-
-// IsEmpty returns true if the given service account object is empty
-func (sa K8sServiceAccount) IsEmpty() bool {
-	return (K8sServiceAccount{}) == sa
 }
 
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity

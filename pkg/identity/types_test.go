@@ -1,50 +1,35 @@
 package identity
 
 import (
-	"fmt"
+	"testing"
 
-	"github.com/google/uuid"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Test pkg/service functions", func() {
-	defer GinkgoRecover()
+func TestServiceIdentityType(t *testing.T) {
+	assert := tassert.New(t)
 
-	Context("Test K8sServiceAccount struct methods", func() {
-		namespace := uuid.New().String()
-		serviceAccountName := uuid.New().String()
-		sa := K8sServiceAccount{
-			Namespace: namespace,
-			Name:      serviceAccountName,
-		}
+	// Test String()
+	si := ServiceIdentity("foo.bar.cluster.local")
+	assert.Equal("foo.bar.cluster.local", si.String())
 
-		It("implements stringer interface correctly", func() {
-			Expect(sa.String()).To(Equal(fmt.Sprintf("%s/%s", namespace, serviceAccountName)))
-		})
+	// Test wildcard()
+	wildcard := ServiceIdentity("*")
+	assert.True(wildcard.IsWildcard())
+	notWildcard := ServiceIdentity("foo.bar.cluster.local")
+	assert.False(notWildcard.IsWildcard())
 
-		It("implements IsEmpty correctly", func() {
-			Expect(sa.IsEmpty()).To(BeFalse())
-			Expect(K8sServiceAccount{}.IsEmpty()).To(BeTrue())
-		})
+	// Test ToK8sServiceAccount()
+	assert.Equal(K8sServiceAccount{Name: "foo", Namespace: "bar"}, si.ToK8sServiceAccount())
+}
 
-		It("implements K8sServiceAccount{}.ToServiceIdentity() correctly", func() {
-			actual := K8sServiceAccount{
-				Namespace: "ns",
-				Name:      "name",
-			}.ToServiceIdentity()
-			expected := ServiceIdentity("name.ns.cluster.local")
-			Expect(actual).To(Equal(expected))
-		})
+func TestK8sServiceAccountType(t *testing.T) {
+	assert := tassert.New(t)
 
-		It("implements ServiceIdentity{}.ToK8sServiceAccount() correctly", func() {
-			actual := ServiceIdentity("name.ns.cluster.local").ToK8sServiceAccount()
-			expected := K8sServiceAccount{
-				Namespace: "ns",
-				Name:      "name",
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-})
+	// Test String()
+	svcAccount := K8sServiceAccount{Name: "foo", Namespace: "bar"}
+	assert.Equal("bar/foo", svcAccount.String())
+
+	// Test ToServiceIdentity
+	assert.Equal(ServiceIdentity("foo.bar.cluster.local"), svcAccount.ToServiceIdentity())
+}

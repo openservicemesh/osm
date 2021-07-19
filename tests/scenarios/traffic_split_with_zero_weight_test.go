@@ -126,10 +126,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -139,10 +139,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -169,10 +169,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -182,10 +182,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},

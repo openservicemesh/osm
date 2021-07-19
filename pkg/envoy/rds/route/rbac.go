@@ -22,19 +22,19 @@ const (
 // The principals in the RBAC policy are derived from the allowed service accounts specified in the given rule.
 // The permissions in the RBAC policy are implicitly set to ANY (all permissions).
 func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.Any, error) {
-	if rule.AllowedServiceAccounts == nil {
-		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceAccounts not set")
+	if rule.AllowedServiceIdentities == nil {
+		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceIdentities not set")
 	}
 
 	policy := &rbac.Policy{}
 
 	// Create the list of principals for this policy
 	var principalRuleList []rbac.RulesList
-	for downstream := range rule.AllowedServiceAccounts.Iter() {
+	for downstream := range rule.AllowedServiceIdentities.Iter() {
 		var principalRule rbac.RulesList
-		downstreamIdentity := downstream.(identity.K8sServiceAccount)
+		downstreamIdentity := downstream.(identity.ServiceIdentity)
 
-		if downstreamIdentity.IsEmpty() {
+		if downstreamIdentity.IsWildcard() {
 			// When the downstream identity in a traffic policy rule is set to be empty, it implies
 			// we must allow all downstream principals. This can be accomplished by setting an empty
 			// principal rules list to generate an RBAC policy with principals set to ANY (all downstreams).
@@ -43,10 +43,9 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 			// The downstream principal in an RBAC policy is an authenticated principal type, which
 			// means the principal must correspond to the fully qualified SAN in the certificate presented
 			// by the downstream.
-			downstreamPrincipal := identity.GetKubernetesServiceIdentity(downstreamIdentity, identity.ClusterLocalTrustDomain)
 			principalRule = rbac.RulesList{
 				OrRules: []rbac.Rule{
-					{Attribute: rbac.DownstreamAuthPrincipal, Value: downstreamPrincipal.String()},
+					{Attribute: rbac.DownstreamAuthPrincipal, Value: downstreamIdentity.String()},
 				},
 			}
 		}

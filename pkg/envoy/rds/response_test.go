@@ -118,7 +118,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
 						},
 					},
 				},
@@ -135,7 +135,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
 						},
 					},
 				},
@@ -164,10 +164,10 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -177,10 +177,10 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -207,10 +207,10 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -220,10 +220,10 @@ func TestNewResponse(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -456,7 +456,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
 				},
 			},
 		},
@@ -502,7 +502,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
 				},
 			},
 		},
@@ -519,7 +519,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookstoreServiceAccount),
+					AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
 				},
 			},
 		},
