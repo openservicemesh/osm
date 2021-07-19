@@ -16,9 +16,6 @@ import (
 )
 
 const (
-	// How many bits to use for the RSA key
-	rsaBits = 4096
-
 	// checkCertificateExpirationInterval is the interval to check whether a
 	// certificate is close to expiration and needs renewal.
 	checkCertificateExpirationInterval = 5 * time.Second
