@@ -69,11 +69,11 @@ func (c client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-func (c client) ListMultiClusterServices() []*v1alpha1.MultiClusterService {
-	var services []*v1alpha1.MultiClusterService
+func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
+	var services []v1alpha1.MultiClusterService
 
 	for _, obj := range c.informer.Informer().GetStore().List() {
-		mcs := obj.(*v1alpha1.MultiClusterService)
+		mcs := obj.(v1alpha1.MultiClusterService)
 		if c.kubeController.IsMonitoredNamespace(mcs.Namespace) {
 			services = append(services, mcs)
 		}
@@ -81,12 +81,12 @@ func (c client) ListMultiClusterServices() []*v1alpha1.MultiClusterService {
 	return services
 }
 
-func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []*v1alpha1.MultiClusterService {
+func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []v1alpha1.MultiClusterService {
 	if !c.kubeController.IsMonitoredNamespace(namespace) {
 		return nil
 	}
 
-	var services []*v1alpha1.MultiClusterService
+	var services []v1alpha1.MultiClusterService
 
 	for _, mcs := range c.ListMultiClusterServices() {
 		if mcs.Spec.ServiceAccount == serviceAccount && mcs.Namespace == namespace {

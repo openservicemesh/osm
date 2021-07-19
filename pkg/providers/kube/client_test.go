@@ -769,7 +769,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	destServiceIdentity := tests.BookstoreServiceIdentity
 	destSA := destServiceIdentity.ToK8sServiceAccount()
 
-	mcServices := []*v1alpha1.MultiClusterService{
+	mcServices := []v1alpha1.MultiClusterService{
 		{
 			Spec: v1alpha1.MultiClusterServiceSpec{
 				Clusters: []v1alpha1.ClusterSpec{
@@ -789,7 +789,8 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 
 	configClient := fakeConfig.NewSimpleClientset()
 	for _, mcService := range mcServices {
-		_, err := configClient.ConfigV1alpha1().MultiClusterServices(tests.Namespace).Create(context.TODO(), mcService, metav1.CreateOptions{})
+		mcServicePtr := mcService
+		_, err := configClient.ConfigV1alpha1().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
 		assert.Nil(err)
 	}
 
