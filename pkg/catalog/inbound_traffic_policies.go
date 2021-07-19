@@ -119,10 +119,10 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 						// we need to create a new inbound traffic policy with the host header as the required hostnames
 						// else the hosnames will be hostnames corresponding to the service
 						if _, ok := routeMatch.Headers[hostHeaderKey]; !ok {
-							servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+							servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount.ToServiceIdentity())
 						} else {
 							servicePolicyWithHostHeader := trafficpolicy.NewInboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
-							servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+							servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount.ToServiceIdentity())
 							inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicyWithHostHeader)
 						}
 					}
@@ -161,10 +161,10 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 			// we need to create a new inbound traffic policy with the host header as the required hostnames
 			// else the hosnames will be hostnames corresponding to the service
 			if _, ok := routeMatch.Headers[hostHeaderKey]; !ok {
-				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount.ToServiceIdentity())
 			} else {
 				servicePolicyWithHostHeader := trafficpolicy.NewInboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
-				servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount)
+				servicePolicyWithHostHeader.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, []service.WeightedCluster{weightedCluster}), sourceServiceAccount.ToServiceIdentity())
 				inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicyWithHostHeader)
 			}
 		}
@@ -190,7 +190,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 
 	// Add a wildcard route to accept traffic from any service account (wildcard service account)
 	// A wildcard service account will program an RBAC policy for this rule that allows ANY downstream service account
-	servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{weightedCluster}), wildcardServiceAccount)
+	servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{weightedCluster}), identity.WildcardServiceIdentity)
 	inboundPolicies = append(inboundPolicies, servicePolicy)
 
 	return inboundPolicies

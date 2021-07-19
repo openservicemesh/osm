@@ -31,9 +31,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"},
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"},
+				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(),
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
@@ -72,8 +72,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{}, // setting an empty service account will result in all downstreams being allowed
+				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
+					identity.WildcardServiceIdentity, // setting a wildcard will result in all downstream identities being allowed
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
@@ -91,13 +91,13 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "invalid trafficpolicy rule with Rule.AllowedServiceAccounts not specified",
+			name: "invalid trafficpolicy rule with Rule.AllowedServiceIdentities not specified",
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceAccounts: nil,
+				AllowedServiceIdentities: nil,
 			},
 			expectedRBACPolicy: nil,
 			expectError:        true,

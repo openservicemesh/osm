@@ -62,19 +62,19 @@ func (rwc *RouteWeightedClusters) TotalClustersWeight() int {
 // AddRule adds a Rule to an InboundTrafficPolicy based on the given HTTP route match, weighted cluster, and allowed service account
 //	parameters. If a Rule for the given HTTP route match exists, it will add the given service account to the Rule. If the the given route
 //	match is not already associated with a Rule, it will create a Rule for the given route and service account.
-func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServiceAccount identity.K8sServiceAccount) {
+func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServiceIdentities identity.ServiceIdentity) {
 	routeExists := false
 	for _, rule := range in.Rules {
 		if reflect.DeepEqual(rule.Route, route) {
 			routeExists = true
-			rule.AllowedServiceAccounts.Add(allowedServiceAccount)
+			rule.AllowedServiceIdentities.Add(allowedServiceIdentities)
 			break
 		}
 	}
 	if !routeExists {
 		in.Rules = append(in.Rules, &Rule{
-			Route:                  route,
-			AllowedServiceAccounts: mapset.NewSet(allowedServiceAccount),
+			Route:                    route,
+			AllowedServiceIdentities: mapset.NewSet(allowedServiceIdentities),
 		})
 	}
 }
@@ -177,7 +177,7 @@ func mergeRules(originalRules, latestRules []*Rule) []*Rule {
 		for _, original := range originalRules {
 			if reflect.DeepEqual(latest.Route, original.Route) {
 				foundRoute = true
-				original.AllowedServiceAccounts = original.AllowedServiceAccounts.Union(latest.AllowedServiceAccounts)
+				original.AllowedServiceIdentities = original.AllowedServiceIdentities.Union(latest.AllowedServiceIdentities)
 				break
 			}
 		}

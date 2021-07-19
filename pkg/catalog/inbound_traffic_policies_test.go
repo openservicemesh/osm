@@ -111,10 +111,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -124,10 +124,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -226,10 +226,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -239,10 +239,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -269,10 +269,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -282,10 +282,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -385,10 +385,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -415,10 +415,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -434,10 +434,10 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -474,7 +474,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 								HTTPRouteMatch:   tests.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
 							},
-							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 						},
 					},
 				},
@@ -710,10 +710,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -723,10 +723,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -829,10 +829,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -842,10 +842,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -949,10 +949,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -968,10 +968,10 @@ func TestListInboundPoliciesForTrafficSplits(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1106,10 +1106,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "bookbuyer-ns",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -1119,10 +1119,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "bookbuyer-ns",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1198,10 +1198,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -1211,10 +1211,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1270,10 +1270,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1289,10 +1289,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1379,7 +1379,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(wildcardServiceAccount),
+							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 						},
 					},
 				},
@@ -1517,10 +1517,10 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -1530,10 +1530,10 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1610,10 +1610,10 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
@@ -1637,10 +1637,10 @@ func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceAccounts: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      "bookbuyer",
 								Namespace: "default",
-							}),
+							}.ToServiceIdentity()),
 						},
 					},
 				},
