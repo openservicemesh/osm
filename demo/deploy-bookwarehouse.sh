@@ -5,6 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+KUBE_CONTEXT=$(kubectl config current-context)
 
 kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  --ignore-not-found
 
@@ -70,7 +71,7 @@ spec:
           command: ["/bookwarehouse"]
           env:
             - name: IDENTITY
-              value: bookwarehouse
+              value: bookwarehouse.${KUBE_CONTEXT}
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
