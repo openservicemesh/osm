@@ -6,11 +6,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	configV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
-
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -67,44 +65,4 @@ func (c client) run(stop <-chan struct{}) error {
 
 	log.Info().Msgf("Cache sync finished for %s RemoteService informers", apiGroup)
 	return nil
-}
-
-func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
-	var services []v1alpha1.MultiClusterService
-
-	for _, obj := range c.informer.Informer().GetStore().List() {
-		mcs := obj.(v1alpha1.MultiClusterService)
-		if c.kubeController.IsMonitoredNamespace(mcs.Namespace) {
-			services = append(services, mcs)
-		}
-	}
-	return services
-}
-
-func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []v1alpha1.MultiClusterService {
-	if !c.kubeController.IsMonitoredNamespace(namespace) {
-		return nil
-	}
-
-	var services []v1alpha1.MultiClusterService
-
-	for _, mcs := range c.ListMultiClusterServices() {
-		if mcs.Spec.ServiceAccount == serviceAccount && mcs.Namespace == namespace {
-			services = append(services, mcs)
-		}
-	}
-
-	return services
-}
-
-func (c client) GetMultiClusterService(name, namespace string) *v1alpha1.MultiClusterService {
-	if !c.kubeController.IsMonitoredNamespace(namespace) {
-		return nil
-	}
-	mcs, ok, err := c.informer.Informer().GetStore().GetByKey(namespace + "/" + name)
-	if err != nil || !ok {
-		log.Error().Err(err).Msgf("Error getting MultiClusterService %s in namespace %s from informer ", name, namespace)
-		return nil
-	}
-	return mcs.(*v1alpha1.MultiClusterService)
 }
