@@ -763,6 +763,8 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	providerID := "provider"
 	provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
 
