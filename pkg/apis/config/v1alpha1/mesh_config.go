@@ -146,6 +146,9 @@ type ExternalAuthzSpec struct {
 type CertificateSpec struct {
 	// ServiceCertValidityDuration defines the service certificate validity duration.
 	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty"`
+
+	// CertKeyBitSize defines the certicate key bit size.
+	CertKeyBitSize int `json:"certKeyBitSize,omitempty"`
 }
 
 // MulticlusterSpec represents multicluster configurations.
