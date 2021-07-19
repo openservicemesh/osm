@@ -57,6 +57,10 @@ docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 # Build OSM binaries
 make build-osm
 
+# Push to registry - needs to happen after registry creation
+make docker-push
+
+
 echo "Kubernetes contexts to be deployed to: $MULTICLUSTER_CONTEXTS"
 
 for CONTEXT in $MULTICLUSTER_CONTEXTS; do
@@ -84,9 +88,6 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
         optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
     fi
-
-    # Push to registry - needs to happen after registry creation
-    make docker-push
 
     # Registry credentials
     ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
