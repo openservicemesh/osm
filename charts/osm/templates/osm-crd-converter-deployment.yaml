@@ -41,6 +41,8 @@ spec:
               containerPort: 443
             - name: "metrics"
               containerPort: 9091
+            - name: "health"
+              containerPort: 9095
           command: ['/osm-crd-converter']
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
@@ -67,16 +69,16 @@ spec:
             initialDelaySeconds: 5
             timeoutSeconds: 5
             httpGet:
-              scheme: HTTPS
+              scheme: HTTP
               path: /healthz
-              port: 443
+              port: 9095
           livenessProbe:
             initialDelaySeconds: 5
             timeoutSeconds: 5
             httpGet:
-              scheme: HTTPS
+              scheme: HTTP
               path: /healthz
-              port: 443
+              port: 9095
           env:
             # The CRD_CONVERTER_POD_NAME env variable sets pod name dynamically, used by osm-crd-converter to register events
             - name: CRD_CONVERTER_POD_NAME

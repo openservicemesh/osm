@@ -23,6 +23,9 @@ const (
 
 	// crdConverterServiceName is the name of the OSM crd converter webhook service
 	crdConverterServiceName = "osm-crd-converter"
+
+	// healthPort is the port on which the '/healthz` requests are served
+	healthPort = 9095
 )
 
 var crdConversionWebhookConfiguration = map[string]string{
@@ -75,15 +78,13 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mux := http.NewServeMux()
-
-	mux.HandleFunc(webhookHealthPath, healthHandler)
+	webhookMux := http.NewServeMux()
 
 	// TODO (snchh): add handler and logic for conversion stratergy of each CRD in OSM
 
-	server := &http.Server{
+	webhookServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),
-		Handler: mux,
+		Handler: webhookMux,
 	}
 
 	log.Info().Msgf("Starting conversion webhook server on port: %v", crdWh.config.ListenPort)
@@ -96,12 +97,28 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 		}
 
 		// #nosec G402
-		server.TLSConfig = &tls.Config{
+		webhookServer.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
 
-		if err := server.ListenAndServeTLS("", ""); err != nil {
+		if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
 			log.Error().Err(err).Msg("crd-converter webhook HTTP server failed to start")
+			return
+		}
+	}()
+
+	healthMux := http.NewServeMux()
+
+	healthMux.HandleFunc(webhookHealthPath, healthHandler)
+
+	healthServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", healthPort),
+		Handler: healthMux,
+	}
+
+	go func() {
+		if err := healthServer.ListenAndServe(); err != nil {
+			log.Error().Err(err).Msg("crd-converter health server failed to start")
 			return
 		}
 	}()
@@ -109,11 +126,17 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	// Wait on exit signals
 	<-stop
 
-	// Stop the server
-	if err := server.Shutdown(ctx); err != nil {
+	// Stop the servers
+	if err := webhookServer.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Error shutting down crd-conversion webhook HTTP server")
 	} else {
 		log.Info().Msg("Done shutting down crd-conversion webhook HTTP server")
+	}
+
+	if err := healthServer.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Error shutting down crd-conversion health server")
+	} else {
+		log.Info().Msg("Done shutting down crd-conversion health server")
 	}
 }
 

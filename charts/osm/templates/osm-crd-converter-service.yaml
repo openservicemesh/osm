@@ -12,6 +12,8 @@ spec:
     - name: tls
       port: 443
       targetPort: tls
+    - name: health
+      port: 9095
   selector:
     app: osm-crd-converter
 {{- end }}
