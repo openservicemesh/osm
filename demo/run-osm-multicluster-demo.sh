@@ -65,7 +65,8 @@ echo "Kubernetes contexts to be deployed to: $MULTICLUSTER_CONTEXTS"
 
 for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # shellcheck disable=SC2034
-    BOOKSTORE_CLUSTER_ID="$CONTEXT" # this is used when deploying bookstore app
+    #### BOOKSTORE_CLUSTER_ID="$CONTEXT" # this is used when deploying bookstore app
+    unset BOOKSTORE_CLUSTER_ID
 
     kubectl config use-context "$CONTEXT"
 
