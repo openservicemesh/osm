@@ -22,8 +22,7 @@ func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 		return nil
 	}
 
-	// TODO(draychev): What should the Service Identity here be?
-	filterChain, err := getGatewayFilterChain("osm-gateway.osm-system")
+	filterChain, err := getGatewayFilterChain(lb.serviceIdentity)
 	if err != nil {
 		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
 	}
