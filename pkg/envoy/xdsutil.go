@@ -399,10 +399,9 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 
 // GetServiceIdentityFromProxyCertificate returns the ServiceIdentity information encoded in the XDS certificate CN
 func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity.ServiceIdentity, error) {
-	var identity identity.ServiceIdentity
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
-		return identity, err
+		return "", err
 	}
 
 	return cnMeta.ServiceIdentity, nil
