@@ -3,13 +3,12 @@ package kube
 import (
 	"fmt"
 	"net"
+	"testing"
 
 	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
@@ -20,12 +19,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var _ = Describe("Test Multicluster functions of the Kubernetes endpoint", func() {
-	defer GinkgoRecover()
+func TestHelperFunctions(t *testing.T) {
+	assert := tassert.New(t)
 
 	var client *Client
 
-	mockCtrl := gomock.NewController(GinkgoT())
+	mockCtrl := gomock.NewController(t)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
@@ -66,35 +65,27 @@ var _ = Describe("Test Multicluster functions of the Kubernetes endpoint", func(
 	}}
 	mockConfigController.EXPECT().GetMultiClusterServiceByServiceAccount(tests.BookbuyerServiceName, tests.Namespace).Return(toReturnServices).AnyTimes()
 
-	BeforeEach(func() {
-		client = NewClient(mockKubeController, mockConfigController, "kubernetes-endpoint-provider", mockConfigurator)
-	})
+	client = NewClient(mockKubeController, mockConfigController, "kubernetes-endpoint-provider", mockConfigurator)
 
-	Context("Test getMulticlusterEndpoints()", func() {
-		It("returns Multicluster endpoints for a service", func() {
-			actual := client.getMulticlusterEndpoints(tests.BookbuyerService)
-			Expect(actual).To(Equal(expectedEndpoint))
-		})
-	})
+	// Test getMulticlusterEndpoints()
+	// returns Multicluster endpoints for a service
+	actual := client.getMulticlusterEndpoints(tests.BookbuyerService)
+	assert.Equal(actual, expectedEndpoint)
 
-	Context("Test getMultiClusterServiceEndpointsForServiceAccount()", func() {
-		It("returns Multicluster endpoints for a service account", func() {
-			actual := client.getMultiClusterServiceEndpointsForServiceAccount(tests.BookbuyerServiceAccountName, tests.Namespace)
-			Expect(actual).To(Equal(expectedEndpoint))
-		})
-	})
+	// Test getMultiClusterServiceEndpointsForServiceAccount()
+	// returns Multicluster endpoints for a service account
+	actual = client.getMultiClusterServiceEndpointsForServiceAccount(tests.BookbuyerServiceAccountName, tests.Namespace)
+	assert.Equal(actual, expectedEndpoint)
 
-	Context("Test getIPPort()", func() {
-		It("returns the port number specified in a ClusterSpec", func() {
-			clusterSpec := v1alpha1.ClusterSpec{
-				Address: "1.2.3.4:5678",
-			}
-			actualIP, actualPort, err := getIPPort(clusterSpec)
-			Expect(err).ToNot(HaveOccurred())
-			expectedIP := net.ParseIP("1.2.3.4")
-			expectedPort := 5678
-			Expect(actualIP).To(Equal(expectedIP))
-			Expect(actualPort).To(Equal(expectedPort))
-		})
-	})
-})
+	// Test getIPPort()
+	// returns the port number specified in a ClusterSpec
+	clusterSpec := v1alpha1.ClusterSpec{
+		Address: "1.2.3.4:5678",
+	}
+	actualIP, actualPort, err := getIPPort(clusterSpec)
+	assert.Equal(err, nil)
+	expectedIP := net.ParseIP("1.2.3.4")
+	expectedPort := 5678
+	assert.Equal(actualIP, expectedIP)
+	assert.Equal(actualPort, expectedPort)
+}
