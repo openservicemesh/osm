@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -478,4 +479,23 @@ func TestPodMetadataString(t *testing.T) {
 			assert.Equal(tc.expected, actual)
 		})
 	}
+}
+
+func TestSubscribedResources(t *testing.T) {
+	assert := tassert.New(t)
+
+	p := Proxy{
+		subscribedResources: make(map[TypeURI]mapset.Set),
+	}
+
+	res := p.GetSubscribedResources("test")
+	assert.Zero(res.Cardinality())
+
+	p.SetSubscribedResources(TypeRDS, mapset.NewSetWith("A", "B", "C"))
+
+	res = p.GetSubscribedResources(TypeRDS)
+	assert.Equal(res.Cardinality(), 3)
+	assert.True(res.Contains("A"))
+	assert.True(res.Contains("B"))
+	assert.True(res.Contains("C"))
 }
