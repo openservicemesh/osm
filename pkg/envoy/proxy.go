@@ -36,6 +36,9 @@ type Proxy struct {
 	// Contains the last resource names sent for a given proxy and TypeURL
 	lastxDSResourcesSent map[TypeURI]mapset.Set
 
+	// Contains the last requested resource names (and therefore, subscribed) for a given TypeURI
+	subscribedResources map[TypeURI]mapset.Set
+
 	// hash is based on CommonName
 	hash uint64
 
@@ -200,6 +203,21 @@ func (p *Proxy) SetLastResourcesSent(typeURI TypeURI, resourcesSet mapset.Set) {
 	p.lastxDSResourcesSent[typeURI] = resourcesSet
 }
 
+// GetSubscribedResources returns a set of resources subscribed for a proxy given a TypeURL
+// If none were subscribed, empty set is returned
+func (p *Proxy) GetSubscribedResources(typeURI TypeURI) mapset.Set {
+	sentResources, ok := p.subscribedResources[typeURI]
+	if !ok {
+		return mapset.NewSet()
+	}
+	return sentResources
+}
+
+// SetSubscribedResources sets the input resources as subscribed resources given a proxy for a TypeURL
+func (p *Proxy) SetSubscribedResources(typeURI TypeURI, resourcesSet mapset.Set) {
+	p.subscribedResources[typeURI] = resourcesSet
+}
+
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
 	// Get CommonName hash for this proxy
@@ -221,6 +239,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastSentVersion:      make(map[TypeURI]uint64),
 		lastAppliedVersion:   make(map[TypeURI]uint64),
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
+		subscribedResources:  make(map[TypeURI]mapset.Set),
 	}
 }
 
