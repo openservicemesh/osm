@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -355,7 +356,10 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 			Nodes: []v1alpha4.Node{
 				{
 					Role: v1alpha4.ControlPlaneRole,
-					KubeadmConfigPatches: []string{`kind: InitConfiguration
+				},
+				{
+					Role: v1alpha4.WorkerRole,
+					KubeadmConfigPatches: []string{`kind: JoinConfiguration
 nodeRegistration:
   kubeletExtraArgs:
     node-labels: "ingress-ready=true"`},
@@ -367,10 +371,15 @@ nodeRegistration:
 						},
 					},
 				},
+				{
+					Role: v1alpha4.WorkerRole,
+				},
 			},
 		}
 		if Td.ClusterVersion != "" {
-			clusterConfig.Nodes[0].Image = fmt.Sprintf("kindest/node:%s", td.ClusterVersion)
+			for i := 0; i < len(clusterConfig.Nodes); i++ {
+				clusterConfig.Nodes[i].Image = fmt.Sprintf("kindest/node:%s", td.ClusterVersion)
+			}
 		}
 		if err := td.ClusterProvider.Create(td.ClusterName, cluster.CreateWithV1Alpha4Config(clusterConfig)); err != nil {
 			return errors.Wrap(err, "failed to create kind cluster")
@@ -547,14 +556,25 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get image data")
 	}
+
+	imageReader, err := ioutil.ReadAll(imageData)
+	if err != nil {
+		return errors.Wrap(err, "failed to read images")
+	}
+
+	reader := bytes.NewReader(imageReader)
 	defer imageData.Close() //nolint: errcheck,gosec
 	nodes, err := td.ClusterProvider.ListNodes(td.ClusterName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list kind nodes")
 	}
+
 	for _, n := range nodes {
 		td.T.Log("Loading images onto node", n)
-		if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
+		if _, err := reader.Seek(0, io.SeekStart); err != nil {
+			return errors.Wrap(err, "failed to reset images")
+		}
+		if err = nodeutils.LoadImageArchive(n, reader); err != nil {
 			return errors.Wrap(err, "failed to load images")
 		}
 	}
