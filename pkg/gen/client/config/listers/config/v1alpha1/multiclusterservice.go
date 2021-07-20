@@ -27,7 +27,7 @@ import (
 type MultiClusterServiceLister interface {
 	// List lists all MultiClusterServices in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []v1alpha1.MultiClusterService, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterService, err error)
 	// MultiClusterServices returns an object that can list and get MultiClusterServices.
 	MultiClusterServices(namespace string) MultiClusterServiceNamespaceLister
 	MultiClusterServiceListerExpansion
@@ -44,9 +44,9 @@ func NewMultiClusterServiceLister(indexer cache.Indexer) MultiClusterServiceList
 }
 
 // List lists all MultiClusterServices in the indexer.
-func (s *multiClusterServiceLister) List(selector labels.Selector) (ret []v1alpha1.MultiClusterService, err error) {
+func (s *multiClusterServiceLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterService, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(v1alpha1.MultiClusterService))
+		ret = append(ret, m.(*v1alpha1.MultiClusterService))
 	})
 	return ret, err
 }
@@ -61,7 +61,7 @@ func (s *multiClusterServiceLister) MultiClusterServices(namespace string) Multi
 type MultiClusterServiceNamespaceLister interface {
 	// List lists all MultiClusterServices in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []v1alpha1.MultiClusterService, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterService, err error)
 	// Get retrieves the MultiClusterService from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.MultiClusterService, error)
@@ -76,9 +76,9 @@ type multiClusterServiceNamespaceLister struct {
 }
 
 // List lists all MultiClusterServices in the indexer for a given namespace.
-func (s multiClusterServiceNamespaceLister) List(selector labels.Selector) (ret []v1alpha1.MultiClusterService, err error) {
+func (s multiClusterServiceNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterService, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(v1alpha1.MultiClusterService))
+		ret = append(ret, m.(*v1alpha1.MultiClusterService))
 	})
 	return ret, err
 }
