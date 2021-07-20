@@ -53,7 +53,8 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	"enableMulticlusterMode": false,
 	"enableOSMGateway": false,
 	"enableAsyncProxyServiceMapping": false,
-	"enableValidatingWebhook": false
+	"enableValidatingWebhook": false,
+	"enableIngressBackendPolicy": true
 	}
 }`,
 		},
@@ -63,12 +64,13 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.Equal(meshConfig.Name, meshConfigName)
 	assert.Equal(meshConfig.Spec.Sidecar.LogLevel, "error")
 	assert.Equal(meshConfig.Spec.Sidecar.ConfigResyncInterval, "2s")
-	assert.Equal(meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer, false)
-	assert.Equal(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode, true)
-	assert.Equal(meshConfig.Spec.Traffic.EnableEgress, true)
-	assert.Equal(meshConfig.Spec.Traffic.UseHTTPSIngress, false)
-	assert.Equal(meshConfig.Spec.Observability.EnableDebugServer, false)
+	assert.False(meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer)
+	assert.True(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode)
+	assert.True(meshConfig.Spec.Traffic.EnableEgress)
+	assert.False(meshConfig.Spec.Traffic.UseHTTPSIngress)
+	assert.False(meshConfig.Spec.Observability.EnableDebugServer)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "24h")
+	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
 }
 
 func TestValidateCLIParams(t *testing.T) {
