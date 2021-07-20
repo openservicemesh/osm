@@ -15,7 +15,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestNewMultiClusterGatewayListener(t *testing.T) {
+func TestGetGatewayFilterChain(t *testing.T) {
+	assert := tassert.New(t)
+	filterChain, err := getGatewayFilterChain("one.two")
+	assert.Nil(err)
+	assert.Equal(len(filterChain.Filters), 2)
+}
+
+func TestBuildGatewayListeners(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
