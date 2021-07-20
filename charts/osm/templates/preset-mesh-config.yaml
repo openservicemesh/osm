@@ -42,6 +42,7 @@ data:
         "enableMulticlusterMode": {{.Values.OpenServiceMesh.featureFlags.enableMulticlusterMode}},
         "enableOSMGateway": {{.Values.OpenServiceMesh.featureFlags.enableOSMGateway}},
         "enableAsyncProxyServiceMapping": {{.Values.OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping}},
-        "enableValidatingWebhook": {{.Values.OpenServiceMesh.featureFlags.enableValidatingWebhook}}
+        "enableValidatingWebhook": {{.Values.OpenServiceMesh.featureFlags.enableValidatingWebhook}},
+        "enableIngressBackendPolicy": {{.Values.OpenServiceMesh.featureFlags.enableIngressBackendPolicy}}
       }
     }

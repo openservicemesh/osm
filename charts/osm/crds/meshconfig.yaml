@@ -227,4 +227,7 @@ spec:
                     enableValidatingWebhook:
                       type: boolean
                       default: false
+                    enableIngressBackendPolicy:
+                      type: boolean
+                      default: false
 

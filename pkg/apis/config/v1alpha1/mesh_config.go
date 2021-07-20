@@ -191,4 +191,8 @@ type FeatureFlags struct {
 
 	// EnableValidatingWebhook defines if the OSM controller will create a validating webhook handler.
 	EnableValidatingWebhook bool `json:"enableValidatingWebhook,omitempty"`
+
+	// EnableIngressBackendPolicy defines if OSM will use the IngressBackend API to allow ingress traffic to
+	// service mesh backends.
+	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy,omitempty"`
 }

@@ -720,7 +720,8 @@
                         "enableOSMGateway",
                         "enableAsyncProxyServiceMapping",
                         "enableValidatingWebhook",
-                        "enableCRDConverter"
+                        "enableCRDConverter",
+                        "enableIngressBackendPolicy"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -782,6 +783,15 @@
                             "type": "boolean",
                             "title": "Enable CRD Conversion Webhook",
                             "description": "Enable CRD Conversion Webhook in OSM",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableIngressBackendPolicy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableIngressBackendPolicy",
+                            "type": "boolean",
+                            "title": "Enable OSM to use the IngressBackend API",
+                            "description": "Enable OSM to use the IngressBackend API for allowing ingress to mesh backends",
                             "examples": [
                                 true
                             ]
