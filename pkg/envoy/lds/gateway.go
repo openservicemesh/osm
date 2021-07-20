@@ -1,90 +1,86 @@
 package lds
 
 import (
-	"fmt"
-
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
+)
+
+const (
+	inboundMulticlusterGatewayFilterChainName = "inbound-multicluster-gateway-filter-chain"
 )
 
 func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 	if !lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
 		return nil
 	}
+
+	filterChain, err := getGatewayFilterChain(lb.serviceIdentity)
+	if err != nil {
+		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
+	}
+
 	return []types.Resource{
 		&xds_listener.Listener{
 			Name:         multiclusterListenerName,
 			Address:      envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
-			FilterChains: lb.getMultiClusterGatewayFilterChainPerUpstream(),
-			ListenerFilters: []*xds_listener.ListenerFilter{
-				{
-					// The ProxyProtocol ListenerFilter is used to redirect traffic
-					// to its intended destination.
-					Name: wellknown.ProxyProtocol,
-				},
-			},
+			FilterChains: []*xds_listener.FilterChain{filterChain},
 		},
 	}
 }
 
-func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds_listener.FilterChain {
-	var filterChains []*xds_listener.FilterChain
-
-	dstServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
-	if len(dstServices) == 0 {
-		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
-		return filterChains
+func getGatewayFilterChain(svcIdent identity.ServiceIdentity) (*xds_listener.FilterChain, error) {
+	tcpProxy := &xds_tcp_proxy.TcpProxy{
+		StatPrefix:       envoy.MulticlusterGatewayCluster,
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.MulticlusterGatewayCluster},
+		AccessLog:        envoy.GetAccessLog(),
+	}
+	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	if err != nil {
+		log.Error().Err(err).Msg("[Multicluster] Error marshalling tcpProxy object for gateway filter chain")
+		return nil, err
 	}
 
-	// Iterate all destination services
-	for _, upstream := range dstServices {
-		if !upstream.Local() {
-			continue
-		}
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svcIdent, true /* mTLS */))
+	if err != nil {
+		log.Error().Err(err).Msgf("[Multicluster] Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
+		return nil, err
+	}
 
-		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstream, lb.serviceIdentity)
-		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstream)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
-				Msgf("Error retrieving port to protocol mapping for upstream service %s", upstream)
-			continue
-		}
-
-		// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
-		for port := range protocolToPortMap {
-			// The gateway uses SSL passthrough, so simply uses a TCP filter.
-			filter, err := lb.getOutboundTCPFilter(upstream)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error getting tcp filter for upstream service %s", upstream)
-				continue
-			}
-
-			filterChains = append(filterChains, &xds_listener.FilterChain{
-				Name:    fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream),
-				Filters: []*xds_listener.Filter{filter},
-				FilterChainMatch: &xds_listener.FilterChainMatch{
-					DestinationPort: &wrapperspb.UInt32Value{
-						Value: port,
-					},
-					ServerNames: []string{
-						service.MeshService{
-							Name:          upstream.Name,
-							Namespace:     upstream.Namespace,
-							ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
-					},
-					ApplicationProtocols: envoy.ALPNInMesh,
-					TransportProtocol:    envoy.TransportProtocolTLS,
+	filterChain := &xds_listener.FilterChain{
+		Name: inboundMulticlusterGatewayFilterChainName,
+		FilterChainMatch: &xds_listener.FilterChainMatch{
+			ServerNames: []string{
+				"*.local",
+			},
+			TransportProtocol:    envoy.TransportProtocolTLS,
+			ApplicationProtocols: envoy.ALPNInMesh, // in-mesh proxies will advertise this, set in UpstreamTlsContext
+		},
+		Filters: []*xds_listener.Filter{
+			{
+				// This is of utmost importance to the Multicluster Gateway!
+				Name: "envoy.filters.network.sni_cluster",
+			},
+			{
+				Name: wellknown.TCPProxy,
+				ConfigType: &xds_listener.Filter_TypedConfig{
+					TypedConfig: marshalledTCPProxy,
 				},
-			})
-		}
+			},
+		},
+		TransportSocket: &xds_core.TransportSocket{
+			Name: wellknown.TransportSocketTls,
+			ConfigType: &xds_core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledDownstreamTLSContext,
+			},
+		},
 	}
-
-	return filterChains
+	return filterChain, nil
 }
