@@ -18,7 +18,7 @@ kubectl patch MulticlusterService \
         --namespace bookstore \
         bookstore \
         --type merge \
-        --patch '{"spec":{"clusters":[{"name":"beta","address":"'${BETA_OSM_GATEWAY_IP}':9876"}]}}'
+        --patch '{"spec":{"clusters":[{"name":"beta","address":"'"${BETA_OSM_GATEWAY_IP}"':9876"}]}}'
 
 kubectl get MulticlusterService \
         --namespace bookstore bookstore \
@@ -32,7 +32,7 @@ kubectl patch MulticlusterService \
         --namespace bookstore \
         bookstore \
         --type merge \
-        --patch '{"spec":{"clusters":[{"name":"alpha","address":"'${ALPHA_OSM_GATEWAY_IP}':9876"}]}}'
+        --patch '{"spec":{"clusters":[{"name":"alpha","address":"'"${ALPHA_OSM_GATEWAY_IP}"':9876"}]}}'
 
 kubectl get MulticlusterService \
         --namespace bookstore bookstore \
