@@ -70,6 +70,9 @@ var _ = OSMDescribe("HTTP ingress",
 						"hostPort": map[string]interface{}{
 							"enabled": true,
 						},
+						"nodeSelector": map[string]interface{}{
+							"ingress-ready": "true",
+						},
 						"service": map[string]interface{}{
 							"type": "NodePort",
 						},
