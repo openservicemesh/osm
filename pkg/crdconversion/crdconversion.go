@@ -26,16 +26,27 @@ const (
 
 	// healthPort is the port on which the '/healthz` requests are served
 	healthPort = 9095
+
+	// paths to convert CRD's
+	trafficAccessConverterPath         = "/convert/trafficaccess"
+	httpRouteGroupConverterPath        = "/convert/httproutegroup"
+	meshConfigConverterPath            = "/convert/meshconfig"
+	multiclusterServiceConverterPath   = "/convert/multiclusterservice"
+	egressPolicyConverterPath          = "/convert/egresspolicy"
+	trafficSplitConverterPath          = "/convert/trafficsplit"
+	tcpRoutesConverterPath             = "/convert/tcproutes"
+	ingressBackendsPolicyConverterPath = "/convert/ingressbackendspolicy"
 )
 
 var crdConversionWebhookConfiguration = map[string]string{
-	"traffictargets.access.smi-spec.io":              "/trafficaccessconversion",
-	"httproutegroups.specs.smi-spec.io":              "/httproutegroupconversion",
-	"meshconfigs.config.openservicemesh.io":          "/meshconfigconversion",
-	"multiclusterservices.config.openservicemesh.io": "/multiclusterserviceconversion",
-	"egresses.policy.openservicemesh.io":             "/egresspolicyconversion",
-	"trafficsplits.split.smi-spec.io":                "/trafficsplitconversion",
-	"tcproutes.specs.smi-spec.io":                    "/tcproutesconversion",
+	"traffictargets.access.smi-spec.io":              trafficAccessConverterPath,
+	"httproutegroups.specs.smi-spec.io":              httpRouteGroupConverterPath,
+	"meshconfigs.config.openservicemesh.io":          meshConfigConverterPath,
+	"multiclusterservices.config.openservicemesh.io": multiclusterServiceConverterPath,
+	"egresses.policy.openservicemesh.io":             egressPolicyConverterPath,
+	"trafficsplits.split.smi-spec.io":                trafficSplitConverterPath,
+	"tcproutes.specs.smi-spec.io":                    tcpRoutesConverterPath,
+	"ingressbackends.policy.openservicemesh.io":      ingressBackendsPolicyConverterPath,
 }
 
 var conversionReviewVersions = []string{"v1beta1", "v1"}
@@ -79,8 +90,14 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	defer cancel()
 
 	webhookMux := http.NewServeMux()
-
-	// TODO (snchh): add handler and logic for conversion stratergy of each CRD in OSM
+	webhookMux.HandleFunc(meshConfigConverterPath, serveMeshConfigConversion)
+	webhookMux.HandleFunc(trafficAccessConverterPath, serveTrafficAccessConversion)
+	webhookMux.HandleFunc(httpRouteGroupConverterPath, serveHTTPRouteGroupConversion)
+	webhookMux.HandleFunc(multiclusterServiceConverterPath, serveMultiClusterServiceConversion)
+	webhookMux.HandleFunc(egressPolicyConverterPath, serveEgressPolicyConversion)
+	webhookMux.HandleFunc(trafficSplitConverterPath, serveTrafficSplitConversion)
+	webhookMux.HandleFunc(tcpRoutesConverterPath, serveTCPRouteConversion)
+	webhookMux.HandleFunc(ingressBackendsPolicyConverterPath, serveIngressBackendsPolicyConversion)
 
 	webhookServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),
@@ -108,7 +125,6 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}()
 
 	healthMux := http.NewServeMux()
-
 	healthMux.HandleFunc(webhookHealthPath, healthHandler)
 
 	healthServer := &http.Server{
