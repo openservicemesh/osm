@@ -9,7 +9,6 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -410,13 +409,4 @@ func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity
 	}
 
 	return cnMeta.ServiceIdentity, nil
-}
-
-// MessageToAny converts from proto message to proto Any and returns an error if any
-func MessageToAny(pb proto.Message) (*any.Any, error) {
-	msg, err := ptypes.MarshalAny(pb)
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
 }

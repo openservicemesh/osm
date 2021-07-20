@@ -51,7 +51,7 @@ func getGatewayFilterChain(svcIdent identity.ServiceIdentity) (*xds_listener.Fil
 		return nil, err
 	}
 
-	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(svcIdent, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svcIdent, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
 		return nil, err
