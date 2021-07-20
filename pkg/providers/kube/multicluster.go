@@ -59,7 +59,7 @@ func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 				log.Err(err).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)
 			} else {
 				endpointsForService = append(endpointsForService, endpoint.Endpoint{
-					IP:   net.ParseIP(ip),
+					IP:   ip,
 					Port: endpoint.Port(port),
 				})
 			}

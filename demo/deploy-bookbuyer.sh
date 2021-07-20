@@ -61,22 +61,16 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
-
             - name: "BOOKSTORE_CLUSTER_ID"
               value: "$BOOKSTORE_CLUSTER_ID"
-
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
-
             - name: "ENABLE_EGRESS"
               value: "$ENABLE_EGRESS"
-
             - name: "CI_CLIENT_CONCURRENT_CONNECTIONS"
               value: "$CI_CLIENT_CONCURRENT_CONNECTIONS"
-
             - name: "CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
               value: "$CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
 
