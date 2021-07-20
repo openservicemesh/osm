@@ -22,12 +22,10 @@ func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 		return nil
 	}
 
-	// TODO(draychev): what should this be?
-	svcIdent := identity.ServiceIdentity("osm-gateway.osm-system")
-
-	filterChain, err := getGatewayFilterChain(svcIdent)
+	// TODO(draychev): What should the Service Identity here be?
+	filterChain, err := getGatewayFilterChain("osm-gateway.osm-system")
 	if err != nil {
-		log.Err(err).Msg("Error creating Multicluster gateway filter chain")
+		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
 	}
 
 	return []types.Resource{
@@ -47,13 +45,13 @@ func getGatewayFilterChain(svcIdent identity.ServiceIdentity) (*xds_listener.Fil
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling tcpProxy object for gateway filter chain")
+		log.Error().Err(err).Msg("[Multicluster] Error marshalling tcpProxy object for gateway filter chain")
 		return nil, err
 	}
 
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svcIdent, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
+		log.Error().Err(err).Msgf("[Multicluster] Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
 		return nil, err
 	}
 
