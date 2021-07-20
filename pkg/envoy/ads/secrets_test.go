@@ -58,7 +58,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 					// 3. Inbound validation certs to validate downstreams
 					"root-cert-for-mtls-inbound:ns-1/test-sa",
-					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -81,7 +80,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 					// 3. Inbound validation certs to validate downstreams
 					"root-cert-for-mtls-inbound:ns-1/test-sa",
-					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -97,7 +95,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 					// 4. Inbound validation certs to validate downstreams
 					"root-cert-for-mtls-inbound:ns-1/test-sa",
-					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},
@@ -120,7 +117,6 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 
 					// 4. Inbound validation certs to validate downstreams
 					"root-cert-for-mtls-inbound:ns-1/test-sa",
-					"root-cert-https:ns-1/test-sa",
 				},
 			},
 		},

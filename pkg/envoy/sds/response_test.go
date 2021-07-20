@@ -46,7 +46,6 @@ func TestNewResponse(t *testing.T) {
 		ResourceNames: []string{
 			secrets.SDSCert{Name: serviceAccount, CertType: secrets.ServiceCertType}.String(),
 			secrets.SDSCert{Name: serviceAccount, CertType: secrets.RootCertTypeForMTLSInbound}.String(),
-			secrets.SDSCert{Name: serviceAccount, CertType: secrets.RootCertTypeForHTTPS}.String(),
 		},
 	}
 
@@ -73,7 +72,7 @@ func TestNewResponse(t *testing.T) {
 	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager, nil)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 	assert.NotNil(resources)
-	assert.Equal(len(resources), 2)
+	assert.Equal(len(resources), 1)
 	_, ok := resources[0].(*xds_auth.Secret)
 	assert.True(ok)
 }
@@ -301,7 +300,6 @@ func TestGetSDSSecrets(t *testing.T) {
 		// - "service-cert:namespace/service"
 		// - "root-cert-for-mtls-outbound:namespace/service"
 		// - "root-cert-for-mtls-inbound:namespace/service"
-		// - "root-cert-for-https:namespace/service"
 		requestedCerts []string
 
 		// expectations
@@ -363,26 +361,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		},
 		// Test case 2 end -------------------------------
 
-		// Test case 3: root-cert-for-https requested -------------------------------
-		{
-			name:            "test root-cert-https cert type request",
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-
-			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
-			},
-
-			sdsCertType:    secrets.RootCertTypeForHTTPS,
-			requestedCerts: []string{"root-cert-https:ns-1/service-1"}, // root-cert requested
-
-			// expectations
-			expectedSANs:        []string{},
-			expectedSecretCount: 1,
-		},
-		// Test case 3 end -------------------------------
-
-		// Test case 4: service-cert requested -------------------------------
+		// Test case 3: service-cert requested -------------------------------
 		{
 			name:            "test service-cert cert type request",
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -399,9 +378,9 @@ func TestGetSDSSecrets(t *testing.T) {
 			expectedSANs:        []string{},
 			expectedSecretCount: 1,
 		},
-		// Test case 4 end -------------------------------
+		// Test case 3 end -------------------------------
 
-		// Test case 5: invalid cert type requested -------------------------------
+		// Test case 4: invalid cert type requested -------------------------------
 		{
 			name:            "test invalid cert type request",
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -415,7 +394,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			expectedSANs:        []string{},
 			expectedSecretCount: 0, // error is logged and no SDS secret is created
 		},
-		// Test case 5 end -------------------------------
+		// Test case 4 end -------------------------------
 	}
 
 	for i, tc := range testCases {
@@ -463,7 +442,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			// verify different cert types
 			switch tc.sdsCertType {
 			// Verify SAN for inbound and outbound MTLS certs
-			case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound, secrets.RootCertTypeForHTTPS:
+			case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound:
 				// Check SANs
 				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)

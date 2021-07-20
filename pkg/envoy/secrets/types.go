@@ -35,17 +35,14 @@ func (ct SDSCertType) String() string {
 
 // SDSCertType enums
 const (
-	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
+	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:ns/name"
 	ServiceCertType SDSCertType = "service-cert"
 
-	// RootCertTypeForMTLSOutbound is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-outbound:webservice"
+	// RootCertTypeForMTLSOutbound is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-outbound:ns/name"
 	RootCertTypeForMTLSOutbound SDSCertType = "root-cert-for-mtls-outbound"
 
-	// RootCertTypeForMTLSInbound is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-inbound:webservice"
+	// RootCertTypeForMTLSInbound is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-inbound:ns/name"
 	RootCertTypeForMTLSInbound SDSCertType = "root-cert-for-mtls-inbound"
-
-	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
-	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
 )
 
 // Defines valid cert types
@@ -53,5 +50,4 @@ var validCertTypes = map[SDSCertType]struct{}{
 	ServiceCertType:             {},
 	RootCertTypeForMTLSOutbound: {},
 	RootCertTypeForMTLSInbound:  {},
-	RootCertTypeForHTTPS:        {},
 }

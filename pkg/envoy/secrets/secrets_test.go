@@ -47,13 +47,6 @@ var _ = Describe("Test secert tools", func() {
 
 		})
 
-		It("returns root cert for non-mTLS", func() {
-			actual, err := UnmarshalSDSCert("root-cert-https:namespace-test/blahBlahBlahCert")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(actual.CertType).To(Equal(RootCertTypeForHTTPS))
-			Expect(actual.Name).To(Equal("namespace-test/blahBlahBlahCert"))
-		})
-
 		It("returns an error (invalid formatting)", func() {
 			_, err := UnmarshalSDSCert("blahBlahBlahCert")
 			Expect(err).To(HaveOccurred())
