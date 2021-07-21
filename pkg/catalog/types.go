@@ -43,6 +43,9 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
+	// ListAllMeshServices lists all the services in the mesh.
+	ListAllMeshServices() []service.MeshService
+
 	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service identity and inbound services
 	ListInboundTrafficPolicies(identity.ServiceIdentity, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
 
