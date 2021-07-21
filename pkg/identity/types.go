@@ -4,12 +4,16 @@ package identity
 import (
 	"fmt"
 	"strings"
+
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
 	// namespaceNameSeparator used for marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
 )
+
+var log = logger.New("identity")
 
 // ServiceIdentity is the type used to represent the identity for a service
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
@@ -33,6 +37,9 @@ func (si ServiceIdentity) ToK8sServiceAccount() K8sServiceAccount {
 	// By convention as of release-v0.8 ServiceIdentity is in the format: <ServiceAccount>.<Namespace>.cluster.local
 	// We can split by "." and will have service account in the first position and namespace in the second.
 	chunks := strings.Split(si.String(), ".")
+	if len(chunks) < 2 {
+		log.Error().Msgf("This is not a properly formatted ServiceIdentity: %s", si)
+	}
 	name := chunks[0]
 	namespace := chunks[1]
 	return K8sServiceAccount{

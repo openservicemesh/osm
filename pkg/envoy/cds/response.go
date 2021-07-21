@@ -1,10 +1,16 @@
 package cds
 
 import (
+	"strings"
+
 	mapset "github.com/deckarep/golang-set"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -12,11 +18,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	var clusters []*xds_cluster.Cluster
+	if proxy.Kind() == envoy.KindGateway {
+		return getClustersForMulticlusterGateway(meshCatalog)
+	}
 
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
@@ -25,22 +35,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	if proxy.Kind() == envoy.KindGateway {
-		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
-			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).
-					Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-						dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
-				return nil, err
-			}
-
-			clusters = append(clusters, cluster)
-		}
-		return removeDups(clusters), nil
-	}
-
+	var clusters []*xds_cluster.Cluster
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 		opts := []clusterOption{withTLS}
@@ -127,4 +122,65 @@ func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
 	}
 
 	return cdsResources
+}
+
+func getGatewayRemoteCluster(remoteService service.MeshService) (*xds_cluster.Cluster, error) {
+	clusterName := remoteService.NameWithoutCluster()
+	downstreamIdentity := identity.ServiceIdentity(strings.Replace(clusterName, "/", ".", -1))
+	// TODO
+	upstreamSvc := service.MeshService{
+		Namespace:     "osm-system",
+		Name:          "osm-multicluster-gateway",
+		ClusterDomain: "cluster.local",
+	}
+	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
+	if err != nil {
+		log.Err(err).Msg("Error creating TLS Context for OSM Gateway")
+		return nil, err
+	}
+
+	return &xds_cluster.Cluster{
+		Name:           clusterName,
+		AltStatName:    clusterName,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_LOGICAL_DNS,
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		TransportSocket: &xds_core.TransportSocket{
+			Name: wellknown.TransportSocketTls,
+			ConfigType: &xds_core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledUpstreamTLSContext,
+			},
+		},
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: clusterName,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress("99.88.77.66", 9876),
+							},
+						},
+					}},
+				},
+			},
+		},
+	}, nil
+}
+
+func getClustersForMulticlusterGateway(meshCatalog catalog.MeshCataloger) ([]types.Resource, error) {
+
+	var clusters []*xds_cluster.Cluster
+	for _, svc := range meshCatalog.ListAllMeshServices() {
+		remoteCluster, err := getGatewayRemoteCluster(svc)
+		if err != nil {
+			log.Error().Err(err).Msg("Error constructing remote service cluster for Multicluster gateway proxy")
+			return nil, err
+		}
+		clusters = append(clusters, remoteCluster)
+	}
+	return removeDups(clusters), nil
 }
