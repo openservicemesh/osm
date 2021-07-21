@@ -46,7 +46,6 @@ spec:
                     enablePrivilegedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
-                      default: false
                     logLevel:
                       description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
                       type: string
@@ -94,7 +93,6 @@ spec:
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean
-                      default: false
                     outboundIPRangeExclusionList:
                       description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
                       type: array
@@ -118,11 +116,9 @@ spec:
                     useHTTPSIngress:
                       description: Enable HTTPS ingress on the mesh
                       type: boolean
-                      default: false
                     enablePermissiveTrafficPolicyMode:
                       description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
                       type: boolean
-                      default: false
                     inboundExternalAuthorization:
                       description: Configures external authorization for inbound and ingress connections.
                       type: object
@@ -130,7 +126,6 @@ spec:
                         enable:
                           description: Enables/disables the inbound external authorization policy if present.
                           type: boolean
-                          default: false
                         address:
                           description: Target destination endpoint that will handle external authorization.
                           type: string
@@ -150,7 +145,6 @@ spec:
                         failureModeAllow:
                           description: Allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
                           type: boolean
-                          default: false
                 observability:
                   description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
                   type: object
@@ -162,7 +156,6 @@ spec:
                     enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
                       type: boolean
-                      default: false
                     tracing:
                       description: Configuration for distributed tracing
                       type: object
@@ -170,7 +163,6 @@ spec:
                         enable:
                           description: Enables Jaeger tracing for the mesh.
                           type: boolean
-                          default: false
                         port:
                           description: Port on which tracing is enabled.
                           type: integer
@@ -212,29 +204,19 @@ spec:
                   properties:
                     enableWASMStats:
                       type: boolean
-                      default: true
                     enableEgressPolicy:
                       type: boolean
-                      default: true
                     enableMulticlusterMode:
                       type: boolean
-                      default: false
                     enableSnapshotCacheMode:
                       type: boolean
-                      default: false
                     enableOSMGateway:
                       type: boolean
-                      default: false
                     enableAsyncProxyServiceMapping:
                       type: boolean
-                      default: false
                     enableValidatingWebhook:
                       type: boolean
-                      default: false
                     enableIngressBackendPolicy:
                       type: boolean
-                      default: false
                     enableEnvoyActiveHealthChecks:
                       type: boolean
-                      default: false
-
