@@ -25,6 +25,7 @@ func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 	filterChain, err := getGatewayFilterChain(lb.serviceIdentity)
 	if err != nil {
 		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
+		return nil
 	}
 
 	return []types.Resource{
