@@ -12,8 +12,6 @@ const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
 	// or viceversa
 	namespaceNameSeparator = "/"
-
-	fqdnSeparator = "."
 )
 
 // Locality is the relative locality of a service. ie: if a service is being accessed from the same namespace or a
