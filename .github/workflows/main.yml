@@ -204,7 +204,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
         continue-on-error: true
       - name: Upload PR test logs
         if: ${{ steps.pr_test.conclusion != 'skipped' }}

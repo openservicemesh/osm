@@ -7,7 +7,7 @@ metadata:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    #helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -22,7 +22,7 @@ metadata:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    #helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-upgrade-crds
@@ -41,7 +41,7 @@ metadata:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    #helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
 apiVersion: v1
 kind: Pod
@@ -50,7 +50,7 @@ metadata:
   namespace: {{ include "osm.namespace" . }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    #helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
   labels:
     {{- include "osm.labels" . | nindent 4 }}
 spec:
@@ -64,6 +64,7 @@ spec:
             - sh
             - -c
             - >
+             ls /osm-crds;
              kubectl apply -f /osm-crds;
 {{- if .Values.OpenServiceMesh.imagePullSecrets }}
   imagePullSecrets:

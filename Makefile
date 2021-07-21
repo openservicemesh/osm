@@ -82,7 +82,7 @@ build-osm-injector: clean-osm-injector
 
 .PHONY: build-osm-crds
 build-osm-crds: clean-osm-crds
-	cp -R ./charts/osm/crds ./bin/osm-crds
+	cp -r ./charts/osm/crds ./bin/osm-crds
 
 .PHONY: build-osm-crd-converter
 build-osm-crd-converter: clean-osm-crd-converter

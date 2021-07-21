@@ -215,12 +215,6 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 			Expect(err).NotTo(HaveOccurred())
 
-			// Re-deploy policies
-			_, err = Td.CreateHTTPRouteGroup(ns, httpRG)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(ns, trafficTarget)
-			Expect(err).NotTo(HaveOccurred())
-
 			checkClientToServerOK()
 			checkProxiesConnected()
 		})
