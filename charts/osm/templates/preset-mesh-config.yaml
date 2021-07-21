@@ -41,6 +41,7 @@ data:
         "enableWASMStats": {{.Values.OpenServiceMesh.featureFlags.enableWASMStats}},
         "enableEgressPolicy": {{.Values.OpenServiceMesh.featureFlags.enableEgressPolicy}},
         "enableMulticlusterMode": {{.Values.OpenServiceMesh.featureFlags.enableMulticlusterMode}},
+        "enableSnapshotCacheMode": {{.Values.OpenServiceMesh.featureFlags.enableSnapshotCacheMode}},
         "enableOSMGateway": {{.Values.OpenServiceMesh.featureFlags.enableOSMGateway}},
         "enableAsyncProxyServiceMapping": {{.Values.OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping}},
         "enableValidatingWebhook": {{.Values.OpenServiceMesh.featureFlags.enableValidatingWebhook}},

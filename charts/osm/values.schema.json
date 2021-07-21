@@ -203,13 +203,11 @@
                     "type": "object",
                     "title": "The image schema",
                     "description": "The details of the images to run.",
-                    "examples": [
-                        {
-                            "registry": "openservicemesh",
-                            "pullPolicy": "IfNotPresent",
-                            "tag": "v0.4.2"
-                        }
-                    ],
+                    "examples": [{
+                        "registry": "openservicemesh",
+                        "pullPolicy": "IfNotPresent",
+                        "tag": "v0.4.2"
+                    }],
                     "required": [
                         "registry",
                         "pullPolicy",
@@ -366,18 +364,16 @@
                     "type": "object",
                     "title": "The Fluent Bit schema",
                     "description": "The default details of the Fluent Bit sidecar if enabled.",
-                    "examples": [
-                        {
-                            "name": "fluentbit-logger",
-                            "registry": "fluent",
-                            "tag": "1.6.4",
-                            "pullPolicy": "IfNotPresent",
-                            "outputPlugin": "stdout",
-                            "enableProxySupport": "false",
-                            "httpProxy": "",
-                            "httpsProxy": ""
-                        }
-                    ],
+                    "examples": [{
+                        "name": "fluentbit-logger",
+                        "registry": "fluent",
+                        "tag": "1.6.4",
+                        "pullPolicy": "IfNotPresent",
+                        "outputPlugin": "stdout",
+                        "enableProxySupport": "false",
+                        "httpProxy": "",
+                        "httpsProxy": ""
+                    }],
                     "required": [
                         "name",
                         "registry",
@@ -558,11 +554,9 @@
                     "type": "object",
                     "title": "The tracing schema",
                     "description": "An explanation about the purpose of this instance.",
-                    "examples": [
-                        {
-                            "enable": true
-                        }
-                    ],
+                    "examples": [{
+                        "enable": true
+                    }],
                     "required": [
                         "enable",
                         "address",
@@ -748,12 +742,10 @@
                     "type": "object",
                     "title": "Feature flags",
                     "description": "Feature flags",
-                    "examples": [
-                        {
-                            "enableWASMStats": true,
-                            "enableEgressPolicy": true
-                        }
-                    ],
+                    "examples": [{
+                        "enableWASMStats": true,
+                        "enableEgressPolicy": true
+                    }],
                     "required": [
                         "enableWASMStats",
                         "enableEgressPolicy",
@@ -763,7 +755,8 @@
                         "enableValidatingWebhook",
                         "enableCRDConverter",
                         "enableIngressBackendPolicy",
-                        "enableEnvoyActiveHealthChecks"
+                        "enableEnvoyActiveHealthChecks",
+                        "enableSnapshotCacheMode"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -846,6 +839,15 @@
                             "examples": [
                                 true
                             ]
+                        },
+                        "enableSnapshotCacheMode": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableSnapshotCacheMode",
+                            "type": "boolean",
+                            "title": "Enable SnapshotCache feature for Envoy xDS server",
+                            "description": "Enable SnapshotCache feature in OSM controller to cache snapshots for Envoy xDS configurations.",
+                            "examples": [
+                                true
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -868,14 +870,12 @@
                         "type": "object"
                     },
                     "examples": [
-                        [
-                            {
-                                "key": "key1",
-                                "operator": "Equal",
-                                "value": "value1",
-                                "effect": "NoSchedule"
-                            }
-                        ]
+                        [{
+                            "key": "key1",
+                            "operator": "Equal",
+                            "value": "value1",
+                            "effect": "NoSchedule"
+                        }]
                     ]
                 },
                 "outboundIPRangeExclusionList": {
@@ -959,12 +959,10 @@
                             ]
                         }
                     },
-                    "examples": [
-                        {
-                            "port": 3000,
-                            "enableRemoteRendering": true
-                        }
-                    ],
+                    "examples": [{
+                        "port": 3000,
+                        "enableRemoteRendering": true
+                    }],
                     "additionalProperties": false
                 },
                 "certmanager": {
@@ -1006,13 +1004,11 @@
                             ]
                         }
                     },
-                    "examples": [
-                        {
-                            "issuerName": "osm-ca",
-                            "issuerKind": "Issuer",
-                            "issuerGroup": "cert-manager"
-                        }
-                    ],
+                    "examples": [{
+                        "issuerName": "osm-ca",
+                        "issuerKind": "Issuer",
+                        "issuerGroup": "cert-manager"
+                    }],
                     "additionalProperties": false
                 },
                 "vault": {
@@ -1046,14 +1042,12 @@
                             "type": "string"
                         }
                     },
-                    "examples": [
-                        {
-                            "host": "vault.default.svc.cluster.local",
-                            "protocol": "http",
-                            "token": "some-token",
-                            "role": "openservicemesh"
-                        }
-                    ],
+                    "examples": [{
+                        "host": "vault.default.svc.cluster.local",
+                        "protocol": "http",
+                        "token": "some-token",
+                        "role": "openservicemesh"
+                    }],
                     "additionalProperties": false
                 },
                 "prometheus": {
@@ -1113,11 +1107,9 @@
                         "type": "object"
                     },
                     "examples": [
-                        [
-                            {
-                                "name": "secret-name"
-                            }
-                        ]
+                        [{
+                            "name": "secret-name"
+                        }]
                     ]
                 },
                 "validatorWebhook": {

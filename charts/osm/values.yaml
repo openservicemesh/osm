@@ -264,6 +264,8 @@ OpenServiceMesh:
     enableIngressBackendPolicy: false
     # -- Enable Envoy active health checks
     enableEnvoyActiveHealthChecks: false
+    # -- Enables SnapshotCache feature for Envoy xDS server.
+    enableSnapshotCacheMode: false
 
   #
   # -- OSM multicluster feature configuration

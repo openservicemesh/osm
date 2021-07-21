@@ -41,21 +41,22 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	"enableDebugServer": false,
 	"osmLogLevel": "trace",
 	"tracing": {
-   "  enable": false
+   	  "enable": false
 	}
   },
   "certificate": {
-	"serviceCertValidityDuration": "24h"
+	"serviceCertValidityDuration": "23h"
   },
   "featureFlags": {
-	"enableWASMStats": true,
+	"enableWASMStats": false,
 	"enableEgressPolicy": true,
 	"enableMulticlusterMode": false,
 	"enableOSMGateway": false,
 	"enableAsyncProxyServiceMapping": false,
 	"enableValidatingWebhook": false,
 	"enableIngressBackendPolicy": true,
-	"enableEnvoyActiveHealthChecks": true
+	"enableEnvoyActiveHealthChecks": true,
+	"enableSnapshotCacheMode": true
 	}
 }`,
 		},
@@ -68,9 +69,10 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.False(meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer)
 	assert.True(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode)
 	assert.True(meshConfig.Spec.Traffic.EnableEgress)
+	assert.False(meshConfig.Spec.FeatureFlags.EnableWASMStats)
 	assert.False(meshConfig.Spec.Traffic.UseHTTPSIngress)
 	assert.False(meshConfig.Spec.Observability.EnableDebugServer)
-	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "24h")
+	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "23h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
 	assert.True(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
 }
