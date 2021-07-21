@@ -43,7 +43,7 @@ spec:
             "--service-cluster", "osm-gateway",
           ]
           ports:
-            - containerPort: 14080
+            - containerPort: {{ .Values.OpenServiceMesh.multicluster.gatewayPort }}
               name: http2
               protocol: TCP
           volumeMounts:

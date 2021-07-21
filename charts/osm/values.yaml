@@ -261,6 +261,11 @@ OpenServiceMesh:
     # When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends
     enableIngressBackendPolicy: false
 
+  #
+  # -- OSM multicluster feature configuration
+  multicluster:
+    # -- The port number of the multicluster gateway service
+    gatewayPort: 14080
 
   # -- Run OSM with PodSecurityPolicy configured
   pspEnabled: false
