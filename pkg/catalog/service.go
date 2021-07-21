@@ -169,8 +169,8 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 	return portToProtocolMap, nil
 }
 
-// listMeshServices returns all services in the mesh
-func (mc *MeshCatalog) listMeshServices() []service.MeshService {
+// ListAllMeshServices returns all services in the mesh
+func (mc *MeshCatalog) ListAllMeshServices() []service.MeshService {
 	var services []service.MeshService
 
 	for _, provider := range mc.serviceProviders {

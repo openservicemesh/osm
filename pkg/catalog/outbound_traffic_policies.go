@@ -115,7 +115,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.isOSMGateway(serviceIdentity) {
 		var services []service.MeshService
-		for _, svc := range mc.listMeshServices() {
+		for _, svc := range mc.ListAllMeshServices() {
 			// The gateway can only forward to local services.
 			if svc.Local() {
 				services = append(services, svc)
@@ -124,7 +124,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 		return services
 	}
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return mc.listMeshServices()
+		return mc.ListAllMeshServices()
 	}
 
 	serviceSet := mapset.NewSet()
@@ -159,7 +159,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
-	destServices := mc.listMeshServices()
+	destServices := mc.ListAllMeshServices()
 
 	for _, destService := range destServices {
 		locality := service.LocalCluster
