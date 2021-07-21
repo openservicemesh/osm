@@ -57,7 +57,7 @@ func (ms MeshService) FQDN() string {
 	if ms.ClusterDomain == "" {
 		ms.ClusterDomain = constants.LocalDomain
 	}
-	return fmt.Sprintf("%s%s%s%s%s", ms.Name, fqdnSeparator, ms.Namespace, fqdnSeparator, ms.ClusterDomain)
+	return fmt.Sprintf("%s.%s.%s", ms.Name, ms.Namespace, ms.ClusterDomain)
 }
 
 // Local returns whether or not this is service is in the local cluster.
