@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 
@@ -32,8 +33,83 @@ const (
 // Ensure the regex pattern for prefix matching for path elements compiles
 var _ = regexp.MustCompile(prefixMatchPathElementsRegex)
 
-// GetIngressPoliciesForService returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
-func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
+// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
+// Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
+// or Kubernetes Ingress API.
+func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	if mc.configurator.GetFeatureFlags().EnableIngressBackendPolicy {
+		return mc.getIngressTrafficPolicy(svc)
+	}
+
+	return mc.getIngressTrafficPolicyFromK8s(svc)
+}
+
+// getIngressTrafficPolicy returns the ingress traffic policy for the given mesh service from corresponding IngressBackend resource
+func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	// TODO(#3779): build policy from IngressBackend
+	return nil, nil
+}
+
+// getIngressTrafficPolicyFromK8s returns the ingress traffic policy for the given mesh service from the corresponding k8s Ingress resource
+// TODO: DEPRECATE once IngressBackend API is the default for configuring an ingress backend.
+func (mc *MeshCatalog) getIngressTrafficPolicyFromK8s(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	httpRoutePolicies, err := mc.getIngressPoliciesFromK8s(svc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error retrieving ingress HTTP routing policies for service %s from Kubernetes", svc)
+	}
+
+	if httpRoutePolicies == nil {
+		// There are no routes for ingress, which implies ingress does not need to be configured
+		return nil, nil
+	}
+
+	protocolToPortMap, err := mc.GetTargetPortToProtocolMappingForService(svc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error retrieving port to protocol mapping for service %s", svc)
+	}
+
+	enableHTTPSIngress := mc.configurator.UseHTTPSIngress()
+	var trafficMatches []*trafficpolicy.IngressTrafficMatch
+	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
+	for port, appProtocol := range protocolToPortMap {
+		if appProtocol != constants.ProtocolHTTP {
+			// Only HTTP ports can accept traffic using k8s Ingress
+			continue
+		}
+
+		trafficMatch := &trafficpolicy.IngressTrafficMatch{
+			Port: port,
+		}
+
+		if enableHTTPSIngress {
+			// Configure 2 taffic matches for HTTPS ingress (TLS):
+			// 1. Without SNI: to match clients that don't set the SNI
+			// 2. With SNI: to match clients that set the SNI
+
+			trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, port, constants.ProtocolHTTPS)
+			trafficMatch.Protocol = constants.ProtocolHTTPS
+			trafficMatch.SkipClientCertValidation = true
+			trafficMatches = append(trafficMatches, trafficMatch)
+
+			trafficMatchWithSNI := *trafficMatch
+			trafficMatchWithSNI.Name = fmt.Sprintf("ingress_%s_%d_%s_with_sni", svc, port, constants.ProtocolHTTPS)
+			trafficMatchWithSNI.ServerNames = []string{svc.ServerName()}
+			trafficMatches = append(trafficMatches, &trafficMatchWithSNI)
+		} else {
+			trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, port, constants.ProtocolHTTP)
+			trafficMatch.Protocol = constants.ProtocolHTTP
+			trafficMatches = append(trafficMatches, trafficMatch)
+		}
+	}
+
+	return &trafficpolicy.IngressTrafficPolicy{
+		TrafficMatches:    trafficMatches,
+		HTTPRoutePolicies: httpRoutePolicies,
+	}, nil
+}
+
+// getIngressPoliciesFromK8s returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
+func (mc *MeshCatalog) getIngressPoliciesFromK8s(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 
 	// Build policies for ingress v1
@@ -53,7 +129,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]
 	return inboundTrafficPolicies, nil
 }
 
-func buildIngressPolicyName(name, namespace, host string) string {
+func getIngressTrafficPolicyName(name, namespace, host string) string {
 	policyName := fmt.Sprintf("%s.%s|%s", name, namespace, host)
 	return policyName
 }
@@ -76,7 +152,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
-			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
+			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(getIngressTrafficPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
 			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{ingressWeightedCluster}), identity.WildcardServiceIdentity)
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, wildcardIngressPolicy)
 		}
@@ -86,7 +162,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 			if domain == "" {
 				domain = constants.WildcardHTTPMethod
 			}
-			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
+			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(getIngressTrafficPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
 
 			for _, ingressPath := range rule.HTTP.Paths {
 				if ingressPath.Backend.ServiceName != svc.Name {
@@ -180,7 +256,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.DefaultBackend != nil && ingress.Spec.DefaultBackend.Service.Name == svc.Name {
-			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
+			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(getIngressTrafficPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
 			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{ingressWeightedCluster}), identity.WildcardServiceIdentity)
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundIngressPolicies, wildcardIngressPolicy)
 		}
@@ -190,7 +266,7 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 			if domain == "" {
 				domain = constants.WildcardHTTPMethod
 			}
-			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
+			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(getIngressTrafficPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
 
 			for _, ingressPath := range rule.HTTP.Paths {
 				if ingressPath.Backend.Service.Name != svc.Name {

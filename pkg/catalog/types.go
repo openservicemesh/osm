@@ -70,8 +70,8 @@ type MeshCataloger interface {
 	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
 	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
 
-	// GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
-	GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
+	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
+	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
 	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
 	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,

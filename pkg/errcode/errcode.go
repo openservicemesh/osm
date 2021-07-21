@@ -255,6 +255,9 @@ const (
 
 	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
 	ErrBuildingRBACPolicy
+
+	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
+	ErrIngressFilterChain
 )
 
 // String returns the error code as a string, ex. E1000
@@ -633,7 +636,11 @@ traffic. The XDS filter chain for ingress traffic to the port is not created.
 `,
 
 	ErrBuildingRBACPolicy: `
-A XDS RBAC policy could not be generated from the specified traffic target
+An XDS RBAC policy could not be generated from the specified traffic target
 policy.
+`,
+
+	ErrIngressFilterChain: `
+An XDS filter chain could not be constructed for ingress.
 `,
 }

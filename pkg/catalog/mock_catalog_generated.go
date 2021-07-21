@@ -53,19 +53,19 @@ func (mr *MockMeshCatalogerMockRecorder) GetEgressTrafficPolicy(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressTrafficPolicy), arg0)
 }
 
-// GetIngressPoliciesForService mocks base method
-func (m *MockMeshCataloger) GetIngressPoliciesForService(arg0 service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
+// GetIngressTrafficPolicy mocks base method
+func (m *MockMeshCataloger) GetIngressTrafficPolicy(arg0 service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressPoliciesForService", arg0)
-	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetIngressTrafficPolicy", arg0)
+	ret0, _ := ret[0].(*trafficpolicy.IngressTrafficPolicy)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetIngressPoliciesForService indicates an expected call of GetIngressPoliciesForService
-func (mr *MockMeshCatalogerMockRecorder) GetIngressPoliciesForService(arg0 interface{}) *gomock.Call {
+// GetIngressTrafficPolicy indicates an expected call of GetIngressTrafficPolicy
+func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressPoliciesForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressPoliciesForService), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressTrafficPolicy), arg0)
 }
 
 // GetKubeController mocks base method
