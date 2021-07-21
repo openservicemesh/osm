@@ -1,12 +1,9 @@
 package cds
 
 import (
-	"strings"
-
 	mapset "github.com/deckarep/golang-set"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -126,14 +123,7 @@ func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
 
 func getGatewayRemoteCluster(remoteService service.MeshService) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.NameWithoutCluster()
-	downstreamIdentity := identity.ServiceIdentity(strings.Replace(clusterName, "/", ".", -1))
-	// TODO
-	upstreamSvc := service.MeshService{
-		Namespace:     "osm-system",
-		Name:          "osm-multicluster-gateway",
-		ClusterDomain: "cluster.local",
-	}
-	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
+	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(identity.ServiceIdentity(remoteService.FQDN()), remoteService))
 	if err != nil {
 		log.Err(err).Msg("Error creating TLS Context for OSM Gateway")
 		return nil, err
@@ -144,28 +134,16 @@ func getGatewayRemoteCluster(remoteService service.MeshService) (*xds_cluster.Cl
 		AltStatName:    clusterName,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_LOGICAL_DNS,
+			Type: xds_cluster.Cluster_EDS,
+		},
+		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
+			EdsConfig: envoy.GetADSConfigSource(),
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledUpstreamTLSContext,
-			},
-		},
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: clusterName,
-			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{{
-						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress("99.88.77.66", 9876),
-							},
-						},
-					}},
-				},
 			},
 		},
 	}, nil
