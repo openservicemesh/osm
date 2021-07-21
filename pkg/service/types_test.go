@@ -23,7 +23,7 @@ var _ = Describe("Test pkg/service functions", func() {
 		})
 	})
 
-	Context("Test MeshService's String method", func() {
+	Context("Test MeshService's String and FQDN methods", func() {
 		namespace := uuid.New().String()
 		name := uuid.New().String()
 		ms := MeshService{
@@ -32,8 +32,12 @@ var _ = Describe("Test pkg/service functions", func() {
 			ClusterDomain: constants.LocalDomain,
 		}
 
-		It("implements stringer correctly", func() {
+		It("implements String() correctly", func() {
 			Expect(ms.String()).To(Equal(fmt.Sprintf("%s/%s/%s", namespace, name, constants.LocalDomain)))
+		})
+
+		It("implements FQDN() correctly", func() {
+			Expect(ms.FQDN()).To(Equal(fmt.Sprintf("%s.%s.%s", name, namespace, constants.LocalDomain)))
 		})
 	})
 

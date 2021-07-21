@@ -3,7 +3,6 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -56,7 +55,7 @@ func (ms MeshService) FQDN() string {
 	if ms.ClusterDomain == "" {
 		ms.ClusterDomain = constants.LocalDomain
 	}
-	return strings.Join([]string{ms.Name, ms.Namespace, ms.ClusterDomain.String()}, ".")
+	return fmt.Sprintf("%s.%s.%s", ms.Name, ms.Namespace, ms.ClusterDomain)
 }
 
 // Local returns whether or not this is service is in the local cluster.
