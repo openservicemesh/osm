@@ -702,6 +702,26 @@
                     },
                     "additionalProperties": false
                 },
+                "multicluster": {
+                    "$id": "#/properties/OpenServiceMesh/properties/multicluster",
+                    "type": "object",
+                    "title": "Multicluster",
+                    "description": "Configuration for multicluster features",
+                    "required": [
+                        "gatewayPort"
+                    ],
+                    "properties": {
+                        "gatewayPort": {
+                            "$id": "#/properties/OpenServiceMesh/properties/multicluster/properties/gatewayPort",
+                            "type": "integer",
+                            "title": "Gateway port",
+                            "description": "Port number of multicluster gateway",
+                            "examples": [
+                                12345
+                            ]
+                        }
+                    }
+                },
                 "featureFlags": {
                     "$id": "#/properties/OpenServiceMesh/properties/featureFlags",
                     "type": "object",

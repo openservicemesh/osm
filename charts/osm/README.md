@@ -117,6 +117,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
+| OpenServiceMesh.multicluster.gatewayPort | int | `14080` | The port number of the multicluster gateway service |
 | OpenServiceMesh.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
 | OpenServiceMesh.osmController.autoScale.enable | bool | `false` | Enable Autoscale |
 | OpenServiceMesh.osmController.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |
