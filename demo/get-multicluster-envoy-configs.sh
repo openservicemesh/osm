@@ -24,7 +24,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     NS='osm-system'
     PORT=15000
     TMP_PID_FILE=$(mktemp)
-    OSM_GATEWAY_POD=$(kubectl get pod -n "${NS}" --selector app=osm-gateway --no-headers | head -n1 | awk '{print $1}')
+    OSM_GATEWAY_POD=$(kubectl get pod -n "${NS}" --selector app=osm-multicluster-gateway --no-headers | head -n1 | awk '{print $1}')
     echo -e "Getting Envoy config from Multicluster Gateway Pod: ${OSM_GATEWAY_POD}"
 
     ( kubectl port-forward -n "${NS}" "${OSM_GATEWAY_POD}" "${PORT}" > /dev/null & echo $! >&3 ) 3> "${TMP_PID_FILE}"

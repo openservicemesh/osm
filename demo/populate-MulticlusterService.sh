@@ -9,10 +9,10 @@ GATEWAY_PORT=14080
 ##########################
 # Get IP addresses of OSM Multicluster Gateways
 kubectl config use-context 'alpha'
-ALPHA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-gateway -o json | jq -r '.items[].status.podIP')
+ALPHA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-multicluster-gateway -o json | jq -r '.items[].status.podIP')
 
 kubectl config use-context 'beta'
-BETA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-gateway -o json | jq -r '.items[].status.podIP')
+BETA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-multicluster-gateway -o json | jq -r '.items[].status.podIP')
 
 ##########################
 # Populate Alpha w/ Beta's IP

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	gatewayBootstrapSecretName = "osm-gateway-bootstrap-config" // #nosec G101: Potential hardcoded credentials
+	gatewayBootstrapSecretName = "osm-multicluster-gateway-bootstrap-config" // #nosec G101: Potential hardcoded credentials
 	bootstrapConfigKey         = "bootstrap.yaml"
 )
 
