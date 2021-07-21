@@ -485,11 +485,11 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 }
 
 func TestNewResponseForGateway(t *testing.T) {
-	proxyIdentity := identity.K8sServiceAccount{Name: "gateway", Namespace: "osm-system"}.ToServiceIdentity()
+	proxyIdentity := identity.K8sServiceAccount{Name: "osm-multicluster-gateway", Namespace: "osm-system"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "gateway", "osm-system")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm-multicluster-gateway", "osm-system")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 

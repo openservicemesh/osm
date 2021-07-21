@@ -784,7 +784,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 			permissiveMode: true,
 		},
 		{
-			name:           "gateway",
+			name:           "osm-multicluster-gateway",
 			svcIdentity:    "gateway.osm-system.cluster.local",
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,

@@ -36,7 +36,7 @@ func TestBuildGatewayListeners(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
 	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
-	id := identity.K8sServiceAccount{Name: "gateway", Namespace: "osm-system"}.ToServiceIdentity()
+	id := identity.K8sServiceAccount{Name: "osm-multicluster-gateway", Namespace: "osm-system"}.ToServiceIdentity()
 
 	returnMeshSvc := []service.MeshService{
 		tests.BookbuyerService,
