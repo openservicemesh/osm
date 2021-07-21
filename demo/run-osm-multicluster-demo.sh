@@ -133,3 +133,5 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # Create the MultiClusterService object.
     ./demo/deploy-MultiClusterService.sh
 done
+
+./demo/populate-MulticlusterService.sh
