@@ -90,4 +90,17 @@ metadata:
     app: osm-multicluster-gateway
   name: osm-multicluster-gateway
   namespace: {{ include "osm.namespace" . }}
+
+---
+
+kind: Secret
+apiVersion: v1
+metadata:
+  name: osm-gateway-bootstrap-config
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-gateway
+type: Opaque
+stringData:
+  bootstrap.yaml: "-- placeholder --"
 {{- end }}
