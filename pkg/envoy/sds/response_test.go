@@ -112,18 +112,11 @@ func TestGetRootCert(t *testing.T) {
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
 			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
-				allowedInboundSvcAccounts := []identity.ServiceIdentity{
-					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-3"}.ToServiceIdentity(),
-				}
-				ident := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()
-				d.mockCatalog.EXPECT().ListInboundServiceIdentities(ident).Return(allowedInboundSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
 			// expectations
-			expectedSANs: []string{"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local"},
+			expectedSANs: nil,
 			expectError:  false,
 		},
 		// Test case 1 end -------------------------------
@@ -138,7 +131,6 @@ func TestGetRootCert(t *testing.T) {
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
 			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 				associatedSvcAccounts := []identity.ServiceIdentity{
 					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
 					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
@@ -156,47 +148,6 @@ func TestGetRootCert(t *testing.T) {
 			expectError:  false,
 		},
 		// Test case 2 end -------------------------------
-
-		// Test case 3: tests SDS secret for permissive mode -------------------------------
-		{
-			name: "test permissive mode certificate validation",
-			sdsCert: secrets.SDSCert{
-				Name:     "ns-2/service-2",
-				CertType: secrets.RootCertTypeForMTLSOutbound,
-			},
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-
-			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
-			},
-
-			// expectations
-			expectedSANs: []string{}, // no SAN matching in permissive mode
-			expectError:  false,
-		},
-		// Test case 3 end -------------------------------
-
-		// Test case 4: tests SDS secret for inbound TLS secret with unexpected service account ---------------
-		{
-			name: "test inbound MTLS certificate validation",
-			sdsCert: secrets.SDSCert{
-				Name:     "ns-1/sa-5", // this does not match the proxy's service account, so should error
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			},
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-
-			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
-			},
-
-			// expectations
-			expectedSANs: nil,
-			expectError:  true,
-		},
-		// Test case 4 end -------------------------------
-
 	}
 
 	for i, tc := range testCases {
@@ -313,12 +264,6 @@ func TestGetSDSSecrets(t *testing.T) {
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
 			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
-				allowedInboundSvcAccounts := []identity.ServiceIdentity{
-					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-3"}.ToServiceIdentity(),
-				}
-				d.mockCatalog.EXPECT().ListInboundServiceIdentities(identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()).Return(allowedInboundSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
@@ -326,7 +271,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			requestedCerts: []string{"root-cert-for-mtls-inbound:ns-1/sa-1"}, // root-cert requested
 
 			// expectations
-			expectedSANs:        []string{"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local"},
+			expectedSANs:        nil,
 			expectedSecretCount: 1,
 		},
 		// Test case 1 end -------------------------------
@@ -337,7 +282,6 @@ func TestGetSDSSecrets(t *testing.T) {
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
 			prepare: func(d *dynamicMock) {
-				d.mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 				associatedSvcAccounts := []identity.ServiceIdentity{
 					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
 					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
