@@ -497,11 +497,13 @@ func TestNewResponseForGateway(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	mockKubeController := k8s.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return([]service.MeshService{
+	meshServices := []service.MeshService{
 		tests.BookbuyerService,
 		tests.BookwarehouseService,
-	}).AnyTimes()
+	}
+	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(meshServices).AnyTimes()
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+	meshCatalog.EXPECT().ListAllMeshServices().Return(meshServices).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
@@ -510,8 +512,8 @@ func TestNewResponseForGateway(t *testing.T) {
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 2)
-	tassert.Equal(t, "default/bookbuyer/local", resp[0].(*xds_cluster.Cluster).Name)
-	tassert.Equal(t, "default/bookwarehouse/local", resp[1].(*xds_cluster.Cluster).Name)
+	tassert.Equal(t, "default/bookbuyer", resp[0].(*xds_cluster.Cluster).Name)
+	tassert.Equal(t, "default/bookwarehouse", resp[1].(*xds_cluster.Cluster).Name)
 }
 
 func TestRemoveDups(t *testing.T) {
