@@ -325,6 +325,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
+		CertBitSize:            2048,
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      true,
@@ -396,6 +397,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
 
 	meshConfig.Spec.Certificate.ServiceCertValidityDuration = "24h"
+	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertBitSize
 
 	return meshConfig
 }
@@ -488,6 +490,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", RegistrySecretName),
 		)
 	}
+
+	instOpts.SetOverrides = append(instOpts.SetOverrides,
+		fmt.Sprintf("OpenServiceMesh.certKeyBitSize=%d", instOpts.CertBitSize),
+	)
 
 	td.T.Logf("Setting log OSM's log level through overrides to %s", instOpts.OSMLogLevel)
 	instOpts.SetOverrides = append(instOpts.SetOverrides,

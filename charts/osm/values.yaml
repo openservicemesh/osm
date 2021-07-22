@@ -93,6 +93,9 @@ OpenServiceMesh:
   # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
   serviceCertValidityDuration: 24h
 
+  # -- Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS
+  certKeyBitSize: 2048
+
   # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
   caBundleSecretName: osm-ca-bundle
 

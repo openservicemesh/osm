@@ -42,6 +42,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 	Context("Test Getting a certificate from the cache", func() {
 		validity := 1 * time.Hour
+		keySize := 2048
 
 		rootCertPEM, err := tests.GetPEMCert()
 		if err != nil {
@@ -110,6 +111,8 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
 		It("should get an issued certificate from the cache", func() {
+			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
+
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := cm.IssueCertificate(cn, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
@@ -122,6 +125,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 		It("should rotate the certificate", func() {
 			mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
 
 			cert, err := cm.RotateCertificate(cn)
 			Expect(err).Should(BeNil())

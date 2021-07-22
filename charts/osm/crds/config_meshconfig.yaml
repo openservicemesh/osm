@@ -191,6 +191,10 @@ spec:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
                       default: "24h"
+                    certKeyBitSize:
+                      description: Sets the certificate key bit size for data plane certificates.
+                      type: integer
+                      default: 2048
                 experimental:
                   description: Experimental configurations
                   type: object

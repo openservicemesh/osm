@@ -133,6 +133,7 @@
                 "sidecarImage",
                 "certificateManager",
                 "serviceCertValidityDuration",
+                "certKeyBitSize",
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
@@ -275,6 +276,15 @@
                     "description": "The service certificate validity duration.",
                     "examples": [
                         "24h"
+                    ]
+                },
+                "certKeyBitSize": {
+                    "$id": "#/properties/OpenServiceMesh/properties/certKeyBitSize",
+                    "type": "integer",
+                    "title": "The certKeyBitSize schema",
+                    "description": "The key size for data plane certificates.",
+                    "examples": [
+                        2048
                     ]
                 },
                 "caBundleSecretName": {

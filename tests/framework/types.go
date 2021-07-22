@@ -93,6 +93,7 @@ type InstallOSMOpts struct {
 	CertmanagerIssuerGroup string
 	CertmanagerIssuerKind  string
 	CertmanagerIssuerName  string
+	CertBitSize            int
 
 	EgressEnabled        bool
 	EnablePermissiveMode bool
