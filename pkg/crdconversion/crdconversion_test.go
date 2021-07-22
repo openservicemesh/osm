@@ -85,6 +85,8 @@ func TestNewConversionWebhook(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	keySize := 2048
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
 	fakeCertManager := tresor.NewFakeCertManager(mockConfigurator)
 	osmNamespace := "-osm-namespace-"
 	stop := make(<-chan struct{})

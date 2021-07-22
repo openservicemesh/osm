@@ -38,6 +38,7 @@ var _ = Describe("Test Certificate Manager", func() {
 
 		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
@@ -78,6 +79,7 @@ var _ = Describe("Test Certificate Manager", func() {
 
 		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
@@ -202,6 +204,7 @@ func TestGetCertificate(t *testing.T) {
 
 func TestRotateCertificate(t *testing.T) {
 	validity := 1 * time.Hour
+	keySize := 2048
 
 	ca := certificate.CommonName("Test CA")
 	rootCertCountry := "US"
@@ -223,6 +226,7 @@ func TestRotateCertificate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
 
 	manager := &CertManager{ca: rootCert, cfg: mockConfigurator}
 	manager.cache.Store(cn, oldCert)

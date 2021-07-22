@@ -22,6 +22,7 @@ func TestBootstrapOSMGateway(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	fakeCertManager := tresor.NewFakeCertManager(mockConfigurator)
 	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(15 * time.Second).AnyTimes()
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 	testCases := []struct {
 		name            string
