@@ -156,6 +156,20 @@ func (mr *MockMeshCatalogerMockRecorder) GetWeightedClustersForUpstream(arg0 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWeightedClustersForUpstream", reflect.TypeOf((*MockMeshCataloger)(nil).GetWeightedClustersForUpstream), arg0)
 }
 
+// ListAllMeshServices mocks base method
+func (m *MockMeshCataloger) ListAllMeshServices() []service.MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAllMeshServices")
+	ret0, _ := ret[0].([]service.MeshService)
+	return ret0
+}
+
+// ListAllMeshServices indicates an expected call of ListAllMeshServices
+func (mr *MockMeshCatalogerMockRecorder) ListAllMeshServices() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllMeshServices", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllMeshServices))
+}
+
 // ListEndpointsForServiceIdentity mocks base method
 func (m *MockMeshCataloger) ListEndpointsForServiceIdentity(arg0 identity.ServiceIdentity, arg1 service.MeshService) ([]endpoint.Endpoint, error) {
 	m.ctrl.T.Helper()
