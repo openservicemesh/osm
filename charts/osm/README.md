@@ -60,6 +60,7 @@ The following table lists the configurable parameters of the osm chart and their
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | OpenServiceMesh.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
+| OpenServiceMesh.certKeyBitSize | int | `2048` | Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS |
 | OpenServiceMesh.certificateManager | string | `"tresor"` | The Certificate manager type: `tresor`, `vault` or `cert-manager` |
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager.io"` | cert-manager issuer group |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
@@ -136,7 +137,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | OpenServiceMesh.pspEnabled | bool | `false` | Run OSM with PodSecurityPolicy configured |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Service certificate validity duration for certificate issued to workloads to communicate over mTLS |
-| OpenServiceMesh.certKeyBitSize | int | `2048` | Certificate key size for Envoy certificates |
 | OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.18.3"` | Envoy sidecar image |
 | OpenServiceMesh.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
