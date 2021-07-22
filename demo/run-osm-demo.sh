@@ -38,7 +38,6 @@ ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 
-
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
 
