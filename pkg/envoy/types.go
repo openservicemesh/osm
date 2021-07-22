@@ -91,6 +91,6 @@ const (
 	// KindSidecar implies the proxy is a sidecar
 	KindSidecar ProxyKind = "sidecar"
 
-	// KindGateway implies the proxy is a gateway
-	KindGateway ProxyKind = "osm-multicluster-gateway"
+	// KindMulticlusterGateway implies the proxy is a gateway
+	KindMulticlusterGateway ProxyKind = "osm-multicluster-gateway"
 )

@@ -312,7 +312,7 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
-	if p.Kind() == envoy.KindGateway {
+	if p.Kind() == envoy.KindMulticlusterGateway {
 		log.Debug().Msgf("Proxy with serial no %s is a Multicluster gateway, skipping recording pod metadata", p.GetCertificateSerialNumber())
 		return nil
 	}

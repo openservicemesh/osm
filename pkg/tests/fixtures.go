@@ -376,11 +376,18 @@ var (
 				Name:      BookstoreV2ServiceAccountName,
 				Namespace: "default",
 			},
-			Sources: []access.IdentityBindingSubject{{
-				Kind:      "ServiceAccount",
-				Name:      BookbuyerServiceAccountName,
-				Namespace: "default",
-			}},
+			Sources: []access.IdentityBindingSubject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "osm",        // TODO(draychev): use a constant
+					Namespace: "osm-system", // TODO(draychev): use a constant
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      BookbuyerServiceAccountName,
+					Namespace: "default",
+				},
+			},
 			Rules: []access.TrafficTargetRule{{
 				Kind:    "HTTPRouteGroup",
 				Name:    RouteGroupName,

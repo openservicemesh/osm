@@ -1,16 +1,12 @@
-package scenarios
+package multicluster
 
 import (
 	"fmt"
 	"testing"
 
-	tassert "github.com/stretchr/testify/assert"
-
-	. "github.com/onsi/gomega"
-
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/onsi/ginkgo"
+	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
@@ -24,11 +20,22 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func TestMulticlusterGateway(t *testing.T) {
+func TestMulticlusterGatewaySecretDiscoveryService(t *testing.T) {
 	assert := tassert.New(t)
 
+	checkIt := func(expectedDomains []string, expectedWeightedCluster *xds_route.WeightedCluster, virtualHost *xds_route.VirtualHost) {
+		assert.Equal(len(virtualHost.Domains), len(expectedDomains))
+		assert.ElementsMatch(virtualHost.Domains, expectedDomains)
+
+		assert.Len(virtualHost.Routes, 1)
+
+		assert.Equal(len(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters), len(expectedWeightedCluster.Clusters))
+		assert.Equal(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters[0], expectedWeightedCluster.Clusters[0])
+		assert.Equal(virtualHost.Routes[0].GetRoute().GetWeightedClusters().TotalWeight, expectedWeightedCluster.TotalWeight)
+	}
+
 	// ---[  Setup the test context  ]---------
-	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
+	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
@@ -50,7 +57,7 @@ func TestMulticlusterGateway(t *testing.T) {
 	}).AnyTimes()
 
 	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
-	assert.NotNil(err)
+	assert.Nil(err, fmt.Sprintf("rds.NewResponse return unexpected error: %+v", err))
 	assert.NotNil(resources)
 	assert.Len(resources, 2)
 
@@ -76,9 +83,8 @@ func TestMulticlusterGateway(t *testing.T) {
 		for _, vHost := range routeCfg.VirtualHosts {
 			actualNames = append(actualNames, vHost.Name)
 		}
-		Expect(len(routeCfg.VirtualHosts)).To(Equal(len(expectedVHostNames)), fmt.Sprintf("Here are the actual virtual hosts: %+v", actualNames))
-		Expect(actualNames).To(ContainElements(expectedVHostNames))
-
+		assert.Equal(len(routeCfg.VirtualHosts), len(expectedVHostNames), fmt.Sprintf("Here are the actual virtual hosts: %+v", actualNames))
+		assert.ElementsMatch(actualNames, expectedVHostNames)
 	}
 
 	// Get the 3 VirtualHost configurations into variables so it is easier to
@@ -115,7 +121,7 @@ func TestMulticlusterGateway(t *testing.T) {
 			TotalWeight: toInt(100),
 		}
 
-		checkExpectations(expectedDomains, expectedWeightedCluster, v1)
+		checkIt(expectedDomains, expectedWeightedCluster, v1)
 	}
 
 	// created correct 'bookstore-v2' XDS Route Configuration
@@ -141,7 +147,7 @@ func TestMulticlusterGateway(t *testing.T) {
 			TotalWeight: toInt(100),
 		}
 
-		checkExpectations(expectedDomains, expectedWeightedCluster, v2)
+		checkIt(expectedDomains, expectedWeightedCluster, v2)
 	}
 
 	{
@@ -169,6 +175,6 @@ func TestMulticlusterGateway(t *testing.T) {
 			TotalWeight: toInt(100),
 		}
 
-		checkExpectations(expectedDomains, expectedWeightedCluster, apex)
+		checkIt(expectedDomains, expectedWeightedCluster, apex)
 	}
 }

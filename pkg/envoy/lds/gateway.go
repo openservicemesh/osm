@@ -1,6 +1,8 @@
 package lds
 
 import (
+	"fmt"
+
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -17,11 +19,13 @@ const (
 	inboundMulticlusterGatewayFilterChainName = "inbound-multicluster-gateway-filter-chain"
 )
 
-func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
+func (lb *listenerBuilder) buildMulticlusterGatewayListeners() []types.Resource {
 	if !lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
+		log.Trace().Msgf("[buildMulticlusterGatewayListeners] Multicluster mode is DISABLED")
+		fmt.Println("======================== 0")
 		return nil
 	}
-
+	fmt.Println("======================== 1")
 	filterChain, err := getGatewayFilterChain(lb.serviceIdentity)
 	if err != nil {
 		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")

@@ -27,6 +27,11 @@ spec:
     name: bookbuyer
     namespace: "$BOOKBUYER_NAMESPACE"
 
+  # Permits traffic from the OSM Multicluster Gateway
+  - kind: ServiceAccount
+    name: osm-multicluster-gateway
+    namespace: osm-system
+
 
 # TrafficTarget is deny-by-default policy: if traffic from source to destination is not
 # explicitly declared in this policy - it will be blocked.
@@ -60,6 +65,11 @@ spec:
   - kind: ServiceAccount
     name: bookbuyer
     namespace: "$BOOKBUYER_NAMESPACE"
+
+  # Permits traffic from the OSM Multicluster Gateway
+  - kind: ServiceAccount
+    name: osm-multicluster-gateway
+    namespace: osm-system
 
 
 # TrafficTarget is deny-by-default policy: if traffic from source to destination is not
@@ -95,5 +105,10 @@ spec:
   - kind: ServiceAccount
     name: bookstore-v2
     namespace: "$BOOKSTORE_NAMESPACE"
+
+  # Permits traffic from the OSM Multicluster Gateway
+  - kind: ServiceAccount
+    name: osm-multicluster-gateway
+    namespace: osm-system
 
 EOF

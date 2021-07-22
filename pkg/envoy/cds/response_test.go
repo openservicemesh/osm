@@ -489,7 +489,7 @@ func TestNewResponseForGateway(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm-multicluster-gateway", "osm-system")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindMulticlusterGateway, "osm-multicluster-gateway", "osm-system")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 

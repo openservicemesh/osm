@@ -10,5 +10,5 @@ import (
 func (mc *MeshCatalog) isOSMGateway(svcIdentity identity.ServiceIdentity) bool {
 	sa := svcIdentity.ToK8sServiceAccount()
 	return mc.configurator.GetFeatureFlags().EnableMulticlusterMode &&
-		envoy.ProxyKind(sa.Name) == envoy.KindGateway && sa.Namespace == mc.configurator.GetOSMNamespace()
+		envoy.ProxyKind(sa.Name) == envoy.KindMulticlusterGateway && sa.Namespace == mc.configurator.GetOSMNamespace()
 }

@@ -65,7 +65,7 @@ func TestBuildGatewayListeners(t *testing.T) {
 		serviceIdentity: id,
 	}
 
-	listeners := lb.buildGatewayListeners()
+	listeners := lb.buildMulticlusterGatewayListeners()
 	assert.Len(listeners, 1)
 	listener, ok := listeners[0].(*xds_listener.Listener)
 	assert.True(ok)

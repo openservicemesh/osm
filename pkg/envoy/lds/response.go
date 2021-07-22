@@ -1,6 +1,8 @@
 package lds
 
 import (
+	"fmt"
+
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
@@ -34,9 +36,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	lb := newListenerBuilder(meshCatalog, proxyIdentity, cfg, statsHeaders)
-
-	if proxy.Kind() == envoy.KindGateway {
-		return lb.buildGatewayListeners(), nil
+	fmt.Println("=============== STARAZAGORA XXX")
+	if proxy.Kind() == envoy.KindMulticlusterGateway {
+		fmt.Println("=============== STARAZAGORA YYY")
+		return lb.buildMulticlusterGatewayListeners(), nil
 	}
 
 	// --- OUTBOUND -------------------

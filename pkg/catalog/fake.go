@@ -236,6 +236,14 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, serviceProviders, endpointProviders)
+	return NewMeshCatalog(
+		mockKubeController,
+		meshSpec,
+		certManager,
+		mockIngressMonitor,
+		mockPolicyController,
+		stop,
+		cfg,
+		serviceProviders,
+		endpointProviders)
 }

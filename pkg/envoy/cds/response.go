@@ -21,7 +21,7 @@ import (
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	if proxy.Kind() == envoy.KindGateway {
+	if proxy.Kind() == envoy.KindMulticlusterGateway {
 		return getClustersForMulticlusterGateway(meshCatalog)
 	}
 
