@@ -53,8 +53,8 @@ jobs:
           skip-pkg-cache: true
           args: --timeout 5m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
-  tidy:
-    name: Tidy
+  codegen:
+    name: Codegen
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -65,6 +65,8 @@ jobs:
           go-version: 1.16
       - name: go mod tidy
         run: make go-mod-tidy
+      - name: Codegen checks
+        run: make check-codegen
 
   mocks:
     name: Mocks

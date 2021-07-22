@@ -123,8 +123,13 @@ check-mocks:
 	@go run ./mockspec/generate.go
 	@git diff --exit-code || { echo "----- Please commit the changes made by 'go run ./mockspec/generate.go' -----"; exit 1; }
 
+.PHONY: check-codegen
+check-codegen:
+	@./codegen/gen-crd-client.sh
+	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/gen-crd-client.sh' -----"; exit 1; }
+
 .PHONY: go-checks
-go-checks: go-lint go-fmt go-mod-tidy check-mocks
+go-checks: go-lint go-fmt go-mod-tidy check-mocks check-codegen
 
 .PHONY: go-vet
 go-vet:
