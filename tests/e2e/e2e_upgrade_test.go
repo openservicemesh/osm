@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -27,6 +28,10 @@ var _ = OSMDescribe("Upgrade from latest",
 		It("Tests upgrading the control plane", func() {
 			if Td.InstType == NoInstall {
 				Skip("test requires fresh OSM install")
+			}
+
+			if _, err := exec.LookPath("kubectl"); err != nil {
+				Td.T.Fatal("\"kubectl\" command required and not found on PATH")
 			}
 
 			helmCfg := &action.Configuration{}
@@ -207,6 +212,16 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 
 			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, "--container-registry="+Td.CtrRegistryServer, "--osm-image-tag="+Td.OsmImageTag)
+			Td.T.Log(stdout.String())
+			if err != nil {
+				Td.T.Log("stderr:\n" + stderr.String())
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify that all the CRD's required by OSM are present in the cluster post an upgrade
+			// TODO: Find a decent way to do this without relying on the kubectl binary
+			// TODO: In the future when we bump the version on a CRD, we need to update this check to ensure that the version is the latest required version
+			stdout, stderr, err = Td.RunLocal("kubectl", "get", "-f", filepath.FromSlash("../../charts/osm/crds"))
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())
