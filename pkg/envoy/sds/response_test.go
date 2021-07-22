@@ -37,15 +37,14 @@ func TestNewResponse(t *testing.T) {
 
 	// We deliberately set the namespace and service accounts to random values
 	// to ensure no hard-coded values sneak in.
-	namespace := uuid.New().String()
-	serviceAccount := uuid.New().String()
+	proxySvcAccount := identity.K8sServiceAccount{Name: uuid.New().String(), Namespace: uuid.New().String()}
 
 	// This is the thing we are going to be requesting (pretending that the Envoy is requesting it)
 	request := &xds_discovery.DiscoveryRequest{
 		TypeUrl: string(envoy.TypeSDS),
 		ResourceNames: []string{
-			secrets.SDSCert{Name: serviceAccount, CertType: secrets.ServiceCertType}.String(),
-			secrets.SDSCert{Name: serviceAccount, CertType: secrets.RootCertTypeForMTLSInbound}.String(),
+			secrets.SDSCert{Name: proxySvcAccount.String(), CertType: secrets.ServiceCertType}.String(),
+			secrets.SDSCert{Name: proxySvcAccount.String(), CertType: secrets.RootCertTypeForMTLSInbound}.String(),
 		},
 	}
 
@@ -56,23 +55,23 @@ func TestNewResponse(t *testing.T) {
 	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
 	podID := uuid.New().String()
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", podID, envoy.KindSidecar, serviceAccount, namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", podID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace, identity.ClusterLocalTrustDomain))
 	certSerialNumber := certificate.SerialNumber("123456")
-	goodProxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 	assert.Nil(err)
 
 	_, err = envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
 	assert.Equal(err, envoy.ErrInvalidCertificateCN)
 
-	cfg := configurator.NewConfigurator(fakeConfigClient, stop, namespace, "-the-mesh-config-name-")
+	cfg := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-")
 	certManager := tresor.NewFakeCertManager(cfg)
 	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with an properly configured proxy
-	resources, err := NewResponse(meshCatalog, goodProxy, request, cfg, certManager, nil)
+	resources, err := NewResponse(meshCatalog, proxy, request, cfg, certManager, nil)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 	assert.NotNil(resources)
-	assert.Equal(len(resources), 1)
+	assert.Equal(len(resources), 2) // 1. service-cert, 2. root-cert-for-mtls-inbound (refer to the DiscoveryRequest 'request')
 	_, ok := resources[0].(*xds_auth.Secret)
 	assert.True(ok)
 }
