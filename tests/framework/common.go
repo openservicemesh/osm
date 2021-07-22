@@ -512,7 +512,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
-	// Ensure osm-injector and osm-controller are ready
+	// Ensure osm-injector, osm-controller and osm-crd-converter are ready
 	err = td.waitForOSMControlPlane(30 * time.Second)
 	if err != nil {
 		return err

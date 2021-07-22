@@ -465,12 +465,12 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	var errController, errInjector error
 	waitGroup := sync.WaitGroup{}
-	waitGroup.Add(2)
+	waitGroup.Add(3)
 
 	go func() {
 		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": "osm-controller",
+				"app": OsmControllerAppLabel,
 			},
 		})
 		waitGroup.Done()
@@ -479,7 +479,16 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	go func() {
 		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": "osm-injector",
+				"app": OsmInjectorAppLabel,
+			},
+		})
+		waitGroup.Done()
+	}()
+
+	go func() {
+		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": OsmCrdConverterAppLabel,
 			},
 		})
 		waitGroup.Done()
