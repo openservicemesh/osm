@@ -5,7 +5,6 @@ import (
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -63,9 +62,8 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	apexServices := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
-			Name:          k8s.GetServiceFromHostname(split.Spec.Service),
-			Namespace:     split.Namespace,
-			ClusterDomain: constants.LocalDomain,
+			Name:      k8s.GetServiceFromHostname(split.Spec.Service),
+			Namespace: split.Namespace,
 		}
 
 		locality := service.LocalCluster
@@ -83,9 +81,8 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
 			ms := service.MeshService{
-				Name:          backend.Service,
-				Namespace:     split.ObjectMeta.Namespace,
-				ClusterDomain: constants.LocalDomain,
+				Name:      backend.Service,
+				Namespace: split.ObjectMeta.Namespace,
 			}
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
@@ -116,10 +113,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	if mc.isOSMGateway(serviceIdentity) {
 		var services []service.MeshService
 		for _, svc := range mc.ListAllMeshServices() {
-			// The gateway can only forward to local services.
-			if svc.Local() {
-				services = append(services, svc)
-			}
+			services = append(services, svc)
 		}
 		return services
 	}
@@ -299,8 +293,7 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 				continue
 			}
 			backendCluster := service.WeightedCluster{
-				// TODO(steeling) splits only work in the local cluster as of now.
-				ClusterName: service.ClusterName(split.Namespace + "/" + backend.Service + "/" + constants.LocalDomain.String()),
+				ClusterName: service.ClusterName(split.Namespace + "/" + backend.Service),
 				Weight:      backend.Weight,
 			}
 			weightedClusters = append(weightedClusters, backendCluster)
@@ -332,10 +325,6 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	splitPolicy := mc.meshSpec.ListTrafficSplits()
 
 	for upstreamSvc := range dstServicesSet {
-		// Traffic Splits aren't yet supported for non-local services.
-		if !upstreamSvc.Local() {
-			continue
-		}
 		for _, split := range splitPolicy {
 			// Split policy must be in the same namespace as the upstream service that is a backend
 			if split.Namespace != upstreamSvc.Namespace {
@@ -345,9 +334,8 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 				if backend.Service == upstreamSvc.Name {
 					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
 					rootMeshService := service.MeshService{
-						Namespace:     split.Namespace,
-						Name:          rootServiceName,
-						ClusterDomain: constants.LocalDomain,
+						Namespace: split.Namespace,
+						Name:      rootServiceName,
 					}
 
 					// Add this root service into the set
