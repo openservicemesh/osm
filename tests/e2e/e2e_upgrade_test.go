@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	"os/exec"
+	"context"
 	"path/filepath"
 	"time"
 
@@ -10,6 +10,8 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -25,10 +27,6 @@ var _ = OSMDescribe("Upgrade from latest",
 		It("Tests upgrading the control plane", func() {
 			if Td.InstType == NoInstall {
 				Skip("test requires fresh OSM install")
-			}
-
-			if _, err := exec.LookPath("kubectl"); err != nil {
-				Td.T.Fatal("\"kubectl\" command required and not found on PATH")
 			}
 
 			helmCfg := &action.Configuration{}
@@ -101,7 +99,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
 			// Get simple pod definitions for the HTTP server
-			svcAccDef, podDef, svcDef := Td.SimplePodApp(
+			svcAccDef, dstPodDef, svcDef := Td.SimplePodApp(
 				SimplePodAppDef{
 					Name:      "server",
 					Namespace: ns,
@@ -111,13 +109,13 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			_, err = Td.CreateServiceAccount(ns, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			dstPod, err := Td.CreatePod(ns, podDef)
+			dstPod, err := Td.CreatePod(ns, dstPodDef)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateService(ns, svcDef)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Get simple Pod definitions for the client
-			svcAccDef, podDef, svcDef = Td.SimplePodApp(SimplePodAppDef{
+			svcAccDef, srcPodDef, svcDef := Td.SimplePodApp(SimplePodAppDef{
 				Name:      "client",
 				Namespace: ns,
 				Command:   []string{"/bin/bash", "-c", "--"},
@@ -128,7 +126,7 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			_, err = Td.CreateServiceAccount(ns, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			srcPod, err := Td.CreatePod(ns, podDef)
+			srcPod, err := Td.CreatePod(ns, srcPodDef)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateService(ns, svcDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -215,11 +213,14 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 			Expect(err).NotTo(HaveOccurred())
 
-			// Re-deploy policies
-			_, err = Td.CreateHTTPRouteGroup(ns, httpRG)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(ns, trafficTarget)
-			Expect(err).NotTo(HaveOccurred())
+			By("Recreating client and server pods")
+			for _, pod := range []corev1.Pod{srcPodDef, dstPodDef} {
+				err = Td.Client.CoreV1().Pods(ns).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = Td.CreatePod(ns, pod)
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 2, nil)).To(Succeed())
 
 			checkClientToServerOK()
 			checkProxiesConnected()
