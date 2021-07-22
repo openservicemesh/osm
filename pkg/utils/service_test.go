@@ -5,7 +5,6 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -16,9 +15,8 @@ func TestK8sSvcToMeshSvc(t *testing.T) {
 	v1Service := tests.NewServiceFixture(tests.BookstoreV1ServiceName, tests.Namespace, nil)
 	meshSvc := K8sSvcToMeshSvc(v1Service)
 	expectedMeshSvc := service.MeshService{
-		Name:          tests.BookstoreV1ServiceName,
-		Namespace:     tests.Namespace,
-		ClusterDomain: constants.LocalDomain,
+		Name:      tests.BookstoreV1ServiceName,
+		Namespace: tests.Namespace,
 	}
 
 	assert.Equal(meshSvc, expectedMeshSvc)

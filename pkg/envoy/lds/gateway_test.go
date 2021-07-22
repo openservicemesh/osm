@@ -43,9 +43,8 @@ func TestBuildGatewayListeners(t *testing.T) {
 		tests.BookwarehouseService,
 		// Non local should get filtered out.
 		{
-			Name:          "bookthief",
-			Namespace:     "default",
-			ClusterDomain: "non-local",
+			Name:      "bookthief",
+			Namespace: "default",
 		},
 	}
 	mockCatalog.EXPECT().ListMeshServicesForIdentity(id).Return(returnMeshSvc).AnyTimes()

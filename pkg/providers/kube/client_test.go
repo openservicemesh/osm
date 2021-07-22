@@ -658,8 +658,8 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		meshServices, err := client.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
 		expectedServices := []service.MeshService{
-			{Name: "test-1", Namespace: testNamespace, ClusterDomain: constants.LocalDomain},
-			{Name: "test-2", Namespace: testNamespace, ClusterDomain: constants.LocalDomain},
+			{Name: "test-1", Namespace: testNamespace},
+			{Name: "test-2", Namespace: testNamespace},
 		}
 		Expect(len(meshServices)).To(Equal(len(expectedServices)))
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))

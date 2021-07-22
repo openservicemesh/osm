@@ -139,9 +139,9 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
 		serverNames = append(serverNames,
 			service.MeshService{
-				Name:          proxyService.Name,
-				Namespace:     proxyService.Namespace,
-				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+				Name:      proxyService.Name,
+				Namespace: proxyService.Namespace,
+			}.ServerName(),
 		)
 	}
 
@@ -199,9 +199,9 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
 		serverNames = append(serverNames,
 			service.MeshService{
-				Name:          proxyService.Name,
-				Namespace:     proxyService.Namespace,
-				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
+				Name:      proxyService.Name,
+				Namespace: proxyService.Namespace,
+			}.ServerName(),
 		)
 	}
 

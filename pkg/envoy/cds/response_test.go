@@ -403,9 +403,8 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 
 	svc := service.MeshService{
-		Namespace:     "ns",
-		Name:          "svc",
-		ClusterDomain: constants.LocalDomain,
+		Namespace: "ns",
+		Name:      "svc",
 	}
 
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()

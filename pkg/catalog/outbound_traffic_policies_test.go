@@ -14,7 +14,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -103,9 +102,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -155,9 +153,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -217,9 +214,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -517,9 +513,8 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -544,9 +539,8 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit4},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -571,9 +565,8 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -598,14 +591,12 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit, &testSplit1},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -643,9 +634,8 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit2},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -670,14 +660,12 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit3},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 				{
-					Name:          "apex-split-1",
-					Namespace:     "baz",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "baz",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
@@ -1182,9 +1170,8 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	}
 
 	destMeshService := service.MeshService{
-		Name:          "bookstore",
-		Namespace:     "bookstore-ns",
-		ClusterDomain: constants.LocalDomain,
+		Name:      "bookstore",
+		Namespace: "bookstore-ns",
 	}
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
@@ -1236,9 +1223,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without any traffic split policies",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: nil,
 			expected:      nil,
@@ -1246,9 +1232,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1285,9 +1270,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1315,9 +1299,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with multiple matching policies, pick first",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1373,9 +1356,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with matching traffic split policy including a backend with 0 weight",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1497,19 +1479,16 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 			},
 			expected: []service.MeshService{
 				{
-					Name:          "split-svc",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-svc",
+					Namespace: "my-dst-ns",
 				},
 				{
-					Name:          "split-backend-1",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-backend-1",
+					Namespace: "my-dst-ns",
 				},
 				{
-					Name:          "split-backend-2",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-backend-2",
+					Namespace: "my-dst-ns",
 				},
 			},
 		},

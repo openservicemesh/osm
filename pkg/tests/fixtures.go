@@ -109,37 +109,32 @@ const (
 var (
 	// BookstoreV1Service is the bookstore service.
 	BookstoreV1Service = service.MeshService{
-		Namespace:     Namespace,
-		Name:          BookstoreV1ServiceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: Namespace,
+		Name:      BookstoreV1ServiceName,
 	}
 
 	// BookstoreV2Service is the bookstore service.
 	BookstoreV2Service = service.MeshService{
-		Namespace:     Namespace,
-		Name:          BookstoreV2ServiceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: Namespace,
+		Name:      BookstoreV2ServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
 	BookbuyerService = service.MeshService{
-		Namespace:     Namespace,
-		Name:          BookbuyerServiceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: Namespace,
+		Name:      BookbuyerServiceName,
 	}
 
 	// BookstoreApexService is the bookstore-apex service
 	BookstoreApexService = service.MeshService{
-		Namespace:     Namespace,
-		Name:          BookstoreApexServiceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: Namespace,
+		Name:      BookstoreApexServiceName,
 	}
 
 	// BookwarehouseService is the bookwarehouse service.
 	BookwarehouseService = service.MeshService{
-		Namespace:     Namespace,
-		Name:          BookwarehouseServiceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: Namespace,
+		Name:      BookwarehouseServiceName,
 	}
 
 	// BookstoreHostnames are the hostnames for bookstore service
@@ -609,9 +604,8 @@ func NewServiceAccountFixture(svcAccountName, namespace string) *corev1.ServiceA
 // NewMeshServiceFixture creates a new mesh service
 func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 	return service.MeshService{
-		Name:          serviceName,
-		Namespace:     namespace,
-		ClusterDomain: constants.LocalDomain,
+		Name:      serviceName,
+		Namespace: namespace,
 	}
 }
 

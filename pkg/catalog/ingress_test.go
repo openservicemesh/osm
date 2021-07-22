@@ -50,9 +50,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Ingress rule with multiple rules and no default backend",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -160,9 +159,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Ingress rule with multiple rules and a default backend",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -295,9 +293,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Multiple ingresses matching different hosts",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -418,9 +415,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Multiple ingresses matching same hosts with different rules",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -533,9 +529,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Ingress rule with unset pathType must default to ImplementationSpecific",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -643,9 +638,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Ingress rule with invalid pathType must be ignored",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -732,9 +726,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Wildcard path / with Prefix type should be matched as a string prefix",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -800,9 +793,8 @@ func TestGetIngressPoliciesNetworkingV1beta1(t *testing.T) {
 		{
 			name: "Prefix path type with trailing slash should be stripped",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1beta1.Ingress{
 				{
@@ -901,9 +893,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Ingress rule with multiple rules and no default backend",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1013,9 +1004,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Ingress rule with multiple rules and a default backend",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1151,9 +1141,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Multiple ingresses matching different hosts",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1276,9 +1265,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Multiple ingresses matching same hosts with different rules",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1393,9 +1381,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Ingress rule with unset pathType must default to ImplementationSpecific",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1505,9 +1492,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Ingress rule with invalid pathType must be ignored",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1596,9 +1582,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Wildcard path / with Prefix type should be matched as a string prefix",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1665,9 +1650,8 @@ func TestGetIngressPoliciesNetworkingV1(t *testing.T) {
 		{
 			name: "Prefix path type with trailing slash should be stripped",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingresses: []*networkingV1.Ingress{
 				{
@@ -1767,9 +1751,8 @@ func TestGetIngressPoliciesFromK8s(t *testing.T) {
 		{
 			name: "Ingress v1 with multiple rules",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingressesV1: []*networkingV1.Ingress{
 				{
@@ -1879,9 +1862,8 @@ func TestGetIngressPoliciesFromK8s(t *testing.T) {
 		{
 			name: "Ingress v1beta1 with with multiple rules",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingressesV1beta1: []*networkingV1beta1.Ingress{
 				{
@@ -1989,9 +1971,8 @@ func TestGetIngressPoliciesFromK8s(t *testing.T) {
 		{
 			name: "Ingress v1 and v1beta both present",
 			svc: service.MeshService{
-				Name:          "foo",
-				Namespace:     "testns",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "testns",
 			},
 			ingressesV1: []*networkingV1.Ingress{
 				{
@@ -2177,7 +2158,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			name:                        "HTTP ingress with k8s ingress enabled",
 			ingressBackendPolicyEnabled: false,
 			enableHTTPSIngress:          false,
-			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns"},
 			ingressV1: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -2253,7 +2234,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			name:                        "HTTPS ingress with k8s ingress enabled",
 			ingressBackendPolicyEnabled: false,
 			enableHTTPSIngress:          true,
-			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns"},
 			ingressV1: []*networkingV1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -2337,7 +2318,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			name:                        "No ingress routes",
 			ingressBackendPolicyEnabled: false,
 			enableHTTPSIngress:          false,
-			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns"},
 			ingressBackend:              nil,
 			expectedPolicy:              nil,
 		},

@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -553,9 +552,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without any traffic split policies",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
@@ -567,9 +565,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			clusterWeights: []service.WeightedCluster{
 				{

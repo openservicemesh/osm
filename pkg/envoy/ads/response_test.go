@@ -54,9 +54,8 @@ var _ = Describe("Test ADS response functions", func() {
 	namespace := tests.Namespace
 	proxyUUID := uuid.New()
 	proxyService := service.MeshService{
-		Name:          tests.BookstoreV1ServiceName,
-		Namespace:     namespace,
-		ClusterDomain: constants.LocalDomain,
+		Name:      tests.BookstoreV1ServiceName,
+		Namespace: namespace,
 	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 

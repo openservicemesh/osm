@@ -19,9 +19,8 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		for _, backend := range split.Spec.Backends {
 			backendService := service.MeshService{
-				Name:          backend.Service,
-				Namespace:     split.ObjectMeta.Namespace,
-				ClusterDomain: constants.LocalDomain,
+				Name:      backend.Service,
+				Namespace: split.ObjectMeta.Namespace,
 			}
 			if svc.Equals(backendService) {
 				return true
@@ -35,9 +34,8 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		apexService := service.MeshService{
-			Name:          k8s.GetServiceFromHostname(split.Spec.Service),
-			Namespace:     split.Namespace,
-			ClusterDomain: constants.LocalDomain,
+			Name:      k8s.GetServiceFromHostname(split.Spec.Service),
+			Namespace: split.Namespace,
 		}
 		if svc.Equals(apexService) {
 			return true
@@ -55,9 +53,8 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 		for _, backend := range split.Spec.Backends {
 			if backend.Service == targetService.Name && split.Namespace == targetService.Namespace {
 				meshService := service.MeshService{
-					Name:          k8s.GetServiceFromHostname(split.Spec.Service),
-					Namespace:     split.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      k8s.GetServiceFromHostname(split.Spec.Service),
+					Namespace: split.Namespace,
 				}
 				apexSet.Add(meshService)
 				break

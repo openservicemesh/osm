@@ -6,7 +6,6 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -15,8 +14,8 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 	assert := tassert.New(t)
 
 	namespacedServices := []service.MeshService{
-		{Namespace: "osm", Name: "bookstore-1", ClusterDomain: constants.LocalDomain},
-		{Namespace: "osm", Name: "bookstore-2", ClusterDomain: constants.LocalDomain},
+		{Namespace: "osm", Name: "bookstore-1"},
+		{Namespace: "osm", Name: "bookstore-2"},
 	}
 
 	allServiceEndpoints := map[service.MeshService][]endpoint.Endpoint{

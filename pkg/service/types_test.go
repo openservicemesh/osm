@@ -27,9 +27,8 @@ var _ = Describe("Test pkg/service functions", func() {
 		namespace := uuid.New().String()
 		name := uuid.New().String()
 		ms := MeshService{
-			Namespace:     namespace,
-			Name:          name,
-			ClusterDomain: constants.LocalDomain,
+			Namespace: namespace,
+			Name:      name,
 		}
 
 		It("implements stringer correctly", func() {

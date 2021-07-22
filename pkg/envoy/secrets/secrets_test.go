@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -85,9 +84,8 @@ func TestUnmarshalMeshService(t *testing.T) {
 	namespace := "randomNamespace"
 	serviceName := "randomServiceName"
 	meshService := &service.MeshService{
-		Namespace:     namespace,
-		Name:          serviceName,
-		ClusterDomain: constants.LocalDomain,
+		Namespace: namespace,
+		Name:      serviceName,
 	}
 
 	str := meshService.String()

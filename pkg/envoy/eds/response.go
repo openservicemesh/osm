@@ -10,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -93,9 +92,8 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>/<cluster>, Got: %s", cluster)
 	}
 	return service.MeshService{
-		Namespace:     chunks[0],
-		Name:          chunks[1],
-		ClusterDomain: constants.LocalDomain,
+		Namespace: chunks[0],
+		Name:      chunks[1],
 	}, nil
 }
 

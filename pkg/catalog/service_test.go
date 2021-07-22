@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -82,7 +81,7 @@ func TestGetApexServicesForBackendService(t *testing.T) {
 		{
 			name:          "multiple traffic split matches",
 			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit, &testSplit2},
-			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default", ClusterDomain: constants.LocalDomain}},
+			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default"}},
 		},
 		{
 			name:          "no traffic splits present, so no backeds returned",
@@ -229,7 +228,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		expectedError       error
 	}{
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
+			service.MeshService{Name: "foo", Namespace: "ns-1"},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -237,7 +236,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
+			service.MeshService{Name: "foo", Namespace: "ns-1"},
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
@@ -245,7 +244,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 			nil,
 		},
 		{
-			service.MeshService{Name: "foo", Namespace: "ns-1", ClusterDomain: constants.LocalDomain},
+			service.MeshService{Name: "foo", Namespace: "ns-1"},
 			nil,
 			errServiceNotFound,
 		},
@@ -337,9 +336,8 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 	}
 
 	testSvc := service.MeshService{
-		Name:          "foo",
-		Namespace:     "bar",
-		ClusterDomain: constants.LocalDomain,
+		Name:      "foo",
+		Namespace: "bar",
 	}
 
 	for i, tc := range testCases {
@@ -369,9 +367,8 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	svc := service.MeshService{
-		Namespace:     "foo",
-		Name:          "bar",
-		ClusterDomain: constants.LocalDomain,
+		Namespace: "foo",
+		Name:      "bar",
 	}
 	appProtocolTCP := "tcp"
 	appProtocolHTTP := "http"

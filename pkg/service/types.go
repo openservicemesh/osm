@@ -3,9 +3,7 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -37,38 +35,20 @@ type MeshService struct {
 
 	// The name of the service
 	Name string
-
-	// The ClusterDomain of the service
-	ClusterDomain constants.ClusterDomain
 }
 
 func (ms MeshService) String() string {
-	return fmt.Sprintf("%s%s%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name, namespaceNameSeparator, ms.ClusterDomain)
+	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
-// NameWithoutCluster returns a string with out the ClusterDomain
+// NameWithoutCluster returns a string
 func (ms MeshService) NameWithoutCluster() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
-	if ms.ClusterDomain == "" {
-		ms.ClusterDomain = constants.LocalDomain
-	}
-	return strings.Join([]string{ms.Name, ms.Namespace, ms.ClusterDomain.String()}, ".")
-}
-
-// Local returns whether or not this is service is in the local cluster.
-func (ms MeshService) Local() bool {
-	// TODO(steeling): if it's unset consider it local for now.
-	return ms.ClusterDomain == constants.LocalDomain || ms.ClusterDomain == ""
-}
-
-// Global returns whether or not this is service points to the global clusterset.
-func (ms MeshService) Global() bool {
-	// TODO(steeling): if it's unset consider it local for now.
-	return ms.ClusterDomain == constants.GlobalDomain
+	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
 }
 
 // ClusterName is a type for a service name
