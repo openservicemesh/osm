@@ -36,6 +36,7 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+TIMEOUT="${TIMEOUT:-90s}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -108,7 +109,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
-      --timeout=90s \
+      --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -128,7 +129,7 @@ else
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
-      --timeout=90s \
+      --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi
 
