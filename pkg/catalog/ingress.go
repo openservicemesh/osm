@@ -5,9 +5,12 @@ import (
 	"regexp"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
+
+	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -28,6 +31,9 @@ const (
 	// It is used to guess whether a path specified appears as a regex.
 	// It is used as a fallback to match ingress paths whose PathType is set to be ImplementationSpecific.
 	commonRegexChars = `^$*+[]%|`
+
+	// singeIPPrefixLen is the IP prefix length for a single IP address
+	singeIPPrefixLen = "/32"
 )
 
 // Ensure the regex pattern for prefix matching for path elements compiles
@@ -46,8 +52,95 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 
 // getIngressTrafficPolicy returns the ingress traffic policy for the given mesh service from corresponding IngressBackend resource
 func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
-	// TODO(#3779): build policy from IngressBackend
-	return nil, nil
+	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
+	if ingressBackendPolicy == nil {
+		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
+		return nil, nil
+	}
+
+	var trafficRoutingRules []*trafficpolicy.Rule
+	sourceServiceIdentities := mapset.NewSet()
+	var trafficMatches []*trafficpolicy.IngressTrafficMatch
+	for _, backend := range ingressBackendPolicy.Spec.Backends {
+		if backend.Name != svc.Name {
+			continue
+		}
+
+		trafficMatch := &trafficpolicy.IngressTrafficMatch{
+			Name:                     fmt.Sprintf("ingress_%s_%d_%s", svc, backend.Port.Number, backend.Port.Protocol),
+			Port:                     uint32(backend.Port.Number),
+			Protocol:                 backend.Port.Protocol,
+			ServerNames:              backend.TLS.SNIHosts,
+			SkipClientCertValidation: backend.TLS.SkipClientCertValidation,
+		}
+
+		var sourceIPRanges []string
+		sourceIPSet := mapset.NewSet() // Used to avoid duplicate IP ranges
+		for _, source := range ingressBackendPolicy.Spec.Sources {
+			switch source.Kind {
+			case policyV1alpha1.KindService:
+				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
+				endpoints, _ := mc.listEndpointsForService(sourceMeshSvc)
+				if len(endpoints) == 0 {
+					return nil, errors.Errorf("Could not list endpoints of the source service %s specified in the IngressBackend %s/%s",
+						source, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
+				}
+
+				for _, ep := range endpoints {
+					sourceCIDR := ep.IP.String() + singeIPPrefixLen
+					if sourceIPSet.Add(sourceCIDR) {
+						sourceIPRanges = append(sourceIPRanges, sourceCIDR)
+					}
+				}
+
+			case policyV1alpha1.KindAuthenticatedPrincipal:
+				var sourceIdentity identity.ServiceIdentity
+				if backend.TLS.SkipClientCertValidation {
+					sourceIdentity = identity.WildcardServiceIdentity
+				} else {
+					sourceIdentity = identity.ServiceIdentity(source.Name)
+				}
+				sourceServiceIdentities.Add(sourceIdentity)
+			}
+		}
+
+		// If this ingress is corresponding to an HTTP port, wildcard the downstream's identity
+		// because the identity cannot be verified for HTTP traffic. HTTP based ingress can
+		// restrict downstreams based on their endpoint's IP address.
+		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
+			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+		}
+
+		trafficMatch.SourceIPRanges = sourceIPRanges
+		trafficMatches = append(trafficMatches, trafficMatch)
+
+		// Build the routing rule for this backend and source combination.
+		// Currently IngressBackend only supports a wildcard HTTP route. The
+		// 'Matches' field in the spec can be used to extend this to perform
+		// stricter enforcement.
+		backendCluster := getDefaultWeightedClusterForService(svc)
+		routingRule := &trafficpolicy.Rule{
+			Route: trafficpolicy.RouteWeightedClusters{
+				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
+				WeightedClusters: mapset.NewSet(backendCluster),
+			},
+			AllowedServiceIdentities: sourceServiceIdentities,
+		}
+		trafficRoutingRules = append(trafficRoutingRules, routingRule)
+	}
+
+	// Create an inbound traffic policy from the routing rules
+	// TODO(#3779): Implement HTTP route matching from IngressBackend.Spec.Matches
+	httpRoutePolicy := &trafficpolicy.InboundTrafficPolicy{
+		Name:      fmt.Sprintf("%s_from_%s", svc, ingressBackendPolicy.Name),
+		Hostnames: []string{"*"},
+		Rules:     trafficRoutingRules,
+	}
+
+	return &trafficpolicy.IngressTrafficPolicy{
+		TrafficMatches:    trafficMatches,
+		HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{httpRoutePolicy},
+	}, nil
 }
 
 // getIngressTrafficPolicyFromK8s returns the ingress traffic policy for the given mesh service from the corresponding k8s Ingress resource

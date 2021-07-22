@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"net"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
@@ -15,6 +16,8 @@ import (
 
 	configV1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -2163,6 +2166,15 @@ func TestGetIngressPolicyName(t *testing.T) {
 }
 
 func TestGetIngressTrafficPolicy(t *testing.T) {
+	// Common test variables
+	portToProtocolMapping := map[uint32]string{80: "http", 443: "tcp"}
+	ingressSourceSvc := service.MeshService{Name: "ingressGateway", Namespace: "IngressGatewayNs"}
+	ingressBackendSvcEndpoints := []endpoint.Endpoint{
+		{IP: net.ParseIP("10.0.0.10"), Port: 80},
+		{IP: net.ParseIP("10.0.0.10"), Port: 90},
+	}
+	sourceSvcWithoutEndpoints := service.MeshService{Name: "unknown", Namespace: "IngressGatewayNs"}
+
 	testCases := []struct {
 		name                        string
 		ingressBackendPolicyEnabled bool
@@ -2248,6 +2260,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
+			expectError: false,
 		},
 		{
 			name:                        "HTTPS ingress with k8s ingress enabled",
@@ -2332,6 +2345,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
+			expectError: false,
 		},
 		{
 			name:                        "No ingress routes",
@@ -2340,10 +2354,238 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
 			ingressBackend:              nil,
 			expectedPolicy:              nil,
+			expectError:                 false,
+		},
+		{
+			name:                        "HTTP ingress using the IngressBackend API",
+			ingressBackendPolicyEnabled: true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind:      policyV1alpha1.KindService,
+							Name:      ingressSourceSvc.Name,
+							Namespace: ingressSourceSvc.Namespace,
+						},
+					},
+				},
+			},
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "testns/foo/local_from_ingress-backend-1",
+						Hostnames: []string{
+							"*",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo/local",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:           "ingress_testns/foo/local_80_http",
+						Protocol:       "http",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                        "HTTPS ingress with mTLS using the IngressBackend API",
+			ingressBackendPolicyEnabled: true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "https",
+							},
+							TLS: policyV1alpha1.TLSSpec{
+								SkipClientCertValidation: false,
+								SNIHosts:                 []string{"foo.org"},
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind:      policyV1alpha1.KindService,
+							Name:      ingressSourceSvc.Name,
+							Namespace: ingressSourceSvc.Namespace,
+						},
+						{
+							Kind: policyV1alpha1.KindAuthenticatedPrincipal,
+							Name: "ingressGw.ingressGwNs.cluster.local",
+						},
+					},
+				},
+			},
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "testns/foo/local_from_ingress-backend-1",
+						Hostnames: []string{
+							"*",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo/local",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.ServiceIdentity("ingressGw.ingressGwNs.cluster.local")),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:                     "ingress_testns/foo/local_80_https",
+						Protocol:                 "https",
+						Port:                     80,
+						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						SkipClientCertValidation: false,
+						ServerNames:              []string{"foo.org"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                        "HTTPS ingress with TLS using the IngressBackend API",
+			ingressBackendPolicyEnabled: true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "https",
+							},
+							TLS: policyV1alpha1.TLSSpec{
+								SkipClientCertValidation: true,
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind:      policyV1alpha1.KindService,
+							Name:      ingressSourceSvc.Name,
+							Namespace: ingressSourceSvc.Namespace,
+						},
+						{
+							Kind: policyV1alpha1.KindAuthenticatedPrincipal,
+							Name: "ingressGw.ingressGwNs.cluster.local",
+						},
+					},
+				},
+			},
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "testns/foo/local_from_ingress-backend-1",
+						Hostnames: []string{
+							"*",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo/local",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:                     "ingress_testns/foo/local_80_https",
+						Protocol:                 "https",
+						Port:                     80,
+						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						SkipClientCertValidation: true,
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                        "Specifying a source service without endpoints in an IngressBackend should error",
+			ingressBackendPolicyEnabled: true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", ClusterDomain: "local"},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind:      policyV1alpha1.KindService,
+							Name:      sourceSvcWithoutEndpoints.Name, // This service does not exist, so it's endpoints won't as well
+							Namespace: sourceSvcWithoutEndpoints.Namespace,
+						},
+					},
+				},
+			},
+			expectedPolicy: nil,
+			expectError:    true,
 		},
 	}
-
-	portToProtocolMapping := map[uint32]string{80: "http", 443: "tcp"}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -2353,19 +2595,30 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 
 			mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				ingressMonitor:   mockIngressMonitor,
-				serviceProviders: []service.Provider{mockServiceProvider},
-				configurator:     mockCfg,
+				ingressMonitor:     mockIngressMonitor,
+				serviceProviders:   []service.Provider{mockServiceProvider},
+				endpointsProviders: []endpoint.Provider{mockEndpointsProvider},
+				configurator:       mockCfg,
+				policyController:   mockPolicyController,
 			}
 
+			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
+			// depending on the test case.
 			mockCfg.EXPECT().GetFeatureFlags().Return(configV1alpha1.FeatureFlags{EnableIngressBackendPolicy: tc.ingressBackendPolicyEnabled}).Times(1)
-			mockCfg.EXPECT().UseHTTPSIngress().Return(tc.enableHTTPSIngress).Times(1).AnyTimes()                                            // may or may not be called
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(tc.ingressV1, nil).AnyTimes()                           // may or may not be called
-			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()                               // may or may not be called
-			mockServiceProvider.EXPECT().GetTargetPortToProtocolMappingForService(tc.meshSvc).Return(portToProtocolMapping, nil).AnyTimes() // may or may not be called
+			mockCfg.EXPECT().UseHTTPSIngress().Return(tc.enableHTTPSIngress).Times(1).AnyTimes()
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(tc.ingressV1, nil).AnyTimes()
+			mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
+			mockServiceProvider.EXPECT().GetID().Return("mock").AnyTimes()
+			mockServiceProvider.EXPECT().GetTargetPortToProtocolMappingForService(tc.meshSvc).Return(portToProtocolMapping, nil).AnyTimes()
+			mockEndpointsProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
+			mockEndpointsProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
+			mockEndpointsProvider.EXPECT().GetID().Return("mock").AnyTimes()
 
 			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
 			assert.Equal(tc.expectError, err != nil)
