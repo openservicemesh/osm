@@ -22,7 +22,10 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, errNoIssuingCA
 	}
 
-	certKeyBitSize := cm.cfg.GetCertKeyBitSize()
+	certKeyBitSize := rsaBits
+	if cm.cfg != nil {
+		certKeyBitSize = cm.cfg.GetCertKeyBitSize()
+	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyBitSize)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
