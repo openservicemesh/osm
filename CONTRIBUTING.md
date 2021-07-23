@@ -90,19 +90,18 @@ git push -f
 ```
 
 ### Merging pull requests
-Pull requests by default must be merged by a core maintainer using the `Merge pull request` option as a `merge commit`.
+Pull requests by default must be merged by a core maintainer.
 Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/automerge.md).
 
 Pull requests will be merged based on the following criteria:
 
 - Has at least two LGTM from a core maintainer.
-- Commits in the pull request are squashed and have a valid [signature](#sign-your-work).
 - Commits follow the [commit style guidelines](#commit-style-guideline).
 - Does not have the `do-not-merge/hold` label.
 - Does not have the `wip` label.
 - All status checks have succeeded.
+- Commits in the pull request are squashed and have a valid [signature](#sign-your-work). If the commits in the PR are not squashed, maintainers must use the `squash and merge` option to squash the commits before merging. Maintainers may choose to update the commit message to meet the commit message guidelines without altering the signatures of the authors of the pull request. In certain situations, it is okay to have multiple related but independent commits in the same pull request. In such cases, a pull request may be merged as a `merge commit`.
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
-- Core maintainers are allowed to use the `squash and merge` option only for their own pull requests.
 
 ### Commit Style Guideline
 We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
