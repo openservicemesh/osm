@@ -3,6 +3,10 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+env:
+  CTR_REGISTRY: openservicemesh
+  CTR_TAG: ${{ github.sha }}
+
 jobs:
   test:
     name: OpenShift Nightly Job
@@ -26,6 +30,22 @@ jobs:
         run: |
           make build-osm
           go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 180m -deployOnOpenShift=true
-        env: 
-          CTR_REGISTRY: openservicemesh
-          CTR_TAG: ${{ github.sha }}
+      - name: Run Simulation w/ Tresor, SMI policies, and egress disabled
+        env:
+          CERT_MANAGER: "tresor"
+          BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
+          ENABLE_EGRESS: "false"
+          DEPLOY_TRAFFIC_SPLIT: "true"
+          DEPLOY_ON_OPENSHIFT: "true"
+          TIMEOUT: 150s
+          CI_WAIT_FOR_OK_SECONDS: 60
+          CI_MAX_ITERATIONS_THRESHOLD: 60
+          CI_CLIENT_CONCURRENT_CONNECTIONS: 1
+          CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 150
+          CI_MIN_SUCCESS_THRESHOLD: 1
+          OSM_HUMAN_DEBUG_LOG: true
+        run: |
+          touch .env
+          ./demo/run-osm-demo.sh
+          go run ./ci/cmd/maestro.go
