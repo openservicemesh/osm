@@ -491,10 +491,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		)
 	}
 
-	instOpts.SetOverrides = append(instOpts.SetOverrides,
-		fmt.Sprintf("OpenServiceMesh.certKeyBitSize=%d", instOpts.CertBitSize),
-	)
-
 	td.T.Logf("Setting log OSM's log level through overrides to %s", instOpts.OSMLogLevel)
 	instOpts.SetOverrides = append(instOpts.SetOverrides,
 		fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", instOpts.OSMLogLevel))
