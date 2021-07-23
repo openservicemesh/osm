@@ -407,7 +407,7 @@ var _ = Describe("Running the install command", func() {
 
 		It("should error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(errMeshAlreadyExists(installCmd.meshName).Error()))
+			Expect(err.Error()).To(Equal(errMeshAlreadyExists(installCmd.meshName, settings.Namespace()).Error()))
 		})
 	})
 

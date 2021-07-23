@@ -193,7 +193,7 @@ func (i *installCmd) validateOptions() error {
 		return err
 	}
 	if len(osmControllerDeployments.Items) != 0 {
-		return errMeshAlreadyExists(i.meshName)
+		return errMeshAlreadyExists(i.meshName, osmControllerDeployments.Items[0].Namespace)
 	}
 
 	// ensure no osm-controller is running in the same namespace
@@ -268,12 +268,12 @@ func isValidMeshName(meshName string) error {
 	return nil
 }
 
-func errMeshAlreadyExists(name string) error {
-	return errors.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+func errMeshAlreadyExists(name string, namespace string) error {
+	return errors.Errorf("Mesh %s already exists in namespace %s. Please specify a new mesh name using --mesh-name and install the mesh in a different namespace using --osm-namespace", name, namespace)
 }
 
 func errNamespaceAlreadyHasController(namespace string) error {
-	return annotateErrorMessageWithOsmNamespace("Namespace [%s] already has an osm controller.", namespace)
+	return annotateErrorMessageWithOsmNamespace("Namespace [%s] already has an osm controller. Please specify a different namespace using --osm-namespace", namespace)
 }
 
 // parses Helm strvals line and merges into a map
