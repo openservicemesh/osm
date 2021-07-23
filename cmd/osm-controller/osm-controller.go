@@ -301,6 +301,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.K8sMeshPodCount,
 		metricsstore.DefaultMetricsStore.K8sMeshServiceCount,
 		metricsstore.DefaultMetricsStore.ProxyConnectCount,
+		metricsstore.DefaultMetricsStore.ProxyReconnectCount,
 		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,

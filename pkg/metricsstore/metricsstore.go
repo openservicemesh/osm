@@ -37,6 +37,9 @@ type MetricsStore struct {
 	// ProxyConnectCount is the metric for the total number of proxies connected to the controller
 	ProxyConnectCount prometheus.Gauge
 
+	// ProxyReconnectCount is the metric for the total reconnects from known proxies to the controller
+	ProxyReconnectCount prometheus.Counter
+
 	// ProxyConfigUpdateTime is the histogram to track time spent for proxy configuration and its occurrences
 	ProxyConfigUpdateTime *prometheus.HistogramVec
 
@@ -109,6 +112,13 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "connect_count",
 		Help:      "represents the number of proxies connected to OSM controller",
+	})
+
+	defaultMetricsStore.ProxyReconnectCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "reconnect_count",
+		Help:      "represents the number of reconnects from known proxies to OSM controller",
 	})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
