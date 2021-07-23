@@ -21,14 +21,8 @@ const directoryForExpectationsYAML = "../../tests/envoy_xds_expectations/"
 
 var log = logger.New("sidecar-injector")
 
-var tempDir string
-
 func getTempDir() string {
-	if tempDir != "" {
-		return tempDir
-	}
-
-	dir, err := ioutil.TempDir("", "envoy")
+	dir, err := ioutil.TempDir("", "osm_test_envoy")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating temp directory")
 	}
