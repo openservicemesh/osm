@@ -123,7 +123,7 @@ var _ = OSMDescribe("HTTP ingress",
 				}
 				Td.T.Logf("> REST req failed expectedly: %d", status)
 				return true
-			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
+			}, 5 /*consecutive success threshold*/, 120*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
 
 			ing := &v1beta1.Ingress{
@@ -169,7 +169,7 @@ var _ = OSMDescribe("HTTP ingress",
 				}
 				Td.T.Logf("> REST req succeeded: %d", status)
 				return true
-			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
+			}, 5 /*consecutive success threshold*/, 120*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
 		})
 	})

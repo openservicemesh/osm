@@ -31,7 +31,7 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: bookbuyer
-          image: openservicemesh/bookbuyer:v0.9.1-rc.1
+          image: openservicemesh/bookbuyer:v0.9.1
           imagePullPolicy: Always
           command: ["/bookbuyer"]
           env:
