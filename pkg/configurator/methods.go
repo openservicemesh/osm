@@ -21,7 +21,7 @@ const (
 	defaultCertKeyBitSize = 2048
 
 	// minCertKeyBitSize is the minimum certificate key bit size
-	minCertKeyBitSize = 512
+	minCertKeyBitSize = 2048
 
 	// maxCertKeyBitSize is the maximum certificate key bit size
 	maxCertKeyBitSize = 4096
