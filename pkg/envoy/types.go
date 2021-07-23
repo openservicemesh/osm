@@ -82,6 +82,14 @@ const (
 	// localClusterSuffix is the tag to append to the local cluster name corresponding to a service cluster.
 	// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
 	localClusterSuffix = "-local"
+
+	// EnvoyActiveHealthCheckPath is the HTTP endpoint to be used to receive
+	// active health checks.
+	EnvoyActiveHealthCheckPath = "/healthz/osm"
+
+	// EnvoyActiveHealthCheckHeaderKey is the HTTP header key used to identify
+	// active health check traffic.
+	EnvoyActiveHealthCheckHeaderKey = "x-osm-envoy-healthcheck"
 )
 
 // ProxyKind is the type used to define the proxy's kind

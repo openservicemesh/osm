@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -69,6 +70,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{}).AnyTimes()
 	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 
 	podlabels := map[string]string{

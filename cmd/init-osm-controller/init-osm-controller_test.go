@@ -54,7 +54,8 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	"enableOSMGateway": false,
 	"enableAsyncProxyServiceMapping": false,
 	"enableValidatingWebhook": false,
-	"enableIngressBackendPolicy": true
+	"enableIngressBackendPolicy": true,
+	"enableEnvoyActiveHealthChecks": true
 	}
 }`,
 		},
@@ -71,6 +72,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.False(meshConfig.Spec.Observability.EnableDebugServer)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "24h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
+	assert.True(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
 }
 
 func TestValidateCLIParams(t *testing.T) {

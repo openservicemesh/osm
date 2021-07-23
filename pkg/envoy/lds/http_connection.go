@@ -36,8 +36,9 @@ type httpConnManagerOptions struct {
 	rdsRoutConfigName string
 
 	// Additional filters
-	wasmStatsHeaders map[string]string
-	extAuthConfig    *auth.ExtAuthConfig
+	wasmStatsHeaders         map[string]string
+	extAuthConfig            *auth.ExtAuthConfig
+	enableActiveHealthChecks bool
 
 	// Tracing options
 	enableTracing      bool
@@ -92,6 +93,14 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 		}
 		connManager.HttpFilters = append(connManager.HttpFilters, wasmFilters...)
 		connManager.LocalReplyConfig = wasmLocalReplyConfig
+	}
+
+	if options.enableActiveHealthChecks {
+		hc, err := getHealthCheckFilter()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error getting health check filter for HTTP connection manager")
+		}
+		connManager.HttpFilters = append(connManager.HttpFilters, hc)
 	}
 
 	// *IMPORTANT NOTE*: The Router filter must always be the last filter

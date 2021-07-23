@@ -47,6 +47,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		if cfg.IsPermissiveTrafficPolicyMode() {
 			opts = append(opts, permissive)
 		}
+		if cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks {
+			opts = append(opts, withActiveHealthChecks)
+		}
 		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg, opts...)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).

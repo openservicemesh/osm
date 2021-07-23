@@ -63,6 +63,20 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
 		})
 	}
+
+	t.Run("adds health checks when configured", func(t *testing.T) {
+		assert := tassert.New(t)
+		remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator, withActiveHealthChecks)
+		assert.NoError(err)
+		assert.NotNil(remoteCluster.HealthChecks)
+	})
+
+	t.Run("does not add health checks when not configured", func(t *testing.T) {
+		assert := tassert.New(t)
+		remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator)
+		assert.NoError(err)
+		assert.Nil(remoteCluster.HealthChecks)
+	})
 }
 
 func TestGetLocalServiceCluster(t *testing.T) {

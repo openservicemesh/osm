@@ -43,6 +43,7 @@ data:
         "enableOSMGateway": {{.Values.OpenServiceMesh.featureFlags.enableOSMGateway}},
         "enableAsyncProxyServiceMapping": {{.Values.OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping}},
         "enableValidatingWebhook": {{.Values.OpenServiceMesh.featureFlags.enableValidatingWebhook}},
-        "enableIngressBackendPolicy": {{.Values.OpenServiceMesh.featureFlags.enableIngressBackendPolicy}}
+        "enableIngressBackendPolicy": {{.Values.OpenServiceMesh.featureFlags.enableIngressBackendPolicy}},
+        "enableEnvoyActiveHealthChecks": {{.Values.OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks}}
       }
     }
