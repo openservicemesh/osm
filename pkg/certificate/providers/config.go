@@ -229,7 +229,13 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 		return nil, nil, errors.Errorf("Failed to synchronize certificate on Secrets API : %v", err)
 	}
 
-	certManager, err := tresor.NewCertManager(rootCert, rootCertOrganization, c.cfg)
+	certManager, err := tresor.NewCertManager(
+		rootCert,
+		rootCertOrganization,
+		c.cfg,
+		c.cfg.GetServiceCertValidityPeriod(),
+		c.cfg.GetCertKeyBitSize(),
+	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
 	}
@@ -292,7 +298,13 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certi
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", options.VaultProtocol, options.VaultHost, options.VaultPort)
-	vaultCertManager, err := vault.NewCertManager(vaultAddr, options.VaultToken, options.VaultRole, c.cfg)
+	vaultCertManager, err := vault.NewCertManager(
+		vaultAddr,
+		options.VaultToken,
+		options.VaultRole,
+		c.cfg,
+		c.cfg.GetServiceCertValidityPeriod(),
+	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
 	}
@@ -322,11 +334,19 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 		return nil, nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
-	certmanagerCertManager, err := certmanager.NewCertManager(rootCert, client, c.providerNamespace, cmmeta.ObjectReference{
-		Name:  options.IssuerName,
-		Kind:  options.IssuerKind,
-		Group: options.IssuerGroup,
-	}, c.cfg)
+	certmanagerCertManager, err := certmanager.NewCertManager(
+		rootCert,
+		client,
+		c.providerNamespace,
+		cmmeta.ObjectReference{
+			Name:  options.IssuerName,
+			Kind:  options.IssuerKind,
+			Group: options.IssuerGroup,
+		},
+		c.cfg,
+		c.cfg.GetServiceCertValidityPeriod(),
+		c.cfg.GetCertKeyBitSize(),
+	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
 	}

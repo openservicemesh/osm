@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
@@ -16,7 +17,13 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
+)
+
+const (
+	validity = 1 * time.Hour
+	keySize  = 2048
 )
 
 func TestSetupMutualTLS(t *testing.T) {
@@ -29,7 +36,12 @@ func TestSetupMutualTLS(t *testing.T) {
 		expectedError string
 	}
 
-	certManager := tresor.NewFakeCertManager(nil)
+	mockCtrl := gomock.NewController(t)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
+	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
+	certManager := tresor.NewFakeCertManager(mockConfigurator)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -66,7 +78,12 @@ func TestValidateClient(t *testing.T) {
 		expectedError error
 	}
 
-	certManager := tresor.NewFakeCertManager(nil)
+	mockCtrl := gomock.NewController(t)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
+	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
+	certManager := tresor.NewFakeCertManager(mockConfigurator)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
 	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())

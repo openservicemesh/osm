@@ -44,7 +44,13 @@ var _ = Describe("Test Certificate Manager", func() {
 		if err != nil {
 			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
-		m, newCertError := NewCertManager(rootCert, "org", mockConfigurator)
+		m, newCertError := NewCertManager(
+			rootCert,
+			"org",
+			mockConfigurator,
+			mockConfigurator.GetServiceCertValidityPeriod(),
+			mockConfigurator.GetCertKeyBitSize(),
+		)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
@@ -85,7 +91,13 @@ var _ = Describe("Test Certificate Manager", func() {
 		if err != nil {
 			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
-		m, newCertError := NewCertManager(rootCert, "org", mockConfigurator)
+		m, newCertError := NewCertManager(
+			rootCert,
+			"org",
+			mockConfigurator,
+			mockConfigurator.GetServiceCertValidityPeriod(),
+			mockConfigurator.GetCertKeyBitSize(),
+		)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)

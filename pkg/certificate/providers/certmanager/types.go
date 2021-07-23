@@ -49,6 +49,10 @@ type CertManager struct {
 	crLister cmlisters.CertificateRequestNamespaceLister
 
 	cfg configurator.Configurator
+
+	// Issuing certificate properties.
+	validityPeriod time.Duration
+	keySize        int
 }
 
 // Certificate implements certificate.Certificater

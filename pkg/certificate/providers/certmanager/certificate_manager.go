@@ -82,7 +82,10 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if cm.validityPeriod == 0 {
+		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	}
+	newCert, err := cm.issue(cn, cm.validityPeriod)
 	if err != nil {
 		return newCert, err
 	}
@@ -148,8 +151,10 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		Duration: validityPeriod,
 	}
 
-	certKeyBitSize := cm.cfg.GetCertKeyBitSize()
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyBitSize)
+	if cm.keySize == 0 {
+		cm.keySize = cm.cfg.GetCertKeyBitSize()
+	}
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
@@ -240,6 +245,8 @@ func NewCertManager(
 	namespace string,
 	issuerRef cmmeta.ObjectReference,
 	cfg configurator.Configurator,
+	validityPeriod time.Duration,
+	keySize int,
 ) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
 	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
@@ -248,13 +255,15 @@ func NewCertManager(
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:        ca,
-		cache:     make(map[certificate.CommonName]certificate.Certificater),
-		namespace: namespace,
-		client:    client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef: issuerRef,
-		crLister:  crLister,
-		cfg:       cfg,
+		ca:             ca,
+		cache:          make(map[certificate.CommonName]certificate.Certificater),
+		namespace:      namespace,
+		client:         client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef:      issuerRef,
+		crLister:       crLister,
+		cfg:            cfg,
+		validityPeriod: validityPeriod,
+		keySize:        keySize,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

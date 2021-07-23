@@ -40,6 +40,9 @@ type CertManager struct {
 	certificatesOrganization string
 
 	cfg configurator.Configurator
+
+	validityPeriod time.Duration
+	keySize        int
 }
 
 // Certificate implements certificate.Certificater

@@ -3,6 +3,7 @@ package vault
 
 import (
 	"sync"
+	"time"
 
 	"github.com/hashicorp/vault/api"
 
@@ -26,6 +27,8 @@ type CertManager struct {
 	role vaultRole
 
 	cfg configurator.Configurator
+
+	validityPeriod time.Duration
 }
 
 type vaultRole string

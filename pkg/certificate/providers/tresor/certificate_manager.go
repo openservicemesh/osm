@@ -22,11 +22,10 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, errNoIssuingCA
 	}
 
-	certKeyBitSize := rsaBits
-	if cm.cfg != nil {
-		certKeyBitSize = cm.cfg.GetCertKeyBitSize()
+	if cm.keySize == 0 {
+		cm.keySize = cm.cfg.GetCertKeyBitSize()
 	}
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyBitSize)
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
@@ -163,7 +162,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if cm.validityPeriod == 0 {
+		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	}
+	newCert, err := cm.issue(cn, cm.validityPeriod)
 	if err != nil {
 		return nil, err
 	}

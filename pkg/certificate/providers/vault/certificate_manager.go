@@ -34,10 +34,16 @@ const (
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, role string, cfg configurator.Configurator) (*CertManager, error) {
+func NewCertManager(
+	vaultAddr,
+	token string,
+	role string,
+	cfg configurator.Configurator,
+	validityPeriod time.Duration) (*CertManager, error) {
 	c := &CertManager{
-		role: vaultRole(role),
-		cfg:  cfg,
+		role:           vaultRole(role),
+		cfg:            cfg,
+		validityPeriod: validityPeriod,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -170,7 +176,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	if cm.validityPeriod == 0 {
+		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	}
+	newCert, err := cm.issue(cn, cm.validityPeriod)
 	if err != nil {
 		return nil, err
 	}

@@ -69,7 +69,13 @@ var _ = Describe("Test client helpers", func() {
 			mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 			mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validityPeriod).AnyTimes()
 
-			_, err := NewCertManager(vaultAddr, vaultToken, vaultRole, mockConfigurator)
+			_, err := NewCertManager(
+				vaultAddr,
+				vaultToken,
+				vaultRole,
+				mockConfigurator,
+				mockConfigurator.GetServiceCertValidityPeriod(),
+			)
 			Expect(err).To(HaveOccurred())
 			vaultError := err.(*url.Error)
 			expected := `unsupported protocol scheme "foo"`
