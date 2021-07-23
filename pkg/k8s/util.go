@@ -7,6 +7,7 @@ import (
 	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -100,4 +101,19 @@ func GetKubernetesServerVersionNumber(kubeClient kubernetes.Interface) ([]int, e
 	}
 
 	return ver.Segments(), nil
+}
+
+// NamespacedNameFrom returns the namespaced name for the given name if possible, otherwise an error
+func NamespacedNameFrom(name string) (types.NamespacedName, error) {
+	var nsName types.NamespacedName
+
+	chunks := strings.Split(name, "/")
+	if len(chunks) != 2 {
+		return nsName, errors.Errorf("%s is not a namespaced name", name)
+	}
+
+	nsName.Namespace = chunks[0]
+	nsName.Name = chunks[1]
+
+	return nsName, nil
 }

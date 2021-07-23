@@ -6,6 +6,7 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes"
@@ -188,6 +189,44 @@ func TestGetKubernetesServerVersionNumber(t *testing.T) {
 			version, err := GetKubernetesServerVersionNumber(tc.kubeClient)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedVersion, version)
+		})
+	}
+}
+
+func TestNamespacedNameFrom(t *testing.T) {
+	testCases := []struct {
+		name      string
+		in        string
+		out       types.NamespacedName
+		expectErr bool
+	}{
+		{
+			name:      "valid namespaced name",
+			in:        "foo/bar",
+			out:       types.NamespacedName{Namespace: "foo", Name: "bar"},
+			expectErr: false,
+		},
+		{
+			name:      "invalid namespaced name with no separator",
+			in:        "foobar",
+			out:       types.NamespacedName{},
+			expectErr: true,
+		},
+		{
+			name:      "invalid namespaced name with multiple separators",
+			in:        "foo/bar/baz",
+			out:       types.NamespacedName{},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			actual, err := NamespacedNameFrom(tc.in)
+			assert.Equal(tc.out, actual)
+			assert.Equal(tc.expectErr, err != nil)
 		})
 	}
 }
