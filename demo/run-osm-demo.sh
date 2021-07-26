@@ -37,6 +37,7 @@ DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
+PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -83,8 +84,10 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
 fi
 
-make docker-push
-./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
+if [ "$PUBLISH_IMAGES" = true ]; then
+    make docker-push
+    ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
+fi
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"

@@ -45,6 +45,7 @@ jobs:
           CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 150
           CI_MIN_SUCCESS_THRESHOLD: 1
           OSM_HUMAN_DEBUG_LOG: true
+          PUBLISH_IMAGES: "false"
         run: |
           touch .env
           ./demo/run-osm-demo.sh
