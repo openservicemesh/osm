@@ -31,12 +31,12 @@ func toInt(val uint32) *wrappers.UInt32Value {
 
 func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedCluster_ClusterWeight {
 	return &xds_route.WeightedCluster_ClusterWeight{
-		Name:   fmt.Sprintf("default/%s", serviceName),
+		Name:   fmt.Sprintf("default/%s/local", serviceName),
 		Weight: toInt(weight),
 	}
 }
 
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.CommonName, porxyCertSerialNumber certificate.SerialNumber) (*envoy.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{
 		tests.SelectorKey:                tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -69,11 +69,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 		}
 	}
 
-	osmServiceAccount := "osm"
-	osmNamespace := "osm-system"
-	certCommonName := multicluster.GetMulticlusterGatewaySubjectCommonName(osmServiceAccount, osmNamespace)
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(proxyCertCommonName, porxyCertSerialNumber, nil)
 }
 
 func setupMulticlusterGatewayTest(mockCtrl *gomock.Controller) (catalog.MeshCataloger, *envoy.Proxy, *registry.ProxyRegistry, configurator.Configurator, error) {
@@ -82,7 +78,12 @@ func setupMulticlusterGatewayTest(mockCtrl *gomock.Controller) (catalog.MeshCata
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	proxy, err := getProxy(kubeClient)
+
+	osmServiceAccount := "osm"
+	osmNamespace := "osm-system"
+	proxyCertCommonName := multicluster.GetMulticlusterGatewaySubjectCommonName(osmServiceAccount, osmNamespace)
+	proxyCertSerialNumber := certificate.SerialNumber("123456")
+	proxy, err := getProxy(kubeClient, proxyCertCommonName, proxyCertSerialNumber)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

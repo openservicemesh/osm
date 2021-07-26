@@ -3,6 +3,9 @@ package scenarios
 import (
 	"fmt"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/tests"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -36,7 +39,10 @@ var _ = Describe(``+
 			configClient := configFake.NewSimpleClientset()
 			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			proxy, err := getProxy(kubeClient)
+
+			proxyCertCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
+			proxyCertSerialNumber := certificate.SerialNumber("123456")
+			proxy, err := getProxy(kubeClient, proxyCertCommonName, proxyCertSerialNumber)
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(meshCatalog).ToNot(BeNil())
