@@ -236,7 +236,7 @@ func (i *installCmd) validateOptions() error {
 	}
 
 	if setOptions, ok := s["OpenServiceMesh"].(map[string]interface{}); ok {
-		// if the certificate manager is vault, ensure all relevant information (vault-host, vault-token) is available
+		// if the certificate provider kind is vault, ensure all relevant information (vault-host, vault-token) is available
 		if certProvider, ok := setOptions["certificateProvider"].(map[string]interface{}); ok && certProvider["kind"] == "vault" {
 			var missingFields []string
 			vaultOptions, ok := setOptions["vault"].(map[string]interface{})
