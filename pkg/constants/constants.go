@@ -1,7 +1,11 @@
 // Package constants defines the constants that are used by multiple other packages within OSM.
 package constants
 
-import "time"
+import (
+	"time"
+
+	"github.com/openservicemesh/osm/pkg/identity"
+)
 
 const (
 	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
@@ -213,6 +217,10 @@ const (
 	// Ex. MySQL, SMTP, PostgreSQL etc. where the server initiates the first
 	// byte in a TCP connection.
 	ProtocolTCPServerFirst = "tcp-server-first"
+
+	// MulticlusterGatewayServiceIdentity is the ServiceIdentity for all multicluster gateways.
+	// This is going to be used by SDS to issue certificates for the Envoys in the Multicluster Gateway role.
+	MulticlusterGatewayServiceIdentity identity.ServiceIdentity = "multicluster-gateway.osm-system.svc.cluster.local"
 )
 
 // ClusterDomain is a type for a multicluster
