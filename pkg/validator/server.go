@@ -6,11 +6,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -21,8 +19,11 @@ import (
 var (
 	defaultValidators = map[string]Validator{}
 
-	// ValidatingWebhookPath is the path for the validating webhook.
-	ValidatingWebhookPath = "/validate"
+	// validationAPIPath is the API path for performing resource validations
+	validationAPIPath = "/validate"
+
+	// HealthAPIPath is the API path for health check
+	HealthAPIPath = "/healthz"
 )
 
 // RegisterValidator registers all validators. It is not thread safe.
@@ -98,27 +99,50 @@ func NewValidatingWebhook(webhookConfigName string, port int, certificater certi
 	return v, nil
 }
 
-// HandleValidation implements the HTTP API for the Validating Webhook.
-func (s *ValidatingWebhookServer) HandleValidation(w http.ResponseWriter, req *http.Request) {
-	defer dclose(req.Body)
-	adReq := new(admissionv1.AdmissionRequest)
-	if err := json.NewDecoder(req.Body).Decode(adReq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
+func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.Request) {
+	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
+
+	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
+		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return
 	}
 
-	data, err := json.Marshal(s.handleValidation(adReq))
+	admissionRequestBody, err := webhook.GetAdmissionRequestBody(w, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error marshaling admission response body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
+		// Error was already logged and written to the ResponseWriter
 		return
 	}
-	if _, err := w.Write(data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Truncated response; error writing output to http writer; Responsed to admission request with HTTP %v", http.StatusInternalServerError)
+
+	requestForNamespace, admissionResp := s.getAdmissionReqResp(admissionRequestBody)
+
+	resp, err := json.Marshal(&admissionResp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request in namespace %s with HTTP %v", requestForNamespace, http.StatusInternalServerError)
 		return
 	}
+
+	if _, err := w.Write(resp); err != nil {
+		log.Error().Err(err).Msgf("Error writing admission response for request in namespace %s", requestForNamespace)
+	}
+
+	log.Trace().Msgf("Done responding to admission request in namespace %s", requestForNamespace)
+}
+
+func (s *ValidatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
+	var admissionReq admissionv1.AdmissionReview
+	if _, _, err := webhook.Deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
+		log.Error().Err(err).Msg("Error decoding admission request body")
+		admissionResp.Response = webhook.AdmissionError(err)
+	} else {
+		admissionResp.Response = s.handleValidation(admissionReq.Request)
+	}
+	admissionResp.TypeMeta = admissionReq.TypeMeta
+	admissionResp.Kind = admissionReq.Kind
+
+	return admissionReq.Request.Namespace, admissionResp
 }
 
 func (s *ValidatingWebhookServer) handleValidation(req *admissionv1.AdmissionRequest) (resp *admissionv1.AdmissionResponse) {
@@ -156,46 +180,48 @@ func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certifi
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(ValidatingWebhookPath, s.HandleValidation)
+	mux.HandleFunc(validationAPIPath, s.doValidation)
+	mux.HandleFunc(HealthAPIPath, healthHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 
-	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", port)
+	log.Info().Msgf("Starting resource validator webhook server on port: %v", port)
 	go func() {
-		// Wait on exit signals
-		<-stop
+		// Generate a key pair from your pem-encoded cert and key
+		cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing webhook certificate")
+			return
+		}
 
-		// Stop the server
-		if err := server.Shutdown(ctx); err != nil {
-			log.Error().Err(err).Msg("Error shutting down validating webhook HTTP server")
-		} else {
-			log.Info().Msg("Done shutting down validating webhook HTTP server")
+		// #nosec G402
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			log.Error().Err(err).Msg("Resource validator webhook HTTP server failed to start")
+			return
 		}
 	}()
-	// Generate a key pair from your pem-encoded cert and key ([]byte).
-	cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
-	if err != nil {
-		log.Error().Err(err).Msg("Error parsing webhook certificate")
-		return
-	}
 
-	// #nosec G402
-	server.TLSConfig = &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
+	// Wait on exit signals
+	<-stop
 
-	if err := server.ListenAndServeTLS("", ""); err != nil {
-		log.Error().Err(err).Msg("Validating webhook HTTPS server failed")
-		return
+	// Stop the server
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Error shutting down resource validator webhook HTTP server")
+	} else {
+		log.Info().Msg("Done shutting down resource validator webhook HTTP server")
 	}
 }
 
-// defer closer
-func dclose(c io.Closer) {
-	if err := c.Close(); err != nil {
-		log.Error().Err(err).Msgf("Error closing HTTP request body. Potential memory leak.")
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Health OK")); err != nil {
+		log.Error().Err(err).Msg("Error writing bytes for health check response")
 	}
 }

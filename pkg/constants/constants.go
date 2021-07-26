@@ -73,8 +73,11 @@ const (
 	// OSMHTTPServerPort is the port on which osm-controller and osm-injector serve HTTP requests for metrics, health probes etc.
 	OSMHTTPServerPort = 9091
 
-	//DebugPort is the port on which OSM exposes its debug server
+	// DebugPort is the port on which OSM exposes its debug server
 	DebugPort = 9092
+
+	// ValidatorWebhookPort is the port on which the resource validator webhook listens
+	ValidatorWebhookPort = 9093
 
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rs/zerolog/log"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,8 +13,8 @@ import (
 )
 
 const (
-	// ValidatingWebhookName is the name of the validating webhook.
-	ValidatingWebhookName = "osm-validate.k8s.io"
+	// validatingWebhookName is the name of the validating webhook.
+	validatingWebhookName = "osm-validator.k8s.io"
 )
 
 // getPartialValidatingWebhookConfiguration returns only the portion of the ValidatingWebhookConfiguration that needs
@@ -27,7 +26,7 @@ func getPartialValidatingWebhookConfiguration(name string, cert certificate.Cert
 		},
 		Webhooks: []admissionregv1.ValidatingWebhook{
 			{
-				Name: ValidatingWebhookName,
+				Name: validatingWebhookName,
 				ClientConfig: admissionregv1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},

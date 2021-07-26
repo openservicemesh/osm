@@ -292,3 +292,8 @@ OpenServiceMesh:
     # -- CRD converter's pod labels
     podLabels: {}
 
+  #
+  # -- OSM resource validator webhook configuration
+  validatorWebhook:
+    # -- Name of the ValidatingWebhookConfiguration
+    webhookConfigurationName: ""
