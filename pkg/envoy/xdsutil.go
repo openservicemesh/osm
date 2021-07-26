@@ -409,3 +409,13 @@ func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity
 
 	return cnMeta.ServiceIdentity, nil
 }
+
+// GetKindFromProxyCertificate returns the proxy kind, which is encoded in the Common Name of the XDS certificate.
+func GetKindFromProxyCertificate(cn certificate.CommonName) (ProxyKind, error) {
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return "", err
+	}
+
+	return cnMeta.ProxyKind, nil
+}

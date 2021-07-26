@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,9 +14,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -41,7 +40,7 @@ func bootstrapOSMGateway(kubeClient kubernetes.Interface, certManager certificat
 		return nil
 	}
 
-	gatewayCN := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, osmServiceAccount, osmNamespace)
+	gatewayCN := multicluster.GetMulticlusterGatewaySubjectCommonName(osmServiceAccount, osmNamespace)
 	bootstrapCert, err := certManager.IssueCertificate(gatewayCN, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing bootstrap certificate for OSM gateway: %s", err)
