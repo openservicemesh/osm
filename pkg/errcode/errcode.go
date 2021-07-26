@@ -75,6 +75,12 @@ const (
 	// ErrGettingInboundTrafficTargets indicates the inbound traffic targets composed of its routes for a given
 	// desitination ServiceIdentity could not be obtained
 	ErrGettingInboundTrafficTargets
+
+	// ErrInvalidDestinationKind indicates an applied SMI TrafficTarget policy has an invalid destination kind
+	ErrInvalidDestinationKind
+
+	// ErrInvalidSourceKind	indicated an applied SMI TrafficTarget policy has an invalid source kind
+	ErrInvalidSourceKind
 )
 
 // Range 3000-3500 is reserved for errors related to k8s constructs (service accounts, namespaces, etc.)
@@ -93,6 +99,9 @@ const (
 
 	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
 	ErrGettingServicePorts
+
+	// ErrGettingServiceIdentitiesForService indicates the ServiceIdentities associated with a specified MeshService could not be listed
+	ErrGettingServiceIdentitiesForService
 )
 
 // Range 4000-4100 reserved for errors related to certificate providers
@@ -258,6 +267,30 @@ const (
 
 	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
 	ErrIngressFilterChain
+
+	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
+	ErrGettingLuaFilter
+
+	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
+	ErrGettingWASMFilter
+
+	// ErrBuildingRBACPolicyForRoute indicates a traffic policy rule could not be configured as an RBAC rule on a proxy
+	ErrBuildingRBACPolicyForRoute
+
+	// ErrUnmarshallingSDSCert indicates the SDS certificate resource could not be unmarshalled
+	ErrUnmarshallingSDSCert
+
+	// ErrGettingServiceCertSecret indicates a XDS secret containing a TLS certificate could not be retrieved
+	ErrGettingServiceCertSecret
+
+	// ErrGettingMeshService indicates a SDS secret does not correspond to a MeshService
+	ErrGettingMeshService
+
+	// ErrGettingK8sServiceAccount indicates a SDS secret does not correspond to a ServiceAccount
+	ErrGettingK8sServiceAccount
+
+	// ErrSDSCertMismatch indicates the indentity obtained from the SDSCert request does not match the identity of the proxy
+	ErrSDSCertMismatch
 )
 
 // String returns the error code as a string, ex. E1000
@@ -376,6 +409,14 @@ in the SMI TrafficTarget policy.
 The associated SMI TrafficTarget policy was ignored by the system.
 `,
 
+	ErrInvalidDestinationKind: `
+An applied SMI TrafficTarget policy has an invalid destination kind.
+`,
+
+	ErrInvalidSourceKind: `
+An applied SMI TrafficTarget policy has an invalid source kind.
+`,
+
 	ErrGettingInboundTrafficTargets: `
 The inbound TrafficTargets composed of their routes for a given destination
 ServiceIdentity could not be configured.
@@ -405,10 +446,14 @@ The mapping of ports the application is exposing a service on to their correspon
 application protocol could not be obtained for a specified service.
 `,
 
-	// ErrEndpointsNotFound indicates resolvable service endpoints could not be found
 	ErrEndpointsNotFound: `
 The system found 0 endpoints to be reached when the service's FQDN was resolved.
 `,
+
+	ErrGettingServiceIdentitiesForService: `
+The ServiceIdentities associated with a specified MeshService could not be listed.
+`,
+
 	//
 	// Range 4000-4100
 	//
@@ -577,20 +622,20 @@ server could not be initialized.
 
 	ErrMismatchedServiceAccount: `
 The ServiceAccount referenced in the NodeID does not match the ServiceAccount
-specified in the proxy certificate. In this case, the proxy is not allowed to be a
-part of the mesh.
+specified in the proxy certificate.
+The proxy was not allowed to be a part of the mesh.
 `,
 
 	ErrGRPCStreamClosedByProxy: `
-The gRPC stream is closed by the proxy and no DiscoveryRequests can be received.
-The Stream Agreggated Resource server is terminated for the specified proxy
+The gRPC stream was closed by the proxy and no DiscoveryRequests can be received. 
+The Stream Agreggated Resource server was terminated for the specified proxy.
 `,
 
 	ErrUnexpectedXDSRequest: `
 The envoy proxy has not completed the initialization phase and it is not ready
 to receive broadcast updates from control plane related changes. New versions
 should not be pushed if the first request has not be received.
-The broadcast update is ignored for that proxy.
+The broadcast update was ignored for that proxy.
 `,
 
 	ErrInvalidXDSTypeURI: `
@@ -632,7 +677,7 @@ will not be sent to the Envoy proxy in a ClusterDiscovery response.
 
 	ErrUnsupportedProtocolForService: `
 The application protocol specified for a port is not supported for ingress
-traffic. The XDS filter chain for ingress traffic to the port is not created.
+traffic. The XDS filter chain for ingress traffic to the port was not created.
 `,
 
 	ErrBuildingRBACPolicy: `
@@ -642,5 +687,42 @@ policy.
 
 	ErrIngressFilterChain: `
 An XDS filter chain could not be constructed for ingress.
+`,
+
+	ErrGettingLuaFilter: `
+The Lua XDS HttpFilter could not be configured.
+`,
+
+	ErrGettingWASMFilter: `
+The WASM XDS HttpFilter could not be configured.
+`,
+
+	ErrBuildingRBACPolicyForRoute: `
+A traffic policy rule could not be configured as an RBAC rule on the proxy.
+The corresponding rule was ignored by the system.
+`,
+
+	ErrUnmarshallingSDSCert: `
+The SDS certificate resource could not be unmarshalled.
+The corresponding certificate resource was ignored by the system.
+`,
+
+	ErrGettingServiceCertSecret: `
+An XDS secret containing a TLS certificate could not be retrieved. 
+The corresponding secret request was ignored by the system.
+`,
+
+	ErrGettingMeshService: `
+The SDS secret does not correspond to a MeshService.
+`,
+
+	ErrGettingK8sServiceAccount: `
+The SDS secret does not correspond to a ServiceAccount.
+`,
+
+	ErrSDSCertMismatch: `
+The identity obtained from the SDS certificate request does not match the
+identity of the proxy.
+The corresponding certificate request was ignored by the system.
 `,
 }

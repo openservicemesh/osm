@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -105,7 +106,8 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 	for _, provider := range mc.serviceProviders {
 		serviceIDs, err := provider.ListServiceIdentitiesForService(svc)
 		if err != nil {
-			log.Err(err).Msgf("Error getting ServiceIdentities for Service %s", svc)
+			log.Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentitiesForService.String()).
+				Msgf("Error getting ServiceIdentities for Service %s", svc)
 			return nil, err
 		}
 
