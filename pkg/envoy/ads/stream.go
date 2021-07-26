@@ -235,6 +235,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 			proxy.String(), typeURL.Short(), requestNonce, requestVersion)
 		proxy.SetLastSentVersion(typeURL, requestVersion)
 		proxy.SetLastAppliedVersion(typeURL, requestVersion)
+		metricsstore.DefaultMetricsStore.ProxyReconnectCount.Inc()
 		return true
 	}
 
