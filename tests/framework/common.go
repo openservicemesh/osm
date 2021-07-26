@@ -443,7 +443,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	instOpts.SetOverrides = append(instOpts.SetOverrides,
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", instOpts.ContainerRegistryLoc),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", instOpts.OsmImagetag),
-		fmt.Sprintf("OpenServiceMesh.certificateManager=%s", instOpts.CertManager),
+		fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", instOpts.CertManager),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%v", instOpts.EgressEnabled),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%v", instOpts.EnableDebugServer),

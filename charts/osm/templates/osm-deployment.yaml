@@ -73,8 +73,8 @@ spec:
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
-            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
-            {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateProvider.kind}}",
+            {{ if eq .Values.OpenServiceMesh.certificateProvider.kind "vault" }}
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",

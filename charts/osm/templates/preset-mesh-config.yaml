@@ -34,8 +34,8 @@ data:
         }
       },
       "certificate": {
-        "serviceCertValidityDuration": "{{.Values.OpenServiceMesh.serviceCertValidityDuration}}",
-        "certKeyBitSize": {{.Values.OpenServiceMesh.certKeyBitSize}}
+        "serviceCertValidityDuration": "{{.Values.OpenServiceMesh.certificateProvider.serviceCertValidityDuration}}",
+        "certKeyBitSize": {{.Values.OpenServiceMesh.certificateProvider.certKeyBitSize}}
       },
       "featureFlags": {
         "enableWASMStats": {{.Values.OpenServiceMesh.featureFlags.enableWASMStats}},

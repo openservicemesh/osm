@@ -92,7 +92,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
-      --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
+      --set=OpenServiceMesh.certificateProvider.kind="$CERT_MANAGER" \
       --set=OpenServiceMesh.vault.host="$VAULT_HOST" \
       --set=OpenServiceMesh.vault.token="$VAULT_TOKEN" \
       --set=OpenServiceMesh.vault.protocol="$VAULT_PROTOCOL" \
@@ -115,7 +115,7 @@ else
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
-      --set=OpenServiceMesh.certificateManager="$CERT_MANAGER" \
+      --set=OpenServiceMesh.certificateProvider.kind="$CERT_MANAGER" \
       --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
       --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
       --set=OpenServiceMesh.image.tag="$CTR_TAG" \

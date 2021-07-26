@@ -65,8 +65,13 @@ OpenServiceMesh:
       # -- Prometheus data retention time
       time: 15d
 
-  # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
-  certificateManager: tresor
+  certificateProvider:
+    # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
+    kind: tresor
+    # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
+    serviceCertValidityDuration: 24h
+    # -- Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS
+    certKeyBitSize: 2048
 
   #
   # -- Hashicorp Vault configuration
@@ -89,12 +94,6 @@ OpenServiceMesh:
     issuerKind: Issuer
     # -- cert-manager issuer group
     issuerGroup: cert-manager.io
-
-  # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
-  serviceCertValidityDuration: 24h
-
-  # -- Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS
-  certKeyBitSize: 2048
 
   # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
   caBundleSecretName: osm-ca-bundle

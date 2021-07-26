@@ -131,9 +131,6 @@
             "required": [
                 "image",
                 "sidecarImage",
-                "certificateManager",
-                "serviceCertValidityDuration",
-                "certKeyBitSize",
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
@@ -259,33 +256,46 @@
                         "envoyproxy/envoy-alpine:v1.18.3"
                     ]
                 },
-                "certificateManager": {
-                    "$id": "#/properties/OpenServiceMesh/properties/certificateManager",
-                    "type": "string",
-                    "title": "The certificateManager schema",
-                    "description": "The certificate manager osm-controller should use.",
-                    "pattern": "^(tresor|vault|cert-manager)$",
-                    "examples": [
-                        "tresor"
-                    ]
-                },
-                "serviceCertValidityDuration": {
-                    "$id": "#/properties/OpenServiceMesh/properties/serviceCertValidityDuration",
-                    "type": "string",
-                    "title": "The serviceCertValidityDuration schema",
-                    "description": "The service certificate validity duration.",
-                    "examples": [
-                        "24h"
-                    ]
-                },
-                "certKeyBitSize": {
-                    "$id": "#/properties/OpenServiceMesh/properties/certKeyBitSize",
-                    "type": "integer",
-                    "title": "The certKeyBitSize schema",
-                    "description": "The key size for data plane certificates.",
-                    "examples": [
-                        2048
-                    ]
+                "certficateProvider": {
+                    "$id": "#/properties/OpenServiceMesh/properties/certificateProvider",
+                    "type": "object",
+                    "title": "The certificate provider schema",
+                    "description": "Certificate provider configuration parameters",
+                    "required": [
+                        "kind",
+                        "issuerKind",
+                        "issuerGroup"
+                    ],
+                    "properties": {
+                        "kind": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/kind",
+                            "type": "string",
+                            "title": "The certificate provider kind schema",
+                            "description": "The certificate manager osm-controller should use.",
+                            "pattern": "^(tresor|vault|cert-manager)$",
+                            "examples": [
+                                "tresor"
+                            ]
+                        },
+                        "serviceCertValidityDuration": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/serviceCertValidityDuration",
+                            "type": "string",
+                            "title": "The serviceCertValidityDuration schema",
+                            "description": "The service certificate validity duration.",
+                            "examples": [
+                                "24h"
+                            ]
+                        },
+                        "certKeyBitSize": {
+                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/certKeyBitSize",
+                            "type": "integer",
+                            "title": "The certKeyBitSize schema",
+                            "description": "The key size for data plane certificates.",
+                            "examples": [
+                                2048
+                            ]
+                        }
+                    }
                 },
                 "caBundleSecretName": {
                     "$id": "#/properties/OpenServiceMesh/properties/caBundleSecretName",

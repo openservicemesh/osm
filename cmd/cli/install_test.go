@@ -193,7 +193,7 @@ var _ = Describe("Running the install command", func() {
 			installCmd := getDefaultInstallCmd(out)
 
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateManager=vault",
+				"OpenServiceMesh.certificateProvider.kind=vault",
 				fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
 				fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
 			}
@@ -225,7 +225,7 @@ var _ = Describe("Running the install command", func() {
 			It("should have the correct values", func() {
 				expectedValues := getDefaultValues()
 				valuesConfig := []string{
-					fmt.Sprintf("OpenServiceMesh.certificateManager=%s", "vault"),
+					fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", "vault"),
 					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
 					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
 				}
@@ -269,7 +269,7 @@ var _ = Describe("Running the install command", func() {
 
 			installCmd := getDefaultInstallCmd(out)
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateManager=vault",
+				"OpenServiceMesh.certificateProvider.kind=vault",
 			}
 			err = installCmd.run(config)
 		})
@@ -304,7 +304,7 @@ var _ = Describe("Running the install command", func() {
 
 			installCmd := getDefaultInstallCmd(out)
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateManager=cert-manager",
+				"OpenServiceMesh.certificateProvider.kind=cert-manager",
 			}
 			err = installCmd.run(config)
 		})
@@ -334,7 +334,7 @@ var _ = Describe("Running the install command", func() {
 			It("should have the correct values", func() {
 				expectedValues := getDefaultValues()
 				valuesConfig := []string{
-					fmt.Sprintf("OpenServiceMesh.certificateManager=%s", "cert-manager"),
+					fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", "cert-manager"),
 				}
 				for _, val := range valuesConfig {
 					// parses Helm strvals line and merges into a map
@@ -663,10 +663,10 @@ func TestEnforceSingleMesh(t *testing.T) {
 			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
 			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
 			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.serviceCertValidityDuration=24h",
+			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
 			"OpenServiceMesh.deployGrafana=false",
 			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateManager=tresor",
+			"OpenServiceMesh.certificateProvider.kind=tresor",
 		},
 	}
 
@@ -722,11 +722,11 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
 			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
 			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.serviceCertValidityDuration=24h",
+			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
 			"OpenServiceMesh.deployGrafana=false",
 			"OpenServiceMesh.deployPrometheus=false",
 			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateManager=tresor",
+			"OpenServiceMesh.certificateProvider.kind=tresor",
 		},
 	}
 
@@ -772,11 +772,11 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
 			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
 			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.serviceCertValidityDuration=24h",
+			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
 			"OpenServiceMesh.deployPrometheus=true",
 			"OpenServiceMesh.deployGrafana=false",
 			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateManager=tresor",
+			"OpenServiceMesh.certificateProvider.kind=tresor",
 		},
 	}
 
