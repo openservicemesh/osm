@@ -273,15 +273,9 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Get resources last sent prior to this request
 	resourcesLastSent := proxy.GetLastResourcesSent(typeURL)
 
-	// If what we last sent is a superset of what the
-	// requests resources subscribes to, it's ACK and nothing needs to be done.
-	// Otherwise, envoy might be asking us for additional resources that have to be sent along last time's resources.
-	// Difference returns elemenets of <requested> that are not part of elements of <last sent>
-
-	requestedResourcesDifference := resourcesRequested.Difference(resourcesLastSent)
-	if requestedResourcesDifference.Cardinality() != 0 {
-		log.Debug().Msgf("Proxy %s: request difference in v:%d - requested: %v lastSent: %v (diff: %v), triggering update",
-			proxy.String(), requestVersion, resourcesRequested, resourcesLastSent, requestedResourcesDifference)
+	if !resourcesRequested.Equal(resourcesLastSent) {
+		log.Debug().Msgf("Proxy %s: request difference in v:%d - requested: %v lastSent: %v, triggering update",
+			proxy.String(), requestVersion, resourcesRequested, resourcesLastSent)
 		return true
 	}
 
