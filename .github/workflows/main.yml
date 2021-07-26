@@ -167,6 +167,7 @@ jobs:
         run: |
           touch .env
           make kind-up
+          make pkg/envoy/lds/stats.wasm
           go test -v ./tests/scenarios/...
 
   e2etest:

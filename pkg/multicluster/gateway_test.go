@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
-
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func TestMulticlusterHelpers(t *testing.T) {

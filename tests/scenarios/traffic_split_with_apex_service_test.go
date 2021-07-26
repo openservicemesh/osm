@@ -8,24 +8,17 @@ import (
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/google/uuid"
 	"github.com/onsi/ginkgo"
-	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe(``+
@@ -194,55 +187,4 @@ func checkExpectations(expectedDomains []string, expectedWeightedCluster *xds_ro
 	Expect(len(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters)).To(Equal(len(expectedWeightedCluster.Clusters)))
 	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters[0]).To(Equal(expectedWeightedCluster.Clusters[0]))
 	Expect(virtualHost.Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(expectedWeightedCluster.TotalWeight))
-}
-
-func toInt(val uint32) *wrappers.UInt32Value {
-	return &wrappers.UInt32Value{
-		Value: val,
-	}
-}
-
-func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedCluster_ClusterWeight {
-	return &xds_route.WeightedCluster_ClusterWeight{
-		Name:   fmt.Sprintf("default/%s/local", serviceName),
-		Weight: toInt(weight),
-	}
-}
-
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
-	bookbuyerPodLabels := map[string]string{
-		tests.SelectorKey:                tests.BookbuyerService.Name,
-		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
-	}
-	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
-		return nil, err
-	}
-
-	bookstorePodLabels := map[string]string{
-		tests.SelectorKey:                "bookstore",
-		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
-	}
-	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, bookstorePodLabels); err != nil {
-		return nil, err
-	}
-
-	selectors := map[string]string{
-		tests.SelectorKey: tests.BookbuyerServiceName,
-	}
-	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
-		return nil, err
-	}
-
-	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
-		selectors := map[string]string{
-			tests.SelectorKey: "bookstore",
-		}
-		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
-			return nil, err
-		}
-	}
-
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
 }
