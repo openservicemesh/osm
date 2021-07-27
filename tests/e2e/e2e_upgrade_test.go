@@ -59,6 +59,8 @@ var _ = OSMDescribe("Upgrade from latest",
 				"OpenServiceMesh": map[string]interface{}{
 					"deployPrometheus": true,
 					"deployJaeger":     false,
+					// Init container must be privileged if an OpenShift cluster is being used
+					"enablePrivilegedInitContainer": Td.DeployOnOpenShift,
 
 					// Reduce CPU so CI (capped at 2 CPU) can handle standing
 					// up the new control plane before tearing the old one
