@@ -12,7 +12,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
@@ -136,9 +135,8 @@ func TestGetRootCert(t *testing.T) {
 					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
-					Name:          "service-2",
-					Namespace:     "ns-2",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "service-2",
+					Namespace: "ns-2",
 				}).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
@@ -287,9 +285,8 @@ func TestGetSDSSecrets(t *testing.T) {
 					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
 				}
 				svc := service.MeshService{
-					Name:          "service-2",
-					Namespace:     "ns-2",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "service-2",
+					Namespace: "ns-2",
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts, nil).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)

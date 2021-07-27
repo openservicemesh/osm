@@ -251,33 +251,7 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 				},
 			},
 			expResp: nil,
-			expErr:  errors.New("Cluster name  is not valid"),
-		},
-		{
-			name: "MultiClusterService with global name fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"clusters": [{
-								"name": "global",
-								"address": "0.0.0.0:8080"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp: nil,
-			expErr:  errors.New("Cluster name global is not valid"),
+			expErr:  errors.New("Cluster name is not valid"),
 		},
 		{
 			name: "MultiClusterService with duplicate cluster names fails",

@@ -136,15 +136,6 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshHTTPFilterChainPrefix, proxyService, servicePort)
 
 	serverNames := []string{proxyService.ServerName()}
-	// The sidecar needs to be aware of the names a remote cluster might refer to this service as.
-	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
-		serverNames = append(serverNames,
-			service.MeshService{
-				Name:          proxyService.Name,
-				Namespace:     proxyService.Namespace,
-				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
-		)
-	}
 
 	filterChain := &xds_listener.FilterChain{
 		Name:    filterchainName,
@@ -196,15 +187,6 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	}
 
 	serverNames := []string{proxyService.ServerName()}
-	// The sidecar needs to be aware of the names a remote cluster might refer to this service as.
-	if lb.cfg.GetFeatureFlags().EnableMulticlusterMode {
-		serverNames = append(serverNames,
-			service.MeshService{
-				Name:          proxyService.Name,
-				Namespace:     proxyService.Namespace,
-				ClusterDomain: constants.ClusterDomain(lb.cfg.GetClusterDomain())}.ServerName(),
-		)
-	}
 
 	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshTCPFilterChainPrefix, proxyService, servicePort)
 	return &xds_listener.FilterChain{

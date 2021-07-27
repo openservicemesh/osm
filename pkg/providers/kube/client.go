@@ -10,7 +10,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -134,9 +133,8 @@ func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 		for _, svc := range k8sServices {
 			services.Add(service.MeshService{
-				Namespace:     pod.Namespace,
-				Name:          svc.Name,
-				ClusterDomain: constants.LocalDomain,
+				Namespace: pod.Namespace,
+				Name:      svc.Name,
 			})
 		}
 	}
