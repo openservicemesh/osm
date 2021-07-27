@@ -138,22 +138,6 @@ func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
 	return Describe(opts.String()+" "+name, body)
 }
 
-<<<<<<< HEAD
-// InstallType defines several OSM test deployment scenarios
-type InstallType string
-
-const (
-	// SelfInstall uses current kube cluster, installs OSM using CLI
-	SelfInstall InstallType = "SelfInstall"
-	// KindCluster Creates Kind cluster on docker and uses it as cluster, OSM installs through CLI
-	KindCluster InstallType = "KindCluster"
-	// NoInstall uses current kube cluster, assumes an OSM is present in `OsmNamespace`
-	NoInstall InstallType = "NoInstall"
-	// RegistrySecretName is the default name for the container registry secret
-	RegistrySecretName = "acr-creds"
-)
-
-=======
 const (
 	// DefaultUpstreamServicePort is the default port on which the server apps listen for connections from client apps.
 	// Note: Port 80 should not be used because it does not work on OpenShift.
@@ -163,7 +147,6 @@ const (
 // HttpbinCmd is the command to be used for httpbin applications in e2es
 var HttpbinCmd = []string{"gunicorn", "-b", fmt.Sprintf("0.0.0.0:%d", DefaultUpstreamServicePort), "httpbin:app", "-k", "gevent"}
 
->>>>>>> 0be61daa (tests(e2e): configure ports to make e2es pass on OpenShift)
 // Verifies the instType string flag option is a valid enum type
 func verifyValidInstallType(t InstallType) error {
 	switch t {
