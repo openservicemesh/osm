@@ -8,12 +8,11 @@ require (
 	github.com/axw/gocov v1.0.0
 	github.com/cskr/pubsub v1.0.2
 	github.com/deckarep/golang-set v1.7.1
-	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
+	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/fatih/color v1.10.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/golang/mock v1.4.1
 	github.com/golang/protobuf v1.4.3
 	github.com/golangci/golangci-lint v1.32.2
@@ -39,7 +38,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/rs/zerolog v1.18.0
 	github.com/servicemeshinterface/smi-sdk-go v0.5.0
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
@@ -49,14 +48,14 @@ require (
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.5.3
+	helm.sh/helm/v3 v3.6.1
 	honnef.co/go/tools v0.1.1 // indirect
-	k8s.io/api v0.20.5
-	k8s.io/apiextensions-apiserver v0.20.2
-	k8s.io/apimachinery v0.20.5
-	k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go v0.20.5
-	k8s.io/code-generator v0.20.5
+	k8s.io/api v0.21.0
+	k8s.io/apiextensions-apiserver v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/cli-runtime v0.21.0
+	k8s.io/client-go v0.21.0
+	k8s.io/code-generator v0.21.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	mvdan.cc/gofumpt v0.1.0 // indirect
 	sigs.k8s.io/controller-runtime v0.6.3
