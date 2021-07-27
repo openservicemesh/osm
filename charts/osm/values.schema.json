@@ -256,7 +256,7 @@
                         "envoyproxy/envoy-alpine:v1.18.3"
                     ]
                 },
-                "certficateProvider": {
+                "certificateProvider": {
                     "$id": "#/properties/OpenServiceMesh/properties/certificateProvider",
                     "type": "object",
                     "title": "The certificate provider schema",
