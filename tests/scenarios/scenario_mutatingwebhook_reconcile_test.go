@@ -78,7 +78,7 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 
 				go func() {
 					defer GinkgoRecover()
-					err := mgr.Start(stopCh)
+					err := mgr.Start(context.TODO())
 					Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 				}()
 			})
