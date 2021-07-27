@@ -43,6 +43,9 @@ type MetricsStore struct {
 	// ProxyConfigUpdateTime is the histogram to track time spent for proxy configuration and its occurrences
 	ProxyConfigUpdateTime *prometheus.HistogramVec
 
+	// ProxyBroadcastEventCounter is the metric for the total number of ProxyBroadcast events published
+	ProxyBroadcastEventCount prometheus.Counter
+
 	/*
 	 * Injector metrics
 	 */
@@ -133,6 +136,13 @@ func init() {
 			"resource_type", // identifies a typeURI resource
 			"success",       // further labels if the operation succeeded or not
 		})
+
+	defaultMetricsStore.ProxyBroadcastEventCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "broadcast_event_count",
+		Help:      "Represents the number of ProxyBroadcast events published by the OSM controller",
+	})
 
 	/*
 	 * Injector metrics
