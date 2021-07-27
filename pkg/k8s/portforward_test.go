@@ -25,9 +25,10 @@ type noopConnection struct{}
 func (*noopConnection) CreateStream(headers http.Header) (httpstream.Stream, error) {
 	return nil, nil
 }
-func (*noopConnection) CloseChan() <-chan bool       { return nil }
-func (*noopConnection) Close() error                 { return nil }
-func (*noopConnection) SetIdleTimeout(time.Duration) {}
+func (*noopConnection) RemoveStreams(streams ...httpstream.Stream) {}
+func (*noopConnection) CloseChan() <-chan bool                     { return nil }
+func (*noopConnection) Close() error                               { return nil }
+func (*noopConnection) SetIdleTimeout(time.Duration)               {}
 
 func TestPortForwardSuccess(t *testing.T) {
 	dialer := &fakeDialer{
