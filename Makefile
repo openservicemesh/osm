@@ -137,15 +137,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
-	@if ! golangci-lint version 2>&1 | grep 1.30; then \
-		echo Installing golangci-lint; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.30; \
-	fi; \
-	golangci-lint run \
-		--config .golangci.yml \
-		--timeout 5m \
-		--skip-dirs pkg/gen \
-		--skip-files "zz_generated.deepcopy.go$$"
+	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.41.1 golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:

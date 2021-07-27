@@ -1,5 +1,10 @@
 run:
   tests: true
+  timeout: 5m
+  skip-dirs:
+    - pkg/gen
+  skip-files:
+    - "zz_generated.deepcopy.go$"
 
 linters:
   enable:

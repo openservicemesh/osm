@@ -49,7 +49,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.30
+          version: v1.41.1
           skip-pkg-cache: true
           args: --timeout 5m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
