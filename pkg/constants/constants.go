@@ -34,6 +34,9 @@ const (
 	// EnvoyUID is the Envoy's User ID
 	EnvoyUID int64 = 1500
 
+	// EnvoyWindowsUser is the Envoy's User name on Windows.
+	EnvoyWindowsUser string = "EnvoyUser"
+
 	// LocalhostIPAddress is the local host address.
 	LocalhostIPAddress = "127.0.0.1"
 
@@ -60,6 +63,11 @@ const (
 
 	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
 	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.18.3"
+
+	// DefaultEnvoyWindowsImage is the default envoy proxy windows sidecar image if not defined in the osm MeshConfig
+	// TODO(#3864): This should be updated to the nanoserver based image when it becomes available
+	// See https://github.com/envoyproxy/envoy/issues/16759
+	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows:v1.18.3"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
 	DefaultInitContainerImage = "openservicemesh/init:v0.9.1"

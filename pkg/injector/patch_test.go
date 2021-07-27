@@ -35,11 +35,13 @@ func TestCreatePatch(t *testing.T) {
 
 	testCases := []struct {
 		name            string
+		os              string
 		namespace       *corev1.Namespace
 		expectedPatches []string
 	}{
 		{
-			name: "creates a patch",
+			name: "creates a patch for a unix worker",
+			os:   "linux",
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
@@ -61,7 +63,28 @@ func TestCreatePatch(t *testing.T) {
 			},
 		},
 		{
+			name: "creates a patch for a windows worker",
+			os:   "windows",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			},
+			expectedPatches: []string{
+				// Add Envoy UID Label
+				`"path":"/metadata/labels"`,
+				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
+				// Add Volumes
+				`"path":"/spec/volumes"`,
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
+				// Add Envoy Container
+				`"path":"/spec/containers"`,
+				`"command":["envoy"]`,
+			},
+		},
+		{
 			name: "metrics enabled",
+			os:   "linux",
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        namespace,
@@ -106,8 +129,10 @@ func TestCreatePatch(t *testing.T) {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
+			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("").AnyTimes()
+			mockConfigurator.EXPECT().GetEnvoyImage().Return("").AnyTimes()
+
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("").Times(1)
 			mockConfigurator.EXPECT().GetInitContainerImage().Return("").Times(1)
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
@@ -115,7 +140,7 @@ func TestCreatePatch(t *testing.T) {
 			mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 
-			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
+			pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, tc.os)
 
 			raw, err := json.Marshal(pod)
 			assert.NoError(err)

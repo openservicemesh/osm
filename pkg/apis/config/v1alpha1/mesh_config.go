@@ -54,6 +54,9 @@ type SidecarSpec struct {
 	// EnvoyImage defines the container image used for the Envoy proxy sidecar.
 	EnvoyImage string `json:"envoyImage,omitempty"`
 
+	// EnvoyWindowsImage defines the windows container image used for the Envoy proxy sidecar.
+	EnvoyWindowsImage string `json:"envoyWindowsImage,omitempty"`
+
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 
