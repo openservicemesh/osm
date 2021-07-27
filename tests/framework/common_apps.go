@@ -150,15 +150,10 @@ type SimplePodAppDef struct {
 	AppProtocol string
 }
 
-// SimplePodApp creates returns a set of k8s typed definitions for a pod-based k8s definition.
+// SimplePodApp returns a set of k8s typed definitions for a pod-based k8s definition.
 // Includes Pod, Service and ServiceAccount types
 func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service) {
-	serviceAccountDefinition := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
-			Namespace: def.Namespace,
-		},
-	}
+	serviceAccountDefinition := Td.SimpleServiceAccount(def.Name, def.Namespace)
 
 	podDefinition := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -249,6 +244,17 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 	}
 
 	return serviceAccountDefinition, podDefinition, serviceDefinition
+}
+
+// SimpleServiceAccount returns a k8s typed definition for a service account.
+func (td *OsmTestData) SimpleServiceAccount(name string, namespace string) corev1.ServiceAccount {
+	serviceAccountDefinition := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return serviceAccountDefinition
 }
 
 // getKubernetesServerVersionNumber returns the version number in chunks, ex. v1.19.3 => [1, 19, 3]
