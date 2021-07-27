@@ -37,6 +37,7 @@ DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
 
 # For any additional installation arguments. Used heavily in CI.
@@ -86,8 +87,9 @@ fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
     make docker-push
-    ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
-fi
+fi 
+
+./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"

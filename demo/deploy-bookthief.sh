@@ -12,6 +12,7 @@ CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  --ignore-not-found
 
@@ -26,7 +27,9 @@ EOF
 
 if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     oc adm policy add-scc-to-user privileged -z bookthief -n "$BOOKTHIEF_NAMESPACE"
-    oc secrets link bookthief "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKTHIEF_NAMESPACE"
+    if [ "$USE_PRIVATE_REGISTRY" = true ]; then
+        oc secrets link bookthief "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKTHIEF_NAMESPACE"
+    fi
 fi
 
 kubectl apply -f - <<EOF
