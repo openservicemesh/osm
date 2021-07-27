@@ -278,7 +278,7 @@
                             ]
                         },
                         "serviceCertValidityDuration": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/serviceCertValidityDuration",
+                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/serviceCertValidityDuration",
                             "type": "string",
                             "title": "The serviceCertValidityDuration schema",
                             "description": "The service certificate validity duration.",
