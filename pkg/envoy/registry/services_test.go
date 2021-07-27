@@ -63,15 +63,13 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedSvc := service.MeshService{
-				Namespace:     tests.Namespace,
-				Name:          svcName,
-				ClusterDomain: constants.LocalDomain,
+				Namespace: tests.Namespace,
+				Name:      svcName,
 			}
 
 			expectedSvc2 := service.MeshService{
-				Namespace:     tests.Namespace,
-				Name:          svcName2,
-				ClusterDomain: constants.LocalDomain,
+				Namespace: tests.Namespace,
+				Name:      svcName2,
 			}
 			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
 
@@ -105,9 +103,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.MeshService{
-				Namespace:     namespace,
-				Name:          svcName,
-				ClusterDomain: constants.LocalDomain,
+				Namespace: namespace,
+				Name:      svcName,
 			}
 			expectedList := []service.MeshService{expected}
 
@@ -211,14 +208,12 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			expected := []service.MeshService{
 				{
-					Namespace:     "foo",
-					Name:          "A",
-					ClusterDomain: constants.LocalDomain,
+					Namespace: "foo",
+					Name:      "A",
 				},
 				{
-					Namespace:     "default",
-					Name:          "bookstore-apex",
-					ClusterDomain: constants.LocalDomain,
+					Namespace: "default",
+					Name:      "bookstore-apex",
 				},
 			}
 
@@ -233,14 +228,12 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			services := []service.MeshService{
 				{
-					Namespace:     "foo",
-					Name:          "A",
-					ClusterDomain: constants.LocalDomain,
+					Namespace: "foo",
+					Name:      "A",
 				},
 				{
-					Namespace:     "default",
-					Name:          "bookstore-apex",
-					ClusterDomain: constants.LocalDomain,
+					Namespace: "default",
+					Name:      "bookstore-apex",
 				},
 			}
 
@@ -259,7 +252,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 func TestAsyncKubeProxyServiceMapperListServicesForProxy(t *testing.T) {
 	cn1 := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc1", "ns1")
 	cn2 := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc2", "ns2")
-	svc1 := service.MeshService{Namespace: "ns1", Name: "svc1", ClusterDomain: constants.LocalDomain}
+	svc1 := service.MeshService{Namespace: "ns1", Name: "svc1"}
 	mapper := &AsyncKubeProxyServiceMapper{
 		servicesForCN: map[certificate.CommonName][]service.MeshService{
 			cn1: nil,
@@ -434,14 +427,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -487,22 +479,20 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc1",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc1",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc2",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc2",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc1", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc1", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc2", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc2", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -523,14 +513,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "other-svc1",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "other-svc1",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc1", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "other-svc1", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -538,14 +527,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): nil,
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "other-svc1",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "other-svc1",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc1", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "other-svc1", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -599,35 +587,32 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -787,25 +772,25 @@ func TestKubeHandlePodDelete(t *testing.T) {
 			},
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
-					{Namespace: "ns", Name: "svc", ClusterDomain: constants.LocalDomain},
+					{Namespace: "ns", Name: "svc"},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
-					{Namespace: "ns", Name: "svc", ClusterDomain: constants.LocalDomain},
+					{Namespace: "ns", Name: "svc"},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Namespace: "ns", Name: "svc", ClusterDomain: constants.LocalDomain}: {
+				{Namespace: "ns", Name: "svc"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
-					{Namespace: "ns", Name: "svc", ClusterDomain: constants.LocalDomain},
+					{Namespace: "ns", Name: "svc"},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Namespace: "ns", Name: "svc", ClusterDomain: constants.LocalDomain}: {
+				{Namespace: "ns", Name: "svc"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -852,18 +837,16 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
@@ -880,31 +863,29 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {},
+				{Name: "svc", Namespace: "ns"}: {},
 			},
 		},
 		{
@@ -939,14 +920,13 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -981,31 +961,29 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "other-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "other-svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "other-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "other-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "other-svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "other-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {},
+				{Name: "svc", Namespace: "ns"}: {},
 			},
 		},
 		{
@@ -1052,21 +1030,19 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -1114,76 +1090,68 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -1240,28 +1208,26 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCnsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -1277,44 +1243,40 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCnsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -1330,14 +1292,13 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -1357,62 +1318,56 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 					{
-						Name:          "svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
 			expectedCnsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "svc",
-						Namespace:     "not-ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "svc",
+						Namespace: "not-ns",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
-						Name:          "not-svc",
-						Namespace:     "ns",
-						ClusterDomain: constants.LocalDomain,
+						Name:      "not-svc",
+						Namespace: "ns",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "not-svc", Namespace: "ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "not-ns", ClusterDomain: constants.LocalDomain}: {
+				{Name: "svc", Namespace: "not-ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},

@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -239,21 +238,20 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			port:           80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
+				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
 			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
-
 		{
 			name:           "inbound HTTP filter chain with permissive mode enabled",
 			permissiveMode: true,
 			port:           90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
+				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -338,7 +336,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			port:           80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
+				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -352,7 +350,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			port:           90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName(), "bookbuyer.default.svc.cluster.cluster-x"},
+				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -553,23 +551,21 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without any traffic split policies",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			clusterWeights: nil,
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo/local",
-				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo/local"},
+				StatPrefix:       "outbound-mesh-tcp-proxy.bar/foo",
+				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo"},
 			},
 			expectError: false,
 		},
 		{
 			name: "TCP filter for upstream with matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			clusterWeights: []service.WeightedCluster{
 				{
@@ -582,7 +578,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 				},
 			},
 			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo/local",
+				StatPrefix: "outbound-mesh-tcp-proxy.bar/foo",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
 					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
 						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{

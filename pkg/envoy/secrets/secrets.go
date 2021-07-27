@@ -3,7 +3,6 @@ package secrets
 import (
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -62,9 +61,8 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	}
 
 	return &service.MeshService{
-		Namespace:     slices[0],
-		Name:          slices[1],
-		ClusterDomain: constants.LocalDomain,
+		Namespace: slices[0],
+		Name:      slices[1],
 	}, nil
 }
 

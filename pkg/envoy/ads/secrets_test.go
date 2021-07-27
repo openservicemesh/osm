@@ -11,7 +11,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -43,8 +42,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:          "scenario where proxy is both downstream and upstream",
 			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
+				{Name: "service-2", Namespace: "ns-2"},
+				{Name: "service-3", Namespace: "ns-3"},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -65,8 +64,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:          "scenario where proxy is only a downsteam (no service)",
 			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
+				{Name: "service-2", Namespace: "ns-2"},
+				{Name: "service-3", Namespace: "ns-3"},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
@@ -102,8 +101,8 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 			name:          "scenario where proxy is both downstream and upstream, with mutiple upstreams on the proxy",
 			proxyIdentity: proxyServiceIdentity,
 			allowedOutboundServices: []service.MeshService{
-				{Name: "service-2", Namespace: "ns-2", ClusterDomain: constants.LocalDomain},
-				{Name: "service-3", Namespace: "ns-3", ClusterDomain: constants.LocalDomain},
+				{Name: "service-2", Namespace: "ns-2"},
+				{Name: "service-3", Namespace: "ns-3"},
 			},
 			expectedDiscoveryRequest: &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),

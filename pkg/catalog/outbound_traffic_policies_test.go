@@ -14,7 +14,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -27,7 +26,7 @@ import (
 
 var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*trafficpolicy.OutboundTrafficPolicy{
 	{
-		Name:      "bookstore-v1.default.local",
+		Name:      "bookstore-v1.default.svc.cluster.local",
 		Hostnames: tests.BookstoreV1Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -37,7 +36,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		},
 	},
 	{
-		Name:      "bookstore-v2.default.local",
+		Name:      "bookstore-v2.default.svc.cluster.local",
 		Hostnames: tests.BookstoreV2Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -47,7 +46,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		},
 	},
 	{
-		Name:      "bookstore-apex.default.local",
+		Name:      "bookstore-apex.default.svc.cluster.local",
 		Hostnames: tests.BookstoreApexHostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
@@ -103,9 +102,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -115,7 +113,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1.default.local",
+					Name:      "bookstore-v1.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -125,7 +123,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2.default.local",
+					Name:      "bookstore-v2.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -135,14 +133,14 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -155,9 +153,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -167,7 +164,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1.default.local",
+					Name:      "bookstore-v1.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -177,7 +174,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2.default.local",
+					Name:      "bookstore-v2.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -187,14 +184,14 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: BookstoreApexHostnamesSorted,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -217,9 +214,8 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			downstreamSA: tests.BookbuyerServiceIdentity,
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
@@ -229,14 +225,14 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -267,7 +263,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			trafficspecs:        []*spec.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name: "bookstore-v1.default.local",
+					Name: "bookstore-v1.default.svc.cluster.local",
 					Hostnames: []string{
 						"bookstore-v1",
 						"bookstore-v1.default",
@@ -288,7 +284,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-v2.default.local",
+					Name: "bookstore-v2.default.svc.cluster.local",
 					Hostnames: []string{
 						"bookstore-v2",
 						"bookstore-v2.default",
@@ -309,7 +305,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookbuyer.default.local",
+					Name: "bookbuyer.default.svc.cluster.local",
 					Hostnames: []string{
 						"bookbuyer",
 						"bookbuyer.default",
@@ -517,21 +513,20 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -544,21 +539,20 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit4},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -571,21 +565,20 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
@@ -598,39 +591,37 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit, &testSplit1},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          tests.BookstoreApexServiceName,
-					Namespace:     tests.Namespace,
-					ClusterDomain: constants.LocalDomain,
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
 				},
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1/local", Weight: 90},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2/local", Weight: 10},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
 							}),
 						},
 					},
 				},
 				{
-					Name:      "apex-split-1.bar.local",
+					Name:      "apex-split-1.bar.svc.cluster.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "bar/bookstore-v1/local", Weight: 10},
-								service.WeightedCluster{ClusterName: "bar/bookstore-v2/local", Weight: 90},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
 							}),
 						},
 					},
@@ -643,21 +634,20 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit2},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "apex-split-1.bar.local",
+					Name:      "apex-split-1.bar.svc.cluster.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "bar/bookstore-v1/local", Weight: 10},
-								service.WeightedCluster{ClusterName: "bar/bookstore-v2/local", Weight: 90},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
 							}),
 						},
 					},
@@ -670,39 +660,37 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit3},
 			apexMeshServices: []service.MeshService{
 				{
-					Name:          "apex-split-1",
-					Namespace:     "bar",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "bar",
 				},
 				{
-					Name:          "apex-split-1",
-					Namespace:     "baz",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "apex-split-1",
+					Namespace: "baz",
 				},
 			},
 			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "apex-split-1.bar.local",
+					Name:      "apex-split-1.bar.svc.cluster.local",
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "bar/bookstore-v1/local", Weight: 10},
-								service.WeightedCluster{ClusterName: "bar/bookstore-v2/local", Weight: 90},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
 							}),
 						},
 					},
 				},
 				{
-					Name:      "apex-split-1.baz.local",
+					Name:      "apex-split-1.baz.svc.cluster.local",
 					Hostnames: testSplit3NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "baz/bookstore-v1/local", Weight: 10},
-								service.WeightedCluster{ClusterName: "baz/bookstore-v2/local", Weight: 90},
+								service.WeightedCluster{ClusterName: "baz/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "baz/bookstore-v2", Weight: 90},
 							}),
 						},
 					},
@@ -831,7 +819,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 			services:        map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "test"},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name: "bookstore-apex.default.local",
+					Name: "bookstore-apex.default.svc.cluster.local",
 					Hostnames: []string{
 						"bookstore-apex.default",
 						"bookstore-apex.default.svc",
@@ -850,7 +838,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-v1.default.local",
+					Name: "bookstore-v1.default.svc.cluster.local",
 					Hostnames: []string{
 						"bookstore-v1.default",
 						"bookstore-v1.default.svc",
@@ -869,7 +857,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookbuyer.test.local",
+					Name: "bookbuyer.test.svc.cluster.local",
 					Hostnames: []string{
 						"bookbuyer",
 						"bookbuyer.test",
@@ -886,7 +874,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "test/bookbuyer/local",
+								ClusterName: "test/bookbuyer",
 								Weight:      100,
 							}),
 						},
@@ -1069,7 +1057,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			trafficspecs:     []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name:      "bookstore-v1.default.local",
+					Name:      "bookstore-v1.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -1079,7 +1067,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-v2.default.local",
+					Name:      "bookstore-v2.default.svc.cluster.local",
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -1089,7 +1077,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 					},
 				},
 				{
-					Name:      "bookstore-apex.default.local",
+					Name:      "bookstore-apex.default.svc.cluster.local",
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
@@ -1182,9 +1170,8 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	}
 
 	destMeshService := service.MeshService{
-		Name:          "bookstore",
-		Namespace:     "bookstore-ns",
-		ClusterDomain: constants.LocalDomain,
+		Name:      "bookstore",
+		Namespace: "bookstore-ns",
 	}
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
@@ -1236,9 +1223,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without any traffic split policies",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: nil,
 			expected:      nil,
@@ -1246,9 +1232,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1273,11 +1258,11 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			},
 			expected: []service.WeightedCluster{
 				{
-					ClusterName: "bar/foo-v1/local",
+					ClusterName: "bar/foo-v1",
 					Weight:      10,
 				},
 				{
-					ClusterName: "bar/foo-v2/local",
+					ClusterName: "bar/foo-v2",
 					Weight:      90,
 				},
 			},
@@ -1285,9 +1270,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream without matching traffic split policy",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1315,9 +1299,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with multiple matching policies, pick first",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1361,11 +1344,11 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			},
 			expected: []service.WeightedCluster{
 				{
-					ClusterName: "bar/foo-v1/local",
+					ClusterName: "bar/foo-v1",
 					Weight:      10,
 				},
 				{
-					ClusterName: "bar/foo-v2/local",
+					ClusterName: "bar/foo-v2",
 					Weight:      90,
 				},
 			},
@@ -1373,9 +1356,8 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 		{
 			name: "TCP filter for upstream with matching traffic split policy including a backend with 0 weight",
 			upstream: service.MeshService{
-				Name:          "foo",
-				Namespace:     "bar",
-				ClusterDomain: constants.LocalDomain,
+				Name:      "foo",
+				Namespace: "bar",
 			},
 			trafficSplits: []*split.TrafficSplit{
 				{
@@ -1400,7 +1382,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			},
 			expected: []service.WeightedCluster{
 				{
-					ClusterName: "bar/foo-v1/local",
+					ClusterName: "bar/foo-v1",
 					Weight:      100,
 				},
 			},
@@ -1497,19 +1479,16 @@ func TestListMeshServicesForIdentity(t *testing.T) {
 			},
 			expected: []service.MeshService{
 				{
-					Name:          "split-svc",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-svc",
+					Namespace: "my-dst-ns",
 				},
 				{
-					Name:          "split-backend-1",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-backend-1",
+					Namespace: "my-dst-ns",
 				},
 				{
-					Name:          "split-backend-2",
-					Namespace:     "my-dst-ns",
-					ClusterDomain: constants.LocalDomain,
+					Name:      "split-backend-2",
+					Namespace: "my-dst-ns",
 				},
 			},
 		},
