@@ -137,7 +137,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml
+	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.41.1 golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:
