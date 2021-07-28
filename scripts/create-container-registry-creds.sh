@@ -13,7 +13,9 @@ if [[ "${CI:-}" == "true" ]]; then
     CTR_REGISTRY_PASSWORD=${DOCKER_PASS:-}
 fi
 
-[[ -z "$CTR_REGISTRY_PASSWORD" ]] && exit 0
+if [[ "$USE_PRIVATE_REGISTRY" = false ]]; then
+    exit 0
+fi
 
 REGISTRY=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1}')
 REGISTRY_URL=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1 "." $2 "." $3}')
