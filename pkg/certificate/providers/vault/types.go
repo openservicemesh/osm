@@ -28,7 +28,7 @@ type CertManager struct {
 
 	cfg configurator.Configurator
 
-	validityPeriod time.Duration
+	serviceCertValidityDuration time.Duration
 }
 
 type vaultRole string

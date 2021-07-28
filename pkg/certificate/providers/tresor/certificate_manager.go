@@ -162,10 +162,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	if cm.validityPeriod == 0 {
-		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	if cm.serviceCertValidityDuration == 0 {
+		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
 	}
-	newCert, err := cm.issue(cn, cm.validityPeriod)
+	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
 	if err != nil {
 		return nil, err
 	}

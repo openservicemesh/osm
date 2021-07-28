@@ -39,11 +39,11 @@ func NewCertManager(
 	token string,
 	role string,
 	cfg configurator.Configurator,
-	validityPeriod time.Duration) (*CertManager, error) {
+	serviceCertValidityDuration time.Duration) (*CertManager, error) {
 	c := &CertManager{
-		role:           vaultRole(role),
-		cfg:            cfg,
-		validityPeriod: validityPeriod,
+		role:                        vaultRole(role),
+		cfg:                         cfg,
+		serviceCertValidityDuration: serviceCertValidityDuration,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -176,10 +176,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	if cm.validityPeriod == 0 {
-		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	if cm.serviceCertValidityDuration == 0 {
+		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
 	}
-	newCert, err := cm.issue(cn, cm.validityPeriod)
+	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
 	if err != nil {
 		return nil, err
 	}

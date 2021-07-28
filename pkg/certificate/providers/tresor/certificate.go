@@ -47,7 +47,7 @@ func NewCertManager(
 	ca certificate.Certificater,
 	certificatesOrganization string,
 	cfg configurator.Configurator,
-	validityPeriod time.Duration,
+	serviceCertValidityDuration time.Duration,
 	keySize int) (*CertManager, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
@@ -55,11 +55,11 @@ func NewCertManager(
 
 	certManager := CertManager{
 		// The root certificate signing all newly issued certificates
-		ca:                       ca,
-		certificatesOrganization: certificatesOrganization,
-		cfg:                      cfg,
-		validityPeriod:           validityPeriod,
-		keySize:                  keySize,
+		ca:                          ca,
+		certificatesOrganization:    certificatesOrganization,
+		cfg:                         cfg,
+		serviceCertValidityDuration: serviceCertValidityDuration,
+		keySize:                     keySize,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

@@ -82,10 +82,10 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	if cm.validityPeriod == 0 {
-		cm.validityPeriod = cm.cfg.GetServiceCertValidityPeriod()
+	if cm.serviceCertValidityDuration == 0 {
+		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
 	}
-	newCert, err := cm.issue(cn, cm.validityPeriod)
+	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
 	if err != nil {
 		return newCert, err
 	}
@@ -245,7 +245,7 @@ func NewCertManager(
 	namespace string,
 	issuerRef cmmeta.ObjectReference,
 	cfg configurator.Configurator,
-	validityPeriod time.Duration,
+	serviceCertValidityDuration time.Duration,
 	keySize int,
 ) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
@@ -255,15 +255,15 @@ func NewCertManager(
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:             ca,
-		cache:          make(map[certificate.CommonName]certificate.Certificater),
-		namespace:      namespace,
-		client:         client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef:      issuerRef,
-		crLister:       crLister,
-		cfg:            cfg,
-		validityPeriod: validityPeriod,
-		keySize:        keySize,
+		ca:                          ca,
+		cache:                       make(map[certificate.CommonName]certificate.Certificater),
+		namespace:                   namespace,
+		client:                      client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef:                   issuerRef,
+		crLister:                    crLister,
+		cfg:                         cfg,
+		serviceCertValidityDuration: serviceCertValidityDuration,
+		keySize:                     keySize,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

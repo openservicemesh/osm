@@ -51,8 +51,8 @@ type CertManager struct {
 	cfg configurator.Configurator
 
 	// Issuing certificate properties.
-	validityPeriod time.Duration
-	keySize        int
+	serviceCertValidityDuration time.Duration
+	keySize                     int
 }
 
 // Certificate implements certificate.Certificater
