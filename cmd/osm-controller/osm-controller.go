@@ -251,7 +251,7 @@ func main() {
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{SMIClientset: clientset}}
+	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
