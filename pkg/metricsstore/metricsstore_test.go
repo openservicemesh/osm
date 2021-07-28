@@ -45,7 +45,7 @@ func TestMetricsStore(t *testing.T) {
 
 			assert.Equal(http.StatusOK, rr.Code)
 
-			expectedResp := fmt.Sprintf(`# HELP osm_k8s_api_event_count represents the number of events received from the Kubernetes API Server
+			expectedResp := fmt.Sprintf(`# HELP osm_k8s_api_event_count Represents the number of events received from the Kubernetes API Server
 # TYPE osm_k8s_api_event_count counter
 osm_k8s_api_event_count{namespace="foo",type="add"} %d
 `, i /* api event count */)
@@ -76,7 +76,7 @@ osm_k8s_api_event_count{namespace="foo",type="add"} %d
 
 		assert.Equal(http.StatusOK, rr.Code)
 
-		expectedResp := fmt.Sprintf(`# HELP osm_proxy_connect_count represents the number of proxies connected to OSM controller
+		expectedResp := fmt.Sprintf(`# HELP osm_proxy_connect_count Represents the number of proxies connected to OSM controller
 # TYPE osm_proxy_connect_count gauge
 osm_proxy_connect_count %d
 `, proxiesConnected-proxiesDisconnected)
