@@ -82,6 +82,10 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
+	// We want the validity duration of the CertManager to remain static during the lifetime
+	// of the CertManager. This tests to see if this value is set, and if it isn't then it
+	// should make the infrequent call to configuration to get this value and cache it for
+	// future certificate operations.
 	if cm.serviceCertValidityDuration == 0 {
 		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
 	}
@@ -151,6 +155,9 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		Duration: validityPeriod,
 	}
 
+	// Key bit size should remain static during the lifetime of the CertManager. In the event that this
+	// is a zero value, we make the call to config to get the setting and then cache it for future
+	// certificate operations.
 	if cm.keySize == 0 {
 		cm.keySize = cm.cfg.GetCertKeyBitSize()
 	}
