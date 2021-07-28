@@ -50,3 +50,14 @@ jobs:
           touch .env
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
+      - name: Cleanup resources
+        env:
+          BOOKWAREHOUSE_NAMESPACE: bookwarehouse
+          BOOKBUYER_NAMESPACE: bookbuyer
+          BOOKSTORE_NAMESPACE: bookstore
+          BOOKTHIEF_NAMESPACE: bookthief
+          MESH_NAME: osm
+          K8S_NAMESPACE: osm-system
+          TIMEOUT: 90s
+        run: |
+          ./demo/clean-kubernetes.sh
