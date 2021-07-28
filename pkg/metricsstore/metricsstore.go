@@ -81,7 +81,7 @@ func init() {
 			Namespace: metricsRootNamespace,
 			Subsystem: "k8s",
 			Name:      "api_event_count",
-			Help:      "represents the number of events received from the Kubernetes API Server",
+			Help:      "Represents the number of events received from the Kubernetes API Server",
 		},
 		[]string{"type", "namespace"},
 	)
@@ -89,19 +89,19 @@ func init() {
 		Namespace: metricsRootNamespace,
 		Subsystem: "k8s",
 		Name:      "monitored_namespace_count",
-		Help:      "represents the number of namespaces monitored by OSM controller",
+		Help:      "Represents the number of namespaces monitored by OSM controller",
 	})
 	defaultMetricsStore.K8sMeshPodCount = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "k8s",
 		Name:      "mesh_pod_count",
-		Help:      "represents the number of pods part of the mesh managed by OSM controller",
+		Help:      "Represents the number of pods part of the mesh managed by OSM controller",
 	})
 	defaultMetricsStore.K8sMeshServiceCount = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "k8s",
 		Name:      "mesh_service_count",
-		Help:      "represents the number of services part of the mesh managed by OSM controller",
+		Help:      "Represents the number of services part of the mesh managed by OSM controller",
 	})
 
 	/*
@@ -111,14 +111,14 @@ func init() {
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "connect_count",
-		Help:      "represents the number of proxies connected to OSM controller",
+		Help:      "Represents the number of proxies connected to OSM controller",
 	})
 
 	defaultMetricsStore.ProxyReconnectCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "reconnect_count",
-		Help:      "represents the number of reconnects from known proxies to OSM controller",
+		Help:      "Represents the number of reconnects from known proxies to OSM controller",
 	})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
@@ -163,7 +163,7 @@ func init() {
 		Namespace: metricsRootNamespace,
 		Subsystem: "cert",
 		Name:      "issued_count",
-		Help:      "represents the total number of XDS certificates issued to proxies",
+		Help:      "Represents the total number of XDS certificates issued to proxies",
 	})
 
 	defaultMetricsStore.CertIssuedTime = prometheus.NewHistogramVec(
