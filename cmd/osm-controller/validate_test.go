@@ -89,17 +89,17 @@ var _ = Describe("Test validateCertificateManagerOptions", func() {
 
 var _ = Describe("Test validateCLIParams", func() {
 	var (
-		testMeshName           = "test-mesh-name"
-		testOsmNamespace       = "test-namespace"
-		testwebhookConfigName  = "test-webhook-name"
-		testCABundleSecretName = "test-ca-bundle"
+		testMeshName                   = "test-mesh-name"
+		testOsmNamespace               = "test-namespace"
+		testvalidatorWebhookConfigName = "test-webhook-name"
+		testCABundleSecretName         = "test-ca-bundle"
 	)
 
 	Context("none of the necessary CLI params are empty", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
-		webhookConfigName = testwebhookConfigName
+		validatorWebhookConfigName = testvalidatorWebhookConfigName
 		caBundleSecretName = testCABundleSecretName
 
 		err := validateCLIParams()
@@ -112,7 +112,7 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = ""
 		osmNamespace = testOsmNamespace
-		webhookConfigName = testwebhookConfigName
+		validatorWebhookConfigName = testvalidatorWebhookConfigName
 
 		err := validateCLIParams()
 
@@ -124,7 +124,7 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = ""
-		webhookConfigName = testwebhookConfigName
+		validatorWebhookConfigName = testvalidatorWebhookConfigName
 
 		err := validateCLIParams()
 
@@ -132,11 +132,11 @@ var _ = Describe("Test validateCLIParams", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	Context("webhookConfigName is empty", func() {
+	Context("validatorWebhookConfigName is empty", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
-		webhookConfigName = ""
+		validatorWebhookConfigName = ""
 
 		err := validateCLIParams()
 
@@ -148,7 +148,7 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
-		webhookConfigName = testwebhookConfigName
+		validatorWebhookConfigName = testvalidatorWebhookConfigName
 		caBundleSecretName = ""
 
 		err := validateCLIParams()

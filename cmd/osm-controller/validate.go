@@ -20,8 +20,8 @@ func validateCLIParams() error {
 		return errors.New("Please specify the OSM namespace using --osm-namespace")
 	}
 
-	if webhookConfigName == "" {
-		return errors.Errorf("Please specify the webhook configuration name using --webhook-config-name")
+	if validatorWebhookConfigName == "" {
+		return errors.Errorf("Please specify the webhook configuration name using --validator-webhook-config")
 	}
 
 	if caBundleSecretName == "" {

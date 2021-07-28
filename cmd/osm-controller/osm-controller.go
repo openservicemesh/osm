@@ -54,17 +54,17 @@ import (
 
 const (
 	xdsServerCertificateCommonName = "ads"
-	validatingWebhookServiceCN     = "osm-validator"
+	validatorWebhookSvc            = "osm-validator"
 )
 
 var (
-	verbosity          string
-	meshName           string // An ID that uniquely identifies an OSM instance
-	osmNamespace       string
-	osmServiceAccount  string
-	webhookConfigName  string
-	caBundleSecretName string
-	osmMeshConfigName  string
+	verbosity                  string
+	meshName                   string // An ID that uniquely identifies an OSM instance
+	osmNamespace               string
+	osmServiceAccount          string
+	validatorWebhookConfigName string
+	caBundleSecretName         string
+	osmMeshConfigName          string
 
 	certProviderKind string
 
@@ -85,7 +85,7 @@ func init() {
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "OSM controller's namespace")
 	flags.StringVar(&osmServiceAccount, "osm-service-account", "", "OSM controller's service account")
-	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
+	flags.StringVar(&validatorWebhookConfigName, "validator-webhook-config", "", "Name of the ValidatingWebhookConfiguration for the resource validator webhook")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 
 	// Generic certificate manager/provider options
@@ -246,29 +246,27 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	// Initialize OSM's http service server
-	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorWebhookSvc, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
+	}
+
+	if _, err := validator.NewValidatingWebhook(validatorWebhookConfigName, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
+	}
+
+	// Initialize OSM's http service server
+	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
-
-	webhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatingWebhookServiceCN, osmNamespace)),
-		constants.XDSCertificateValidityPeriod)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
-	}
-
-	if cfg.GetFeatureFlags().EnableValidatingWebhook {
-		if _, err := validator.NewValidatingWebhook(webhookConfigName, constants.OSMHTTPServerPort, webhookHandlerCert, kubeClient, stop); err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
-		}
-	}
 	// Metrics
 	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
 	// Version
@@ -310,14 +308,13 @@ func startMetricsStore() {
 
 // getHTTPHealthProbes returns the HTTP health probes served by OSM controller
 func getHTTPHealthProbes() []health.HTTPProbe {
-	// Example:
-	// return []health.HTTPProbe{
-	// 	{
-	// 		URL: "https://127.0.0.1:<local-port>",
-	// 		Protocol: health.ProtocolHTTPS,
-	// 	},
-	// }
-	return nil
+	return []health.HTTPProbe{
+		// Internal probe to validator's webhook port
+		{
+			URL:      joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, constants.ValidatorWebhookPort), validator.HealthAPIPath),
+			Protocol: health.ProtocolHTTPS,
+		},
+	}
 }
 
 func parseFlags() error {

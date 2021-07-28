@@ -71,7 +71,7 @@ spec:
             "--osm-namespace", "{{ include "osm.namespace" . }}",
             "--osm-service-account", "{{ .Release.Name }}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
-            "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
+            "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
             {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}

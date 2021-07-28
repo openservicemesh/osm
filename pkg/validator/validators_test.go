@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"errors"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
@@ -10,13 +9,205 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func TestIngressBackendValidator(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
+	}{
+		{
+			name: "IngressBackend with valid protocol succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "IngressBackend with invalid protocol errors",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "invalid"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Expected 'port.protocol' to be 'http' or 'https', got: invalid",
+		},
+		{
+			name: "IngressBackend with valid TLS config succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": true
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "IngressBackend with invalid mTLS config false",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": false
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source",
+		},
+		{
+			name: "IngressBackend with valid mTLS config succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": false
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "AuthenticatedPrincipal",
+									"name": "client.ns.cluster.local"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			resp, err := IngressBackendValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
+
 func TestEgressValidator(t *testing.T) {
 	assert := tassert.New(t)
 	testCases := []struct {
-		name    string
-		input   *admissionv1.AdmissionRequest
-		expResp *admissionv1.AdmissionResponse
-		expErr  error
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
 	}{
 		{
 			name: "Egress with bad http route fails",
@@ -45,8 +236,8 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  errors.New("Expected Matches.Kind to be 'HTTPRouteGroup', got: BadHttpRoute"),
+			expResp:   nil,
+			expErrStr: "Expected 'Matches.Kind' to be 'HTTPRouteGroup', got: BadHttpRoute",
 		},
 		{
 			name: "Egress with bad API group fails",
@@ -75,8 +266,8 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  errors.New("Expected Matches.APIGroup to be 'specs.smi-spec.io/v1alpha4', got: test"),
+			expResp:   nil,
+			expErrStr: "Expected 'Matches.APIGroup' to be 'specs.smi-spec.io/v1alpha4', got: test",
 		},
 		{
 			name: "Egress with valid http route and API group passes",
@@ -105,17 +296,18 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  nil,
+			expResp:   nil,
+			expErrStr: "",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			resp, err := EgressValidator(tc.input)
-			t.Log(tc.input.Kind.Kind)
 			assert.Equal(tc.expResp, resp)
-			assert.Equal(tc.expErr, err)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
 		})
 	}
 }
@@ -123,10 +315,10 @@ func TestEgressValidator(t *testing.T) {
 func TestMeshConfigValidator(t *testing.T) {
 	assert := tassert.New(t)
 	testCases := []struct {
-		name    string
-		input   *admissionv1.AdmissionRequest
-		expResp *admissionv1.AdmissionResponse
-		expErr  error
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
 	}{
 		{
 			name: "MeshConfig with invalid duration fails",
@@ -151,8 +343,8 @@ func TestMeshConfigValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  errors.New("Certificate.ServiceCertValidityDuration abc is not valid"),
+			expResp:   nil,
+			expErrStr: "'Certificate.ServiceCertValidityDuration' abc is not valid",
 		},
 		{
 			name: "MeshConfig with duration lower than minimum duration fails",
@@ -177,8 +369,8 @@ func TestMeshConfigValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  errors.New("Certificate.ServiceCertValidityDuration 500000000 is lower than 1000000000"),
+			expResp:   nil,
+			expErrStr: "'Certificate.ServiceCertValidityDuration' 500000000 is lower than 120000000000",
 		},
 		{
 			name: "MeshConfig with valid duration passes",
@@ -203,17 +395,18 @@ func TestMeshConfigValidator(t *testing.T) {
 				},
 			},
 
-			expResp: nil,
-			expErr:  nil,
+			expResp:   nil,
+			expErrStr: "",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			resp, err := MeshConfigValidator(tc.input)
-			t.Log(tc.input.Kind.Kind)
 			assert.Equal(tc.expResp, resp)
-			assert.Equal(tc.expErr, err)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
 		})
 	}
 }
@@ -221,10 +414,10 @@ func TestMeshConfigValidator(t *testing.T) {
 func TestMulticlusterServiceValidator(t *testing.T) {
 	assert := tassert.New(t)
 	testCases := []struct {
-		name    string
-		input   *admissionv1.AdmissionRequest
-		expResp *admissionv1.AdmissionResponse
-		expErr  error
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
 	}{
 		{
 			name: "MultiClusterService with empty name fails",
@@ -250,8 +443,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  errors.New("Cluster name is not valid"),
+			expResp:   nil,
+			expErrStr: "Cluster name is not valid",
 		},
 		{
 			name: "MultiClusterService with duplicate cluster names fails",
@@ -279,8 +472,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  errors.New("Cluster named test already exists"),
+			expResp:   nil,
+			expErrStr: "Cluster named test already exists",
 		},
 		{
 			name: "MultiClusterService has an acceptable name",
@@ -305,8 +498,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  nil,
+			expResp:   nil,
+			expErrStr: "",
 		},
 		{
 			name: "MultiClusterService with empty address fails",
@@ -332,8 +525,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  errors.New("Cluster address  is not valid"),
+			expResp:   nil,
+			expErrStr: "Cluster address  is not valid",
 		},
 		{
 			name: "MultiClusterService with invalid IP fails",
@@ -358,8 +551,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  errors.New("Error parsing IP address 0.0.00:22"),
+			expResp:   nil,
+			expErrStr: "Error parsing IP address 0.0.00:22",
 		},
 		{
 			name: "MultiClusterService with invalid port fails",
@@ -384,8 +577,8 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 					`),
 				},
 			},
-			expResp: nil,
-			expErr:  errors.New("Error parsing port value 0.0.0.0:a"),
+			expResp:   nil,
+			expErrStr: "Error parsing port value 0.0.0.0:a",
 		},
 	}
 
@@ -394,7 +587,9 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 			resp, err := MultiClusterServiceValidator(tc.input)
 			t.Log(tc.input.Kind.Kind)
 			assert.Equal(tc.expResp, resp)
-			assert.Equal(tc.expErr, err)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
 		})
 	}
 }

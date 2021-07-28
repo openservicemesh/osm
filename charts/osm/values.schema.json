@@ -1098,6 +1098,21 @@
                             }
                         ]
                     ]
+                },
+                "validatorWebhook": {
+                    "$id": "#/properties/OpenServiceMesh/properties/validatorWebhook",
+                    "type": "object",
+                    "title": "The validatorWebhook schema",
+                    "description": "Resource validator webhook configuration",
+                    "properties": {
+                        "webhookConfigurationName": {
+                            "$id": "#/properties/OpenServiceMesh/properties/validatorWebhook/properties/webhookConfigurationName",
+                            "title": "Validator webhook configuration schema",
+                            "description": "Validator's ValidatingWebhookConfigurationName",
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

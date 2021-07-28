@@ -17,8 +17,6 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
@@ -29,11 +27,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/webhook"
-)
-
-var (
-	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
-	deserializer = codecs.UniversalDeserializer()
 )
 
 const (
@@ -48,9 +41,6 @@ const (
 
 	// webhookTimeoutStr is the url variable name for timeout
 	webhookMutateTimeoutKey = "timeout"
-
-	contentTypeJSON       = "application/json"
-	httpHeaderContentType = "Content-Type"
 
 	// injectorServiceName is the name of the OSM sidecar injector service
 	injectorServiceName = "osm-injector"
@@ -166,7 +156,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 
 func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
 	var admissionReq admissionv1.AdmissionReview
-	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
+	if _, _, err := webhook.Deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
 		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
@@ -192,8 +182,8 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// Execute at return of this handler
 	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
 
-	if contentType := req.Header.Get(httpHeaderContentType); contentType != contentTypeJSON {
-		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, contentTypeJSON)
+	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
+		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return

@@ -1,12 +1,12 @@
 {{/* Determine osm namespace */}}
-{{- define "osm.namespace" -}} 
-{{ default .Release.Namespace .Values.OpenServiceMesh.osmNamespace}} 
+{{- define "osm.namespace" -}}
+{{ default .Release.Namespace .Values.OpenServiceMesh.osmNamespace}}
 {{- end -}}
 
 {{/* Default tracing address */}}
 {{- define "osm.tracingAddress" -}}
 {{- $address := printf "jaeger.%s.svc.cluster.local" (include "osm.namespace" .) -}}
-{{ default $address .Values.OpenServiceMesh.tracing.address}} 
+{{ default $address .Values.OpenServiceMesh.tracing.address}}
 {{- end -}}
 
 {{/* Labels to be added to all resources */}}
@@ -32,4 +32,10 @@ securityContext:
     capabilities:
         drop:
             - ALL
+{{- end -}}
+
+{{/* Resource validator webhook name */}}
+{{- define "osm.validatorWebhookConfigName" -}}
+{{- $validatorWebhookConfigName := printf "osm-validator-mesh-%s" .Values.OpenServiceMesh.meshName -}}
+{{ default $validatorWebhookConfigName .Values.OpenServiceMesh.validatorWebhook.webhookConfigurationName}}
 {{- end -}}
