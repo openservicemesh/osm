@@ -58,7 +58,8 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						Namespace:    destApp,
 						ReplicaCount: int32(replicaSetPerService),
 						Image:        "kennethreitz/httpbin",
-						Ports:        []int{80},
+						Ports:        []int{DefaultUpstreamServicePort},
+						Command:      HttpbinCmd,
 					})
 
 				_, err := Td.CreateServiceAccount(destApp, &svcAccDef)
@@ -85,7 +86,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							Command:      []string{"/bin/bash", "-c", "--"},
 							Args:         []string{"while true; do sleep 30; done;"},
 							Image:        "songrgg/alpine-debug",
-							Ports:        []int{80}, // Can't deploy services with empty/no ports
+							Ports:        []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
 						})
 					_, err = Td.CreateServiceAccount(srcClient, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
@@ -139,7 +140,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							SourcePod:       pod.Name,
 							SourceContainer: ns, // container_name == NS for this test
 
-							Destination: fmt.Sprintf("%s.%s", destApp, destApp),
+							Destination: fmt.Sprintf("%s.%s:%d", destApp, destApp, DefaultUpstreamServicePort),
 						})
 					}
 				}

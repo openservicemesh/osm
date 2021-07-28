@@ -35,8 +35,6 @@ func testTrafficSplit(appProtocol string) {
 	const (
 		// to name the header we will use to identify the server that replies
 		HTTPHeaderName = "podname"
-
-		serverPort = 80
 	)
 
 	clientAppBaseName := "client"
@@ -85,8 +83,9 @@ func testTrafficSplit(appProtocol string) {
 					Namespace:    serverNamespace,
 					ReplicaCount: int32(serverReplicaSet),
 					Image:        "simonkowallik/httpbin",
-					Ports:        []int{serverPort},
+					Ports:        []int{DefaultUpstreamServicePort},
 					AppProtocol:  appProtocol,
+					Command:      HttpbinCmd,
 				})
 
 			// Expose an env variable such as XHTTPBIN_X_POD_NAME:
@@ -128,7 +127,7 @@ func testTrafficSplit(appProtocol string) {
 					Command:      []string{"/bin/bash", "-c", "--"},
 					Args:         []string{"while true; do sleep 30; done;"},
 					Image:        "songrgg/alpine-debug",
-					Ports:        []int{80},
+					Ports:        []int{DefaultUpstreamServicePort},
 				})
 
 			_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
@@ -184,7 +183,7 @@ func testTrafficSplit(appProtocol string) {
 							DestinationNamespace:      serverNamespace,
 							DestinationSvcAccountName: dstServer,
 						},
-						serverPort,
+						DefaultUpstreamServicePort,
 					)
 
 					// Configs have to be put into a monitored NS
@@ -203,7 +202,7 @@ func testTrafficSplit(appProtocol string) {
 		_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
 			Name:        trafficSplitName,
 			Namespace:   serverNamespace,
-			Ports:       []int{80},
+			Ports:       []int{DefaultUpstreamServicePort},
 			AppProtocol: appProtocol,
 		})
 
@@ -253,7 +252,7 @@ func testTrafficSplit(appProtocol string) {
 					SourceContainer: ns, // container_name == NS for this test
 
 					// Targeting the trafficsplit FQDN
-					Destination: fmt.Sprintf("%s.%s", trafficSplitName, serverNamespace),
+					Destination: fmt.Sprintf("%s.%s:%d", trafficSplitName, serverNamespace, DefaultUpstreamServicePort),
 				})
 			}
 		}
@@ -314,7 +313,7 @@ func testTrafficSplit(appProtocol string) {
 						SourceContainer: pod.Namespace, // We generally code it like so for test purposes
 
 						// direct traffic target against the specific server service in the server namespace
-						Destination: fmt.Sprintf("%s.%s", svcNs, serverNamespace),
+						Destination: fmt.Sprintf("%s.%s:%d", svcNs, serverNamespace, DefaultUpstreamServicePort),
 					})
 				}
 			}
