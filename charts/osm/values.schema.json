@@ -266,6 +266,7 @@
                         "serviceCertValidityDuration",
                         "certKeyBitSize"
                     ],
+                    "additionalProperties": false,
                     "properties": {
                         "kind": {
                             "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/kind",
