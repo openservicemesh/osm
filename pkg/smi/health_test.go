@@ -4,45 +4,165 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
+
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
-func TestCheckSMICrdsExist(t *testing.T) {
-	testCases := []struct {
-		testName         string
-		reqKinds         map[string]string
-		candidateVersion []string
-		expected         bool
-	}{
+func TestRequiredAPIResourcesExist(t *testing.T) {
+	type testCase struct {
+		name            string
+		discoveryClient discovery.ServerResourcesInterface
+		expect          bool
+	}
+
+	testCases := []testCase{
 		{
-			testName:         "default",
-			reqKinds:         map[string]string{"hi": "bye"},
-			candidateVersion: []string{"bye"},
-			expected:         true,
+			name: "all SMI API resources exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: true,
 		},
 		{
-			testName:         "unable to get groupVersion",
-			reqKinds:         map[string]string{},
-			candidateVersion: []string{"abracadabra"},
-			expected:         false,
+			name: "TrafficSplit does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{}},
+				},
+				Err: nil,
+			},
+			expect: false,
 		},
 		{
-			testName:         "did not find all required CRD versions",
-			reqKinds:         map[string]string{"may": "flower"},
-			candidateVersion: []string{},
-			expected:         false,
+			name: "HTTPRouteGroup does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "TCPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "TCPRoute does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "TrafficTarget does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "specs API group does not exit",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "access API group does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "split API group does not exist",
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
 		},
 	}
-	clientset := fake.NewSimpleClientset()
-	// Adds resource hi with group version bye
-	clientset.Resources = []*metav1.APIResourceList{{GroupVersion: "bye", APIResources: []metav1.APIResource{{Kind: "hi"}}}}
 
 	for _, tc := range testCases {
-		t.Run(tc.testName, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			res := checkSMICrdsExist(clientset, tc.reqKinds, tc.candidateVersion)
-			assert.Equal(tc.expected, res)
+
+			c := HealthChecker{DiscoveryClient: tc.discoveryClient}
+			actual := c.requiredAPIResourcesExist()
+			assert.Equal(tc.expect, actual)
 		})
 	}
 }

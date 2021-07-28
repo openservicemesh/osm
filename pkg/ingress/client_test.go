@@ -23,18 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-type fakeDiscoveryClient struct {
-	discovery.ServerResourcesInterface
-	resources map[string]metav1.APIResourceList
-	err       error
-}
-
-// ServerResourcesForGroupVersion returns the supported resources for a group and version.
-func (f *fakeDiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
-	resp := f.resources[groupVersion]
-	return &resp, f.err
-}
-
 func TestGetSupportedIngressVersions(t *testing.T) {
 	type testCase struct {
 		name             string
@@ -46,8 +34,8 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "k8s API server supports both ingress v1 and v1beta",
-			discoveryClient: &fakeDiscoveryClient{
-				resources: map[string]metav1.APIResourceList{
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
 					"networking.k8s.io/v1": {APIResources: []metav1.APIResource{
 						{Kind: "Ingress"},
 						{Kind: "NetworkPolicy"},
@@ -56,7 +44,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 						{Kind: "Ingress"},
 					}},
 				},
-				err: nil,
+				Err: nil,
 			},
 			expectedVersions: map[string]bool{
 				"networking.k8s.io/v1":      true,
@@ -66,8 +54,8 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 		},
 		{
 			name: "k8s API server supports only ingress v1beta1",
-			discoveryClient: &fakeDiscoveryClient{
-				resources: map[string]metav1.APIResourceList{
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
 					"networking.k8s.io/v1": {APIResources: []metav1.APIResource{
 						{Kind: "NetworkPolicy"},
 					}},
@@ -75,7 +63,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 						{Kind: "Ingress"},
 					}},
 				},
-				err: nil,
+				Err: nil,
 			},
 			expectedVersions: map[string]bool{
 				"networking.k8s.io/v1":      false,
@@ -85,8 +73,8 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 		},
 		{
 			name: "k8s API server supports only ingress v1",
-			discoveryClient: &fakeDiscoveryClient{
-				resources: map[string]metav1.APIResourceList{
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
 					"networking.k8s.io/v1": {APIResources: []metav1.APIResource{
 						{Kind: "Ingress"},
 					}},
@@ -94,7 +82,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 						{Kind: "NetworkPolicy"},
 					}},
 				},
-				err: nil,
+				Err: nil,
 			},
 			expectedVersions: map[string]bool{
 				"networking.k8s.io/v1":      true,
@@ -104,9 +92,9 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 		},
 		{
 			name: "k8s API server returns an error",
-			discoveryClient: &fakeDiscoveryClient{
-				resources: map[string]metav1.APIResourceList{},
-				err:       errors.New("fake error"),
+			discoveryClient: &k8s.FakeDiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{},
+				Err:       errors.New("fake error"),
 			},
 			expectedVersions: nil,
 			exepectError:     true,
