@@ -7,6 +7,7 @@ import (
 
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (
@@ -101,6 +102,7 @@ func (mc *MeshCatalog) dispatcher() {
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
+			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 
 			// broadcast done, reset timer channels
 			broadcastScheduled = false
@@ -112,6 +114,7 @@ func (mc *MeshCatalog) dispatcher() {
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
+			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 
 			// broadcast done, reset timer channels
 			broadcastScheduled = false
