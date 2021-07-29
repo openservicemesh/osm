@@ -41,7 +41,7 @@ func TestCreatePatch(t *testing.T) {
 	}{
 		{
 			name: "creates a patch for a unix worker",
-			os:   "linux",
+			os:   constants.OSLinux,
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
@@ -64,7 +64,7 @@ func TestCreatePatch(t *testing.T) {
 		},
 		{
 			name: "creates a patch for a windows worker",
-			os:   "windows",
+			os:   constants.OSWindows,
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
@@ -84,7 +84,7 @@ func TestCreatePatch(t *testing.T) {
 		},
 		{
 			name: "metrics enabled",
-			os:   "linux",
+			os:   constants.OSLinux,
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        namespace,

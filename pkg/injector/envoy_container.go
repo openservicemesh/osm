@@ -15,23 +15,27 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (*corev1.SecurityContext, string) {
-	if strings.EqualFold(podOS, "windows") {
-		return &corev1.SecurityContext{
+func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
+	if strings.EqualFold(podOS, constants.OSWindows) {
+		podSecurityContext = &corev1.SecurityContext{
 			WindowsOptions: &corev1.WindowsSecurityContextOptions{
 				RunAsUserName: func() *string {
 					userName := constants.EnvoyWindowsUser
 					return &userName
 				}(),
 			},
-		}, cfg.GetEnvoyWindowsImage()
+		}
+		envoyContainer = cfg.GetEnvoyWindowsImage()
+	} else {
+		podSecurityContext = &corev1.SecurityContext{
+			RunAsUser: func() *int64 {
+				uid := constants.EnvoyUID
+				return &uid
+			}(),
+		}
+		envoyContainer = cfg.GetEnvoyImage()
 	}
-	return &corev1.SecurityContext{
-		RunAsUser: func() *int64 {
-			uid := constants.EnvoyUID
-			return &uid
-		}(),
-	}, cfg.GetEnvoyImage()
+	return
 }
 
 func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes, podOS string) corev1.Container {

@@ -225,3 +225,12 @@ const (
 	// byte in a TCP connection.
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
+
+// Operating systems.
+const (
+	// OSWindows is the name for Windows operating system.
+	OSWindows string = "windows"
+
+	// OSLinux is the name for Linux operating system.
+	OSLinux string = "linux"
+)

@@ -248,7 +248,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				// Test unset Requests
 				Requests: nil,
 			}).Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, "linux")
+			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSLinux)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
@@ -373,7 +373,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				// Test unset Requests
 				Requests: nil,
 			}).Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, "windows")
+			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSWindows)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
