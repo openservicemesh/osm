@@ -111,7 +111,7 @@ func TestGetLocalServiceCluster(t *testing.T) {
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(constants.WildcardIPAddr, uint32(8080)),
+								Address: envoy.GetAddress(constants.LocalhostIPAddress, uint32(8080)),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{

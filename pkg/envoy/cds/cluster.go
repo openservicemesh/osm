@@ -175,7 +175,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			LbEndpoints: []*xds_endpoint.LbEndpoint{{
 				HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 					Endpoint: &xds_endpoint.Endpoint{
-						Address: envoy.GetAddress(constants.WildcardIPAddr, port),
+						Address: envoy.GetAddress(constants.LocalhostIPAddress, port),
 					},
 				},
 				LoadBalancingWeight: &wrappers.UInt32Value{
