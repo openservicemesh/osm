@@ -279,6 +279,25 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "GetCertKeyBitSize",
+			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Certificate: v1alpha1.CertificateSpec{
+					CertKeyBitSize: 4096,
+				},
+			},
+			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(4096, cfg.GetCertKeyBitSize())
+			},
+			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
+				Certificate: v1alpha1.CertificateSpec{
+					CertKeyBitSize: -10,
+				},
+			},
+			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
+				assert.Equal(defaultCertKeyBitSize, cfg.GetCertKeyBitSize())
+			},
+		},
+		{
 			name:                  "GetOutboundIPRangeExclusionList",
 			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {

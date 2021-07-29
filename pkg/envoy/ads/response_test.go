@@ -59,6 +59,8 @@ var _ = Describe("Test ADS response functions", func() {
 	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
@@ -133,6 +135,7 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 			EnableWASMStats:    false,

@@ -16,9 +16,6 @@ import (
 )
 
 const (
-	// How many bits to use for the RSA key
-	rsaBits = 4096
-
 	// checkCertificateExpirationInterval is the interval to check whether a
 	// certificate is close to expiration and needs renewal.
 	checkCertificateExpirationInterval = 5 * time.Second
@@ -52,6 +49,10 @@ type CertManager struct {
 	crLister cmlisters.CertificateRequestNamespaceLister
 
 	cfg configurator.Configurator
+
+	// Issuing certificate properties.
+	serviceCertValidityDuration time.Duration
+	keySize                     int
 }
 
 // Certificate implements certificate.Certificater

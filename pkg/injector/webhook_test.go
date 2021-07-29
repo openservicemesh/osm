@@ -509,6 +509,8 @@ var _ = Describe("Testing Injector Functions", func() {
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresor.NewFakeCertManager(cfg)
 
+		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+
 		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
 		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))

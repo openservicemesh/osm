@@ -32,6 +32,7 @@ var _ = Describe("Test Rotor", func() {
 		validityPeriod := 1 * time.Hour
 		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Times(0)
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
 
@@ -49,6 +50,7 @@ var _ = Describe("Test Rotor", func() {
 
 		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
 

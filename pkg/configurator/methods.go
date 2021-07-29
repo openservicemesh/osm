@@ -16,6 +16,15 @@ import (
 const (
 	// defaultServiceCertValidityDuration is the default validity duration for service certificates
 	defaultServiceCertValidityDuration = 24 * time.Hour
+
+	// defaultCertKeyBitSize is the default certificate key bit size
+	defaultCertKeyBitSize = 2048
+
+	// minCertKeyBitSize is the minimum certificate key bit size
+	minCertKeyBitSize = 2048
+
+	// maxCertKeyBitSize is the maximum certificate key bit size
+	maxCertKeyBitSize = 4096
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -149,6 +158,17 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	}
 
 	return validityDuration
+}
+
+// GetCertKeyBitSize returns the certificate key bit size to be used
+func (c *Client) GetCertKeyBitSize() int {
+	bitSize := c.getMeshConfig().Spec.Certificate.CertKeyBitSize
+	if bitSize < minCertKeyBitSize || bitSize > maxCertKeyBitSize {
+		log.Error().Msgf("Invalid key bit size: %d", bitSize)
+		return defaultCertKeyBitSize
+	}
+
+	return bitSize
 }
 
 // GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception

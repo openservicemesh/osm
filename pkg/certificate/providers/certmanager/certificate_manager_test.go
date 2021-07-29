@@ -37,12 +37,15 @@ var (
 	}
 )
 
+const (
+	validity = 1 * time.Hour
+	keySize  = 2048
+)
+
 var _ = Describe("Test cert-manager Certificate Manager", func() {
 	defer GinkgoRecover()
 
 	Context("Test Getting a certificate from the cache", func() {
-		validity := 1 * time.Hour
-
 		rootCertPEM, err := tests.GetPEMCert()
 		if err != nil {
 			GinkgoT().Fatalf("Error loading sample test certificate: %s", err.Error())
@@ -108,8 +111,18 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			}
 		})
 
-		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
+		cm, newCertError := NewCertManager(
+			rootCertificator,
+			fakeClient,
+			"osm-system",
+			cmmeta.ObjectReference{Name: "osm-ca"},
+			mockConfigurator,
+			mockConfigurator.GetServiceCertValidityPeriod(),
+			mockConfigurator.GetCertKeyBitSize(),
+		)
 		It("should get an issued certificate from the cache", func() {
+			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
+
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := cm.IssueCertificate(cn, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
@@ -122,6 +135,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 		It("should rotate the certificate", func() {
 			mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
 
 			cert, err := cm.RotateCertificate(cn)
 			Expect(err).Should(BeNil())
@@ -198,7 +212,18 @@ func TestCertificaterFromCertificateRequest(t *testing.T) {
 	rootCertificator, err := NewRootCertificateFromPEM(rootCertPEM)
 	assert.Nil(err)
 
-	cm, err := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
+	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
+
+	cm, err := NewCertManager(
+		rootCertificator,
+		fakeClient,
+		"osm-system",
+		cmmeta.ObjectReference{Name: "osm-ca"},
+		mockConfigurator,
+		mockConfigurator.GetServiceCertValidityPeriod(),
+		mockConfigurator.GetCertKeyBitSize(),
+	)
 	assert.Nil(err)
 
 	signedCertDER, err := x509.CreateCertificate(rand.Reader, rootCert, rootCert, rootKey.Public(), rootKey)

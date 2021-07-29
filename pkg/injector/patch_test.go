@@ -139,6 +139,7 @@ func TestCreatePatch(t *testing.T) {
 			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
+			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 			pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, tc.os)
 

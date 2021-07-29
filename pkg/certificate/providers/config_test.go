@@ -26,6 +26,8 @@ func TestGetCertificateManager(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	mockConfigurator.EXPECT().IsDebugServerEnabled().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
 
 	testCases := []struct {
 		name string

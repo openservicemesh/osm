@@ -37,6 +37,20 @@ func (m *MockConfigurator) EXPECT() *MockConfiguratorMockRecorder {
 	return m.recorder
 }
 
+// GetCertKeyBitSize mocks base method
+func (m *MockConfigurator) GetCertKeyBitSize() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCertKeyBitSize")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetCertKeyBitSize indicates an expected call of GetCertKeyBitSize
+func (mr *MockConfiguratorMockRecorder) GetCertKeyBitSize() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertKeyBitSize", reflect.TypeOf((*MockConfigurator)(nil).GetCertKeyBitSize))
+}
+
 // GetClusterDomain mocks base method
 func (m *MockConfigurator) GetClusterDomain() string {
 	m.ctrl.T.Helper()

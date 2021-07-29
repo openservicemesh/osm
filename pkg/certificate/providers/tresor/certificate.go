@@ -43,18 +43,23 @@ func (c Certificate) GetSerialNumber() certificate.SerialNumber {
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
-func NewCertManager(ca certificate.Certificater, certificatesOrganization string, cfg configurator.Configurator) (*CertManager, error) {
+func NewCertManager(
+	ca certificate.Certificater,
+	certificatesOrganization string,
+	cfg configurator.Configurator,
+	serviceCertValidityDuration time.Duration,
+	keySize int) (*CertManager, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
 
 	certManager := CertManager{
 		// The root certificate signing all newly issued certificates
-		ca: ca,
-
-		certificatesOrganization: certificatesOrganization,
-
-		cfg: cfg,
+		ca:                          ca,
+		certificatesOrganization:    certificatesOrganization,
+		cfg:                         cfg,
+		serviceCertValidityDuration: serviceCertValidityDuration,
+		keySize:                     keySize,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
