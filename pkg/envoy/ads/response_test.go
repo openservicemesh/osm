@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -148,6 +149,10 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
+
+			// Set subscribed resources for SDS
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+
 			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
@@ -221,6 +226,10 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
+
+			// Set subscribed resources
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+
 			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.TypeSDS)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
