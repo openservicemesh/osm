@@ -22,7 +22,7 @@ To install and configure OSM, run:
 
 var settings = cli.New()
 
-func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args []string) *cobra.Command {
+func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer, stderr io.Writer, args []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "osm",
 		Short:        "Install and manage Open Service Mesh",
@@ -36,17 +36,17 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 
 	// Add subcommands here
 	cmd.AddCommand(
-		newMeshCmd(config, in, out),
-		newEnvCmd(out),
-		newInstallCmd(config, out),
-		newDashboardCmd(config, out),
-		newNamespaceCmd(out),
-		newMetricsCmd(out),
-		newVersionCmd(out),
-		newProxyCmd(config, out),
-		newTrafficPolicyCmd(out),
-		newUninstallCmd(config, in, out),
-		newSupportCmd(out),
+		newMeshCmd(config, stdin, stdout),
+		newEnvCmd(stdout),
+		newInstallCmd(config, stdout),
+		newDashboardCmd(config, stdout),
+		newNamespaceCmd(stdout),
+		newMetricsCmd(stdout),
+		newVersionCmd(stdout),
+		newProxyCmd(config, stdout),
+		newTrafficPolicyCmd(stdout),
+		newUninstallCmd(config, stdin, stdout),
+		newSupportCmd(config, stdout, stderr),
 	)
 
 	_ = flags.Parse(args)
@@ -56,7 +56,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 
 func initCommands() *cobra.Command {
 	actionConfig := new(action.Configuration)
-	cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Args[1:])
+	cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Stderr, os.Args[1:])
 	_ = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
 
 	// run when each command's execute method is called
