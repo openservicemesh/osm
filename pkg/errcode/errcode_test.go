@@ -11,6 +11,11 @@ func TestString(t *testing.T) {
 	assert.Equal(ErrInvalidCLIArgument.String(), "E1000")
 }
 
+func TestGetErrorCodeWithMetric(t *testing.T) {
+	assert := tassert.New(t)
+	assert.Equal(GetErrCodeWithMetric(ErrInvalidCLIArgument), "E1000")
+}
+
 func TestFromStr(t *testing.T) {
 	testCases := []struct {
 		name            string
