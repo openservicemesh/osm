@@ -64,9 +64,6 @@ make docker-push
 echo "Kubernetes contexts to be deployed to: $MULTICLUSTER_CONTEXTS"
 
 for CONTEXT in $MULTICLUSTER_CONTEXTS; do
-    # shellcheck disable=SC2034
-    BOOKSTORE_CLUSTER_ID="$CONTEXT" # this is used when deploying bookstore app
-
     kubectl config use-context "$CONTEXT"
 
     # cleanup stale resources from previous runs

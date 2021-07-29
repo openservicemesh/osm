@@ -42,10 +42,9 @@ var (
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
 	bookstoreServiceNamespace = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)
-	bookstoreClusterID        = os.Getenv("BOOKSTORE_CLUSTER_ID")
 
-	bookstoreService = fmt.Sprintf("%s:%d", appendClusterID(bookstoreServiceNamespace, bookstoreClusterID), bookstorePort) // FQDN
-	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort)            // FQDN
+	bookstoreService = fmt.Sprintf("%s:%d", bookstoreServiceNamespace, bookstorePort)                           // FQDN
+	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort) // FQDN
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
@@ -312,13 +311,4 @@ func getHTTPEgressExpectedResponseCode() int {
 	}
 
 	return http.StatusNotFound
-}
-
-// appendClusterID is utilized to append extra DNS information to the FQDN if a clusterID is configured in the MeshConfig
-// <svc-name>.<svc-namespace> becomes <svc-name>.<svc-namespace>.svc.cluster.<clusterID>
-func appendClusterID(baseFQDN, clusterID string) string {
-	if clusterID == "" {
-		return baseFQDN
-	}
-	return baseFQDN + fmt.Sprintf(".svc.cluster.%s", clusterID)
 }
