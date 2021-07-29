@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -54,22 +55,28 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// Create volume for envoy TLS secret
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
-	// Build outbound port exclusion list
-	podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
-	globalOutboundPortExclusionList := wh.configurator.GetOutboundPortExclusionList()
-	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
+	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
+	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
+	// Skip adding the init container and only patch the pod spec with sidecar container.
+	podOS := pod.Spec.NodeSelector["kubernetes.io/os"]
+	if !strings.EqualFold(podOS, "windows") {
+		// Build outbound port exclusion list
+		podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
+		globalOutboundPortExclusionList := wh.configurator.GetOutboundPortExclusionList()
+		outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
-	// Build inbound port exclusion list
-	podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
-	globalInboundPortExclusionList := wh.configurator.GetInboundPortExclusionList()
-	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
+		// Build inbound port exclusion list
+		podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
+		globalInboundPortExclusionList := wh.configurator.GetInboundPortExclusionList()
+		inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
-	// Add the Init Container
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
-	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
+		// Add the Init Container
+		initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
+	}
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes)
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)

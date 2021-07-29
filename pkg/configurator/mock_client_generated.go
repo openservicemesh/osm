@@ -93,6 +93,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetEnvoyWindowsImage mocks base method
+func (m *MockConfigurator) GetEnvoyWindowsImage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnvoyWindowsImage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetEnvoyWindowsImage indicates an expected call of GetEnvoyWindowsImage
+func (mr *MockConfiguratorMockRecorder) GetEnvoyWindowsImage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyWindowsImage", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyWindowsImage))
+}
+
 // GetFeatureFlags mocks base method
 func (m *MockConfigurator) GetFeatureFlags() v1alpha1.FeatureFlags {
 	m.ctrl.T.Helper()

@@ -121,6 +121,15 @@ func (c *Client) GetEnvoyImage() string {
 	return constants.DefaultEnvoyImage
 }
 
+// GetEnvoyWindowsImage returns the envoy windows image
+func (c *Client) GetEnvoyWindowsImage() string {
+	image := c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
+	if image != "" {
+		return image
+	}
+	return constants.DefaultEnvoyWindowsImage
+}
+
 // GetInitContainerImage returns the init container image
 func (c *Client) GetInitContainerImage() string {
 	initImage := c.getMeshConfig().Spec.Sidecar.InitContainerImage

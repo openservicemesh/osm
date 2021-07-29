@@ -15,21 +15,36 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
+func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (*corev1.SecurityContext, string) {
+	if strings.EqualFold(podOS, "windows") {
+		return &corev1.SecurityContext{
+			WindowsOptions: &corev1.WindowsSecurityContextOptions{
+				RunAsUserName: func() *string {
+					userName := constants.EnvoyWindowsUser
+					return &userName
+				}(),
+			},
+		}, cfg.GetEnvoyWindowsImage()
+	}
+	return &corev1.SecurityContext{
+		RunAsUser: func() *int64 {
+			uid := constants.EnvoyUID
+			return &uid
+		}(),
+	}, cfg.GetEnvoyImage()
+}
+
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
+	securityContext, containerImage := getPlatformSpecificSpecComponents(cfg, podOS)
 
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
-		Image:           cfg.GetEnvoyImage(),
+		Image:           containerImage,
 		ImagePullPolicy: corev1.PullAlways,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: func() *int64 {
-				uid := constants.EnvoyUID
-				return &uid
-			}(),
-		},
-		Ports: getEnvoyContainerPorts(originalHealthProbes),
+		SecurityContext: securityContext,
+		Ports:           getEnvoyContainerPorts(originalHealthProbes),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      envoyBootstrapConfigVolume,
 			ReadOnly:  true,

@@ -234,10 +234,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		})
 	})
 
-	Context("test getEnvoySidecarContainerSpec()", func() {
+	Context("test unix getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
 			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(1)
+			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(0)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
 				// Test set Limits
 				Limits: map[corev1.ResourceName]resource.Quantity{
@@ -247,7 +248,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				// Test unset Requests
 				Requests: nil,
 			}).Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes)
+			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, "linux")
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
@@ -258,6 +259,133 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 						uid := constants.EnvoyUID
 						return &uid
 					}(),
+				},
+				Ports: expectedRewrittenContainerPorts,
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      envoyBootstrapConfigVolume,
+						ReadOnly:  true,
+						MountPath: envoyProxyConfigPath,
+					},
+				},
+				Resources: corev1.ResourceRequirements{
+					// Test set Limits
+					Limits: map[corev1.ResourceName]resource.Quantity{
+						"cpu":    resource.MustParse("2"),
+						"memory": resource.MustParse("512M"),
+					},
+					// Test unset Requests
+					Requests: nil,
+				},
+				Command: []string{
+					"envoy",
+				},
+				Args: []string{
+					"--log-level", "debug",
+					"--config-path", "/etc/envoy/bootstrap.yaml",
+					"--service-cluster", "svcacc.namespace",
+					"--bootstrap-version 3",
+				},
+				Env: []corev1.EnvVar{
+					{
+						Name:  "POD_UID",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.uid",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_NAME",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.name",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_NAMESPACE",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.namespace",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_IP",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "status.podIP",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "SERVICE_ACCOUNT",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "spec.serviceAccountName",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+				},
+			}
+
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("test Windows getEnvoySidecarContainerSpec()", func() {
+		It("creates Envoy sidecar spec", func() {
+			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
+			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(1)
+			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(0)
+			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
+				// Test set Limits
+				Limits: map[corev1.ResourceName]resource.Quantity{
+					"cpu":    resource.MustParse("2"),
+					"memory": resource.MustParse("512M"),
+				},
+				// Test unset Requests
+				Requests: nil,
+			}).Times(1)
+			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, "windows")
+
+			expected := corev1.Container{
+				Name:            constants.EnvoyContainerName,
+				Image:           envoyImage,
+				ImagePullPolicy: corev1.PullAlways,
+				SecurityContext: &corev1.SecurityContext{
+					WindowsOptions: &corev1.WindowsSecurityContextOptions{
+						RunAsUserName: func() *string {
+							userName := "EnvoyUser"
+							return &userName
+						}(),
+					},
 				},
 				Ports: expectedRewrittenContainerPorts,
 				VolumeMounts: []corev1.VolumeMount{

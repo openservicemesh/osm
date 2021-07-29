@@ -557,6 +557,11 @@ var (
 
 // NewPodFixture creates a new Pod struct for testing.
 func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) corev1.Pod {
+	return NewOsSpecificPodFixture(namespace, podName, serviceAccountName, labels, "linux")
+}
+
+// NewOsSpecificPodFixture creates a new Pod struct for testing.
+func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string, podOS string) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      podName,
@@ -565,6 +570,9 @@ func NewPodFixture(namespace string, podName string, serviceAccountName string, 
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: serviceAccountName,
+			NodeSelector: map[string]string{
+				"kubernetes.io/os": podOS,
+			},
 		},
 	}
 }

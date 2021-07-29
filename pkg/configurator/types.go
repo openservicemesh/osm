@@ -69,6 +69,9 @@ type Configurator interface {
 	// GetEnvoyImage returns the envoy image
 	GetEnvoyImage() string
 
+	// GetEnvoyWindowsImage returns the envoy windows image
+	GetEnvoyWindowsImage() string
+
 	// GetInitContainerImage returns the init container image
 	GetInitContainerImage() string
 
