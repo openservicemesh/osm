@@ -17,10 +17,39 @@ import (
 const bugReportDescription = `
 Generate a bug report.
 
+# Specifying the archive format:
+
+If '--out-file' or '-o' is not specified, the bug report will be generated as a
+compressed tar file in the tar.gz format. To generate the bug report using
+a different archive format, specify the output file along with its extension
+type.
+
+The format of the archive is determined by its
+file extension. Supported extensions:
+  .zip
+  .tar
+  .tar.gz
+  .tgz
+  .tar.bz2
+  .tbz2
+  .tar.xz
+  .txz
+  .tar.lz4
+  .tlz4
+  .tar.sz
+  .tsz
+  .rar (open only)
+  .bz2
+  .gz
+  .lz4
+  .sz
+  .xz
+
 *Note:
 - Both 'osm' and 'kubectl' CLI must reside in the evironment's lookup path.
 - If the environment includes sensitive information that should not be collected,
-  please do not specify the associated resources.
+  please do not specify the associated resources. Before sharing the bug report,
+  please audit and redact any sensitive information that should not be shared.
 `
 
 const bugReportExample = `
@@ -68,8 +97,8 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 	f := cmd.Flags()
 	f.StringSliceVar(&bugReportCmd.appNamespaces, "app-namespaces", nil, "Application namespaces")
 	f.StringSliceVar(&bugReportCmd.appDeployments, "app-deployments", nil, "Application deployments: <namespace>/<deployment>")
-	f.StringSliceVar(&bugReportCmd.appPods, "app-pods", nil, "Application pods: <namespace>/pod")
-	f.StringVarP(&bugReportCmd.outFile, "out-file", "o", "", "Output file path")
+	f.StringSliceVar(&bugReportCmd.appPods, "app-pods", nil, "Application pods: <namespace>/<pod>")
+	f.StringVarP(&bugReportCmd.outFile, "out-file", "o", "", "Output file with archive format extension")
 
 	return cmd
 }

@@ -56,7 +56,7 @@ func (c *Config) Run() error {
 
 	// Generate output file if not provided
 	if c.OutFile == "" {
-		outFd, err := ioutil.TempFile("", "*_osm-bug-report.zip")
+		outFd, err := ioutil.TempFile("", "*_osm-bug-report.tar.gz")
 		if err != nil {
 			c.completionFailure("Error creating temp file for bug report")
 			return errors.Wrap(err, "Error creating bug report")
