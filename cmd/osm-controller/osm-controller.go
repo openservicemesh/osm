@@ -202,7 +202,7 @@ func main() {
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg, certManager)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}

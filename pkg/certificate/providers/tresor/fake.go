@@ -21,8 +21,9 @@ func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
 	}
 
 	return &CertManager{
-		ca:  ca.(*Certificate),
-		cfg: cfg,
+		ca:      ca.(*Certificate),
+		cfg:     cfg,
+		keySize: 2048, // hardcoding this to remove depdendency on configurator mock
 	}
 }
 

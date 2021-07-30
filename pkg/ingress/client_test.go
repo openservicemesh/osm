@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	networkingV1 "k8s.io/api/networking/v1"
@@ -18,6 +17,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -115,6 +118,8 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 
 func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
 	mockKubeController := k8s.NewMockController(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
@@ -292,6 +297,8 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
 			fakeClient := fake.NewSimpleClientset(tc.ingressResource)
 			fakeClient.Discovery().(*fakeDiscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{
 				{
@@ -308,7 +315,23 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 				},
 			}
 
-			c, err := NewIngressClient(fakeClient, mockKubeController, make(chan struct{}), nil)
+			// Mock calls for ingress gateway cert provisioning
+			mockConfigurator.EXPECT().GetMeshConfig().Return(&configv1alpha1.MeshConfig{
+				Spec: configv1alpha1.MeshConfigSpec{
+					Certificate: configv1alpha1.CertificateSpec{
+						IngressGateway: nil,
+					},
+				},
+			}).Times(1)
+
+			// pub-sub is implemented as a singleton, so even though this test does not require to issue any
+			// certificates, the gorutine it spawns could be triggered by another test within the suite.
+			fakeCertProvider := tresor.NewFakeCertManager(mockConfigurator)
+
+			stopChan := make(chan struct{})
+			defer close(stopChan)
+
+			c, err := NewIngressClient(fakeClient, mockKubeController, stopChan, mockConfigurator, fakeCertProvider)
 			assert.Nil(err)
 
 			switch tc.version {

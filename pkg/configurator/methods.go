@@ -7,7 +7,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -29,12 +30,17 @@ const (
 
 // The functions in this file implement the configurator.Configurator interface
 
+// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
+func (c *Client) GetMeshConfig() *configv1alpha1.MeshConfig {
+	return c.getMeshConfig()
+}
+
 // GetOSMNamespace returns the namespace in which the OSM controller pod resides.
 func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-func marshalConfigToJSON(config *v1alpha1.MeshConfigSpec) (string, error) {
+func marshalConfigToJSON(config *configv1alpha1.MeshConfigSpec) (string, error) {
 	bytes, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return "", err
@@ -235,7 +241,7 @@ func (c *Client) GetClusterDomain() string {
 }
 
 // GetFeatureFlags returns OSM's feature flags
-func (c *Client) GetFeatureFlags() v1alpha1.FeatureFlags {
+func (c *Client) GetFeatureFlags() configv1alpha1.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
 }
 

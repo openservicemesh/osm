@@ -145,13 +145,29 @@ type ExternalAuthzSpec struct {
 	FailureModeAllow bool `json:"failureModeAllow,omitempty"`
 }
 
-// CertificateSpec is type to reperesent OSM's certificate management configuration.
+// CertificateSpec is the type to reperesent OSM's certificate management configuration.
 type CertificateSpec struct {
 	// ServiceCertValidityDuration defines the service certificate validity duration.
 	ServiceCertValidityDuration string `json:"serviceCertValidityDuration,omitempty"`
 
 	// CertKeyBitSize defines the certicate key bit size.
 	CertKeyBitSize int `json:"certKeyBitSize,omitempty"`
+
+	// IngressGateway defines the certificate specification for an ingress gateway.
+	// +optional
+	IngressGateway *IngressGatewayCertSpec `json:"ingressGateway,omitempty"`
+}
+
+// IngressGatewayCertSpec is the type to represent the certificate specification for an ingress gateway.
+type IngressGatewayCertSpec struct {
+	// SubjectAltNames defines the Subject Alternative Names (domain names and IP addresses) secured by the certificate.
+	SubjectAltNames []string `json:"subjectAltNames"`
+
+	// ValidityDuration defines the validity duration of the certificate.
+	ValidityDuration string `json:"validityDuration"`
+
+	// Secret defines the secret in which the certificate is stored.
+	Secret corev1.SecretReference `json:"secret"`
 }
 
 // MulticlusterSpec represents multicluster configurations.
