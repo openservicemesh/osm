@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -33,7 +34,8 @@ var (
 func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
 	emptyBodyError := func() ([]byte, error) {
 		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
-		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+		log.Error().Err(errEmptyAdmissionRequestBody).Str(errcode.Kind, errcode.ErrNilAdmissionReqBody.String()).
+			Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
 
 		return nil, errEmptyAdmissionRequestBody
 	}
@@ -45,7 +47,8 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 	admissionRequestBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrReadingAdmissionReqBody.String()).
+			Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
 		return admissionRequestBody, err
 	}
 

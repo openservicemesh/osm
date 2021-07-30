@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
@@ -52,7 +53,8 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 
 	configYAML, err := utils.ProtoToYAML(bootstrapConfig)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to marshal envoy bootstrap config to yaml")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingProtoToYAML.String()).
+			Msgf("Failed to marshal envoy bootstrap config to yaml")
 		return nil, err
 	}
 	return configYAML, nil
@@ -158,7 +160,8 @@ func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error
 	}
 	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
 		return nil, err
 	}
 
@@ -198,7 +201,8 @@ func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error
 	}
 	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
 		return nil, err
 	}
 

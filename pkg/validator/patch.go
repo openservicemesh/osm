@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 const (
@@ -51,7 +52,8 @@ func updateValidatingWebhookCABundle(webhookConfigName string, certificater cert
 	}
 
 	if _, err = vwc.Patch(context.Background(), webhookConfigName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		log.Error().Err(err).Msgf("Error updating CA Bundle for ValidatingWebhookConfiguration %s", webhookConfigName)
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrUpdatingValidatingWebhookCABundle.String()).
+			Msgf("Error updating CA Bundle for ValidatingWebhookConfiguration %s", webhookConfigName)
 		return err
 	}
 

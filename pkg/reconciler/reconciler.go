@@ -14,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -63,7 +64,8 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		}
 
 		if err := r.Update(ctx, instance); err != nil {
-			log.Error().Err(err).Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrUpdatingMutatingWebhookCABundle.String()).
+				Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
