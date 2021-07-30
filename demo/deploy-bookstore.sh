@@ -7,6 +7,7 @@ source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 KUBE_CONTEXT=$(kubectl config current-context)
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
@@ -40,7 +41,9 @@ EOF
 
 if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     oc adm policy add-scc-to-user privileged -z "$SVC" -n "$BOOKSTORE_NAMESPACE"
-    oc secrets link "$SVC" "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKSTORE_NAMESPACE"
+    if [ "$USE_PRIVATE_REGISTRY" = true ]; then
+        oc secrets link "$SVC" "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKSTORE_NAMESPACE"
+    fi
 fi
 
 echo -e "Deploy $SVC Service"

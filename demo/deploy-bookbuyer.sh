@@ -10,6 +10,7 @@ CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
@@ -24,7 +25,9 @@ EOF
 
 if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     oc adm policy add-scc-to-user privileged -z bookbuyer -n "$BOOKBUYER_NAMESPACE"
-    oc secrets link bookbuyer "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKBUYER_NAMESPACE"
+    if [ "$USE_PRIVATE_REGISTRY" = true ]; then
+        oc secrets link bookbuyer "$CTR_REGISTRY_CREDS_NAME" --for=pull -n "$BOOKBUYER_NAMESPACE"
+    fi
 fi
 
 echo -e "Deploy BookBuyer Deployment"
