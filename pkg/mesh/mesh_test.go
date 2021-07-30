@@ -1,4 +1,4 @@
-package cli
+package mesh
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func TestIsMeshedPod(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing if pod %s is meshed", tc.pod.Name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			isMeshed := proxyLabelExists(tc.pod)
+			isMeshed := ProxyLabelExists(tc.pod)
 			assert.Equal(isMeshed, tc.isMeshed)
 		})
 	}
