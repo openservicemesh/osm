@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +22,10 @@ func TestIsMeshedPod(t *testing.T) {
 		{
 			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "pod-1",
-					Labels: map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Name: "pod-1",
+					Labels: map[string]string{
+						// This test requires an actual UUID
+						constants.EnvoyUniqueIDLabelName: uuid.New().String()},
 				},
 			},
 			isMeshed: true,
