@@ -557,7 +557,7 @@ var (
 
 // NewPodFixture creates a new Pod struct for testing.
 func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) corev1.Pod {
-	return NewOsSpecificPodFixture(namespace, podName, serviceAccountName, labels, "linux")
+	return NewOsSpecificPodFixture(namespace, podName, serviceAccountName, labels, constants.OSLinux)
 }
 
 // NewOsSpecificPodFixture creates a new Pod struct for testing.
