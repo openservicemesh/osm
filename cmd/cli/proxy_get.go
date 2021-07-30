@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"bufio"
 	"io"
-	"net/http"
 	"os"
 
 	"github.com/pkg/errors"
@@ -15,8 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const getCmdDescription = `
@@ -86,58 +84,24 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 }
 
 func (cmd *proxyGetCmd) run() error {
-	// Check if the pod belongs to a mesh
-	pod, err := cmd.clientSet.CoreV1().Pods(cmd.namespace).Get(context.TODO(), cmd.pod, metav1.GetOptions{})
-	if err != nil {
-		return annotateErrMsgWithPodNamespaceMsg("Could not find pod %s in namespace %s", cmd.pod, cmd.namespace)
-	}
-	if !isMeshedPod(*pod) {
-		return annotateErrMsgWithPodNamespaceMsg("Pod %s in namespace %s is not a part of a mesh", cmd.pod, cmd.namespace)
-	}
-	if pod.Status.Phase != corev1.PodRunning {
-		return annotateErrMsgWithPodNamespaceMsg("Pod %s in namespace %s is not running", cmd.pod, cmd.namespace)
-	}
-
-	dialer, err := k8s.DialerToPod(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace)
+	envoyProxyConfig, err := cli.GetEnvoyProxyConfig(cmd.clientSet, cmd.config, cmd.namespace, cmd.pod, cmd.localPort, cmd.query)
 	if err != nil {
 		return err
 	}
 
-	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", cmd.localPort, constants.EnvoyAdminPort))
-	if err != nil {
-		return errors.Errorf("Error setting up port forwarding: %s", err)
-	}
-
-	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
-		defer pf.Stop()
-		url := fmt.Sprintf("http://localhost:%d/%s", cmd.localPort, cmd.query)
-
-		// #nosec G107: Potential HTTP request made with variable url
-		resp, err := http.Get(url)
+	out := cmd.out // By default, output is written to stdout
+	if cmd.outFile != "" {
+		fd, err := os.Create(cmd.outFile)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return errors.Errorf("Error opening file %s: %s", cmd.outFile, err)
 		}
-
-		out := cmd.out // By default, output is written to stdout
-		if cmd.outFile != "" {
-			fd, err := os.Create(cmd.outFile)
-			if err != nil {
-				return errors.Errorf("Error opening file %s: %s", cmd.outFile, err)
-			}
-			defer fd.Close() //nolint: errcheck, gosec
-			out = fd         // write output to file
-		}
-
-		if _, err := io.Copy(out, resp.Body); err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return annotateErrMsgWithPodNamespaceMsg("Error retrieving proxy config for pod %s in namespace %s: %s", cmd.pod, cmd.namespace, err)
+		defer fd.Close() //nolint: errcheck, gosec
+		out = fd         // write output to file
 	}
 
-	return nil
+	w := bufio.NewWriter(out)
+	_, err = w.WriteString(string(envoyProxyConfig))
+	return err
 }
 
 // isMeshedPod returns a boolean indicating if the pod is part of a mesh
@@ -145,9 +109,4 @@ func isMeshedPod(pod corev1.Pod) bool {
 	// osm-controller adds a unique label to each pod that belongs to a mesh
 	_, proxyLabelSet := pod.Labels[constants.EnvoyUniqueIDLabelName]
 	return proxyLabelSet
-}
-
-// annotateProxyGetErrorMessage returns a formatted err msg with an actionable message regarding pod details
-func annotateErrMsgWithPodNamespaceMsg(errMsgFormat string, args ...interface{}) error {
-	return annotateErrorMessageWithActionableMessage("Note: Use the flag --namespace to modify the intended pod namespace.", errMsgFormat, args...)
 }
