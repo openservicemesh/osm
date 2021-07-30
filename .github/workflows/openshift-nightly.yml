@@ -52,7 +52,7 @@ jobs:
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
       - name: Cleanup resources
-        if: ${{ always }}
+        if: ${{ always() }}
         env:
           BOOKWAREHOUSE_NAMESPACE: bookwarehouse
           BOOKBUYER_NAMESPACE: bookbuyer
