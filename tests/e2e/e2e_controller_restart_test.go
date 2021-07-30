@@ -37,15 +37,17 @@ func testHTTPTrafficWithControllerRestart() {
 		}
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
 				Name:      destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				OS:        Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())

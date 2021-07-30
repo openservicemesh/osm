@@ -94,7 +94,7 @@ var _ = OSMDescribe("Test proxy resource setting",
 
 func createSimpleApp(appName string, ns string) {
 	// Get simple pod definitions for the HTTP server
-	svcAccDef, podDef, svcDef := Td.SimplePodApp(
+	svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 		SimplePodAppDef{
 			Name:      appName,
 			Namespace: ns,
@@ -102,9 +102,11 @@ func createSimpleApp(appName string, ns string) {
 			Args:      []string{"while true; do sleep 30; done;"},
 			Image:     "songrgg/alpine-debug",
 			Ports:     []int{80},
+			OS:        Td.ClusterOS,
 		})
+	Expect(err).NotTo(HaveOccurred())
 
-	_, err := Td.CreateServiceAccount(ns, &svcAccDef)
+	_, err = Td.CreateServiceAccount(ns, &svcAccDef)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = Td.CreatePod(ns, podDef)
 	Expect(err).NotTo(HaveOccurred())

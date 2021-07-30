@@ -51,15 +51,17 @@ func testTraffic(withSourceKubernetesService bool) {
 		}
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
 				Name:      destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				OS:        Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -141,15 +143,17 @@ func testTraffic(withSourceKubernetesService bool) {
 
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	// Get simple Pod definitions for the client
-	svcAccDef, podDef, svcDef := Td.SimplePodApp(SimplePodAppDef{
+	svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
 		Name:      sourceName,
 		Namespace: sourceName,
 		Command:   []string{"sleep", "365d"},
 		Image:     "curlimages/curl",
 		Ports:     []int{80},
+		OS:        Td.ClusterOS,
 	})
+	Expect(err).NotTo(HaveOccurred())
 
-	_, err := Td.CreateServiceAccount(sourceName, &svcAccDef)
+	_, err = Td.CreateServiceAccount(sourceName, &svcAccDef)
 	Expect(err).NotTo(HaveOccurred())
 
 	srcPod, err := Td.CreatePod(sourceName, podDef)

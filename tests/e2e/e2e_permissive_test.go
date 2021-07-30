@@ -50,15 +50,17 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 		}
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
 				Name:      "server",
 				Namespace: destNs,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
+				OS:        Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(destNs, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		dstPod, err := Td.CreatePod(destNs, podDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -68,14 +70,16 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 		Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1, nil)).To(Succeed())
 
 		// Get simple Pod definitions for the client
-		svcAccDef, podDef, svcDef = Td.SimplePodApp(SimplePodAppDef{
+		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
 			Name:      "client",
 			Namespace: sourceNs,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},
 			Image:     "songrgg/alpine-debug",
 			Ports:     []int{80},
+			OS:        Td.ClusterOS,
 		})
+		Expect(err).NotTo(HaveOccurred())
 
 		_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())

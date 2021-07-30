@@ -133,6 +133,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar((*string)(&td.CollectLogs), "collectLogs", string(CollectLogsIfErrorOnly), "Defines if/when to collect logs.")
 
 	flag.StringVar(&td.ClusterName, "kindClusterName", "osm-e2e", "Name of the Kind cluster to be created")
+
 	flag.BoolVar(&td.CleanupKindCluster, "cleanupKindCluster", true, "Cleanup kind cluster upon exit")
 	flag.BoolVar(&td.CleanupKindClusterBetweenTests, "cleanupKindClusterBetweenTests", false, "Cleanup kind cluster between tests")
 	flag.StringVar(&td.ClusterVersion, "kindClusterVersion", "", "Kind cluster version, ex. v.1.20.2")
@@ -209,6 +210,8 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.TestID = r.Uint64()
 	td.TestDirName = fmt.Sprintf("test-%d", td.TestID)
 	td.T.Log(color.HiGreenString("> ID for test: %d, Test dir (abs): %s", td.TestID, td.GetTestDirPath()))
+
+	td.ClusterOS = constants.OSLinux
 
 	// String parameter validation
 	err = td.ValidateStringParams()

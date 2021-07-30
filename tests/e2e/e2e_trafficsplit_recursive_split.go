@@ -72,7 +72,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		Expect(Td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
 
 		// Create server app
-		svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+		svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 			SimpleDeploymentAppDef{
 				Name:         trafficSplitName,
 				Namespace:    serverNamespace,
@@ -81,7 +81,9 @@ func testRecursiveTrafficSplit(appProtocol string) {
 				Ports:        []int{DefaultUpstreamServicePort},
 				AppProtocol:  appProtocol,
 				Command:      HttpbinCmd,
+				OS:           Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
 		// Expose an env variable such as XHTTPBIN_X_POD_NAME:
 		// This httpbin fork will pick certain env variable formats and reply the values as headers.
@@ -98,7 +100,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 			},
 		}
 
-		_, err := Td.CreateServiceAccount(serverNamespace, &svcAccDef)
+		_, err = Td.CreateServiceAccount(serverNamespace, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -114,7 +116,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 
 		// Client apps
 		for _, clientApp := range clientServices {
-			svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
 					Name:         clientApp,
 					Namespace:    clientApp,
@@ -123,9 +125,11 @@ func testRecursiveTrafficSplit(appProtocol string) {
 					Args:         []string{"while true; do sleep 30; done;"},
 					Image:        "songrgg/alpine-debug",
 					Ports:        []int{DefaultUpstreamServicePort},
+					OS:           Td.ClusterOS,
 				})
+			Expect(err).NotTo(HaveOccurred())
 
-			_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
+			_, err = Td.CreateServiceAccount(clientApp, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateDeployment(clientApp, deploymentDef)
 			Expect(err).NotTo(HaveOccurred())

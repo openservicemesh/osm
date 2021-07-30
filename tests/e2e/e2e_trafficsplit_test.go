@@ -77,7 +77,7 @@ func testTrafficSplit(appProtocol string) {
 
 		// Create server apps
 		for _, serverApp := range serverServices {
-			svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
 					Name:         serverApp,
 					Namespace:    serverNamespace,
@@ -86,7 +86,9 @@ func testTrafficSplit(appProtocol string) {
 					Ports:        []int{DefaultUpstreamServicePort},
 					AppProtocol:  appProtocol,
 					Command:      HttpbinCmd,
+					OS:           Td.ClusterOS,
 				})
+			Expect(err).NotTo(HaveOccurred())
 
 			// Expose an env variable such as XHTTPBIN_X_POD_NAME:
 			// This httpbin fork will pick certain env variable formats and reply the values as headers.
@@ -103,7 +105,7 @@ func testTrafficSplit(appProtocol string) {
 				},
 			}
 
-			_, err := Td.CreateServiceAccount(serverNamespace, &svcAccDef)
+			_, err = Td.CreateServiceAccount(serverNamespace, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,7 +121,7 @@ func testTrafficSplit(appProtocol string) {
 
 		// Client apps
 		for _, clientApp := range clientServices {
-			svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
 					Name:         clientApp,
 					Namespace:    clientApp,
@@ -128,9 +130,11 @@ func testTrafficSplit(appProtocol string) {
 					Args:         []string{"while true; do sleep 30; done;"},
 					Image:        "songrgg/alpine-debug",
 					Ports:        []int{DefaultUpstreamServicePort},
+					OS:           Td.ClusterOS,
 				})
+			Expect(err).NotTo(HaveOccurred())
 
-			_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
+			_, err = Td.CreateServiceAccount(clientApp, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateDeployment(clientApp, deploymentDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -199,15 +203,17 @@ func testTrafficSplit(appProtocol string) {
 		}
 
 		// Create traffic split service. Use simple Pod to create a simple service definition
-		_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+		_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
 			Name:        trafficSplitName,
 			Namespace:   serverNamespace,
 			Ports:       []int{DefaultUpstreamServicePort},
 			AppProtocol: appProtocol,
+			OS:          Td.ClusterOS,
 		})
+		Expect(err).NotTo(HaveOccurred())
 
 		// Creating trafficsplit service in K8s
-		_, err := Td.CreateService(serverNamespace, trafficSplitService)
+		_, err = Td.CreateService(serverNamespace, trafficSplitService)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Create Traffic split with all server processes as backends

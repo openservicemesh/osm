@@ -49,7 +49,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Get simple pod definitions for the HTTP server
-			svcAccDef, depDef, svcDef := Td.SimpleDeploymentApp(
+			svcAccDef, depDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
 					ReplicaCount: 1,
 					Name:         "server",
@@ -57,7 +57,9 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 					Image:        "kennethreitz/httpbin",
 					Ports:        []int{DefaultUpstreamServicePort},
 					Command:      HttpbinCmd,
+					OS:           Td.ClusterOS,
 				})
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -70,7 +72,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1, nil)).To(Succeed())
 
 			// Get simple Pod definitions for the client
-			svcAccDef, depDef, svcDef = Td.SimpleDeploymentApp(SimpleDeploymentAppDef{
+			svcAccDef, depDef, svcDef, err = Td.SimpleDeploymentApp(SimpleDeploymentAppDef{
 				ReplicaCount: 1,
 				Name:         "client",
 				Namespace:    sourceNs,
@@ -78,7 +80,9 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 				Args:         []string{"while true; do sleep 30; done;"},
 				Image:        "songrgg/alpine-debug",
 				Ports:        []int{DefaultUpstreamServicePort},
+				OS:           Td.ClusterOS,
 			})
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())

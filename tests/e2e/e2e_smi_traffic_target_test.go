@@ -39,14 +39,17 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				}
 
 				// Set up the destination HTTP server
-				svcAccDef, podDef, svcDef := Td.SimplePodApp(
+				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 					SimplePodAppDef{
 						Name:      destName,
 						Namespace: destName,
 						Image:     "kennethreitz/httpbin",
 						Ports:     []int{80},
+						OS:        Td.ClusterOS,
 					})
-				_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreatePod(destName, podDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -54,26 +57,32 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Set up the HTTP client that is allowed access to the destination
-				allowedSvcAccDef, allowedSrcPodDef, _ := Td.SimplePodApp(SimplePodAppDef{
+				allowedSvcAccDef, allowedSrcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
 					Name:      sourceOne,
 					Namespace: sourceOne,
 					Command:   []string{"sleep", "365d"},
 					Image:     "curlimages/curl",
 					Ports:     []int{80},
+					OS:        Td.ClusterOS,
 				})
+				Expect(err).NotTo(HaveOccurred())
+
 				_, err = Td.CreateServiceAccount(sourceOne, &allowedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				allowedSrcPod, err := Td.CreatePod(sourceOne, allowedSrcPodDef)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Set up the HTTP client that is denied access to the destination
-				deniedSvcAccDef, deniedSrcPodDef, _ := Td.SimplePodApp(SimplePodAppDef{
+				deniedSvcAccDef, deniedSrcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
 					Name:      sourceTwo,
 					Namespace: sourceTwo,
 					Command:   []string{"sleep", "365d"},
 					Image:     "curlimages/curl",
 					Ports:     []int{80},
+					OS:        Td.ClusterOS,
 				})
+				Expect(err).NotTo(HaveOccurred())
+
 				_, err = Td.CreateServiceAccount(sourceTwo, &deniedSvcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				deniedSrcPod, err := Td.CreatePod(sourceTwo, deniedSrcPodDef)

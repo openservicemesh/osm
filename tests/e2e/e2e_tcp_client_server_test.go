@@ -53,7 +53,7 @@ func testTCPTraffic(permissiveMode bool) {
 		destinationPort := 80
 
 		// Get simple pod definitions for the TCP server
-		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
 				Name:        destName,
 				Namespace:   destName,
@@ -62,9 +62,11 @@ func testTCPTraffic(permissiveMode bool) {
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 				Ports:       []int{destinationPort},
 				AppProtocol: constants.ProtocolTCP,
+				OS:          Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())

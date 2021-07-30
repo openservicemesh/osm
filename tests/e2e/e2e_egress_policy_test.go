@@ -68,16 +68,18 @@ func testEgressPolicy(scenario testScenario) {
 		Expect(Td.AddNsToMesh(true, sourceNs)).To(Succeed())
 
 		// Create simple pod definitions for the source
-		srcSvcAcc, srcPodDef, _ := Td.SimplePodApp(SimplePodAppDef{
+		srcSvcAcc, srcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
 			Name:      sourceName,
 			Namespace: sourceNs,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},
 			Image:     "songrgg/alpine-debug",
 			Ports:     []int{80},
+			OS:        Td.ClusterOS,
 		})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(sourceNs, &srcSvcAcc)
+		_, err = Td.CreateServiceAccount(sourceNs, &srcSvcAcc)
 		Expect(err).NotTo(HaveOccurred())
 		srcPod, err := Td.CreatePod(sourceNs, srcPodDef)
 		Expect(err).NotTo(HaveOccurred())

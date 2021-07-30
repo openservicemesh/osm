@@ -93,14 +93,16 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 
 				// Create server services
 				for _, serverApp := range serverServices {
-					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							Name:         serverApp,
 							Namespace:    serverNamespace,
 							ReplicaCount: int32(serverReplicaSet),
 							Image:        "simonkowallik/httpbin",
 							Ports:        []int{80},
+							OS:           Td.ClusterOS,
 						})
+					Expect(err).NotTo(HaveOccurred())
 
 					// Expose pod name as a header in server services' responses
 					deploymentDef.Spec.Template.Spec.Containers[0].Env = []v1.EnvVar{
@@ -114,7 +116,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 						},
 					}
 
-					_, err := Td.CreateServiceAccount(serverNamespace, &svcAccDef)
+					_, err = Td.CreateServiceAccount(serverNamespace, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
@@ -130,7 +132,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 
 				// Create sleeping client services
 				for _, clientApp := range clientServices {
-					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							Name:         clientApp,
 							Namespace:    clientApp,
@@ -139,9 +141,11 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 							Args:         []string{"while true; do sleep 30; done;"},
 							Image:        "songrgg/alpine-debug",
 							Ports:        []int{80},
+							OS:           Td.ClusterOS,
 						})
+					Expect(err).NotTo(HaveOccurred())
 
-					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
+					_, err = Td.CreateServiceAccount(clientApp, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = Td.CreateDeployment(clientApp, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
@@ -181,14 +185,16 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 				}
 
 				// Create traffic split service. We are just interested in the service def
-				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+				_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
 					Name:      TrafficSplitPrefix,
 					Namespace: serverNamespace,
 					Ports:     []int{80},
+					OS:        Td.ClusterOS,
 				})
+				Expect(err).NotTo(HaveOccurred())
 
 				// Apply service on k8s
-				_, err := Td.CreateService(serverNamespace, trafficSplitService)
+				_, err = Td.CreateService(serverNamespace, trafficSplitService)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Create Traffic split with all server processes as backends
