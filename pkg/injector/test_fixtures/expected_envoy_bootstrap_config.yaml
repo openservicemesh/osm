@@ -68,7 +68,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 0.0.0.0
+                address: 127.0.0.1
                 port_value: 81
     name: liveness_cluster
     type: STATIC
@@ -80,7 +80,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 0.0.0.0
+                address: 127.0.0.1
                 port_value: 82
     name: readiness_cluster
     type: STATIC
@@ -92,7 +92,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 0.0.0.0
+                address: 127.0.0.1
                 port_value: 83
     name: startup_cluster
     type: STATIC

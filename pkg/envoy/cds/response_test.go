@@ -134,7 +134,7 @@ func TestNewResponse(t *testing.T) {
 									Address: &xds_core.Address_SocketAddress{
 										SocketAddress: &xds_core.SocketAddress{
 											Protocol: xds_core.SocketAddress_TCP,
-											Address:  constants.WildcardIPAddr,
+											Address:  constants.LocalhostIPAddress,
 											PortSpecifier: &xds_core.SocketAddress_PortValue{
 												PortValue: uint32(80),
 											},

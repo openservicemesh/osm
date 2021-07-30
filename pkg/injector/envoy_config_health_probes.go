@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -71,7 +72,7 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 									Address: &xds_core.Address{
 										Address: &xds_core.Address_SocketAddress{
 											SocketAddress: &xds_core.SocketAddress{
-												Address: "0.0.0.0",
+												Address: constants.LocalhostIPAddress,
 												PortSpecifier: &xds_core.SocketAddress_PortValue{
 													PortValue: uint32(port),
 												},
