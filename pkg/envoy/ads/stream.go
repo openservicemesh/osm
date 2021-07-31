@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -285,6 +286,7 @@ func getRequestedResourceNamesSet(discoveryRequest *xds_discovery.DiscoveryReque
 }
 
 // getResourceSliceFromMapset is a helper to convert a mapset of resource names to a string slice
+// return slice is alphabetically ordered to ensure output determinism for a given input
 func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 	resourceSlice := []string{}
 	it := resourceMap.Iterator()
@@ -297,6 +299,7 @@ func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 		}
 		resourceSlice = append(resourceSlice, resString)
 	}
+	sort.Strings(resourceSlice)
 	return resourceSlice
 }
 

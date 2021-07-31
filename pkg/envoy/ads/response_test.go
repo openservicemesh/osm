@@ -143,7 +143,7 @@ var _ = Describe("Test ADS response functions", func() {
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources for SDS
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore", "root-cert-https:default/bookstore"))
 
 			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
@@ -180,25 +180,25 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
-			}.String()))
-
-			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
-			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = (*actualResponses)[4].Resources[2]
+			tmpResource = (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForHTTPS,
+			}.String()))
+
+			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
+			tmpResource = (*actualResponses)[4].Resources[2]
+			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
+			Expect(err).To(BeNil())
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
+				Name:     proxySvcAccount.String(),
+				CertType: secrets.ServiceCertType,
 			}.String()))
 		})
 	})
@@ -229,7 +229,7 @@ var _ = Describe("Test ADS response functions", func() {
 			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore", "root-cert-https:default/bookstore"))
 
 			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.TypeSDS)
 			Expect(err).To(BeNil())
@@ -255,25 +255,25 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
-			}.String()))
-
-			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
-			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForHTTPS := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[2]
+			tmpResource = sdsResponse.Resources[1]
 			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForHTTPS)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForHTTPS.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.RootCertTypeForHTTPS,
+			}.String()))
+
+			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
+			tmpResource = sdsResponse.Resources[2]
+			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
+			Expect(err).To(BeNil())
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
+				Name:     proxySvcAccount.String(),
+				CertType: secrets.ServiceCertType,
 			}.String()))
 		})
 	})
