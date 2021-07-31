@@ -187,7 +187,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
@@ -196,7 +196,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForMTLSInbound,
+				CertType: secrets.ServiceCertType,
 			}.String()))
 		})
 	})
@@ -253,7 +253,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
+				CertType: secrets.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
@@ -262,7 +262,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForMTLSInbound,
+				CertType: secrets.ServiceCertType,
 			}.String()))
 		})
 	})
