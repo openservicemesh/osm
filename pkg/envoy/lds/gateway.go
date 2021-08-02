@@ -24,7 +24,7 @@ func (lb *listenerBuilder) buildGatewayListeners() []types.Resource {
 
 	filterChain, err := getGatewayFilterChain(lb.serviceIdentity)
 	if err != nil {
-		log.Err(err).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
+		log.Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
 		return nil
 	}
 
@@ -45,13 +45,13 @@ func getGatewayFilterChain(svcIdent identity.ServiceIdentity) (*xds_listener.Fil
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Msg("[Multicluster] Error marshalling tcpProxy object for gateway filter chain")
+		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msg("[Multicluster] Error marshalling tcpProxy object for gateway filter chain")
 		return nil, err
 	}
 
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(svcIdent, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Msgf("[Multicluster] Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
+		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msgf("[Multicluster] Error marshalling DownstreamTLSContext object for service identity %s", svcIdent)
 		return nil, err
 	}
 
