@@ -1,12 +1,14 @@
 package k8s
 
 import (
-	"github.com/google/uuid"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"testing"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -78,3 +80,26 @@ var _ = Describe("Testing event handlers", func() {
 		})
 	})
 })
+
+func TestUpdateEvent(t *testing.T) {
+	a := assert.New(t)
+
+	updateChan := events.GetPubSubInstance().Subscribe(announcements.PodUpdated)
+	defer events.GetPubSubInstance().Unsub(updateChan)
+
+	// Add and update a pod
+	originalPod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
+	updatedPod := originalPod
+	updatedPod.Labels = nil // updated does not have any labels
+
+	// Invoke update handler
+	handlers := GetKubernetesEventHandlers(testInformer, testProvider, nil, EventTypes{Update: announcements.PodUpdated})
+	handlers.UpdateFunc(&originalPod, &updatedPod)
+
+	// Compare old vs new object
+	msg, ok := <-updateChan
+	a.True(ok)
+
+	a.Equal(&originalPod, msg.(events.PubSubMessage).OldObj.(*corev1.Pod))
+	a.Equal(&updatedPod, msg.(events.PubSubMessage).NewObj.(*corev1.Pod))
+}
