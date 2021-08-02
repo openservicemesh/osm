@@ -234,3 +234,12 @@ const (
 	// OSLinux is the name for Linux operating system.
 	OSLinux string = "linux"
 )
+
+// Logging contexts
+const (
+	// field key string for context
+	LogFieldContext = "context"
+
+	// multicluster field value for context field.
+	LogContextMulticluster = "multicluster"
+)

@@ -5,6 +5,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 // serveMultiClusterServiceConversion servers endpoint for the converter defined as convertMultiClusterService function.
@@ -22,6 +24,6 @@ func convertMultiClusterService(Object *unstructured.Unstructured, toVersion str
 		return nil, statusErrorWithMessage("MultiClusterService: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
-	log.Debug().Msg("MultiClusterService: successfully converted object")
+	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msg("MultiClusterService: successfully converted object")
 	return convertedObject, statusSucceed()
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
@@ -14,7 +15,7 @@ func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
 		}
 	}
 
-	log.Trace().Msgf("All Multicluster services: %+v", services)
+	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("All Multicluster services: %+v", services)
 
 	return services
 }
@@ -32,7 +33,7 @@ func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace
 		}
 	}
 
-	log.Trace().Msgf("Multicluster services for svc account %s/%s: %+v", namespace, serviceAccount, services)
+	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Multicluster services for svc account %s/%s: %+v", namespace, serviceAccount, services)
 
 	return services
 }
@@ -43,7 +44,7 @@ func (c client) GetMultiClusterService(name, namespace string) *v1alpha1.MultiCl
 	}
 	mcs, ok, err := c.informer.Informer().GetStore().GetByKey(namespace + "/" + name)
 	if err != nil || !ok {
-		log.Error().Err(err).Msgf("Error getting MultiClusterService %s in namespace %s from informer ", name, namespace)
+		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msgf("Error getting MultiClusterService %s in namespace %s from informer ", name, namespace)
 		return nil
 	}
 	return mcs.(*v1alpha1.MultiClusterService)
