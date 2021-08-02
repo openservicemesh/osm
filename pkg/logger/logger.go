@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // AllowedLevels is the list of allowed log levels for OSM Controller.
@@ -22,10 +23,11 @@ var AllowedLevels = []string{"debug", "info", "warn", "error", "fatal", "panic",
 type CallerHook struct{}
 
 // Run adds additional context
-func (h CallerHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
+func (h CallerHook) Run(e *zerolog.Event, lvl zerolog.Level, _ string) {
 	if _, file, line, ok := runtime.Caller(3); ok {
 		e.Str("file", fmt.Sprintf("%s:%d", path.Base(file), line))
 	}
+	metricsstore.DefaultMetricsStore.LogLvlCount.WithLabelValues(lvl.String()).Inc()
 }
 
 func newLogger(component string) zerolog.Logger {

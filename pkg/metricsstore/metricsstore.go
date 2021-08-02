@@ -65,6 +65,12 @@ type MetricsStore struct {
 	CertIssuedTime *prometheus.HistogramVec
 
 	/*
+	* Log metrics
+	 */
+	// LogLvlCount is the metric for the number of logs emitted
+	LogLvlCount *prometheus.CounterVec
+
+	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
 	registry *prometheus.Registry
@@ -185,6 +191,20 @@ func init() {
 			Help:      "Histogram to track time spent to issue xds certificate",
 		},
 		[]string{})
+
+	/*
+	* Log metrics
+	 */
+	defaultMetricsStore.LogLvlCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "log",
+			Name:      "level_count",
+			Help:      "Represents the number of logs per log level emitted",
+		},
+		[]string{
+			"logLevel",
+		})
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
 

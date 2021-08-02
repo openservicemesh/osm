@@ -304,6 +304,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount,
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
+		metricsstore.DefaultMetricsStore.LogLvlCount,
 	)
 }
 
