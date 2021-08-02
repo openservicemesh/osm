@@ -13,9 +13,6 @@ import (
 )
 
 const (
-	// String constant used for the commonName of the root certificate
-	rootCertificateName = "root-certificate"
-
 	// How many bits to use for the RSA key
 	rsaBits = 2048
 

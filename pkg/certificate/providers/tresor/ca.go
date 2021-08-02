@@ -67,7 +67,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	}
 
 	rootCertificate := Certificate{
-		commonName:   rootCertificateName,
+		commonName:   certificate.CommonName(template.Subject.CommonName),
 		serialNumber: certificate.SerialNumber(serialNumber.String()),
 		certChain:    pemCert,
 		privateKey:   pemKey,
@@ -88,7 +88,7 @@ func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expir
 		return nil, err
 	}
 	rootCertificate := Certificate{
-		commonName:   rootCertificateName,
+		commonName:   certificate.CommonName(x509Cert.Subject.CommonName),
 		serialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
 		certChain:    pemCert,
 		privateKey:   pemKey,

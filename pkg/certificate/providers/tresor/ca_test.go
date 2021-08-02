@@ -34,7 +34,7 @@ var _ = Describe("Test creation of a new CA", func() {
 
 var _ = Describe("Test creation from pem", func() {
 	Context("valid pem cert and pem key", func() {
-		ca := certificate.CommonName("Test CA")
+		cn := certificate.CommonName("Test CA")
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
 		rootCertOrganization := "Root Cert Organization"
@@ -46,7 +46,7 @@ var _ = Describe("Test creation from pem", func() {
 		template := &x509.Certificate{
 			SerialNumber: serialNumber,
 			Subject: pkix.Name{
-				CommonName:   ca.String(),
+				CommonName:   cn.String(),
 				Country:      []string{rootCertCountry},
 				Locality:     []string{rootCertLocality},
 				Organization: []string{rootCertOrganization},
@@ -73,7 +73,13 @@ var _ = Describe("Test creation from pem", func() {
 		expiration := time.Now().Add(1 * time.Hour)
 
 		c, err := NewCertificateFromPEM(pemCert, pemKey, expiration)
-		It("should create a new CA", func() {
+		Expect(err).ToNot(HaveOccurred())
+
+		It("Should have the correct CN", func() {
+			Expect(c.GetCommonName()).To(Equal(cn))
+		})
+
+		It("should decode PEM to x509 ", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			x509Cert, err := certificate.DecodePEMCertificate(c.GetCertificateChain())
@@ -82,14 +88,15 @@ var _ = Describe("Test creation from pem", func() {
 			Expect(x509Cert.NotAfter.Sub(x509Cert.NotBefore)).To(Equal(1 * time.Hour))
 			Expect(x509Cert.KeyUsage).To(Equal(x509.KeyUsageCertSign | x509.KeyUsageCRLSign))
 			Expect(x509Cert.IsCA).To(BeTrue())
+			Expect(x509Cert.Subject.CommonName).To(Equal(cn.String()))
 		})
 	})
 
-	Context("invalid pem cert and pem key", func() {
+	Context("Test NewCertificateFromPEM()", func() {
 		expiration := time.Now().Add(1 * time.Hour)
 
-		_, err := NewCertificateFromPEM([]byte(""), []byte(""), expiration)
-		It("should returns en error", func() {
+		It("invalid pem cert and pem key should returns en error", func() {
+			_, err := NewCertificateFromPEM([]byte(""), []byte(""), expiration)
 			Expect(err).To(HaveOccurred())
 		})
 	})
