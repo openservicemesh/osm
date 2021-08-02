@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/mesh"
 )
 
 // GetEnvoyProxyConfig returns the sidecar envoy proxy config of a pod
@@ -24,7 +24,7 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 	if err != nil {
 		return nil, errors.Errorf("Could not find pod %s in namespace %s", podName, namespace)
 	}
-	if !proxyLabelExists(*pod) {
+	if !mesh.ProxyLabelExists(*pod) {
 		return nil, errors.Errorf("Pod %s in namespace %s is not a part of a mesh", podName, namespace)
 	}
 	if pod.Status.Phase != corev1.PodRunning {
@@ -63,16 +63,4 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 	}
 
 	return envoyProxyConfig, nil
-}
-
-// proxyLabelExists returns a boolean indicating if the pod is part of a mesh
-func proxyLabelExists(pod corev1.Pod) bool {
-	// osm-controller adds a unique label to each pod that belongs to a mesh
-	proxyUUID, proxyLabelSet := pod.Labels[constants.EnvoyUniqueIDLabelName]
-	return proxyLabelSet && isValidUUID(proxyUUID)
-}
-
-func isValidUUID(u string) bool {
-	_, err := uuid.Parse(u)
-	return err == nil
 }
