@@ -48,8 +48,8 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			}
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Update,
-				NewObj:           oldObj,
-				OldObj:           newObj,
+				NewObj:           newObj,
+				OldObj:           oldObj,
 			})
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
