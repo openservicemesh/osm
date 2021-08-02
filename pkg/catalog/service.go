@@ -189,8 +189,12 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
 func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, locality service.Locality) ([]string, error) {
-	svc := utils.K8sSvcToMeshSvc(mc.kubeController.GetService(meshService))
+	k8sSvc := mc.kubeController.GetService(meshService)
+	if k8sSvc == nil {
+		return nil, errors.Errorf("Service %s not found", meshService.String())
+	}
 
+	svc := utils.K8sSvcToMeshSvc(k8sSvc)
 	var hostnames []string
 	for _, provider := range mc.serviceProviders {
 		hosts, err := provider.GetHostnamesForService(svc, locality)
