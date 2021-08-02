@@ -1,27 +1,28 @@
-{{- if .Values.OpenServiceMesh.featureFlags.enableOSMGateway }}
+{{- if .Values.OpenServiceMesh.featureFlags.enableMulticlusterMode }}
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: osm-gateway
+  name: osm-multicluster-gateway
   namespace: {{ include "osm.namespace" . }}
   labels:
-    app: osm-gateway
+    app: osm-multicluster-gateway
 spec:
   selector:
     matchLabels:
-      app: osm-gateway
+      app: osm-multicluster-gateway
   template:
     metadata:
       labels:
-        app: osm-gateway
-      name: osm-gateway
+        app: osm-multicluster-gateway
+      name: osm-multicluster-gateway
     spec:
+      serviceAccountName: {{ .Release.Name }}
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
       initContainers:
-        - name: osm-gateway-init
+        - name: osm-multicluster-gateway-init
           image: curlimages/curl
           args:
           - /bin/sh
@@ -39,13 +40,13 @@ spec:
           args: [
             "--config-path", "/etc/envoy/bootstrap.yaml",
             "--bootstrap-version", "3",
-            "--service-node", "osm-gateway",
-            "--service-cluster", "osm-gateway",
+            "--service-node", "osm-multicluster-gateway",
+            "--service-cluster", "osm-multicluster-gateway",
+            "--log-level", {{ .Values.OpenServiceMesh.multicluster.gatewayLogLevel }},
           ]
           ports:
-            - containerPort: {{ .Values.OpenServiceMesh.multicluster.gatewayPort }}
-              name: http2
-              protocol: TCP
+            - name: "multicluster"
+              containerPort: 15443
           volumeMounts:
             - name: envoy-bootstrap-config-volume
               mountPath: /etc/envoy
@@ -53,5 +54,5 @@ spec:
       volumes:
         - name: envoy-bootstrap-config-volume
           secret:
-            secretName: osm-gateway-bootstrap-config
+            secretName: osm-multicluster-gateway-bootstrap-config
 {{- end }}

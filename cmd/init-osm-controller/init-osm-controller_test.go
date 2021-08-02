@@ -51,7 +51,6 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	"enableWASMStats": false,
 	"enableEgressPolicy": true,
 	"enableMulticlusterMode": false,
-	"enableOSMGateway": false,
 	"enableAsyncProxyServiceMapping": false,
 	"enableValidatingWebhook": false,
 	"enableIngressBackendPolicy": true,

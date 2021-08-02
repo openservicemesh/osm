@@ -66,8 +66,10 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 		}
 	}
 
-	// Multicluster endpoints!
-	endpoints = append(endpoints, c.getMulticlusterEndpoints(svc)...)
+	// Add multicluster service endpoints
+	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
+		endpoints = append(endpoints, c.getMulticlusterEndpoints(svc)...)
+	}
 
 	log.Trace().Msgf("[%s][ListEndpointsForService] Endpoints for service %s: %+v", c.providerIdent, svc, endpoints)
 
@@ -100,8 +102,10 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 		}
 	}
 
-	// Multicluster endpoints!
-	endpoints = append(endpoints, c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)...)
+	// Add multicluster service endpoints
+	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
+		endpoints = append(endpoints, c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)...)
+	}
 
 	log.Trace().Msgf("[%s][ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", c.providerIdent, serviceIdentity, sa, endpoints)
 

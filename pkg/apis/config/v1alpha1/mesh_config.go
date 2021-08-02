@@ -36,9 +36,6 @@ type MeshConfigSpec struct {
 	// Certificate defines the certificate management configurations for a mesh instance.
 	Certificate CertificateSpec `json:"certificate,omitempty"`
 
-	// Experimental defines the experimental scenario configurations for a mesh instance.
-	Experimental ExperimentalSpec `json:"experimental,omitempty"`
-
 	// FeatureFlags defines the feature flags for a mesh instance.
 	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
 }
@@ -170,18 +167,6 @@ type IngressGatewayCertSpec struct {
 	Secret corev1.SecretReference `json:"secret"`
 }
 
-// MulticlusterSpec represents multicluster configurations.
-type MulticlusterSpec struct {
-	// ClusterDomain references _this_ cluster's domain name. In a multicluster scenario, this allows the cluster to know what external clusters will refer to it as.
-	ClusterDomain string `json:"clusterDomain,omitempty"`
-}
-
-// ExperimentalSpec holds other Specs that are currently considered experimental.
-type ExperimentalSpec struct {
-	// Multicluster configurations
-	MulticlusterSpec MulticlusterSpec `json:"multicluster,omitempty"`
-}
-
 // MeshConfigList lists the MeshConfig objects.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type MeshConfigList struct {
@@ -204,9 +189,6 @@ type FeatureFlags struct {
 
 	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache.
 	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode,omitempty"`
-
-	// EnableOSMGateway defines if OSM gateway is enabled.
-	EnableOSMGateway bool `json:"enableOSMGateway,omitempty"`
 
 	//EnableAsyncProxyServiceMapping defines if OSM will map proxies to services asynchronously.
 	EnableAsyncProxyServiceMapping bool `json:"enableAsyncProxyServiceMapping,omitempty"`

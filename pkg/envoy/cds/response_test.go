@@ -391,9 +391,12 @@ func TestNewResponseListServicesError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	cfg := configurator.NewMockConfigurator(ctrl)
+	cfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return(nil).AnyTimes()
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
@@ -422,6 +425,8 @@ func TestNewResponseGetLocalServiceClusterError(t *testing.T) {
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+	cfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.Error(t, err)
@@ -448,6 +453,8 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+	cfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
@@ -478,6 +485,8 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}, nil).Times(1)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
+	cfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
@@ -485,34 +494,31 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
 }
 
-func TestNewResponseForGateway(t *testing.T) {
-	proxyIdentity := identity.K8sServiceAccount{Name: "gateway", Namespace: "osm-system"}.ToServiceIdentity()
+func TestNewResponseForMulticlusterGateway(t *testing.T) {
+	assert := tassert.New(t)
+
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}))
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "gateway", "osm-system")
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
 	proxy, err := envoy.NewProxy(cn, "", nil)
-	tassert.Nil(t, err)
+	assert.Nil(err)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	mockKubeController := k8s.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxyIdentity).Return([]service.MeshService{
-		tests.BookbuyerService,
-		tests.BookwarehouseService,
+
+	cfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
+		tests.BookstoreV1Service,
 	}).AnyTimes()
-	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
-	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
-	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
+	meshCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tests.BookstoreV1Service).Return(map[uint32]string{uint32(80): "protocol"}, nil)
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
-	tassert.NoError(t, err)
-	tassert.Len(t, resp, 2)
-	tassert.Equal(t, "default/bookbuyer", resp[0].(*xds_cluster.Cluster).Name)
-	tassert.Equal(t, "default/bookwarehouse", resp[1].(*xds_cluster.Cluster).Name)
+	assert.NoError(err)
+	assert.Len(resp, 1)
+	assert.Equal(tests.BookstoreV1Service.ServerName(), resp[0].(*xds_cluster.Cluster).Name)
 }
 
 func TestRemoveDups(t *testing.T) {

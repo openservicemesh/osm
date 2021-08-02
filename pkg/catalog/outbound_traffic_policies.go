@@ -106,13 +106,17 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	return outboundPoliciesFromSplits
 }
 
+// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
+// TODO: improve code by combining with ListOutboundServicesForIdentity
+func (mc *MeshCatalog) ListOutboundServicesForMulticlusterGateway() []service.MeshService {
+	return mc.listMeshServices()
+}
+
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
-	if mc.isOSMGateway(serviceIdentity) ||
-		mc.configurator.IsPermissiveTrafficPolicyMode() {
-		// The gateway can forward to all local services.
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
 

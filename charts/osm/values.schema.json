@@ -730,16 +730,17 @@
                     "title": "Multicluster",
                     "description": "Configuration for multicluster features",
                     "required": [
-                        "gatewayPort"
+                        "gatewayLogLevel"
                     ],
                     "properties": {
-                        "gatewayPort": {
-                            "$id": "#/properties/OpenServiceMesh/properties/multicluster/properties/gatewayPort",
-                            "type": "integer",
-                            "title": "Gateway port",
-                            "description": "Port number of multicluster gateway",
+                        "gatewayLogLevel": {
+                            "$id": "#/properties/OpenServiceMesh/properties/multicluster/properties/gatewayLogLevel",
+                            "type": "string",
+                            "title": "the gatewayLogLevel port",
+                            "description": "Log level for the multicluster gateway",
+                            "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
                             "examples": [
-                                12345
+                                "error"
                             ]
                         }
                     }
@@ -759,7 +760,6 @@
                         "enableWASMStats",
                         "enableEgressPolicy",
                         "enableMulticlusterMode",
-                        "enableOSMGateway",
                         "enableAsyncProxyServiceMapping",
                         "enableValidatingWebhook",
                         "enableCRDConverter",
@@ -791,15 +791,6 @@
                             "type": "boolean",
                             "title": "Enable Multicluster mode",
                             "description": "Enable multicluster mode in OSM",
-                            "examples": [
-                                true
-                            ]
-                        },
-                        "enableOSMGateway": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableOSMGateway",
-                            "type": "boolean",
-                            "title": "Enable OSM gateway",
-                            "description": "Enable OSM gateway for ingress or multicluster",
                             "examples": [
                                 true
                             ]

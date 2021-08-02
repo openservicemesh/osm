@@ -15,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-func TestBootstrapOSMGateway(t *testing.T) {
+func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -145,7 +145,7 @@ static_resources:
 				assert.Nil(err)
 			}
 
-			actual := bootstrapOSMGateway(fakeClient, fakeCertManager, testNs)
+			actual := bootstrapOSMMulticlusterGateway(fakeClient, fakeCertManager, testNs)
 			assert.Equal(tc.expectError, actual != nil)
 		})
 	}

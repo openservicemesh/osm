@@ -250,8 +250,6 @@ OpenServiceMesh:
     # -- Enable Multicluster mode.
     # When enabled, multicluster mode will be enabled in OSM
     enableMulticlusterMode: false
-    # -- Enable OSM gateway for ingress or multicluster
-    enableOSMGateway: false
     # -- Enable async proxy-service mapping
     enableAsyncProxyServiceMapping: false
     # -- Enable kubernetes validating webhook
@@ -267,11 +265,10 @@ OpenServiceMesh:
     # -- Enables SnapshotCache feature for Envoy xDS server.
     enableSnapshotCacheMode: false
 
-  #
   # -- OSM multicluster feature configuration
   multicluster:
-    # -- The port number of the multicluster gateway service
-    gatewayPort: 14080
+    # -- Log level for the multicluster gateway
+    gatewayLogLevel: error
 
   # -- Run OSM with PodSecurityPolicy configured
   pspEnabled: false

@@ -25,17 +25,23 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	if proxy.Kind() == envoy.KindGateway {
-		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-			cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
+	opts := []clusterOption{}
+	if cfg.IsPermissiveTrafficPolicyMode() {
+		opts = append(opts, permissive)
+	}
+	if cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks {
+		opts = append(opts, withActiveHealthChecks)
+	}
+
+	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
+		for _, dstService := range meshCatalog.ListOutboundServicesForMulticlusterGateway() {
+			cluster, err := getMulticlusterGatewayUpstreamServiceCluster(meshCatalog, dstService, opts...)
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).
 					Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 						dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
 				return nil, err
 			}
-
 			clusters = append(clusters, cluster)
 		}
 		return removeDups(clusters), nil
@@ -43,14 +49,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-		opts := []clusterOption{withTLS}
-		if cfg.IsPermissiveTrafficPolicyMode() {
-			opts = append(opts, permissive)
-		}
-		if cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks {
-			opts = append(opts, withActiveHealthChecks)
-		}
-		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg, opts...)
+		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, opts...)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.ErrObtainingUpstreamServiceCluster.String()).
 				Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
