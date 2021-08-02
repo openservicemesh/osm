@@ -287,13 +287,119 @@
       }
     },
     {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {},
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "orange",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 4.5,
+                "x": 0,
+                "y": 7
+            },
+            "id": 5,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "last"
+                    ],
+                    "values": false
+                }
+            },
+            "pluginVersion": "7.0.1",
+            "targets": [
+                {
+                    "expr": "avg_over_time(osm_proxy_config_update_time_sum{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1y:1s])",
+                    "format": "time_series",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "{{source_pod_name}}",
+                    "refId": "A"
+                }
+            ],
+            "timeFrom": null,
+            "timeShift": null,
+            "title": "Avg Envoy Update Time (s)",
+            "type": "stat"
+        },
+        {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {},
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "orange",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 4.5,
+                "x": 4.5,
+                "y": 7
+            },
+            "id": 10,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "last"
+                    ],
+                    "values": false
+                }
+            },
+            "pluginVersion": "7.0.1",
+            "targets": [
+                {
+                    "expr": "max_over_time(osm_proxy_config_update_time_sum{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1y:1s])",
+                    "format": "time_series",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "{{source_pod_name}}",
+                    "refId": "A"
+                }
+            ],
+            "timeFrom": null,
+            "timeShift": null,
+            "title": "Max Envoy Update Time (s)",
+            "type": "stat"
+        },
+        {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 10
       },
       "id": 32,
       "panels": [],
@@ -318,7 +424,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 7
+        "y": 11
       },
       "hiddenSeries": false,
       "id": 14,
@@ -436,7 +542,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 7
+        "y": 11
       },
       "hiddenSeries": false,
       "id": 13,
@@ -528,7 +634,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 20
       },
       "id": 34,
       "panels": [],
@@ -575,7 +681,7 @@
         "h": 8,
         "w": 9,
         "x": 0,
-        "y": 17
+        "y": 21
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -662,7 +768,7 @@
         "h": 8,
         "w": 9,
         "x": 9,
-        "y": 17
+        "y": 21
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -749,7 +855,7 @@
         "h": 10,
         "w": 18,
         "x": 0,
-        "y": 25
+        "y": 29
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -830,7 +936,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 35
+        "y": 39
       },
       "hiddenSeries": false,
       "id": 36,
@@ -946,7 +1052,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 35
+        "y": 39
       },
       "hiddenSeries": false,
       "id": 37,
