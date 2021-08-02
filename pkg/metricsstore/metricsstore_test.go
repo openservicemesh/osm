@@ -10,16 +10,16 @@ import (
 )
 
 func setup() {
-	DefaultMetricsStore.Start(
-		DefaultMetricsStore.K8sAPIEventCounter,
-		DefaultMetricsStore.ProxyConnectCount,
+	GetMetricsStore().Start(
+		GetMetricsStore().K8sAPIEventCounter,
+		GetMetricsStore().ProxyConnectCount,
 	)
 }
 
 func teardown() {
-	DefaultMetricsStore.Stop(
-		DefaultMetricsStore.K8sAPIEventCounter,
-		DefaultMetricsStore.ProxyConnectCount,
+	GetMetricsStore().Stop(
+		GetMetricsStore().K8sAPIEventCounter,
+		GetMetricsStore().ProxyConnectCount,
 	)
 }
 
@@ -33,9 +33,9 @@ func TestMetricsStore(t *testing.T) {
 		apiEventCount := 3
 
 		for i := 1; i <= apiEventCount; i++ {
-			DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues("add", "foo").Inc()
+			GetMetricsStore().K8sAPIEventCounter.WithLabelValues("add", "foo").Inc()
 
-			handler := DefaultMetricsStore.Handler()
+			handler := GetMetricsStore().Handler()
 
 			req, err := http.NewRequest("GET", "/metrics", nil)
 			assert.Nil(err)
@@ -60,13 +60,13 @@ osm_k8s_api_event_count{namespace="foo",type="add"} %d
 		proxiesDisconnected := 2
 
 		for i := 1; i <= proxiesConnected; i++ {
-			DefaultMetricsStore.ProxyConnectCount.Inc()
+			GetMetricsStore().ProxyConnectCount.Inc()
 		}
 		for i := 1; i <= proxiesDisconnected; i++ {
-			DefaultMetricsStore.ProxyConnectCount.Dec()
+			GetMetricsStore().ProxyConnectCount.Dec()
 		}
 
-		handler := DefaultMetricsStore.Handler()
+		handler := GetMetricsStore().Handler()
 
 		req, err := http.NewRequest("GET", "/metrics", nil)
 		assert.Nil(err)

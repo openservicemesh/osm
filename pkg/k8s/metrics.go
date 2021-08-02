@@ -8,21 +8,21 @@ import (
 func updateEventSpecificMetrics(eventType announcements.AnnouncementType) {
 	switch eventType {
 	case announcements.NamespaceAdded:
-		metricsstore.DefaultMetricsStore.K8sMonitoredNamespaceCount.Inc()
+		metricsstore.GetMetricsStore().K8sMonitoredNamespaceCount.Inc()
 
 	case announcements.NamespaceDeleted:
-		metricsstore.DefaultMetricsStore.K8sMonitoredNamespaceCount.Dec()
+		metricsstore.GetMetricsStore().K8sMonitoredNamespaceCount.Dec()
 
 	case announcements.PodAdded:
-		metricsstore.DefaultMetricsStore.K8sMeshPodCount.Inc()
+		metricsstore.GetMetricsStore().K8sMeshPodCount.Inc()
 
 	case announcements.PodDeleted:
-		metricsstore.DefaultMetricsStore.K8sMeshPodCount.Dec()
+		metricsstore.GetMetricsStore().K8sMeshPodCount.Dec()
 
 	case announcements.ServiceAdded:
-		metricsstore.DefaultMetricsStore.K8sMeshServiceCount.Inc()
+		metricsstore.GetMetricsStore().K8sMeshServiceCount.Inc()
 
 	case announcements.ServiceDeleted:
-		metricsstore.DefaultMetricsStore.K8sMeshServiceCount.Dec()
+		metricsstore.GetMetricsStore().K8sMeshServiceCount.Dec()
 	}
 }

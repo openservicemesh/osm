@@ -38,7 +38,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           nil,
 			})
 			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
+			metricsstore.GetMetricsStore().K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 			updateEventSpecificMetrics(eventTypes.Add)
 		},
 
@@ -52,7 +52,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           oldObj,
 			})
 			ns := getNamespace(newObj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
+			metricsstore.GetMetricsStore().K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 		},
 
 		DeleteFunc: func(obj interface{}) {
@@ -65,7 +65,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           obj,
 			})
 			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
+			metricsstore.GetMetricsStore().K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 			updateEventSpecificMetrics(eventTypes.Delete)
 		},
 	}

@@ -37,7 +37,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 
 	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
-	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
+	metricsstore.GetMetricsStore().ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
 	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
@@ -90,19 +90,19 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	for {
 		select {
 		case <-ctx.Done():
-			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
+			metricsstore.GetMetricsStore().ProxyConnectCount.Dec()
 			return nil
 
 		case <-quit:
 			log.Debug().Msgf("gRPC stream closed for proxy %s!", proxy.String())
-			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
+			metricsstore.GetMetricsStore().ProxyConnectCount.Dec()
 			return nil
 
 		case discoveryRequest, ok := <-requests:
 			if !ok {
 				log.Error().Str(errcode.Kind, errcode.ErrGRPCStreamClosedByProxy.String()).
 					Msgf("gRPC stream closed by proxy %s!", proxy.String())
-				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
+				metricsstore.GetMetricsStore().ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
 
@@ -238,7 +238,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 		proxy.SetLastSentVersion(typeURL, requestVersion)
 		proxy.SetLastAppliedVersion(typeURL, requestVersion)
 		proxy.SetSubscribedResources(typeURL, getRequestedResourceNamesSet(discoveryRequest))
-		metricsstore.DefaultMetricsStore.ProxyReconnectCount.Inc()
+		metricsstore.GetMetricsStore().ProxyReconnectCount.Inc()
 		return true
 	}
 

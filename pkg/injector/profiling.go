@@ -37,7 +37,7 @@ func webhookTimeTrack(start time.Time, timeout time.Duration, success *bool) {
 	log.Debug().Msgf("Mutate Webhook took %v to execute (%.2f of it's timeout, %v)",
 		elapsed, percentOfTimeout, timeout)
 
-	metricsstore.DefaultMetricsStore.InjectorSidecarCount.Inc()
-	metricsstore.DefaultMetricsStore.InjectorRqTime.
+	metricsstore.GetMetricsStore().InjectorSidecarCount.Inc()
+	metricsstore.GetMetricsStore().InjectorRqTime.
 		WithLabelValues(fmt.Sprintf("%t", *success)).Observe(elapsed.Seconds())
 }

@@ -102,7 +102,7 @@ func (mc *MeshCatalog) dispatcher() {
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
+			metricsstore.GetMetricsStore().ProxyBroadcastEventCount.Inc()
 
 			// broadcast done, reset timer channels
 			broadcastScheduled = false
@@ -114,7 +114,7 @@ func (mc *MeshCatalog) dispatcher() {
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
+			metricsstore.GetMetricsStore().ProxyBroadcastEventCount.Inc()
 
 			// broadcast done, reset timer channels
 			broadcastScheduled = false

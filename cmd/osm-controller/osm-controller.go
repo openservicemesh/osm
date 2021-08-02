@@ -146,8 +146,18 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start the default metrics store
-	startMetricsStore()
+	metricsstore.GetMetricsStore().Start(
+		metricsstore.GetMetricsStore().K8sAPIEventCounter,
+		metricsstore.GetMetricsStore().K8sMonitoredNamespaceCount,
+		metricsstore.GetMetricsStore().K8sMeshPodCount,
+		metricsstore.GetMetricsStore().K8sMeshServiceCount,
+		metricsstore.GetMetricsStore().ProxyConnectCount,
+		metricsstore.GetMetricsStore().ProxyReconnectCount,
+		metricsstore.GetMetricsStore().ProxyConfigUpdateTime,
+		metricsstore.GetMetricsStore().ProxyBroadcastEventCount,
+		metricsstore.GetMetricsStore().CertIssuedCount,
+		metricsstore.GetMetricsStore().CertIssuedTime,
+	)
 
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
@@ -268,7 +278,7 @@ func main() {
 		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
 	// Metrics
-	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler("/metrics", metricsstore.GetMetricsStore().Handler())
 	// Version
 	httpServer.AddHandler("/version", version.GetVersionHandler())
 	// Supported SMI Versions
@@ -289,22 +299,6 @@ func main() {
 
 	<-stop
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
-}
-
-// Start the metric store, register the metrics OSM will expose
-func startMetricsStore() {
-	metricsstore.DefaultMetricsStore.Start(
-		metricsstore.DefaultMetricsStore.K8sAPIEventCounter,
-		metricsstore.DefaultMetricsStore.K8sMonitoredNamespaceCount,
-		metricsstore.DefaultMetricsStore.K8sMeshPodCount,
-		metricsstore.DefaultMetricsStore.K8sMeshServiceCount,
-		metricsstore.DefaultMetricsStore.ProxyConnectCount,
-		metricsstore.DefaultMetricsStore.ProxyReconnectCount,
-		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
-		metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount,
-		metricsstore.DefaultMetricsStore.CertIssuedCount,
-		metricsstore.DefaultMetricsStore.CertIssuedTime,
-	)
 }
 
 // getHTTPHealthProbes returns the HTTP health probes served by OSM controller

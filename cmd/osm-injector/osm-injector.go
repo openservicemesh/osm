@@ -127,12 +127,12 @@ func main() {
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start the default metrics store
-	metricsstore.DefaultMetricsStore.Start(
-		metricsstore.DefaultMetricsStore.InjectorRqTime,
-		metricsstore.DefaultMetricsStore.InjectorSidecarCount,
-		metricsstore.DefaultMetricsStore.CertIssuedCount,
-		metricsstore.DefaultMetricsStore.CertIssuedTime,
+	// Start the metrics store
+	metricsstore.GetMetricsStore().Start(
+		metricsstore.GetMetricsStore().InjectorRqTime,
+		metricsstore.GetMetricsStore().InjectorSidecarCount,
+		metricsstore.GetMetricsStore().CertIssuedCount,
+		metricsstore.GetMetricsStore().CertIssuedTime,
 	)
 
 	// Initialize Configurator to retrieve mesh specific config
@@ -170,7 +170,7 @@ func main() {
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
-	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler("/metrics", metricsstore.GetMetricsStore().Handler())
 	// Version
 	httpServer.AddHandler("/version", version.GetVersionHandler())
 	// Start HTTP server
