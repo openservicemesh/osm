@@ -527,10 +527,10 @@ func TestCreateUpdateConfig(t *testing.T) {
 			meshConfigClientSet := testclient.NewSimpleClientset()
 
 			// Prepare the pubsub channel
-			confChannel := events.GetPubSubInstance().Subscribe(
+			confChannel := events.Subscribe(
 				announcements.MeshConfigAdded,
 				announcements.MeshConfigUpdated)
-			defer events.GetPubSubInstance().Unsub(confChannel)
+			defer events.Unsub(confChannel)
 
 			// Create configurator
 			stop := make(chan struct{})

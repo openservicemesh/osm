@@ -12,43 +12,39 @@ const (
 )
 
 var (
-	// Globally accessible instance, through singleton pattern GetPubSubInstance
-	pubSubInstance *osmPubsub
+	// Globally accessible instance, through singleton pattern using getPubSubInstance()
+	pubSubInstance *pubsub.PubSub
 )
 
-// Object which implements the PubSub interface
-type osmPubsub struct {
-	pSub *pubsub.PubSub
-}
-
 // Subscribe is the Subscribe implementation for PubSub
-func (c *osmPubsub) Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
+func Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
 	var subTypes []string
 	for _, v := range aTypes {
 		subTypes = append(subTypes, string(v))
 	}
 
-	return c.pSub.Sub(subTypes...)
+	return getPubSubInstance().Sub(subTypes...)
 }
 
 // Publish is the Publish implementation for PubSub
-func (c *osmPubsub) Publish(message PubSubMessage) {
-	c.pSub.Pub(message, message.AnnouncementType.String())
+func Publish(message PubSubMessage) {
+	getPubSubInstance().Pub(message, message.AnnouncementType.String())
 }
 
 // Unsub is the Unsub implementation for PubSub.
 // It is synchronized, upon exit the channel is guaranteed to be both
 // unsubbed to all topics and closed.
 // This is a necessary step to guarantee garbage collection
-func (c *osmPubsub) Unsub(unsubChan chan interface{}) {
+func Unsub(unsubChan chan interface{}) {
 	// implementation has several requirements (including different goroutine context)
 	// https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L102
 
+	inst := getPubSubInstance()
 	syncCh := make(chan struct{})
 	go func() {
 		// This will close the channel on the pubsub backend
 		// https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L264
-		c.pSub.Unsub(unsubChan)
+		inst.Unsub(unsubChan)
 
 		for range unsubChan {
 			// Drain channel, read til close
@@ -59,14 +55,12 @@ func (c *osmPubsub) Unsub(unsubChan chan interface{}) {
 	<-syncCh
 }
 
-// GetPubSubInstance returns a unique, global scope PubSub interface instance
+// getPubSubInstance returns a unique, global scope PubSub interface instance
 // Note that spawning the instance is not thread-safe. First call should happen on
 // a single-routine context to avoid races.
-func GetPubSubInstance() PubSub {
+func getPubSubInstance() *pubsub.PubSub {
 	if pubSubInstance == nil {
-		pubSubInstance = &osmPubsub{
-			pSub: pubsub.New(defaultAnnouncementChannelSize),
-		}
+		pubSubInstance = pubsub.New(defaultAnnouncementChannelSize)
 	}
 	return pubSubInstance
 }

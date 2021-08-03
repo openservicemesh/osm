@@ -58,7 +58,7 @@ func InitTicker(c configurator.Configurator) *ResyncTicker {
 // Listens to meshconfig events and notifies ticker routine to start/stop
 func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, stop <-chan struct{}) {
 	// Subscribe to configuration updates
-	meshConfigChannel := events.GetPubSubInstance().Subscribe(
+	meshConfigChannel := events.Subscribe(
 		announcements.MeshConfigAdded,
 		announcements.MeshConfigDeleted,
 		announcements.MeshConfigUpdated)
@@ -69,7 +69,7 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 
 	// Initial config
 	if currentDuration >= minimumTickerDuration {
-		events.GetPubSubInstance().Publish(events.PubSubMessage{
+		events.Publish(events.PubSubMessage{
 			AnnouncementType: announcements.TickerStart,
 			NewObj:           currentDuration,
 		})
@@ -89,14 +89,14 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 			if newResyncInterval >= minimumTickerDuration {
 				// Notify to re/start ticker
 				log.Warn().Msgf("Interval %s >= %s, issuing start ticker.", newResyncInterval, minimumTickerDuration)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
+				events.Publish(events.PubSubMessage{
 					AnnouncementType: announcements.TickerStart,
 					NewObj:           newResyncInterval,
 				})
 			} else {
 				// Notify to ticker to stop
 				log.Warn().Msgf("Interval %s < %s, issuing ticker stop.", newResyncInterval, minimumTickerDuration)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
+				events.Publish(events.PubSubMessage{
 					AnnouncementType: announcements.TickerStop,
 					NewObj:           newResyncInterval,
 				})
@@ -110,9 +110,9 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 
 func ticker(ready chan struct{}, stop <-chan struct{}) {
 	ticker := make(<-chan time.Time)
-	tickStart := events.GetPubSubInstance().Subscribe(
+	tickStart := events.Subscribe(
 		announcements.TickerStart)
-	tickStop := events.GetPubSubInstance().Subscribe(
+	tickStop := events.Subscribe(
 		announcements.TickerStop)
 
 	// Notify the calling function we are ready to receive events
@@ -143,7 +143,7 @@ func ticker(ready chan struct{}, stop <-chan struct{}) {
 			ticker = make(<-chan time.Time)
 		case <-ticker:
 			log.Info().Msgf("Ticker requesting broadcast proxy update")
-			events.GetPubSubInstance().Publish(
+			events.Publish(
 				events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
 				},

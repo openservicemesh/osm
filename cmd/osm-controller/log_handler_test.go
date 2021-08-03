@@ -26,7 +26,7 @@ func TestGlobalLogLevelHandler(t *testing.T) {
 
 	// Set log level through a meshconfig event
 	mockConfigurator.EXPECT().GetOSMLogLevel().Return("warn").Times(1)
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.MeshConfigUpdated,
 	})
 
@@ -36,7 +36,7 @@ func TestGlobalLogLevelHandler(t *testing.T) {
 
 	// Reset back
 	mockConfigurator.EXPECT().GetOSMLogLevel().Return("trace").Times(1)
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.MeshConfigUpdated,
 	})
 

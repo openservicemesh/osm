@@ -58,11 +58,11 @@ var _ = Describe("Test Rotor", func() {
 
 		var certAnnouncement chan interface{}
 		BeforeEach(func() {
-			certAnnouncement = events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
+			certAnnouncement = events.Subscribe(announcements.CertificateRotated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(certAnnouncement)
+			events.Unsub(certAnnouncement)
 		})
 
 		It("issued a new certificate", func() {

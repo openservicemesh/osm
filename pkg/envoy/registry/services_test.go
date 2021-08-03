@@ -312,7 +312,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 			},
 		},
 	}
-	broadcast := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
+	broadcast := events.Subscribe(announcements.ScheduleProxyBroadcast)
 
 	kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 	kubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
@@ -322,7 +322,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 	svcs := k.servicesForCN[cn]
 	assert.NotEmpty(svcs)
 
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.ServiceDeleted,
 		OldObj:           svc,
 	})
@@ -330,7 +330,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 
 	assert.Empty(k.servicesForCN[cn])
 
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.PodDeleted,
 		OldObj:           pod,
 	})
@@ -339,7 +339,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 	assert.Empty(k.servicesForCN)
 
 	kubeController.EXPECT().ListServices().Return(nil).Times(1)
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.PodAdded,
 		NewObj:           pod,
 	})
@@ -350,7 +350,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 	assert.Empty(svcs)
 
 	kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.ServiceAdded,
 		NewObj:           svc,
 	})
@@ -1676,22 +1676,22 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 	doWrites := func() {
 		for i := 0; i < numWriteLoopIters; i++ {
 			kubeController.EXPECT().ListServices().Return(nil).Times(1)
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: announcements.PodAdded,
 				NewObj:           pod,
 			})
 
 			kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: announcements.ServiceAdded,
 				NewObj:           svc,
 			})
 
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: announcements.ServiceDeleted,
 				OldObj:           svc,
 			})
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: announcements.PodDeleted,
 				OldObj:           pod,
 			})
@@ -1711,8 +1711,8 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 
 	// wait ensures all the published events have been handled by the mapper.
 	wait := func() {
-		broadcast := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
-		defer events.GetPubSubInstance().Unsub(broadcast)
+		broadcast := events.Subscribe(announcements.ScheduleProxyBroadcast)
+		defer events.Unsub(broadcast)
 		for i := 0; i < totalExpectedBroadcasts; i++ {
 			<-broadcast
 		}

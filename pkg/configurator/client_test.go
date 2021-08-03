@@ -27,14 +27,14 @@ func TestMeshConfigEventTriggers(t *testing.T) {
 	assert := tassert.New(t)
 	meshConfigClientSet := testclient.NewSimpleClientset()
 
-	confChannel := events.GetPubSubInstance().Subscribe(
+	confChannel := events.Subscribe(
 		announcements.MeshConfigAdded,
 		announcements.MeshConfigDeleted,
 		announcements.MeshConfigUpdated)
-	defer events.GetPubSubInstance().Unsub(confChannel)
+	defer events.Unsub(confChannel)
 
-	proxyBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
-	defer events.GetPubSubInstance().Unsub(proxyBroadcastChannel)
+	proxyBroadcastChannel := events.Subscribe(announcements.ScheduleProxyBroadcast)
+	defer events.Unsub(proxyBroadcastChannel)
 
 	stop := make(chan struct{})
 	defer close(stop)

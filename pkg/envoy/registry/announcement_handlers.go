@@ -11,7 +11,7 @@ import (
 // ReleaseCertificateHandler releases certificates based on podDelete events
 // returns a stop channel which can be used to stop the inner handler
 func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manager) chan struct{} {
-	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
+	podDeleteSubscription := events.Subscribe(announcements.PodDeleted)
 	stop := make(chan struct{})
 
 	go func() {
@@ -41,7 +41,7 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manag
 
 					// Request a broadcast update, just for security.
 					// Dispatcher code also handles PodDelete, so probably the two will get coalesced.
-					events.GetPubSubInstance().Publish(events.PubSubMessage{
+					events.Publish(events.PubSubMessage{
 						AnnouncementType: announcements.ScheduleProxyBroadcast,
 						NewObj:           nil,
 						OldObj:           nil,

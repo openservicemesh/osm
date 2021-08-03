@@ -78,7 +78,7 @@ func NewAsyncKubeProxyServiceMapper(controller k8s.Controller) *AsyncKubeProxySe
 		kubeController: controller,
 		servicesForCN:  make(map[certificate.CommonName][]service.MeshService),
 		cnsForService:  make(map[service.MeshService]map[certificate.CommonName]struct{}),
-		kubeEvents: events.GetPubSubInstance().Subscribe(
+		kubeEvents: events.Subscribe(
 			announcements.PodAdded,
 			announcements.PodUpdated,
 			announcements.PodDeleted,
@@ -104,7 +104,7 @@ func (k *AsyncKubeProxyServiceMapper) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-stop:
-				events.GetPubSubInstance().Unsub(k.kubeEvents)
+				events.Unsub(k.kubeEvents)
 				return
 			case ev := <-k.kubeEvents:
 				event, ok := ev.(events.PubSubMessage)
@@ -128,7 +128,7 @@ func (k *AsyncKubeProxyServiceMapper) Run(stop <-chan struct{}) {
 					k.handleServiceDelete(svc)
 				}
 				k.cacheLock.Unlock()
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
+				events.Publish(events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
 				})
 			}

@@ -16,7 +16,7 @@ import (
 // PatchSecretHandler patches the envoy bootstrap config secrets based on the PodAdd events
 // returns a stop channel which can be used to stop the inner handler
 func PatchSecretHandler(kubeClient kubernetes.Interface) chan struct{} {
-	podAddSubscription := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
+	podAddSubscription := events.Subscribe(announcements.PodAdded)
 	stop := make(chan struct{})
 
 	go func() {

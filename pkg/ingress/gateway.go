@@ -104,9 +104,9 @@ func (c client) storeCertInSecret(cert certificate.Certificater, secret corev1.S
 // handleCertificateChange updates the gateway certificate and secret when the MeshConfig resource changes or
 // when the corresponding gateway certificate is rotated.
 func (c client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressGatewayCertSpec, stop <-chan struct{}) {
-	meshConfigUpdated := events.GetPubSubInstance().Subscribe(announcements.MeshConfigUpdated)
+	meshConfigUpdated := events.Subscribe(announcements.MeshConfigUpdated)
 
-	certRotated := events.GetPubSubInstance().Subscribe(announcements.CertificateRotated)
+	certRotated := events.Subscribe(announcements.CertificateRotated)
 
 	for {
 		select {

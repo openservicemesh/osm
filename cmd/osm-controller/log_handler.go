@@ -14,7 +14,7 @@ import (
 // StartGlobalLogLevelHandler registers a listener to meshconfig events and log level changes,
 // and applies new log level at global scope
 func StartGlobalLogLevelHandler(cfg configurator.Configurator, stop <-chan struct{}) {
-	meshConfigChannel := events.GetPubSubInstance().Subscribe(
+	meshConfigChannel := events.Subscribe(
 		announcements.MeshConfigAdded,
 		announcements.MeshConfigDeleted,
 		announcements.MeshConfigUpdated)

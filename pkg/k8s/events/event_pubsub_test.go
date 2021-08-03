@@ -33,8 +33,8 @@ func TestPubSubEvents(t *testing.T) {
 	}
 
 	for i := range testCases {
-		subscribedChanel := GetPubSubInstance().Subscribe(testCases[i].register)
-		GetPubSubInstance().Publish(testCases[i].publish)
+		subscribedChanel := Subscribe(testCases[i].register)
+		Publish(testCases[i].publish)
 
 		select {
 		case psMesg := <-subscribedChanel:
@@ -57,15 +57,15 @@ func TestPubSubClose(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	subChannel := GetPubSubInstance().Subscribe(announcements.EndpointUpdated)
+	subChannel := Subscribe(announcements.EndpointUpdated)
 
 	// publish something
-	GetPubSubInstance().Publish(PubSubMessage{
+	Publish(PubSubMessage{
 		AnnouncementType: announcements.EndpointUpdated,
 	})
 
 	// make sure channel is drained and closed
-	GetPubSubInstance().Unsub(subChannel)
+	Unsub(subChannel)
 
 	// Channel has to have been already emptied and closed
 	_, ok := <-subChannel
