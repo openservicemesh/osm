@@ -78,7 +78,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 			Expect(err).To(BeNil())
 
 			// Publish a podAdded event
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: announcements.PodAdded,
 				NewObj:           &pod,
 				OldObj:           nil,

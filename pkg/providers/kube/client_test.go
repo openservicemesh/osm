@@ -358,14 +358,14 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return a service that matches the ServiceAccount associated with the Pod", func() {
-		podsAndServiceChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+		podsAndServiceChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated,
 			announcements.ServiceAdded,
 			announcements.ServiceDeleted,
 			announcements.ServiceUpdated,
 		)
-		defer events.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer events.Unsub(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -439,10 +439,10 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when the Service selector doesn't match the pod", func() {
-		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+		podsChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
-		defer events.GetPubSubInstance().Unsub(podsChannel)
+		defer events.Unsub(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -511,10 +511,10 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when the service doesn't have a selector", func() {
-		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+		podsChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
-		defer events.GetPubSubInstance().Unsub(podsChannel)
+		defer events.Unsub(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -582,14 +582,14 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		// This test is meant to ensure the
 		// service selector logic works as expected when multiple services
 		// have the same selector match.
-		podsAndServiceChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+		podsAndServiceChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated,
 			announcements.ServiceAdded,
 			announcements.ServiceDeleted,
 			announcements.ServiceUpdated,
 		)
-		defer events.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer events.Unsub(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{

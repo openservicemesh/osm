@@ -21,7 +21,7 @@ import (
 // Routine which fulfills listening to proxy broadcasts
 func (s *Server) broadcastListener() {
 	// Register to Envoy global broadcast updates
-	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
+	broadcastUpdate := events.Subscribe(announcements.ProxyBroadcast)
 	for {
 		<-broadcastUpdate
 		s.allPodUpdater()

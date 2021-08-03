@@ -118,8 +118,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Error setting log level")
 	}
 
-	events.GetPubSubInstance() // Just to generate the interface, single routine context
-
 	// Initialize kube config and client
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", "")
 	if err != nil {

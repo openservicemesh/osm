@@ -10,7 +10,7 @@ import (
 // StartDebugServerConfigListener registers a go routine to listen to configuration and configure debug server as needed
 func (d *DebugConfig) StartDebugServerConfigListener() {
 	// Subscribe to configuration updates
-	ch := events.GetPubSubInstance().Subscribe(
+	ch := events.Subscribe(
 		announcements.MeshConfigAdded,
 		announcements.MeshConfigDeleted,
 		announcements.MeshConfigUpdated)

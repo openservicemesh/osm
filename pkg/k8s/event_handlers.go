@@ -32,7 +32,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			if !shouldObserve(obj) {
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Add,
 				NewObj:           obj,
 				OldObj:           nil,
@@ -46,7 +46,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			if !shouldObserve(newObj) {
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Update,
 				NewObj:           newObj,
 				OldObj:           oldObj,
@@ -59,7 +59,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			if !shouldObserve(obj) {
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Delete,
 				NewObj:           nil,
 				OldObj:           obj,

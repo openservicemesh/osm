@@ -331,7 +331,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
+				events.Publish(events.PubSubMessage{
 					AnnouncementType: announcements.MeshConfigUpdated,
 					NewObj:           tc.updatedMeshConfig,
 					OldObj:           tc.previousMeshConfig,

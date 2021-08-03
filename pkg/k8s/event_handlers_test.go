@@ -32,8 +32,8 @@ var _ = Describe("Testing event handlers", func() {
 		}
 
 		It("Should add the event to the announcement channel", func() {
-			podAddChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
-			defer events.GetPubSubInstance().Unsub(podAddChannel)
+			podAddChannel := events.Subscribe(announcements.PodAdded)
+			defer events.Unsub(podAddChannel)
 
 			pod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			eventTypes := EventTypes{
@@ -60,8 +60,8 @@ var _ = Describe("Testing event handlers", func() {
 		})
 
 		It("Should not add the event to the announcement channel", func() {
-			podAddChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
-			defer events.GetPubSubInstance().Unsub(podAddChannel)
+			podAddChannel := events.Subscribe(announcements.PodAdded)
+			defer events.Unsub(podAddChannel)
 
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"
@@ -84,8 +84,8 @@ var _ = Describe("Testing event handlers", func() {
 func TestUpdateEvent(t *testing.T) {
 	a := assert.New(t)
 
-	updateChan := events.GetPubSubInstance().Subscribe(announcements.PodUpdated)
-	defer events.GetPubSubInstance().Unsub(updateChan)
+	updateChan := events.Subscribe(announcements.PodUpdated)
+	defer events.Unsub(updateChan)
 
 	// Add and update a pod
 	originalPod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)

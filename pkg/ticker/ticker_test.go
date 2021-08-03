@@ -23,8 +23,8 @@ func TestInitTicker(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
 	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
 
-	events.GetPubSubInstance().Subscribe(announcements.TickerStart)
-	events.GetPubSubInstance().Subscribe(announcements.TickerStop)
+	events.Subscribe(announcements.TickerStart)
+	events.Subscribe(announcements.TickerStop)
 
 	assert.Nil(rTicker)
 	ticker := InitTicker(mockConfigurator)
@@ -41,8 +41,8 @@ func TestInitTicker(t *testing.T) {
 func TestTicker(t *testing.T) {
 	assert := assert.New(t)
 
-	broadcastEvents := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
-	defer events.GetPubSubInstance().Unsub(broadcastEvents)
+	broadcastEvents := events.Subscribe(announcements.ScheduleProxyBroadcast)
+	defer events.Unsub(broadcastEvents)
 
 	broadcastsReceived := 0
 	stop := make(chan struct{})
@@ -66,7 +66,7 @@ func TestTicker(t *testing.T) {
 	<-doneInit
 
 	// Start ticker, tick at 100ms rate
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.TickerStart,
 		NewObj:           time.Duration(100 * time.Millisecond),
 	})
@@ -77,7 +77,7 @@ func TestTicker(t *testing.T) {
 	}, 3*time.Second, 500*time.Millisecond)
 
 	// Stop the ticker
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.TickerStop,
 	})
 
@@ -96,8 +96,8 @@ func TestTickerConfigurator(t *testing.T) {
 	assert := assert.New(t)
 	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
 
-	tickerStartEvents := events.GetPubSubInstance().Subscribe(announcements.TickerStart)
-	tickerStopEvents := events.GetPubSubInstance().Subscribe(announcements.TickerStop)
+	tickerStartEvents := events.Subscribe(announcements.TickerStart)
+	tickerStopEvents := events.Subscribe(announcements.TickerStop)
 
 	// First init will expect defaults to false
 	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
@@ -127,7 +127,7 @@ func TestTickerConfigurator(t *testing.T) {
 	for _, test := range tickerConfTests {
 		// Simulate a meshconfig change, expect the right calls if it is enabled
 		mockConfigurator.EXPECT().GetConfigResyncInterval().Return(test.mockTickerDurationVal)
-		events.GetPubSubInstance().Publish(events.PubSubMessage{
+		events.Publish(events.PubSubMessage{
 			AnnouncementType: announcements.MeshConfigUpdated,
 		})
 

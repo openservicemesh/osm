@@ -96,10 +96,10 @@ var _ = Describe("When listing TrafficSplit", func() {
 	})
 
 	It("should return a list of traffic split resources", func() {
-		tsChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficSplitAdded,
+		tsChannel := events.Subscribe(announcements.TrafficSplitAdded,
 			announcements.TrafficSplitDeleted,
 			announcements.TrafficSplitUpdated)
-		defer events.GetPubSubInstance().Unsub(tsChannel)
+		defer events.Unsub(tsChannel)
 
 		split := &smiSplit.TrafficSplit{
 			ObjectMeta: metav1.ObjectMeta{
@@ -147,10 +147,10 @@ var _ = Describe("When listing ServiceAccounts", func() {
 	})
 
 	It("should return a list of service accounts specified in TrafficTarget resources", func() {
-		ttChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficTargetAdded,
+		ttChannel := events.Subscribe(announcements.TrafficTargetAdded,
 			announcements.TrafficTargetDeleted,
 			announcements.TrafficTargetUpdated)
-		defer events.GetPubSubInstance().Unsub(ttChannel)
+		defer events.Unsub(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -207,10 +207,10 @@ var _ = Describe("When listing TrafficTargets", func() {
 	})
 
 	It("Returns a list of TrafficTarget resources", func() {
-		ttChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficTargetAdded,
+		ttChannel := events.Subscribe(announcements.TrafficTargetAdded,
 			announcements.TrafficTargetDeleted,
 			announcements.TrafficTargetUpdated)
-		defer events.GetPubSubInstance().Unsub(ttChannel)
+		defer events.Unsub(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -270,10 +270,10 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 	})
 
 	It("should return a list of ListHTTPTrafficSpecs resources", func() {
-		rgChannel := events.GetPubSubInstance().Subscribe(announcements.RouteGroupAdded,
+		rgChannel := events.Subscribe(announcements.RouteGroupAdded,
 			announcements.RouteGroupDeleted,
 			announcements.RouteGroupUpdated)
-		defer events.GetPubSubInstance().Unsub(rgChannel)
+		defer events.Unsub(rgChannel)
 
 		routeSpec := &smiSpecs.HTTPRouteGroup{
 			TypeMeta: metav1.TypeMeta{
@@ -340,10 +340,10 @@ var _ = Describe("When listing TCP routes", func() {
 	})
 
 	It("should return a list of TCPRoute resources", func() {
-		trChannel := events.GetPubSubInstance().Subscribe(announcements.TCPRouteAdded,
+		trChannel := events.Subscribe(announcements.TCPRouteAdded,
 			announcements.TCPRouteDeleted,
 			announcements.TCPRouteUpdated)
-		defer events.GetPubSubInstance().Unsub(trChannel)
+		defer events.Unsub(trChannel)
 		routeSpec := &smiSpecs.TCPRoute{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -387,10 +387,10 @@ var _ = Describe("When getting a TCP route by its namespaced name", func() {
 	})
 
 	It("should return a non nil TCPRoute when found", func() {
-		trChannel := events.GetPubSubInstance().Subscribe(announcements.TCPRouteAdded,
+		trChannel := events.Subscribe(announcements.TCPRouteAdded,
 			announcements.TCPRouteDeleted,
 			announcements.TCPRouteUpdated)
-		defer events.GetPubSubInstance().Unsub(trChannel)
+		defer events.Unsub(trChannel)
 		routeSpec := &smiSpecs.TCPRoute{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -430,10 +430,10 @@ var _ = Describe("When getting an HTTP route by its namespaced name", func() {
 	})
 
 	It("should return a non nil HTTPRouteGroup when found", func() {
-		trChannel := events.GetPubSubInstance().Subscribe(announcements.RouteGroupAdded,
+		trChannel := events.Subscribe(announcements.RouteGroupAdded,
 			announcements.RouteGroupDeleted,
 			announcements.RouteGroupUpdated)
-		defer events.GetPubSubInstance().Unsub(trChannel)
+		defer events.Unsub(trChannel)
 		routeSpec := &smiSpecs.HTTPRouteGroup{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "specs.smi-spec.io/v1alpha4",

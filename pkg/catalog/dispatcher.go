@@ -29,7 +29,7 @@ func (mc *MeshCatalog) dispatcher() {
 	// This will be finely tuned in near future, we can instrument other modules
 	// to take ownership of certain events, and just notify dispatcher through
 	// ScheduleBroadcastUpdate announcement type
-	subChannel := events.GetPubSubInstance().Subscribe(
+	subChannel := events.Subscribe(
 		a.ScheduleProxyBroadcast,                              // Other modules requesting a global envoy update
 		a.EndpointAdded, a.EndpointDeleted, a.EndpointUpdated, // endpoint
 		a.NamespaceAdded, a.NamespaceDeleted, a.NamespaceUpdated, // namespace
@@ -99,7 +99,7 @@ func (mc *MeshCatalog) dispatcher() {
 		// A select-fallthrough doesn't exist, we are copying some code here
 		case <-chanMovingDeadline:
 			log.Info().Msgf("Moving deadline trigger - Broadcast envoy update")
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
@@ -111,7 +111,7 @@ func (mc *MeshCatalog) dispatcher() {
 
 		case <-chanMaxDeadline:
 			log.Info().Msgf("Max deadline trigger - Broadcast envoy update")
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			events.Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()

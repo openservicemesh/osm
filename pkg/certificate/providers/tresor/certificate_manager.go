@@ -179,7 +179,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	cm.cache.Store(cn, newCert)
 
-	events.GetPubSubInstance().Publish(events.PubSubMessage{
+	events.Publish(events.PubSubMessage{
 		AnnouncementType: announcements.CertificateRotated,
 		NewObj:           newCert,
 		OldObj:           oldCert.(certificate.Certificater),
