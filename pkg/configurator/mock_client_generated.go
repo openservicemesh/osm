@@ -191,6 +191,20 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxDataPlaneConnections", reflect.TypeOf((*MockConfigurator)(nil).GetMaxDataPlaneConnections))
 }
 
+// GetMeshConfig mocks base method
+func (m *MockConfigurator) GetMeshConfig() *v1alpha1.MeshConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshConfig")
+	ret0, _ := ret[0].(*v1alpha1.MeshConfig)
+	return ret0
+}
+
+// GetMeshConfig indicates an expected call of GetMeshConfig
+func (mr *MockConfiguratorMockRecorder) GetMeshConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfig", reflect.TypeOf((*MockConfigurator)(nil).GetMeshConfig))
+}
+
 // GetMeshConfigJSON mocks base method
 func (m *MockConfigurator) GetMeshConfigJSON() (string, error) {
 	m.ctrl.T.Helper()

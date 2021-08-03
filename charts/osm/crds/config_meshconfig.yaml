@@ -178,6 +178,9 @@ spec:
                 certificate:
                   description: Configuration for certificate management
                   type: object
+                  required:
+                    - serviceCertValidityDuration
+                    - certKeyBitSize
                   properties:
                     serviceCertValidityDuration:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
@@ -187,6 +190,36 @@ spec:
                       description: Sets the certificate key bit size for data plane certificates.
                       type: integer
                       default: 2048
+                    ingressGateway:
+                      description: Configuration for the ingress gateway's certificate
+                      type: object
+                      required:
+                        - subjectAltNames
+                        - validityDuration
+                        - secret
+                      properties:
+                        subjectAltNames:
+                          description: Subject Alternative Names secured by the certificate
+                          type: array
+                          items:
+                            type: string
+                        validityDuration:
+                          description: Certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix
+                          type: string
+                          default: "24h"
+                        secret:
+                          description: Secret reference to store the certificate in
+                          type: object
+                          required:
+                            - name
+                            - namespace
+                          properties:
+                            name:
+                              description: Name of the secret
+                              type: string
+                            namespace:
+                              description: Namespace of the secret
+                              type: string
                 experimental:
                   description: Experimental configurations
                   type: object

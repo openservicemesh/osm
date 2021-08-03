@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"github.com/pkg/errors"
 	networkingV1 "k8s.io/api/networking/v1"
 	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -27,7 +29,7 @@ const (
 var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), networkingV1beta1.SchemeGroupVersion.String()}
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, _ configurator.Configurator) (Monitor, error) {
+func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
 	supportedIngressVersions, err := getSupportedIngressVersions(kubeClient.Discovery())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingSupportedIngressVersions.String()).
@@ -58,7 +60,10 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	}
 
 	c := client{
+		kubeClient:     kubeClient,
 		kubeController: kubeController,
+		cfg:            cfg,
+		certProvider:   certProvider,
 	}
 
 	if v1Supported, ok := supportedIngressVersions[networkingV1.SchemeGroupVersion.String()]; ok && v1Supported {
@@ -77,6 +82,10 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingIngressClient.String()).
 			Msg("Could not start Kubernetes Ingress client")
 		return nil, err
+	}
+
+	if err := c.provisionIngressGatewayCert(stop); err != nil {
+		return nil, errors.Wrap(err, "Error provisioning ingress gateway certificate")
 	}
 
 	return c, nil
