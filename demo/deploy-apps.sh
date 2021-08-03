@@ -13,6 +13,9 @@ DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 # Deploy bookwarehouse
 ./demo/deploy-bookwarehouse.sh
 
+# Deploy MySQL
+./demo/deploy-mysql.sh
+
 # Deploy bookstore versions
 if [ "$DEPLOY_WITH_SAME_SA" = "true" ]; then
     ./demo/deploy-bookstore-with-same-sa.sh "v1"
