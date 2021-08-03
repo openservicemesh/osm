@@ -73,7 +73,7 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "osm_k8s_monitored_namespace_count{source_pod_name=~\"$osm_controller_instance\"}",
+          "expr": "sum(osm_k8s_api_event_count{type=\"namespace-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"namespace-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
           "format": "time_series",
           "instant": true,
           "interval": "",
