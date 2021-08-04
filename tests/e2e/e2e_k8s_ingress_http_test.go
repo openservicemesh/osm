@@ -15,7 +15,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("HTTP ingress",
+var _ = OSMDescribe("HTTP ingress using k8s Ingress API",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 5,

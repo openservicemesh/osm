@@ -14,11 +14,11 @@ import (
 )
 
 // AddNsToMesh Adds monitored namespaces to the OSM mesh
-func (td *OsmTestData) AddNsToMesh(shouldInjectSidecar bool, ns ...string) error {
+func (td *OsmTestData) AddNsToMesh(enableSidecarInjection bool, ns ...string) error {
 	td.T.Logf("Adding Namespaces [+%s] to the mesh", ns)
 	for _, namespace := range ns {
 		args := []string{"namespace", "add", namespace}
-		if !shouldInjectSidecar {
+		if !enableSidecarInjection {
 			args = append(args, "--disable-sidecar-injection")
 		}
 
