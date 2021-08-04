@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -58,6 +59,9 @@ const (
 var (
 	// OsmCtlLabels is the list of app labels for OSM CTL
 	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel, OsmCrdConverterAppLabel}
+
+	// NginxIngressSvc is the namespaced name of the nginx ingress service
+	NginxIngressSvc = types.NamespacedName{Namespace: "ingress-ns", Name: "ingress-nginx-controller"}
 )
 
 // CreateServiceAccount is a wrapper to create a service account
@@ -573,21 +577,20 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 		}
 	}
 
-	ingressNs := "ingress-ns"
-	if err := td.CreateNs(ingressNs, nil); err != nil {
+	if err := td.CreateNs(NginxIngressSvc.Namespace, nil); err != nil {
 		return "", errors.Wrap(err, "Error creating namespace for nginx ingress")
 	}
 
 	helmConfig := &action.Configuration{}
-	if err := helmConfig.Init(Td.Env.RESTClientGetter(), ingressNs, "secret", Td.T.Logf); err != nil {
+	if err := helmConfig.Init(Td.Env.RESTClientGetter(), NginxIngressSvc.Namespace, "secret", Td.T.Logf); err != nil {
 		return "", errors.Wrap(err, "Error initializing Helm config for nginx ingress")
 	}
 
-	helmConfig.KubeClient.(*kube.Client).Namespace = ingressNs
+	helmConfig.KubeClient.(*kube.Client).Namespace = NginxIngressSvc.Namespace
 
 	install := action.NewInstall(helmConfig)
 	install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
-	install.Namespace = ingressNs
+	install.Namespace = NginxIngressSvc.Namespace
 	install.ReleaseName = "ingress-nginx"
 	install.Version = "3.23.0"
 	install.Wait = true
@@ -609,10 +612,9 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 
 	ingressAddr := "localhost"
 	if !isKind {
-		ingressSvc := "ingress-nginx-controller"
-		svc, err := Td.Client.CoreV1().Services(ingressNs).Get(context.Background(), ingressSvc, metav1.GetOptions{})
+		svc, err := Td.Client.CoreV1().Services(NginxIngressSvc.Namespace).Get(context.Background(), NginxIngressSvc.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", errors.Wrapf(err, "Error getting service: %s/%s", ingressNs, ingressSvc)
+			return "", errors.Wrapf(err, "Error getting service: %s/%s", NginxIngressSvc.Namespace, NginxIngressSvc.Name)
 		}
 
 		ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP
