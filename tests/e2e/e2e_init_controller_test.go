@@ -7,14 +7,14 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test init-osm-controller functionalities",
+var _ = OSMDescribe("Test osm-mesh-config functionalities",
 	OSMDescribeInfo{
 		Tier:   2,
 		Bucket: 5,
 	},
 	func() {
-		Context("When osm-controller starts in fresh environment", func() {
-			It("creates default MeshConfig resource", func() {
+		Context("When OSM is Installed", func() {
+			It("create default MeshConfig resource", func() {
 
 				if Td.InstType == "NoInstall" {
 					Skip("Skipping test: NoInstall marked on a test that requires fresh installation")

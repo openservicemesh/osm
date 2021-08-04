@@ -762,7 +762,6 @@
                         "enableMulticlusterMode",
                         "enableAsyncProxyServiceMapping",
                         "enableValidatingWebhook",
-                        "enableCRDConverter",
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
                         "enableSnapshotCacheMode"
@@ -809,15 +808,6 @@
                             "type": "boolean",
                             "title": "Enable kubernetes validating webhook",
                             "description": "Enable kubernetes validating webhook",
-                            "examples": [
-                                true
-                            ]
-                        },
-                        "enableCRDConverter": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableCRDConverter",
-                            "type": "boolean",
-                            "title": "Enable CRD Conversion Webhook",
-                            "description": "Enable CRD Conversion Webhook in OSM",
                             "examples": [
                                 true
                             ]

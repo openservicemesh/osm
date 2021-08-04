@@ -35,25 +35,16 @@ spec:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
       initContainers:
-        {{- if .Values.OpenServiceMesh.featureFlags.enableCRDConverter }}
-        - name: init-osm-controller-crd
+        - name: init-osm-controller
           image: curlimages/curl
           args:
           - /bin/sh
           - -c
           - >
             set -x;
-            while [ $(curl -sw '%{http_code}' "http://osm-crd-converter.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz" -o /dev/null) -ne 200 ]; do
+            while [ $(curl -sw '%{http_code}' "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz" -o /dev/null) -ne 200 ]; do
               sleep 10;
             done
-        {{- end }}
-        - name: init-osm-controller
-          image: "{{ .Values.OpenServiceMesh.image.registry }}/init-osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"
-          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
-          command: ['/init-osm-controller']
-          args: [
-            "--osm-namespace", "{{ include "osm.namespace" . }}"
-          ]
       containers:
         - name: osm-controller
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"

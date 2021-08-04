@@ -137,12 +137,6 @@ func main() {
 
 	// Initialize Configurator to retrieve mesh specific config
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
-	meshConfig, err := cfg.GetMeshConfigJSON()
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingMeshConfig.String()).
-			Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
-	}
-	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, meshConfig)
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController, err := k8s.NewKubernetesController(kubeClient, meshName, stop, k8s.Namespaces)

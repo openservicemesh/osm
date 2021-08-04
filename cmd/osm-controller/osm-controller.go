@@ -150,12 +150,6 @@ func main() {
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
-	meshConfig, err := cfg.GetMeshConfigJSON()
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingMeshConfig.String()).
-			Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
-	}
-	log.Info().Msgf("Initial MeshConfig %s: %s", osmMeshConfigName, meshConfig)
 
 	// Start Global log level handler, reads from configurator (meshconfig)
 	StartGlobalLogLevelHandler(cfg, stop)

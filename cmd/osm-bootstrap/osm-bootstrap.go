@@ -1,10 +1,11 @@
-// Package main implements the main entrypoint for osm-crd-converter and utility routines to
-// bootstrap the various internal components of osm-crd-converter.
-// osm-crd-converter provides crd conversion capability in OSM.
+// Package main implements the main entrypoint for osm-bootstrap and utility routines to
+// bootstrap the various internal components of osm-bootstrap.
+// osm-bootstrap provides crd conversion capability in OSM.
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -14,12 +15,14 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -31,6 +34,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
+)
+
+const (
+	meshConfigName          = "osm-mesh-config"
+	presetMeshConfigName    = "preset-mesh-config"
+	presetMeshConfigJSONKey = "preset-mesh-config.json"
 )
 
 var (
@@ -51,8 +60,8 @@ var (
 )
 
 var (
-	flags = pflag.NewFlagSet(`osm-crd-converter`, pflag.ExitOnError)
-	log   = logger.New("osm-crd-converter/main")
+	flags = pflag.NewFlagSet(`osm-bootstrap`, pflag.ExitOnError)
+	log   = logger.New("osm-bootstrap/main")
 )
 
 func init() {
@@ -81,10 +90,16 @@ func init() {
 }
 
 func main() {
-	log.Info().Msgf("Starting osm-crd-converter %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+	log.Info().Msgf("Starting osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
+
+	// This ensures CLI parameters (and dependent values) are correct.
+	if err := validateCLIParams(); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
+	}
+
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
 	}
@@ -96,20 +111,39 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
-
-	// Initialize the generic Kubernetes event recorder and associate it with the osm-crd-converter pod resource
-	crdConverterPod, err := getCrdConverterPod(kubeClient)
+	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
-		log.Fatal().Msg("Error fetching osm-crd-converter pod")
+		log.Fatal().Err(err).Msgf("Could not access Kubernetes cluster, check kubeconfig.")
+		return
+	}
+
+	presetMeshConfigMap, presetConfigErr := kubeClient.CoreV1().ConfigMaps(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
+	_, meshConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+
+	// If the presetMeshConfig could not be loaded and a default meshConfig doesn't exist, return the error
+	if presetConfigErr != nil && apierrors.IsNotFound(meshConfigErr) {
+		log.Fatal().Err(err).Msgf("Unable to create default meshConfig, as %s could not be found", presetMeshConfigName)
+		return
+	}
+
+	// Create a default meshConfig
+	defaultMeshConfig := createDefaultMeshConfig(presetMeshConfigMap)
+	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+		log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
+	} else if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", osmNamespace)
+	} else {
+		log.Fatal().Err(err).Msgf("Error creating default MeshConfig")
+	}
+
+	// Initialize the generic Kubernetes event recorder and associate it with the osm-bootstrap pod resource
+	crdConverterPod, err := getBootstrapPod(kubeClient)
+	if err != nil {
+		log.Fatal().Msg("Error fetching osm-bootstrap pod")
 	}
 	eventRecorder := events.GenericEventRecorder()
 	if err := eventRecorder.Initialize(crdConverterPod, kubeClient, osmNamespace); err != nil {
 		log.Fatal().Msg("Error initializing generic event recorder")
-	}
-
-	// This ensures CLI parameters (and dependent values) are correct.
-	if err := validateCLIParams(); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
 	}
 
 	stop := signals.RegisterExitHandlers()
@@ -129,14 +163,14 @@ func main() {
 			"Error initializing certificate manager of kind %s", certProviderKind)
 	}
 
-	// Initialize the crd conversion webhook
+	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
 	crdConverterConfig.ListenPort = 443
 	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
 	/*
-	 * Initialize osm-crd-converter's HTTP server
+	 * Initialize osm-bootstrap's HTTP server
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
@@ -150,7 +184,7 @@ func main() {
 	}
 
 	<-stop
-	log.Info().Msgf("Stopping osm-crd-converter %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
 func parseFlags() error {
@@ -161,17 +195,17 @@ func parseFlags() error {
 	return nil
 }
 
-// getCrdConverterPod returns the osm-crd-converter pod spec.
-// The pod name is inferred from the 'CRD_CONVERTER_POD_NAME' env variable which is set during deployment.
-func getCrdConverterPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
-	podName := os.Getenv("CRD_CONVERTER_POD_NAME")
+// getBootstrapPod returns the osm-bootstrap pod spec.
+// The pod name is inferred from the 'BOOTSTRAP_POD_NAME' env variable which is set during deployment.
+func getBootstrapPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
+	podName := os.Getenv("BOOTSTRAP_POD_NAME")
 	if podName == "" {
-		return nil, errors.New("CRD_CONVERTER_POD_NAME env variable cannot be empty")
+		return nil, errors.New("BOOTSTRAP_POD_NAME env variable cannot be empty")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving osm-crd-converter pod %s", podName)
+		log.Error().Err(err).Msgf("Error retrieving osm-bootstrap pod %s", podName)
 		return nil, err
 	}
 
@@ -189,4 +223,24 @@ func validateCLIParams() error {
 	}
 
 	return nil
+}
+
+func createDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.MeshConfig {
+	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
+	presetMeshConfigSpec := v1alpha1.MeshConfigSpec{}
+	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
+	}
+
+	return &v1alpha1.MeshConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshConfig",
+			APIVersion: "config.openservicemesh.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: meshConfigName,
+		},
+		Spec: presetMeshConfigSpec,
+	}
 }

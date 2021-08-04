@@ -254,9 +254,6 @@ OpenServiceMesh:
     enableAsyncProxyServiceMapping: false
     # -- Enable kubernetes validating webhook
     enableValidatingWebhook: false
-    # -- Enable CRD conversion webhook.
-    # When enabled, a conversion webhook will be deployed to perform API version conversions for custom resources.
-    enableCRDConverter: true
     # -- Enables OSM's IngressBackend policy API.
     # When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends
     enableIngressBackendPolicy: false

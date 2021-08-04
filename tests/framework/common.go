@@ -514,7 +514,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
-	// Ensure osm-injector, osm-controller and osm-crd-converter are ready
+	// Ensure osm-injector, osm-controller and osm-bootstrap are ready
 	err = td.waitForOSMControlPlane(30 * time.Second)
 	if err != nil {
 		return err
@@ -565,12 +565,11 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*v1alpha1.MeshConfig, er
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
-		"init-osm-controller",
 		"osm-controller",
 		"osm-injector",
 		"init",
 		"osm-crds",
-		"osm-crd-converter",
+		"osm-bootstrap",
 	}
 
 	return td.LoadImagesToKind(imageNames)

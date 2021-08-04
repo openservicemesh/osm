@@ -1,2 +1,2 @@
 FROM gcr.io/distroless/static
-COPY init-osm-controller /
+COPY osm-bootstrap /
