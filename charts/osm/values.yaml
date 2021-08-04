@@ -301,3 +301,9 @@ OpenServiceMesh:
   validatorWebhook:
     # -- Name of the ValidatingWebhookConfiguration
     webhookConfigurationName: ""
+
+#
+# -- Contour configuration
+contour:
+  # -- Enables deployment of Contour control plane and gateway
+  enabled: false

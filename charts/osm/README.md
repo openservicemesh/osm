@@ -151,6 +151,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
 | OpenServiceMesh.vault.token | string | `""` | token that should be used to connect to Vault |
 | OpenServiceMesh.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
+| contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
 
 <!-- markdownlint-enable MD013 MD034 -->
 <!-- markdownlint-restore -->
