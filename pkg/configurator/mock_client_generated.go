@@ -51,20 +51,6 @@ func (mr *MockConfiguratorMockRecorder) GetCertKeyBitSize() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertKeyBitSize", reflect.TypeOf((*MockConfigurator)(nil).GetCertKeyBitSize))
 }
 
-// GetClusterDomain mocks base method
-func (m *MockConfigurator) GetClusterDomain() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClusterDomain")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetClusterDomain indicates an expected call of GetClusterDomain
-func (mr *MockConfiguratorMockRecorder) GetClusterDomain() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDomain", reflect.TypeOf((*MockConfigurator)(nil).GetClusterDomain))
-}
-
 // GetConfigResyncInterval mocks base method
 func (m *MockConfigurator) GetConfigResyncInterval() time.Duration {
 	m.ctrl.T.Helper()

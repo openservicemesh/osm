@@ -178,11 +178,11 @@ func main() {
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
 
-	if cfg.GetFeatureFlags().EnableOSMGateway {
-		log.Info().Msgf("Bootstrapping OSM gateway")
-		if err := bootstrapOSMGateway(kubeClient, certManager, osmNamespace); err != nil {
+	if cfg.GetFeatureFlags().EnableMulticlusterMode {
+		log.Info().Msgf("Bootstrapping OSM multicluster gateway")
+		if err := bootstrapOSMMulticlusterGateway(kubeClient, certManager, osmNamespace); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
-				"Error bootstraping OSM gateway")
+				"Error bootstraping OSM multicluster gateway")
 		}
 	}
 

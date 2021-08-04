@@ -15,7 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -34,17 +33,11 @@ var replacer = strings.NewReplacer(".", "_", ":", "_")
 
 type clusterOptions struct {
 	permissive             bool
-	withTLS                bool
 	withActiveHealthChecks bool
 }
 
 // clusterOption is type of function that edits the defaults of the options struct.
 type clusterOption func(o *clusterOptions)
-
-// withTLS is an option to disable TLS.
-func withTLS(o *clusterOptions) {
-	o.withTLS = true
-}
 
 // permissive is an option to not generate permissive endpoints discovery for clusters.
 func permissive(o *clusterOptions) {
@@ -59,8 +52,54 @@ func withActiveHealthChecks(o *clusterOptions) {
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-// The defaults are non-permissive, and *no tls*.
-func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, cfg configurator.Configurator, opts ...clusterOption) (*xds_cluster.Cluster, error) {
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, opts ...clusterOption) (*xds_cluster.Cluster, error) {
+	o := &clusterOptions{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+		envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
+	if err != nil {
+		return nil, err
+	}
+
+	remoteCluster := &xds_cluster.Cluster{
+		Name:                          upstreamSvc.String(),
+		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
+		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TransportSocket: &xds_core.TransportSocket{
+			Name: wellknown.TransportSocketTls,
+			ConfigType: &xds_core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledUpstreamTLSContext,
+			},
+		},
+	}
+
+	if o.permissive {
+		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
+	} else {
+		// Configure service discovery based on traffic policies
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	}
+
+	if o.withActiveHealthChecks {
+		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
+	}
+	return remoteCluster, nil
+}
+
+// getMulticlusterGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service for the multicluster gateway
+func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, opts ...clusterOption) (*xds_cluster.Cluster, error) {
 	o := &clusterOptions{}
 	for _, opt := range opts {
 		opt(o)
@@ -72,64 +111,72 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 	}
 
 	remoteCluster := &xds_cluster.Cluster{
-		Name:                          upstreamSvc.String(),
-		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
+		Name:           upstreamSvc.ServerName(),
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_STRICT_DNS,
+		},
+		LbPolicy:                      xds_cluster.Cluster_ROUND_ROBIN,
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}
 
-	if o.withTLS {
-		marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
-			envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
-		if err != nil {
-			return nil, err
-		}
-		remoteCluster.TransportSocket = &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
-			ConfigType: &xds_core.TransportSocket_TypedConfig{
-				TypedConfig: marshalledUpstreamTLSContext,
-			},
-		}
+	ports, err := catalog.GetTargetPortToProtocolMappingForService(upstreamSvc)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+			Msgf("Failed to get ports for service %s", upstreamSvc)
+		return nil, err
 	}
 
-	if o.permissive {
-		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
-		// The gateway's services are referenced via <name>.<namespace>.cluster.<cluster-domain>, which doesn't have
-		// a cluster service discovery mechanism, so need to be explicit.
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
-	} else {
-		// Configure service discovery based on traffic policies
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	endpoints := []*xds_endpoint.LocalityLbEndpoints{}
+	for port := range ports {
+		LbEndpoint := []*xds_endpoint.LbEndpoint{{
+			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+				Endpoint: &xds_endpoint.Endpoint{
+					Address: envoy.GetAddress(upstreamSvc.ServerName(), port),
+				},
+			},
+		}}
+
+		endpoint := xds_endpoint.LocalityLbEndpoints{
+			LbEndpoints: LbEndpoint,
+		}
+		endpoints = append(endpoints, &endpoint)
+	}
+
+	remoteCluster.LoadAssignment = &xds_endpoint.ClusterLoadAssignment{
+		ClusterName: upstreamSvc.ServerName(),
+		Endpoints:   endpoints,
 	}
 
 	if o.withActiveHealthChecks {
-		remoteCluster.HealthChecks = []*xds_core.HealthCheck{
-			{
-				Timeout:            durationpb.New(1 * time.Second),
-				Interval:           durationpb.New(10 * time.Second),
-				HealthyThreshold:   wrapperspb.UInt32(1),
-				UnhealthyThreshold: wrapperspb.UInt32(3),
-				HealthChecker: &xds_core.HealthCheck_HttpHealthCheck_{
-					HttpHealthCheck: &xds_core.HealthCheck_HttpHealthCheck{
-						Host: upstreamSvc.ServerName(),
-						Path: envoy.EnvoyActiveHealthCheckPath,
-						RequestHeadersToAdd: []*xds_core.HeaderValueOption{
-							{
-								Header: &xds_core.HeaderValue{
-									Key:   envoy.EnvoyActiveHealthCheckHeaderKey,
-									Value: "1",
-								},
+		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
+	}
+	return remoteCluster, nil
+}
+
+func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc service.MeshService) {
+	cluster.HealthChecks = []*xds_core.HealthCheck{
+		{
+			Timeout:            durationpb.New(1 * time.Second),
+			Interval:           durationpb.New(10 * time.Second),
+			HealthyThreshold:   wrapperspb.UInt32(1),
+			UnhealthyThreshold: wrapperspb.UInt32(3),
+			HealthChecker: &xds_core.HealthCheck_HttpHealthCheck_{
+				HttpHealthCheck: &xds_core.HealthCheck_HttpHealthCheck{
+					Host: upstreamSvc.ServerName(),
+					Path: envoy.EnvoyActiveHealthCheckPath,
+					RequestHeadersToAdd: []*xds_core.HeaderValueOption{
+						{
+							Header: &xds_core.HeaderValue{
+								Key:   envoy.EnvoyActiveHealthCheckHeaderKey,
+								Value: "1",
 							},
 						},
 					},
 				},
 			},
-		}
+		},
 	}
-
-	return remoteCluster, nil
 }
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service

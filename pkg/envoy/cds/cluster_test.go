@@ -14,7 +14,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -23,9 +22,6 @@ import (
 )
 
 func TestGetUpstreamServiceCluster(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
 	downstreamSvcAccount := tests.BookbuyerServiceIdentity
 	upstreamSvc := tests.BookstoreV1Service
 
@@ -34,18 +30,35 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		permissiveMode      bool
 		expectedClusterType xds_cluster.Cluster_DiscoveryType
 		expectedLbPolicy    xds_cluster.Cluster_LbPolicy
+		addHealthCheck      bool
 	}{
 		{
 			name:                "Returns an EDS based cluster when permissive mode is disabled",
 			permissiveMode:      false,
 			expectedClusterType: xds_cluster.Cluster_EDS,
 			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
+			addHealthCheck:      false,
 		},
 		{
 			name:                "Returns an Original Destination based cluster when permissive mode is enabled",
 			permissiveMode:      true,
 			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
 			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
+			addHealthCheck:      false,
+		},
+		{
+			name:                "Adds health checks when configured",
+			permissiveMode:      true,
+			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
+			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
+			addHealthCheck:      true,
+		},
+		{
+			name:                "Does not add health checks when not configured",
+			permissiveMode:      true,
+			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
+			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
+			addHealthCheck:      false,
 		},
 	}
 
@@ -53,30 +66,105 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			opts := []clusterOption{withTLS}
+			opts := []clusterOption{}
 			if tc.permissiveMode {
 				opts = append(opts, permissive)
 			}
-			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator, opts...)
-			assert.Nil(err)
+			if tc.addHealthCheck {
+				opts = append(opts, withActiveHealthChecks)
+			}
+
+			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, opts...)
+			assert.NoError(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
+
+			if tc.addHealthCheck {
+				assert.NotNil(remoteCluster.HealthChecks)
+			} else {
+				assert.Nil(remoteCluster.HealthChecks)
+			}
 		})
 	}
+}
 
-	t.Run("adds health checks when configured", func(t *testing.T) {
-		assert := tassert.New(t)
-		remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator, withActiveHealthChecks)
-		assert.NoError(err)
-		assert.NotNil(remoteCluster.HealthChecks)
-	})
+func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
+	upstreamSvc := tests.BookstoreV1Service
 
-	t.Run("does not add health checks when not configured", func(t *testing.T) {
-		assert := tassert.New(t)
-		remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator)
-		assert.NoError(err)
-		assert.Nil(remoteCluster.HealthChecks)
-	})
+	testCases := []struct {
+		name                        string
+		expectedClusterType         xds_cluster.Cluster_DiscoveryType
+		expectedLbPolicy            xds_cluster.Cluster_LbPolicy
+		portToProtocolMapping       map[uint32]string
+		expectedLocalityLbEndpoints []*xds_endpoint.LocalityLbEndpoints
+		addHealthCheck              bool
+	}{
+		{
+			name:                  "Gateway upstream cluster configuration with health checks configured",
+			expectedClusterType:   xds_cluster.Cluster_STRICT_DNS,
+			expectedLbPolicy:      xds_cluster.Cluster_ROUND_ROBIN,
+			portToProtocolMapping: map[uint32]string{uint32(8080): "something"},
+			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress(tests.BookstoreV1Service.ServerName(), uint32(8080)),
+							},
+						},
+					}},
+				},
+			},
+			addHealthCheck: true,
+		},
+		{
+			name:                  "Gateway upstream cluster configuration with health checks not configured",
+			expectedClusterType:   xds_cluster.Cluster_STRICT_DNS,
+			expectedLbPolicy:      xds_cluster.Cluster_ROUND_ROBIN,
+			portToProtocolMapping: map[uint32]string{uint32(8080): "something"},
+			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress(tests.BookstoreV1Service.ServerName(), uint32(8080)),
+							},
+						},
+					}},
+				},
+			},
+			addHealthCheck: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+
+			opts := []clusterOption{}
+			if tc.addHealthCheck {
+				opts = append(opts, withActiveHealthChecks)
+			}
+
+			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(upstreamSvc).Return(tc.portToProtocolMapping, nil).Times(1)
+
+			remoteCluster, err := getMulticlusterGatewayUpstreamServiceCluster(mockCatalog, upstreamSvc, opts...)
+			assert.NoError(err)
+			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
+			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
+			assert.Equal(len(tc.expectedLocalityLbEndpoints), len(remoteCluster.LoadAssignment.Endpoints))
+			assert.ElementsMatch(tc.expectedLocalityLbEndpoints, remoteCluster.LoadAssignment.Endpoints)
+			assert.Equal(remoteCluster.LoadAssignment.ClusterName, upstreamSvc.ServerName())
+
+			if tc.addHealthCheck {
+				assert.NotNil(remoteCluster.HealthChecks)
+			} else {
+				assert.Nil(remoteCluster.HealthChecks)
+			}
+		})
+	}
 }
 
 func TestGetLocalServiceCluster(t *testing.T) {

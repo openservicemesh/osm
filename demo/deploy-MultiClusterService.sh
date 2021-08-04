@@ -2,31 +2,32 @@
 
 set -auexo pipefail
 
-NS=bookstore
-NAME=bookstore
+# shellcheck disable=SC1091
+source .env
 
-kubectl delete MultiClusterService -n $NS $NAME || true
+VERSION=${1:-v1}
+SVC="bookstore-$VERSION"
+ALPHA_CLUSTER="${ALPHA_CLUSTER:-alpha}"
+BETA_CLUSTER="${BETA_CLUSTER:-beta}"
+BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
+
+kubectl config use-context "$BETA_CLUSTER"
+# TODO : the Pod IP of osm-multicluster-gateway is used cause the clusters are in the same vnet, this needs to be updated to leverage the IP of osm-multicluster-gateway service
+BETA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-multicluster-gateway -o json | jq -r '.items[].status.podIP')
+
+
+kubectl config use-context "$ALPHA_CLUSTER"
+
 
 kubectl apply -f - <<EOF
 apiVersion: config.openservicemesh.io/v1alpha1
 kind: MultiClusterService
-
 metadata:
-  namespace: $NS
-  name: $NAME
-
+  namespace: $BOOKSTORE_NAMESPACE
+  name: $SVC
 spec:
   clusters:
-
-  - name: alpha
-
-    # TODO: This address and port number must be updated
-    address: 1.1.1.1:1111
-
-  - name: beta
-
-    # TODO: This address and port number must be updated
-    address: 2.2.2.2:2222
-
+  - name: $BETA_CLUSTER
+    address: $BETA_OSM_GATEWAY_IP:15443
   serviceAccount: bookstore-v1
 EOF

@@ -40,8 +40,10 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-alpha beta}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
+ALPHA_CLUSTER="${ALPHA_CLUSTER:-alpha}"
+BETA_CLUSTER="${BETA_CLUSTER:-beta}"
+MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-$ALPHA_CLUSTER $BETA_CLUSTER}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -90,6 +92,13 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # Registry credentials
     ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
+    # Copy osm-ca-bundle from $ALPHA_CLUSTER to $BETA_CLUSTER
+    # For multicluster : A common root certificate is needed for all clusters installing OSM
+    # TODO: Certificate story for Multicluster TBD : Issue #3446
+    if [ "${CONTEXT}" = "$BETA_CLUSTER" ]; then
+      ./demo/copy-osm-ca-bundle.sh
+    fi
+
     # shellcheck disable=SC2086
     bin/osm install \
         --osm-namespace "$K8S_NAMESPACE" \
@@ -107,29 +116,31 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
         --set=OpenServiceMesh.controllerLogLevel="trace" \
         --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
-        --set=OpenServiceMesh.featureFlags.enableOSMGateway="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
 
     ./demo/configure-app-namespaces.sh
 
-    ./demo/deploy-apps.sh
+    if [ "${CONTEXT}" = "$ALPHA_CLUSTER" ]; then
+        echo -e "Install the Bookbuyer artifacts in the ${CONTEXT} cluster"
+        ./demo/deploy-bookbuyer.sh
 
-    # Apply SMI policies
-    if [ "$DEPLOY_TRAFFIC_SPLIT" = "true" ]; then
-        ./demo/deploy-traffic-split.sh
+        echo -e "Install a Bookstore-v1 in the ${CONTEXT} cluster"
+        ./demo/deploy-bookstore.sh "v1"
     fi
 
-    ./demo/deploy-traffic-specs.sh
-
-    if [ "$DEPLOY_WITH_SAME_SA" = "true" ]; then
-        ./demo/deploy-traffic-target-with-same-sa.sh
-    else
-        ./demo/deploy-traffic-target.sh
+    if [ "${CONTEXT}" = "$BETA_CLUSTER" ]; then
+        echo -e "Install a Bookstore-v1 in the ${CONTEXT} cluster"
+        ./demo/deploy-bookstore.sh "v1"
     fi
-
-    # Create the MultiClusterService object.
-    ./demo/deploy-MultiClusterService.sh
 done
 
-./demo/populate-MulticlusterService.sh
+# create bookstore-v1 multicluster service object in $ALPHA_CLUSTER cluster only
+# this will help bookbuyer identify the existance of bookstore-v1 in $BETA_CLUSTER
+./demo/deploy-MultiClusterService.sh "v1"
+
+for CONTEXT in $MULTICLUSTER_CONTEXTS; do
+     # Apply SMI policies on all clusters
+     kubectl config use-context "$CONTEXT"
+    ./demo/deploy-multicluster-smi-policies.sh
+done

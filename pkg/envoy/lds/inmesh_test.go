@@ -209,7 +209,6 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 		EnableWASMStats:        false,
 		EnableMulticlusterMode: true,
@@ -307,8 +306,6 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-
-	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 		EnableMulticlusterMode: true,
 	}).AnyTimes()

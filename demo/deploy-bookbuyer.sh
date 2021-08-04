@@ -74,14 +74,6 @@ spec:
             - name: "CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
               value: "$CI_SLEEP_BETWEEN_REQUESTS_SECONDS"
 
-      # This is used for Multicluster environment demos,
-      # where the bookstore will try to resolve these 2 hosts.
-      hostAliases:
-      - ip: 127.0.0.1
-        hostnames:
-        - "bookstore.bookstore.svc.cluster.alpha"
-        - "bookstore.bookstore.svc.cluster.beta"
-
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
 EOF

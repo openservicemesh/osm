@@ -9,6 +9,7 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -78,12 +79,11 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetClusterDomain().Return("cluster-x").AnyTimes()
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 		EnableWASMStats:        false,
 		EnableEgressPolicy:     true,
-		EnableMulticlusterMode: true,
+		EnableMulticlusterMode: false,
 	}).AnyTimes()
 
 	proxy, err := getProxy(kubeClient)
@@ -120,8 +120,8 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
 	// There are 3 filter chains configured on the outbound-listner based on the configuration:
-	// 1. Filter chanin for bookstore-v1
-	// 2. Filter chanin for bookstore-v2
+	// 1. Filter chain for bookstore-v1
+	// 2. Filter chain for bookstore-v2
 	// 3. Egress filter chain
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
@@ -148,4 +148,47 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.NotNil(listener.FilterChains)
 	assert.Len(listener.FilterChains, 1)
+}
+
+func TestNewResponseForMulticlusterGateway(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	ctrl := gomock.NewController(t)
+	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+		EnableMulticlusterMode: true,
+	}).AnyTimes()
+
+	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
+	proxy, err := envoy.NewProxy(cn, "", nil)
+	assert.Nil(err)
+
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}))
+
+	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
+		tests.BookstoreV1Service,
+	}).AnyTimes()
+
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	assert.Empty(err)
+	assert.NotNil(resources)
+	// There is only one listeners configured for the gateway proxy:
+	// 1. Multicluster listener (multicluster-listener)
+	assert.Len(resources, 1)
+
+	// validating outbound listener
+	listener, ok := resources[0].(*xds_listener.Listener)
+	assert.True(ok)
+	assert.Equal(listener.Name, multiclusterListenerName)
+	assert.Len(listener.ListenerFilters, 1) // 1 filter is expected: TlsInspector
+	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
+	assert.NotNil(listener.FilterChains)
+	// There is one filter chains configured on the multicluster-listner based on the configuration:
+	// 1. Filter chain for bookstore-v1
+	assert.Len(listener.FilterChains, 1)
+	assert.Equal(listener.FilterChains[0].Name, fmt.Sprintf("%s-%s", multiclusterGatewayFilterChainName, tests.BookstoreV1ServiceName))
 }

@@ -15,69 +15,54 @@ const portIPSeparator = `:`
 
 // getMulticlusterEndpoints returns the endpoints for multicluster services if such exist.
 func (c *Client) getMulticlusterEndpoints(svc service.MeshService) []endpoint.Endpoint {
-	if !c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
-		return nil
-	}
-
-	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Getting Multicluster Endpoints for service %s", c.providerIdent, svc)
-
+	var endpoints []endpoint.Endpoint
 	serviceIdentities, err := c.kubeController.ListServiceIdentitiesForService(svc)
 	if err != nil {
 		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msgf("[%s] Error getting Multicluster service identities for service %s", c.providerIdent, svc.Name)
-		return nil
+		return endpoints
 	}
 
-	var endpoints []endpoint.Endpoint
 	for _, ident := range serviceIdentities {
 		remoteEndpoints := c.getMultiClusterServiceEndpointsForServiceAccount(ident.Name, ident.Namespace)
 		endpoints = append(endpoints, remoteEndpoints...)
 	}
 
-	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service %s: %+v", c.providerIdent, svc, endpoints)
-
+	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service %s: %+v", c.providerIdent, svc, endpoints)
 	return endpoints
 }
 
 // getMultiClusterServiceEndpointsForServiceAccount returns the multicluster services for a service account if such exist.
 func (c *Client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount, namespace string) []endpoint.Endpoint {
-	if !c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
-		return nil
-	}
-
-	services := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace)
-
-	if len(services) <= 0 {
-		return nil
-	}
-
 	var endpoints []endpoint.Endpoint
-	for _, svc := range services {
-		var endpointsForService []endpoint.Endpoint
-		log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Working on service: %s --> spec=%+v", svc, svc.Spec.Clusters)
-		for _, cluster := range svc.Spec.Clusters {
-			log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Looking for IP and Port for cluster=%s for service %s", cluster.Name, svc)
-			if ip, port, err := getIPPort(cluster); err != nil {
-				log.Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)
-			} else {
-				endpointsForService = append(endpointsForService, endpoint.Endpoint{
-					IP:   ip,
-					Port: endpoint.Port(port),
-				})
-			}
-		}
-		log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Multicluster endpoints for service %+v: %+v", services, endpointsForService)
-		endpoints = append(endpoints, endpointsForService...)
+	services := c.configClient.GetMultiClusterServiceByServiceAccount(serviceAccount, namespace)
+	if len(services) <= 0 {
+		return endpoints
 	}
 
-	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service account %s: %+v", c.providerIdent, serviceAccount, endpoints)
+	for _, svc := range services {
+		for _, cluster := range svc.Spec.Clusters {
+			ip, port, err := getIPPort(cluster)
+			if err != nil {
+				log.Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)
+				continue
+			}
+
+			ep := endpoint.Endpoint{
+				IP:   ip,
+				Port: endpoint.Port(port),
+			}
+			endpoints = append(endpoints, ep)
+		}
+	}
+	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service account %s: %+v", c.providerIdent, serviceAccount, endpoints)
 	return endpoints
 }
 
 func getIPPort(cluster v1alpha1.ClusterSpec) (ip net.IP, port int, err error) {
 	tokens := strings.Split(cluster.Address, portIPSeparator)
 	if len(tokens) != 2 {
-		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Invalid address format %s. It should have IP address and port number separated by %s", cluster.Address, portIPSeparator)
-		return nil, 0, err
+		log.Error().Err(errParseMulticlusterServiceIP).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Invalid address format %s. It should have IP address and port number separated by %s", cluster.Address, portIPSeparator)
+		return nil, 0, errParseMulticlusterServiceIP
 	}
 
 	ipStr, portStr := tokens[0], tokens[1]
@@ -88,6 +73,5 @@ func getIPPort(cluster v1alpha1.ClusterSpec) (ip net.IP, port int, err error) {
 	}
 
 	ip = net.ParseIP(ipStr)
-
 	return ip, port, err
 }

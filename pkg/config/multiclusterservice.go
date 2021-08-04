@@ -16,7 +16,6 @@ func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
 	}
 
 	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("All Multicluster services: %+v", services)
-
 	return services
 }
 
@@ -34,7 +33,6 @@ func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace
 	}
 
 	log.Trace().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Multicluster services for svc account %s/%s: %+v", namespace, serviceAccount, services)
-
 	return services
 }
 

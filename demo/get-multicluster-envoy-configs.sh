@@ -5,9 +5,9 @@ set -aueo pipefail
 # This script automates the collection of Envoy config during Multicluster demo/development.
 # The configs are collected from Envoys in the ALPHA kube context (cluster).
 
-MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-alpha beta}"
-
-kubectl config use-context alpha > /dev/null
+ALPHA_CLUSTER="${ALPHA_CLUSTER:-alpha}"
+BETA_CLUSTER="${BETA_CLUSTER:-beta}"
+MULTICLUSTER_CONTEXTS="${MULTICLUSTER_CONTEXTS:-$ALPHA_CLUSTER $BETA_CLUSTER}"
 
 for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     echo -e "\nSwitching context to ${CONTEXT}"
@@ -24,7 +24,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     NS='osm-system'
     PORT=15000
     TMP_PID_FILE=$(mktemp)
-    OSM_GATEWAY_POD=$(kubectl get pod -n "${NS}" --selector app=osm-gateway --no-headers | head -n1 | awk '{print $1}')
+    OSM_GATEWAY_POD=$(kubectl get pod -n "${NS}" --selector app=osm-multicluster-gateway --no-headers | head -n1 | awk '{print $1}')
     echo -e "Getting Envoy config from Multicluster Gateway Pod: ${OSM_GATEWAY_POD}"
 
     ( kubectl port-forward -n "${NS}" "${OSM_GATEWAY_POD}" "${PORT}" > /dev/null & echo $! >&3 ) 3> "${TMP_PID_FILE}"
