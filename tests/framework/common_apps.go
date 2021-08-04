@@ -3,6 +3,7 @@ package framework
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	helmcli "helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -538,4 +543,83 @@ func (td *OsmTestData) GetOSMGrafanaHandle() (*Grafana, error) {
 		return nil, err
 	}
 	return gHandle, nil
+}
+
+// InstallNginxIngress installs the k8s Nginx Ingress controller and returns the IP address
+// that clients can send traffic to for ingress
+func (td *OsmTestData) InstallNginxIngress() (string, error) {
+	// Check the node's provider so this works for preprovisioned kind clusters
+	nodes, err := td.Client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return "", errors.Wrap(err, "Error listing nodes to install nginx ingress")
+	}
+
+	providerID := nodes.Items[0].Spec.ProviderID
+	isKind := strings.HasPrefix(providerID, "kind://")
+	var vals map[string]interface{}
+	if isKind {
+		vals = map[string]interface{}{
+			"controller": map[string]interface{}{
+				"hostPort": map[string]interface{}{
+					"enabled": true,
+				},
+				"nodeSelector": map[string]interface{}{
+					"ingress-ready": "true",
+				},
+				"service": map[string]interface{}{
+					"type": "NodePort",
+				},
+			},
+		}
+	}
+
+	ingressNs := "ingress-ns"
+	if err := td.CreateNs(ingressNs, nil); err != nil {
+		return "", errors.Wrap(err, "Error creating namespace for nginx ingress")
+	}
+
+	helmConfig := &action.Configuration{}
+	if err := helmConfig.Init(Td.Env.RESTClientGetter(), ingressNs, "secret", Td.T.Logf); err != nil {
+		return "", errors.Wrap(err, "Error initializing Helm config for nginx ingress")
+	}
+
+	helmConfig.KubeClient.(*kube.Client).Namespace = ingressNs
+
+	install := action.NewInstall(helmConfig)
+	install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
+	install.Namespace = ingressNs
+	install.ReleaseName = "ingress-nginx"
+	install.Version = "3.23.0"
+	install.Wait = true
+	install.Timeout = 5 * time.Minute
+
+	chartPath, err := install.LocateChart("ingress-nginx", helmcli.New())
+	if err != nil {
+		return "", errors.Wrap(err, "Error locating ingress-nginx Helm chart")
+	}
+
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "Error loading ingress-nginx chart %s", chartPath)
+	}
+
+	if _, err = install.Run(chart, vals); err != nil {
+		return "", errors.Wrap(err, "Error installing ingress-nginx")
+	}
+
+	ingressAddr := "localhost"
+	if !isKind {
+		ingressSvc := "ingress-nginx-controller"
+		svc, err := Td.Client.CoreV1().Services(ingressNs).Get(context.Background(), ingressSvc, metav1.GetOptions{})
+		if err != nil {
+			return "", errors.Wrapf(err, "Error getting service: %s/%s", ingressNs, ingressSvc)
+		}
+
+		ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP
+		if len(ingressAddr) == 0 {
+			ingressAddr = svc.Status.LoadBalancer.Ingress[0].Hostname
+		}
+	}
+
+	return ingressAddr, nil
 }
