@@ -85,7 +85,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	// Deduplicate the list of TrafficMatch objects
 	trafficMatches, err = trafficpolicy.DeduplicateTrafficMatches(trafficMatches)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDedupEgressTrafficMatches.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDedupEgressTrafficMatches)).
 			Msgf("Error deduplicating egress traffic matches for service identity %s", serviceIdentity)
 		return nil, err
 	}

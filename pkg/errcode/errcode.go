@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // ErrCode defines the type to represent error codes
@@ -371,6 +373,13 @@ const (
 // String returns the error code as a string, ex. E1000
 func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
+}
+
+// GetErrCodeWithMetric increments the ErrCodeCounter metric for the given error code
+// Returns the error code as a string
+func GetErrCodeWithMetric(e ErrCode) string {
+	metricsstore.DefaultMetricsStore.ErrCodeCounter.WithLabelValues(e.String()).Inc()
+	return e.String()
 }
 
 // FromStr returns the ErrCode representation for the given error code string
