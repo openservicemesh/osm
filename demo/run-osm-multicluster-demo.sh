@@ -155,7 +155,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
 done
 
 echo "Switching to $ALPHA_CLUSTER"
-kubectx alpha
+kubectl config use-context "$ALPHA_CLUSTER"
 
 echo "Bookbuyer logs... (showing identity of responding bookstore pods)"
 sleep 2
