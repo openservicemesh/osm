@@ -54,6 +54,15 @@ exit_error() {
     exit 1
 }
 
+# Because this script is specifically for launching the OSM Multicluster demo
+# we can set the ENABLE_MULTICLUSTER variabl to "true"
+export ENABLE_MULTICLUSTER=true
+
+# As of 2021-08-04 we need to set this for the bookbuyer to be able to resolve bookstore svc
+# in multicluster setups
+export BOOKSTORE_SVC=bookstore-v1
+
+
 # Check if Docker daemon is running
 docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 
@@ -144,3 +153,10 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
      kubectl config use-context "$CONTEXT"
     ./demo/deploy-multicluster-smi-policies.sh
 done
+
+echo "Switching to $ALPHA_CLUSTER"
+kubectl config use-context "$ALPHA_CLUSTER"
+
+echo "Bookbuyer logs... (showing identity of responding bookstore pods)"
+sleep 2
+kubectl logs -n bookbuyer --selector app=bookbuyer -c bookbuyer -f | grep Identity
