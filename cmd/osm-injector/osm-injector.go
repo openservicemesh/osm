@@ -133,6 +133,7 @@ func main() {
 		metricsstore.DefaultMetricsStore.InjectorSidecarCount,
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
+		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 	)
 
 	// Initialize Configurator to retrieve mesh specific config

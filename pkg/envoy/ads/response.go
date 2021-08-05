@@ -77,7 +77,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 		// Generate the resources for this request
 		resources, err := s.getTypeResources(proxy, finalReq)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingReqResource.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingReqResource)).
 				Msgf("Error generating response for typeURI: %s, proxy %s", typeURI.Short(), proxy.String())
 			thereWereErrors = true
 			continue
@@ -98,7 +98,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	if s.cacheEnabled {
 		// Store the aggregated resources as a full snapshot
 		if err := s.RecordFullSnapshot(proxy, cacheResourceMap); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrRecordingSnapshot.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRecordingSnapshot)).
 				Msgf("Failed to record snapshot for proxy %s: %v", proxy.GetCertificateCommonName(), err)
 			thereWereErrors = true
 		}
@@ -129,7 +129,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 	for _, res := range resourcesToSend {
 		proto, err := ptypes.MarshalAny(res)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())
 			continue
 		}
@@ -159,7 +159,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrSendingDiscoveryResponse.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
 			Msgf("Error sending response for type %s to proxy %s", typeURI.Short(), proxy.String())
 		return err
 	}

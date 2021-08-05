@@ -160,7 +160,7 @@ func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error
 	}
 	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error
 	}
 	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
 		return nil, err
 	}

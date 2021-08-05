@@ -34,7 +34,7 @@ func (s *Server) allPodUpdater() {
 	for _, pod := range allpods {
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingProxyFromPod.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
 				Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
 			continue
 		}

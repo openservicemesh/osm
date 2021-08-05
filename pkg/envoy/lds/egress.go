@@ -85,7 +85,7 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy for TrafficMatch %v", match)
 		return nil, err
 	}

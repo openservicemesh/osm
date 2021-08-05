@@ -19,7 +19,7 @@ func getHTTPTracingConfig(apiEndpoint string) (*xds_hcm.HttpConnectionManager_Tr
 
 	zipkinConfMarshalled, err := ptypes.MarshalAny(zipkinTracingConf)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling Zipkin config")
 		return nil, err
 	}

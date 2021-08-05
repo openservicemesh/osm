@@ -26,7 +26,7 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 
 	marshalledNetworkRBACPolicy, err := ptypes.MarshalAny(networkRBACPolicy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling RBAC policy: %v", networkRBACPolicy)
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	// Build an RBAC policies based on SMI TrafficTarget policies
 	for _, targetPolicy := range trafficTargets {
 		if policy, err := buildRBACPolicyFromTrafficTarget(targetPolicy); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrBuildingRBACPolicy.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicy)).
 				Msgf("Error building RBAC policy for proxy identity %s from TrafficTarget %s", proxyIdentity, targetPolicy.Name)
 		} else {
 			rbacPolicies[targetPolicy.Name] = policy

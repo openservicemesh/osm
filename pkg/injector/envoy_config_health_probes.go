@@ -140,7 +140,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		}
 		pbHTTPConnectionManager, err := ptypes.MarshalAny(httpConnectionManager)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
 			return nil, err
 		}
@@ -170,7 +170,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		}
 		pbTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
 			return nil, err
 		}
@@ -234,7 +234,7 @@ func getVirtualHost(newPath, clusterName, originalProbePath string) *xds_route.V
 func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Error marshalling AccessLog object")
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 	accessLog, err := ptypes.MarshalAny(getTCPStdoutAccessLog())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Error marshalling tcp AccessLog object")
 		return nil, err
 	}

@@ -172,7 +172,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 		// Each route is associated with an RBAC policy
 		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrBuildingRBACPolicyForRoute.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicyForRoute)).
 				Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)
 			continue
 		}

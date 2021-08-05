@@ -24,7 +24,7 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 				log.Debug().Err(recvErr).Msgf("[grpc] Connection terminated")
 				return
 			}
-			log.Error().Err(recvErr).Str(errcode.Kind, errcode.ErrGRPCConnectionFailed.String()).
+			log.Error().Err(recvErr).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGRPCConnectionFailed)).
 				Msgf("[grpc] Connection error")
 			return
 		}
