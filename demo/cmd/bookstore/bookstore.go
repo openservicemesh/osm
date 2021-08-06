@@ -20,11 +20,11 @@ import (
 )
 
 var (
-	booksSold int64 = 0
-	log             = logger.NewPretty("bookstore")
-	identity        = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
-	port            = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
-	path            = flag.String("path", ".", "path to the HTML template")
+	books    common.BookStorePurchases
+	log      = logger.NewPretty("bookstore")
+	identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
+	port     = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
+	path     = flag.String("path", ".", "path to the HTML template")
 )
 
 type handler struct {
@@ -44,7 +44,7 @@ func getIdentity() string {
 }
 
 func setHeaders(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksSold))
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", books.BooksSold))
 	w.Header().Set(common.IdentityHeader, getIdentity())
 
 	if r != nil {
@@ -63,7 +63,7 @@ func renderTemplate(w http.ResponseWriter) {
 	}
 	err = tmpl.Execute(w, map[string]string{
 		"Identity":  getIdentity(),
-		"BooksSold": fmt.Sprintf("%d", booksSold),
+		"BooksSold": fmt.Sprintf("%d", books.BooksSold),
 		"Time":      time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"),
 	})
 	if err != nil {
@@ -74,13 +74,13 @@ func renderTemplate(w http.ResponseWriter) {
 func getBooksSold(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w, r)
 	renderTemplate(w)
-	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksSold)
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w, r)
 	renderTemplate(w)
-	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksSold)
 }
 
 // updateBooksSold updates the booksSold value to the one specified by the user
@@ -90,19 +90,19 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not decode request body")
 	}
-	atomic.StoreInt64(&booksSold, updatedBooksSold)
+	atomic.StoreInt64(&books.BooksSold, updatedBooksSold)
 	setHeaders(w, r)
 	renderTemplate(w)
-	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
+	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, books.BooksSold)
 }
 
 // sellBook increments the value of the booksSold
 func sellBook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Selling a book!")
-	atomic.AddInt64(&booksSold, 1)
+	atomic.AddInt64(&books.BooksSold, 1)
 	setHeaders(w, r)
 	renderTemplate(w)
-	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksSold)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)
@@ -130,13 +130,14 @@ func getHandlers() []handler {
 		{"/buy-a-book/new", sellBook, "GET"},
 		{"/reset", reset, "GET"},
 		{"/liveness", ok, "GET"},
+		{"/raw", common.GetRawGenerator(&books), "GET"},
 		{"/readiness", ok, "GET"},
 		{"/startup", ok, "GET"},
 	}
 }
 
 func reset(w http.ResponseWriter, _ *http.Request) {
-	booksSold = 0
+	books.BooksSold = 0
 	renderTemplate(w)
 }
 

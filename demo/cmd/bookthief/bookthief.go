@@ -21,12 +21,10 @@ const (
 )
 
 var (
-	booksStolen   int64
-	booksStolenV1 int64
-	booksStolenV2 int64
-	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
-	path          = flag.String("path", ".", "path to the HTML template")
+	books common.BookThiefThievery
+	log   = logger.NewPretty(participantName)
+	port  = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
+	path  = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {
@@ -36,9 +34,9 @@ func renderTemplate(w http.ResponseWriter) {
 	}
 	err = tmpl.Execute(w, map[string]string{
 		"Identity":      getIdentity(),
-		"BooksStolenV1": fmt.Sprintf("%d", booksStolenV1),
-		"BooksStolenV2": fmt.Sprintf("%d", booksStolenV2),
-		"BooksStolen":   fmt.Sprintf("%d", booksStolen),
+		"BooksStolenV1": fmt.Sprintf("%d", books.BooksStolenV1),
+		"BooksStolenV2": fmt.Sprintf("%d", books.BooksStolenV2),
+		"BooksStolen":   fmt.Sprintf("%d", books.BooksStolen),
 		"Time":          time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"),
 	})
 	if err != nil {
@@ -57,20 +55,21 @@ type handler struct {
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksStolen)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksStolen)
 }
 
 func getHandlers() []handler {
 	return []handler{
 		{"/", getIndex, "GET"},
+		{"/raw", common.GetRawGenerator(&books), "GET"},
 		{"/reset", reset, "GET"},
 	}
 }
 
 func reset(w http.ResponseWriter, _ *http.Request) {
-	booksStolen = 0
-	booksStolenV1 = 0
-	booksStolenV2 = 0
+	books.BooksStolen = 0
+	books.BooksStolenV1 = 0
+	books.BooksStolenV2 = 0
 	renderTemplate(w)
 }
 func debugServer() {
@@ -100,5 +99,11 @@ func main() {
 	//
 	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
 	meshExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
-	common.GetBooks(participantName, meshExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
+	common.GetBooks(
+		participantName,
+		meshExpectedResponseCode,
+		&books.BooksStolen,
+		&books.BooksStolenV1,
+		&books.BooksStolenV2,
+	)
 }
