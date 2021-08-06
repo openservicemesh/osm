@@ -12,6 +12,13 @@ import (
 	"github.com/openservicemesh/osm/demo/cmd/common"
 )
 
+const (
+	bookBuyerPort   = 8080
+	bookStoreV1Port = 8081
+	bookStoreV2Port = 8082
+	bookThiefPort   = 8083
+)
+
 func clearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
@@ -31,7 +38,7 @@ func printRedln(msg string) {
 func getBookBuyer(bookBuyerPurchases *common.BookBuyerPurchases, wg *sync.WaitGroup, errc chan<- error) {
 	defer wg.Done()
 
-	resp, err := http.Get("http://localhost:8080/raw")
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", bookBuyerPort))
 	if err != nil {
 		errc <- fmt.Errorf("error fetching bookbuyer data: %v", err)
 		return
@@ -53,7 +60,7 @@ func getBookBuyer(bookBuyerPurchases *common.BookBuyerPurchases, wg *sync.WaitGr
 func getBookThief(bookThiefThievery *common.BookThiefThievery, wg *sync.WaitGroup, errc chan<- error) {
 	defer wg.Done()
 
-	resp, err := http.Get("http://localhost:8083/raw")
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", bookThiefPort))
 	if err != nil {
 		errc <- fmt.Errorf("error fetching bookthief data: %v", err)
 		return
@@ -115,11 +122,11 @@ func main() {
 
 		bookStorePurchasesV1Temp := *bookStorePurchasesV1
 		wg.Add(1)
-		go getBookStorePurchases(bookStorePurchasesV1, 8081, wg, errc)
+		go getBookStorePurchases(bookStorePurchasesV1, bookStoreV1Port, wg, errc)
 
 		bookStorePurchasesV2Temp := *bookStorePurchasesV2
 		wg.Add(1)
-		go getBookStorePurchases(bookStorePurchasesV2, 8082, wg, errc)
+		go getBookStorePurchases(bookStorePurchasesV2, bookStoreV2Port, wg, errc)
 
 		complete := make(chan bool)
 		go func() {
