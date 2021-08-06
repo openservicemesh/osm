@@ -43,7 +43,11 @@ func getBookBuyer(bookBuyerPurchases *common.BookBuyerPurchases, wg *sync.WaitGr
 		errc <- fmt.Errorf("error fetching bookbuyer data: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			errc <- fmt.Errorf("error closing response: %v", err)
+		}
+	}()
 
 	output, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -65,7 +69,11 @@ func getBookThief(bookThiefThievery *common.BookThiefThievery, wg *sync.WaitGrou
 		errc <- fmt.Errorf("error fetching bookthief data: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			errc <- fmt.Errorf("error closing response: %v", err)
+		}
+	}()
 
 	output, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -87,7 +95,11 @@ func getBookStorePurchases(bookStorePurchases *common.BookStorePurchases, port i
 		errc <- fmt.Errorf("error fetching bookstore data (port %d): %v", port, err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			errc <- fmt.Errorf("error closing response: %v", err)
+		}
+	}()
 
 	output, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -140,7 +152,6 @@ func main() {
 			close(errc)
 			log.Fatal(err)
 		case <-complete:
-			break
 		}
 
 		bookBuyerHasChanged := bookBuyerPurchases.BooksBought-bookBuyerPurchasesTemp.BooksBought != 0 ||
