@@ -103,7 +103,7 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 }
 
 // BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
-func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) *xds_route.RouteConfiguration {
+func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *xds_route.RouteConfiguration {
 	if len(ingress) == 0 {
 		return nil
 	}
@@ -113,17 +113,6 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, pr
 		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
 		virtualHost.Routes = buildInboundRoutes(in.Rules)
 		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
-	}
-
-	if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
-		for k, v := range proxy.StatsHeaders() {
-			ingressRouteConfig.ResponseHeadersToAdd = append(ingressRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
-				Header: &core.HeaderValue{
-					Key:   k,
-					Value: v,
-				},
-			})
-		}
 	}
 
 	return ingressRouteConfig
