@@ -52,7 +52,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				}
 
 				// Use a deployment with multiple replicaset at serverside
-				svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+				svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 					SimpleDeploymentAppDef{
 						Name:         "server",
 						Namespace:    destApp,
@@ -60,9 +60,11 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						Image:        "kennethreitz/httpbin",
 						Ports:        []int{DefaultUpstreamServicePort},
 						Command:      HttpbinCmd,
+						OS:           Td.ClusterOS,
 					})
+				Expect(err).NotTo(HaveOccurred())
 
-				_, err := Td.CreateServiceAccount(destApp, &svcAccDef)
+				_, err = Td.CreateServiceAccount(destApp, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateDeployment(destApp, deploymentDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -78,7 +80,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 
 				// Create all client deployments, also with replicaset
 				for _, srcClient := range sourceNamespaces {
-					svcAccDef, deploymentDef, svcDef = Td.SimpleDeploymentApp(
+					svcAccDef, deploymentDef, svcDef, err = Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							Name:         srcClient,
 							Namespace:    srcClient,
@@ -87,7 +89,10 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							Args:         []string{"while true; do sleep 30; done;"},
 							Image:        "songrgg/alpine-debug",
 							Ports:        []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
+							OS:           Td.ClusterOS,
 						})
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = Td.CreateServiceAccount(srcClient, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = Td.CreateDeployment(srcClient, deploymentDef)

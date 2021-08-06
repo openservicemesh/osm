@@ -57,6 +57,8 @@ type OsmTestData struct {
 	CleanupKindCluster             bool   // Cleanup kind cluster upon test finish
 	ClusterVersion                 string // Kind cluster version, ex. v1.20.2
 
+	ClusterOS string // The operating system of the working nodes in the cluster. Mixed OS traffic is not supported.
+
 	// Cluster handles and rest config
 	Env        *cli.EnvSettings
 	RestConfig *rest.Config

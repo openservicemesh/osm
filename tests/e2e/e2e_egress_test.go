@@ -32,16 +32,18 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				Expect(Td.AddNsToMesh(true, sourceNs)).To(Succeed())
 
 				// Get simple Pod definitions for the client
-				svcAccDef, podDef, svcDef := Td.SimplePodApp(SimplePodAppDef{
+				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
 					Name:      "client",
 					Namespace: sourceNs,
 					Command:   []string{"/bin/bash", "-c", "--"},
 					Args:      []string{"while true; do sleep 30; done;"},
 					Image:     "songrgg/alpine-debug",
 					Ports:     []int{80},
+					OS:        Td.ClusterOS,
 				})
+				Expect(err).NotTo(HaveOccurred())
 
-				_, err := Td.CreateServiceAccount(sourceNs, &svcAccDef)
+				_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				srcPod, err := Td.CreatePod(sourceNs, podDef)
 				Expect(err).NotTo(HaveOccurred())

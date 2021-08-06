@@ -35,7 +35,7 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 				Expect(Td.AddNsToMesh(true, userService)).To(Succeed())
 
 				// User app
-				svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+				svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 					SimpleDeploymentAppDef{
 						Name:         userService,
 						Namespace:    userService,
@@ -44,9 +44,11 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 						Args:         []string{"while true; do sleep 30; done;"},
 						Image:        "songrgg/alpine-debug",
 						Ports:        []int{80},
+						OS:           Td.ClusterOS,
 					})
+				Expect(err).NotTo(HaveOccurred())
 
-				_, err := Td.CreateServiceAccount(userService, &svcAccDef)
+				_, err = Td.CreateServiceAccount(userService, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateDeployment(userService, deploymentDef)
 				Expect(err).NotTo(HaveOccurred())

@@ -45,15 +45,17 @@ func testIngressBackend() {
 		Expect(Td.AddNsToMesh(true, destNs)).To(Succeed())
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef := Td.SimplePodApp(
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
 				Name:      "server",
 				Namespace: destNs,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{serverPort},
+				OS:        Td.ClusterOS,
 			})
+		Expect(err).NotTo(HaveOccurred())
 
-		_, err := Td.CreateServiceAccount(destNs, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destNs, podDef)
 		Expect(err).NotTo(HaveOccurred())

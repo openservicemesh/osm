@@ -74,7 +74,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				Expect(err).NotTo(HaveOccurred())
 
 				for _, serverApp := range serverServices {
-					_, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+					_, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							Name:         serverApp,
 							Namespace:    serverNamespace,
@@ -82,7 +82,9 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							Image:        "simonkowallik/httpbin",
 							Ports:        []int{DefaultUpstreamServicePort},
 							Command:      HttpbinCmd,
+							OS:           Td.ClusterOS,
 						})
+					Expect(err).NotTo(HaveOccurred())
 
 					// Expose an env variable such as XHTTPBIN_X_POD_NAME:
 					// This httpbin fork will pick certain env variable formats and reply the values as headers.
@@ -114,7 +116,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 				// Client apps
 				for _, clientApp := range clientServices {
-					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
+					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							Name:         clientApp,
 							Namespace:    clientApp,
@@ -123,9 +125,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							Args:         []string{"while true; do sleep 30; done;"},
 							Image:        "songrgg/alpine-debug",
 							Ports:        []int{DefaultUpstreamServicePort},
+							OS:           Td.ClusterOS,
 						})
+					Expect(err).NotTo(HaveOccurred())
 
-					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
+					_, err = Td.CreateServiceAccount(clientApp, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = Td.CreateDeployment(clientApp, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
@@ -162,11 +166,13 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				}
 
 				// Create traffic split service. Use simple Pod to create a simple service definition
-				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+				_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
 					Name:      trafficSplitName,
 					Namespace: serverNamespace,
 					Ports:     []int{DefaultUpstreamServicePort},
+					OS:        Td.ClusterOS,
 				})
+				Expect(err).NotTo(HaveOccurred())
 
 				// Creating trafficsplit service in K8s
 				_, err = Td.CreateService(serverNamespace, trafficSplitService)

@@ -104,13 +104,15 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
 			// Get simple pod definitions for the HTTP server
-			svcAccDef, dstPodDef, svcDef := Td.SimplePodApp(
+			svcAccDef, dstPodDef, svcDef, err := Td.SimplePodApp(
 				SimplePodAppDef{
 					Name:      "server",
 					Namespace: ns,
 					Image:     "kennethreitz/httpbin",
 					Ports:     []int{80},
+					OS:        Td.ClusterOS,
 				})
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(ns, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -120,14 +122,16 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Get simple Pod definitions for the client
-			svcAccDef, srcPodDef, svcDef := Td.SimplePodApp(SimplePodAppDef{
+			svcAccDef, srcPodDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
 				Name:      "client",
 				Namespace: ns,
 				Command:   []string{"/bin/bash", "-c", "--"},
 				Args:      []string{"while true; do sleep 30; done;"},
 				Image:     "songrgg/alpine-debug",
 				Ports:     []int{80},
+				OS:        Td.ClusterOS,
 			})
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(ns, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())

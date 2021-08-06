@@ -161,11 +161,16 @@ type SimplePodAppDef struct {
 	Args        []string
 	Ports       []int
 	AppProtocol string
+	OS          string
 }
 
 // SimplePodApp returns a set of k8s typed definitions for a pod-based k8s definition.
 // Includes Pod, Service and ServiceAccount types
-func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service) {
+func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
+	if len(def.OS) == 0 {
+		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
+	}
+
 	serviceAccountDefinition := Td.SimpleServiceAccount(def.Name, def.Namespace)
 
 	podDefinition := corev1.Pod{
@@ -179,6 +184,9 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: new(int64), // 0
 			ServiceAccountName:            def.Name,
+			NodeSelector: map[string]string{
+				"kubernetes.io/os": def.OS,
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            def.Name,
@@ -256,7 +264,7 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 		}
 	}
 
-	return serviceAccountDefinition, podDefinition, serviceDefinition
+	return serviceAccountDefinition, podDefinition, serviceDefinition, nil
 }
 
 // SimpleServiceAccount returns a k8s typed definition for a service account.
@@ -295,11 +303,16 @@ type SimpleDeploymentAppDef struct {
 	Args         []string
 	Ports        []int
 	AppProtocol  string
+	OS           string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
 // Includes Deployment, Service and ServiceAccount types
-func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.ServiceAccount, appsv1.Deployment, corev1.Service) {
+func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.ServiceAccount, appsv1.Deployment, corev1.Service, error) {
+	if len(def.OS) == 0 {
+		return corev1.ServiceAccount{}, appsv1.Deployment{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
+	}
+
 	serviceAccountDefinition := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      def.Name,
@@ -331,6 +344,9 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: new(int64), // 0
 					ServiceAccountName:            def.Name,
+					NodeSelector: map[string]string{
+						"kubernetes.io/os": def.OS,
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            def.Name,
@@ -406,7 +422,7 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		}
 	}
 
-	return serviceAccountDefinition, deploymentDefinition, serviceDefinition
+	return serviceAccountDefinition, deploymentDefinition, serviceDefinition, nil
 }
 
 // GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource
