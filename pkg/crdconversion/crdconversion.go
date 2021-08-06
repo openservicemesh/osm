@@ -22,7 +22,7 @@ const (
 	webhookHealthPath = "/healthz"
 
 	// crdConverterServiceName is the name of the OSM crd converter webhook service
-	crdConverterServiceName = "osm-crd-converter"
+	crdConverterServiceName = "osm-bootstrap"
 
 	// healthPort is the port on which the '/healthz` requests are served
 	healthPort = 9095

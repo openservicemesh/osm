@@ -1,12 +1,11 @@
-{{- if .Values.OpenServiceMesh.featureFlags.enableCRDConverter }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: osm-crd-converter
+  name: osm-bootstrap
   namespace: {{ include "osm.namespace" . }}
   labels:
     {{- include "osm.labels" . | nindent 4 }}
-    app: osm-crd-converter
+    app: osm-bootstrap
 spec:
   ports:
     - name: tls
@@ -15,6 +14,4 @@ spec:
     - name: health
       port: 9095
   selector:
-    app: osm-crd-converter
-{{- end }}
-
+    app: osm-bootstrap

@@ -42,7 +42,7 @@ const (
 	// OsmInjectorAppLabel is the OSM injector deployment app label
 	OsmInjectorAppLabel = "osm-injector"
 	// OsmCrdConverterAppLabel is the OSM crd converter deployment app label
-	OsmCrdConverterAppLabel = "osm-crd-converter"
+	OsmCrdConverterAppLabel = "osm-bootstrap"
 
 	// OSM Grafana Dashboard specifics
 

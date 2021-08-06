@@ -60,7 +60,6 @@ Create a new commit on the patch branch to update the hardcoded version informat
 * The init container image version in [charts/osm/crds/meshconfig.yaml](/charts/osm/crds/meshconfig.yaml)
 * The init container image version in [pkg/constants/constants.go](/pkg/constants/constants.go)
 * The image versions contained in tests.
-  - [cmd/init-osm-controller/init-osm-controller_test.go](/cmd/init-osm-controller/init-osm-controller_test.go)
   - [pkg/configurator/methods_test.go](/pkg/configurator/methods_test.go)
 * The container image versions used in the examples.
   - [docs/example/manifests/apps/bookbuyer.yaml](/docs/example/manifests/apps/bookbuyer.yaml)
