@@ -41,10 +41,11 @@ var (
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
-	bookstoreServiceNamespace = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)
-
-	bookstoreService = fmt.Sprintf("%s:%d", bookstoreServiceNamespace, bookstorePort)                           // FQDN
-	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort) // FQDN
+	// Due to a limitation on kubernetes on Windows we need to use the FQDN
+	// otherwise DNS will not be able to resolve it.
+	// https://kubernetes.io/docs/setup/production-environment/windows/intro-windows-in-kubernetes/#dns-limitations
+	bookstoreService = fmt.Sprintf("%s.%s.svc.cluster.local:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)
+	warehouseService = fmt.Sprintf("%s.%s.svc.cluster.local:%d", bookwarehouseNamespace, warehouseServiceName, bookwarehousePort)
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
