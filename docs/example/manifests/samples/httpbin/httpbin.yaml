@@ -14,7 +14,6 @@ spec:
   ports:
   - name: http
     port: 14001
-    targetPort: 80
   selector:
     app: httpbin
 ---
@@ -40,5 +39,6 @@ spec:
       - image: kennethreitz/httpbin
         imagePullPolicy: IfNotPresent
         name: httpbin
+        command: ["gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"]
         ports:
-        - containerPort: 80
+        - containerPort: 14001
