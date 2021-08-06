@@ -134,9 +134,6 @@ func TestBuildRouteConfiguration(t *testing.T) {
 }
 
 func TestBuildIngressRouteConfiguration(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	mockCfg := configurator.NewMockConfigurator(mockCtrl)
-
 	testCases := []struct {
 		name                      string
 		ingressPolicies           []*trafficpolicy.InboundTrafficPolicy
@@ -214,11 +211,7 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
-				EnableWASMStats: false,
-			}).AnyTimes()
-			actual := BuildIngressConfiguration(tc.ingressPolicies, nil, mockCfg)
+			actual := BuildIngressConfiguration(tc.ingressPolicies)
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)

@@ -62,7 +62,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
-		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, proxy, cfg)
+		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies)
 		rdsResources = append(rdsResources, ingressRouteConfig)
 	}
 
