@@ -35,81 +35,29 @@ func printRedln(msg string) {
 	fmt.Printf("\033[31m%s\033[0m\n", msg)
 }
 
-func getBookBuyer(bookBuyerPurchases *common.BookBuyerPurchases, wg *sync.WaitGroup, errc chan<- error) {
-	defer wg.Done()
-
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", bookBuyerPort))
-	if err != nil {
-		errc <- fmt.Errorf("error fetching bookbuyer data: %v", err)
-		return
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			errc <- fmt.Errorf("error closing response: %v", err)
-		}
-	}()
-
-	output, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		errc <- fmt.Errorf("error reading bookbuyer data: %v", err)
-		return
-	}
-
-	err = json.Unmarshal(output, bookBuyerPurchases)
-	if err != nil {
-		errc <- fmt.Errorf("error unmarshalling bookbuyer data: %v", err)
-	}
-}
-
-func getBookThief(bookThiefThievery *common.BookThiefThievery, wg *sync.WaitGroup, errc chan<- error) {
-	defer wg.Done()
-
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", bookThiefPort))
-	if err != nil {
-		errc <- fmt.Errorf("error fetching bookthief data: %v", err)
-		return
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			errc <- fmt.Errorf("error closing response: %v", err)
-		}
-	}()
-
-	output, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		errc <- fmt.Errorf("error reading bookthief data: %v", err)
-		return
-	}
-
-	err = json.Unmarshal(output, bookThiefThievery)
-	if err != nil {
-		errc <- fmt.Errorf("error unmarshalling bookthief data: %v", err)
-	}
-}
-
-func getBookStorePurchases(bookStorePurchases *common.BookStorePurchases, port int, wg *sync.WaitGroup, errc chan<- error) {
+func getBookData(dest interface{}, port int, wg *sync.WaitGroup, errc chan<- error) {
 	defer wg.Done()
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", port))
 	if err != nil {
-		errc <- fmt.Errorf("error fetching bookstore data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error fetching data (port %d): %v", port, err)
 		return
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			errc <- fmt.Errorf("error closing response: %v", err)
+			errc <- fmt.Errorf("error closing response (port %d): %v", port, err)
 		}
 	}()
 
 	output, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errc <- fmt.Errorf("error reading bookstore data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error reading data (port %d): %v", port, err)
 		return
 	}
 
-	err = json.Unmarshal(output, bookStorePurchases)
+	err = json.Unmarshal(output, dest)
 	if err != nil {
-		errc <- fmt.Errorf("error unmarshalling bookstore data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error unmarshalling data (port %d): %v", port, err)
 	}
 }
 
@@ -126,19 +74,19 @@ func main() {
 
 		bookBuyerPurchasesTemp := *bookBuyerPurchases
 		wg.Add(1)
-		go getBookBuyer(bookBuyerPurchases, wg, errc)
+		go getBookData(bookBuyerPurchases, bookBuyerPort, wg, errc)
 
 		bookThiefThieveryTemp := *bookThiefThievery
 		wg.Add(1)
-		go getBookThief(bookThiefThievery, wg, errc)
+		go getBookData(bookThiefThievery, bookThiefPort, wg, errc)
 
 		bookStorePurchasesV1Temp := *bookStorePurchasesV1
 		wg.Add(1)
-		go getBookStorePurchases(bookStorePurchasesV1, bookStoreV1Port, wg, errc)
+		go getBookData(bookStorePurchasesV1, bookStoreV1Port, wg, errc)
 
 		bookStorePurchasesV2Temp := *bookStorePurchasesV2
 		wg.Add(1)
-		go getBookStorePurchases(bookStorePurchasesV2, bookStoreV2Port, wg, errc)
+		go getBookData(bookStorePurchasesV2, bookStoreV2Port, wg, errc)
 
 		complete := make(chan bool)
 		go func() {
