@@ -96,7 +96,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 
 		if apexServices.Contains(svc) {
 			// TODO: enhancement(#2759)
-			log.Error().Str(errcode.Kind, errcode.ErrMultipleSMISplitPerServiceUnsupported.String()).
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
 				Msgf("Skipping Traffic Split policy %s in namespaces %s as there is already a traffic split policy for apex service %v", split.Name, split.Namespace, svc)
 		} else {
 			outboundPoliciesFromSplits = append(outboundPoliciesFromSplits, policy)
@@ -169,7 +169,7 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace strin
 		weightedCluster := getDefaultWeightedClusterForService(destService)
 		policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FQDN(), hostnames)
 		if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 				Msgf("Error adding route to outbound policy in permissive mode for destination %s", destService)
 			continue
 		}
@@ -186,7 +186,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingServiceForTrafficTargetDestination.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceForTrafficTargetDestination)).
 			Msgf("Error resolving destination services from TraficTarget %s/%s", t.Namespace, t.Name)
 		return nil
 	}
@@ -194,7 +194,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 	// fetch all routes referenced in the TrafficTarget
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget)).
 			Msgf("Error finding route matches from TrafficTarget %s/%s", t.Namespace, t.Name)
 		return nil
 	}
@@ -228,7 +228,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 			if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
 				policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
 				if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-					log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 						Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s with host header %s", source.Namespace, source.Name, destService.Namespace, destService.Name, routeMatch.Headers[hostHeaderKey])
 					continue
 				}
@@ -239,7 +239,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		}
 		if needWildCardRoute {
 			if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.ErrAddingRouteToOutboundTrafficPolicy.String()).
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 					Msgf("Error adding wildcard route to outbound policy for source %s/%s and destination %s/%s", source.Namespace, source.Name, destService.Namespace, destService.Name)
 				continue
 			}
@@ -280,7 +280,7 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 		}
 
 		if apexServices.Contains(split.Spec.Service) {
-			log.Error().Str(errcode.Kind, errcode.ErrMultipleSMISplitPerServiceUnsupported.String()).
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
 				Msgf("Skipping traffic split policy %s/%s as there is already a corresponding policy for apex service %s", split.Namespace, split.Name, split.Spec.Service)
 			continue
 		}

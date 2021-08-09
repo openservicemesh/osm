@@ -93,7 +93,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 
 		if spec.Destination.Kind != serviceAccountKind {
 			// Destination kind is not valid
-			log.Error().Str(errcode.Kind, errcode.ErrInvalidDestinationKind.String()).
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidDestinationKind)).
 				Msgf("Applied TrafficTarget policy %s has invalid Destination kind: %s", trafficTarget.Name, spec.Destination.Kind)
 			continue
 		}
@@ -107,7 +107,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 			for _, source := range spec.Sources {
 				if source.Kind != serviceAccountKind {
 					// Destination kind is not valid
-					log.Error().Str(errcode.Kind, errcode.ErrInvalidSourceKind.String()).
+					log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidSourceKind)).
 						Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
 					continue
 				}
@@ -121,7 +121,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 			for _, source := range spec.Sources {
 				if source.Kind != serviceAccountKind {
 					// Destination kind is not valid
-					log.Error().Str(errcode.Kind, errcode.ErrInvalidSourceKind.String()).
+					log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidSourceKind)).
 						Msgf("Applied TrafficTarget policy %s has invalid Source kind: %s", trafficTarget.Name, spec.Destination.Kind)
 					continue
 				}

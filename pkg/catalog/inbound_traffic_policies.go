@@ -86,7 +86,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 		// fetch all routes referenced in traffic target
 		routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget)).
 				Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
 			continue
 		}
@@ -140,7 +140,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingSMIHTTPRouteGroupForTrafficTarget)).
 			Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
 		return inboundPolicies
 	}
@@ -231,7 +231,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Spec.Matches == nil {
-			log.Error().Str(errcode.Kind, errcode.ErrSMIHTTPRouteGroupNoMatch.String()).
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSMIHTTPRouteGroupNoMatch)).
 				Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
