@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -13,6 +14,25 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
+
+// BookBuyerPurchases is all of the books that the bookbuyer has bought
+type BookBuyerPurchases struct {
+	BooksBought   int64 `json:"booksBought"`
+	BooksBoughtV1 int64 `json:"booksBoughtV1"`
+	BooksBoughtV2 int64 `json:"booksBoughtV2"`
+}
+
+// BookThiefThievery is all of the books the bookthief has stolen
+type BookThiefThievery struct {
+	BooksStolen   int64 `json:"booksStolen"`
+	BooksStolenV1 int64 `json:"booksStolenV1"`
+	BooksStolenV2 int64 `json:"booksStolenV2"`
+}
+
+// BookStorePurchases are all of the books sold from the bookstore
+type BookStorePurchases struct {
+	BooksSold int64 `json:"booksSold"`
+}
 
 const (
 	// RestockWarehouseURL is a header string constant.
@@ -312,4 +332,18 @@ func getHTTPEgressExpectedResponseCode() int {
 	}
 
 	return http.StatusNotFound
+}
+
+// GetRawGenerator returns a function that can be used to write a response of book data
+func GetRawGenerator(books interface{}) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		booksRaw, err := json.Marshal(books)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to marshal book data")
+		}
+		_, err = w.Write(booksRaw)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to write raw output")
+		}
+	}
 }

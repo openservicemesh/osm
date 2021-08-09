@@ -177,6 +177,10 @@ $(DEMO_BUILD_TARGETS):
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME)/$(NAME) ./demo/cmd/$(NAME)
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
+.PHONE: build-bookwatcher
+build-bookwatcher:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
+
 .PHONY: demo-build
 demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller build-osm-injector build-osm-crds build-osm-bootstrap
 

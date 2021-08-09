@@ -23,10 +23,8 @@ const (
 )
 
 var (
+	books             common.BookBuyerPurchases
 	wg                sync.WaitGroup
-	booksBought       int64
-	booksBoughtV1     int64
-	booksBoughtV2     int64
 	log               = logger.NewPretty(participantName)
 	port              = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 	path              = flag.String("path", ".", "path to the HTML template")
@@ -50,9 +48,9 @@ func renderTemplate(w http.ResponseWriter) {
 	}
 	err = tmpl.Execute(w, map[string]string{
 		"Identity":      getIdentity(),
-		"BooksBoughtV1": fmt.Sprintf("%d", booksBoughtV1),
-		"BooksBoughtV2": fmt.Sprintf("%d", booksBoughtV2),
-		"BooksBought":   fmt.Sprintf("%d", booksBought),
+		"BooksBoughtV1": fmt.Sprintf("%d", books.BooksBoughtV1),
+		"BooksBoughtV2": fmt.Sprintf("%d", books.BooksBoughtV2),
+		"BooksBought":   fmt.Sprintf("%d", books.BooksBought),
 		"Time":          time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"),
 	})
 	if err != nil {
@@ -62,7 +60,7 @@ func renderTemplate(w http.ResponseWriter) {
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksBought)
 }
 
 func debugServer() {
@@ -81,14 +79,15 @@ func debugServer() {
 func getHandlers() []handler {
 	return []handler{
 		{"/", getIndex, "GET"},
+		{"/raw", common.GetRawGenerator(&books), "GET"},
 		{"/reset", reset, "GET"},
 	}
 }
 
 func reset(w http.ResponseWriter, _ *http.Request) {
-	atomic.StoreInt64(&booksBought, 0)
-	atomic.StoreInt64(&booksBoughtV1, 0)
-	atomic.StoreInt64(&booksBoughtV2, 0)
+	atomic.StoreInt64(&books.BooksBought, 0)
+	atomic.StoreInt64(&books.BooksBoughtV1, 0)
+	atomic.StoreInt64(&books.BooksBoughtV2, 0)
 	renderTemplate(w)
 }
 
@@ -96,7 +95,13 @@ func getBooksWrapper(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	meshExpectedResponseCode := http.StatusOK
-	common.GetBooks(participantName, meshExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
+	common.GetBooks(
+		participantName,
+		meshExpectedResponseCode,
+		&books.BooksBought,
+		&books.BooksBoughtV1,
+		&books.BooksBoughtV2,
+	)
 }
 
 func main() {
