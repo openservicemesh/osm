@@ -46,6 +46,7 @@ By default:
 -  Prometheus is not deployed by the demo script. To enable prometheus deployment, set the variable `DEPLOY_PROMETHEUS` in your `.env` file to `true`.
 - Grafana is not deployed by the demo script. To enable Grafana deployment, set the variable `DEPLOY_GRAFANA` in your `.env` file to `true`.
 - Jaeger is not deployed by the demo script. To enable Jaeger deployment, set the variable `DEPLOY_JAEGER` in your `.env` file to `true`. The section on Jaeger [below](#view-mesh-topology-with-jaeger) describes tracing with Jaeger.
+- kube-state-metrics is not deployed by the demo script. To enable kube-state-metrics deployment, set the variable `DEPLOY_KUBE_STATE_METRICS` in your `.env` file to `true`.
 
 ### This script will:
   - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)

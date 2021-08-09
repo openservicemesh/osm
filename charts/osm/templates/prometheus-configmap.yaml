@@ -32,6 +32,14 @@ data:
         - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
           regex: default;kubernetes;https
+      
+      - job_name: 'kube-state-metrics'
+        kubernetes_sd_configs:
+        - role: pod
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          regex: (^kube_pod_.*)
+          action: keep
 
       - job_name: 'kubernetes-nodes'
         scheme: https

@@ -1,0 +1,50 @@
+{{- if .Values.OpenServiceMesh.deployKubeStateMetrics }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-kube-state-metrics
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: osm-kube-state-metrics
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-kube-state-metrics
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: "{{.Values.OpenServiceMesh.kubeStateMetrics.port}}"
+    spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+      - name: kube-state-metrics
+        ports:
+        - name: "metrics"
+          containerPort: {{.Values.OpenServiceMesh.kubeStateMetrics.port}}
+        args:
+        - --namespaces={{ include "osm.namespace" . }}
+        - --resources=pods
+        - --metric-allowlist=kube_pod_container_status_restarts_total,kube_pod_start_time,kube_pod_container_state_started,kube_pod_status_phase
+        image: k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.1.1
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: "{{.Values.OpenServiceMesh.kubeStateMetrics.resources.limits.cpu}}"
+            memory: "{{.Values.OpenServiceMesh.kubeStateMetrics.resources.limits.memory}}"
+          requests:
+            cpu: "{{.Values.OpenServiceMesh.kubeStateMetrics.resources.requests.cpu}}"
+            memory: "{{.Values.OpenServiceMesh.kubeStateMetrics.resources.requests.memory}}"
+      serviceAccountName: osm-kube-state-metrics
+{{- end }}

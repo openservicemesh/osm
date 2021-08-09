@@ -1,0 +1,16 @@
+{{- if .Values.OpenServiceMesh.deployKubeStateMetrics }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-kube-state-metrics
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+spec:
+  ports:
+  - port: {{.Values.OpenServiceMesh.kubeStateMetrics.port}}
+    protocol: TCP
+    targetPort: {{.Values.OpenServiceMesh.kubeStateMetrics.port}}
+  selector:
+    app: osm-kube-state-metrics
+{{- end }}
