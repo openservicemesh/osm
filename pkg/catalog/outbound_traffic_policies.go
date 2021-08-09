@@ -72,7 +72,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		}
 		hostnames, err := mc.GetServiceHostnames(svc, locality)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 				Msgf("Error getting service hostnames for apex service %v", svc)
 			continue
 		}
@@ -130,7 +130,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				}
 				destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 				if err != nil {
-					log.Error().Err(err).Str(errcode.Kind, errcode.ErrNoMatchingServiceForServiceAccount.String()).
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNoMatchingServiceForServiceAccount)).
 						Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
 					break
 				}
@@ -161,7 +161,7 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(sourceNamespace strin
 		}
 		hostnames, err := mc.GetServiceHostnames(destService, locality)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 				Msgf("Error getting service hostnames for service %s", destService)
 			continue
 		}
@@ -213,7 +213,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		}
 		hostnames, err := mc.GetServiceHostnames(destService, locality)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 				Msgf("Error getting service hostnames for service %s", destService)
 			continue
 		}

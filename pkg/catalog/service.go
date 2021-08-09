@@ -103,7 +103,7 @@ func (mc *MeshCatalog) ListServiceIdentitiesForService(svc service.MeshService) 
 	for _, provider := range mc.serviceProviders {
 		serviceIDs, err := provider.ListServiceIdentitiesForService(svc)
 		if err != nil {
-			log.Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentitiesForService.String()).
+			log.Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentitiesForService)).
 				Msgf("Error getting ServiceIdentities for Service %s", svc)
 			return nil, err
 		}

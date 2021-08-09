@@ -106,7 +106,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 				}
 				hostnames, err := mc.GetServiceHostnames(apexService, locality)
 				if err != nil {
-					log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 						Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
 				}
@@ -147,7 +147,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 
 	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 			Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
@@ -180,7 +180,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 
 	hostnames, err := mc.GetServiceHostnames(svc, service.LocalNS)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrServiceHostnames.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
 			Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
 	}
