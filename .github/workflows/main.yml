@@ -298,6 +298,7 @@ jobs:
           ENABLE_EGRESS: "false"
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
+          USE_PRIVATE_REGISTRY: "false"
         run: |
           touch .env
           make kind-up
