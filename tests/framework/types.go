@@ -106,6 +106,7 @@ type InstallOSMOpts struct {
 	SetOverrides []string
 
 	EnablePrivilegedInitContainer bool
+	EnableIngressBackendPolicy    bool
 }
 
 // CleanupType identifies what triggered the cleanup
