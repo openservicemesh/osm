@@ -38,7 +38,6 @@ func testIngressBackend() {
 	It("allows ingress traffic", func() {
 		// Install OSM
 		installOpts := Td.GetOSMInstallOpts()
-		installOpts.SetOverrides = []string{"OpenServiceMesh.featureFlags.enableIngressBackendPolicy=true"}
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 		Expect(Td.CreateNs(destNs, nil)).To(Succeed())

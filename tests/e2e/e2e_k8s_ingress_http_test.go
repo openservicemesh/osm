@@ -26,6 +26,7 @@ var _ = OSMDescribe("HTTP ingress using k8s Ingress API",
 		It("allows HTTP ingress traffic", func() {
 			// Install OSM
 			installOpts := Td.GetOSMInstallOpts()
+			installOpts.SetOverrides = []string{"OpenServiceMesh.featureFlags.enableIngressBackendPolicy=false"}
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 			Expect(Td.CreateNs(destNs, nil)).To(Succeed())
