@@ -76,7 +76,7 @@ func (c *Client) runMeshConfigListener(stop <-chan struct{}) {
 		case msg := <-cfgSubChannel:
 			psubMsg, ok := msg.(events.PubSubMessage)
 			if !ok {
-				log.Error().Str(errcode.Kind, errcode.ErrPubSubMessageFormat.String()).Msgf("Type assertion failed for PubSubMessage, %v\n", msg)
+				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPubSubMessageFormat)).Msgf("Type assertion failed for PubSubMessage, %v\n", msg)
 				continue
 			}
 
