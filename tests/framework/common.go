@@ -335,6 +335,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		SetOverrides:           []string{},
 
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
+		EnableIngressBackendPolicy:    true,
 	}
 }
 
@@ -402,6 +403,8 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 	meshConfig.Spec.Certificate.ServiceCertValidityDuration = "24h"
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
 
+	meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy = instOpts.EnableIngressBackendPolicy
+
 	return meshConfig
 }
 
@@ -456,6 +459,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
 		fmt.Sprintf("OpenServiceMesh.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
+		fmt.Sprintf("OpenServiceMesh.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
 	)
 
 	switch instOpts.CertManager {
