@@ -80,3 +80,6 @@ rootfs/
 
 # Envoy config captured during development
 envoy_*.json
+
+# Helm chart dependencies
+Chart.lock
