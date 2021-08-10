@@ -26,7 +26,7 @@ func StartGlobalLogLevelHandler(cfg configurator.Configurator, stop <-chan struc
 	log.Info().Msgf("Setting initial log level from meshconfig: %s", logLevel)
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrSettingLogLevel.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSettingLogLevel)).
 			Msg("Error setting initial log level from meshconfig")
 	} else {
 		currentLogLevel = logLevel
@@ -40,7 +40,7 @@ func StartGlobalLogLevelHandler(cfg configurator.Configurator, stop <-chan struc
 				if logLevel != currentLogLevel {
 					err := logger.SetLogLevel(logLevel)
 					if err != nil {
-						log.Error().Err(err).Str(errcode.Kind, errcode.ErrSettingLogLevel.String()).
+						log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSettingLogLevel)).
 							Msg("Error setting log level from meshconfig")
 					} else {
 						log.Info().Msgf("Global log level changed to: %s", logLevel)

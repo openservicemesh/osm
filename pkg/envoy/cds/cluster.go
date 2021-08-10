@@ -122,7 +122,7 @@ func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger,
 
 	ports, err := catalog.GetTargetPortToProtocolMappingForService(upstreamSvc)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
 			Msgf("Failed to get ports for service %s", upstreamSvc)
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 
 	ports, err := catalog.GetTargetPortToProtocolMappingForService(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
 			Msgf("Failed to get ports for service %s", proxyServiceName)
 		return nil, err
 	}

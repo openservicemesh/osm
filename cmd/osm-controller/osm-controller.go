@@ -331,7 +331,8 @@ func getOSMControllerPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrFetchingControllerPod.String()).
+		// TODO: Need to push metric
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingControllerPod)).
 			Msgf("Error retrieving osm-controller pod %s", podName)
 		return nil, err
 	}

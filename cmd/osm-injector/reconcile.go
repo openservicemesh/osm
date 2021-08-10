@@ -35,7 +35,7 @@ func createReconciler(kubeClient *kubernetes.Clientset) error {
 		// mgr.Start() below will block until stopped
 		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrStartingReconcileManager.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingReconcileManager)).
 				Msg("Error starting controller-runtime manager for MutatingWebhookConfigurartion's reconciler")
 		}
 	}()

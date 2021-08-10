@@ -44,7 +44,7 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	proxyIdentity := identity.ServiceIdentity(lb.serviceIdentity.String())
 	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingInboundTrafficTargets.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingInboundTrafficTargets)).
 			Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)
 		return nil, err
 	}
