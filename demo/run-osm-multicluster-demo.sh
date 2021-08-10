@@ -81,6 +81,15 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # cleanup stale resources from previous runs
     ./demo/clean-kubernetes.sh
 
+    KIND_DEMO=false
+    if [ "$(kubectl config current-context | grep -Eo -c 'kind-')" -ne 0 ]; then
+        KIND_DEMO=true
+    fi
+
+    if $KIND_DEMO; then
+        ./scripts/lb-in-kind.sh
+    fi
+
     # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
     # to house the control plane components.
     #

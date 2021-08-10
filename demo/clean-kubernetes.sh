@@ -7,7 +7,7 @@ source .env
 
 bin/osm uninstall -f --mesh-name "$MESH_NAME" --osm-namespace "$K8S_NAMESPACE"
 
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE" "metallb-system"; do
     kubectl delete namespace "$ns" --ignore-not-found --wait --timeout="$TIMEOUT" &
 done
 
