@@ -188,7 +188,7 @@ OpenServiceMesh:
     # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh
     enable: false
     # -- Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
-    address: ""
+    address: "jaeger.osm-system.svc.cluster.local"
     # -- Port of the tracing collector service
     port: 9411
     # -- Tracing collector's API path where the spans will be sent to
