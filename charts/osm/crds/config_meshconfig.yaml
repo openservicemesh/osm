@@ -49,7 +49,6 @@ spec:
                     logLevel:
                       description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
                       type: string
-                      default: "error"
                       enum:
                         - trace
                         - debug
@@ -62,15 +61,12 @@ spec:
                     maxDataPlaneConnections:
                       description: Max allowed data plane sidecar connections
                       type: integer
-                      default: 0
                     envoyImage:
                       description: Image for the Envoy sidecar
                       type: string
-                      default: "envoyproxy/envoy-alpine:v1.18.3"
                     initContainerImage:
                       description: Image for the init container
                       type: string
-                      default: "openservicemesh/init:v0.9.1"
                     resources:
                       type: object
                       properties:
@@ -85,7 +81,6 @@ spec:
                     configResyncInterval:
                       description: Resync interval for regular proxy broadcast updates
                       type: string
-                      default: "0s"
                 traffic:
                   description: Configuration for traffic management
                   type: object
@@ -152,7 +147,6 @@ spec:
                     osmLogLevel:
                       description: Allows setting OSM control plane log level at runtime
                       type: string
-                      default: "info"
                     enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
                       type: boolean
@@ -166,15 +160,12 @@ spec:
                         port:
                           description: Port on which tracing is enabled.
                           type: integer
-                          default: 9411
                         address:
                           description: Address of Jaeger tracing deployment, if tracing is enabled.
                           type: string
-                          default: "jaeger.osm-system.svc.cluster.local"
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
-                          default: "/api/v2/spans"
                 certificate:
                   description: Configuration for certificate management
                   type: object
@@ -185,11 +176,9 @@ spec:
                     serviceCertValidityDuration:
                       description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
                       type: string
-                      default: "24h"
                     certKeyBitSize:
                       description: Sets the certificate key bit size for data plane certificates.
                       type: integer
-                      default: 2048
                     ingressGateway:
                       description: Configuration for the ingress gateway's certificate
                       type: object
@@ -206,7 +195,6 @@ spec:
                         validityDuration:
                           description: Certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix
                           type: string
-                          default: "24h"
                         secret:
                           description: Secret reference to store the certificate in
                           type: object
