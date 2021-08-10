@@ -62,4 +62,5 @@ jobs:
           K8S_NAMESPACE: osm-system
           TIMEOUT: 90s
         run: |
+          touch .env
           ./demo/clean-kubernetes.sh
