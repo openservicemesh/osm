@@ -137,12 +137,12 @@ func main() {
 	}
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-bootstrap pod resource
-	crdConverterPod, err := getBootstrapPod(kubeClient)
+	bootstrapPod, err := getBootstrapPod(kubeClient)
 	if err != nil {
 		log.Fatal().Msg("Error fetching osm-bootstrap pod")
 	}
 	eventRecorder := events.GenericEventRecorder()
-	if err := eventRecorder.Initialize(crdConverterPod, kubeClient, osmNamespace); err != nil {
+	if err := eventRecorder.Initialize(bootstrapPod, kubeClient, osmNamespace); err != nil {
 		log.Fatal().Msg("Error initializing generic event recorder")
 	}
 

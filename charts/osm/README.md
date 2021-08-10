@@ -69,9 +69,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | OpenServiceMesh.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
-| OpenServiceMesh.crdConverter.podLabels | object | `{}` | CRD converter's pod labels |
-| OpenServiceMesh.crdConverter.replicaCount | int | `1` | CRD converter's replica count |
-| OpenServiceMesh.crdConverter.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | CRD converter's container resource parameters |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
@@ -121,6 +118,9 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
 | OpenServiceMesh.multicluster | object | `{"gatewayLogLevel":"error"}` | OSM multicluster feature configuration |
 | OpenServiceMesh.multicluster.gatewayLogLevel | string | `"error"` | Log level for the multicluster gateway |
+| OpenServiceMesh.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
+| OpenServiceMesh.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
+| OpenServiceMesh.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | OSM bootstrap's container resource parameters |
 | OpenServiceMesh.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
 | OpenServiceMesh.osmController.autoScale.enable | bool | `false` | Enable Autoscale |
 | OpenServiceMesh.osmController.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |

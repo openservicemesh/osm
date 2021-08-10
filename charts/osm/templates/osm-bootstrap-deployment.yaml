@@ -8,7 +8,7 @@ metadata:
     app: osm-bootstrap
     meshName: {{ .Values.OpenServiceMesh.meshName }}
 spec:
-  replicas: {{ .Values.OpenServiceMesh.crdConverter.replicaCount }}
+  replicas: {{ .Values.OpenServiceMesh.osmBootstrap.replicaCount }}
   selector:
     matchLabels:
       app: osm-bootstrap
@@ -17,8 +17,8 @@ spec:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-bootstrap
-  {{- if .Values.OpenServiceMesh.crdConverter.podLabels }}
-  {{- toYaml .Values.OpenServiceMesh.crdConverter.podLabels | nindent 8 }}
+  {{- if .Values.OpenServiceMesh.osmBootstrap.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.osmBootstrap.podLabels | nindent 8 }}
   {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
@@ -59,11 +59,11 @@ spec:
           ]
           resources:
             limits:
-              cpu: "{{.Values.OpenServiceMesh.crdConverter.resource.limits.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.crdConverter.resource.limits.memory}}"
+              cpu: "{{.Values.OpenServiceMesh.osmBootstrap.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmBootstrap.resource.limits.memory}}"
             requests:
-              cpu: "{{.Values.OpenServiceMesh.crdConverter.resource.requests.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.crdConverter.resource.requests.memory}}"
+              cpu: "{{.Values.OpenServiceMesh.osmBootstrap.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmBootstrap.resource.requests.memory}}"
           readinessProbe:
             initialDelaySeconds: 5
             timeoutSeconds: 5

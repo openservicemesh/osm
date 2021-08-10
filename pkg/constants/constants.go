@@ -108,7 +108,7 @@ const (
 	// WebhookCertificateSecretName is the default value for webhook secret name
 	WebhookCertificateSecretName = "mutating-webhook-cert-secret"
 
-	// CrdConverterCertificateSecretName is the default value for webhook secret name
+	// CrdConverterCertificateSecretName is the default value for conversion webhook secret name
 	CrdConverterCertificateSecretName = "crd-converter-cert-secret" // #nosec G101: Potential hardcoded credentials
 
 	// RegexMatchAll is a regex pattern match for all

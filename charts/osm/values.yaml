@@ -275,11 +275,11 @@ OpenServiceMesh:
   controlPlaneTolerations: []
 
   #
-  # -- OSM's CRD converter parameters
-  crdConverter:
-    # -- CRD converter's replica count
+  # -- OSM bootstrap parameters
+  osmBootstrap:
+    # -- OSM bootstrap's replica count
     replicaCount: 1
-    # -- CRD converter's container resource parameters
+    # -- OSM bootstrap's container resource parameters
     resource:
       limits:
         cpu: "0.5"
@@ -287,7 +287,7 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
-    # -- CRD converter's pod labels
+    # -- OSM bootstrap's pod labels
     podLabels: {}
 
   #

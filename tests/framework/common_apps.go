@@ -43,8 +43,8 @@ const (
 	OsmPrometheusAppLabel = "osm-prometheus"
 	// OsmInjectorAppLabel is the OSM injector deployment app label
 	OsmInjectorAppLabel = "osm-injector"
-	// OsmCrdConverterAppLabel is the OSM crd converter deployment app label
-	OsmCrdConverterAppLabel = "osm-bootstrap"
+	// OsmBootstrapAppLabel is the OSM bootstrap deployment app label
+	OsmBootstrapAppLabel = "osm-bootstrap"
 
 	// OSM Grafana Dashboard specifics
 
@@ -60,7 +60,7 @@ const (
 
 var (
 	// OsmCtlLabels is the list of app labels for OSM CTL
-	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel, OsmCrdConverterAppLabel}
+	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel, OsmBootstrapAppLabel}
 
 	// NginxIngressSvc is the namespaced name of the nginx ingress service
 	NginxIngressSvc = types.NamespacedName{Namespace: "ingress-ns", Name: "ingress-nginx-controller"}
@@ -490,7 +490,7 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 }
 
 func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
-	var errController, errInjector, errCrdsConverter error
+	var errController, errInjector, errBootstrap error
 	waitGroup := sync.WaitGroup{}
 	waitGroup.Add(3)
 
@@ -516,9 +516,9 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 
 	go func() {
 		defer GinkgoRecover()
-		errCrdsConverter = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+		errBootstrap = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": OsmCrdConverterAppLabel,
+				"app": OsmBootstrapAppLabel,
 			},
 		})
 		waitGroup.Done()
@@ -527,7 +527,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	waitGroup.Wait()
 
 	if errController != nil || errInjector != nil {
-		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v, %v)", errController, errInjector, errCrdsConverter))
+		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v, %v)", errController, errInjector, errBootstrap))
 	}
 
 	return nil
