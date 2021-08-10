@@ -13,7 +13,11 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -38,7 +42,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -66,7 +70,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -104,7 +108,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -136,7 +140,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -252,7 +256,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -356,7 +360,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -569,7 +573,7 @@ func TestGetEndpoint(t *testing.T) {
 	// Create kubernetes controller
 	kubeClient := testclient.NewSimpleClientset()
 	stop := make(chan struct{})
-	kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
 	assert.Nil(err)
 	assert.NotNil(kubeController)
 
@@ -659,7 +663,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
 			assert.Nil(err)
 			assert.NotNil(kubeController)
 
@@ -692,6 +696,90 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 			actual := kubeController.IsMetricsEnabled(&newPod1)
 			assert.Equal(actual, tc.expectedMetricsScraping)
+		})
+	}
+}
+
+func TestUpdateStatus(t *testing.T) {
+	testCases := []struct {
+		name             string
+		existingResource interface{}
+		updatedResource  interface{}
+		expectErr        bool
+	}{
+		{
+			name: "valid IngressBackend resource",
+			existingResource: &policyv1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.IngressBackendSpec{
+					Backends: []policyv1alpha1.BackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.IngressSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			updatedResource: &policyv1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.IngressBackendSpec{
+					Backends: []policyv1alpha1.BackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.IngressSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+				Status: policyv1alpha1.IngressBackendStatus{
+					CurrentStatus: "valid",
+					Reason:        "valid",
+				},
+			},
+		}, {
+			name:             "unsupported resource",
+			existingResource: &policyv1alpha1.Egress{},
+			updatedResource:  &policyv1alpha1.Egress{},
+			expectErr:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			kubeClient := testclient.NewSimpleClientset()
+			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
+
+			c, err := NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}))
+			a.Nil(err)
+
+			_, err = c.UpdateStatus(tc.updatedResource)
+			a.Equal(tc.expectErr, err != nil)
 		})
 	}
 }

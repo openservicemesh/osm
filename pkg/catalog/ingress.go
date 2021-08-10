@@ -58,6 +58,10 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 		return nil, nil
 	}
 
+	// The status field will be updated after the policy is processed.
+	// Note: The original pointer returned by cache.Store must not be modified for thread safety.
+	ingressBackendWithStatus := *ingressBackendPolicy
+
 	var trafficRoutingRules []*trafficpolicy.Rule
 	sourceServiceIdentities := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
@@ -82,8 +86,15 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
 				endpoints, _ := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
-					return nil, errors.Errorf("Could not list endpoints of the source service %s specified in the IngressBackend %s/%s",
-						source, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
+					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
+						CurrentStatus: "error",
+						Reason:        fmt.Sprintf("endpoints not found for service %s/%s", source.Namespace, source.Name),
+					}
+					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+						log.Error().Err(err).Msg("Error updating status for IngressBackend")
+					}
+					return nil, errors.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
+						source.Namespace, source.Name, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
 				}
 
 				for _, ep := range endpoints {
@@ -127,6 +138,14 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 			AllowedServiceIdentities: sourceServiceIdentities,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
+	}
+
+	ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
+		CurrentStatus: "committed",
+		Reason:        "successfully committed by the system",
+	}
+	if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+		log.Error().Err(err).Msg("Error updating status for IngressBackend")
 	}
 
 	// Create an inbound traffic policy from the routing rules

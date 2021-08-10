@@ -32,6 +32,11 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
+      additionalPrinterColumns:
+      - description: Current status of the IngressBackend policy.
+        jsonPath: .status.currentStatus
+        name: Status
+        type: string
       schema:
         openAPIV3Schema:
           type: object
@@ -117,3 +122,9 @@ spec:
                       name:
                         description: Name of resource being referenced.
                         type: string
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        # status enables the status subresource
+        status: {}

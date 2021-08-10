@@ -47,7 +47,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSplitClientSet := testTrafficSplitClient.NewSimpleClientset()
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop)
 	if err != nil {
 		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
 	}

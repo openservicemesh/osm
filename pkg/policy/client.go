@@ -3,17 +3,16 @@ package policy
 import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	policyV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	policyV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/service"
+	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -22,9 +21,7 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}) (Controller, error) {
-	policyClient := policyV1alpha1Client.NewForConfigOrDie(kubeConfig)
-
+func NewPolicyController(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}) (Controller, error) {
 	client, err := newPolicyClient(
 		policyClient,
 		kubeController,
@@ -35,8 +32,8 @@ func NewPolicyController(kubeConfig *rest.Config, kubeController k8s.Controller,
 }
 
 // newPolicyClient creates k8s clients for the resources in the policy.openservicemesh.io API group
-func newPolicyClient(policyClient policyV1alpha1Client.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
-	informerFactory := policyV1alpha1Informers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
+func newPolicyClient(policyClient policyClientset.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
+	informerFactory := policyInformers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
 		egress:         informerFactory.Policy().V1alpha1().Egresses().Informer(),

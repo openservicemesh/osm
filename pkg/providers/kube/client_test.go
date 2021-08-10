@@ -303,7 +303,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 	BeforeEach(func() {
 		fakeClientSet = testclient.NewSimpleClientset()
-		kubeController, err = k8s.NewKubernetesController(fakeClientSet, meshName, stop)
+		kubeController, err = k8s.NewKubernetesController(fakeClientSet, nil, meshName, stop)
 
 		// Add the monitored namespace
 		testNamespace := &corev1.Namespace{
