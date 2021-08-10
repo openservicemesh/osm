@@ -53,7 +53,7 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 
 	configYAML, err := utils.ProtoToYAML(bootstrapConfig)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingProtoToYAML.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
 			Msgf("Failed to marshal envoy bootstrap config to yaml")
 		return nil, err
 	}

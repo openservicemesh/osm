@@ -64,7 +64,8 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		}
 
 		if err := r.Update(ctx, instance); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrUpdatingMutatingWebhookCABundle.String()).
+			// TODO: Need to push metric?
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhookCABundle)).
 				Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}

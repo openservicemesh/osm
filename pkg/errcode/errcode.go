@@ -334,12 +334,12 @@ const (
 	// ErrNilAdmissionReq indicates the received admission request was nil
 	ErrNilAdmissionReq
 
-	// ErrDetermingPodInjectionEnablement indicates the enablement of a pod for sidecar injection could not be determined
-	ErrDetermingPodInjectionEnablement
+	// ErrDeterminingPodInjectionEnablement indicates the enablement of a pod for sidecar injection could not be determined
+	ErrDeterminingPodInjectionEnablement
 
-	// ErrDetermingNamespaceInjectionEnablement indicates the enablement of a namespace for sidecar injection could not
+	// ErrDeterminingNamespaceInjectionEnablement indicates the enablement of a namespace for sidecar injection could not
 	// be determined
-	ErrDetermingNamespaceInjectionEnablement
+	ErrDeterminingNamespaceInjectionEnablement
 
 	// ErrDeterminingPodPortExclusions indicates the oubound port exclusions for a pod could not be obtained
 	ErrDeterminingPodPortExclusions
@@ -864,12 +864,12 @@ The AdmissionResponse could not be written.
 The AdmissionRequest was empty.
 `,
 
-	ErrDetermingPodInjectionEnablement: `
+	ErrDeterminingPodInjectionEnablement: `
 It could not be determined if the pod specified in the AdmissionRequest is
 enabled for sidecar injection.
 `,
 
-	ErrDetermingNamespaceInjectionEnablement: `
+	ErrDeterminingNamespaceInjectionEnablement: `
 It could not be determined if the namespace specified in the
 AdmissionRequest is enabled for sidecar injection.
 `,

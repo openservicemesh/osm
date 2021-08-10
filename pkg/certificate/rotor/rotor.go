@@ -59,7 +59,8 @@ func (r *CertRotor) checkAndRotate() {
 			// Remove the certificate from the cache of the certificate manager
 			newCert, err := r.certManager.RotateCertificate(cert.GetCommonName())
 			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.ErrRotatingCert.String()).
+				// TODO: Need to push metric?
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
 					Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
 				continue
 			}

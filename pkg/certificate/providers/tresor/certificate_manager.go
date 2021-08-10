@@ -18,7 +18,9 @@ import (
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	if cm.ca == nil {
-		log.Error().Str(errcode.Kind, errcode.ErrInvalidCA.String()).Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
+		// TODO: Need to push metric?
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidCA)).
+			Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
 	}
 
@@ -30,7 +32,8 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
 		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
 	}
@@ -60,33 +63,38 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	x509Root, err := certificate.DecodePEMCertificate(cm.ca.GetCertificateChain())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDecodingPEMCert.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error decoding Root Certificate's PEM")
 	}
 
 	rsaKeyRoot, err := certificate.DecodePEMPrivateKey(cm.ca.GetPrivateKey())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDecodingPEMPrivateKey.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMPrivateKey)).
 			Msg("Error decoding Root Certificate's Private Key PEM ")
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, x509Root, &certPrivKey.PublicKey, rsaKeyRoot)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrCreatingCert.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCert)).
 			Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	certPEM, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingCertDERtoPEM.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
 			Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingKeyDERtoPEM.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingKeyDERtoPEM)).
 			Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}

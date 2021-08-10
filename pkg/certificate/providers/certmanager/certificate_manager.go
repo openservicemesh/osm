@@ -163,14 +163,16 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGeneratingPrivateKey.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
 		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingKeyDERtoPEM.String()).
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingKeyDERtoPEM)).
 			Msgf("Error encoding private key for certificate with CN=%s", cn)
 		return nil, err
 	}
@@ -187,13 +189,15 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrCreatingCertReq.String())
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq))
 		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEncodingCertDERtoPEM.String())
+		// TODO: Need to push metric?
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM))
 		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
 	}
 
