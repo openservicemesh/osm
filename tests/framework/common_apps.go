@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+
 	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
@@ -488,11 +490,12 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 }
 
 func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
-	var errController, errInjector error
+	var errController, errInjector, errCrdsConverter error
 	waitGroup := sync.WaitGroup{}
 	waitGroup.Add(3)
 
 	go func() {
+		defer GinkgoRecover()
 		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"app": OsmControllerAppLabel,
@@ -502,6 +505,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	}()
 
 	go func() {
+		defer GinkgoRecover()
 		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"app": OsmInjectorAppLabel,
@@ -511,7 +515,8 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	}()
 
 	go func() {
-		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+		defer GinkgoRecover()
+		errCrdsConverter = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"app": OsmCrdConverterAppLabel,
 			},
@@ -522,7 +527,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	waitGroup.Wait()
 
 	if errController != nil || errInjector != nil {
-		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v)", errController, errInjector))
+		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v, %v)", errController, errInjector, errCrdsConverter))
 	}
 
 	return nil
