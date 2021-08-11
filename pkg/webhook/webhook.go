@@ -34,7 +34,7 @@ var (
 func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
 	emptyBodyError := func() ([]byte, error) {
 		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
-		log.Error().Err(errEmptyAdmissionRequestBody).Str(errcode.Kind, errcode.ErrNilAdmissionReqBody.String()).
+		log.Error().Err(errEmptyAdmissionRequestBody).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNilAdmissionReqBody)).
 			Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
 
 		return nil, errEmptyAdmissionRequestBody
@@ -47,7 +47,7 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 	admissionRequestBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrReadingAdmissionReqBody.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReadingAdmissionReqBody)).
 			Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
 		return admissionRequestBody, err
 	}

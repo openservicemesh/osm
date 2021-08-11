@@ -88,7 +88,7 @@ func GetTLSParams() *xds_auth.TlsParameters {
 func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling AccessLog object")
 		return nil
 	}
@@ -329,7 +329,7 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	}
 	proxyUUID, err := uuid.Parse(chunks[0])
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingXDSCertCN.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingXDSCertCN)).
 			Msgf("Error parsing %s into uuid.UUID", chunks[0])
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	}
 
 	if len(pods) == 0 {
-		log.Error().Str(errcode.Kind, errcode.ErrFetchingPodFromCert.String()).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
 			Msgf("Did not find Pod with label %s = %s in namespace %s",
 				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrDidNotFindPodForCertificate
@@ -372,7 +372,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
 	if len(pods) > 1 {
-		log.Error().Str(errcode.Kind, errcode.ErrPodBelongsToMultipleServices.String()).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
 			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
 				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrMoreThanOnePodForCertificate

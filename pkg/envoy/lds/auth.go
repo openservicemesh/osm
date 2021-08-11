@@ -47,7 +47,7 @@ func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilte
 
 	extAuthMarshalled, err := ptypes.MarshalAny(extAuth)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Failed to marshal External Authorization config")
 	}
 

@@ -24,7 +24,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceIdentity.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
 			Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 	for _, requestedCertificate := range requestedCerts {
 		sdsCert, err := secrets.UnmarshalSDSCert(requestedCertificate)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrUnmarshallingSDSCert.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnmarshallingSDSCert)).
 				Msgf("Invalid resource kind requested: %q", requestedCertificate)
 			continue
 		}
@@ -81,7 +81,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		case secrets.ServiceCertType:
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServiceCertSecret.String()).
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceCertSecret)).
 					Msgf("Error creating cert %s for proxy %s", requestedCertificate, proxy.String())
 				continue
 			}
@@ -174,7 +174,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// the SANs for this certificate should correspond to the service identities of 'X'.
 		meshSvc, err := sdscert.GetMeshService()
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingMeshService.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingMeshService)).
 				Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
@@ -190,13 +190,13 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// of this proxy. If it doesn't, then something is wrong in the system.
 		svcAccountInRequest, err := sdscert.GetK8sServiceAccount()
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingK8sServiceAccount.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingK8sServiceAccount)).
 				Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
 			return nil, err
 		}
 
 		if svcAccountInRequest.ToServiceIdentity() != serviceIdentity {
-			log.Error().Err(errCertMismatch).Str(errcode.Kind, errcode.ErrSDSCertMismatch.String()).
+			log.Error().Err(errCertMismatch).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSDSCertMismatch)).
 				Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert.Name, serviceIdentity)
 			return nil, errCertMismatch
 		}

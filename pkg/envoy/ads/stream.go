@@ -45,7 +45,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
 	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrInitializingProxy.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).
 			Msgf("Error initializing proxy with certificate SerialNumber=%s", certSerialNumber)
 		return err
 	}
@@ -100,7 +100,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 		case discoveryRequest, ok := <-requests:
 			if !ok {
-				log.Error().Str(errcode.Kind, errcode.ErrGRPCStreamClosedByProxy.String()).
+				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGRPCStreamClosedByProxy)).
 					Msgf("gRPC stream closed by proxy %s!", proxy.String())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
@@ -152,7 +152,7 @@ func shouldPushUpdate(proxy *envoy.Proxy) bool {
 	// In ADS, CDS and LDS will come first in all cases. Only allow an control-plane-push update push if
 	// we have sent either to the proxy already.
 	if proxy.GetLastSentNonce(envoy.TypeLDS) == "" && proxy.GetLastSentNonce(envoy.TypeCDS) == "" {
-		log.Error().Str(errcode.Kind, errcode.ErrUnexpectedXDSRequest.String()).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnexpectedXDSRequest)).
 			Msgf("Proxy %s: LDS and CDS unrequested yet, waiting for first request for this proxy to be responded to",
 				proxy.String())
 		return false
@@ -186,7 +186,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Parse TypeURL of the request
 	typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
 	if !ok {
-		log.Error().Str(errcode.Kind, errcode.ErrInvalidXDSTypeURI.String()).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidXDSTypeURI)).
 			Msgf("Proxy %s: Unknown/Unsupported URI: %s",
 				proxy.String(), discoveryRequest.TypeUrl)
 		return false
@@ -201,7 +201,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Parse ACK'd verion on the proxy for this given resource
 	requestVersion, err = parseRequestVersion(discoveryRequest)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrParsingDiscoveryReqVersion.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingDiscoveryReqVersion)).
 			Msgf("Proxy %s: Error parsing version %s for type %s", proxy.String(), discoveryRequest.VersionInfo, typeURL)
 		return false
 	}
@@ -378,7 +378,7 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	}
 
 	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
-		log.Error().Str(errcode.Kind, errcode.ErrMismatchedServiceAccount.String()).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).
 			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
 		return errServiceAccountMismatch
 	}

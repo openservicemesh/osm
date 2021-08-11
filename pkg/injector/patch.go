@@ -109,7 +109,7 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	original := req.Object.Raw
 	current, err := json.Marshal(pod)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingKubernetesResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingKubernetesResource)).
 			Msgf("Error marshaling Pod with UID=%s", pod.ObjectMeta.UID)
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)

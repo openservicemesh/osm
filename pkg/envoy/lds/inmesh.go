@@ -36,7 +36,7 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 
 	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(proxyService)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
 			Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
 		return filterChains
 	}
@@ -128,7 +128,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	// Construct downstream TLS context
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	// Construct downstream TLS context
 	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
 		return nil, err
 	}
@@ -299,14 +299,14 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 
 	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingResolvableServiceEndpoints.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingResolvableServiceEndpoints)).
 			Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
 		return nil, err
 	}
 
 	if len(endpoints) == 0 {
 		err := errors.Errorf("Endpoints not found for service %q", dstSvc)
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrEndpointsNotFound.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
 			Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
 		return nil, err
 	}
@@ -410,7 +410,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for upstream service %s", upstream)
 		return nil, err
 	}
@@ -436,7 +436,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstreamSvc, lb.serviceIdentity)
 		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstreamSvc)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingServicePorts.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
 				Msgf("Error retrieving port to protocol mapping for upstream service %s", upstreamSvc)
 			continue
 		}

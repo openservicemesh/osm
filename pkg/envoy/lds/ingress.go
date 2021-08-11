@@ -22,7 +22,7 @@ import (
 func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
 	ingressPolicy, err := lb.meshCatalog.GetIngressTrafficPolicy(svc)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrIngressFilterChain.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIngressFilterChain)).
 			Msgf("Error getting ingress filter chain for proxy with identity %s and service %s", lb.serviceIdentity, svc)
 		return nil
 	}
@@ -136,7 +136,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 
 	default:
 		err := errors.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.serviceIdentity)
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrUnsupportedProtocolForService.String()).Msg("Error building filter chain for ingress")
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnsupportedProtocolForService)).Msg("Error building filter chain for ingress")
 		return nil, err
 	}
 

@@ -93,7 +93,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	// Deduplicate the list of EgressClusterConfig objects
 	clusterConfigs, err = trafficpolicy.DeduplicateClusterConfigs(clusterConfigs)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrDedupEgressClusterConfigs.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDedupEgressClusterConfigs)).
 			Msgf("Error deduplicating egress clusters configs for service identity %s", serviceIdentity)
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 	destIPSet := mapset.NewSet()
 	for _, ipRange := range egressPolicy.Spec.IPAddresses {
 		if _, _, err := net.ParseCIDR(ipRange); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidEgressIPRange)).
 				Msgf("Invalid IP range [%s] specified in egress policy %s/%s; will be skipped", ipRange, egressPolicy.Namespace, egressPolicy.Name)
 			continue
 		}
@@ -142,14 +142,14 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 			// A TypedLocalObjectReference (Spec.Matches) is a reference to another object in the same namespace
 			httpRouteName := fmt.Sprintf("%s/%s", egressPolicy.Namespace, match.Name)
 			if httpRouteGroup := mc.meshSpec.GetHTTPRouteGroup(httpRouteName); httpRouteGroup == nil {
-				log.Error().Str(errcode.Kind, errcode.ErrEgressSMIHTTPRouteGroupNotFound.String()).
+				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEgressSMIHTTPRouteGroupNotFound)).
 					Msgf("Error fetching HTTPRouteGroup resource %s referenced in Egress policy %s/%s", httpRouteName, egressPolicy.Namespace, egressPolicy.Name)
 			} else {
 				matches := getHTTPRouteMatchesFromHTTPRouteGroup(httpRouteGroup)
 				httpRouteMatches = append(httpRouteMatches, matches...)
 			}
 		} else {
-			log.Error().Str(errcode.Kind, errcode.ErrInvalidEgressMatches.String()).
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidEgressMatches)).
 				Msgf("Unsupported match object specified: %v, ignoring it", match)
 		}
 	}

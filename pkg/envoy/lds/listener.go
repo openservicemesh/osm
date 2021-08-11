@@ -126,7 +126,7 @@ func newInboundListener() *xds_listener.Listener {
 func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.ErrMarshallingXDSResource.String()).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
 		return nil, err
 	}
