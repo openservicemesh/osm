@@ -152,7 +152,7 @@
                 "osmController",
                 "enablePrivilegedInitContainer",
                 "injector",
-                "crdConverter",
+                "osmBootstrap",
                 "featureFlags"
             ],
             "properties": {
@@ -692,21 +692,21 @@
                     },
                     "additionalProperties": false
                 },
-                "crdConverter": {
-                    "$id": "#/properties/OpenServiceMesh/properties/crdConverter",
+                "osmBootstrap": {
+                    "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap",
                     "type": "object",
-                    "title": "The CRD converter schema",
-                    "description": "CRD converter's configurations",
+                    "title": "The OSM bootstrap schema",
+                    "description": "OSM bootstrap's configurations",
                     "required": [
                         "replicaCount",
                         "resource"
                     ],
                     "properties": {
                         "replicaCount": {
-                            "$id": "#/properties/OpenServiceMesh/properties/crdConverter/properties/replicaCount",
+                            "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap/properties/replicaCount",
                             "type": "integer",
                             "title": "The replicaCount schema",
-                            "description": "The number of replicas of the CRD converter pod.",
+                            "description": "The number of replicas of the OSM bootstrap pod.",
                             "examples": [
                                 1
                             ]
@@ -715,10 +715,10 @@
                             "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
-                            "$id": "#/properties/OpenServiceMesh/properties/crdConverter/properties/podLabels",
+                            "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap/properties/podLabels",
                             "type": "object",
                             "title": "The podLabels schema",
-                            "description": "Labels for the CRD converter pod.",
+                            "description": "Labels for the OSM bootstrap pod.",
                             "default": {}
                         }
                     },
