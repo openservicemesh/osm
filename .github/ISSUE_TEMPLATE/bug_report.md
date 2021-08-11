@@ -44,6 +44,12 @@ Be sure to not include any sensitive information. Sensitive information should _
 
 **Anything else we need to know?**:
 
+**Bug report archive**:
+<!--
+Generate and upload bug report archive for the given app namespaces, deployments, and pods.
+Use `osm support bug-report --app-namespaces <ns1>,<ns2> --app-deployments <ns1>/<dep1>,<ns2>/<dep2> --app-pods <ns1>/<pod1>`
+-->
+
 **Environment**:
 - OSM version (use `osm version`):
 - Kubernetes version (use `kubectl version`):
