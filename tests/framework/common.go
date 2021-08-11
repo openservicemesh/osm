@@ -544,8 +544,15 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 	if err != nil {
 		return errors.Wrap(err, "error fetching controller pod")
 	}
-	if len(controllerPods.Items) != 1 {
-		return errors.Errorf("expected 1 osm-controller pod, got %d", len(controllerPods.Items))
+
+	controllerDeployment, errDeployment := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Get(context.TODO(), "osm-controller", metav1.GetOptions{})
+	if errDeployment != nil {
+		return errors.Wrap(err, "error fetching controller deployment")
+	}
+
+	expectedReplicaCount := int(*(controllerDeployment.Spec.Replicas))
+	if len(controllerPods.Items) != expectedReplicaCount {
+		return errors.Errorf("expected %d osm-controller pod(s), got %d", expectedReplicaCount, len(controllerPods.Items))
 	}
 
 	pod := controllerPods.Items[0]
