@@ -31,6 +31,7 @@ ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
 DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
+TRACING_ENDPOINT="${TRACING_ENDPOINT:-jaeger.osm-system.svc.cluster.local}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
@@ -110,6 +111,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
       --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
       --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.tracing.address="$TRACING_ENDPOINT" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
@@ -130,6 +133,8 @@ else
       --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
       --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
       --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
+      --set=OpenServiceMesh.tracing.address="$TRACING_ENDPOINT" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
