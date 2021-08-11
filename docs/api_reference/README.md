@@ -19,7 +19,7 @@ From the root of the `osm` repository, use the `gen-crd-api-reference-docs` bina
 
 For example, to generate API reference docs for the `MeshConfig` custom API defined in `/pkg/apis/config/v1alpha1/`:
 ```bash
-<path to api doc generator repo>/gen-crd-api-reference-docs -config `pwd`/docs/apidocs/apidoc.json -api-dir "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1" -template-dir <full path to api doc generator repo>/template/ -out-file <path to osm-docs repo>/content/docs/apidocs/config/v1alpha1.md
+<path to api doc generator repo>/gen-crd-api-reference-docs -config `pwd`/docs/api_reference/config.json -api-dir "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1" -template-dir <full path to api doc generator repo>/template/ -out-file <path to osm-docs repo>/content/docs/api_reference/config/v1alpha1.md
 ```
 
 ## 4. Customize the generated doc for the website
