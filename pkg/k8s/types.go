@@ -6,8 +6,11 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -65,9 +68,10 @@ type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	meshName   string
-	kubeClient kubernetes.Interface
-	informers  informerCollection
+	meshName     string
+	kubeClient   kubernetes.Interface
+	policyClient policyv1alpha1Client.Interface
+	informers    informerCollection
 }
 
 // Controller is the controller interface for K8s services
@@ -102,4 +106,8 @@ type Controller interface {
 
 	// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
 	IsMetricsEnabled(*corev1.Pod) bool
+
+	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
+	// The object within the 'interface{}' must be a pointer to the underlying resource
+	UpdateStatus(interface{}) (metav1.Object, error)
 }

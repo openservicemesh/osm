@@ -9,7 +9,6 @@ import (
 // An Ingress backend policy authorizes one or more backends to accept
 // ingress traffic from one or more sources.
 // +genclient
-// +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type IngressBackend struct {
 	// Object's type metadata
@@ -22,6 +21,10 @@ type IngressBackend struct {
 	// Spec is the Ingress backend policy specification
 	// +optional
 	Spec IngressBackendSpec `json:"spec,omitempty"`
+
+	// Status is the status of the IngressBackend configuration.
+	// +optional
+	Status IngressBackendStatus `json:"status,omitempty"`
 }
 
 // IngressBackendSpec is the type used to represent the IngressBackend policy specification.
@@ -90,4 +93,15 @@ type IngressBackendList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []IngressBackend `json:"items"`
+}
+
+// IngressBackendStatus is the type used to represent the status of an IngressBackend resource.
+type IngressBackendStatus struct {
+	// CurrentStatus defines the current status of an IngressBackend resource.
+	// +optional
+	CurrentStatus string `json:"currentStatus,omitempty"`
+
+	// Reason defines the reason for the current status of an IngressBackend resource.
+	// +optional
+	Reason string `json:"reason,omitempty"`
 }

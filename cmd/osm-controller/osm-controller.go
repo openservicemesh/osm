@@ -24,6 +24,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -35,7 +38,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
@@ -124,6 +126,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error creating kube configs using in-cluster config")
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -149,17 +152,17 @@ func main() {
 
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
-	cfg := configurator.NewConfigurator(versioned.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 
 	// Start Global log level handler, reads from configurator (meshconfig)
 	StartGlobalLogLevelHandler(cfg, stop)
 
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, kubernetesClient, stop)
+	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, k8sClient, stop)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
@@ -183,29 +186,29 @@ func main() {
 	var configClient config.Controller
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
-		if configClient, err = config.NewConfigController(kubeConfig, kubernetesClient, stop); err != nil {
+		if configClient, err = config.NewConfigController(kubeConfig, k8sClient, stop); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes config client")
 		}
 	}
 
 	// A nil configClient is passed in if multi cluster mode is not enabled.
-	kubeProvider := kube.NewClient(kubernetesClient, configClient, constants.KubeProviderName, cfg)
+	kubeProvider := kube.NewClient(k8sClient, configClient, constants.KubeProviderName, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg, certManager)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, k8sClient, stop, cfg, certManager)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}
 
-	policyController, err := policy.NewPolicyController(kubeConfig, kubernetesClient, stop)
+	policyController, err := policy.NewPolicyController(k8sClient, policyClient, stop)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
-		kubernetesClient,
+		k8sClient,
 		meshSpec,
 		certManager,
 		ingressClient,
@@ -218,11 +221,11 @@ func main() {
 
 	var proxyMapper registry.ProxyServiceMapper
 	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {
-		m := registry.NewAsyncKubeProxyServiceMapper(kubernetesClient)
+		m := registry.NewAsyncKubeProxyServiceMapper(k8sClient)
 		m.Run(stop)
 		proxyMapper = m
 	} else {
-		proxyMapper = &registry.KubeProxyServiceMapper{KubeController: kubernetesClient}
+		proxyMapper = &registry.KubeProxyServiceMapper{KubeController: k8sClient}
 	}
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper)
 	proxyRegistry.ReleaseCertificateHandler(certManager)
@@ -233,7 +236,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, kubernetesClient)
+	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient)
 	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
@@ -274,7 +277,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, kubernetesClient)
+	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient)
 	debugConfig.StartDebugServerConfigListener()
 
 	k8s.PatchSecretHandler(kubeClient)

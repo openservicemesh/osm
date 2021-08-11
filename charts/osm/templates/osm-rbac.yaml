@@ -129,6 +129,9 @@ rules:
   - apiGroups: ["policy.openservicemesh.io"]
     resources: ["egresses", "ingressbackends"]
     verbs: ["list", "get", "watch"]
+  - apiGroups: ["policy.openservicemesh.io"]
+    resources: ["ingressbackends/status"]
+    verbs: ["update"]
 
   # Used for interacting with cert-manager CertificateRequest resources.
   - apiGroups: ["cert-manager.io"]

@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
@@ -13,6 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -20,12 +24,13 @@ import (
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
+func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
 	// Initialize client object
 	client := Client{
-		kubeClient: kubeClient,
-		meshName:   meshName,
-		informers:  informerCollection{},
+		kubeClient:   kubeClient,
+		policyClient: policyClient,
+		meshName:     meshName,
+		informers:    informerCollection{},
 	}
 
 	// Initialize informers
@@ -309,4 +314,17 @@ func (c Client) IsMetricsEnabled(pod *corev1.Pod) bool {
 
 	isScrapingEnabled, _ = strconv.ParseBool(prometheusScrapeAnnotation)
 	return isScrapingEnabled
+}
+
+// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
+// The resource within the 'interface{}' must be a pointer to the underlying resource
+func (c Client) UpdateStatus(resource interface{}) (metav1.Object, error) {
+	switch t := resource.(type) {
+	case *policyv1alpha1.IngressBackend:
+		obj := resource.(*policyv1alpha1.IngressBackend)
+		return c.policyClient.PolicyV1alpha1().IngressBackends(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+
+	default:
+		return nil, errors.Errorf("Unsupported type: %T", t)
+	}
 }
