@@ -107,8 +107,8 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: {{ .Release.Name }}-cleanup
   namespace: {{ include "osm.namespace" . }}
@@ -118,26 +118,32 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  serviceAccountName: {{ .Release.Name }}-cleanup
-  restartPolicy: Never
-  nodeSelector:
-    kubernetes.io/arch: amd64
-    kubernetes.io/os: linux
-  containers:
-    - name: garbage-collector
-      image: bitnami/kubectl
-      imagePullPolicy: IfNotPresent
-      command:
-        - sh
-        - -c
-        - >
-         kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
-         kubectl delete crd meshconfigs.config.openservicemesh.io --ignore-not-found;
-         kubectl delete crd traffictargets.access.smi-spec.io --ignore-not-found;
-         kubectl delete crd httproutegroups.specs.smi-spec.io --ignore-not-found;
-         kubectl delete crd multiclusterservices.config.openservicemesh.io --ignore-not-found;
-         kubectl delete crd egresses.policy.openservicemesh.io --ignore-not-found;
-         kubectl delete crd ingressbackends.policy.openservicemesh.io --ignore-not-found;
-         kubectl delete crd trafficsplits.split.smi-spec.io --ignore-not-found;
-         kubectl delete crd tcproutes.specs.smi-spec.io --ignore-not-found;
+  template:
+    metadata:
+      name: {{ .Release.Name }}-cleanup
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-cleanup
+      restartPolicy: Never
+      containers:
+        - name: garbage-collector
+          image: bitnami/kubectl
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - >
+             kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
+             kubectl patch crd/meshconfigs.config.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/traffictargets.access.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/httproutegroups.specs.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/multiclusterservices.config.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/egresses.policy.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/ingressbackends.policy.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/trafficsplits.split.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl patch crd/tcproutes.specs.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
 

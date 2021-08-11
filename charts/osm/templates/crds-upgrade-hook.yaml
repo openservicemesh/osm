@@ -69,6 +69,7 @@ spec:
             - /osm-crds
         imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
       nodeSelector:
+        kubernetes.io/arch: amd64
         kubernetes.io/os: linux
 {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
