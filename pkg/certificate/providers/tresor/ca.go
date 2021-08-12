@@ -39,7 +39,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating key for CA for org %s", rootCertOrganization)
 		return nil, err
@@ -48,7 +48,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	// Self-sign the root certificate
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingRootCert)).
 			Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
 		return nil, errors.Wrap(err, errCreateCert.Error())
@@ -56,7 +56,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
 			Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
 		return nil, err
@@ -64,7 +64,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 	pemKey, err := certificate.EncodeKeyDERtoPEM(rsaKey)
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingKeyDERtoPEM)).
 			Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
 		return nil, err
@@ -87,7 +87,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expiration time.Time) (certificate.Certificater, error) {
 	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error converting PEM cert to x509 to obtain serial number")
 		return nil, err

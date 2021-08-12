@@ -122,7 +122,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			// TODO: Need to push metric?
+			// TODO(#3962): metric might not be scraped before process restart resulting from this error
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingMutatingWebhookCert)).
 				Msg("Error parsing webhook certificate")
 			return
@@ -134,7 +134,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			// TODO: Need to push metric?
+			// TODO(#3962): metric might not be scraped before process restart resulting from this error
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingInjectionWebhookHTTPServer)).
 				Msg("Sidecar injection webhook HTTP server failed to start")
 			return
@@ -426,7 +426,7 @@ func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName st
 	}
 
 	if _, err = mwc.Patch(context.Background(), webhookName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhookCABundle)).
 			Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 		return err

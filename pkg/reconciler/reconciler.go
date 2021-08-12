@@ -64,7 +64,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		}
 
 		if err := r.Update(ctx, instance); err != nil {
-			// TODO: Need to push metric?
+			// TODO(#3962): metric might not be scraped before process restart resulting from this error
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhookCABundle)).
 				Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
 			return ctrl.Result{}, client.IgnoreNotFound(err)

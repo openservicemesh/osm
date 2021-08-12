@@ -32,7 +32,7 @@ var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), netwo
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
 	supportedIngressVersions, err := getSupportedIngressVersions(kubeClient.Discovery())
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingSupportedIngressVersions)).
 			Msgf("Error retrieving ingress API versions supported by k8s API server")
 		return nil, err

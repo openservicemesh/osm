@@ -203,7 +203,7 @@ func getInjectorPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingInjectorPod)).
 			Msgf("Error retrieving osm-injector pod %s", podName)
 		return nil, err

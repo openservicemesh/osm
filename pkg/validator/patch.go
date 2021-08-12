@@ -52,7 +52,7 @@ func updateValidatingWebhookCABundle(webhookConfigName string, certificater cert
 	}
 
 	if _, err = vwc.Patch(context.Background(), webhookConfigName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingValidatingWebhookCABundle)).
 			Msgf("Error updating CA Bundle for ValidatingWebhookConfiguration %s", webhookConfigName)
 		return err
