@@ -48,14 +48,14 @@ type trafficPolicyCheckCmd struct {
 	restConfig       *rest.Config
 }
 
-func newTrafficPolicyCheck(out io.Writer) *cobra.Command {
+func newPolicyCheckPods(out io.Writer) *cobra.Command {
 	trafficPolicyCheckCmd := &trafficPolicyCheckCmd{
 		out: out,
 	}
 
 	cmd := &cobra.Command{
 		Use:   "check-pods SOURCE_POD DESTINATION_POD",
-		Short: "check-pods traffic policy",
+		Short: "check if two pods are authorized to communicate via a traffic policy",
 		Long:  trafficPolicyCheckDescription,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
