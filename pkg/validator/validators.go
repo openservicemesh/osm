@@ -6,45 +6,62 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admission/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	cv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	pv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-// minCertValidityDuration is the minimum duration for a MeshConfig's certificate validity.
-const minCertValidityDuration = 2 * time.Minute
+// validateFunc is a function type that accepts an AdmissionRequest and returns an AdmissionResponse.
+/*
+There are a few ways to utilize the Validator function:
 
-func init() {
-	ingressBackendGvk := metav1.GroupVersionKind{
-		Kind:    "IngressBackend",
-		Group:   "policy.openservicemesh.io",
-		Version: "v1alpha1",
-	}
-	egressGvk := metav1.GroupVersionKind{
-		Kind:    "Egress",
-		Group:   "policy.openservicemesh.io",
-		Version: "v1alpha1",
-	}
-	meshConfigGvk := metav1.GroupVersionKind{
-		Kind:    "MeshConfig",
-		Group:   "config.openservicemesh.io",
-		Version: "v1alpha1",
+1. return resp, nil
+
+	In this case we simply return the raw resp. This allows for the most customization.
+
+2. return nil, err
+
+	In this case we convert the error to an AdmissionResponse.  If the error type is an AdmissionError, we
+	convert accordingly, which allows for some customization of the AdmissionResponse. Otherwise, we set Allow to
+	false and the status to the error message.
+
+3. return nil, nil
+
+	In this case we create a simple AdmissionResponse, with Allow set to true.
+
+4. Note that resp, err will ignore the error. It assumes that you are returning nil for resp if there is an error
+
+In all of the above cases we always populate the UID of the response from the request.
+
+An example of a validator:
+
+func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	o, n := &FakeObj{}, &FakeObj{}
+	// If you need to compare against the old object
+	if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(o); err != nil {
+		return nil, err
 	}
 
-	RegisterValidator(ingressBackendGvk.String(), IngressBackendValidator)
-	RegisterValidator(egressGvk.String(), EgressValidator)
-	RegisterValidator(meshConfigGvk.String(), MeshConfigValidator)
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(n); err != nil {
+		returrn nil, err
+	}
+
+	// validate the objects, potentially returning an error, or a more detailed AdmissionResponse.
+
+	// This will set allow to true
+	return nil, nil
 }
+*/
+type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
 
-// IngressBackendValidator validates the IngressBackend custom resource
-func IngressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	ingressBackend := &pv1alpha1.IngressBackend{}
+// ingressBackendValidator validates the IngressBackend custom resource
+func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	ingressBackend := &policyv1alpha1.IngressBackend{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(ingressBackend); err != nil {
 		return nil, err
 	}
@@ -60,7 +77,7 @@ func IngressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 			// If mTLS is enabled, verify there is an AuthenticatedPrincipal specified
 			authenticatedSourceFound := false
 			for _, source := range ingressBackend.Spec.Sources {
-				if source.Kind == pv1alpha1.KindAuthenticatedPrincipal {
+				if source.Kind == policyv1alpha1.KindAuthenticatedPrincipal {
 					authenticatedSourceFound = true
 					break
 				}
@@ -78,9 +95,9 @@ func IngressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 	return nil, nil
 }
 
-// EgressValidator validates the Egress custom resource
-func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	egress := &pv1alpha1.Egress{}
+// egressValidator validates the Egress custom resource
+func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	egress := &policyv1alpha1.Egress{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(egress); err != nil {
 		return nil, err
 	}
@@ -98,28 +115,9 @@ func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 	return nil, nil
 }
 
-// MeshConfigValidator validates the MeshConfig custom resource
-func MeshConfigValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	config := &cv1alpha1.MeshConfig{}
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
-		return nil, err
-	}
-
-	d, err := time.ParseDuration(config.Spec.Certificate.ServiceCertValidityDuration)
-	if err != nil {
-		return nil, errors.Errorf("'Certificate.ServiceCertValidityDuration' %s is not valid", config.Spec.Certificate.ServiceCertValidityDuration)
-	}
-
-	if d < minCertValidityDuration {
-		return nil, errors.Errorf("'Certificate.ServiceCertValidityDuration' %d is lower than %d", d, minCertValidityDuration)
-	}
-
-	return nil, nil
-}
-
 // MultiClusterServiceValidator validates the MultiClusterService CRD.
 func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	config := &cv1alpha1.MultiClusterService{}
+	config := &configv1alpha1.MultiClusterService{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
 		return nil, err
 	}

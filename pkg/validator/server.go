@@ -12,14 +12,14 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 var (
-	defaultValidators = map[string]Validator{}
-
 	// validationAPIPath is the API path for performing resource validations
 	validationAPIPath = "/validate"
 
@@ -27,80 +27,31 @@ var (
 	HealthAPIPath = "/healthz"
 )
 
-// RegisterValidator registers all validators. It is not thread safe.
-// It assumes one validator per GVK. If multiple validations need to happen it should all happen in the single validator
-func RegisterValidator(gvk string, v Validator) {
-	defaultValidators[gvk] = v
-}
-
-/*
-There are a few ways to utilize the Validator function:
-
-1. return resp, nil
-
-	In this case we simply return the raw resp. This allows for the most customization.
-
-2. return nil, err
-
-	In this case we convert the error to an AdmissionResponse.  If the error type is an AdmissionError, we
-	convert accordingly, which allows for some customization of the AdmissionResponse. Otherwise, we set Allow to
-	false and the status to the error message.
-
-3. return nil, nil
-
-	In this case we create a simple AdmissionResponse, with Allow set to true.
-
-4. Note that resp, err will ignore the error. It assumes that you are returning nil for resp if there is an error
-
-In all of the above cases we always populate the UID of the response from the request.
-
-An example of a validator:
-
-func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	o, n := &FakeObj{}, &FakeObj{}
-	// If you need to compare against the old object
-	if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(o); err != nil {
-		return nil, err
-	}
-
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(n); err != nil {
-		returrn nil, err
-	}
-
-	// validate the objects, potentially returning an error, or a more detailed AdmissionResponse.
-
-	// This will set allow to true
-	return nil, nil
-}
-*/
-
-// Validator is a function that accepts an AdmissionRequest and returns an AdmissionResponse.
-type Validator func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
-
-// ValidatingWebhookServer implements the K8s Validating Webhook API, and runs the associated validator func.
-type ValidatingWebhookServer struct {
+// validatingWebhookServer implements the K8s Validating Webhook API, and runs the associated validator func.
+type validatingWebhookServer struct {
 	// Map of Resource (GroupVersionKind), to validator
-	Validators map[string]Validator
+	validators map[string]validateFunc
 }
 
-// NewValidatingWebhook returns a ValidatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(webhookConfigName string, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) (*ValidatingWebhookServer, error) {
-	vCopy := make(map[string]Validator, len(defaultValidators))
-	for k, v := range defaultValidators {
-		vCopy[k] = v
+// NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
+func NewValidatingWebhook(webhookConfigName string, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
+	v := &validatingWebhookServer{
+		validators: map[string]validateFunc{
+			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String(): ingressBackendValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():         egressValidator,
+		},
 	}
-	v := &ValidatingWebhookServer{
-		Validators: vCopy,
-	}
+
 	// Update the updateValidatingWebhookConfig with the OSM CA bundle
 	if err := updateValidatingWebhookCABundle(webhookConfigName, certificater, kubeClient); err != nil {
-		return nil, errors.Errorf("Error configuring ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		return errors.Wrapf(err, "Error configuring ValidatingWebhookConfiguration %s", webhookConfigName)
 	}
+
 	go v.run(port, certificater, stop)
-	return v, nil
+	return nil
 }
 
-func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.Request) {
+func (s *validatingWebhookServer) doValidation(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
@@ -135,7 +86,7 @@ func (s *ValidatingWebhookServer) doValidation(w http.ResponseWriter, req *http.
 	log.Trace().Msgf("Done responding to admission request in namespace %s", requestForNamespace)
 }
 
-func (s *ValidatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
+func (s *validatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
 	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := webhook.Deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingAdmissionReqBody)).
@@ -150,7 +101,7 @@ func (s *ValidatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byt
 	return admissionReq.Request.Namespace, admissionResp
 }
 
-func (s *ValidatingWebhookServer) handleValidation(req *admissionv1.AdmissionRequest) (resp *admissionv1.AdmissionResponse) {
+func (s *validatingWebhookServer) handleValidation(req *admissionv1.AdmissionRequest) (resp *admissionv1.AdmissionResponse) {
 	var err error
 	defer func() {
 		if resp == nil {
@@ -159,7 +110,7 @@ func (s *ValidatingWebhookServer) handleValidation(req *admissionv1.AdmissionReq
 		resp.UID = req.UID // ensure this is always set
 	}()
 	gvk := req.Kind.String()
-	v, ok := s.Validators[gvk]
+	v, ok := s.validators[gvk]
 	if !ok {
 		return webhook.AdmissionError(fmt.Errorf("unknown gvk: %s", gvk))
 	}
@@ -179,7 +130,7 @@ func (s *ValidatingWebhookServer) handleValidation(req *admissionv1.AdmissionReq
 	return
 }
 
-func (s *ValidatingWebhookServer) run(port int, certificater certificate.Certificater, stop <-chan struct{}) {
+func (s *validatingWebhookServer) run(port int, certificater certificate.Certificater, stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

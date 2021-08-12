@@ -192,7 +192,7 @@ func TestIngressBackendValidator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			resp, err := IngressBackendValidator(tc.input)
+			resp, err := ingressBackendValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())
@@ -202,7 +202,6 @@ func TestIngressBackendValidator(t *testing.T) {
 }
 
 func TestEgressValidator(t *testing.T) {
-	assert := tassert.New(t)
 	testCases := []struct {
 		name      string
 		input     *admissionv1.AdmissionRequest
@@ -303,106 +302,9 @@ func TestEgressValidator(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resp, err := EgressValidator(tc.input)
-			assert.Equal(tc.expResp, resp)
-			if err != nil {
-				assert.Equal(tc.expErrStr, err.Error())
-			}
-		})
-	}
-}
+			assert := tassert.New(t)
 
-func TestMeshConfigValidator(t *testing.T) {
-	assert := tassert.New(t)
-	testCases := []struct {
-		name      string
-		input     *admissionv1.AdmissionRequest
-		expResp   *admissionv1.AdmissionResponse
-		expErrStr string
-	}{
-		{
-			name: "MeshConfig with invalid duration fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MeshConfig",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "Egress",
-						"spec": {
-							"certificate": {
-								"serviceCertValidityDuration": "abc"
-							}
-						}
-					}
-					`),
-				},
-			},
-
-			expResp:   nil,
-			expErrStr: "'Certificate.ServiceCertValidityDuration' abc is not valid",
-		},
-		{
-			name: "MeshConfig with duration lower than minimum duration fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MeshConfig",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "Egress",
-						"spec": {
-							"certificate": {
-								"serviceCertValidityDuration": "0.5s"
-							}
-						}
-					}
-					`),
-				},
-			},
-
-			expResp:   nil,
-			expErrStr: "'Certificate.ServiceCertValidityDuration' 500000000 is lower than 120000000000",
-		},
-		{
-			name: "MeshConfig with valid duration passes",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MeshConfig",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "Egress",
-						"spec": {
-							"certificate": {
-								"serviceCertValidityDuration": "1h"
-							}
-						}
-					}
-					`),
-				},
-			},
-
-			expResp:   nil,
-			expErrStr: "",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			resp, err := MeshConfigValidator(tc.input)
+			resp, err := egressValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())

@@ -250,7 +250,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
 	}
 
-	if _, err := validator.NewValidatingWebhook(validatorWebhookConfigName, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
+	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 

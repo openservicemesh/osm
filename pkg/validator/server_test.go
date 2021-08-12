@@ -24,8 +24,8 @@ func TestHandleValidation(t *testing.T) {
 		Group:   "fake.osm.io",
 		Version: "v1alpha1",
 	}
-	s := ValidatingWebhookServer{
-		Validators: map[string]Validator{
+	s := validatingWebhookServer{
+		validators: map[string]validateFunc{
 			gvk.String(): func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 				f := fakeObj{}
 				if err := json.Unmarshal(req.Object.Raw, &f); err != nil {
