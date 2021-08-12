@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"io"
 	"os"
 
@@ -99,8 +98,7 @@ func (cmd *proxyGetCmd) run() error {
 		out = fd         // write output to file
 	}
 
-	w := bufio.NewWriter(out)
-	_, err = w.WriteString(string(envoyProxyConfig))
+	_, err = out.Write(envoyProxyConfig)
 	return err
 }
 
