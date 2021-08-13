@@ -28,7 +28,7 @@ data:
           "enable": {{.Values.OpenServiceMesh.tracing.enable}}{{- if .Values.OpenServiceMesh.tracing.enable }},{{- end }}
           {{- if .Values.OpenServiceMesh.tracing.enable }}
           "port": {{.Values.OpenServiceMesh.tracing.port}},
-          "address": {{.Values.OpenServiceMesh.tracing.address | quote}},
+          "address": {{include "osm.tracingAddress"}},
           "endpoint": {{.Values.OpenServiceMesh.tracing.endpoint  | quote}}
           {{- end }}
         }
