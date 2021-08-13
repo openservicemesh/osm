@@ -48,8 +48,9 @@ var (
 	bookstoreNS     = utils.GetEnv(maestro.BookstoreNamespaceEnvVar, "bookstore")
 	bookWarehouseNS = utils.GetEnv(common.BookwarehouseNamespaceEnvVar, "bookwarehouse")
 
-	maxPodWaitString = utils.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
-	maxOKWaitString  = utils.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
+	maxPodWaitString        = utils.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
+	maxOKWaitString         = utils.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
+	multiClusterModeEnabled = utils.GetEnv(maestro.MulticlusterModeEnvVar, "false")
 
 	// Mesh namespaces
 	namespaces = []string{
@@ -61,11 +62,23 @@ var (
 )
 
 func main() {
+	log.Debug().Msgf("Multicluster mode: %s", multiClusterModeEnabled)
+
+	if multiClusterModeEnabled == "true" {
+		testMultiCluster()
+	} else {
+		testSingleCluster()
+	}
+
+	os.Exit(1)
+}
+
+func testSingleCluster() {
 	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()
 
-	bookBuyerPodName, bookThiefPodName, bookWarehousePodName, osmControllerPodName := getPodNames(kubeClient)
+	bookBuyerPodName, bookThiefPodName, bookWarehousePodName, osmControllerPodName := getPodNames(kubeClient, true, true, true, true, true)
 
 	// Tail the logs of the pods participating in the service mesh concurrently and watch for success or failure.
 	didItSucceed := func(ns, podName, label string) chan string {
@@ -104,11 +117,61 @@ func main() {
 			printLogsForContainers(kubeClient, pod)
 		}
 	}
+	fmt.Println("-------- OSM-Controller LOGS --------\n",
+		maestro.GetPodLogs(kubeClient, osmNamespace, osmControllerPodName, "", maestro.FailureLogsFromTimeSince))
+}
 
+func testMultiCluster() {
+	log.Debug().Msgf("Looking for: %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookstoreV1Label, bookstoreNS)
+
+	kubeClient := maestro.GetKubernetesClient()
+
+	bookBuyerPodName, _, _, osmControllerPodName := getPodNames(kubeClient, false, true, true, false, false)
+
+	// Tail the logs of the pods participating in the service mesh concurrently and watch for success or failure..
+	didItSucceed := func(ns, podName, label string) (chan string, chan string) {
+		resultAlpha := make(chan string)
+		resultBeta := make(chan string)
+
+		// multicluster mode
+		alphaClusterName := utils.GetEnv(maestro.AlphaClusterEnvVar, "alpha")
+		betaClusterName := utils.GetEnv(maestro.BetaClusterEnvVar, "beta")
+
+		maestro.SearchLogsForSuccess(kubeClient, ns, podName, label, maxWaitForOK(), resultAlpha, fmt.Sprintf("Identity: bookstore-v1.%s", alphaClusterName), common.NoToken)
+		maestro.SearchLogsForSuccess(kubeClient, ns, podName, label, maxWaitForOK(), resultBeta, fmt.Sprintf("Identity: bookstore-v1.%s", betaClusterName), common.NoToken)
+
+		return resultAlpha, resultBeta
+	}
+
+	resultAlpha, resultBeta := didItSucceed(bookbuyerNS, bookBuyerPodName, bookBuyerLabel)
+	testResultAlpha := <-resultAlpha
+	testResultBeta := <-resultBeta
+
+	if testResultAlpha == maestro.TestsPassed && testResultBeta == maestro.TestsPassed {
+		log.Debug().Msg("Test succeeded")
+		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
+		os.Exit(0) // Tests passed!  WE ARE DONE !!!
+	}
+
+	log.Error().Msgf("Test did not pass; Retrieving bookbuyer logs")
+
+	// Walk mesh-participant namespaces
+	for _, ns := range namespaces {
+		pods, err := kubeClient.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not get Pods for Namespace %s", ns)
+			continue
+		}
+
+		for _, pod := range pods.Items {
+			printLogsForInitContainers(kubeClient, pod)
+			printLogsForContainers(kubeClient, pod)
+		}
+	}
 	fmt.Println("-------- OSM-Controller LOGS --------\n",
 		maestro.GetPodLogs(kubeClient, osmNamespace, osmControllerPodName, "", maestro.FailureLogsFromTimeSince))
 
-	os.Exit(1)
+	maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
 }
 
 func cutItAt(logs string, at string) string {
@@ -143,42 +206,60 @@ func maxWaitForOK() time.Duration {
 	return time.Duration(maxWaitInt) * time.Second
 }
 
-func getPodNames(kubeClient kubernetes.Interface) (string, string, string, string) {
+func getPodNames(kubeClient kubernetes.Interface, includeBookthief, includeBookbuyer, includeBookstoreV1, includeBookstoreV2, includeBookwarehouse bool) (string, string, string, string) {
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookthiefNS, bookThiefSelector, &wg)
+	if includeBookthief {
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookthiefNS, bookThiefSelector, &wg)
+	}
 
-	wg.Add(1)
-	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookbuyerNS, bookBuyerSelector, &wg)
+	if includeBookbuyer {
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookbuyerNS, bookBuyerSelector, &wg)
+	}
 
-	wg.Add(1)
-	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV1Selector, &wg)
+	if includeBookstoreV1 {
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV1Selector, &wg)
+	}
 
-	wg.Add(1)
-	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV2Selector, &wg)
+	if includeBookstoreV2 {
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV2Selector, &wg)
+	}
 
-	wg.Add(1)
-	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookWarehouseNS, bookWarehouseSelector, &wg)
+	if includeBookwarehouse {
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookWarehouseNS, bookWarehouseSelector, &wg)
+	}
 
 	wg.Wait()
 
-	bookBuyerPodName, err := maestro.GetPodName(kubeClient, bookbuyerNS, bookBuyerSelector)
-	if err != nil {
-		fmt.Println("Error getting bookbuyer pod after pod being ready: ", err)
-		os.Exit(1)
+	var bookBuyerPodName, bookThiefPodName, bookWarehousePodName string
+	var err error
+	if includeBookbuyer {
+		bookBuyerPodName, err = maestro.GetPodName(kubeClient, bookbuyerNS, bookBuyerSelector)
+		if err != nil {
+			fmt.Println("Error getting bookbuyer pod after pod being ready: ", err)
+			os.Exit(1)
+		}
 	}
 
-	bookThiefPodName, err := maestro.GetPodName(kubeClient, bookthiefNS, bookThiefSelector)
-	if err != nil {
-		fmt.Println("Error getting bookthief pod after pod being ready: ", err)
-		os.Exit(1)
+	if includeBookthief {
+		bookThiefPodName, err = maestro.GetPodName(kubeClient, bookthiefNS, bookThiefSelector)
+		if err != nil {
+			fmt.Println("Error getting bookthief pod after pod being ready: ", err)
+			os.Exit(1)
+		}
 	}
 
-	bookWarehousePodName, err := maestro.GetPodName(kubeClient, bookWarehouseNS, bookWarehouseSelector)
-	if err != nil {
-		fmt.Println("Error getting bookWarehouse pod after pod being ready: ", err)
-		os.Exit(1)
+	if includeBookwarehouse {
+		bookWarehousePodName, err = maestro.GetPodName(kubeClient, bookWarehouseNS, bookWarehouseSelector)
+		if err != nil {
+			fmt.Println("Error getting bookWarehouse pod after pod being ready: ", err)
+			os.Exit(1)
+		}
 	}
 
 	osmControllerPodName, err := maestro.GetPodName(kubeClient, osmNamespace, osmControllerPodSelector)

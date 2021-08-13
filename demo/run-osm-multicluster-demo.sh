@@ -20,6 +20,7 @@ TIMEOUT="600s"
 source .env
 
 # Set meaningful defaults for env vars we expect from .env
+CI="${CI:-false}"
 MESH_NAME="${MESH_NAME:-osm}"
 K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
 BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
@@ -157,6 +158,8 @@ done
 echo "Switching to $ALPHA_CLUSTER"
 kubectl config use-context "$ALPHA_CLUSTER"
 
-echo "Bookbuyer logs... (showing identity of responding bookstore pods)"
-sleep 2
-kubectl logs -n bookbuyer --selector app=bookbuyer -c bookbuyer -f | grep Identity
+if [[ "$CI" != "true" ]]; then
+    echo "Bookbuyer logs... (showing identity of responding bookstore pods)"
+    sleep 2
+    kubectl logs -n "$BOOKBUYER_NAMESPACE" --selector app=bookbuyer -c bookbuyer -f | grep Identity
+fi

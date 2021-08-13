@@ -305,7 +305,6 @@ jobs:
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
 
-
   images:
     name: Docker Images
     runs-on: ubuntu-latest

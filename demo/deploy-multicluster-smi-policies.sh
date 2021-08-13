@@ -1,5 +1,8 @@
 #!/bin/bash
 
+BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
+BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
+
 echo -e "Let's install SMI Spec now on ${CONTEXT} cluster"
 
 echo -e "Installing HTTPRouteGroup"
@@ -9,7 +12,7 @@ apiVersion: specs.smi-spec.io/v1alpha4
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes
-  namespace: bookstore
+  namespace: $BOOKSTORE_NAMESPACE
 spec:
   matches:
   - name: books-bought
@@ -37,12 +40,12 @@ apiVersion: access.smi-spec.io/v1alpha3
 kind: TrafficTarget
 metadata:
   name: bookbuyer-access-bookstore
-  namespace: bookstore
+  namespace: $BOOKSTORE_NAMESPACE
 spec:
   destination:
     kind: ServiceAccount
     name: bookstore-v1
-    namespace: bookstore
+    namespace: $BOOKSTORE_NAMESPACE
   rules:
   - kind: HTTPRouteGroup
     name: bookstore-service-routes
@@ -52,5 +55,5 @@ spec:
   sources:
   - kind: ServiceAccount
     name: bookbuyer
-    namespace: bookbuyer
+    namespace: $BOOKBUYER_NAMESPACE
 EOF

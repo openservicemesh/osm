@@ -7,6 +7,9 @@ const (
 	// Failure is the string constant emitted at the end of the Bookbuyer/Bookthief logs when the test failed.
 	Failure = "MAESTRO, WE HAVE A PROBLEM! THIS TEST FAILED!"
 
+	// NoToken is a token impossible to appear in the log. It is a placeholder for token parameter in some cases.
+	NoToken = "--meaninglessToken--"
+
 	// BooksBoughtHeader is the header returned by the bookstore and observed by the bookbuyer.
 	BooksBoughtHeader = "Booksbought"
 
