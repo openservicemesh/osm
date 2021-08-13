@@ -305,6 +305,69 @@ jobs:
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
 
+  multicluster:
+    name: Test OSM Multicluster Scenario
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+        id: go
+
+      - name: setup multiple clusters
+        uses: azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.AKS_MULTICLUSTER_KUBECONFIG }}
+        id: setcontext
+
+      - name: Login to ACR
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ secrets.CTR_REGISTRY }}
+          username: ${{ secrets.CTR_REGISTRY_USER }}
+          password: ${{ secrets.CTR_REGISTRY_PASSWORD }}
+
+      - name: Run multicluster demo
+        env:
+          MULTICLUSTER_CONTEXTS: "alpha beta"
+          ALPHA_CLUSTER: alpha
+          BETA_CLUSTER: beta
+          MULTICLUSTER_MODE: true
+          CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+          CTR_REGISTRY_USER: ${{ secrets.CTR_REGISTRY_USER }}
+          DOCKER_PASS: ${{ secrets.CTR_REGISTRY_PASSWORD }}
+          USE_PRIVATE_REGISTRY: true
+          MESH_NAME: osm-${{ github.run_id }}
+          K8S_NAMESPACE: osm-system-${{ github.run_id }}
+          BOOKBUYER_NAMESPACE: bookbuyer-${{ github.run_id }}
+          BOOKSTORE_NAMESPACE: bookstore-${{ github.run_id }}
+          BOOKTHIEF_NAMESPACE: bookthief-${{ github.run_id }}
+          BOOKWAREHOUSE_NAMESPACE: bookwarehouse-${{ github.run_id }}
+          BOOKSTORE_SVC: bookstore-v1
+        run: |
+          touch .env
+          ./demo/run-osm-multicluster-demo.sh
+          go run ./ci/cmd/maestro.go
 
   images:
     name: Docker Images

@@ -34,6 +34,15 @@ const (
 
 	// WaitForOKSecondsEnvVar is the environment variable for the time to wait till a success is returned by the server.
 	WaitForOKSecondsEnvVar = "CI_WAIT_FOR_OK_SECONDS"
+
+	// MulticlusterModeEnvVar is the environment variable for telling the setup contains multiple clusters.
+	MulticlusterModeEnvVar = "MULTICLUSTER_MODE"
+
+	// AlphaClusterEnvVar is the environment variable that sets the name of alpha cluster in the multicluster testing.
+	AlphaClusterEnvVar = "ALPHA_CLUSTER"
+
+	// BetaClusterEnvVar is the environment variable that sets the name of beta cluster in the multicluster testing.
+	BetaClusterEnvVar = "BETA_CLUSTER"
 )
 
 var (

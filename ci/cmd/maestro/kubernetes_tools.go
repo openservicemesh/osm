@@ -168,6 +168,7 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 			select {
 			case <-timeout:
 				result <- TestsTimedOut
+				return
 			case readres := <-readRes:
 				line := readres.line
 				err := readres.err
