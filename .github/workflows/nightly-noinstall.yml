@@ -1,12 +1,18 @@
 name: OSM NoInstall Nightly Job
 on: 
-  schedule:
-    - cron: "0 0 * * *"
+  workflow_run:
+    workflows: ["Nightly Images"]
+    types: [completed]
+
+env:
+  CTR_REGISTRY: openservicemesh
+  CTR_TAG: latest-main
 
 jobs:
   test:
     name: NoInstall Nightly Job
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
     steps:
@@ -54,13 +60,7 @@ jobs:
           ./bin/osm install \
             --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
             --set=OpenServiceMesh.image.tag="$CTR_TAG"
-        env: 
-          CTR_REGISTRY: openservicemesh
-          CTR_TAG: ${{ github.sha }}
       - name: Run e2es
         run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 60m -installType=NoInstall
-        env: 
-          CTR_REGISTRY: openservicemesh
-          CTR_TAG: ${{ github.sha }}
       - name: Kind cleanup
         run: kind delete cluster --name $KIND_CLUSTER_NAME

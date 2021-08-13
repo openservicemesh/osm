@@ -1,16 +1,18 @@
 name: OpenShift Nightly Job
 on: 
-  schedule:
-    - cron: "0 0 * * *"
+  workflow_run:
+    workflows: ["Nightly Images"]
+    types: [completed]
 
 env:
   CTR_REGISTRY: openservicemesh
-  CTR_TAG: ${{ github.sha }}
+  CTR_TAG: latest-main
 
 jobs:
   test:
     name: OpenShift Nightly Job
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout v2
         uses: actions/checkout@v2
