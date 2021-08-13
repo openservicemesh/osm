@@ -37,6 +37,10 @@ metadata:
   namespace: $BOOKSTORE_NAMESPACE
 EOF
 
+if [ "$ENABLE_PSP" = true ] ; then
+  ./demo/deploy-psp-rbac.sh "$SVC" "$BOOKSTORE_NAMESPACE"
+fi
+
 echo -e "Deploy $SVC Service"
 kubectl apply -f - <<EOF
 apiVersion: v1

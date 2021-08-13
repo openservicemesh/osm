@@ -25,6 +25,10 @@ metadata:
   namespace: $BOOKTHIEF_NAMESPACE
 EOF
 
+if [ "$ENABLE_PSP" = true ] ; then
+  ./demo/deploy-psp-rbac.sh "bookthief" "$BOOKTHIEF_NAMESPACE"
+fi
+
 if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     oc adm policy add-scc-to-user privileged -z bookthief -n "$BOOKTHIEF_NAMESPACE"
     if [ "$USE_PRIVATE_REGISTRY" = true ]; then

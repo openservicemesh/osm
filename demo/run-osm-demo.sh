@@ -33,6 +33,7 @@ DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
 DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 TRACING_ADDRESS="${TRACING_ADDRESS:-jaeger.${K8S_NAMESPACE}.svc.cluster.local}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
+ENABLE_PSP="${ENABLE_PSP:-true}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
@@ -114,6 +115,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
       --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=OpenServiceMesh.pspEnabled="$ENABLE_PSP" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
@@ -136,11 +138,17 @@ else
       --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
       --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=OpenServiceMesh.pspEnabled="$ENABLE_PSP" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
+fi
+#  --set=OpenServiceMesh.enablePrivilegedInitContainer="true" \
+
+if [ "$ENABLE_PSP" = "true" ] ; then
+  ./demo/deploy-psp.sh
 fi
 
 ./demo/configure-app-namespaces.sh
