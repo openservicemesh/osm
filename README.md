@@ -50,11 +50,11 @@ Documentation pertaining to development, release workflows, and other repository
 ### Features
 
 1. Easily and transparently configure [traffic shifting][3] for deployments
-1. Secure service to service communication by [enabling mTLS](https://docs.openservicemesh.io/docs/tasks_usage/certificates/)
+1. Secure service to service communication by [enabling mTLS](https://docs.openservicemesh.io/docs/guides/certificates/)
 1. Define and execute fine grained [access control][4] policies for services
 1. [Observability](https://docs.openservicemesh.io/docs/troubleshooting/observability/) and insights into application metrics for debugging and monitoring services
-1. Integrate with [external certificate management](https://docs.openservicemesh.io/docs/tasks_usage/certificates/) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://docs.openservicemesh.io/docs/tasks_usage/sidecar_injection/) of Envoy proxy
+1. Integrate with [external certificate management](https://docs.openservicemesh.io/docs/guides/certificates/) services/solutions with a pluggable interface
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://docs.openservicemesh.io/docs/guides/app_onboarding/sidecar_injection/) of Envoy proxy
 
 ### Project status
 
@@ -109,14 +109,14 @@ The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/install/manual_dem
 
 ## Using OSM
 
-After installing OSM, [onboard a microservice application](https://docs.openservicemesh.io/docs/tasks_usage/onboard_services/) to the service mesh.
+After installing OSM, [onboard a microservice application](https://docs.openservicemesh.io/docs/guides/app_onboarding/) to the service mesh.
 
 ### OSM Usage Patterns
 
-1. [Traffic Management](https://docs.openservicemesh.io/docs/tasks_usage/traffic_management/)
+1. [Traffic Management](https://docs.openservicemesh.io/docs/guides/traffic_management/)
 1. [Observability](https://docs.openservicemesh.io/docs/troubleshooting/observability/)
-1. [Certificates](https://docs.openservicemesh.io/docs/tasks_usage/certificates/)
-1. [Sidecar Injection](https://docs.openservicemesh.io/docs/tasks_usage/sidecar_injection/)
+1. [Certificates](https://docs.openservicemesh.io/docs/guides/certificates/)
+1. [Sidecar Injection](https://docs.openservicemesh.io/docs/guides/app_onboarding/sidecar_injection/)
 
 
 ## Community
