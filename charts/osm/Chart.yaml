@@ -21,4 +21,4 @@ version: 0.9.1
 appVersion: v0.9.1
 
 # This specifies a particular range of k8s versions that the application is compatible with.
-kubeVersion: ">= 1.18.0"
+kubeVersion: ">= 1.18.0-0"

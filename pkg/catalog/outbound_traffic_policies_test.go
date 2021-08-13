@@ -264,10 +264,12 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name: "bookstore-v1.default",
 					Hostnames: []string{
+						"bookstore-v1",
 						"bookstore-v1.default",
 						"bookstore-v1.default.svc",
 						"bookstore-v1.default.svc.cluster",
 						"bookstore-v1.default.svc.cluster.local",
+						"bookstore-v1:8888",
 						"bookstore-v1.default:8888",
 						"bookstore-v1.default.svc:8888",
 						"bookstore-v1.default.svc.cluster:8888",
@@ -283,10 +285,12 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name: "bookstore-v2.default",
 					Hostnames: []string{
+						"bookstore-v2",
 						"bookstore-v2.default",
 						"bookstore-v2.default.svc",
 						"bookstore-v2.default.svc.cluster",
 						"bookstore-v2.default.svc.cluster.local",
+						"bookstore-v2:8888",
 						"bookstore-v2.default:8888",
 						"bookstore-v2.default.svc:8888",
 						"bookstore-v2.default.svc.cluster:8888",
@@ -302,10 +306,12 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				{
 					Name: "bookbuyer.default",
 					Hostnames: []string{
+						"bookbuyer",
 						"bookbuyer.default",
 						"bookbuyer.default.svc",
 						"bookbuyer.default.svc.cluster",
 						"bookbuyer.default.svc.cluster.local",
+						"bookbuyer:8888",
 						"bookbuyer.default:8888",
 						"bookbuyer.default.svc:8888",
 						"bookbuyer.default.svc.cluster:8888",
@@ -766,12 +772,14 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 
 	testCases := []struct {
 		name                     string
+		sourceNamespace          string
 		services                 map[string]string
 		expectedOutboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
-			name:     "outbound traffic policies for permissive mode",
-			services: map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "default"},
+			name:            "outbound traffic policies for permissive mode",
+			sourceNamespace: "test",
+			services:        map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "test"},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name: "bookstore-apex.default",
@@ -812,21 +820,26 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookbuyer.default",
+					Name: "bookbuyer.test",
 					Hostnames: []string{
-						"bookbuyer.default",
-						"bookbuyer.default.svc",
-						"bookbuyer.default.svc.cluster",
-						"bookbuyer.default.svc.cluster.local",
-						"bookbuyer.default:8888",
-						"bookbuyer.default.svc:8888",
-						"bookbuyer.default.svc.cluster:8888",
-						"bookbuyer.default.svc.cluster.local:8888",
+						"bookbuyer",
+						"bookbuyer.test",
+						"bookbuyer.test.svc",
+						"bookbuyer.test.svc.cluster",
+						"bookbuyer.test.svc.cluster.local",
+						"bookbuyer:8888",
+						"bookbuyer.test:8888",
+						"bookbuyer.test.svc:8888",
+						"bookbuyer.test.svc.cluster:8888",
+						"bookbuyer.test.svc.cluster.local:8888",
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   tests.WildCardRouteMatch,
-							WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
+							HTTPRouteMatch: tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "test/bookbuyer",
+								Weight:      100,
+							}),
 						},
 					},
 				},
@@ -848,7 +861,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 			mockKubeController.EXPECT().ListServices().Return(k8sServices)
 
-			actual := mc.buildOutboundPermissiveModePolicies()
+			actual := mc.buildOutboundPermissiveModePolicies(tc.sourceNamespace)
 			assert.Len(actual, len(tc.expectedOutboundPolicies))
 			assert.ElementsMatch(tc.expectedOutboundPolicies, actual)
 		})
