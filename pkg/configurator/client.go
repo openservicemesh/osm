@@ -100,7 +100,7 @@ func (c *Client) run(stop <-chan struct{}) {
 	log.Debug().Msgf("Started OSM MeshConfig informer")
 	log.Debug().Msg("[MeshConfig Client] Waiting for MeshConfig informer's cache to sync")
 	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigInformerInitCache)).Msg("Failed initial cache sync for MeshConfig informer")
 		return
 	}

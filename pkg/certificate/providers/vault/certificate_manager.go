@@ -94,7 +94,7 @@ func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Dura
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	secret, err := cm.client.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
 	if err != nil {
-		// TODO: Need to push metric?
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIssuingCert)).
 			Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
