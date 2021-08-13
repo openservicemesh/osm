@@ -44,7 +44,7 @@ func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer,
 		newMetricsCmd(stdout),
 		newVersionCmd(stdout),
 		newProxyCmd(config, stdout),
-		newTrafficPolicyCmd(stdout),
+		newPolicyCmd(stdout, stderr),
 		newUninstallCmd(config, stdin, stdout),
 		newSupportCmd(config, stdout, stderr),
 	)
