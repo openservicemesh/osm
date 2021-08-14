@@ -1,0 +1,18 @@
+name: SMI Conformance with Meshery
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  smi-conformance:
+    name: SMI Conformance
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: SMI conformance tests
+        uses: layer5io/mesheryctl-smi-conformance-action@master
+        with:
+          provider_token: ${{ secrets.MESHERY_PROVIDER_TOKEN }}
+          service_mesh: open_service_mesh
+          mesh_deployed: false
