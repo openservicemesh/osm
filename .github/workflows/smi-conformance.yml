@@ -1,8 +1,9 @@
 name: SMI Conformance with Meshery
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["Release Helm Chart"]
+    types:
+      - completed
 
 jobs:
   smi-conformance:
