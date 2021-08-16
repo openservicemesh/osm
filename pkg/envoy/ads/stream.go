@@ -114,7 +114,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 
 			// Queue a full configuration update
-			<-s.workqueues.AddJob(newJob(envoy.XDSResponseOrder, nil))
+			// Do not send SDS, let envoy figure out what certs does it want.
+			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS}, nil))
 
 		case certUpdateMsg := <-certAnnouncement:
 			cert := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
