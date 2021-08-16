@@ -13,10 +13,10 @@ static bool isInbound()
 using RqTotalCounter = Counter<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 using RqDurationHist = Histogram<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 
-class StatsContext : public Context
+class StatsRootContext : public RootContext
 {
 public:
-  explicit StatsContext(uint32_t id, RootContext *root) : Context(id, root),
+  explicit StatsRootContext(uint32_t id, std::string_view root_id) : RootContext(id, root_id),
                                                           rq_total(RqTotalCounter::New("osm_request_total",
                                                                                        "response_code",
                                                                                        "source_namespace",
@@ -38,6 +38,16 @@ public:
                                                                                           "destination_pod"))
   {
   }
+  RqTotalCounter *rq_total;
+  RqDurationHist *rq_duration;
+};
+
+class StatsContext : public Context
+{
+public:
+  explicit StatsContext(uint32_t id, RootContext *root) : Context(id, root)
+  {
+  }
 
   void onCreate() override;
   void onDone() override;
@@ -46,13 +56,11 @@ public:
   FilterHeadersStatus onResponseHeaders(uint32_t headers, bool end_of_stream) override;
 
 private:
-  RqTotalCounter *rq_total;
-  RqDurationHist *rq_duration;
   std::string source_pod, source_namespace, source_kind, source_name;
   std::string destination_namespace, destination_kind, destination_name, destination_pod;
   uint64_t start_time;
 };
-static RegisterContextFactory register_StatsContext(CONTEXT_FACTORY(StatsContext));
+static RegisterContextFactory register_StatsContext(CONTEXT_FACTORY(StatsContext), ROOT_FACTORY(StatsRootContext));
 
 void StatsContext::onCreate()
 {
@@ -74,7 +82,7 @@ void StatsContext::onDone()
   uint64_t duration_ns = getCurrentTimeNanoseconds() - start_time;
   int64_t duration_ms = duration_ns / 1000 / 1000;
 
-  rq_duration->record(duration_ms,
+  reinterpret_cast<StatsRootContext*>(root())->rq_duration->record(duration_ms,
                       source_namespace, source_kind, source_name, source_pod,
                       destination_namespace, destination_kind, destination_name, destination_pod);
 }
@@ -112,7 +120,7 @@ FilterHeadersStatus StatsContext::onResponseHeaders(uint32_t headers, bool end_o
   destination_name = getResponseHeader("osm-stats-name").get()->toString();
   destination_pod = getResponseHeader("osm-stats-pod").get()->toString();
 
-  rq_total->increment(1, response_code,
+  reinterpret_cast<StatsRootContext*>(root())->rq_total->increment(1, response_code,
                       source_namespace, source_kind, source_name, source_pod,
                       destination_namespace, destination_kind, destination_name, destination_pod);
 
