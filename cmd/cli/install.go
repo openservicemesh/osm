@@ -131,7 +131,18 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Wait = true
 	installClient.Atomic = i.atomic
 	installClient.Timeout = i.timeout
+
+	debug("Beginning OSM installation")
 	if _, err = installClient.Run(i.chartRequested, values); err != nil {
+		if !settings.Verbose() {
+			return err
+		}
+
+		pods, _ := i.clientSet.CoreV1().Pods(settings.Namespace()).List(context.Background(), metav1.ListOptions{})
+
+		for _, pod := range pods.Items {
+			fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
+		}
 		return err
 	}
 
@@ -174,6 +185,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 }
 
 func (i *installCmd) validateOptions() error {
+	debug("Loading OSM helm chart")
 	if err := i.loadOSMChart(); err != nil {
 		return err
 	}
@@ -197,6 +209,7 @@ func (i *installCmd) validateOptions() error {
 	}
 
 	// ensure no osm-controller is running in the same namespace
+	debug("Verifying no osm-controller exists in the install namespace")
 	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
 	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 	listOptions = metav1.ListOptions{
@@ -215,6 +228,7 @@ func (i *installCmd) validateOptions() error {
 	}
 
 	// Check if single mesh cluster is already specified
+	debug("Verifying if single-mesh is enforced in the cluster")
 	for _, deployment := range osmControllerDeployments.Items {
 		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == "true"
 		name := deployment.ObjectMeta.Labels["meshName"]
