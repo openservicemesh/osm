@@ -8,6 +8,14 @@ information so that others can review it.
 
 <!--
 
+Please describe how this change was tested. You could include supporting information
+such as logs, snippets, and screenshots.
+
+-->
+**Testing done**:
+
+<!--
+
 Please mark with X for applicable areas.
 
 -->
@@ -15,33 +23,24 @@ Please mark with X for applicable areas.
 | Functional Area            |     |
 | -------------------------- | --- |
 | New Functionality          | [ ] |
-| Documentation              | [ ] |
-| Install                    | [ ] |
+| CI System                  | [ ] |
 | CLI Tool                   | [ ] |
 | Certificate Management     | [ ] |
 | Control Plane              | [ ] |
-| Ingress                    | [ ] |
+| Demo                       | [ ] |
+| Documentation              | [ ] |
 | Egress                     | [ ] |
+| Ingress                    | [ ] |
+| Install                    | [ ] |
 | Networking                 | [ ] |
 | Observability              | [ ] |
-| SMI Policy                 | [ ] |
-| Sidecar Injection          | [ ] |
-| Security                   | [ ] |
-| Upgrade                    | [ ] |
-| Tests                      | [ ] |
-| CI System                  | [ ] |
-| Demo                       | [ ] |
 | Performance                | [ ] |
+| SMI Policy                 | [ ] |
+| Security                   | [ ] |
+| Sidecar Injection          | [ ] |
+| Tests                      | [ ] |
+| Upgrade                    | [ ] |
 | Other                      | [ ] |
-
-
-<!--
-
-Please describe how are the changes tested? You can add supporting information, E.g. screenshots, logs etc.
-
--->
-**Testing done**:
-
 
 
 Please answer the following questions with yes/no.
