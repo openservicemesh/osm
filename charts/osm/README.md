@@ -138,7 +138,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | OpenServiceMesh.pspEnabled | bool | `false` | Run OSM with PodSecurityPolicy configured |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.18.3"` | Envoy sidecar image |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.19.0"` | Envoy sidecar image |
 | OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
@@ -151,6 +151,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.vault.token | string | `""` | token that should be used to connect to Vault |
 | OpenServiceMesh.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
+| contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.19.0"}}` | Contour envoy edge proxy configuration |
 
 <!-- markdownlint-enable MD013 MD034 -->
 <!-- markdownlint-restore -->

@@ -254,7 +254,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.18.3"
+                        "envoyproxy/envoy-alpine:v1.19.0"
                     ]
                 },
                 "certificateProvider": {

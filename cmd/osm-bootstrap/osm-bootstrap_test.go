@@ -25,7 +25,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
   "enablePrivilegedInitContainer": false,
   "logLevel": "error",
   "maxDataPlaneConnections": 0,
-  "envoyImage": "envoyproxy/envoy-alpine:v1.18.3",
+  "envoyImage": "envoyproxy/envoy-alpine:v1.19.0",
   "initContainerImage": "openservicemesh/init:v0.9.1",
   "configResyncInterval": "2s"
 },

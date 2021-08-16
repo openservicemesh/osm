@@ -17,7 +17,7 @@ OpenServiceMesh:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.18.3
+  sidecarImage: envoyproxy/envoy-alpine:v1.19.0
 
   #
   # -- OSM controller parameters
@@ -301,3 +301,9 @@ OpenServiceMesh:
 contour:
   # -- Enables deployment of Contour control plane and gateway
   enabled: false
+  # -- Contour envoy edge proxy configuration
+  envoy:
+    image:
+      registry: docker.io
+      repository: envoyproxy/envoy-alpine
+      tag: v1.19.0
