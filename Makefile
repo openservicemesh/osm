@@ -209,7 +209,7 @@ docker-build-osm-bootstrap: build-osm-bootstrap
 
 pkg/envoy/lds/stats.wasm: wasm/stats.cc wasm/Makefile
 	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
-	@mv wasm/stats.wasm $@
+	@mv -f wasm/stats.wasm $@
 
 .PHONY: docker-build
 docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-bootstrap
