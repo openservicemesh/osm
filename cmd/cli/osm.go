@@ -3,6 +3,7 @@ package main
 
 import (
 	goflag "flag"
+	"fmt"
 	"io"
 	"os"
 
@@ -83,4 +84,8 @@ func main() {
 }
 
 func debug(format string, v ...interface{}) {
+	if settings.Verbose() {
+		format = fmt.Sprintf("[debug] %s\n", format)
+		fmt.Printf(format, v...)
+	}
 }

@@ -82,6 +82,7 @@ type EnvConfigInstall struct {
 type EnvSettings struct {
 	envConfig EnvConfig
 	config    *genericclioptions.ConfigFlags
+	verbose   bool
 }
 
 // New relevant environment variables set and returns EnvSettings
@@ -106,6 +107,7 @@ func New() *EnvSettings {
 // AddFlags binds flags to the given flagset.
 func (s *EnvSettings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.envConfig.Install.Namespace, "osm-namespace", s.envConfig.Install.Namespace, "namespace for osm control plane")
+	fs.BoolVar(&s.verbose, "verbose", s.verbose, "enable verbose output")
 }
 
 // Config returns the environment config
@@ -121,6 +123,11 @@ func (s *EnvSettings) RESTClientGetter() genericclioptions.RESTClientGetter {
 // Namespace gets the namespace from the configuration
 func (s *EnvSettings) Namespace() string {
 	return s.envConfig.Install.Namespace
+}
+
+// Verbose gets whether verbose output is enabled from the configuration
+func (s *EnvSettings) Verbose() bool {
+	return s.verbose
 }
 
 // IsManaged returns true in a managed OSM environment (ex. managed by a cloud distributor)
