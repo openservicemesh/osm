@@ -28,14 +28,14 @@ func NewConfigurator(kubeClient versioned.Interface, stop <-chan struct{}, osmNa
 	return newConfigurator(kubeClient, stop, osmNamespace, meshConfigName)
 }
 
-func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string) *Client {
+func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string) *client {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
 		meshConfigClientSet,
 		k8s.DefaultKubeEventResyncInterval,
 		informers.WithNamespace(osmNamespace),
 	)
 	informer := informerFactory.Config().V1alpha1().MeshConfigs().Informer()
-	client := Client{
+	c := &client{
 		informer:       informer,
 		cache:          informer.GetStore(),
 		osmNamespace:   osmNamespace,
@@ -51,16 +51,16 @@ func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(meshConfigInformerName, meshConfigProviderName, nil, eventTypes))
 
 	// start listener
-	go client.runMeshConfigListener(stop)
+	go c.runMeshConfigListener(stop)
 
-	client.run(stop)
+	c.run(stop)
 
-	return &client
+	return c
 }
 
 // Listens to MeshConfig events and notifies dispatcher to issue config updates to the envoys based
 // on config seen on the MeshConfig
-func (c *Client) runMeshConfigListener(stop <-chan struct{}) {
+func (c *client) runMeshConfigListener(stop <-chan struct{}) {
 	// Create the subscription channel synchronously
 	cfgSubChannel := events.Subscribe(
 		announcements.MeshConfigAdded,
@@ -95,17 +95,17 @@ func (c *Client) runMeshConfigListener(stop <-chan struct{}) {
 	}
 }
 
-func (c *Client) run(stop <-chan struct{}) {
+func (c *client) run(stop <-chan struct{}) {
 	go c.informer.Run(stop) // run the informer synchronization
 	log.Debug().Msgf("Started OSM MeshConfig informer")
-	log.Debug().Msg("[MeshConfig Client] Waiting for MeshConfig informer's cache to sync")
+	log.Debug().Msg("[MeshConfig client] Waiting for MeshConfig informer's cache to sync")
 	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigInformerInitCache)).Msg("Failed initial cache sync for MeshConfig informer")
 		return
 	}
 
-	log.Debug().Msg("[MeshConfig Client] Cache sync for MeshConfig informer finished")
+	log.Debug().Msg("[MeshConfig client] Cache sync for MeshConfig informer finished")
 }
 
 func meshConfigAddedMessageHandler(psubMsg *events.PubSubMessage) {
@@ -183,12 +183,12 @@ func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
 	}
 }
 
-func (c *Client) getMeshConfigCacheKey() string {
+func (c *client) getMeshConfigCacheKey() string {
 	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
 }
 
 // Returns the current MeshConfig
-func (c *Client) getMeshConfig() *v1alpha1.MeshConfig {
+func (c *client) getMeshConfig() *v1alpha1.MeshConfig {
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
 	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
 	if err != nil {

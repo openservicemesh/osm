@@ -18,8 +18,8 @@ import (
 )
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, configClient config.Controller, providerIdent string, cfg configurator.Configurator) *Client {
-	return &Client{
+func NewClient(kubeController k8s.Controller, configClient config.Controller, providerIdent string, cfg configurator.Configurator) *client { //nolint:golint // exported func returns unexported type
+	return &client{
 		providerIdent:    providerIdent,
 		kubeController:   kubeController,
 		configClient:     configClient,
@@ -29,12 +29,12 @@ func NewClient(kubeController k8s.Controller, configClient config.Controller, pr
 
 // GetID returns a string descriptor / identifier of the compute provider.
 // Required by interfaces: EndpointsProvider, ServiceProvider
-func (c *Client) GetID() string {
+func (c *client) GetID() string {
 	return c.providerIdent
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
+func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
@@ -78,7 +78,7 @@ func (c *Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 
 // ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
+func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
 	log.Trace().Msgf("[%s] (ListEndpointsForIdentity) Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 
@@ -113,7 +113,7 @@ func (c *Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 }
 
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.
-func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
+func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
 	svcAccount := svcIdentity.ToK8sServiceAccount()
@@ -158,7 +158,7 @@ func (c *Client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 }
 
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c *Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (c *client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	endpoints, err := c.kubeController.GetEndpoints(svc)
@@ -194,7 +194,7 @@ func (c *Client) GetTargetPortToProtocolMappingForService(svc service.MeshServic
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
+func (c *client) getServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
 	var finalList []service.MeshService
 	serviceList := c.kubeController.ListServices()
 
@@ -221,7 +221,7 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 
 // GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
 // FQDN is resolved
-func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+func (c *client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	var err error
 
@@ -255,7 +255,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
-func (c *Client) ListServices() ([]service.MeshService, error) {
+func (c *client) ListServices() ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
 		services = append(services, utils.K8sSvcToMeshSvc(svc))
@@ -264,7 +264,7 @@ func (c *Client) ListServices() ([]service.MeshService, error) {
 }
 
 // ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
-func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
+func (c *client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
 	serviceAccounts, err := c.kubeController.ListServiceIdentitiesForService(svc)
 	if err != nil {
 		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
@@ -283,7 +283,7 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 // GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (c *client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	k8sSvc := c.kubeController.GetService(svc)
@@ -305,7 +305,7 @@ func (c *Client) GetPortToProtocolMappingForService(svc service.MeshService) (ma
 }
 
 // GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-func (c *Client) GetHostnamesForService(svc service.MeshService, locality service.Locality) ([]string, error) {
+func (c *client) GetHostnamesForService(svc service.MeshService, locality service.Locality) ([]string, error) {
 	k8svc := c.kubeController.GetService(svc)
 	if k8svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", svc)

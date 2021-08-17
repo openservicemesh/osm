@@ -17,9 +17,8 @@ var (
 	log = logger.New("configurator")
 )
 
-// Client is the k8s client struct for the MeshConfig CRD.
-type Client struct {
-	// TODO: rename it to `client`
+// client is the type used to represent the Kubernetes client for the config.openservicemesh.io API group
+type client struct {
 	osmNamespace   string
 	informer       cache.SharedIndexInformer
 	cache          cache.Store

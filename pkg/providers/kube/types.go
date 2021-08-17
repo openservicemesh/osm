@@ -11,8 +11,8 @@ var (
 	log = logger.New("kube-provider")
 )
 
-// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
-type Client struct {
+// client is the type used to represent the k8s client for endpoints and service provider
+type client struct {
 	providerIdent    string
 	kubeController   k8s.Controller
 	configClient     config.Controller
