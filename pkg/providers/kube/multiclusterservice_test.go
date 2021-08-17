@@ -22,7 +22,7 @@ import (
 func TestHelperFunctions(t *testing.T) {
 	assert := tassert.New(t)
 
-	var client *Client
+	var c *client
 
 	mockCtrl := gomock.NewController(t)
 	mockKubeController := k8s.NewMockController(mockCtrl)
@@ -65,16 +65,16 @@ func TestHelperFunctions(t *testing.T) {
 	}}
 	mockConfigController.EXPECT().GetMultiClusterServiceByServiceAccount(tests.BookbuyerServiceName, tests.Namespace).Return(toReturnServices).AnyTimes()
 
-	client = NewClient(mockKubeController, mockConfigController, "kubernetes-endpoint-provider", mockConfigurator)
+	c = NewClient(mockKubeController, mockConfigController, "kubernetes-endpoint-provider", mockConfigurator)
 
 	// Test getMulticlusterEndpoints()
 	// returns Multicluster endpoints for a service
-	actual := client.getMulticlusterEndpoints(tests.BookbuyerService)
+	actual := c.getMulticlusterEndpoints(tests.BookbuyerService)
 	assert.Equal(actual, expectedEndpoint)
 
 	// Test getMultiClusterServiceEndpointsForServiceAccount()
 	// returns Multicluster endpoints for a service account
-	actual = client.getMultiClusterServiceEndpointsForServiceAccount(tests.BookbuyerServiceAccountName, tests.Namespace)
+	actual = c.getMultiClusterServiceEndpointsForServiceAccount(tests.BookbuyerServiceAccountName, tests.Namespace)
 	assert.Equal(actual, expectedEndpoint)
 
 	// Test getIPPort()

@@ -19,7 +19,7 @@ import (
 )
 
 func TestGetMeshConfigCacheKey(t *testing.T) {
-	c := Client{
+	c := client{
 		meshConfigName: "configName",
 		osmNamespace:   "namespaceName",
 	}

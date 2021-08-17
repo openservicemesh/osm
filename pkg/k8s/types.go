@@ -66,8 +66,8 @@ const (
 // informerCollection is the type holding the collection of informers we keep
 type informerCollection map[InformerKey]cache.SharedIndexInformer
 
-// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
-type Client struct {
+// client is the type used to represent the k8s client for the native k8s resources
+type client struct {
 	meshName     string
 	kubeClient   kubernetes.Interface
 	policyClient policyv1alpha1Client.Interface
