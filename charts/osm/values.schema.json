@@ -137,7 +137,6 @@
                 "enablePermissiveTrafficPolicy",
                 "enableEgress",
                 "deployPrometheus",
-                "deployKubeStateMetrics",
                 "deployGrafana",
                 "enableFluentbit",
                 "fluentBit",
@@ -341,15 +340,6 @@
                     "type": "boolean",
                     "title": "The deployPrometheus schema",
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
-                    "examples": [
-                        false
-                    ]
-                },
-                "deployKubeStateMetrics": {
-                    "$id": "#/properties/OpenServiceMesh/properties/deployKubeStateMetrics",
-                    "type": "boolean",
-                    "title": "The deployKubeStateMetrics schema",
-                    "description": "Indicates whether kube-state-metrics should be installed and configured as part of the osm control plane.",
                     "examples": [
                         false
                     ]
@@ -1112,10 +1102,17 @@
                     "title": "The kube-state-metrics schema",
                     "description": "kube-state-metrics configurations",
                     "required": [
+                        "enable",
                         "resources",
                         "port"
                     ],
                     "properties": {
+                        "enable": {
+                            "$id": "#/properties/OpenServiceMesh/properties/kubeStateMetrics/properties/enable",
+                            "title": "Enable kube-state-metrics",
+                            "description": "Enables kube-state-metrics",
+                            "type": "boolean"
+                        },
                         "resources": {
                             "$ref": "#/definitions/containerResources"
                         },

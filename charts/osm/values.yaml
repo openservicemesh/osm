@@ -68,14 +68,16 @@ OpenServiceMesh:
   #
   # -- kube-state-metrics parameters
   kubeStateMetrics:
+    # -- Enables deployment of kube-state-metrics
+    enable: false
     # -- kube-state-metrics container resource parameters
     resources:
       limits:
-        cpu: "1"
-        memory: "2G"
-      requests:
         cpu: "0.5"
-        memory: "512M"
+        memory: "64M"
+      requests:
+        cpu: "0.3"
+        memory: "64M"
     # -- kube-state-metrics service's port
     port: 8080
 
@@ -131,9 +133,6 @@ OpenServiceMesh:
 
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
-
-  # -- Deploy kube-state-metrics with OSM installation
-  deployKubeStateMetrics: false
 
   # -- Deploy Grafana with OSM installation
   deployGrafana: false

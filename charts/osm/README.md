@@ -71,7 +71,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
-| OpenServiceMesh.deployKubeStateMetrics | bool | `false` | Deploy kube-state-metrics with OSM installation |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
 | OpenServiceMesh.enableDebugServer | bool | `false` | Enable the debug HTTP server on OSM controller |
 | OpenServiceMesh.enableEgress | bool | `false` | Enable egress in the mesh |
@@ -115,8 +114,9 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
 | OpenServiceMesh.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | OpenServiceMesh.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
+| OpenServiceMesh.kubeStateMetrics.enable | bool | `false` | Enables deployment of kube-state-metrics |
 | OpenServiceMesh.kubeStateMetrics.port | int | `8080` | kube-state-metrics service's port |
-| OpenServiceMesh.kubeStateMetrics.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | kube-state-metrics container resource parameters |
+| OpenServiceMesh.kubeStateMetrics.resources | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | kube-state-metrics container resource parameters |
 | OpenServiceMesh.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | OpenServiceMesh.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
 | OpenServiceMesh.multicluster | object | `{"gatewayLogLevel":"error"}` | OSM multicluster feature configuration |

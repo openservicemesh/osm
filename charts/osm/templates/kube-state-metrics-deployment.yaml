@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployKubeStateMetrics }}
+{{- if .Values.OpenServiceMesh.kubeStateMetrics.enable }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

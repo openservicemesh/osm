@@ -34,6 +34,7 @@ DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 TRACING_ADDRESS="${TRACING_ADDRESS:-jaeger.${K8S_NAMESPACE}.svc.cluster.local}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
+DEPLOY_KUBE_STATE_METRICS="${DEPLOY_KUBE_STATE_METRICS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
@@ -115,6 +116,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=OpenServiceMesh.kubeStateMetrics.enable="$DEPLOY_KUBE_STATE_METRICS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
@@ -137,6 +139,7 @@ else
       --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
       --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=OpenServiceMesh.kubeStateMetrics.enable="$DEPLOY_KUBE_STATE_METRICS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
