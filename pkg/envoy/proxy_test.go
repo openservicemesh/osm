@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -447,3 +449,22 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 	})
 })
+
+func TestSubscribedResources(t *testing.T) {
+	assert := tassert.New(t)
+
+	p := Proxy{
+		subscribedResources: make(map[TypeURI]mapset.Set),
+	}
+
+	res := p.GetSubscribedResources("test")
+	assert.Zero(res.Cardinality())
+
+	p.SetSubscribedResources(TypeRDS, mapset.NewSetWith("A", "B", "C"))
+
+	res = p.GetSubscribedResources(TypeRDS)
+	assert.Equal(res.Cardinality(), 3)
+	assert.True(res.Contains("A"))
+	assert.True(res.Contains("B"))
+	assert.True(res.Contains("C"))
+}

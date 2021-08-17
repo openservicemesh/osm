@@ -17,6 +17,14 @@ var (
 // TypeURI is a string describing the Envoy xDS payload.
 type TypeURI string
 
+// IsWildcardTypeURI returns if a given TypeURI is an expected wildcard TypeURI or not.
+// XDS proto defines general client behavior as:
+// "Envoy will always use wildcard subscriptions for Listener and Cluster resources"
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#client-behavior
+func IsWildcardTypeURI(t TypeURI) bool {
+	return t == TypeCDS || t == TypeLDS
+}
+
 func (t TypeURI) String() string {
 	return string(t)
 }

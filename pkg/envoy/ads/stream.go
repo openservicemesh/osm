@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -203,8 +204,9 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Handle first request on stream case, should always reply to empty nonce
 	requestNonce = discoveryRequest.ResponseNonce
 	if requestNonce == "" {
-		log.Debug().Msgf("Proxy SerialNumber=%s PodUID=%s: Empty nonce for %s, should be first message on stream (req resources: %v)",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), discoveryRequest.ResourceNames)
+		log.Debug().Msgf("Proxy %s: Empty nonce for %s, should be first message on stream (req resources: %v)",
+			proxy.String(), typeURL.Short(), discoveryRequest.ResourceNames)
+		proxy.SetSubscribedResources(typeURL, getRequestedResourceNamesSet(discoveryRequest))
 		return true
 	}
 
@@ -220,6 +222,7 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 			proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), typeURL.Short(), requestNonce, requestVersion)
 		proxy.SetLastSentVersion(typeURL, requestVersion)
 		proxy.SetLastAppliedVersion(typeURL, requestVersion)
+		proxy.SetSubscribedResources(typeURL, getRequestedResourceNamesSet(discoveryRequest))
 		return true
 	}
 
@@ -231,26 +234,33 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 		return false
 	}
 
-	// Nonces match
-	// At this point, there is no error and nonces match, it is guaranteed an ACK with last sent version.
+	// At this point, there is no error and nonces match. It can either be an ACK or envoy could still be
+	// requesting a different set of resources on the current version for non-wildcard TypeURIs.
 	proxy.SetLastAppliedVersion(typeURL, requestVersion)
 
-	// ----
-	// What's left is to check if the resources listed are the same. If they are not, we must respond
-	// with the new resources requested.
-	//
-	// In case of LDS and CDS, "Envoy will always use wildcard mode for Listener and Cluster resources".
-	// The following logic is not needed (though correct) for LDS and CDS as request resources are also empty in ACK case.
-	//
+	// For Wildcard TypeURIs we are done. Resource names in requests are always empty, nonce alone is enough
+	// to ACK wildcard types.
+	// This is the case for LDS and CDS, "Envoy will always use wildcard mode for Listener and Cluster resources".
+	if envoy.IsWildcardTypeURI(typeURL) {
+		log.Debug().Msgf("Proxy %s: ACK received for %s, version: %d nonce: %s",
+			proxy.String(), typeURL.Short(), requestVersion, requestNonce)
+		return false
+	}
+
+	// For non-wildcard types, what's left is to check if the resources requested are the same as the ones we last sent.
+	// If they are not, we must respond to the request for the requested resources.
 	// This part of the code was inspired by Istio's `shouldRespond` handling of request resource difference
 	// https://github.com/istio/istio/blob/da6178604559bdf2c707a57f452d16bee0de90c8/pilot/pkg/xds/ads.go#L347
-	// ----
-	resourcesLastSent := proxy.GetLastResourcesSent(typeURL)
+
+	// Update subscribed resources first
 	resourcesRequested := getRequestedResourceNamesSet(discoveryRequest)
+	proxy.SetSubscribedResources(typeURL, resourcesRequested)
+	// Get resources last sent prior to this request
+	resourcesLastSent := proxy.GetLastResourcesSent(typeURL)
 
 	// If what we last sent is a superset of what the
 	// requests resources subscribes to, it's ACK and nothing needs to be done.
-	// Otherwise, envoy might be asking us for additional resources that have to be sent along last time.
+	// Otherwise, envoy might be asking us for additional resources that have to be sent along last time's resources.
 	// Difference returns elemenets of <requested> that are not part of elements of <last sent>
 
 	requestedResourcesDifference := resourcesRequested.Difference(resourcesLastSent)
@@ -265,13 +275,32 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	return false
 }
 
-// Helper to turn the resource names on a discovery request to a Set for later efficient intersection
+// getRequestedResourceNamesSet is a helper to convert the resource names on a discovery request
+// to a Set for later efficient intersection
 func getRequestedResourceNamesSet(discoveryRequest *xds_discovery.DiscoveryRequest) mapset.Set {
 	resourcesRequested := mapset.NewSet()
 	for idx := range discoveryRequest.ResourceNames {
 		resourcesRequested.Add(discoveryRequest.ResourceNames[idx])
 	}
 	return resourcesRequested
+}
+
+// getResourceSliceFromMapset is a helper to convert a mapset of resource names to a string slice
+// return slice is alphabetically ordered to ensure output determinism for a given input
+func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
+	resourceSlice := []string{}
+	it := resourceMap.Iterator()
+
+	for elem := range it.C {
+		resString, ok := elem.(string)
+		if !ok {
+			log.Error().Msgf("Failed to cast resource name to string: %v", elem)
+			continue
+		}
+		resourceSlice = append(resourceSlice, resString)
+	}
+	sort.Strings(resourceSlice)
+	return resourceSlice
 }
 
 // isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.
