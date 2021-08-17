@@ -150,6 +150,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
 | OpenServiceMesh.vault.token | string | `""` | token that should be used to connect to Vault |
 | OpenServiceMesh.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
+| contour.contour | object | `{"image":{"registry":"docker.io","repository":"projectcontour/contour","tag":"v1.18.0"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
 | contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.19.0"}}` | Contour envoy edge proxy configuration |
 
