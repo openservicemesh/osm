@@ -301,6 +301,12 @@ OpenServiceMesh:
 contour:
   # -- Enables deployment of Contour control plane and gateway
   enabled: false
+  # -- Contour controller configuration
+  contour:
+    image:
+      registry: docker.io
+      repository: projectcontour/contour
+      tag: v1.18.0
   # -- Contour envoy edge proxy configuration
   envoy:
     image:
