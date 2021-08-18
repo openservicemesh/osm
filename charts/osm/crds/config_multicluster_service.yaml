@@ -86,6 +86,10 @@ spec:
                         type: integer
                         minimum: 0
                         default: 0
+                      priority:
+                        description: Priority of the remote cluster in locality based load balancing
+                        type: integer
+                        minimum: 0
                       certificate:
                         description: mTLS certificates (optional)
                         type: string

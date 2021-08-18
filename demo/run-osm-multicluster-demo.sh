@@ -126,6 +126,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
         --set=OpenServiceMesh.controllerLogLevel="trace" \
         --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
+        --set=OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
 
@@ -157,6 +158,10 @@ done
 
 echo "Switching to $ALPHA_CLUSTER"
 kubectl config use-context "$ALPHA_CLUSTER"
+
+echo "Injecting unavailable workloads to $BOOKSTORE_NAMESPACE/$BOOKBUYER_SVC"
+./demo/multicluster-fault-injection.sh apply
+echo "Run './demo/multicluster-fault-injection.sh delete' after the demo if you want to remove the injected faulty workloads."
 
 echo "Bookbuyer logs... (showing identity of responding bookstore pods)"
 sleep 2

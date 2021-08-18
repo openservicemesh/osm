@@ -17,6 +17,7 @@ import (
 )
 
 func TestNewClusterLoadAssignment(t *testing.T) {
+	remoteZoneName := "remote"
 	testCases := []struct {
 		name      string
 		svc       service.MeshService
@@ -35,7 +36,7 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: &xds_core.Locality{
-							Zone: zone,
+							Zone: localZone,
 						},
 						LbEndpoints: []*xds_endpoint.LbEndpoint{
 							{
@@ -72,9 +73,99 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: &xds_core.Locality{
-							Zone: zone,
+							Zone: localZone,
 						},
 						LbEndpoints: []*xds_endpoint.LbEndpoint{},
+					},
+				},
+			},
+		},
+		{
+			name: "multicluster: with both local and remote endpoints",
+			svc:  service.MeshService{Namespace: "ns1", Name: "bookstore-1", TargetPort: 80},
+			endpoints: []endpoint.Endpoint{
+				{IP: net.ParseIP("1.2.3.4"), Port: 80},
+				{IP: net.ParseIP("2.3.4.5"), Port: 80, Weight: endpoint.Weight(10), Priority: endpoint.Priority(2), Zone: remoteZoneName},
+			},
+			expected: &xds_endpoint.ClusterLoadAssignment{
+				ClusterName: "ns1/bookstore-1|80",
+				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+					{
+						Locality: &xds_core.Locality{
+							Zone: localZone,
+						},
+						LbEndpoints: []*xds_endpoint.LbEndpoint{
+							{
+								HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+									Endpoint: &xds_endpoint.Endpoint{
+										Address: envoy.GetAddress("1.2.3.4", 80),
+									},
+								},
+								LoadBalancingWeight: &wrappers.UInt32Value{
+									Value: 50,
+								},
+							},
+						},
+					},
+					{
+						Locality: &xds_core.Locality{
+							Zone: remoteZoneName,
+						},
+						LbEndpoints: []*xds_endpoint.LbEndpoint{
+							{
+								HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+									Endpoint: &xds_endpoint.Endpoint{
+										Address: envoy.GetAddress("2.3.4.5", 80),
+									},
+								},
+								LoadBalancingWeight: &wrappers.UInt32Value{
+									Value: 50,
+								},
+							},
+						},
+						Priority: uint32(2),
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: 10,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "multicluster: with only remote endpoints",
+			svc:  service.MeshService{Namespace: "ns1", Name: "bookstore-1", TargetPort: 80},
+			endpoints: []endpoint.Endpoint{
+				{IP: net.ParseIP("2.3.4.5"), Port: 80, Weight: endpoint.Weight(10), Zone: remoteZoneName},
+			},
+			expected: &xds_endpoint.ClusterLoadAssignment{
+				ClusterName: "ns1/bookstore-1|80",
+				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+					{
+						Locality: &xds_core.Locality{
+							Zone: localZone,
+						},
+						LbEndpoints: []*xds_endpoint.LbEndpoint{},
+					},
+					{
+						Locality: &xds_core.Locality{
+							Zone: remoteZoneName,
+						},
+						LbEndpoints: []*xds_endpoint.LbEndpoint{
+							{
+								HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+									Endpoint: &xds_endpoint.Endpoint{
+										Address: envoy.GetAddress("2.3.4.5", 80),
+									},
+								},
+								LoadBalancingWeight: &wrappers.UInt32Value{
+									Value: 100,
+								},
+							},
+						},
+						Priority: remoteClusterPriority,
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: 10,
+						},
 					},
 				},
 			},
@@ -84,7 +175,6 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			actual := newClusterLoadAssignment(tc.svc, tc.endpoints)
 			assert.True(cmp.Equal(tc.expected, actual, protocmp.Transform()), cmp.Diff(tc.expected, actual, protocmp.Transform()))
 		})

@@ -12,21 +12,24 @@ import (
 )
 
 const (
-	zone = "zone"
+	localZone             = "local"
+	localClusterPriority  = uint32(0)
+	remoteClusterPriority = uint32(1)
 )
 
 // newClusterLoadAssignment returns the cluster load assignments for the given service and its endpoints
 func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
+	localLbEndpoints := &xds_endpoint.LocalityLbEndpoints{
+		Locality: &xds_core.Locality{
+			Zone: localZone,
+		},
+		LbEndpoints: []*xds_endpoint.LbEndpoint{},
+		Priority:    localClusterPriority,
+	}
+
 	cla := &xds_endpoint.ClusterLoadAssignment{
 		ClusterName: svc.EnvoyClusterName(),
-		Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-			{
-				Locality: &xds_core.Locality{
-					Zone: zone,
-				},
-				LbEndpoints: []*xds_endpoint.LbEndpoint{},
-			},
-		},
+		Endpoints:   []*xds_endpoint.LocalityLbEndpoints{localLbEndpoints},
 	}
 
 	// If there are no service endpoints corresponding to this service, we
@@ -53,7 +56,28 @@ func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoi
 				Value: uint32(lbWeightPerEndpoint),
 			},
 		}
-		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, lbEpt)
+
+		// Endpoint without a weight set implies it belongs to the local cluster
+		if meshEndpoint.Weight == 0 {
+			localLbEndpoints.LbEndpoints = append(localLbEndpoints.LbEndpoints, lbEpt)
+			continue
+		}
+
+		// Endpoint belongs to a remote cluster, configure its locality
+		remoteLbEndpoints := &xds_endpoint.LocalityLbEndpoints{
+			Locality: &xds_core.Locality{
+				Zone: meshEndpoint.Zone,
+			},
+			LbEndpoints: []*xds_endpoint.LbEndpoint{lbEpt},
+			Priority:    remoteClusterPriority,
+			LoadBalancingWeight: &wrappers.UInt32Value{
+				Value: uint32(meshEndpoint.Weight),
+			},
+		}
+		if meshEndpoint.Priority != 0 {
+			remoteLbEndpoints.Priority = uint32(meshEndpoint.Priority)
+		}
+		cla.Endpoints = append(cla.Endpoints, remoteLbEndpoints)
 	}
 
 	return cla

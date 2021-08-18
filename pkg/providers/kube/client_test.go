@@ -760,8 +760,10 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 						Name:    "remote-cluster-1",
 					},
 					{
-						Address: "5.6.7.8:8080",
-						Name:    "remote-cluster-2",
+						Address:  "5.6.7.8:8080",
+						Name:     "remote-cluster-2",
+						Weight:   1,
+						Priority: 2,
 					},
 				},
 				ServiceAccount: destSA.Name,
@@ -783,12 +785,18 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 
 	assert.ElementsMatch(endpoints, []endpoint.Endpoint{
 		{
-			IP:   net.ParseIP("1.2.3.4"),
-			Port: 8080,
+			IP:       net.ParseIP("1.2.3.4"),
+			Port:     8080,
+			Weight:   0,
+			Priority: 0,
+			Zone:     "remote-cluster-1",
 		},
 		{
-			IP:   net.ParseIP("5.6.7.8"),
-			Port: 8080,
+			IP:       net.ParseIP("5.6.7.8"),
+			Port:     8080,
+			Weight:   1,
+			Priority: 2,
+			Zone:     "remote-cluster-2",
 		},
 	})
 }
