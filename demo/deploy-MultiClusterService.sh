@@ -28,5 +28,6 @@ spec:
   clusters:
   - name: $BETA_CLUSTER
     address: $BETA_OSM_GATEWAY_IP:15443
+    weight: 20
   serviceAccount: bookstore-v1
 EOF

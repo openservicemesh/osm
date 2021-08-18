@@ -51,6 +51,7 @@ func TestHelperFunctions(t *testing.T) {
 	expectedEndpoint := []endpoint.Endpoint{{
 		IP:   net.IPv4(1, 2, 3, 4),
 		Port: 5678,
+		Zone: "alpha",
 	}}
 
 	toReturnServices := []v1alpha1.MultiClusterService{{

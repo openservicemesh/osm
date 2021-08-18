@@ -50,6 +50,9 @@ type ClusterSpec struct {
 
 	// Weight defines the load balancing weight of the remote cluster
 	Weight int `json:"weight,omitempty"`
+
+	// Priority defines the priority of the remote cluster in locality based load balancing
+	Priority int `json:"priority,omitempty"`
 }
 
 // PortSpec contains information on service's port.

@@ -48,8 +48,11 @@ func (c *client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 			}
 
 			ep := endpoint.Endpoint{
-				IP:   ip,
-				Port: endpoint.Port(port),
+				IP:       ip,
+				Port:     endpoint.Port(port),
+				Weight:   endpoint.Weight(cluster.Weight),
+				Priority: endpoint.Priority(cluster.Priority),
+				Zone:     cluster.Name,
 			}
 			endpoints = append(endpoints, ep)
 		}
