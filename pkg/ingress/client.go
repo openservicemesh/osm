@@ -30,14 +30,6 @@ var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), netwo
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
-	supportedIngressVersions, err := getSupportedIngressVersions(kubeClient.Discovery())
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingSupportedIngressVersions)).
-			Msgf("Error retrieving ingress API versions supported by k8s API server")
-		return nil, err
-	}
-
 	// Ignore ingresses that have the ignore label
 	ignoreLabel, _ := labels.NewRequirement(constants.IgnoreLabel, selection.DoesNotExist, nil)
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
@@ -66,6 +58,8 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		cfg:            cfg,
 		certProvider:   certProvider,
 	}
+
+	supportedIngressVersions := getSupportedIngressVersions(kubeClient.Discovery())
 
 	if v1Supported, ok := supportedIngressVersions[networkingV1.SchemeGroupVersion.String()]; ok && v1Supported {
 		c.informerV1 = informerFactory.Networking().V1().Ingresses().Informer()
@@ -215,14 +209,12 @@ func (c client) GetIngressNetworkingV1(meshService service.MeshService) ([]*netw
 }
 
 // getSupportedIngressVersions returns a map comprising of keys matching candidate ingress API versions
-// and corresponding values indidicating if they are supported by the k8s API server or not. An error
-// is returned in case this cannot be determined.
+// and corresponding values indidicating if they are supported by the k8s API server or not.
 // Example return values:
-// - only networking.k8s.io/v1 is supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': false}, nil
-// - only networking.k8s.io/v1beta1 is supported: {'networking.k8s.io/v1': false, 'networking.k8s.io/v1beta1': true}, nil
-// - both networking.k8s.io/v1 and networking.k8s.io/v1beta1 are supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': true}, nil
-// - on error: nil, error
-func getSupportedIngressVersions(client discovery.ServerResourcesInterface) (map[string]bool, error) {
+// - only networking.k8s.io/v1 is supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': false}
+// - only networking.k8s.io/v1beta1 is supported: {'networking.k8s.io/v1': false, 'networking.k8s.io/v1beta1': true}
+// - both networking.k8s.io/v1 and networking.k8s.io/v1beta1 are supported: {'networking.k8s.io/v1': true, 'networking.k8s.io/v1beta1': true}
+func getSupportedIngressVersions(client discovery.ServerResourcesInterface) map[string]bool {
 	versions := make(map[string]bool)
 
 	for _, groupVersion := range candidateVersions {
@@ -231,7 +223,8 @@ func getSupportedIngressVersions(client discovery.ServerResourcesInterface) (map
 
 		list, err := client.ServerResourcesForGroupVersion(groupVersion)
 		if err != nil {
-			return nil, err
+			// The 'groupVersion' is not supported by the API server
+			continue
 		}
 
 		for _, elem := range list.APIResources {
@@ -242,5 +235,5 @@ func getSupportedIngressVersions(client discovery.ServerResourcesInterface) (map
 		}
 	}
 
-	return versions, nil
+	return versions
 }

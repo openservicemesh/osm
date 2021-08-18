@@ -113,10 +113,6 @@ const (
 
 	// ErrUnmarshallingKubernetesResource indicates that a Kubernetes resource could not be unmarshalled
 	ErrUnmarshallingKubernetesResource
-
-	// ErrGettingSupportedIngressVersions indicates the mapping of Ingress API versions to the corresponding values indicating
-	// if they are supported could not be configured
-	ErrGettingSupportedIngressVersions
 )
 
 // Range 4000-4100 reserved for errors related to certificate providers
@@ -551,10 +547,6 @@ A Kubernetes resource could not be marshalled.
 A Kubernetes resource could not be unmarshalled.
 `,
 
-	ErrGettingSupportedIngressVersions: `
-The Ingress API versions supported by the k8s API server could not be obtained.
-`,
-
 	//
 	// Range 4000-4100
 	//
@@ -728,7 +720,7 @@ The proxy was not allowed to be a part of the mesh.
 `,
 
 	ErrGRPCStreamClosedByProxy: `
-The gRPC stream was closed by the proxy and no DiscoveryRequests can be received. 
+The gRPC stream was closed by the proxy and no DiscoveryRequests can be received.
 The Stream Agreggated Resource server was terminated for the specified proxy.
 `,
 
@@ -809,7 +801,7 @@ The corresponding certificate resource was ignored by the system.
 `,
 
 	ErrGettingServiceCertSecret: `
-An XDS secret containing a TLS certificate could not be retrieved. 
+An XDS secret containing a TLS certificate could not be retrieved.
 The corresponding secret request was ignored by the system.
 `,
 
@@ -835,7 +827,7 @@ A protobuf ProtoMessage could not be converted into YAML.
 `,
 
 	ErrParsingMutatingWebhookCert: `
-The mutating webhook certificate could not be parsed. 
+The mutating webhook certificate could not be parsed.
 The mutating webhook HTTP server was not started.
 `,
 
@@ -852,8 +844,8 @@ The timeout from an AdmissionRequest could not be parsed.
 `,
 
 	ErrInvalidAdmissionReqHeader: `
-The AdmissionRequest's header was invalid. The content type obtained from the 
-header is not supported. 
+The AdmissionRequest's header was invalid. The content type obtained from the
+header is not supported.
 `,
 
 	ErrWritingAdmissionResp: `
@@ -907,7 +899,7 @@ The ValidatingWebhookConfiguration could not be patched with the CA Bundle.
 `,
 
 	ErrParsingValidatingWebhookCert: `
-The validating webhook certificate could not be parsed. 
+The validating webhook certificate could not be parsed.
 The validating webhook HTTP server was not started.
 `,
 }
