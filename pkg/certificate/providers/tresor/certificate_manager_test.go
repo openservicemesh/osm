@@ -76,6 +76,24 @@ var _ = Describe("Test Certificate Manager", func() {
 		})
 	})
 
+	Context("Test nil certificate issue", func() {
+		validity := 3 * time.Second
+		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+		m, newCertError := NewCertManager(
+			nil,
+			"org",
+			mockConfigurator,
+			mockConfigurator.GetServiceCertValidityPeriod(),
+			mockConfigurator.GetCertKeyBitSize(),
+		)
+		It("should return nil and error of no certificate", func() {
+			Expect(m).To(BeNil())
+			Expect(newCertError).To(Equal(errNoIssuingCA))
+		})
+	})
+
 	Context("Test Getting a certificate from the cache", func() {
 		validity := 1 * time.Hour
 		cn := certificate.CommonName("Test CA")
