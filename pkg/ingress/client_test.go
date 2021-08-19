@@ -36,13 +36,10 @@ func (f *fakeDiscoveryClient) ServerResourcesForGroupVersion(groupVersion string
 }
 
 func TestGetSupportedIngressVersions(t *testing.T) {
-	assert := tassert.New(t)
-
 	type testCase struct {
 		name             string
 		discoveryClient  discovery.ServerResourcesInterface
 		expectedVersions map[string]bool
-		exepectError     bool
 	}
 
 	testCases := []testCase{
@@ -64,7 +61,6 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 				"networking.k8s.io/v1":      true,
 				"networking.k8s.io/v1beta1": true,
 			},
-			exepectError: false,
 		},
 		{
 			name: "k8s API server supports only ingress v1beta1",
@@ -83,7 +79,6 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 				"networking.k8s.io/v1":      false,
 				"networking.k8s.io/v1beta1": true,
 			},
-			exepectError: false,
 		},
 		{
 			name: "k8s API server supports only ingress v1",
@@ -102,7 +97,6 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 				"networking.k8s.io/v1":      true,
 				"networking.k8s.io/v1beta1": false,
 			},
-			exepectError: false,
 		},
 		{
 			name: "k8s API server returns an error",
@@ -110,16 +104,33 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 				resources: map[string]metav1.APIResourceList{},
 				err:       errors.New("fake error"),
 			},
-			expectedVersions: nil,
-			exepectError:     true,
+			expectedVersions: map[string]bool{
+				"networking.k8s.io/v1":      false,
+				"networking.k8s.io/v1beta1": false,
+			},
+		},
+		{
+			name: "k8s API server does not support the networking.k8s.io/v1beta1 group version",
+			discoveryClient: &fakeDiscoveryClient{
+				resources: map[string]metav1.APIResourceList{
+					"networking.k8s.io/v1beta1": {APIResources: []metav1.APIResource{
+						{Kind: "Ingress"},
+					}},
+				},
+				err: errors.New("fake"),
+			},
+			expectedVersions: map[string]bool{
+				"networking.k8s.io/v1":      false,
+				"networking.k8s.io/v1beta1": false,
+			},
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			versions, err := getSupportedIngressVersions(tc.discoveryClient)
+			assert := tassert.New(t)
 
-			assert.Equal(tc.exepectError, err != nil)
+			versions := getSupportedIngressVersions(tc.discoveryClient)
 			assert.Equal(tc.expectedVersions, versions)
 		})
 	}
