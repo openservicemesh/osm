@@ -20,6 +20,7 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -79,6 +80,28 @@ func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.Servic
 		return svcAc, err
 	}
 	return svcAc, nil
+}
+
+// CreateRole is a wrapper to create a role
+func (td *OsmTestData) CreateRole(ns string, role *rbacv1.Role) (*rbacv1.Role, error) {
+	r, err := td.Client.RbacV1().Roles(ns).Create(context.Background(), role, metav1.CreateOptions{})
+	if err != nil {
+		err := fmt.Errorf("Could not create Role: %v", err)
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// CreateRoleBinding is a wrapper to create a role binding
+func (td *OsmTestData) CreateRoleBinding(ns string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+	rb, err := td.Client.RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
+	if err != nil {
+		err := fmt.Errorf("Could not create RoleBinding: %v", err)
+		return nil, err
+	}
+
+	return rb, nil
 }
 
 // CreatePod is a wrapper to create a pod
@@ -278,6 +301,28 @@ func (td *OsmTestData) SimpleServiceAccount(name string, namespace string) corev
 		},
 	}
 	return serviceAccountDefinition
+}
+
+// SimpleRole returns a k8s typed definition for a role.
+func (td *OsmTestData) SimpleRole(name string, namespace string) rbacv1.Role {
+	roleDefinition := rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return roleDefinition
+}
+
+// SimpleRoleBinding returns a k8s typed definition for a role binding.
+func (td *OsmTestData) SimpleRoleBinding(name string, namespace string) rbacv1.RoleBinding {
+	roleBindingDefinition := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return roleBindingDefinition
 }
 
 // getKubernetesServerVersionNumber returns the version number in chunks, ex. v1.19.3 => [1, 19, 3]
