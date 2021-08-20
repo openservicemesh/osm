@@ -25,6 +25,8 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Create and push a Git tag](#create-and-push-a-git-tag)
   - [Add release notes](#add-release-notes)
   - [Update docs site](#update-docs-site)
+    - [Update API reference documentation](#update-api-reference-documentation)
+    - [Update error code documentation](#update-error-code-documentation)
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Make version changes on docs.openservicemesh.io](#make-version-changes-on-docsopenservicemeshio)
@@ -109,6 +111,31 @@ In the docs site's main branch, edit the file [https://github.com/openservicemes
   - [image: openservicemesh/bookthief:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L231)
   - [image: openservicemesh/bookstore:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L283)
   - [image: openservicemesh/bookwarehouse:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L339)
+
+### Update API reference documentation
+
+Follow the [Generating API Reference Documentation](/docs/api_reference/README) guide to update the API references on the docs site.
+
+### Update error code documentation
+
+In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update the OSM error code table.
+
+1. Build OSM on the release branch.
+1. Generate the mapping of OSM error codes and their descriptions using the `osm support` cli tool.
+
+   ```
+   ./bin/osm support error-info
+
+    +------------+----------------------------------------------------------------------------------+
+    | ERROR CODE |                                   DESCRIPTION                                    |
+    +------------+----------------------------------------------------------------------------------+
+    | E1000      | An invalid command line argument was passed to the application.                  |
+    +------------+----------------------------------------------------------------------------------+
+    | E1001      | The specified log level could not be set in the system.                          |
+   ```
+
+1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
+1. If there were updates to the table, make a PR in the OSM docs repository.
 
 ## Announce the new release
 
