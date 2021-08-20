@@ -32,6 +32,7 @@ import (
 	helmcli "helm.sh/helm/v3/pkg/cli"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -1434,16 +1435,45 @@ func (td *OsmTestData) GrabLogs() error {
 	return nil
 }
 
-// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
-func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
+// addOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) addOpenShiftSCC(scc, serviceAccount, namespace string) error {
 	if !td.DeployOnOpenShift {
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
-	args := []string{"adm", "policy", "add-scc-to-user", scc, "-z", serviceAccount, "-n", namespace}
-	stdout, stderr, err := td.RunLocal("oc", args...)
+
+	roleName := serviceAccount + "-scc"
+	roleDefinition := td.simpleRole(roleName, namespace)
+	policyRule := rbacv1.PolicyRule{
+		APIGroups:     []string{"security.openshift.io"},
+		ResourceNames: []string{scc},
+		Resources:     []string{"securitycontextconstraints"},
+		Verbs:         []string{"use"},
+	}
+	roleDefinition.Rules = []rbacv1.PolicyRule{policyRule}
+
+	_, err := td.createRole(namespace, &roleDefinition)
 	if err != nil {
-		td.T.Logf("stdout:\n%s", stdout)
-		return errors.Errorf("failed to add SCC %s to %s/%s: %s", scc, namespace, serviceAccount, stderr)
+		return errors.Errorf("Failed to create Role %s: %s", roleName, err)
+	}
+
+	roleBindingName := serviceAccount + "-scc"
+	roleBindingDefinition := td.simpleRoleBinding(roleBindingName, namespace)
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      serviceAccount,
+		Namespace: namespace,
+	}
+	roleBindingDefinition.Subjects = []rbacv1.Subject{subject}
+	roleRef := rbacv1.RoleRef{
+		Kind:     "Role",
+		Name:     roleName,
+		APIGroup: "rbac.authorization.k8s.io",
+	}
+	roleBindingDefinition.RoleRef = roleRef
+
+	_, err = td.createRoleBinding(namespace, &roleBindingDefinition)
+	if err != nil {
+		return errors.Errorf("Failed to create RoleBinding %s: %s", roleBindingName, err)
 	}
 
 	return nil
