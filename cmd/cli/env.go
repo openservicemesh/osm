@@ -42,34 +42,29 @@ package main
 import (
 	"fmt"
 	"io"
-	"sort"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 const envHelp = `
 This command prints out all the environment information used by OSM
 `
 
-func newEnvCmd(out io.Writer) *cobra.Command {
+func newEnvCmd(stdout io.Writer, stderr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "env",
 		Short: "osm client environment information",
 		Long:  envHelp,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			envVars := settings.EnvVars()
-
-			// Sort the variables by alphabetical order.
-			// This allows for a constant output across calls to 'osm env'.
-			var keys []string
-			for k := range envVars {
-				keys = append(keys, k)
+			envConfig := settings.Config()
+			config, err := yaml.Marshal(&envConfig)
+			if err != nil {
+				fmt.Fprintf(stderr, "Error redendering environment information: %s", err)
+				return
 			}
-			sort.Strings(keys)
-			for _, k := range keys {
-				fmt.Fprintf(out, "%s=\"%s\"\n", k, envVars[k])
-			}
+			fmt.Printf("--- \n%s\n", string(config))
 		},
 	}
 	return cmd

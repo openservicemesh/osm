@@ -37,17 +37,23 @@ func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer,
 	// Add subcommands here
 	cmd.AddCommand(
 		newMeshCmd(config, stdin, stdout),
-		newEnvCmd(stdout),
-		newInstallCmd(config, stdout),
-		newDashboardCmd(config, stdout),
+		newEnvCmd(stdout, stderr),
 		newNamespaceCmd(stdout),
 		newMetricsCmd(stdout),
 		newVersionCmd(stdout),
 		newProxyCmd(config, stdout),
 		newPolicyCmd(stdout, stderr),
-		newUninstallCmd(config, stdin, stdout),
 		newSupportCmd(config, stdout, stderr),
 	)
+
+	// Add subcommands related to unmanaged environments
+	if !settings.IsManaged() {
+		cmd.AddCommand(
+			newInstallCmd(config, stdout),
+			newUninstallCmd(config, stdin, stdout),
+			newDashboardCmd(config, stdout),
+		)
+	}
 
 	_ = flags.Parse(args)
 
