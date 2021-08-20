@@ -1435,14 +1435,14 @@ func (td *OsmTestData) GrabLogs() error {
 	return nil
 }
 
-// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
-func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
+// addOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) addOpenShiftSCC(scc, serviceAccount, namespace string) error {
 	if !td.DeployOnOpenShift {
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
 
 	roleName := serviceAccount + "-scc"
-	roleDefinition := td.SimpleRole(roleName, namespace)
+	roleDefinition := td.simpleRole(roleName, namespace)
 	policyRule := rbacv1.PolicyRule{
 		APIGroups:     []string{"security.openshift.io"},
 		ResourceNames: []string{scc},
@@ -1451,13 +1451,13 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 	}
 	roleDefinition.Rules = []rbacv1.PolicyRule{policyRule}
 
-	_, err := td.CreateRole(namespace, &roleDefinition)
+	_, err := td.createRole(namespace, &roleDefinition)
 	if err != nil {
 		return errors.Errorf("Failed to create Role %s: %s", roleName, err)
 	}
 
 	roleBindingName := serviceAccount + "-scc"
-	roleBindingDefinition := td.SimpleRoleBinding(roleBindingName, namespace)
+	roleBindingDefinition := td.simpleRoleBinding(roleBindingName, namespace)
 	subject := rbacv1.Subject{
 		Kind:      "ServiceAccount",
 		Name:      serviceAccount,
@@ -1471,7 +1471,7 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 	}
 	roleBindingDefinition.RoleRef = roleRef
 
-	_, err = td.CreateRoleBinding(namespace, &roleBindingDefinition)
+	_, err = td.createRoleBinding(namespace, &roleBindingDefinition)
 	if err != nil {
 		return errors.Errorf("Failed to create RoleBinding %s: %s", roleBindingName, err)
 	}

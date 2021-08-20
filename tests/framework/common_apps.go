@@ -76,14 +76,14 @@ func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.Servic
 		return nil, err
 	}
 	if Td.DeployOnOpenShift {
-		err = Td.AddOpenShiftSCC("privileged", svcAc.Name, svcAc.Namespace)
+		err = Td.addOpenShiftSCC("privileged", svcAc.Name, svcAc.Namespace)
 		return svcAc, err
 	}
 	return svcAc, nil
 }
 
-// CreateRole is a wrapper to create a role
-func (td *OsmTestData) CreateRole(ns string, role *rbacv1.Role) (*rbacv1.Role, error) {
+// createRole is a wrapper to create a role
+func (td *OsmTestData) createRole(ns string, role *rbacv1.Role) (*rbacv1.Role, error) {
 	r, err := td.Client.RbacV1().Roles(ns).Create(context.Background(), role, metav1.CreateOptions{})
 	if err != nil {
 		err := fmt.Errorf("Could not create Role: %v", err)
@@ -93,8 +93,8 @@ func (td *OsmTestData) CreateRole(ns string, role *rbacv1.Role) (*rbacv1.Role, e
 	return r, nil
 }
 
-// CreateRoleBinding is a wrapper to create a role binding
-func (td *OsmTestData) CreateRoleBinding(ns string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+// createRoleBinding is a wrapper to create a role binding
+func (td *OsmTestData) createRoleBinding(ns string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
 	rb, err := td.Client.RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 	if err != nil {
 		err := fmt.Errorf("Could not create RoleBinding: %v", err)
@@ -303,8 +303,8 @@ func (td *OsmTestData) SimpleServiceAccount(name string, namespace string) corev
 	return serviceAccountDefinition
 }
 
-// SimpleRole returns a k8s typed definition for a role.
-func (td *OsmTestData) SimpleRole(name string, namespace string) rbacv1.Role {
+// simpleRole returns a k8s typed definition for a role.
+func (td *OsmTestData) simpleRole(name string, namespace string) rbacv1.Role {
 	roleDefinition := rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -314,8 +314,8 @@ func (td *OsmTestData) SimpleRole(name string, namespace string) rbacv1.Role {
 	return roleDefinition
 }
 
-// SimpleRoleBinding returns a k8s typed definition for a role binding.
-func (td *OsmTestData) SimpleRoleBinding(name string, namespace string) rbacv1.RoleBinding {
+// simpleRoleBinding returns a k8s typed definition for a role binding.
+func (td *OsmTestData) simpleRoleBinding(name string, namespace string) rbacv1.RoleBinding {
 	roleBindingDefinition := rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
