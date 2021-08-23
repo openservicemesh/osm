@@ -21,7 +21,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -38,12 +37,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		// generated YAML looks like!
 		expectedEnvoyBootstrapConfigFileName        = "expected_envoy_bootstrap_config.yaml"
 		actualGeneratedEnvoyBootstrapConfigFileName = "actual_envoy_bootstrap_config.yaml"
-
-		expectedXDSClusterWithoutProbesFileName = "expected_xds_cluster_without_probes.yaml"
-		actualXDSClusterWithoutProbesFileName   = "actual_xds_cluster_without_probes.yaml"
-
-		expectedXDSClusterWithProbesFileName = "expected_xds_cluster_with_probes.yaml"
-		actualXDSClusterWithProbesFileName   = "actual_xds_cluster_with_probes.yaml"
 
 		// All the YAML files listed above are in this sub-directory
 		directoryForYAMLFiles = "test_fixtures"
@@ -178,42 +171,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 			// Now check the entire struct
 			Expect(*secret).To(Equal(expected))
-		})
-	})
-
-	Context("Test getXdsCluster()", func() {
-		It("creates XDS Cluster struct without health probes", func() {
-			config.OriginalHealthProbes = probes
-			actualXds, err := getXdsCluster(config)
-			Expect(err).To(BeNil())
-
-			actualYAML, err := utils.ProtoToYAML(actualXds)
-			Expect(err).To(BeNil())
-			saveActualEnvoyYAML(actualXDSClusterWithoutProbesFileName, actualYAML)
-			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
-			// difference when there is a discrepancy.
-			expectedYAML := getExpectedEnvoyYAML(expectedXDSClusterWithoutProbesFileName)
-
-			Expect(string(actualYAML)).To(Equal(expectedYAML),
-				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
-					expectedXDSClusterWithoutProbesFileName, actualXDSClusterWithoutProbesFileName, expectedYAML, actualYAML))
-		})
-
-		It("creates XDS Cluster struct with health probes", func() {
-			config.OriginalHealthProbes = probes
-			actualXds, err := getXdsCluster(config)
-			Expect(err).To(BeNil())
-
-			actualYAML, err := utils.ProtoToYAML(actualXds)
-			Expect(err).To(BeNil())
-			saveActualEnvoyYAML(actualXDSClusterWithProbesFileName, actualYAML)
-			// The "marshalAndSaveToFile" function converts the complex struct into a human readable text, which helps us spot the
-			// difference when there is a discrepancy.
-			expectedYAML := getExpectedEnvoyYAML(expectedXDSClusterWithProbesFileName)
-
-			Expect(string(actualYAML)).To(Equal(expectedYAML),
-				fmt.Sprintf("Compare files %s and %s\nExpected: %s\nActual struct: %s",
-					expectedXDSClusterWithProbesFileName, actualXDSClusterWithProbesFileName, expectedYAML, actualYAML))
 		})
 	})
 

@@ -3,21 +3,12 @@ package injector
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"google.golang.org/protobuf/types/known/durationpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -148,104 +139,4 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 
 	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
-}
-
-func getXdsCluster(config envoyBootstrapConfigMeta) (*xds_cluster.Cluster, error) {
-	httpProtocolOptions := &xds_upstream_http.HttpProtocolOptions{
-		UpstreamProtocolOptions: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_{
-			ExplicitHttpConfig: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig{
-				ProtocolConfig: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
-			},
-		},
-	}
-	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
-		return nil, err
-	}
-
-	upstreamTLSContext := &xds_transport_sockets.UpstreamTlsContext{
-		CommonTlsContext: &xds_transport_sockets.CommonTlsContext{
-			AlpnProtocols: []string{
-				"h2",
-			},
-			ValidationContextType: &xds_transport_sockets.CommonTlsContext_ValidationContext{
-				ValidationContext: &xds_transport_sockets.CertificateValidationContext{
-					TrustedCa: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.RootCert,
-						},
-					},
-				},
-			},
-			TlsParams: &xds_transport_sockets.TlsParameters{
-				TlsMinimumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_2,
-				TlsMaximumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_3,
-			},
-			TlsCertificates: []*xds_transport_sockets.TlsCertificate{
-				{
-					CertificateChain: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.Cert,
-						},
-					},
-					PrivateKey: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.Key,
-						},
-					},
-				},
-			},
-		},
-	}
-	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")
-		return nil, err
-	}
-
-	return &xds_cluster.Cluster{
-		Name:           config.XDSClusterName,
-		ConnectTimeout: durationpb.New(time.Millisecond * 250),
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_LOGICAL_DNS,
-		},
-		TypedExtensionProtocolOptions: map[string]*any.Any{
-			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": pbHTTPProtocolOptions,
-		},
-		TransportSocket: &xds_core.TransportSocket{
-			Name: "envoy.transport_sockets.tls",
-			ConfigType: &xds_core.TransportSocket_TypedConfig{
-				TypedConfig: pbUpstreamTLSContext,
-			},
-		},
-		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: config.XDSClusterName,
-			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{
-						{
-							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &xds_endpoint.Endpoint{
-									Address: &xds_core.Address{
-										Address: &xds_core.Address_SocketAddress{
-											SocketAddress: &xds_core.SocketAddress{
-												Address: config.XDSHost,
-												PortSpecifier: &xds_core.SocketAddress_PortValue{
-													PortValue: config.XDSPort,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}, nil
 }
