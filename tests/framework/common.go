@@ -563,7 +563,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 	meshConfig.Spec.Observability.EnableDebugServer = instOpts.EnableDebugServer
 
 	meshConfig.Spec.Sidecar.Resources = corev1.ResourceRequirements{}
-	meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer = false
+	meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer = instOpts.EnablePrivilegedInitContainer
 	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
