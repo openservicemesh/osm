@@ -22,7 +22,10 @@ func newMeshCmd(config *action.Configuration, in io.Reader, out io.Writer) *cobr
 		Args:  cobra.NoArgs,
 	}
 	cmd.AddCommand(newMeshList(out))
-	cmd.AddCommand(newMeshUpgradeCmd(config, out))
+
+	if !settings.IsManaged() {
+		cmd.AddCommand(newMeshUpgradeCmd(config, out))
+	}
 
 	return cmd
 }

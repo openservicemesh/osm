@@ -1,14 +1,32 @@
 package cli
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/spf13/pflag"
 	tassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestNew(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "osm_test_*.yaml")
+	require.Nil(t, err)
+	defer os.Remove(tmpFile.Name()) //nolint: errcheck
+
+	envConfig := EnvConfig{
+		Install: EnvConfigInstall{
+			Kind:      "self-hosted",
+			Namespace: "test",
+		},
+	}
+	data, err := yaml.Marshal(&envConfig)
+	require.Nil(t, err)
+	err = ioutil.WriteFile(tmpFile.Name(), data, 0600)
+	require.Nil(t, err)
+
 	tests := []struct {
 		name              string
 		args              []string
@@ -28,18 +46,18 @@ func TestNew(t *testing.T) {
 			expectedNamespace: "osm-ns",
 		},
 		{
-			name: "env var overrides default",
+			name: "config file overrides default",
 			args: nil,
 			envVars: map[string]string{
-				osmNamespaceEnvVar: "osm-env",
+				osmConfigEnvVar: tmpFile.Name(),
 			},
-			expectedNamespace: "osm-env",
+			expectedNamespace: envConfig.Install.Namespace,
 		},
 		{
-			name: "flag overrides env var",
+			name: "flag overrides config file",
 			args: []string{"--osm-namespace=osm-ns"},
 			envVars: map[string]string{
-				osmNamespaceEnvVar: "osm-env",
+				osmConfigEnvVar: tmpFile.Name(),
 			},
 			expectedNamespace: "osm-ns",
 		},
@@ -85,12 +103,7 @@ func TestNamespaceErr(t *testing.T) {
 	kConfigPath := "This doesn't even look like a valid path name"
 	env.config.KubeConfig = &kConfigPath
 
-	tassert.Equal(t, env.Namespace(), "default")
-}
-
-func TestEnvVars(t *testing.T) {
-	env := New()
-	tassert.Equal(t, map[string]string{"OSM_NAMESPACE": "osm-system"}, env.EnvVars())
+	tassert.Equal(t, env.Namespace(), "osm-system")
 }
 
 func TestRESTClientGetter(t *testing.T) {
