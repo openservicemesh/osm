@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/cli"
 	osmConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 )
 
@@ -35,7 +36,6 @@ osm policy check-pods bookbuyer-client bookstore-server
 const (
 	namespaceSeparator       = "/"
 	defaultOsmMeshConfigName = "osm-mesh-config"
-	serviceAccountKind       = "ServiceAccount"
 )
 
 type trafficPolicyCheckCmd struct {
@@ -142,26 +142,16 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 	var foundTrafficTarget bool
 	for _, trafficTarget := range trafficTargets.Items {
 		spec := trafficTarget.Spec
-		if spec.Destination.Kind != serviceAccountKind {
-			continue
-		}
 
 		// Map traffic targets to the given pods
-		if spec.Destination.Name == dstPod.Spec.ServiceAccountName && spec.Destination.Namespace == dstPod.Namespace {
-			// The TrafficTarget destination is associated to 'dstPod'
-
-			// Check if 'srcPod` is an allowed source to this destination
-			for _, source := range spec.Sources {
-				if source.Kind != serviceAccountKind {
-					continue
-				}
-
-				if source.Name == srcPod.Spec.ServiceAccountName && source.Namespace == srcPod.Namespace {
-					fmt.Fprintf(cmd.out, "[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s' via the SMI TrafficTarget policy %q in namespace %s\n",
-						srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name, trafficTarget.Name, trafficTarget.Namespace)
-					foundTrafficTarget = true
-				}
-			}
+		if !cli.DoesTargetRefDstPod(spec, dstPod) {
+			continue
+		}
+		// The TrafficTarget destination is associated to 'dstPod', check if 'srcPod` is an allowed source to this destination
+		if cli.DoesTargetRefSrcPod(spec, srcPod) {
+			foundTrafficTarget = true
+			fmt.Fprintf(cmd.out, "[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s' via the SMI TrafficTarget policy %q in namespace %s\n",
+				srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name, trafficTarget.Name, trafficTarget.Namespace)
 		}
 	}
 
