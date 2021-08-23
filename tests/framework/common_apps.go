@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -470,6 +471,30 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 	}
 
 	return serviceAccountDefinition, deploymentDefinition, serviceDefinition, nil
+}
+
+// GetOSSpecificSleepPod returns a simple OS specific busy loop pod.
+func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
+	if td.ClusterOS == constants.OSWindows {
+		return Td.SimplePodApp(SimplePodAppDef{
+			Name:      "client",
+			Namespace: sourceNs,
+			Command:   []string{"cmd", "/c"},
+			Args:      []string{"FOR /L %N IN () DO ping -n 30 127.0.0.1> nul"},
+			Image:     WindowsNanoserverDockerImage,
+			Ports:     []int{80},
+			OS:        td.ClusterOS,
+		})
+	}
+	return Td.SimplePodApp(SimplePodAppDef{
+		Name:      "client",
+		Namespace: sourceNs,
+		Command:   []string{"/bin/bash", "-c", "--"},
+		Args:      []string{"while true; do sleep 30; done;"},
+		Image:     "songrgg/alpine-debug",
+		Ports:     []int{80},
+		OS:        td.ClusterOS,
+	})
 }
 
 // GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource

@@ -10,6 +10,8 @@ import (
 
 	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
@@ -89,9 +91,13 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -s silent progress, -o output to devnull, '-D -' dump headers to "-" (stdout), -i Status code
 	// -I skip body download, '-w StatusCode:%{http_code}' prints Status code label-like for easy parsing
 	// -L follow redirects
-	commandStr := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	var commandStr string
+	if td.ClusterOS == constants.OSWindows {
+		commandStr = fmt.Sprintf("curl.exe -s -o NUL -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	} else {
+		commandStr = fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	}
 	command := strings.Fields(commandStr)
-
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
 		// Error codes from the execution come through err

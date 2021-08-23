@@ -1,8 +1,6 @@
 package bootstrap
 
 import (
-	"time"
-
 	xds_accesslog_config "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -13,7 +11,6 @@ import (
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -140,8 +137,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		StaticResources: &xds_bootstrap.Bootstrap_StaticResources{
 			Clusters: []*xds_cluster.Cluster{
 				{
-					Name:           config.XDSClusterName,
-					ConnectTimeout: durationpb.New(time.Millisecond * 250),
+					Name: config.XDSClusterName,
 					ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 						Type: xds_cluster.Cluster_LOGICAL_DNS,
 					},

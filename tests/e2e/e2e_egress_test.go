@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -32,15 +33,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				Expect(Td.AddNsToMesh(true, sourceNs)).To(Succeed())
 
 				// Get simple Pod definitions for the client
-				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      "client",
-					Namespace: sourceNs,
-					Command:   []string{"/bin/bash", "-c", "--"},
-					Args:      []string{"while true; do sleep 30; done;"},
-					Image:     "songrgg/alpine-debug",
-					Ports:     []int{80},
-					OS:        Td.ClusterOS,
-				})
+				svcAccDef, podDef, svcDef, err := Td.GetOSSpecificSleepPod(sourceNs)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
@@ -51,8 +44,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Expect it to be up and running in it's receiver namespace
-				Expect(Td.WaitForPodsRunningReady(sourceNs, 60*time.Second, 1, nil)).To(Succeed())
-
+				Expect(Td.WaitForPodsRunningReady(sourceNs, 240*time.Second, 1, nil)).To(Succeed())
 				protocols := []string{
 					"http://",
 					"https://",
@@ -66,6 +58,12 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 					for _, test := range egressURLs {
 						urls = append(urls, protocol+test)
 					}
+				}
+
+				waitTime := 60 * time.Second
+				if Td.ClusterOS == constants.OSWindows {
+					//TODO(#4027): Make the timeouts equal on all platforms.
+					waitTime = 5 * 60 * time.Second
 				}
 
 				for _, url := range urls {
@@ -84,7 +82,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 						}
 						Td.T.Logf("%s > REST req succeeded: %d", url, result.StatusCode)
 						return true
-					}, 5, 60*time.Second)
+					}, 5, waitTime)
 					Expect(cond).To(BeTrue())
 				}
 

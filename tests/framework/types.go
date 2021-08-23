@@ -72,7 +72,8 @@ type OsmTestData struct {
 
 	ClusterProvider *cluster.Provider // provider, used when kindCluster is used
 
-	DeployOnOpenShift bool // Determines whether to configure tests for OpenShift
+	DeployOnOpenShift      bool // Determines whether to configure tests for OpenShift
+	DeployOnWindowsWorkers bool // Determines whether to configure tests to run on Windows workers
 }
 
 // InstallOSMOpts describes install options for OSM
