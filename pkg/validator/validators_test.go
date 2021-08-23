@@ -186,6 +186,80 @@ func TestIngressBackendValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "",
 		},
+		{
+			name: "IngressBackend with valid source IPRange",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "IPRange",
+									"name": "10.0.0.0/10"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "IngressBackend with invalid source IPRange errors",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "IPRange",
+									"name": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.Name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
+		},
 	}
 
 	for _, tc := range testCases {

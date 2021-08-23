@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 
@@ -103,6 +104,16 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 						sourceIPRanges = append(sourceIPRanges, sourceCIDR)
 					}
 				}
+
+			case policyV1alpha1.KindIPRange:
+				if _, _, err := net.ParseCIDR(source.Name); err != nil {
+					// This should not happen because the validating webhook will prevent it. This check has
+					// been added as a safety net to prevent invalid configs.
+					log.Error().Err(err).Msgf("Invalid IP address range specified in IngressBackend %s/%s: %s",
+						ingressBackendPolicy.Namespace, ingressBackendPolicy.Name, source.Name)
+					continue
+				}
+				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
 				var sourceIdentity identity.ServiceIdentity

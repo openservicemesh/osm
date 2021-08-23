@@ -92,6 +92,17 @@ func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 		}
 	}
 
+	// Validate sources
+	for _, source := range ingressBackend.Spec.Sources {
+		switch source.Kind {
+		// Add validation for source kinds here
+		case policyv1alpha1.KindIPRange:
+			if _, _, err := net.ParseCIDR(source.Name); err != nil {
+				return nil, errors.Errorf("Invalid 'source.Name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+			}
+		}
+	}
+
 	return nil, nil
 }
 

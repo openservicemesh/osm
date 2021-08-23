@@ -59,6 +59,9 @@ const (
 
 	// KindAuthenticatedPrincipal is the kind corresponding to an authenticated principal.
 	KindAuthenticatedPrincipal = "AuthenticatedPrincipal"
+
+	// KindIPRange is the kind corresponding to an IP address range represented in CIDR notation.
+	KindIPRange = "IPRange"
 )
 
 // IngressSourceSpec is the type used to represent the Source in the list of Sources specified in an

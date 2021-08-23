@@ -2567,6 +2567,73 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			expectedPolicy: nil,
 			expectError:    true,
 		},
+		{
+			name:                        "HTTP ingress with IPRange as a source using the IngressBackend API",
+			ingressBackendPolicyEnabled: true,
+			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns"},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "10.0.0.0/10",
+						},
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "20.0.0.0/10",
+						},
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "invalid", // should be ignored
+						},
+					},
+				},
+			},
+			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
+				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+					{
+						Name: "testns/foo_from_ingress-backend-1",
+						Hostnames: []string{
+							"*",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "testns/foo",
+										Weight:      100,
+									}),
+								},
+								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							},
+						},
+					},
+				},
+				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+					{
+						Name:           "ingress_testns/foo_80_http",
+						Protocol:       "http",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.0/10", "20.0.0.0/10"}, // 'IPRange' referenced as a source
+					},
+				},
+			},
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {
