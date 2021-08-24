@@ -139,6 +139,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | OpenServiceMesh.pspEnabled | bool | `false` | Run OSM with PodSecurityPolicy configured |
 | OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.19.0"` | Envoy sidecar image |
+| OpenServiceMesh.sidecarWindowsImage | string | `"envoyproxy/envoy-windows:v1.19.0"` |  |
 | OpenServiceMesh.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |

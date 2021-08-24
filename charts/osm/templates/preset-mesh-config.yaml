@@ -10,6 +10,7 @@ data:
         "logLevel": "{{.Values.OpenServiceMesh.envoyLogLevel}}",
         "maxDataPlaneConnections": {{.Values.OpenServiceMesh.maxDataPlaneConnections}},
         "envoyImage": "{{.Values.OpenServiceMesh.sidecarImage}}",
+        "envoyWindowsImage": "{{.Values.OpenServiceMesh.sidecarWindowsImage}}",
         "initContainerImage": "{{ .Values.OpenServiceMesh.image.registry }}/init:{{ .Values.OpenServiceMesh.image.tag }}",
         "configResyncInterval": "{{.Values.OpenServiceMesh.configResyncInterval}}"
       },

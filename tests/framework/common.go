@@ -149,6 +149,7 @@ func registerFlags(td *OsmTestData) {
 
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", true, "Enable tagging Namespaces for metrics collection")
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
+	flag.BoolVar(&td.DeployOnWindowsWorkers, "deployOnWindowsWorkers", false, "Configure tests to run on Windows workers")
 }
 
 // ValidateStringParams validates input string parameters are valid
@@ -212,7 +213,11 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.TestDirName = fmt.Sprintf("test-%d", td.TestID)
 	td.T.Log(color.HiGreenString("> ID for test: %d, Test dir (abs): %s", td.TestID, td.GetTestDirPath()))
 
-	td.ClusterOS = constants.OSLinux
+	if td.DeployOnWindowsWorkers {
+		td.ClusterOS = constants.OSWindows
+	} else {
+		td.ClusterOS = constants.OSLinux
+	}
 
 	// String parameter validation
 	err = td.ValidateStringParams()
@@ -421,9 +426,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		td.InitialRestartValues = td.GetOsmCtlComponentRestarts()
 
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
-
 		meshConfig = setMeshConfigToDefault(instOpts, meshConfig)
-
 		if _, err := Td.UpdateOSMConfig(meshConfig); err != nil {
 			return err
 		}
@@ -526,6 +529,18 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	err = td.waitForOSMControlPlane(30 * time.Second)
 	if err != nil {
 		return err
+	}
+
+	// We need to set some values to the mesh config to disable WASM which is not supported on Windows
+	// For testing we have to use the OSM dev image which matches the underlying OS.
+	if td.ClusterOS == constants.OSWindows {
+		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
+		meshConfig.Spec.FeatureFlags.EnableWASMStats = false
+		meshConfig.Spec.Sidecar.EnvoyWindowsImage = EnvoyOSMWindowsImage
+		_, err = Td.UpdateOSMConfig(meshConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Store current restart values for CTL processes

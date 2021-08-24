@@ -58,8 +58,7 @@ node:
   id: foo.bar.co.uk
 static_resources:
   clusters:
-  - connect_timeout: 0.250s
-    load_assignment:
+  - load_assignment:
       cluster_name: osm-controller
       endpoints:
       - lb_endpoints:

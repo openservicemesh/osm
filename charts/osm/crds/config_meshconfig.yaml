@@ -64,6 +64,11 @@ spec:
                     envoyImage:
                       description: Image for the Envoy sidecar
                       type: string
+                      default: "envoyproxy/envoy-alpine:v1.19.0"
+                    envoyWindowsImage:
+                      description: Image for the Envoy sidecar on Windows workers
+                      type: string
+                      default: "envoyproxy/envoy-windows:v1.19.0"
                     initContainerImage:
                       description: Image for the init container
                       type: string

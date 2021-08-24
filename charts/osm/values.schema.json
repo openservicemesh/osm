@@ -257,6 +257,15 @@
                         "envoyproxy/envoy-alpine:v1.19.0"
                     ]
                 },
+                "sidecarWindowsImage": {
+                    "$id": "#/properties/OpenServiceMesh/properties/sidecarWindowsImage",
+                    "type": "string",
+                    "title": "The sidecarWindowsImage schema",
+                    "description": "The proxy side car image to run on Windows payloads.",
+                    "examples": [
+                        "envoyproxy/envoy-windows:v1.19.0"
+                    ]
+                },
                 "certificateProvider": {
                     "$id": "#/properties/OpenServiceMesh/properties/certificateProvider",
                     "type": "object",
