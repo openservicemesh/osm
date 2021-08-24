@@ -773,7 +773,8 @@
                         "enableValidatingWebhook",
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
-                        "enableSnapshotCacheMode"
+                        "enableSnapshotCacheMode",
+                        "enableRetryPolicy"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -844,6 +845,15 @@
                             "type": "boolean",
                             "title": "Enable SnapshotCache feature for Envoy xDS server",
                             "description": "Enable SnapshotCache feature in OSM controller to cache snapshots for Envoy xDS configurations.",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableRetryPolicy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableRetryPolicy",
+                            "type": "boolean",
+                            "title": "Enable Retry Policy",
+                            "description": "Enable automatic request retries.",
                             "examples": [
                                 true
                             ]

@@ -55,7 +55,8 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	"enableValidatingWebhook": false,
 	"enableIngressBackendPolicy": true,
 	"enableEnvoyActiveHealthChecks": true,
-	"enableSnapshotCacheMode": true
+	"enableSnapshotCacheMode": true,
+	"enableRetryPolicy": false
 	}
 }`,
 		},
@@ -74,6 +75,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "23h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
 	assert.True(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
+	assert.False(meshConfig.Spec.FeatureFlags.EnableRetryPolicy)
 }
 
 func TestValidateCLIParams(t *testing.T) {

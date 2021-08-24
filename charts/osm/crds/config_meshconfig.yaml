@@ -233,3 +233,5 @@ spec:
                       type: boolean
                     enableEnvoyActiveHealthChecks:
                       type: boolean
+                    enableRetryPolicy:
+                      type: boolean
