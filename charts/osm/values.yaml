@@ -17,8 +17,8 @@ OpenServiceMesh:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
-  sidecarImage: envoyproxy/envoy-alpine:v1.19.0
-  sidecarWindowsImage: envoyproxy/envoy-windows:v1.19.0
+  sidecarImage: envoyproxy/envoy-alpine:v1.19.1
+  sidecarWindowsImage: envoyproxy/envoy-windows:v1.19.1
 
   #
   # -- OSM controller parameters
@@ -315,4 +315,4 @@ contour:
     image:
       registry: docker.io
       repository: envoyproxy/envoy-alpine
-      tag: v1.19.0
+      tag: v1.19.1
