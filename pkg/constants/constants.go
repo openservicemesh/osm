@@ -62,12 +62,12 @@ const (
 	DefaultOSMLogLevel = "info"
 
 	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
-	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.19.0"
+	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.19.1"
 
 	// DefaultEnvoyWindowsImage is the default envoy proxy windows sidecar image if not defined in the osm MeshConfig
 	// TODO(#3864): This should be updated to the nanoserver based image when it becomes available
 	// See https://github.com/envoyproxy/envoy/issues/16759
-	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows:v1.19.0"
+	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows:v1.19.1"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
 	DefaultInitContainerImage = "openservicemesh/init:v0.9.2"

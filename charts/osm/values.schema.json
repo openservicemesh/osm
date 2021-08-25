@@ -254,7 +254,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.19.0"
+                        "envoyproxy/envoy-alpine:v1.19.1"
                     ]
                 },
                 "sidecarWindowsImage": {
@@ -263,7 +263,7 @@
                     "title": "The sidecarWindowsImage schema",
                     "description": "The proxy side car image to run on Windows payloads.",
                     "examples": [
-                        "envoyproxy/envoy-windows:v1.19.0"
+                        "envoyproxy/envoy-windows:v1.19.1"
                     ]
                 },
                 "certificateProvider": {
