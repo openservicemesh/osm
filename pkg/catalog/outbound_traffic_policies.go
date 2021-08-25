@@ -1,15 +1,38 @@
 package catalog
 
 import (
+	"strconv"
+	"time"
+
 	mapset "github.com/deckarep/golang-set"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+)
+
+// Retry Policy
+const (
+	// RetryOnAnnotation is the annotation used to specify what to attempt a retry on
+	RetryOnAnnotation = "openservicemesh.io/retrypolicy/retry-on"
+
+	// NumRetriesAnnotation is the annotation used to specify the number of retries
+	NumRetriesAnnotation = "openservicemesh.io/retrypolicy/num-retries"
+
+	// PerTryTimeoutAnnotation is the annotation used to specify the timeout per retry attempt
+	PerTryTimeoutAnnotation = "openservicemesh.io/retrypolicy/per-try-timeout"
+)
+
+var (
+	// TODO: determine what to retry-on
+	// 5xx retries on any 5xx response code or no response (disconnect/reset/read timeout)
+	validRetryOnValues = []string{"5xx"}
 )
 
 // ListOutboundTrafficPolicies returns all outbound traffic policies
@@ -47,9 +70,16 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		for _, source := range t.Spec.Sources {
 			// TODO(draychev): must check for the correct type of ServiceIdentity as well
 			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
-				mergedPolicies := trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
-				outboundPolicies = mergedPolicies
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				break
+			}
+		}
+		if mc.configurator.GetFeatureFlags().EnableRetryPolicy {
+			retryPolicy := getRetryPolicy(t)
+			for _, out := range outboundPolicies {
+				if retryPolicy != nil {
+					trafficpolicy.MergeRoutesRetryPolicy(out.Routes, *retryPolicy)
+				}
 			}
 		}
 	}
@@ -350,4 +380,49 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	}
 
 	return dstServices
+}
+
+func getRetryPolicy(t *access.TrafficTarget) *trafficpolicy.RetryPolicy {
+	retryPolicy := new(trafficpolicy.RetryPolicy)
+	retryPolicyHasReqField := false
+	for annotationKey, annotationVal := range t.Annotations {
+		switch annotationKey {
+		case RetryOnAnnotation:
+			if !checkRetryOnVal(annotationVal, validRetryOnValues) {
+				log.Error().Msgf("Invalid retry-on value: %v, must be one of the following %v", annotationVal, validRetryOnValues)
+				break
+			}
+			retryPolicy.RetryOn = annotationVal
+			retryPolicyHasReqField = true
+		case NumRetriesAnnotation:
+			retryNum, err := strconv.Atoi(annotationVal)
+			if err != nil {
+				log.Error().Err(err).Msgf("Cannot use %v as value for %v, must be a uint32", annotationVal, annotationKey)
+				break
+			}
+			retryPolicy.NumRetries = &wrapperspb.UInt32Value{Value: uint32(retryNum)}
+		case PerTryTimeoutAnnotation:
+			timeoutTime, err := time.ParseDuration(annotationVal)
+			if err != nil {
+				log.Error().Msgf("Cannot use %v as value for %v, must be a time", annotationVal, annotationKey)
+				break
+			}
+			retryPolicy.PerTryTimeout = ptypes.DurationProto(timeoutTime)
+		}
+	}
+	if !retryPolicyHasReqField {
+		log.Error().Msgf("Retry policy does not have the required field: %v", RetryOnAnnotation)
+		return nil
+	}
+
+	return retryPolicy
+}
+
+func checkRetryOnVal(val string, allowedVals []string) bool {
+	for _, v := range allowedVals {
+		if val == v {
+			return true
+		}
+	}
+	return false
 }
