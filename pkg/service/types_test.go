@@ -29,3 +29,32 @@ func TestMeshNameString(t *testing.T) {
 	assert.Equal(ms.String(), fmt.Sprintf("%s/%s", namespace, name))
 	assert.Equal(ms.FQDN(), fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
 }
+
+func TestMeshServiceCluster(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		meshSvc                  MeshService
+		expectedClusterName      string
+		expectedLocalClusterName string
+	}{
+		{
+			name: "envoy cluster and local cluster name",
+			meshSvc: MeshService{
+				Namespace:  "ns1",
+				Name:       "s1",
+				Port:       80,
+				TargetPort: 90,
+			},
+			expectedClusterName:      "ns1/s1|90",
+			expectedLocalClusterName: "ns1/s1|90|local",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			assert.Equal(tc.expectedClusterName, tc.meshSvc.EnvoyClusterName())
+			assert.Equal(tc.expectedLocalClusterName, tc.meshSvc.EnvoyLocalClusterName())
+		})
+	}
+}

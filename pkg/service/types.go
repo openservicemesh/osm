@@ -7,12 +7,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
-const (
-	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
-	// or viceversa
-	namespaceNameSeparator = "/"
-)
-
 // Locality is the relative locality of a service. ie: if a service is being accessed from the same namespace or a
 // remote cluster.
 type Locality int
@@ -28,17 +22,42 @@ const (
 	RemoteCluster
 )
 
-// MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
+// MeshService is the struct representing a service (Kubernetes or otherwise) within the service mesh.
 type MeshService struct {
 	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
 	Namespace string
 
 	// The name of the service
 	Name string
+
+	// Port is the port number that clients use to access the service.
+	// This can be different than MeshService.TargetPort which represents the actual port number
+	// the application is accepting connections on.
+	// Port maps to ServicePort.Port in k8s: https://pkg.go.dev/k8s.io/api/core/v1#ServicePort
+	Port uint16
+
+	// TargetPort is the port number on which an application accept traffic directed to this MeshService
+	// This can be different than MeshService.Port in k8s.
+	// TargetPort maps to ServicePort.TargetPort in k8s: https://pkg.go.dev/k8s.io/api/core/v1#ServicePort
+	TargetPort uint16
+
+	// Protocol is the protocol served by the service's port
+	Protocol string
 }
 
+// String returns the string representation of the given MeshService
 func (ms MeshService) String() string {
-	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
+	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
+}
+
+// EnvoyClusterName is the name of the cluster corresponding to the MeshService in Envoy
+func (ms MeshService) EnvoyClusterName() string {
+	return fmt.Sprintf("%s/%s|%d", ms.Namespace, ms.Name, ms.TargetPort)
+}
+
+// EnvoyLocalClusterName is the name of the local cluster corresponding to the MeshService in Envoy
+func (ms MeshService) EnvoyLocalClusterName() string {
+	return fmt.Sprintf("%s/%s|%d|local", ms.Namespace, ms.Name, ms.TargetPort)
 }
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
@@ -63,26 +82,15 @@ type WeightedCluster struct {
 // Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Provider interface {
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
+	// TODO(shashank): simplify method signature
 	GetServicesForServiceIdentity(identity.ServiceIdentity) ([]MeshService, error)
 
 	// ListServices returns a list of services that are part of monitored namespaces
+	// TODO(shashank): simplify method signature
 	ListServices() ([]MeshService, error)
 
 	// ListServiceIdentitiesForService returns service identities for given service
 	ListServiceIdentitiesForService(MeshService) ([]identity.ServiceIdentity, error)
-
-	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
-	// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
-	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-	GetPortToProtocolMappingForService(MeshService) (map[uint32]string, error)
-
-	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
-	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
-	// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
-	GetTargetPortToProtocolMappingForService(MeshService) (map[uint32]string, error)
-
-	// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-	GetHostnamesForService(MeshService, Locality) ([]string, error)
 
 	// GetID returns the unique identifier of the ServiceProvider.
 	GetID() string

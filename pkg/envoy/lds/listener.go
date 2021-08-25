@@ -25,7 +25,6 @@ const (
 	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
-	singleIpv4Mask                = 32
 )
 
 func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {

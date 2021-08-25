@@ -18,17 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-// Direction is a type to signify the direction associated with a route
-type Direction int
-
-const (
-	// outboundRoute is the direction for an outbound route
-	outboundRoute Direction = iota
-
-	// inboundRoute is the direction for an inbound route
-	inboundRoute
-)
-
 const (
 	// InboundRouteConfigName is the name of the inbound mesh RDS route configuration
 	InboundRouteConfigName = "rds-inbound"
@@ -64,42 +53,34 @@ const (
 	authorityHeaderKey = ":authority"
 )
 
-// BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) []*xds_route.RouteConfiguration {
-	var routeConfiguration []*xds_route.RouteConfiguration
+// BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
+func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) []*xds_route.RouteConfiguration {
+	var routeConfigs []*xds_route.RouteConfiguration
 
-	// For both Inbound and Outbound routes, we will always generate the route resource stubs and send them even when empty,
-	// as it's a guarantee to be consistent with potential references from LDS.
-	// If envoy is not requesting these, they will just be ignored.
-	inboundRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
-	for _, in := range inbound {
-		virtualHost := buildVirtualHostStub(inboundVirtualHost, in.Name, in.Hostnames)
-		virtualHost.Routes = buildInboundRoutes(in.Rules)
-		inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
-	}
-
-	if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
-		for k, v := range proxy.StatsHeaders() {
-			inboundRouteConfig.ResponseHeadersToAdd = append(inboundRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
-				Header: &core.HeaderValue{
-					Key:   k,
-					Value: v,
-				},
-			})
+	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
+	// This is required to avoid route conflicts that can arise when the same host header
+	// has different routes on different destination ports for that host.
+	for port, configs := range portSpecificRouteConfigs {
+		routeConfig := NewRouteConfigurationStub(GetInboundMeshRouteConfigNameForPort(port))
+		for _, config := range configs {
+			virtualHost := buildVirtualHostStub(inboundVirtualHost, config.Name, config.Hostnames)
+			virtualHost.Routes = buildInboundRoutes(config.Rules)
+			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
+		if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
+			for k, v := range proxy.StatsHeaders() {
+				routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+					Header: &core.HeaderValue{
+						Key:   k,
+						Value: v,
+					},
+				})
+			}
+		}
+		routeConfigs = append(routeConfigs, routeConfig)
 	}
 
-	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
-	outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
-
-	for _, out := range outbound {
-		virtualHost := buildVirtualHostStub(outboundVirtualHost, out.Name, out.Hostnames)
-		virtualHost.Routes = buildOutboundRoutes(out.Routes)
-		outboundRouteConfig.VirtualHosts = append(outboundRouteConfig.VirtualHosts, virtualHost)
-	}
-	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
-
-	return routeConfiguration
+	return routeConfigs
 }
 
 // BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
@@ -116,6 +97,26 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *x
 	}
 
 	return ingressRouteConfig
+}
+
+// BuildOutboundMeshRouteConfiguration constructs the Envoy construct (*xds_route.RouteConfiguration) for the given outbound mesh route configs
+func BuildOutboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.OutboundTrafficPolicy) []*xds_route.RouteConfiguration {
+	var routeConfigs []*xds_route.RouteConfiguration
+
+	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
+	// This is required to avoid route conflicts that can arise when the same host header
+	// has different routes on different destination ports for that host.
+	for port, configs := range portSpecificRouteConfigs {
+		routeConfig := NewRouteConfigurationStub(GetOutboundMeshRouteConfigNameForPort(port))
+		for _, config := range configs {
+			virtualHost := buildVirtualHostStub(outboundVirtualHost, config.Name, config.Hostnames)
+			virtualHost.Routes = buildOutboundRoutes(config.Routes)
+			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
+		}
+		routeConfigs = append(routeConfigs, routeConfig)
+	}
+
+	return routeConfigs
 }
 
 // BuildEgressRouteConfiguration constructs the Envoy construct (*xds_route.RouteConfiguration) for the given egress route configs
@@ -179,7 +180,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, inboundRoute, rule.Route.RetryPolicy)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, rule.Route.RetryPolicy)
 			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
@@ -191,7 +192,7 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
-		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), outboundRoute, outRoute.RetryPolicy))
+		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.RetryPolicy))
 	}
 
 	return routes
@@ -207,14 +208,14 @@ func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*x
 		// Build the route for the given egress routing rule and method
 		// Each HTTP method corresponds to a separate route
 		for _, httpMethod := range allowedHTTPMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.TotalClustersWeight(), outboundRoute, rule.Route.RetryPolicy)
+			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.RetryPolicy)
 			routes = append(routes, route)
 		}
 	}
 	return routes
 }
 
-func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, totalWeight int, direction Direction, retryPolicy trafficpolicy.RetryPolicy) *xds_route.Route {
+func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, retryPolicy trafficpolicy.RetryPolicy) *xds_route.Route {
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			Headers: getHeadersForRoute(method, headersMap),
@@ -222,7 +223,7 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 		Action: &xds_route.Route_Route{
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
-					WeightedClusters: buildWeightedCluster(weightedClusters, totalWeight, direction),
+					WeightedClusters: buildWeightedCluster(weightedClusters),
 				},
 				RetryPolicy: &xds_route.RetryPolicy{
 					RetryOn:       retryPolicy.RetryOn,
@@ -256,26 +257,22 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 	return &route
 }
 
-func buildWeightedCluster(weightedClusters mapset.Set, totalWeight int, direction Direction) *xds_route.WeightedCluster {
+func buildWeightedCluster(weightedClusters mapset.Set) *xds_route.WeightedCluster {
 	var wc xds_route.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
-		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
-		if direction == inboundRoute {
-			// An inbound route is associated with a local cluster. The inbound route is applied
-			// on the destination cluster, and the destination clusters that accept inbound
-			// traffic have the name of the form 'someClusterName-local`.
-			clusterName = envoy.GetLocalClusterNameForServiceCluster(clusterName)
-		}
 		wc.Clusters = append(wc.Clusters, &xds_route.WeightedCluster_ClusterWeight{
-			Name:   clusterName,
+			Name:   cluster.ClusterName.String(),
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
 	}
-	if direction == outboundRoute {
-		total = totalWeight
+
+	if total < 1 {
+		// ref: https://github.com/envoyproxy/go-control-plane/blob/31f9241a16e627ba7696bed59a6353c95412ddb5/envoy/config/route/v3/route_components.pb.validate.go#L772
+		log.Error().Msgf("Total weight of weighted cluster must be >= 1, got %d", total)
+		return nil
 	}
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(wc.Clusters))
@@ -373,4 +370,14 @@ func getRegexForMethod(httpMethod string) string {
 // GetEgressRouteConfigNameForPort returns the Egress route configuration object's name given the port it is targeted to
 func GetEgressRouteConfigNameForPort(port int) string {
 	return fmt.Sprintf("%s.%d", egressRouteConfigNamePrefix, port)
+}
+
+// GetOutboundMeshRouteConfigNameForPort returns the outbound mesh route configuration object's name given the port it is targeted to
+func GetOutboundMeshRouteConfigNameForPort(port int) string {
+	return fmt.Sprintf("%s.%d", OutboundRouteConfigName, port)
+}
+
+// GetInboundMeshRouteConfigNameForPort returns the inbound mesh route configuration object's name given the port it is targeted to
+func GetInboundMeshRouteConfigNameForPort(port int) string {
+	return fmt.Sprintf("%s.%d", InboundRouteConfigName, port)
 }

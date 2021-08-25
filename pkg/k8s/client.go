@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
@@ -327,4 +328,59 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	default:
 		return nil, errors.Errorf("Unsupported type: %T", t)
 	}
+}
+
+func (c client) K8sServiceToMeshServices(svc corev1.Service) []service.MeshService {
+	var meshServices []service.MeshService
+
+	for _, portSpec := range svc.Spec.Ports {
+		meshSvc := service.MeshService{
+			Namespace: svc.Namespace,
+			Name:      svc.Name,
+			Port:      uint16(portSpec.Port),
+			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
+		}
+
+		// The endpoints for the kubernetes service carry information that allows
+		// us to retrieve the TargetPort for the MeshService.
+		endpoints, _ := c.GetEndpoints(meshSvc)
+		if endpoints != nil {
+			meshSvc.TargetPort = getTargetPortFromEndpoints(portSpec.Name, *endpoints)
+		} else {
+			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
+		}
+		meshServices = append(meshServices, meshSvc)
+	}
+	return meshServices
+}
+
+func getTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints) (endpointPort uint16) {
+	// Per https://pkg.go.dev/k8s.io/api/core/v1#ServicePort and
+	// https://pkg.go.dev/k8s.io/api/core/v1#EndpointPort, if a service has multiple
+	// ports, then ServicePort.Name must match EndpointPort.Name when considering
+	// matching endpoints for the service's port. ServicePort.Name and EndpointPort.Name
+	// can be unset when the service has a single port exposed, in which case we are
+	// guaranteed to have the same port specified in the list of EndpointPort.Subsets.
+	//
+	// The logic below works as follows:
+	// If the service has multiple ports, retrieve the matching endpoint port using
+	// the given ServicePort.Name specified by `endpointName`.
+	// Otherwise, simply return the only port referenced in EndpointPort.Subsets.
+	for _, subset := range endpoints.Subsets {
+		for _, port := range subset.Ports {
+			if endpointName == "" || len(subset.Ports) == 1 {
+				// ServicePort.Name is not passed or a single port exists on the service.
+				// Both imply that this service has a single ServicePort and EndpointPort.
+				endpointPort = uint16(port.Port)
+				return
+			}
+
+			// If more than 1 port is specified
+			if port.Name == endpointName {
+				endpointPort = uint16(port.Port)
+				return
+			}
+		}
+	}
+	return
 }

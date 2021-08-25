@@ -2,10 +2,9 @@ package lds
 
 import (
 	"fmt"
-	"sort"
+	"net"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -20,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -34,42 +34,31 @@ const (
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(proxyService)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
-			Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
-		return filterChains
-	}
-
-	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
-	for port, appProtocol := range protocolToPortMap {
-		switch strings.ToLower(appProtocol) {
-		case constants.ProtocolHTTP, constants.ProtocolGRPC:
-			// Filter chain for HTTP port
-			filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, port)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for proxy:port %s:%d", proxyService, port)
-				continue // continue building filter chains for other ports on the service
-			}
-			filterChains = append(filterChains, filterChainForPort)
-
-		case constants.ProtocolTCP:
-			filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService, port)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, port)
-				continue // continue building filter chains for other ports on the service
-			}
-			filterChains = append(filterChains, filterChainForPort)
-
-		default:
-			log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy:port %s:%d", appProtocol, proxyService, port)
+	// Create protocol specific inbound filter chains for MeshService's TargetPort
+	switch strings.ToLower(proxyService.Protocol) {
+	case constants.ProtocolHTTP, constants.ProtocolGRPC:
+		// Filter chain for HTTP port
+		filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, uint32(proxyService.TargetPort))
+		if err != nil {
+			log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
 		}
+		filterChains = append(filterChains, filterChainForPort)
+
+	case constants.ProtocolTCP:
+		filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService, uint32(proxyService.TargetPort))
+		if err != nil {
+			log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
+		}
+		filterChains = append(filterChains, filterChainForPort)
+
+	default:
+		log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy-service:port %s:%d", proxyService.Protocol, proxyService, proxyService.TargetPort)
 	}
 
 	return filterChains
 }
 
-func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshService) ([]*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshService, servicePort uint32) ([]*xds_listener.Filter, error) {
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
@@ -87,7 +76,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	// Build the HTTP Connection Manager filter from its options
 	inboundConnManager, err := httpConnManagerOptions{
 		direction:         inbound,
-		rdsRoutConfigName: route.InboundRouteConfigName,
+		rdsRoutConfigName: route.GetInboundMeshRouteConfigNameForPort(int(servicePort)),
 
 		// Additional filters
 		wasmStatsHeaders:         lb.getWASMStatsHeaders(),
@@ -119,7 +108,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 
 func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService, servicePort uint32) (*xds_listener.FilterChain, error) {
 	// Construct HTTP filters
-	filters, err := lb.getInboundHTTPFilters(proxyService)
+	filters, err := lb.getInboundHTTPFilters(proxyService, servicePort)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error constructing inbound HTTP filters for proxy service %s", proxyService)
 		return nil, err
@@ -233,10 +222,9 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 	}
 
 	// Apply the TCP Proxy Filter
-	localServiceCluster := envoy.GetLocalClusterNameForService(proxyService)
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, localServiceCluster),
-		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: localServiceCluster},
+		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, proxyService.EnvoyLocalClusterName()),
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: proxyService.EnvoyLocalClusterName()},
 	}
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
@@ -290,45 +278,29 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
 // 2. Destination port of the service
-func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.MeshService, port uint32) (*xds_listener.FilterChainMatch, error) {
+func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChainMatch, error) {
 	filterMatch := &xds_listener.FilterChainMatch{
 		DestinationPort: &wrapperspb.UInt32Value{
-			Value: port,
+			Value: uint32(trafficMatch.DestinationPort),
 		},
 	}
 
-	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingResolvableServiceEndpoints)).
-			Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
-		return nil, err
+	if len(trafficMatch.DestinationIPRanges) == 0 {
+		return nil, errors.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
 	}
+	for _, ipRange := range trafficMatch.DestinationIPRanges {
+		ip, ipNet, err := net.ParseCIDR(ipRange)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
+				Msgf("Error parsing IP range %s while building outbound mesh filter chain match %s, skipping", ipRange, trafficMatch.Name)
+			continue
+		}
 
-	if len(endpoints) == 0 {
-		err := errors.Errorf("Endpoints not found for service %q", dstSvc)
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
-			Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
-		return nil, err
-	}
-
-	endpointSet := mapset.NewSet()
-	for _, endp := range endpoints {
-		endpointSet.Add(endp.IP.String())
-	}
-
-	// For deterministic ordering
-	var sortedEndpoints []string
-	endpointSet.Each(func(elem interface{}) bool {
-		sortedEndpoints = append(sortedEndpoints, elem.(string))
-		return false
-	})
-	sort.Strings(sortedEndpoints)
-
-	for _, ip := range sortedEndpoints {
+		prefixLen, _ := ipNet.Mask.Size()
 		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
-			AddressPrefix: ip,
+			AddressPrefix: ip.String(),
 			PrefixLen: &wrapperspb.UInt32Value{
-				Value: singleIpv4Mask,
+				Value: uint32(prefixLen),
 			},
 		})
 	}
@@ -336,22 +308,22 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 	return filterMatch, nil
 }
 
-func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(upstream service.MeshService, port uint32) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get HTTP filter for service
-	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
+	filter, err := lb.getOutboundHTTPFilter(route.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting HTTP filter for upstream service %s", upstream)
+		log.Error().Err(err).Msgf("Error getting HTTP filter for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
 	// Get filter match criteria for destination service
-	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(upstream, port)
+	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(trafficMatch)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for upstream service %s", upstream)
+		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
-	filterChainName := fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, upstream)
+	filterChainName := fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, trafficMatch.Name)
 	return &xds_listener.FilterChain{
 		Name:             filterChainName,
 		Filters:          []*xds_listener.Filter{filter},
@@ -359,22 +331,22 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(upstream service
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundTCPFilterChainForService(upstream service.MeshService, port uint32) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getOutboundTCPFilterChainForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get TCP filter for service
-	filter, err := lb.getOutboundTCPFilter(upstream)
+	filter, err := lb.getOutboundTCPFilter(trafficMatch)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting outbound TCP filter for upstream service %s", upstream)
+		log.Error().Err(err).Msgf("Error getting outbound TCP filter for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
 	// Get filter match criteria for destination service
-	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(upstream, port)
+	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(trafficMatch)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for upstream service %s", upstream)
+		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
-	filterChainName := fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream)
+	filterChainName := fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, trafficMatch.Name)
 	return &xds_listener.FilterChain{
 		Name:             filterChainName,
 		Filters:          []*xds_listener.Filter{filter},
@@ -382,22 +354,22 @@ func (lb *listenerBuilder) getOutboundTCPFilterChainForService(upstream service.
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.Filter, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix: fmt.Sprintf("%s.%s", outboundMeshTCPProxyStatPrefix, upstream),
+		StatPrefix: fmt.Sprintf("%s_%s", outboundMeshTCPProxyStatPrefix, trafficMatch.Name),
 	}
 
-	weightedClusters := lb.meshCatalog.GetWeightedClustersForUpstream(upstream)
-
-	if len(weightedClusters) == 0 {
+	if len(trafficMatch.WeightedClusters) == 0 {
+		return nil, errors.Errorf("At least 1 cluster must be configured for an upstream TCP service. None set for traffic match %s", trafficMatch.Name)
 		// No weighted clusters implies a traffic split does not exist for this upstream, proxy it as is
-		tcpProxy.ClusterSpecifier = &xds_tcp_proxy.TcpProxy_Cluster{Cluster: upstream.String()}
+	} else if len(trafficMatch.WeightedClusters) == 1 {
+		tcpProxy.ClusterSpecifier = &xds_tcp_proxy.TcpProxy_Cluster{Cluster: trafficMatch.WeightedClusters[0].ClusterName.String()}
 	} else {
 		// Weighted clusters found for this upstream, proxy traffic meant for this upstream to its weighted clusters
 		var clusterWeights []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight
-		for _, cluster := range weightedClusters {
+		for _, cluster := range trafficMatch.WeightedClusters {
 			clusterWeights = append(clusterWeights, &xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
-				Name:   string(cluster.ClusterName),
+				Name:   cluster.ClusterName.String(),
 				Weight: uint32(cluster.Weight),
 			})
 		}
@@ -411,7 +383,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for upstream service %s", upstream)
+			Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
@@ -425,44 +397,34 @@ func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*
 func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	upstreamServices := lb.meshCatalog.ListMeshServicesForIdentity(lb.serviceIdentity)
-	if len(upstreamServices) == 0 {
-		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
-		return filterChains
+	outboundMeshTrafficPolicy := lb.meshCatalog.GetOutboundMeshTrafficPolicy(lb.serviceIdentity)
+	if outboundMeshTrafficPolicy == nil {
+		// no outbound mesh traffic policies
+		return nil
 	}
 
-	// Iterate all destination services
-	for _, upstreamSvc := range upstreamServices {
-		log.Trace().Msgf("Building outbound filter chain for upstream service %s for proxy with identity %s", upstreamSvc, lb.serviceIdentity)
-		protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(upstreamSvc)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
-				Msgf("Error retrieving port to protocol mapping for upstream service %s", upstreamSvc)
-			continue
-		}
-
-		// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
-		for port, appProtocol := range protocolToPortMap {
-			switch strings.ToLower(appProtocol) {
-			case constants.ProtocolHTTP, constants.ProtocolGRPC:
-				// Construct HTTP filter chain
-				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstreamSvc, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstreamSvc, lb.serviceIdentity)
-				} else {
-					filterChains = append(filterChains, httpFilterChain)
-				}
-
-			case constants.ProtocolTCP:
-				// Construct TCP filter chain
-				if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstreamSvc, port); err != nil {
-					log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstreamSvc, lb.serviceIdentity)
-				} else {
-					filterChains = append(filterChains, tcpFilterChain)
-				}
-
-			default:
-				log.Error().Msgf("Cannot build outbound filter chain, unsupported protocol %s for upstream:port %s:%d", appProtocol, upstreamSvc, port)
+	for _, trafficMatch := range outboundMeshTrafficPolicy.TrafficMatches {
+		log.Trace().Msgf("Building outbound mesh filter chain %s for proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
+		// Create an outbound filter chain match per TrafficMatch object
+		switch strings.ToLower(trafficMatch.DestinationProtocol) {
+		case constants.ProtocolHTTP, constants.ProtocolGRPC:
+			// Construct HTTP filter chain
+			if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(*trafficMatch); err != nil {
+				log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for traffic match %s on proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
+			} else {
+				filterChains = append(filterChains, httpFilterChain)
 			}
+
+		case constants.ProtocolTCP:
+			// Construct TCP filter chain
+			if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(*trafficMatch); err != nil {
+				log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for traffic match %s on proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
+			} else {
+				filterChains = append(filterChains, tcpFilterChain)
+			}
+
+		default:
+			log.Error().Msgf("Cannot build outbound filter chain, unsupported protocol %s for traffic match %s", trafficMatch.DestinationProtocol, trafficMatch.Name)
 		}
 	}
 

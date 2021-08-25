@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
@@ -780,6 +782,150 @@ func TestUpdateStatus(t *testing.T) {
 
 			_, err = c.UpdateStatus(tc.updatedResource)
 			a.Equal(tc.expectErr, err != nil)
+		})
+	}
+}
+
+func TestK8sServicesToMeshServices(t *testing.T) {
+	testCases := []struct {
+		name         string
+		svc          corev1.Service
+		svcEndpoints []runtime.Object
+		expected     []service.MeshService
+	}{
+		{
+			name: "k8s service with single port and endpoint, no appProtocol set",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should default
+			// to http.
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "p1",
+							Port: 80,
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+			},
+		},
+		{
+			name: "multiple ports on k8s service with appProtocol specified",
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name:        "p1",
+							Port:        80,
+							AppProtocol: pointer.StringPtr("http"),
+						},
+						{
+							Name:        "p2",
+							Port:        90,
+							AppProtocol: pointer.StringPtr("tcp"),
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Name:        "p1",
+									Port:        8080, // TargetPort
+									AppProtocol: pointer.StringPtr("http"),
+								},
+								{
+									// Must match the port of 'svc.Spec.Ports[1]'
+									Name:        "p2",
+									Port:        9090, // TargetPort
+									AppProtocol: pointer.StringPtr("tcp"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "tcp",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
+			stop := make(chan struct{})
+			kubeController, err := NewKubernetesController(fakeClient, nil, testMeshName, stop)
+			assert.Nil(err)
+			assert.NotNil(kubeController)
+
+			endpointsChannel := events.Subscribe(announcements.EndpointAdded)
+			defer events.Unsub(endpointsChannel)
+
+			actual := kubeController.K8sServiceToMeshServices(tc.svc)
+			assert.ElementsMatch(tc.expected, actual)
 		})
 	}
 }

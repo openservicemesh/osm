@@ -11,7 +11,9 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,7 +31,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
@@ -56,11 +57,17 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 		Expect(c.GetID()).To(Equal(providerID))
 	})
 
+	meshSvc := service.MeshService{
+		Name:       "test",
+		Namespace:  "default",
+		TargetPort: 90,
+	}
+
 	It("should correctly return a list of endpoints for a service", func() {
 		// Should be empty for now
-		mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
+		mockKubeController.EXPECT().GetEndpoints(meshSvc).Return(&corev1.Endpoints{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: tests.BookbuyerService.Namespace,
+				Namespace: meshSvc.Namespace,
 			},
 			Subsets: []corev1.EndpointSubset{
 				{
@@ -71,7 +78,10 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 					},
 					Ports: []corev1.EndpointPort{
 						{
-							Port: 88,
+							Port: int32(meshSvc.TargetPort), // Must match meshSvc.TargetPort
+						},
+						{
+							Port: 8888, // Does not match meshSvc.TargetPort, should be ignored
 						},
 					},
 				},
@@ -79,10 +89,53 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 		}, nil)
 		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
-		Expect(c.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(c.ListEndpointsForService(meshSvc)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
-				Port: 88,
+				Port: endpoint.Port(meshSvc.TargetPort),
+			},
+		}))
+	})
+
+	It("should not filter the endpoints of a MeshService whose TargetPort is not known", func() {
+		svc := service.MeshService{
+			Name:      "test",
+			Namespace: "default",
+			// No TargetPort
+		}
+
+		mockKubeController.EXPECT().GetEndpoints(svc).Return(&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: svc.Namespace,
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP: "8.8.8.8",
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Port: 80,
+						},
+						{
+							Port: 90,
+						},
+					},
+				},
+			},
+		}, nil)
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+
+		Expect(c.ListEndpointsForService(svc)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(8, 8, 8, 8),
+				Port: 80,
+			},
+			{
+				IP:   net.IPv4(8, 8, 8, 8),
+				Port: 90,
 			},
 		}))
 	})
@@ -117,16 +170,16 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 
 	It("GetResolvableEndpoints should properly return actual endpoints without ClusterIP when ClusterIP is not set", func() {
 		// Expect the individual pod endpoints, when no cluster IP is assigned to the service
-		mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+		mockKubeController.EXPECT().GetService(meshSvc).Return(&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      tests.BookbuyerService.Name,
-				Namespace: tests.BookbuyerService.Namespace,
+				Name:      meshSvc.Name,
+				Namespace: meshSvc.Namespace,
 			},
 			Spec: corev1.ServiceSpec{
 				Ports: []corev1.ServicePort{{
 					Name:     "servicePort",
 					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
+					Port:     int32(meshSvc.Port),
 				}},
 				Selector: map[string]string{
 					"some-label": "test",
@@ -134,9 +187,9 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 			},
 		})
 
-		mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
+		mockKubeController.EXPECT().GetEndpoints(meshSvc).Return(&corev1.Endpoints{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: tests.BookbuyerService.Namespace,
+				Namespace: meshSvc.Namespace,
 			},
 			Subsets: []corev1.EndpointSubset{
 				{
@@ -148,7 +201,7 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 					Ports: []corev1.EndpointPort{
 						{
 							Name:     "port",
-							Port:     88,
+							Port:     int32(meshSvc.TargetPort),
 							Protocol: corev1.ProtocolTCP,
 						},
 					},
@@ -156,10 +209,10 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		Expect(c.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(c.GetResolvableEndpointsForService(meshSvc)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
-				Port: 88,
+				Port: endpoint.Port(meshSvc.TargetPort),
 			},
 		}))
 	})
@@ -167,17 +220,18 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	It("GetResolvableEndpoints should properly return actual endpoints when ClusterIP is none", func() {
 
 		// If the service has cluster IP set to none, expect the individual pod endpoints
-		mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+		mockKubeController.EXPECT().GetService(meshSvc).Return(&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      tests.BookbuyerService.Name,
-				Namespace: tests.BookbuyerService.Namespace,
+				Name:      meshSvc.Name,
+				Namespace: meshSvc.Namespace,
 			},
 			Spec: corev1.ServiceSpec{
 				ClusterIP: corev1.ClusterIPNone,
 				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
+					Name:       "servicePort",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       int32(meshSvc.Port),
+					TargetPort: intstr.FromInt(int(meshSvc.TargetPort)),
 				}},
 				Selector: map[string]string{
 					"some-label": "test",
@@ -185,9 +239,9 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 			},
 		})
 
-		mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
+		mockKubeController.EXPECT().GetEndpoints(meshSvc).Return(&corev1.Endpoints{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: tests.BookbuyerService.Namespace,
+				Namespace: meshSvc.Namespace,
 			},
 			Subsets: []corev1.EndpointSubset{
 				{
@@ -199,7 +253,7 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 					Ports: []corev1.EndpointPort{
 						{
 							Name:     "port",
-							Port:     88,
+							Port:     int32(meshSvc.TargetPort),
 							Protocol: corev1.ProtocolTCP,
 						},
 					},
@@ -207,79 +261,12 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		Expect(c.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		Expect(c.GetResolvableEndpointsForService(meshSvc)).To(Equal([]endpoint.Endpoint{
 			{
 				IP:   net.IPv4(8, 8, 8, 8),
-				Port: 88,
+				Port: endpoint.Port(meshSvc.TargetPort),
 			},
 		}))
-	})
-
-	It("should correctly return the port to protocol mapping for a service's endpoints", func() {
-
-		appProtoHTTP := "http"
-		appProtoTCP := "tcp"
-
-		mockKubeController.EXPECT().GetEndpoints(tests.BookbuyerService).Return(&corev1.Endpoints{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: tests.BookbuyerService.Namespace,
-			},
-			Subsets: []corev1.EndpointSubset{
-				{
-					Addresses: []corev1.EndpointAddress{
-						{
-							IP: "8.8.8.8",
-						},
-					},
-					Ports: []corev1.EndpointPort{
-						{
-							Name:        "port1", // appProtocol specified
-							Port:        70,
-							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: &appProtoTCP,
-						},
-						{
-							Name:        "port2", // appProtocol specified
-							Port:        80,
-							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: &appProtoHTTP,
-						},
-						{
-							Name:     "http-port3", // appProtocol derived from port name
-							Port:     90,
-							Protocol: corev1.ProtocolTCP,
-						},
-						{
-							Name:     "tcp-port4", // appProtocol derived from port name
-							Port:     100,
-							Protocol: corev1.ProtocolTCP,
-						},
-						{
-							Name:     "grpc-port5", // appProtocol derived from port name
-							Port:     110,
-							Protocol: corev1.ProtocolTCP,
-						},
-						{
-							Name:     "no-protocol-prefix", // appProtocol defaults to http
-							Port:     120,
-							Protocol: corev1.ProtocolTCP,
-						},
-						{
-							Name:        "http-prefix",
-							Port:        130,
-							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: &appProtoTCP, // AppProtocol takes precedence over Name
-						},
-					},
-				},
-			},
-		}, nil)
-
-		portToProtocolMap, err := c.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
-		Expect(err).To(BeNil())
-
-		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http", 130: "tcp"}
-		Expect(portToProtocolMap).To(Equal(expectedPortToProtocolMap))
 	})
 })
 
@@ -424,12 +411,14 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Pod spec above
 		}
 
-		// Expect a MeshService that corresponds to a Service that matches the Pod spec labels
-		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
+		// Expect MeshServices that matches the Pod spec labels
+		expectedMeshervices := []service.MeshService{
+			{Namespace: svc.Namespace, Name: svc.Name, Port: uint16(svc.Spec.Ports[0].Port), Protocol: constants.ProtocolHTTP},
+		}
 
 		meshSvcs, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
-		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
+		expectedMeshSvcs := expectedMeshervices
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
@@ -598,9 +587,10 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			},
 			Spec: corev1.ServiceSpec{
 				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
+					Name:        "servicePort",
+					Protocol:    corev1.ProtocolTCP,
+					Port:        tests.ServicePort,
+					AppProtocol: pointer.StringPtr("http"),
 				}},
 				Selector: map[string]string{
 					"some-label": "test",
@@ -657,8 +647,8 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		meshServices, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		Expect(err).ToNot(HaveOccurred())
 		expectedServices := []service.MeshService{
-			{Name: "test-1", Namespace: testNamespace},
-			{Name: "test-2", Namespace: testNamespace},
+			{Name: "test-1", Namespace: testNamespace, Port: tests.ServicePort, Protocol: "http"},
+			{Name: "test-2", Namespace: testNamespace, Port: tests.ServicePort, Protocol: "http"},
 		}
 		Expect(len(meshServices)).To(Equal(len(expectedServices)))
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))

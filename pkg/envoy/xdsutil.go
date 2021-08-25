@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"fmt"
 	"strings"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -299,18 +298,6 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	}
 
 	return meta, nil
-}
-
-// GetLocalClusterNameForService returns the name of the local cluster for the given service.
-// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
-func GetLocalClusterNameForService(proxyService service.MeshService) string {
-	return GetLocalClusterNameForServiceCluster(proxyService.String())
-}
-
-// GetLocalClusterNameForServiceCluster returns the name of the local cluster for the given service cluster.
-// The local cluster refers to the cluster corresponding to the service the proxy is fronting, accessible over localhost by the proxy.
-func GetLocalClusterNameForServiceCluster(clusterName string) string {
-	return fmt.Sprintf("%s%s", clusterName, localClusterSuffix)
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate

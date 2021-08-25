@@ -23,86 +23,111 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func TestBuildRouteConfiguration(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	mockCfg := configurator.NewMockConfigurator(mockCtrl)
-
-	testInbound := &trafficpolicy.InboundTrafficPolicy{
-		Name:      "bookstore-v1-default",
-		Hostnames: tests.BookstoreV1Hostnames,
-		Rules: []*trafficpolicy.Rule{
-			{
-				Route: trafficpolicy.RouteWeightedClusters{
-					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-				},
-				AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
-			},
-			{
-				Route: trafficpolicy.RouteWeightedClusters{
-					HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-				},
-				AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
-			},
-		},
-	}
-
-	testOutbound := &trafficpolicy.OutboundTrafficPolicy{
-		Name:      "bookstore-v1",
-		Hostnames: tests.BookstoreV1Hostnames,
-		Routes: []*trafficpolicy.RouteWeightedClusters{
-			{
-				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-					Path:          "/some-path",
-					PathMatchType: trafficpolicy.PathMatchRegex,
-					Methods:       []string{"GET"},
-				},
-				WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-			},
-		},
-	}
+func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 	testCases := []struct {
-		name                   string
-		inbound                []*trafficpolicy.InboundTrafficPolicy
-		outbound               []*trafficpolicy.OutboundTrafficPolicy
-		expectedRouteConfigLen int
+		name                      string
+		inbound                   *trafficpolicy.InboundMeshTrafficPolicy
+		expectedRouteConfigFields *xds_route.RouteConfiguration
 	}{
 		{
-			name:                   "no policies provided",
-			inbound:                []*trafficpolicy.InboundTrafficPolicy{},
-			outbound:               []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedRouteConfigLen: 2,
+			name:                      "no policies provided",
+			inbound:                   &trafficpolicy.InboundMeshTrafficPolicy{},
+			expectedRouteConfigFields: nil,
 		},
 		{
-			name:                   "inbound policy provided",
-			inbound:                []*trafficpolicy.InboundTrafficPolicy{testInbound},
-			outbound:               []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedRouteConfigLen: 2,
-		},
-		{
-			name:                   "outbound policy provided",
-			inbound:                []*trafficpolicy.InboundTrafficPolicy{},
-			outbound:               []*trafficpolicy.OutboundTrafficPolicy{testOutbound},
-			expectedRouteConfigLen: 2,
-		},
-		{
-			name:                   "both inbound and outbound policies provided",
-			inbound:                []*trafficpolicy.InboundTrafficPolicy{testInbound},
-			outbound:               []*trafficpolicy.OutboundTrafficPolicy{testOutbound},
-			expectedRouteConfigLen: 2,
+			name: "inbound policy provided",
+			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name:      "bookstore-v1-default",
+							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+							},
+						},
+						{
+							Name:      "bookstore-v2-default",
+							Hostnames: []string{"bookstore-v2.default.svc.cluster.local"},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedRouteConfigFields: &xds_route.RouteConfiguration{
+				Name: "rds-inbound.80",
+				VirtualHosts: []*xds_route.VirtualHost{
+					{
+						Name: "inbound_virtual-host|bookstore-v1.default.svc.cluster.local",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to ingressPolicies[0].Rules[0]
+							},
+							{
+								// corresponds to ingressPolicies[0].Rules[1]
+							},
+						},
+					},
+					{
+						Name: "inbound_virtual-host|bookstore-v2.default.svc.cluster.local",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to ingressPolicies[1].Rules[0]
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableWASMStats: false,
-			}).Times(1)
-			actual := BuildRouteConfiguration(tc.inbound, tc.outbound, nil, mockCfg)
-			assert.Equal(tc.expectedRouteConfigLen, len(actual))
+			}).AnyTimes()
+			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg)
+
+			if tc.expectedRouteConfigFields == nil {
+				assert.Nil(actual)
+				return
+			}
+
+			assert.NotNil(actual)
+			for _, routeConfig := range actual {
+				assert.Equal(tc.expectedRouteConfigFields.Name, routeConfig.Name)
+				assert.Len(routeConfig.VirtualHosts, len(tc.expectedRouteConfigFields.VirtualHosts))
+
+				for i, vh := range routeConfig.VirtualHosts {
+					assert.Len(vh.Routes, len(tc.expectedRouteConfigFields.VirtualHosts[i].Routes))
+				}
+			}
 		})
 	}
 
@@ -123,14 +148,48 @@ func TestBuildRouteConfiguration(t *testing.T) {
 		},
 	}
 
+	testInbound := &trafficpolicy.InboundMeshTrafficPolicy{
+		HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+			80: {
+				{
+					Name:      "bookstore-v1-default",
+					Hostnames: tests.BookstoreV1Hostnames,
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+							},
+							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+						},
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+							},
+							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+						},
+					},
+				},
+			},
+		},
+	}
+
 	for _, tc := range statsWASMTestCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
 				EnableWASMStats: tc.wasmEnabled,
 			}).Times(1)
-			actual := BuildRouteConfiguration([]*trafficpolicy.InboundTrafficPolicy{testInbound}, nil, &envoy.Proxy{}, mockCfg)
-			tassert.Len(t, actual, 2)
-			tassert.Len(t, actual[0].ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
+			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg)
+			for _, routeConfig := range actual {
+				assert.Len(routeConfig.ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
+			}
 		})
 	}
 }
@@ -267,7 +326,7 @@ func TestBuildVirtualHostStub(t *testing.T) {
 }
 func TestBuildInboundRoutes(t *testing.T) {
 	testWeightedCluster := service.WeightedCluster{
-		ClusterName: "default/testCluster/local",
+		ClusterName: "default/testCluster|80|local",
 		Weight:      100,
 	}
 
@@ -300,7 +359,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 				assert.Equal("GET", actual[0].GetMatch().GetHeaders()[0].GetSafeRegexMatch().Regex)
 				assert.Equal(1, len(actual[0].GetRoute().GetWeightedClusters().Clusters))
 				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().TotalWeight.GetValue())
-				assert.Equal("default/testCluster/local-local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
+				assert.Equal("default/testCluster|80|local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
 				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
 				assert.NotNil(actual[0].TypedPerFilterConfig)
 			},
@@ -372,7 +431,6 @@ func TestBuildRoute(t *testing.T) {
 		name             string
 		weightedClusters mapset.Set
 		totalWeight      int
-		direction        Direction
 		path             string
 		pathMatchType    trafficpolicy.PathMatchType
 		method           string
@@ -387,10 +445,9 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
-			direction:     outboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 30},
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2/local"), Weight: 70},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70},
 			}),
 			retryPolicy: trafficpolicy.RetryPolicy{},
 			expectedRoute: &xds_route.Route{
@@ -437,11 +494,11 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1/local",
+										Name:   "osm/bookstore-1|80|local",
 										Weight: &wrappers.UInt32Value{Value: 30},
 									},
 									{
-										Name:   "osm/bookstore-2/local",
+										Name:   "osm/bookstore-2|80|local",
 										Weight: &wrappers.UInt32Value{Value: 70},
 									},
 								},
@@ -460,9 +517,8 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
 			totalWeight:   100,
-			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
 			}),
 			retryPolicy: trafficpolicy.RetryPolicy{},
 			expectedRoute: &xds_route.Route{
@@ -509,7 +565,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1/local-local",
+										Name:   "osm/bookstore-1|80|local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -528,9 +584,8 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    nil,
 			totalWeight:   100,
-			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
 			}),
 			retryPolicy: trafficpolicy.RetryPolicy{
 				RetryOn: "apple",
@@ -559,7 +614,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1/local-local",
+										Name:   "osm/bookstore-1|80|local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -580,9 +635,8 @@ func TestBuildRoute(t *testing.T) {
 			method:        "GET",
 			headersMap:    nil,
 			totalWeight:   100,
-			direction:     inboundRoute,
 			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 100},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
 			}),
 			retryPolicy: trafficpolicy.RetryPolicy{
 				RetryOn:       "banana",
@@ -612,7 +666,7 @@ func TestBuildRoute(t *testing.T) {
 							WeightedClusters: &xds_route.WeightedCluster{
 								Clusters: []*xds_route.WeightedCluster_ClusterWeight{
 									{
-										Name:   "osm/bookstore-1/local-local",
+										Name:   "osm/bookstore-1|80|local",
 										Weight: &wrappers.UInt32Value{Value: 100},
 									},
 								},
@@ -632,7 +686,7 @@ func TestBuildRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := buildRoute(tc.pathMatchType, tc.path, tc.method, tc.headersMap, tc.weightedClusters, tc.totalWeight, tc.direction, tc.retryPolicy)
+			actual := buildRoute(tc.pathMatchType, tc.path, tc.method, tc.headersMap, tc.weightedClusters, tc.retryPolicy)
 			// Assert route.Match
 			assert.Equal(tc.expectedRoute.Match.PathSpecifier, actual.Match.PathSpecifier)
 			assert.ElementsMatch(tc.expectedRoute.Match.Headers, actual.Match.Headers)
@@ -643,28 +697,28 @@ func TestBuildRoute(t *testing.T) {
 }
 
 func TestBuildWeightedCluster(t *testing.T) {
-	weightedClusters := mapset.NewSetFromSlice([]interface{}{
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1/local"), Weight: 30},
-		service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2/local"), Weight: 70},
-	})
-
 	testCases := []struct {
-		name             string
-		weightedClusters mapset.Set
-		totalWeight      int
-		direction        Direction
+		name                string
+		weightedClusters    mapset.Set
+		expectedClusters    int
+		expectedTotalWeight int
 	}{
 		{
-			name:             "outbound",
-			weightedClusters: weightedClusters,
-			totalWeight:      100,
-			direction:        outboundRoute,
+			name: "multiple valid clusters",
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70},
+			}),
+			expectedClusters:    2,
+			expectedTotalWeight: 100,
 		},
 		{
-			name:             "inbound",
-			weightedClusters: weightedClusters,
-			totalWeight:      100,
-			direction:        inboundRoute,
+			name: "total cluster weight is invalid (< 1)",
+			weightedClusters: mapset.NewSetFromSlice([]interface{}{
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 0},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 0},
+			}),
+			expectedClusters: 0,
 		},
 	}
 
@@ -672,9 +726,14 @@ func TestBuildWeightedCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := buildWeightedCluster(tc.weightedClusters, tc.totalWeight, tc.direction)
-			assert.Len(actual.Clusters, 2)
-			assert.EqualValues(uint32(tc.totalWeight), actual.TotalWeight.GetValue())
+			actual := buildWeightedCluster(tc.weightedClusters)
+			if tc.expectedClusters == 0 {
+				assert.Nil(actual)
+				return
+			}
+
+			assert.Len(actual.Clusters, tc.expectedClusters)
+			assert.EqualValues(tc.expectedTotalWeight, actual.TotalWeight.GetValue())
 		})
 	}
 }
@@ -684,7 +743,6 @@ func TestSanitizeHTTPMethods(t *testing.T) {
 		name                   string
 		allowedMethods         []string
 		expectedAllowedMethods []string
-		direction              Direction
 	}{
 		{
 			name:                   "returns unique list of allowed methods",
@@ -1021,6 +1079,271 @@ func TestBuildEgressRoute(t *testing.T) {
 
 			actual := buildEgressRoutes(tc.routingRules)
 			assert.ElementsMatch(tc.expectedRoutes, actual)
+		})
+	}
+}
+
+func TestBuildOutboundMeshRouteConfiguration(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		portSpecificRouteConfigs map[int][]*trafficpolicy.OutboundTrafficPolicy
+		expectedRouteConfigs     []*xds_route.RouteConfiguration
+	}{
+		{
+			name: "multiple route configs per port",
+			portSpecificRouteConfigs: map[int][]*trafficpolicy.OutboundTrafficPolicy{
+				80: {
+					{
+						Name: "bookstore-v1.default.svc.cluster.local",
+						Hostnames: []string{
+							"bookstore-v1.default",
+							"bookstore-v1.default.svc",
+							"bookstore-v1.default.svc.cluster",
+							"bookstore-v1.default.svc.cluster.local",
+							"bookstore-v1.default:80",
+							"bookstore-v1.default.svc:80",
+							"bookstore-v1.default.svc.cluster:80",
+							"bookstore-v1.default.svc.cluster.local:80",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
+							{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+									service.WeightedCluster{ClusterName: service.ClusterName("default/bookstore-v1|80"), Weight: 100},
+								}),
+							},
+						},
+					},
+					{
+						Name: "bookstore-v2.default.svc.cluster.local",
+						Hostnames: []string{
+							"bookstore-v2.default",
+							"bookstore-v2.default.svc",
+							"bookstore-v2.default.svc.cluster",
+							"bookstore-v2.default.svc.cluster.local",
+							"bookstore-v2.default:80",
+							"bookstore-v2.default.svc:80",
+							"bookstore-v2.default.svc.cluster:80",
+							"bookstore-v2.default.svc.cluster.local:80",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
+							{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+									service.WeightedCluster{ClusterName: service.ClusterName("default/bookstore-v2|80"), Weight: 100},
+								}),
+							},
+						},
+					},
+				},
+				90: {
+					{
+						Name: "bookstore-v1.default.svc.cluster.local",
+						Hostnames: []string{
+							"bookstore-v1.default",
+							"bookstore-v1.default.svc",
+							"bookstore-v1.default.svc.cluster",
+							"bookstore-v1.default.svc.cluster.local",
+							"bookstore-v1.default:90",
+							"bookstore-v1.default.svc:90",
+							"bookstore-v1.default.svc.cluster:90",
+							"bookstore-v1.default.svc.cluster.local:90",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
+							{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+									service.WeightedCluster{ClusterName: service.ClusterName("default/bookstore-v1|90"), Weight: 100},
+								}),
+							},
+						},
+					},
+				},
+			},
+			expectedRouteConfigs: []*xds_route.RouteConfiguration{
+				{
+					Name:             "rds-outbound.80",
+					ValidateClusters: &wrappers.BoolValue{Value: false},
+					VirtualHosts: []*xds_route.VirtualHost{
+						{
+							Name: "outbound_virtual-host|bookstore-v1.default.svc.cluster.local",
+							Domains: []string{
+								"bookstore-v1.default",
+								"bookstore-v1.default.svc",
+								"bookstore-v1.default.svc.cluster",
+								"bookstore-v1.default.svc.cluster.local",
+								"bookstore-v1.default:80",
+								"bookstore-v1.default.svc:80",
+								"bookstore-v1.default.svc.cluster:80",
+								"bookstore-v1.default.svc.cluster.local:80",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "default/bookstore-v1|80",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+											RetryPolicy: &xds_route.RetryPolicy{},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name: "outbound_virtual-host|bookstore-v2.default.svc.cluster.local",
+							Domains: []string{
+								"bookstore-v2.default",
+								"bookstore-v2.default.svc",
+								"bookstore-v2.default.svc.cluster",
+								"bookstore-v2.default.svc.cluster.local",
+								"bookstore-v2.default:80",
+								"bookstore-v2.default.svc:80",
+								"bookstore-v2.default.svc.cluster:80",
+								"bookstore-v2.default.svc.cluster.local:80",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "default/bookstore-v2|80",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+											RetryPolicy: &xds_route.RetryPolicy{},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					Name:             "rds-outbound.90",
+					ValidateClusters: &wrappers.BoolValue{Value: false},
+					VirtualHosts: []*xds_route.VirtualHost{
+						{
+							Name: "outbound_virtual-host|bookstore-v1.default.svc.cluster.local",
+							Domains: []string{
+								"bookstore-v1.default",
+								"bookstore-v1.default.svc",
+								"bookstore-v1.default.svc.cluster",
+								"bookstore-v1.default.svc.cluster.local",
+								"bookstore-v1.default:90",
+								"bookstore-v1.default.svc:90",
+								"bookstore-v1.default.svc.cluster:90",
+								"bookstore-v1.default.svc.cluster.local:90",
+							},
+							Routes: []*xds_route.Route{
+								{
+									Match: &xds_route.RouteMatch{
+										PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+											SafeRegex: &xds_matcher.RegexMatcher{
+												EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+												Regex:      ".*",
+											},
+										},
+										Headers: []*xds_route.HeaderMatcher{
+											{
+												Name: ":method",
+												HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+													SafeRegexMatch: &xds_matcher.RegexMatcher{
+														EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+														Regex:      ".*",
+													},
+												},
+											},
+										},
+									},
+									Action: &xds_route.Route_Route{
+										Route: &xds_route.RouteAction{
+											ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+												WeightedClusters: &xds_route.WeightedCluster{
+													Clusters: []*xds_route.WeightedCluster_ClusterWeight{
+														{
+															Name:   "default/bookstore-v1|90",
+															Weight: &wrappers.UInt32Value{Value: 100},
+														},
+													},
+													TotalWeight: &wrappers.UInt32Value{Value: 100},
+												},
+											},
+											RetryPolicy: &xds_route.RetryPolicy{},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                     "no HTTP route configs",
+			portSpecificRouteConfigs: nil,
+			expectedRouteConfigs:     nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			actual := BuildOutboundMeshRouteConfiguration(tc.portSpecificRouteConfigs)
+			assert.ElementsMatch(tc.expectedRouteConfigs, actual)
 		})
 	}
 }

@@ -119,10 +119,16 @@ func TestNewResponse(t *testing.T) {
 	assert.Len(listener.ListenerFilters, 3) // Test has egress policy feature enabled, so 3 filters are expected: OriginalDst, TlsInspector, HttpInspector
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
-	// There are 3 filter chains configured on the outbound-listner based on the configuration:
+	// There are 3 filter chains configured on the outbound-listener based on the configuration:
 	// 1. Filter chain for bookstore-v1
 	// 2. Filter chain for bookstore-v2
-	// 3. Egress filter chain
+	// 3. Filter chain for bookstore-apex due to TrafficSplit being configured
+	expectedServiceFilterChainNames := []string{"outbound-mesh-http-filter-chain:default/bookstore-v1_8888_http", "outbound-mesh-http-filter-chain:default/bookstore-v2_8888_http", "outbound-mesh-http-filter-chain:default/bookstore-apex_8888_http"}
+	var actualServiceFilterChainNames []string
+	for _, fc := range listener.FilterChains {
+		actualServiceFilterChainNames = append(actualServiceFilterChainNames, fc.Name)
+	}
+	assert.ElementsMatch(expectedServiceFilterChainNames, actualServiceFilterChainNames)
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
 	assert.Equal(listener.DefaultFilterChain.Name, outboundEgressFilterChainName)

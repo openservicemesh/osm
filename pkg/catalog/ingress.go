@@ -140,7 +140,10 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 		// Currently IngressBackend only supports a wildcard HTTP route. The
 		// 'Matches' field in the spec can be used to extend this to perform
 		// stricter enforcement.
-		backendCluster := getDefaultWeightedClusterForService(svc)
+		backendCluster := service.WeightedCluster{
+			ClusterName: service.ClusterName(svc.EnvoyLocalClusterName()),
+			Weight:      constants.ClusterWeightAcceptAll,
+		}
 		routingRule := &trafficpolicy.Rule{
 			Route: trafficpolicy.RouteWeightedClusters{
 				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
@@ -176,6 +179,11 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 // getIngressTrafficPolicyFromK8s returns the ingress traffic policy for the given mesh service from the corresponding k8s Ingress resource
 // TODO: DEPRECATE once IngressBackend API is the default for configuring an ingress backend.
 func (mc *MeshCatalog) getIngressTrafficPolicyFromK8s(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	if svc.Protocol != constants.ProtocolHTTP {
+		// Only HTTP ports can accept traffic using k8s Ingress
+		return nil, nil
+	}
+
 	httpRoutePolicies, err := mc.getIngressPoliciesFromK8s(svc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error retrieving ingress HTTP routing policies for service %s from Kubernetes", svc)
@@ -186,43 +194,30 @@ func (mc *MeshCatalog) getIngressTrafficPolicyFromK8s(svc service.MeshService) (
 		return nil, nil
 	}
 
-	protocolToPortMap, err := mc.GetTargetPortToProtocolMappingForService(svc)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving port to protocol mapping for service %s", svc)
-	}
-
 	enableHTTPSIngress := mc.configurator.UseHTTPSIngress()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
-	// Create protocol specific ingress filter chains per port to handle different ports serving different protocols
-	for port, appProtocol := range protocolToPortMap {
-		if appProtocol != constants.ProtocolHTTP {
-			// Only HTTP ports can accept traffic using k8s Ingress
-			continue
-		}
+	trafficMatch := &trafficpolicy.IngressTrafficMatch{
+		Port: uint32(svc.TargetPort),
+	}
 
-		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Port: port,
-		}
+	if enableHTTPSIngress {
+		// Configure 2 taffic matches for HTTPS ingress (TLS):
+		// 1. Without SNI: to match clients that don't set the SNI
+		// 2. With SNI: to match clients that set the SNI
 
-		if enableHTTPSIngress {
-			// Configure 2 taffic matches for HTTPS ingress (TLS):
-			// 1. Without SNI: to match clients that don't set the SNI
-			// 2. With SNI: to match clients that set the SNI
+		trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, svc.TargetPort, constants.ProtocolHTTPS)
+		trafficMatch.Protocol = constants.ProtocolHTTPS
+		trafficMatch.SkipClientCertValidation = true
+		trafficMatches = append(trafficMatches, trafficMatch)
 
-			trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, port, constants.ProtocolHTTPS)
-			trafficMatch.Protocol = constants.ProtocolHTTPS
-			trafficMatch.SkipClientCertValidation = true
-			trafficMatches = append(trafficMatches, trafficMatch)
-
-			trafficMatchWithSNI := *trafficMatch
-			trafficMatchWithSNI.Name = fmt.Sprintf("ingress_%s_%d_%s_with_sni", svc, port, constants.ProtocolHTTPS)
-			trafficMatchWithSNI.ServerNames = []string{svc.ServerName()}
-			trafficMatches = append(trafficMatches, &trafficMatchWithSNI)
-		} else {
-			trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, port, constants.ProtocolHTTP)
-			trafficMatch.Protocol = constants.ProtocolHTTP
-			trafficMatches = append(trafficMatches, trafficMatch)
-		}
+		trafficMatchWithSNI := *trafficMatch
+		trafficMatchWithSNI.Name = fmt.Sprintf("ingress_%s_%d_%s_with_sni", svc, svc.TargetPort, constants.ProtocolHTTPS)
+		trafficMatchWithSNI.ServerNames = []string{svc.ServerName()}
+		trafficMatches = append(trafficMatches, &trafficMatchWithSNI)
+	} else {
+		trafficMatch.Name = fmt.Sprintf("ingress_%s_%d_%s", svc, svc.TargetPort, constants.ProtocolHTTP)
+		trafficMatch.Protocol = constants.ProtocolHTTP
+		trafficMatches = append(trafficMatches, trafficMatch)
 	}
 
 	return &trafficpolicy.IngressTrafficPolicy{
@@ -271,7 +266,10 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1beta1(svc service.MeshServi
 		return inboundIngressPolicies, err
 	}
 
-	ingressWeightedCluster := getDefaultWeightedClusterForService(svc)
+	ingressWeightedCluster := service.WeightedCluster{
+		ClusterName: service.ClusterName(svc.EnvoyLocalClusterName()),
+		Weight:      constants.ClusterWeightAcceptAll,
+	}
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
@@ -375,7 +373,10 @@ func (mc *MeshCatalog) getIngressPoliciesNetworkingV1(svc service.MeshService) (
 		return inboundIngressPolicies, err
 	}
 
-	ingressWeightedCluster := getDefaultWeightedClusterForService(svc)
+	ingressWeightedCluster := service.WeightedCluster{
+		ClusterName: service.ClusterName(svc.EnvoyLocalClusterName()),
+		Weight:      constants.ClusterWeightAcceptAll,
+	}
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.DefaultBackend != nil && ingress.Spec.DefaultBackend.Service.Name == svc.Name {

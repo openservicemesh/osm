@@ -21,13 +21,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestGetLocalClusterNameForService(t *testing.T) {
-	assert := tassert.New(t)
-
-	actual := GetLocalClusterNameForService(tests.BookbuyerService)
-	assert.Equal(actual, "default/bookbuyer-local")
-}
-
 func TestGetAccessLog(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -75,15 +68,6 @@ func TestGetStdoutAccessLog(t *testing.T) {
 }
 
 var _ = Describe("Test Envoy tools", func() {
-	Context("Test GetLocalClusterNameForServiceCluster", func() {
-		It("", func() {
-			clusterName := "-cluster-name-"
-			actual := GetLocalClusterNameForServiceCluster(clusterName)
-			expected := "-cluster-name--local"
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
 	Context("Test GetAddress()", func() {
 		It("should return address", func() {
 			addr := "blah"

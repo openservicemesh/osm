@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // TrafficSpecName is the namespaced name of the SMI TrafficSpec
@@ -83,4 +84,102 @@ type TrafficTargetWithRoutes struct {
 	Destination     identity.ServiceIdentity   `json:"destination:omitempty"`
 	Sources         []identity.ServiceIdentity `json:"sources:omitempty"`
 	TCPRouteMatches []TCPRouteMatch            `json:"tcp_route_matches:omitempty"`
+}
+
+// OutboundMeshTrafficPolicy is the type used to represent the outbound mesh traffic policy configurations
+// applicable to a downstream client.
+type OutboundMeshTrafficPolicy struct {
+	// TrafficMatches defines the list of traffic matches for matching outbound mesh traffic.
+	// The matches specified are used to match outbound traffic as mesh traffic, and
+	// subject matching traffic to mesh traffic policies.
+	TrafficMatches []*TrafficMatch
+
+	// HTTPRouteConfigsPerPort defines the outbound mesh HTTP route configurations per port.
+	// Mesh HTTP routes are grouped based on their port to avoid route conflicts that
+	// can arise when the same host headers are to be routed differently based on the port.
+	HTTPRouteConfigsPerPort map[int][]*OutboundTrafficPolicy
+
+	// ClustersConfigs defines the list of mesh cluster configurations.
+	// The specified config is used to program clusters corresponding to
+	// mesh destinations.
+	ClustersConfigs []*MeshClusterConfig
+}
+
+// InboundMeshTrafficPolicy is the type used to represent the inbound mesh traffic policy configurations
+// applicable to an upstream server.
+type InboundMeshTrafficPolicy struct {
+	// TrafficMatches defines the list of traffic matches for matching inbound mesh traffic.
+	// The matches specified are used to match inbound traffic as mesh traffic, and
+	// subject matching traffic to mesh traffic policies.
+	TrafficMatches []*TrafficMatch
+
+	// HTTPRouteConfigsPerPort defines the inbound mesh HTTP route configurations per port.
+	// Mesh HTTP routes are grouped based on their port to avoid route conflicts that
+	// can arise when the same host headers are to be routed differently based on the port.
+	HTTPRouteConfigsPerPort map[int][]*InboundTrafficPolicy
+
+	// ClustersConfigs defines the list of mesh cluster configurations.
+	// The specified config is used to program local clusters on the upstream server.
+	ClustersConfigs []*MeshClusterConfig
+}
+
+// MeshClusterConfig is the type used to represent a cluster configuration for that is programmed
+// for either:
+// 1. A downstream to connect to an upstream cluster, OR
+// 2. An upstream cluster to accept traffic from a downstream
+type MeshClusterConfig struct {
+	// Name is the cluster's name, as referenced in an RDS route or TCP proxy filter
+	Name string
+
+	// Service is the MeshService the cluster corresponds to.
+	Service service.MeshService
+
+	// Address is the IP address/hostname of this cluster
+	// This is set for local (upstream) clusters accepting traffic from a downstream client.
+	// +optional
+	Address string
+
+	// Port is the port on which this cluster is listening for downstream connections.
+	// This is set for local (upstream) clusters accepting traffic from a downstream client.
+	// +optional
+	Port uint32
+
+	// EnableEnvoyActiveHealthChecks enables Envoy's active health checks for the cluster
+	// +optional
+	EnableEnvoyActiveHealthChecks bool
+}
+
+// TrafficMatch is the type used to represent attributes used to match traffic
+type TrafficMatch struct {
+	// DestinationPort defines the destination port number
+	DestinationPort int
+
+	// DestinationProtocol defines the protocol served by DestinationPort
+	DestinationProtocol string
+
+	// DestinationIPRanges defines the list of destination IP ranges
+	// +optional
+	DestinationIPRanges []string
+
+	// ServerNames defines the list of server names to be used as SNI when the
+	// DestinationProtocol is TLS based, ex. when the DestinationProtocol is 'https'
+	// +optional
+	ServerNames []string
+
+	// Cluster defines the cluster associated with this TrafficMatch, if possible.
+	// A TrafficMatch corresponding to an HTTP based cluster will not make use of
+	// this property since the cluster is determined based on the computed routes.
+	// A TraficMatch corresponding to a TCP based cluster will make use of this
+	// property to associate the match with the corresponding cluster.
+	// +optional
+	Cluster string
+
+	// Name for the match object
+	// +optional
+	Name string
+
+	// WeightedClusters is list of weighted clusters that this match should
+	// route traffic to. This is used by TCP based mesh clusters.
+	// +optional
+	WeightedClusters []service.WeightedCluster
 }

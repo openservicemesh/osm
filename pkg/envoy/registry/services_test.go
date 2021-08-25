@@ -50,11 +50,29 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			// Create the SERVICE
 			svcName := uuid.New().String()
 			selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
-			svc := tests.NewServiceFixture(svcName, tests.Namespace, selector)
+			svc1 := tests.NewServiceFixture(svcName, tests.Namespace, selector)
 
 			svcName2 := uuid.New().String()
 			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector)
-			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc, svc2}).Times(1)
+			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc1, svc2}).Times(1)
+
+			expectedSvc1 := service.MeshService{
+				Namespace: tests.Namespace,
+				Name:      svcName,
+				Port:      tests.ServicePort,
+				Protocol:  "http",
+			}
+
+			expectedSvc2 := service.MeshService{
+				Namespace: tests.Namespace,
+				Name:      svcName2,
+				Port:      tests.ServicePort,
+				Protocol:  "http",
+			}
+			expectedList := []service.MeshService{expectedSvc1, expectedSvc2}
+
+			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc1).Return([]service.MeshService{expectedSvc1})
+			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc2).Return([]service.MeshService{expectedSvc2})
 
 			certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
 			certSerialNumber := certificate.SerialNumber("123456")
@@ -62,16 +80,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			Expect(err).ToNot(HaveOccurred())
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
-			expectedSvc := service.MeshService{
-				Namespace: tests.Namespace,
-				Name:      svcName,
-			}
-
-			expectedSvc2 := service.MeshService{
-				Namespace: tests.Namespace,
-				Name:      svcName2,
-			}
-			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
 
 			Expect(meshServices).Should(HaveLen(len(expectedList)))
 			Expect(meshServices).Should(ConsistOf(expectedList))
@@ -99,14 +107,18 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			certSerialNumber := certificate.SerialNumber("123456")
 			newProxy, err := envoy.NewProxy(podCN, certSerialNumber, nil)
 			Expect(err).ToNot(HaveOccurred())
-			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
-			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.MeshService{
 				Namespace: namespace,
 				Name:      svcName,
+				Port:      tests.ServicePort,
+				Protocol:  "http",
 			}
 			expectedList := []service.MeshService{expected}
+			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc).Return(expectedList)
+
+			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(meshServices).To(Equal(expectedList))
 		})
@@ -185,41 +197,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			actualSvcs := listServicesForPod(&pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
-		})
-	})
-
-	Context("Test kubernetesServicesToMeshServices()", func() {
-		It("converts a list of Kubernetes Services to a list of OSM Mesh Services", func() {
-
-			services := []v1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "A",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: tests.TrafficSplit.Namespace,
-						Name:      tests.TrafficSplit.Spec.Service,
-					},
-				},
-			}
-
-			expected := []service.MeshService{
-				{
-					Namespace: "foo",
-					Name:      "A",
-				},
-				{
-					Namespace: "default",
-					Name:      "bookstore-apex",
-				},
-			}
-
-			actual := kubernetesServicesToMeshServices(services)
-
-			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -310,12 +287,18 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 			Selector: map[string]string{
 				"app": "my-app",
 			},
+			Ports: []v1.ServicePort{{
+				Name: "p1",
+				Port: 80,
+			}},
 		},
 	}
+	meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace, Port: uint16(svc.Spec.Ports[0].Port)}
 	broadcast := events.Subscribe(announcements.ScheduleProxyBroadcast)
 
 	kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 	kubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
+	kubeController.EXPECT().K8sServiceToMeshServices(gomock.Any()).Return([]service.MeshService{meshSvc}).AnyTimes()
 
 	k.Run(stop)
 
@@ -421,6 +404,10 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 						Selector: map[string]string{
 							"app": "my-app",
 						},
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
 					},
 				},
 			},
@@ -429,11 +416,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -462,6 +451,10 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 						Selector: map[string]string{
 							"app": "my-app",
 						},
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
 					},
 				},
 				{
@@ -473,6 +466,10 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 						Selector: map[string]string{
 							"app": "my-app",
 						},
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
 					},
 				},
 			},
@@ -481,18 +478,22 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "svc1",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 					{
 						Name:      "svc2",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc1", Namespace: "ns"}: {
+				{Name: "svc1", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc2", Namespace: "ns"}: {
+				{Name: "svc2", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -515,11 +516,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "other-svc1",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc1", Namespace: "ns"}: {
+				{Name: "other-svc1", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -529,11 +532,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "other-svc1",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "other-svc1", Namespace: "ns"}: {
+				{Name: "other-svc1", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -581,6 +586,10 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 						Selector: map[string]string{
 							"app": "my-app",
 						},
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
 					},
 				},
 			},
@@ -589,11 +598,13 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -602,17 +613,21 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -636,6 +651,9 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 			}
 			if k.cnsForService == nil {
 				k.cnsForService = map[service.MeshService]map[certificate.CommonName]struct{}{}
+			}
+			for _, svc := range test.existingSvcs {
+				kubeController.EXPECT().K8sServiceToMeshServices(*svc).Return([]service.MeshService{{Name: svc.Name, Namespace: svc.Namespace, Port: uint16(svc.Spec.Ports[0].Port), Protocol: constants.ProtocolHTTP}})
 			}
 
 			k.handlePodUpdate(test.pod)
@@ -859,6 +877,12 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					Name:      "svc",
 					Namespace: "ns",
 				},
+				Spec: v1.ServiceSpec{
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
 			},
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
@@ -885,7 +909,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				{Name: "not-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "ns"}: {},
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {},
 			},
 		},
 		{
@@ -899,6 +923,10 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					Selector: map[string]string{
 						"app": "my-app",
 					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
 				},
 			},
 			existingPods: []*v1.Pod{
@@ -922,11 +950,13 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -942,6 +972,10 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					Selector: map[string]string{
 						"app": "my-app",
 					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
 				},
 			},
 			existingPods: []*v1.Pod{
@@ -983,7 +1017,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				{Name: "other-svc", Namespace: "ns"}: {
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
-				{Name: "svc", Namespace: "ns"}: {},
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {},
 			},
 		},
 		{
@@ -997,6 +1031,10 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					Selector: map[string]string{
 						"app": "my-app",
 					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
 				},
 			},
 			existingPods: []*v1.Pod{
@@ -1032,17 +1070,21 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -1059,6 +1101,10 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					Selector: map[string]string{
 						"app": "my-app",
 					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
 				},
 			},
 			existingPods: []*v1.Pod{
@@ -1096,12 +1142,16 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 					{
 						Name:      "svc",
@@ -1110,7 +1160,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -1130,12 +1180,16 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 				envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 					{
 						Name:      "svc",
@@ -1144,7 +1198,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 			},
 			expectedServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -1161,8 +1215,9 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			kubeController := k8s.NewMockController(mockCtrl)
-			kubeController.EXPECT().ListPods().Return(test.existingPods)
+			kubeController.EXPECT().ListPods().Return(test.existingPods).AnyTimes()
 
 			k := &AsyncKubeProxyServiceMapper{
 				kubeController: kubeController,
@@ -1174,6 +1229,9 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 			}
 			if k.cnsForService == nil {
 				k.cnsForService = map[service.MeshService]map[certificate.CommonName]struct{}{}
+			}
+			if test.service != nil {
+				kubeController.EXPECT().K8sServiceToMeshServices(*test.service).Return([]service.MeshService{{Name: test.service.Name, Namespace: test.service.Namespace, Port: uint16(test.service.Spec.Ports[0].Port), Protocol: constants.ProtocolHTTP}})
 			}
 
 			k.handleServiceUpdate(test.service)
@@ -1239,6 +1297,15 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 					Namespace: "ns",
 					Name:      "svc",
 				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"app": "my-app",
+					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
 			},
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
@@ -1288,17 +1355,28 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 					Namespace: "ns",
 					Name:      "svc",
 				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"app": "my-app",
+					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
 			},
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
 			},
@@ -1314,12 +1392,23 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 					Namespace: "ns",
 					Name:      "svc",
 				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"app": "my-app",
+					},
+					Ports: []v1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
 			},
 			existingCNsToServices: map[certificate.CommonName][]service.MeshService{
 				envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 					{
 						Name:      "svc",
@@ -1334,11 +1423,13 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 					{
 						Name:      "svc",
 						Namespace: "ns",
+						Port:      80,
+						Protocol:  "http",
 					},
 				},
 			},
 			existingServicesToCNs: map[service.MeshService]map[certificate.CommonName]struct{}{
-				{Name: "svc", Namespace: "ns"}: {
+				{Name: "svc", Namespace: "ns", Port: 80, Protocol: "http"}: {
 					envoy.NewXDSCertCommonName(uid1, envoy.KindSidecar, "svcacc", "ns"): {},
 					envoy.NewXDSCertCommonName(uid2, envoy.KindSidecar, "svcacc", "ns"): {},
 				},
@@ -1376,15 +1467,23 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			kubeController := k8s.NewMockController(mockCtrl)
+
 			k := &AsyncKubeProxyServiceMapper{
-				servicesForCN: test.existingCNsToServices,
-				cnsForService: test.existingServicesToCNs,
+				servicesForCN:  test.existingCNsToServices,
+				cnsForService:  test.existingServicesToCNs,
+				kubeController: kubeController,
 			}
 			if k.servicesForCN == nil {
 				k.servicesForCN = map[certificate.CommonName][]service.MeshService{}
 			}
 			if k.cnsForService == nil {
 				k.cnsForService = map[service.MeshService]map[certificate.CommonName]struct{}{}
+			}
+			if test.service != nil {
+				kubeController.EXPECT().K8sServiceToMeshServices(*test.service).Return([]service.MeshService{{Name: test.service.Name, Namespace: test.service.Namespace, Port: uint16(test.service.Spec.Ports[0].Port), Protocol: constants.ProtocolHTTP}})
 			}
 
 			k.handleServiceDelete(test.service)
@@ -1649,6 +1748,7 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 	stop := make(chan struct{})
 
 	kubeController.EXPECT().ListPods().Return(nil).Times(1)
+	kubeController.EXPECT().K8sServiceToMeshServices(gomock.Any()).AnyTimes()
 	k.Run(stop)
 
 	proxyUUID := uuid.New()
@@ -1725,4 +1825,72 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 	go doReads(stop)
 
 	<-stop
+}
+
+func TestKubernetesServicesToMeshServices(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		k8sServices          []v1.Service
+		expectedMeshServices []service.MeshService
+	}{
+		{
+			name: "k8s services to mesh services",
+			k8sServices: []v1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Name: "p2",
+							Port: 80,
+						}},
+					},
+				},
+			},
+			expectedMeshServices: []service.MeshService{
+				{
+					Namespace: "ns1",
+					Name:      "s1",
+					Protocol:  "http",
+					Port:      80,
+				},
+				{
+					Namespace: "ns2",
+					Name:      "s2",
+					Protocol:  "http",
+					Port:      80,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockKubeController := k8s.NewMockController(mockCtrl)
+
+			for i, svc := range tc.k8sServices {
+				mockKubeController.EXPECT().K8sServiceToMeshServices(svc).Return([]service.MeshService{tc.expectedMeshServices[i]})
+			}
+
+			actual := kubernetesServicesToMeshServices(mockKubeController, tc.k8sServices)
+			assert.ElementsMatch(tc.expectedMeshServices, actual)
+		})
+	}
 }
