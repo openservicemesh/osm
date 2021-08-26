@@ -117,4 +117,6 @@ func testK8sVersion(version string) {
 
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic for %s", srcToDestStr)
 	})
+
+	Td.ClusterVersion = "" // reset version so the default is used
 }
