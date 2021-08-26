@@ -11,6 +11,7 @@ import (
 
 	. "github.com/openservicemesh/osm/tests/framework"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -20,6 +21,13 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 		Bucket: 2,
 	},
 	func() {
+		const (
+			// to name the header we will use to identify the server that replies
+			HTTPHeaderName = "podname"
+		)
+
+		var maxTestDuration = 150 * time.Second
+
 		Context("DeploymentsClientServer", func() {
 			const destApp = "server"
 			const sourceAppBaseName = "client"
@@ -57,12 +65,27 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						Name:         "server",
 						Namespace:    destApp,
 						ReplicaCount: int32(replicaSetPerService),
-						Image:        "kennethreitz/httpbin",
+						Image:        "simonkowallik/httpbin",
 						Ports:        []int{DefaultUpstreamServicePort},
 						Command:      HttpbinCmd,
 						OS:           Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
+
+				// Expose an env variable such as XHTTPBIN_X_POD_NAME:
+				// This httpbin fork will pick certain env variable formats and reply the values as headers.
+				// We will expose pod name as one of these env variables, and will use it
+				// to identify the pod that replies to the request, and validate the test
+				deploymentDef.Spec.Template.Spec.Containers[0].Env = []v1.EnvVar{
+					{
+						Name: fmt.Sprintf("XHTTPBIN_%s", HTTPHeaderName),
+						ValueFrom: &v1.EnvVarSource{
+							FieldRef: &v1.ObjectFieldSelector{
+								FieldPath: "metadata.name",
+							},
+						},
+					},
+				}
 
 				_, err = Td.CreateServiceAccount(destApp, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
@@ -151,6 +174,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				}
 
 				var results HTTPMultipleResults
+				var serversSeen map[string]bool = map[string]bool{} // Just counts unique servers seen
 				success := Td.WaitForRepeatedSuccess(func() bool {
 					// Issue all calls, get results
 					results = Td.MultipleHTTPRequest(&requests)
@@ -164,10 +188,19 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							if podResult.Err != nil || podResult.StatusCode != 200 {
 								return false
 							}
+							// We should see pod header populated
+							dstPod, ok := podResult.Headers[HTTPHeaderName]
+							if ok {
+								// Store and mark that we have seen a response for this server pod
+								serversSeen[dstPod] = true
+							}
 						}
 					}
+					Td.T.Logf("Unique servers replied %d/%d", len(serversSeen), replicaSetPerService)
+					Expect(len(serversSeen)).To(Equal(replicaSetPerService))
+
 					return true
-				}, 5, 150*time.Second)
+				}, 5, maxTestDuration)
 
 				Expect(success).To(BeTrue())
 			})
