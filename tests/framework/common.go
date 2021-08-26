@@ -421,6 +421,13 @@ nodeRegistration:
 		}
 	}
 
+	k8sServerVersion, err := Td.getKubernetesServerVersionNumber()
+	if err != nil {
+		return errors.Wrap(err, "Error getting k8s server version")
+	}
+
+	// Logs v<major>.<minor>.<patch>
+	td.T.Logf("> k8s server version: v%s\n", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(k8sServerVersion)), "."), "[]"))
 	return nil
 }
 
