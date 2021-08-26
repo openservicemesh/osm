@@ -262,8 +262,6 @@ OpenServiceMesh:
     enableEnvoyActiveHealthChecks: false
     # -- Enables SnapshotCache feature for Envoy xDS server.
     enableSnapshotCacheMode: false
-    # -- Enable Retry Policy for automatic request retries
-    enableRetryPolicy: false
 
   # -- OSM multicluster feature configuration
   multicluster:
