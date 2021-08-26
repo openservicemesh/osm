@@ -57,7 +57,7 @@ jobs:
       - name: Install OSM via OSM CLI
         run: |
           make build-osm
-          ./bin/osm install \
+          ./bin/osm install --verbose \
             --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
             --set=OpenServiceMesh.image.tag="$CTR_TAG"
       - name: Run e2es
