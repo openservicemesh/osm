@@ -111,6 +111,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     # shellcheck disable=SC2086
     bin/osm install \
         --osm-namespace "$K8S_NAMESPACE" \
+        --verbose \
         --mesh-name "$MESH_NAME" \
         --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
         --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
