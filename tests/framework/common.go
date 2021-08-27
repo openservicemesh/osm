@@ -447,6 +447,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	var args []string
 	args = append(args, "install",
 		"--osm-namespace="+instOpts.ControlPlaneNS,
+		"--verbose",
 		fmt.Sprintf("--timeout=%v", 90*time.Second),
 	)
 
