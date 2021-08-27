@@ -54,6 +54,8 @@ func TestIsMetricsEnabled(t *testing.T) {
 	ns, _ = fakeClient.CoreV1().Namespaces().Create(context.TODO(), nsWithInvalidAnnotation, metav1.CreateOptions{})
 	assert.NotNil(ns)
 
+	nsDoesntExist := newNamespace("ns-5", nil)
+
 	// Test different scenarios using table driven testing
 	testCases := []struct {
 		namespace                string
@@ -64,6 +66,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 		{nsWithMetricsDisabled.Name, false, false},
 		{nsWithoutMetricsAnnotation.Name, false, false},
 		{nsWithInvalidAnnotation.Name, false, true},
+		{nsDoesntExist.Name, false, true},
 	}
 
 	mockController := k8s.NewMockController(gomock.NewController(t))
@@ -77,6 +80,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 	mockController.EXPECT().GetNamespace("ns-2").Return(nsWithMetricsDisabled)
 	mockController.EXPECT().GetNamespace("ns-3").Return(nsWithoutMetricsAnnotation)
 	mockController.EXPECT().GetNamespace("ns-4").Return(nsWithInvalidAnnotation)
+	mockController.EXPECT().GetNamespace("ns-5").Return(nil)
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Namespace %s", tc.namespace), func(t *testing.T) {

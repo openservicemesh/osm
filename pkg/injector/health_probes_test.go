@@ -142,6 +142,25 @@ func TestRewriteProbe(t *testing.T) {
 			expected *healthProbe
 		}{
 			{
+				name:     "nil",
+				probe:    nil,
+				expected: nil,
+			},
+			{
+				name:     "no http or tcp",
+				probe:    &v1.Probe{},
+				expected: nil,
+			},
+			{
+				name:  "getPort() error",
+				probe: makeHTTPProbe("/x/y/z", 0),
+				expected: &healthProbe{
+					path:   "/x/y/z",
+					port:   0,
+					isHTTP: true,
+				},
+			},
+			{
 				name:    "http",
 				probe:   makeHTTPProbe("/x/y/z", 3456),
 				newPath: "/x",
@@ -185,12 +204,14 @@ func TestRewriteProbe(t *testing.T) {
 				assert.Equal(test.expected, actual)
 
 				// Verify the probe was modified correctly
-				if test.probe.Handler.HTTPGet != nil {
-					assert.Equal(test.probe.Handler.HTTPGet.Port, intstr.FromInt(int(test.newPort)))
-					assert.Equal(test.probe.Handler.HTTPGet.Path, test.newPath)
-				}
-				if test.probe.Handler.TCPSocket != nil {
-					assert.Equal(test.probe.Handler.TCPSocket.Port, intstr.FromInt(int(test.newPort)))
+				if test.probe != nil {
+					if test.probe.Handler.HTTPGet != nil {
+						assert.Equal(test.probe.Handler.HTTPGet.Port, intstr.FromInt(int(test.newPort)))
+						assert.Equal(test.probe.Handler.HTTPGet.Path, test.newPath)
+					}
+					if test.probe.Handler.TCPSocket != nil {
+						assert.Equal(test.probe.Handler.TCPSocket.Port, intstr.FromInt(int(test.newPort)))
+					}
 				}
 			})
 		}

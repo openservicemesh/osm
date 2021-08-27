@@ -24,8 +24,6 @@ import (
 )
 
 func TestCreatePatch(t *testing.T) {
-	assert := tassert.New(t)
-
 	// Setup all variables and constants needed for the tests
 	proxyUUID := uuid.New()
 	const (
@@ -37,6 +35,7 @@ func TestCreatePatch(t *testing.T) {
 		name            string
 		os              string
 		namespace       *corev1.Namespace
+		dryRun          bool
 		expectedPatches []string
 	}{
 		{
@@ -109,10 +108,22 @@ func TestCreatePatch(t *testing.T) {
 				`"command":["envoy"]`,
 			},
 		},
+		{
+			name: "unix dry run",
+			os:   constants.OSLinux,
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			},
+			dryRun: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
 			client := fake.NewSimpleClientset()
 			mockCtrl := gomock.NewController(t)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
@@ -146,7 +157,11 @@ func TestCreatePatch(t *testing.T) {
 			raw, err := json.Marshal(pod)
 			assert.NoError(err)
 
-			req := &admissionv1.AdmissionRequest{Namespace: namespace, Object: runtime.RawExtension{Raw: raw}}
+			req := &admissionv1.AdmissionRequest{
+				Namespace: namespace,
+				Object:    runtime.RawExtension{Raw: raw},
+				DryRun:    &tc.dryRun,
+			}
 			rawPatches, err := wh.createPatch(&pod, req, proxyUUID)
 
 			assert.NoError(err)
@@ -158,6 +173,47 @@ func TestCreatePatch(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("error checking if metrics is enabled", func(t *testing.T) {
+		assert := tassert.New(t)
+		client := fake.NewSimpleClientset()
+		mockCtrl := gomock.NewController(t)
+		mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+		mockNsController := k8s.NewMockController(mockCtrl)
+		mockNsController.EXPECT().GetNamespace("not-" + namespace).Return(nil)
+
+		wh := &mutatingWebhook{
+			kubeClient:          client,
+			kubeController:      mockNsController,
+			certManager:         tresor.NewFakeCertManager(mockConfigurator),
+			configurator:        mockConfigurator,
+			nonInjectNamespaces: mapset.NewSet(),
+		}
+
+		mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("")
+		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
+
+		mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("")
+		mockConfigurator.EXPECT().GetInitContainerImage().Return("")
+		mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false)
+		mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil)
+		mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil)
+		mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil)
+		mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{})
+		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048)
+
+		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
+
+		raw, err := json.Marshal(pod)
+		assert.NoError(err)
+
+		req := &admissionv1.AdmissionRequest{
+			Namespace: "not-" + namespace,
+			Object:    runtime.RawExtension{Raw: raw},
+		}
+		_, err = wh.createPatch(&pod, req, proxyUUID)
+		assert.Error(err)
+	})
 }
 
 func TestMergePortExclusionLists(t *testing.T) {

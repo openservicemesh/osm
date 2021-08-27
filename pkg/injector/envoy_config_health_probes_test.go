@@ -1,11 +1,15 @@
 package injector
 
 import (
+	"testing"
+
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/onsi/ginkgo"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/openservicemesh/osm/pkg/injector/test"
-
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
@@ -55,3 +59,104 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 		test.ThisXdsListenerFunction(fnName, fn)
 	}
 })
+
+func TestGetProbeCluster(t *testing.T) {
+	type probeClusterTest struct {
+		name     string
+		probe    *healthProbe
+		expected *xds_cluster.Cluster
+	}
+
+	t.Run("liveness", func(t *testing.T) {
+		tests := []probeClusterTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				assert.Equal(t, test.expected, getLivenessCluster(test.probe))
+			})
+		}
+	})
+
+	t.Run("readiness", func(t *testing.T) {
+		tests := []probeClusterTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				assert.Equal(t, test.expected, getReadinessCluster(test.probe))
+			})
+		}
+	})
+
+	t.Run("startup", func(t *testing.T) {
+		tests := []probeClusterTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				assert.Equal(t, test.expected, getStartupCluster(test.probe))
+			})
+		}
+	})
+}
+
+func TestGetProbeListener(t *testing.T) {
+	type probeListenerTest struct {
+		name     string
+		probe    *healthProbe
+		expected *xds_listener.Listener
+		err      error
+	}
+
+	t.Run("liveness", func(t *testing.T) {
+		tests := []probeListenerTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				actual, err := getLivenessListener(test.probe)
+				assert.Equal(t, test.expected, actual)
+				assert.Equal(t, test.err, err)
+			})
+		}
+	})
+
+	t.Run("readiness", func(t *testing.T) {
+		tests := []probeListenerTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				actual, err := getReadinessListener(test.probe)
+				assert.Equal(t, test.expected, actual)
+				assert.Equal(t, test.err, err)
+			})
+		}
+	})
+
+	t.Run("startup", func(t *testing.T) {
+		tests := []probeListenerTest{
+			{
+				name: "nil",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				actual, err := getStartupListener(test.probe)
+				assert.Equal(t, test.expected, actual)
+				assert.Equal(t, test.err, err)
+			})
+		}
+	})
+}

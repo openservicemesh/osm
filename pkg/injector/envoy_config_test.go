@@ -172,6 +172,52 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			// Now check the entire struct
 			Expect(*secret).To(Equal(expected))
 		})
+
+		It("Updates bootstrap config for the Envoy proxy if it already exists", func() {
+			name := uuid.New().String()
+			namespace := "a"
+			osmNamespace := "b"
+			meta := metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+				Labels: map[string]string{
+					constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+					constants.OSMAppInstanceLabelKey: "some-mesh",
+					constants.OSMAppVersionLabelKey:  version.Version,
+				},
+			}
+			existing := &corev1.Secret{
+				ObjectMeta: meta,
+				Data: map[string][]byte{
+					"old": []byte("data"),
+				},
+			}
+			wh := &mutatingWebhook{
+				kubeClient:          fake.NewSimpleClientset(existing),
+				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				nonInjectNamespaces: mapset.NewSet(),
+				meshName:            "some-mesh",
+			}
+
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := corev1.Secret{
+				ObjectMeta: meta,
+				Data: map[string][]byte{
+					envoyBootstrapConfigFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+				},
+			}
+
+			// Contains only the "bootstrap.yaml" key
+			Expect(len(secret.Data)).To(Equal(1))
+
+			Expect(secret.Data[envoyBootstrapConfigFile]).To(Equal(expected.Data[envoyBootstrapConfigFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			// Now check the entire struct
+			Expect(*secret).To(Equal(expected))
+		})
 	})
 
 	Context("Test getProbeResources()", func() {

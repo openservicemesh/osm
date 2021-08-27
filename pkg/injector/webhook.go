@@ -171,7 +171,11 @@ func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionReq
 	admissionResp.TypeMeta = admissionReq.TypeMeta
 	admissionResp.Kind = admissionReq.Kind
 
-	return admissionReq.Request.Namespace, admissionResp
+	if admissionReq.Request != nil {
+		requestForNamespace = admissionReq.Request.Namespace
+	}
+
+	return
 }
 
 // podCreationHandler is a MutatingWebhookConfiguration handler exclusive to POD CREATE events.
@@ -301,7 +305,7 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	ns := wh.kubeController.GetNamespace(namespace)
 	if ns == nil {
 		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
-		return false, err
+		return false, errNamespaceNotFound
 	}
 	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, "Namespace", ns.Name)
 	if err != nil {
