@@ -373,7 +373,7 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	cn := p.GetCertificateCommonName()
 	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
 	if err != nil {
-		log.Err(err).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
+		log.Error().Err(err).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
 		return err
 	}
 

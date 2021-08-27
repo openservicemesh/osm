@@ -35,7 +35,7 @@ func LoadExpectedEnvoyYAML(expectationFilePath string) string {
 	log.Info().Msgf("Loading test expectation from %s", filepath.Clean(expectationFilePath))
 	expectedEnvoyConfig, err := ioutil.ReadFile(filepath.Clean(expectationFilePath))
 	if err != nil {
-		log.Err(err).Msgf("Error reading expected Envoy bootstrap YAML from file %s", expectationFilePath)
+		log.Error().Err(err).Msgf("Error reading expected Envoy bootstrap YAML from file %s", expectationFilePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(expectedEnvoyConfig)
@@ -66,7 +66,7 @@ func MarshalXdsStructAndSaveToFile(m protoreflect.ProtoMessage, filePath string)
 	log.Info().Msgf("Saving %s...", filePath)
 	err = ioutil.WriteFile(filepath.Clean(filePath), configYAML, 0600)
 	if err != nil {
-		log.Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
+		log.Error().Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(configYAML)
@@ -79,7 +79,7 @@ func MarshalAndSaveToFile(someStruct interface{}, filePath string) string {
 	log.Info().Msgf("Saving %s...", filePath)
 	err = ioutil.WriteFile(filepath.Clean(filePath), fileContent, 0600)
 	if err != nil {
-		log.Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
+		log.Error().Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(fileContent)
