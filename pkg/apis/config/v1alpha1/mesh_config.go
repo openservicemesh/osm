@@ -203,7 +203,4 @@ type FeatureFlags struct {
 	// EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health
 	// checks between services allowed to communicate.
 	EnableEnvoyActiveHealthChecks bool `json:"enableEnvoyActiveHealthChecks,omitempty"`
-
-	// EnableRetryPolicy defines if retry policy is enabled.
-	EnableRetryPolicy bool `json:"enableRetryPolicy,omitempty"`
 }

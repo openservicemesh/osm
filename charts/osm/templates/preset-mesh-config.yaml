@@ -56,7 +56,6 @@ data:
         "enableAsyncProxyServiceMapping": {{.Values.OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping}},
         "enableValidatingWebhook": {{.Values.OpenServiceMesh.featureFlags.enableValidatingWebhook}},
         "enableIngressBackendPolicy": {{.Values.OpenServiceMesh.featureFlags.enableIngressBackendPolicy}},
-        "enableEnvoyActiveHealthChecks": {{.Values.OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks}},
-        "enableRetryPolicy": {{.Values.OpenServiceMesh.featureFlags.enableRetryPolicy}}
+        "enableEnvoyActiveHealthChecks": {{.Values.OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks}}
       }
     }
