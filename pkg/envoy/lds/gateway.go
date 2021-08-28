@@ -24,7 +24,7 @@ func (lb *listenerBuilder) buildMulticlusterGatewayListener() (*xds_listener.Lis
 	upstreamServices := lb.meshCatalog.ListOutboundServicesForMulticlusterGateway()
 	filterChains, err := getMulticlusterGatewayFilterChains(upstreamServices)
 	if err != nil {
-		log.Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
+		log.Error().Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msg("[Multicluster] Error creating Multicluster gateway filter chain")
 		return nil, err
 	}
 

@@ -88,7 +88,7 @@ func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expir
 	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error converting PEM cert to x509 to obtain serial number")
 		return nil, err
 	}

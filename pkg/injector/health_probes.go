@@ -86,7 +86,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	var err error
 	originalProbe.port, err = getPort(*definedPort, containerPorts)
 	if err != nil {
-		log.Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
+		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
 	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
 

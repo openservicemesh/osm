@@ -267,7 +267,7 @@ func (c *client) ListServices() ([]service.MeshService, error) {
 func (c *client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
 	serviceAccounts, err := c.kubeController.ListServiceIdentitiesForService(svc)
 	if err != nil {
-		log.Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
+		log.Error().Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
 		return nil, err
 	}
 

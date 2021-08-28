@@ -85,7 +85,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	getExpectedEnvoyYAML := func(filename string) string {
 		expectedEnvoyConfig, err := ioutil.ReadFile(filepath.Clean(path.Join(directoryForYAMLFiles, filename)))
 		if err != nil {
-			log.Err(err).Msgf("Error reading expected Envoy bootstrap YAML from file %s", filename)
+			log.Error().Err(err).Msgf("Error reading expected Envoy bootstrap YAML from file %s", filename)
 		}
 		Expect(err).ToNot(HaveOccurred())
 		return string(expectedEnvoyConfig)
@@ -94,7 +94,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	saveActualEnvoyYAML := func(filename string, actualContent []byte) {
 		err := ioutil.WriteFile(filepath.Clean(path.Join(directoryForYAMLFiles, filename)), actualContent, 0600)
 		if err != nil {
-			log.Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filename)
+			log.Error().Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filename)
 		}
 		Expect(err).ToNot(HaveOccurred())
 	}

@@ -43,7 +43,7 @@ func (c *client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 		for _, cluster := range svc.Spec.Clusters {
 			ip, port, err := getIPPort(cluster)
 			if err != nil {
-				log.Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)
+				log.Error().Err(err).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Error getting IP and Port for cluster=%s for service %s", cluster.Name, svc)
 				continue
 			}
 

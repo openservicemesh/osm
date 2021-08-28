@@ -20,7 +20,7 @@ func (s *Server) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]tim
 	})
 
 	if err != nil {
-		log.Err(err).Msgf("Failed to copy xdsLogMap")
+		log.Error().Err(err).Msgf("Failed to copy xdsLogMap")
 	}
 
 	return &logsCopy
