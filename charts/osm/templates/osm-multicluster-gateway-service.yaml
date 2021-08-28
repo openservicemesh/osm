@@ -15,5 +15,6 @@ spec:
       targetPort: 15443
   selector:
     app: osm-multicluster-gateway
+  # NOTE : This will expose an external IP for the gateway and the gateway acts as a passthrough to all the downstreams in the cluster.
   type: LoadBalancer
 {{- end }}

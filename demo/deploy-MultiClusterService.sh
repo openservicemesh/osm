@@ -12,8 +12,7 @@ BETA_CLUSTER="${BETA_CLUSTER:-beta}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 
 kubectl config use-context "$BETA_CLUSTER"
-# TODO : the Pod IP of osm-multicluster-gateway is used cause the clusters are in the same vnet, this needs to be updated to leverage the IP of osm-multicluster-gateway service
-BETA_OSM_GATEWAY_IP=$(kubectl get pods -n 'osm-system' --selector app=osm-multicluster-gateway -o json | jq -r '.items[].status.podIP')
+BETA_OSM_GATEWAY_IP=$(kubectl get svc -n 'osm-system' --selector app=osm-multicluster-gateway -o json | jq -r '.items[0].status.loadBalancer.ingress[0].ip')
 
 
 kubectl config use-context "$ALPHA_CLUSTER"
