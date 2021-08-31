@@ -50,6 +50,11 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
+CONTAINER_NAME="bookstore"
+if [ "$OS" = windows ]; then
+CONTAINER_NAME="bookstore-windows"
+fi
+
 echo -e "Deploy $SVC Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -90,9 +95,9 @@ spec:
       serviceAccountName: "$SVC"
       nodeSelector:
         kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/os: ${OS}
       containers:
-        - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
+        - image: "${CTR_REGISTRY}/${CONTAINER_NAME}:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:
@@ -114,11 +119,14 @@ spec:
               port: 14001
             initialDelaySeconds: 3
             periodSeconds: 3
+            timeoutSeconds: 5
+            failureThreshold: 10
 
           # OSM's mutating webhook will rewrite this readiness probe to /osm-readiness-probe and
           # Envoy will have a dedicated listener on port 15902 for this readiness probe
           readinessProbe:
             failureThreshold: 10
+            timeoutSeconds: 5
             httpGet:
               path: /readiness
               port: 14001
@@ -132,6 +140,7 @@ spec:
               port: 14001
             failureThreshold: 30
             periodSeconds: 5
+            timeoutSeconds: 5
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

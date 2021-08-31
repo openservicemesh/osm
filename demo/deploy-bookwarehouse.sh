@@ -27,6 +27,11 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
+CONTAINER_NAME="bookwarehouse"
+if [ "$OS" = windows ]; then
+CONTAINER_NAME="bookwarehouse-windows"
+fi
+
 echo -e "Deploy Bookwarehouse Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -66,11 +71,11 @@ spec:
       serviceAccountName: bookwarehouse
       nodeSelector:
         kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/os: ${OS}
       containers:
         # Main container with APP
         - name: bookwarehouse
-          image: "${CTR_REGISTRY}/bookwarehouse:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/${CONTAINER_NAME}:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookwarehouse"]
           env:

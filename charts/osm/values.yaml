@@ -310,6 +310,10 @@ contour:
       registry: docker.io
       repository: projectcontour/contour
       tag: v1.18.0
+    # -- Only deploy Contour on linux pods
+    nodeSelector:
+      kubernetes.io/os: linux
+
   # -- Contour envoy edge proxy configuration
   envoy:
     image:

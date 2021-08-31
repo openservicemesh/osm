@@ -32,6 +32,11 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
+CONTAINER_NAME="bookthief"
+if [ "$OS" = windows ]; then
+CONTAINER_NAME="bookthief-windows"
+fi
+
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
@@ -70,11 +75,11 @@ spec:
       serviceAccountName: bookthief
       nodeSelector:
         kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/os: ${OS}
       containers:
         # Main container with APP
         - name: bookthief
-          image: "${CTR_REGISTRY}/bookthief:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/${CONTAINER_NAME}:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookthief"]
 

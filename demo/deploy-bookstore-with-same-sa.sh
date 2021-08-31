@@ -10,6 +10,10 @@ KUBE_CONTEXT=$(kubectl config current-context)
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
+CONTAINER_NAME="bookstore"
+if [ "$OS" = windows ]; then
+CONTAINER_NAME="bookstore-windows"
+fi
 # Create a top level service just for the bookstore domain
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
@@ -77,9 +81,9 @@ spec:
       serviceAccountName: bookstore
       nodeSelector:
         kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/os: ${OS}
       containers:
-        - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
+        - image: "${CTR_REGISTRY}/${CONTAINER_NAME}:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:

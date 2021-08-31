@@ -41,8 +41,6 @@ TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
 
-export OS=linux
-
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
 
@@ -52,6 +50,8 @@ exit_error() {
     exit 1
 }
 
+export OS="windows"
+
 # Check if Docker daemon is running
 docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 
@@ -60,6 +60,7 @@ make build-osm
 # cleanup stale resources from previous runs
 ./demo/clean-kubernetes.sh
 
+# exit 1
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 #
@@ -119,6 +120,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
+      --set=OpenServiceMesh.sidecarWindowsImage="osmwindevregistry.azurecr.io/envoy-windows-nanoserver" \
+      --set=OpenServiceMesh.featureFlags.enableWASMStats=false \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -141,6 +144,8 @@ else
       --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=OpenServiceMesh.controllerLogLevel="trace" \
+      --set=OpenServiceMesh.sidecarWindowsImage="osmwindevregistry.azurecr.io/envoy-windows-nanoserver" \
+      --set=OpenServiceMesh.featureFlags.enableWASMStats=false \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

@@ -30,6 +30,30 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
+CONTAINER_NAME="bookbuyer"
+if [ "$OS" = windows ]; then
+CONTAINER_NAME="bookbuyer-windows"
+fi
+
+echo -e "Deploy bookbuyer Service"
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookbuyer
+  namespace: $BOOKBUYER_NAMESPACE
+  labels:
+    app: bookbuyer
+spec:
+  ports:
+  - port: 14001
+    name: bookbuyer-port
+
+  selector:
+    app: bookbuyer
+EOF
+
+
 echo -e "Deploy BookBuyer Deployment"
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
@@ -52,11 +76,11 @@ spec:
       serviceAccountName: bookbuyer
       nodeSelector:
         kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/os: ${OS}
       containers:
         # Main container with APP
         - name: bookbuyer
-          image: "${CTR_REGISTRY}/bookbuyer:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/${CONTAINER_NAME}:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookbuyer"]
 
