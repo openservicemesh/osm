@@ -19,6 +19,7 @@ type fakeMeshSpec struct {
 }
 
 // NewFakeMeshSpecClient creates a fake Mesh Spec used for testing.
+// TODO(DEPRECATE): This fake is not extendable enough, deprecate it and use mocks or re-implement fakes
 func NewFakeMeshSpecClient() MeshSpec {
 	return fakeMeshSpec{
 		trafficSplits:   []*split.TrafficSplit{&tests.TrafficSplit},
@@ -33,9 +34,15 @@ func NewFakeMeshSpecClient() MeshSpec {
 	}
 }
 
-// ListTrafficSplits lists TrafficSplit SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListTrafficSplits() []*split.TrafficSplit {
-	return f.trafficSplits
+// ListTrafficSplits lists TrafficSplit SMI resources for the fake Mesh Spec
+func (f fakeMeshSpec) ListTrafficSplits(opts ...TrafficSplitListOption) []*split.TrafficSplit {
+	var trafficSplits []*split.TrafficSplit
+	for _, s := range f.trafficSplits {
+		if filteredSplit := filterTrafficSplit(s, opts...); filteredSplit != nil {
+			trafficSplits = append(trafficSplits, filteredSplit)
+		}
+	}
+	return trafficSplits
 }
 
 // ListServiceAccounts fetches all service accounts declared with SMI Spec for the fake Mesh Spec.
@@ -63,7 +70,13 @@ func (f fakeMeshSpec) GetTCPRoute(_ string) *spec.TCPRoute {
 	return nil
 }
 
-// ListTrafficTargets lists TrafficTarget SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListTrafficTargets() []*access.TrafficTarget {
-	return f.trafficTargets
+// ListTrafficTargets lists TrafficTarget SMI resources for the fake Mesh Spec
+func (f fakeMeshSpec) ListTrafficTargets(opts ...TrafficTargetListOption) []*access.TrafficTarget {
+	var trafficTargets []*access.TrafficTarget
+	for _, t := range f.trafficTargets {
+		if filteredTarget := filterTrafficTarget(t, opts...); filteredTarget != nil {
+			trafficTargets = append(trafficTargets, filteredTarget)
+		}
+	}
+	return trafficTargets
 }

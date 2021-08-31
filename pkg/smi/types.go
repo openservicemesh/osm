@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -46,7 +47,7 @@ type client struct {
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
-	ListTrafficSplits() []*split.TrafficSplit
+	ListTrafficSplits(...TrafficSplitListOption) []*split.TrafficSplit
 
 	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []identity.K8sServiceAccount
@@ -63,6 +64,45 @@ type MeshSpec interface {
 	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
 	GetTCPRoute(string) *spec.TCPRoute
 
-	// ListTrafficTargets lists SMI TrafficTarget resources
-	ListTrafficTargets() []*access.TrafficTarget
+	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
+	// returned list
+	ListTrafficTargets(...TrafficTargetListOption) []*access.TrafficTarget
+}
+
+// TrafficTargetListOpt specifies the options used to filter TrafficTarget objects as a part of its lister
+type TrafficTargetListOpt struct {
+	Destination identity.K8sServiceAccount
+}
+
+// TrafficTargetListOption is a function type that implements filters on TrafficTarget lister
+type TrafficTargetListOption func(o *TrafficTargetListOpt)
+
+// WithTrafficTargetDestination applies a filter based on the destination service account to the TrafficTarget lister
+func WithTrafficTargetDestination(d identity.K8sServiceAccount) TrafficTargetListOption {
+	return func(o *TrafficTargetListOpt) {
+		o.Destination = d
+	}
+}
+
+// TrafficSplitListOpt specifies the options used to filter TrafficSplit objects as a part of its lister
+type TrafficSplitListOpt struct {
+	ApexService    service.MeshService
+	BackendService service.MeshService
+}
+
+// TrafficSplitListOption is a function type that implements filters on the TrafficSplit lister
+type TrafficSplitListOption func(o *TrafficSplitListOpt)
+
+// WithTrafficSplitApexService applies a filter based on the apex service to the TrafficSplit lister
+func WithTrafficSplitApexService(s service.MeshService) TrafficSplitListOption {
+	return func(o *TrafficSplitListOpt) {
+		o.ApexService = s
+	}
+}
+
+// WithTrafficSplitBackendService applies a filter based on the backend service to the TrafficSplit lister
+func WithTrafficSplitBackendService(s service.MeshService) TrafficSplitListOption {
+	return func(o *TrafficSplitListOpt) {
+		o.BackendService = s
+	}
 }

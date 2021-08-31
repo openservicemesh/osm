@@ -108,29 +108,37 @@ func (mr *MockMeshSpecMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
 }
 
 // ListTrafficSplits mocks base method
-func (m *MockMeshSpec) ListTrafficSplits() []*v1alpha2.TrafficSplit {
+func (m *MockMeshSpec) ListTrafficSplits(arg0 ...TrafficSplitListOption) []*v1alpha2.TrafficSplit {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTrafficSplits")
+	varargs := []interface{}{}
+	for _, a := range arg0 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListTrafficSplits", varargs...)
 	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
 	return ret0
 }
 
 // ListTrafficSplits indicates an expected call of ListTrafficSplits
-func (mr *MockMeshSpecMockRecorder) ListTrafficSplits() *gomock.Call {
+func (mr *MockMeshSpecMockRecorder) ListTrafficSplits(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficSplits))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficSplits), arg0...)
 }
 
 // ListTrafficTargets mocks base method
-func (m *MockMeshSpec) ListTrafficTargets() []*v1alpha3.TrafficTarget {
+func (m *MockMeshSpec) ListTrafficTargets(arg0 ...TrafficTargetListOption) []*v1alpha3.TrafficTarget {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTrafficTargets")
+	varargs := []interface{}{}
+	for _, a := range arg0 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListTrafficTargets", varargs...)
 	ret0, _ := ret[0].([]*v1alpha3.TrafficTarget)
 	return ret0
 }
 
 // ListTrafficTargets indicates an expected call of ListTrafficTargets
-func (mr *MockMeshSpecMockRecorder) ListTrafficTargets() *gomock.Call {
+func (mr *MockMeshSpecMockRecorder) ListTrafficTargets(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficTargets))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficTargets), arg0...)
 }
