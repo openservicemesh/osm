@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -28,6 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
@@ -404,6 +407,38 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 		Expect(inject).To(BeFalse())
 	})
 
+	It("should return an error when isAnnotatedForInjection on namespace fails", func() {
+		testNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+				Annotations: map[string]string{
+					constants.SidecarInjectionAnnotation: "invalid",
+				},
+			},
+		}
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		podWithInjectAnnotationEnabled := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pod-with-no-injection-annotation",
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-SA",
+			},
+		}
+		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
+
+		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
+
+		Expect(err).To(HaveOccurred())
+		Expect(inject).To(BeFalse())
+	})
+
 	It("Should allow a monitored app namespace", func() {
 		testNamespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -517,6 +552,30 @@ var _ = Describe("Testing Injector Functions", func() {
 	})
 
 	It("creates new webhook", func() {
+		meshName := "-mesh-name-"
+		osmNamespace := "-osm-namespace-"
+		webhookName := "-webhook-name-"
+		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: webhookName,
+			},
+		})
+		var kubeController k8s.Controller
+		stop := make(chan struct{})
+		mockController := gomock.NewController(GinkgoT())
+		cfg := configurator.NewMockConfigurator(mockController)
+		certManager := tresor.NewFakeCertManager(cfg)
+
+		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+
+		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		Expect(actualErr).NotTo(HaveOccurred())
+		close(stop)
+	})
+
+	It("creates new webhook", func() {
 		client := fake.NewSimpleClientset()
 		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
@@ -581,6 +640,29 @@ var _ = Describe("Testing Injector Functions", func() {
 			},
 		}
 		Expect(admissionResp).To(Equal(expectedAdmissionResponse))
+	})
+
+	It("getAdmissionReqResp creates admission with error when decoding body fails", func() {
+		namespace := "default"
+		client := fake.NewSimpleClientset()
+		mockKubeController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+
+		wh := &mutatingWebhook{
+			kubeClient:          client,
+			kubeController:      mockKubeController,
+			nonInjectNamespaces: mapset.NewSet(),
+		}
+		proxyUUID := uuid.New()
+
+		// !! ACTION !!
+		requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, []byte("}"))
+
+		Expect(requestForNamespace).To(Equal(""))
+
+		expectedAdmissionResponse := webhook.AdmissionError(errors.New("yaml: did not find expected node content"))
+		Expect(admissionResp.Response).To(Equal(expectedAdmissionResponse))
 	})
 
 	It("handles health requests", func() {
@@ -823,4 +905,187 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 			assert.ElementsMatch(tc.expectedPorts, ports)
 		})
 	}
+}
+
+func TestPodCreationHandler(t *testing.T) {
+	tests := []struct {
+		name                 string
+		req                  *http.Request
+		expectedResponseCode int
+	}{
+		{
+			name: "bad content-type",
+			req: &http.Request{
+				URL: &url.URL{
+					RawQuery: "timeout=1s",
+				},
+				Header: http.Header{
+					"Content-Type": []string{"bad"},
+				},
+			},
+			expectedResponseCode: http.StatusUnsupportedMediaType,
+		},
+		{
+			name: "error getting admission request body",
+			req: &http.Request{
+				URL: &url.URL{
+					RawQuery: "timeout=1s",
+				},
+				Header: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			var wh *mutatingWebhook
+			w := httptest.NewRecorder()
+
+			wh.podCreationHandler(w, test.req)
+			res := w.Result()
+			if test.expectedResponseCode > 0 {
+				assert.Equal(test.expectedResponseCode, res.StatusCode)
+			}
+		})
+	}
+}
+
+func TestWebhookMutate(t *testing.T) {
+	t.Run("invalid JSON", func(t *testing.T) {
+		var wh *mutatingWebhook
+		req := &admissionv1.AdmissionRequest{
+			Object: runtime.RawExtension{Raw: []byte("{")},
+		}
+		expected := "unexpected end of JSON input"
+		res := wh.mutate(req, uuid.New())
+		tassert.Contains(t, res.Result.Message, expected)
+	})
+
+	t.Run("mustInject error", func(t *testing.T) {
+		assert := tassert.New(t)
+
+		namespace := "ns"
+
+		mockCtrl := gomock.NewController(t)
+		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController.EXPECT().GetNamespace(namespace).Return(nil)
+		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
+		wh := &mutatingWebhook{
+			nonInjectNamespaces: mapset.NewSet(),
+			kubeController:      kubeController,
+		}
+
+		req := &admissionv1.AdmissionRequest{
+			Namespace: namespace,
+			Object: runtime.RawExtension{
+				Raw: []byte(`{
+					"apiVersion": "v1",
+					"kind": "Pod"
+				}`),
+			},
+		}
+
+		res := wh.mutate(req, uuid.New())
+		assert.Equal(res.Result.Message, errNamespaceNotFound.Error())
+	})
+
+	t.Run("createPatch error", func(t *testing.T) {
+		assert := tassert.New(t)
+
+		namespace := "ns"
+
+		mockCtrl := gomock.NewController(t)
+		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{}).Times(1)
+		kubeController.EXPECT().GetNamespace(namespace).Return(nil).Times(1)
+		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
+
+		cfg := configurator.NewMockConfigurator(mockCtrl)
+		cfg.EXPECT().GetOutboundPortExclusionList()
+		cfg.EXPECT().GetInboundPortExclusionList()
+		cfg.EXPECT().GetOutboundIPRangeExclusionList()
+		cfg.EXPECT().IsPrivilegedInitContainer()
+		cfg.EXPECT().GetInitContainerImage()
+		cfg.EXPECT().GetEnvoyImage()
+		cfg.EXPECT().GetProxyResources()
+		cfg.EXPECT().GetEnvoyLogLevel()
+
+		wh := &mutatingWebhook{
+			nonInjectNamespaces: mapset.NewSet(),
+			kubeController:      kubeController,
+			certManager:         tresor.NewFakeCertManager(cfg),
+			kubeClient:          fake.NewSimpleClientset(),
+			configurator:        cfg,
+		}
+
+		req := &admissionv1.AdmissionRequest{
+			Namespace: namespace,
+			Object: runtime.RawExtension{
+				Raw: []byte(`{
+					"apiVersion": "v1",
+					"kind": "Pod",
+					"metadata": {
+						"annotations": {
+							"openservicemesh.io/sidecar-injection": "true"
+						}
+					}
+				}`),
+			},
+		}
+
+		res := wh.mutate(req, uuid.New())
+		assert.Contains(res.Result.Message, errNamespaceNotFound.Error())
+	})
+
+	t.Run("will inject", func(t *testing.T) {
+		assert := tassert.New(t)
+
+		namespace := "ns"
+
+		mockCtrl := gomock.NewController(t)
+		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{}).Times(2)
+		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
+
+		cfg := configurator.NewMockConfigurator(mockCtrl)
+		cfg.EXPECT().GetOutboundPortExclusionList()
+		cfg.EXPECT().GetInboundPortExclusionList()
+		cfg.EXPECT().GetOutboundIPRangeExclusionList()
+		cfg.EXPECT().IsPrivilegedInitContainer()
+		cfg.EXPECT().GetInitContainerImage()
+		cfg.EXPECT().GetEnvoyImage()
+		cfg.EXPECT().GetProxyResources()
+		cfg.EXPECT().GetEnvoyLogLevel()
+
+		wh := &mutatingWebhook{
+			nonInjectNamespaces: mapset.NewSet(),
+			kubeController:      kubeController,
+			certManager:         tresor.NewFakeCertManager(cfg),
+			kubeClient:          fake.NewSimpleClientset(),
+			configurator:        cfg,
+		}
+
+		req := &admissionv1.AdmissionRequest{
+			Namespace: namespace,
+			Object: runtime.RawExtension{
+				Raw: []byte(`{
+					"apiVersion": "v1",
+					"kind": "Pod",
+					"metadata": {
+						"annotations": {
+							"openservicemesh.io/sidecar-injection": "true"
+						}
+					}
+				}`),
+			},
+		}
+
+		res := wh.mutate(req, uuid.New())
+		assert.NotNil(res.Patch)
+	})
 }
