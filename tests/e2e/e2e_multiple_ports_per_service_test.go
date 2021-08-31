@@ -80,31 +80,15 @@ func testMultipleServicePorts() {
 			Destination:     fmt.Sprintf("%s.%s", serverService.Name, serverService.Namespace),
 		}
 
-		// Make a set amount of HTTP requests from the client application to
-		// the server application. We should not use the helper function
-		// WaitForRepeatedSuccess, because at the moment this function does
-		// accept a certain amount of failure as long as there is an uninterrupted
-		// set amount of success. In this case, we want 100% of all requests to
-		// succeed without any failure. In the future we can consider adding
-		// a test framework function (e.g. WaitForAllSuccess) if this logic is
-		// also needed in other tests.
-		allRequestsSucceeded := true
-		failureStatusCode := 0
-		for i := 0; i < 10; i++ {
+		cond := Td.WaitForSuccessAfterInitialFailure(func() bool {
 			result := Td.HTTPRequest(clientToServerRequest)
 			if result.Err != nil || result.StatusCode != 200 {
 				Td.T.Logf("> HTTP request failed %d %v", result.StatusCode, result.Err)
-				allRequestsSucceeded = false
-				failureStatusCode = result.StatusCode
-				break
+				return false
 			}
 			Td.T.Logf("> HTTP request succeeded")
-		}
-
-		failureMessage := fmt.Sprintf(
-			"Client failed to connect to server: %d",
-			failureStatusCode,
-		)
-		Expect(allRequestsSucceeded).To(BeTrue(), failureMessage)
+			return true
+		}, 10, 90*time.Second)
+		Expect(cond).To(BeTrue())
 	})
 }

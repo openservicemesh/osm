@@ -1113,6 +1113,29 @@ func (td *OsmTestData) WaitForRepeatedSuccess(f SuccessFunction, minItForSuccess
 	return false
 }
 
+// WaitForSuccessAfterInitialFailure runs and expects a certain result for a certain operation a set number of consecutive times
+// but requires only success after the first success.
+func (td *OsmTestData) WaitForSuccessAfterInitialFailure(f SuccessFunction, minItForSuccess int, maxWaitTime time.Duration) bool {
+	iterations := 0
+	startTime := time.Now()
+	successHasStarted := false
+
+	By(fmt.Sprintf("[WaitForSuccessAfterFailureBuffer] waiting %v for %d iterations to succeed", maxWaitTime, minItForSuccess))
+	for time.Since(startTime) < maxWaitTime {
+		if f() {
+			successHasStarted = true
+			iterations++
+			if iterations >= minItForSuccess {
+				return true
+			}
+		} else if successHasStarted {
+			return false
+		}
+		time.Sleep(time.Second)
+	}
+	return false
+}
+
 // Cleanup is Used to cleanup resources once the test is done
 // Cyclomatic complexity is disabled in cleanup, as it check a large number of conditions
 // nolint:gocyclo
