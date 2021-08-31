@@ -70,7 +70,7 @@ docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 make build-osm
 
 # Push to registry - needs to happen after registry creation
-make docker-push
+make docker-linux-push
 
 
 echo "Kubernetes contexts to be deployed to: $MULTICLUSTER_CONTEXTS"
