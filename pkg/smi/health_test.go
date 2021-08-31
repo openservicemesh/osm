@@ -166,3 +166,72 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		})
 	}
 }
+
+func TestGetID(t *testing.T) {
+	assert := tassert.New(t)
+
+	discoveryClient := &k8s.FakeDiscoveryClient{
+		Resources: map[string]metav1.APIResourceList{
+			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+				{Kind: "HTTPRouteGroup"},
+				{Kind: "TCPRoute"},
+			}},
+			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficTarget"},
+			}},
+			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficSplit"},
+			}},
+		},
+		Err: nil,
+	}
+	c := HealthChecker{DiscoveryClient: discoveryClient}
+	actual := c.GetID()
+	assert.Equal("SMI", actual)
+}
+
+func TestLiveness(t *testing.T) {
+	assert := tassert.New(t)
+
+	discoveryClient := &k8s.FakeDiscoveryClient{
+		Resources: map[string]metav1.APIResourceList{
+			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+				{Kind: "HTTPRouteGroup"},
+				{Kind: "TCPRoute"},
+			}},
+			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficTarget"},
+			}},
+			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficSplit"},
+			}},
+		},
+		Err: nil,
+	}
+	c := HealthChecker{DiscoveryClient: discoveryClient}
+	actual := c.Liveness()
+	assert.True(actual)
+}
+
+func TestReadiness(t *testing.T) {
+	assert := tassert.New(t)
+
+	discoveryClient := &k8s.FakeDiscoveryClient{
+		Resources: map[string]metav1.APIResourceList{
+			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+				{Kind: "HTTPRouteGroup"},
+				{Kind: "TCPRoute"},
+			}},
+			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficTarget"},
+			}},
+			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+				{Kind: "TrafficSplit"},
+			}},
+		},
+		Err: nil,
+	}
+	c := HealthChecker{DiscoveryClient: discoveryClient}
+	actual := c.Readiness()
+	assert.True(actual)
+}
