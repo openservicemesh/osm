@@ -41,11 +41,6 @@ func (ms MeshService) String() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
-// NameWithoutCluster returns a string
-func (ms MeshService) NameWithoutCluster() string {
-	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
-}
-
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)

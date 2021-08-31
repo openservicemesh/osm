@@ -2,40 +2,30 @@ package service
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/google/uuid"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Test pkg/service functions", func() {
-	defer GinkgoRecover()
+func TestClusterNameString(t *testing.T) {
+	assert := tassert.New(t)
 
-	Context("Test ClusterName's String method", func() {
-		clusterNameStr := uuid.New().String()
-		cn := ClusterName(clusterNameStr)
+	clusterNameStr := uuid.New().String()
+	cn := ClusterName(clusterNameStr)
+	assert.Equal(cn.String(), clusterNameStr)
+}
 
-		It("implements stringer correctly", func() {
-			Expect(cn.String()).To(Equal(clusterNameStr))
-		})
-	})
+func TestMeshNameString(t *testing.T) {
+	assert := tassert.New(t)
 
-	Context("Test MeshService's String and FQDN methods", func() {
-		namespace := uuid.New().String()
-		name := uuid.New().String()
-		ms := MeshService{
-			Namespace: namespace,
-			Name:      name,
-		}
+	namespace := uuid.New().String()
+	name := uuid.New().String()
+	ms := MeshService{
+		Namespace: namespace,
+		Name:      name,
+	}
 
-		It("implements String() correctly", func() {
-			Expect(ms.String()).To(Equal(fmt.Sprintf("%s/%s", namespace, name)))
-		})
-
-		It("implements FQDN() correctly", func() {
-			Expect(ms.FQDN()).To(Equal(fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)))
-		})
-	})
-
-})
+	assert.Equal(ms.String(), fmt.Sprintf("%s/%s", namespace, name))
+	assert.Equal(ms.FQDN(), fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
+}

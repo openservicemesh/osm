@@ -1,160 +1,147 @@
 package main
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 )
 
-var _ = Describe("Test validateCertificateManagerOptions", func() {
-	var (
-		testCaBundleSecretName = "test-secret"
-	)
+func TestValidateCertificateManagerOptions(t *testing.T) {
+	testCases := []struct {
+		name               string
+		certProvider       string
+		vaultToken         string
+		caBundleSecretName string
+		issuerName         string
+		expectError        bool
+	}{
+		{
+			name:         "Cert Provider : Tresor",
+			certProvider: providers.TresorKind.String(),
+			expectError:  false,
+		},
+		{
+			name:         "Cert Provider : Vault and token is not empty",
+			certProvider: providers.VaultKind.String(),
+			vaultToken:   "anythinghere",
+			expectError:  false,
+		},
+		{
+			name:         "Cert Provider : Vault and token is empty",
+			certProvider: providers.VaultKind.String(),
+			vaultToken:   "",
+			expectError:  true,
+		},
+		{
+			name:               "Cert Provider : Cert-Manager with valid caBundleSecretName and certmanagerIssuerName",
+			certProvider:       providers.CertManagerKind.String(),
+			caBundleSecretName: "test-secret",
+			issuerName:         "test-issuer",
+			expectError:        false,
+		},
+		{
+			name:               "Cert Provider : Cert-Manager with valid caBundleSecretName and no certmanagerIssuerName",
+			certProvider:       providers.CertManagerKind.String(),
+			caBundleSecretName: "test-secret",
+			issuerName:         "",
+			expectError:        true,
+		},
+		{
+			name:               "Cert Provider : Cert-Manager with no caBundleSecretName and no certmanagerIssuerName",
+			certProvider:       providers.CertManagerKind.String(),
+			issuerName:         "",
+			caBundleSecretName: "",
+			expectError:        true,
+		},
+		{
+			name:         "Cert Provider : InvalidProvider",
+			certProvider: "InvalidProvider",
+			expectError:  true,
+		},
+	}
 
-	Context("tresor certProviderKind is passed in", func() {
-		certProviderKind = providers.TresorKind.String()
-
-		err := validateCertificateManagerOptions()
-
-		It("should not error", func() {
-			Expect(err).To(BeNil())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			certProviderKind = tc.certProvider
+			vaultOptions.VaultToken = tc.vaultToken
+			certManagerOptions.IssuerName = tc.issuerName
+			caBundleSecretName = tc.caBundleSecretName
+			err := validateCertificateManagerOptions()
+			assert.Equal(err != nil, tc.expectError)
 		})
-	})
-	Context("vault certProviderKind is passed in and vaultToken is not empty", func() {
-		certProviderKind = providers.VaultKind.String()
-		vaultOptions.VaultToken = "anythinghere"
+	}
+}
 
-		err := validateCertificateManagerOptions()
+func TestValidateCLIParams(t *testing.T) {
+	testCases := []struct {
+		name                       string
+		certProvider               string
+		meshName                   string
+		osmNamespace               string
+		validatorWebhookConfigName string
+		caBundleSecretName         string
+		expectError                bool
+	}{
+		{
+			name:                       "none of the necessary CLI params are empty",
+			certProvider:               providers.TresorKind.String(),
+			meshName:                   "test-mesh",
+			osmNamespace:               "test-ns",
+			validatorWebhookConfigName: "test-webhook",
+			caBundleSecretName:         "test-secret",
+			expectError:                false,
+		},
+		{
+			name:                       "mesh name is empty",
+			certProvider:               providers.TresorKind.String(),
+			meshName:                   "",
+			osmNamespace:               "test-ns",
+			validatorWebhookConfigName: "test-webhook",
+			caBundleSecretName:         "test-secret",
+			expectError:                true,
+		},
+		{
+			name:                       "osm namespace is empty",
+			certProvider:               providers.TresorKind.String(),
+			meshName:                   "test-mesh",
+			osmNamespace:               "",
+			validatorWebhookConfigName: "test-webhook",
+			caBundleSecretName:         "test-secret",
+			expectError:                true,
+		},
+		{
+			name:                       "validator webhook is empty",
+			certProvider:               providers.TresorKind.String(),
+			meshName:                   "test-mesh",
+			osmNamespace:               "test-ns",
+			validatorWebhookConfigName: "",
+			caBundleSecretName:         "test-secret",
+			expectError:                true,
+		},
+		{
+			name:                       "cabundle is empty",
+			certProvider:               providers.TresorKind.String(),
+			meshName:                   "test-mesh",
+			osmNamespace:               "test-ns",
+			validatorWebhookConfigName: "test-webhook",
+			caBundleSecretName:         "",
+			expectError:                true,
+		},
+	}
 
-		It("should not error", func() {
-			Expect(err).To(BeNil())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			certProviderKind = tc.certProvider
+			meshName = tc.meshName
+			osmNamespace = tc.osmNamespace
+			validatorWebhookConfigName = tc.validatorWebhookConfigName
+			caBundleSecretName = tc.caBundleSecretName
+			err := validateCLIParams()
+			assert.Equal(err != nil, tc.expectError)
 		})
-	})
-	Context("vault certProviderKind is passed in but vaultToken is empty", func() {
-		certProviderKind = providers.VaultKind.String()
-		vaultOptions.VaultToken = ""
-
-		err := validateCertificateManagerOptions()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-
-		})
-	})
-	Context("cert-manager certProviderKind is passed in with valid caBundleSecretName and certmanagerIssuerName", func() {
-		certProviderKind = providers.CertManagerKind.String()
-		caBundleSecretName = testCaBundleSecretName
-		certManagerOptions.IssuerName = "test-issuer"
-
-		err := validateCertificateManagerOptions()
-
-		It("should not error", func() {
-			Expect(err).To(BeNil())
-		})
-	})
-	Context("cert-manager certProviderKind is passed in with caBundleSecretName but no certmanagerIssureName", func() {
-		certProviderKind = providers.CertManagerKind.String()
-		caBundleSecretName = testCaBundleSecretName
-		certManagerOptions.IssuerName = ""
-
-		err := validateCertificateManagerOptions()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("cert-manager certProviderKind is passed in without caBundleSecretName but no certmanagerIssureName", func() {
-		certProviderKind = providers.CertManagerKind.String()
-		caBundleSecretName = ""
-		certManagerOptions.IssuerName = ""
-
-		err := validateCertificateManagerOptions()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("invalid kind is passed in", func() {
-		certProviderKind = "invalidkind"
-
-		err := validateCertificateManagerOptions()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-})
-
-var _ = Describe("Test validateCLIParams", func() {
-	var (
-		testMeshName                   = "test-mesh-name"
-		testOsmNamespace               = "test-namespace"
-		testvalidatorWebhookConfigName = "test-webhook-name"
-		testCABundleSecretName         = "test-ca-bundle"
-	)
-
-	Context("none of the necessary CLI params are empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = testOsmNamespace
-		validatorWebhookConfigName = testvalidatorWebhookConfigName
-		caBundleSecretName = testCABundleSecretName
-
-		err := validateCLIParams()
-
-		It("should not error", func() {
-			Expect(err).To(BeNil())
-		})
-	})
-	Context("mesh name is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = ""
-		osmNamespace = testOsmNamespace
-		validatorWebhookConfigName = testvalidatorWebhookConfigName
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("osmNamespace is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = ""
-		validatorWebhookConfigName = testvalidatorWebhookConfigName
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("validatorWebhookConfigName is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = testOsmNamespace
-		validatorWebhookConfigName = ""
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("caBundleSecretName is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = testOsmNamespace
-		validatorWebhookConfigName = testvalidatorWebhookConfigName
-		caBundleSecretName = ""
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-})
+	}
+}

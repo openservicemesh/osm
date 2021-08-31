@@ -77,20 +77,6 @@ func (m *MockMeshCatalogDebugger) EXPECT() *MockMeshCatalogDebuggerMockRecorder 
 	return m.recorder
 }
 
-// ListMonitoredNamespaces mocks base method
-func (m *MockMeshCatalogDebugger) ListMonitoredNamespaces() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMonitoredNamespaces")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// ListMonitoredNamespaces indicates an expected call of ListMonitoredNamespaces
-func (mr *MockMeshCatalogDebuggerMockRecorder) ListMonitoredNamespaces() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitoredNamespaces", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListMonitoredNamespaces))
-}
-
 // ListSMIPolicies mocks base method
 func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []identity.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
