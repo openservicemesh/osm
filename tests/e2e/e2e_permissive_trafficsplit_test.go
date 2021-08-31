@@ -16,30 +16,29 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test",
+var _ = OSMDescribe("Test Permissive HTTP from N Clients deployments to 1 Server deployment backed with Traffic split",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 10,
+		Bucket: 7,
 	},
 	func() {
-		Context("HTTP traffic splitting with SMI", func() {
-			testTrafficSplit(constants.ProtocolHTTP)
+		Context("Permissive HTTP traffic splitting with SMI", func() {
+			testPermissiveTrafficSplit(constants.ProtocolHTTP)
 		})
 
-		Context("TCP traffic splitting with SMI", func() {
-			testTrafficSplit(constants.ProtocolTCP)
+		Context("Permissive TCP traffic splitting with SMI", func() {
+			testPermissiveTrafficSplit(constants.ProtocolTCP)
 		})
 	})
 
-func testTrafficSplit(appProtocol string) {
+func testPermissiveTrafficSplit(appProtocol string) {
 	var (
 		// to name the header we will use to identify the server that replies
-		HTTPHeaderName = "podname"
+		HTTPHeaderName    = "podname"
+		clientAppBaseName = "client"
+		serverNamespace   = "server"
+		trafficSplitName  = "traffic-split"
 	)
-
-	clientAppBaseName := "client"
-	serverNamespace := "server"
-	trafficSplitName := "traffic-split"
 
 	// Scale number of client services/pods here
 	numberOfClientServices := 2
@@ -67,9 +66,11 @@ func testTrafficSplit(appProtocol string) {
 	// Used across the test to wait for concurrent steps to finish
 	var wg sync.WaitGroup
 
-	It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
-		// Install OSM
-		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+	It("Tests Permisive HTTP traffic from Clients to the traffic split Cluster IP", func() {
+		// Install OSM in permissive mode
+		installOpts := Td.GetOSMInstallOpts()
+		installOpts.EnablePermissiveMode = true
+		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 		// Create NSs
 		Expect(Td.CreateMultipleNs(allNamespaces...)).To(Succeed())
@@ -150,57 +151,6 @@ func testTrafficSplit(appProtocol string) {
 		}
 
 		wg.Wait()
-
-		// Put allow traffic target rules
-		for _, srcClient := range clientServices {
-			for _, dstServer := range serverServices {
-				switch appProtocol {
-				// HTTP traffic
-				case constants.ProtocolHTTP:
-					httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
-						SimpleAllowPolicy{
-							RouteGroupName:    fmt.Sprintf("%s-%s", srcClient, dstServer),
-							TrafficTargetName: fmt.Sprintf("%s-%s", srcClient, dstServer),
-
-							SourceNamespace:      srcClient,
-							SourceSVCAccountName: srcClient,
-
-							DestinationNamespace:      serverNamespace,
-							DestinationSvcAccountName: dstServer,
-						})
-
-					_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
-					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
-					Expect(err).NotTo(HaveOccurred())
-
-				// TCP traffic
-				case constants.ProtocolTCP:
-					tcpRoute, trafficTarget := Td.CreateSimpleTCPAllowPolicy(
-						SimpleAllowPolicy{
-							RouteGroupName:    fmt.Sprintf("%s-%s", srcClient, dstServer),
-							TrafficTargetName: fmt.Sprintf("%s-%s", srcClient, dstServer),
-
-							SourceNamespace:      srcClient,
-							SourceSVCAccountName: srcClient,
-
-							DestinationNamespace:      serverNamespace,
-							DestinationSvcAccountName: dstServer,
-						},
-						DefaultUpstreamServicePort,
-					)
-
-					// Configs have to be put into a monitored NS
-					_, err := Td.CreateTCPRoute(srcClient, tcpRoute)
-					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
-					Expect(err).NotTo(HaveOccurred())
-
-				default:
-					Td.T.Fatalf("Unsupported appProtocol %s for test, must be one of [http, tcp]", appProtocol)
-				}
-			}
-		}
 
 		// Create traffic split service. Use simple Pod to create a simple service definition
 		_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
@@ -300,7 +250,7 @@ func testTrafficSplit(appProtocol string) {
 
 		Expect(success).To(BeTrue())
 
-		By("Issuing http requests from clients to the allowed individual service backends")
+		By("Issuing http requests from clients to the individual service backends")
 
 		// Test now against the individual services, observe they should still be reachable
 		requests = HTTPMultipleRequest{

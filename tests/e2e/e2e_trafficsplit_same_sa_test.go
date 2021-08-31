@@ -22,7 +22,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 	},
 	func() {
 		Context("ClientServerTrafficSplitSameSA", func() {
-			const (
+			var (
 				// to name the header we will use to identify the server that replies
 				HTTPHeaderName    = "podname"
 				clientAppBaseName = "client"

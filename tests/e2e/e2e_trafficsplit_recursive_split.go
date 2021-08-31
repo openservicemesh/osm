@@ -32,14 +32,13 @@ var _ = OSMDescribe("Test traffic split where root service is same as backend se
 	})
 
 func testRecursiveTrafficSplit(appProtocol string) {
-	const (
+	var (
 		// to name the header we will use to identify the server that replies
-		HTTPHeaderName = "podname"
+		HTTPHeaderName    = "podname"
+		clientAppBaseName = "client"
+		serverNamespace   = "server-namespace"
+		trafficSplitName  = "server"
 	)
-
-	clientAppBaseName := "client"
-	serverNamespace := "server-namespace"
-	trafficSplitName := "server"
 
 	// Scale number of client services/pods here
 	numberOfClientServices := 1
