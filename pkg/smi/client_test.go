@@ -21,8 +21,10 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -129,6 +131,22 @@ var _ = Describe("When listing TrafficSplit", func() {
 		Expect(len(splits)).To(Equal(1))
 		Expect(split).To(Equal(splits[0]))
 
+		// --
+		// Verify filter for apex service
+		filteredApexAvailable := meshSpec.ListTrafficSplits(WithTrafficSplitApexService(service.MeshService{Name: tests.BookstoreApexServiceName, Namespace: testNamespaceName}))
+		Expect(len(filteredApexAvailable)).To(Equal(1))
+		Expect(split).To(Equal(filteredApexAvailable[0]))
+		filteredApexUnavailable := meshSpec.ListTrafficSplits(WithTrafficSplitApexService(tests.BookstoreV1Service))
+		Expect(len(filteredApexUnavailable)).To(Equal(0))
+		// Verify filter for backend service
+		filteredBackendAvailable := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: testNamespaceName}))
+		Expect(len(filteredBackendAvailable)).To(Equal(1))
+		Expect(split).To(Equal(filteredBackendAvailable[0]))
+		filteredBackendNameMismatch := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: testNamespaceName, Name: "invalid"}))
+		Expect(len(filteredBackendNameMismatch)).To(Equal(0))
+		filteredBackendNamespaceMismatch := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: "invalid", Name: tests.BookstoreV1ServiceName}))
+		Expect(len(filteredBackendNamespaceMismatch)).To(Equal(0))
+
 		err = fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Delete(context.TODO(), split.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-tsChannel
@@ -223,12 +241,12 @@ var _ = Describe("When listing TrafficTargets", func() {
 			},
 			Spec: smiAccess.TrafficTargetSpec{
 				Destination: smiAccess.IdentityBindingSubject{
-					Kind:      "Name",
+					Kind:      "ServiceAccount",
 					Name:      tests.BookstoreServiceAccountName,
 					Namespace: testNamespaceName,
 				},
 				Sources: []smiAccess.IdentityBindingSubject{{
-					Kind:      "Name",
+					Kind:      "ServiceAccount",
 					Name:      tests.BookbuyerServiceAccountName,
 					Namespace: testNamespaceName,
 				}},
@@ -246,6 +264,12 @@ var _ = Describe("When listing TrafficTargets", func() {
 
 		targets := meshSpec.ListTrafficTargets()
 		Expect(len(targets)).To(Equal(1))
+
+		// Verify destination based filtering
+		filteredAvailable := meshSpec.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: tests.BookstoreServiceAccountName}))
+		Expect(len(filteredAvailable)).To(Equal(1))
+		filteredUnavailable := meshSpec.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: "unavailable"}))
+		Expect(len(filteredUnavailable)).To(Equal(0))
 
 		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())

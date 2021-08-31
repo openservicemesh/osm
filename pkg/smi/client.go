@@ -156,17 +156,59 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
-func (c *client) ListTrafficSplits() []*smiSplit.TrafficSplit {
+func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
+
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
 
 		if !c.kubeController.IsMonitoredNamespace(trafficSplit.Namespace) {
 			continue
 		}
-		trafficSplits = append(trafficSplits, trafficSplit)
+
+		if filteredSplit := filterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
+			trafficSplits = append(trafficSplits, filteredSplit)
+		}
 	}
 	return trafficSplits
+}
+
+// filterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
+func filterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
+	if trafficSplit == nil {
+		return nil
+	}
+
+	o := &TrafficSplitListOpt{}
+	for _, opt := range options {
+		opt(o)
+	}
+
+	// If apex service filter option is set, ignore traffic splits whose apex service does not match
+	if o.ApexService.Name != "" && (o.ApexService.Namespace != trafficSplit.Namespace ||
+		o.ApexService.Name != k8s.GetServiceFromHostname(trafficSplit.Spec.Service)) {
+		return nil
+	}
+
+	// If backend service filter option is set, ignore traffic splits whose backend service does not match
+	if o.BackendService.Name != "" {
+		if trafficSplit.Namespace != o.BackendService.Namespace {
+			return nil
+		}
+
+		backendFound := false
+		for _, backend := range trafficSplit.Spec.Backends {
+			if backend.Service == o.BackendService.Name {
+				backendFound = true
+				break
+			}
+		}
+		if !backendFound {
+			return nil
+		}
+	}
+
+	return trafficSplit
 }
 
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
@@ -228,17 +270,40 @@ func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
-func (c *client) ListTrafficTargets() []*smiAccess.TrafficTarget {
+func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
+
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
 		if !c.kubeController.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
 		}
-		trafficTargets = append(trafficTargets, trafficTarget)
+
+		// Filter TrafficTarget based on the given options
+		if filteredTrafficTarget := filterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
+			trafficTargets = append(trafficTargets, trafficTarget)
+		}
 	}
 	return trafficTargets
+}
+
+func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
+	if trafficTarget == nil {
+		return nil
+	}
+
+	o := &TrafficTargetListOpt{}
+	for _, opt := range options {
+		opt(o)
+	}
+
+	if o.Destination.Name != "" && (o.Destination.Namespace != trafficTarget.Spec.Destination.Namespace ||
+		o.Destination.Name != trafficTarget.Spec.Destination.Name) {
+		return nil
+	}
+
+	return trafficTarget
 }
 
 // ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
