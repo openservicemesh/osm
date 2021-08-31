@@ -518,11 +518,13 @@ func TestMergeRules(t *testing.T) {
 func TestMergeOutboundPolicies(t *testing.T) {
 	testCases := []struct {
 		name                                               string
+		weightedClusterStrategy                            weightedClusterStrategyType
 		originalPolicies, latestPolicies, expectedPolicies []*OutboundTrafficPolicy
 		allowPartialHostnamesMatch                         bool
 	}{
 		{
-			name: "hostnames don't match",
+			name:                    "hostnames don't match",
+			weightedClusterStrategy: UnionWeightedClusters,
 			originalPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
@@ -548,7 +550,8 @@ func TestMergeOutboundPolicies(t *testing.T) {
 			allowPartialHostnamesMatch: false,
 		},
 		{
-			name: "hostnames match",
+			name:                    "hostnames match",
+			weightedClusterStrategy: UnionWeightedClusters,
 			originalPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
@@ -570,7 +573,8 @@ func TestMergeOutboundPolicies(t *testing.T) {
 			allowPartialHostnamesMatch: false,
 		},
 		{
-			name: "hostnames match, routes match",
+			name:                    "hostnames match, routes match",
+			weightedClusterStrategy: UnionWeightedClusters,
 			originalPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
@@ -592,11 +596,15 @@ func TestMergeOutboundPolicies(t *testing.T) {
 			allowPartialHostnamesMatch: false,
 		},
 		{
-			name: "hostnames match, routes have same match conditions but diff weighted clusters",
+			name:                    "hostnames match, routes have same match conditions but diff weighted clusters with overwrite strategy",
+			weightedClusterStrategy: OverwriteWeightedClusters,
 			originalPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
-					Routes:    []*RouteWeightedClusters{&testRoute},
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
+					}},
 				},
 			},
 			latestPolicies: []*OutboundTrafficPolicy{
@@ -611,13 +619,49 @@ func TestMergeOutboundPolicies(t *testing.T) {
 			expectedPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
-					Routes:    []*RouteWeightedClusters{&testRoute},
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: mapset.NewSet(testWeightedCluster2),
+					}},
 				},
 			},
 			allowPartialHostnamesMatch: false,
 		},
 		{
-			name: "hostnames partially match",
+			name:                    "hostnames match, routes have same match conditions but diff weighted clusters with union strategy",
+			weightedClusterStrategy: UnionWeightedClusters,
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: mapset.NewSet(testWeightedCluster),
+					}},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: mapset.NewSet(testWeightedCluster2),
+					}},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
+					}},
+				},
+			},
+			allowPartialHostnamesMatch: false,
+		},
+		{
+			name:                    "hostnames partially match",
+			weightedClusterStrategy: UnionWeightedClusters,
 			originalPolicies: []*OutboundTrafficPolicy{
 				{
 					Hostnames: testHostnames,
@@ -643,7 +687,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := MergeOutboundPolicies(tc.allowPartialHostnamesMatch, tc.originalPolicies, tc.latestPolicies...)
+			actual := MergeOutboundPolicies(tc.allowPartialHostnamesMatch, tc.weightedClusterStrategy, tc.originalPolicies, tc.latestPolicies...)
 			assert.ElementsMatch(actual, tc.expectedPolicies)
 		})
 	}
@@ -652,23 +696,46 @@ func TestMergeOutboundPolicies(t *testing.T) {
 func TestMergeRouteWeightedClusters(t *testing.T) {
 	testCases := []struct {
 		name                                         string
+		weightedClusterStrategy                      weightedClusterStrategyType
 		originalRoutes, latestRoutes, expectedRoutes []*RouteWeightedClusters
 	}{
 		{
-			name:           "merge routes with different match conditions",
-			originalRoutes: []*RouteWeightedClusters{&testRoute},
-			latestRoutes:   []*RouteWeightedClusters{&testRoute2},
-			expectedRoutes: []*RouteWeightedClusters{&testRoute, &testRoute2},
+			name:                    "merge routes with different match conditions",
+			weightedClusterStrategy: UnionWeightedClusters,
+			originalRoutes:          []*RouteWeightedClusters{&testRoute},
+			latestRoutes:            []*RouteWeightedClusters{&testRoute2},
+			expectedRoutes:          []*RouteWeightedClusters{&testRoute, &testRoute2},
 		},
 		{
-			name:           "collapse routes with same match conditions and weighted clusters",
-			originalRoutes: []*RouteWeightedClusters{&testRoute},
-			latestRoutes:   []*RouteWeightedClusters{&testRoute},
-			expectedRoutes: []*RouteWeightedClusters{&testRoute},
+			name:                    "collapse routes with same match conditions and weighted clusters",
+			weightedClusterStrategy: UnionWeightedClusters,
+			originalRoutes:          []*RouteWeightedClusters{&testRoute},
+			latestRoutes:            []*RouteWeightedClusters{&testRoute},
+			expectedRoutes:          []*RouteWeightedClusters{&testRoute},
 		},
 		{
-			name:           "routes have same match conditions but different weighted clusters, union the weighted clusters",
-			originalRoutes: []*RouteWeightedClusters{&testRoute},
+			name:                    "use latest weighted cluster when routes have same match conditions and weightedClusterStrategy is OverwriteWeightedClusters",
+			weightedClusterStrategy: OverwriteWeightedClusters,
+			originalRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster),
+			}},
+			latestRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster2),
+			}},
+			expectedRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster2),
+			}},
+		},
+		{
+			name:                    "union weighted clusters when routes have same match conditions and weightedClusterStrategy is UnionWeightedClusters",
+			weightedClusterStrategy: UnionWeightedClusters,
+			originalRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster),
+			}},
 			latestRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
 				WeightedClusters: mapset.NewSet(testWeightedCluster2),
@@ -682,8 +749,7 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
-			actual := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes)
+			actual := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes, tc.weightedClusterStrategy)
 			assert.Equal(tc.expectedRoutes, actual)
 		})
 	}

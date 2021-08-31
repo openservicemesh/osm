@@ -30,6 +30,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	}
 
 	services, err := proxyRegistry.ListProxyServices(proxy)
+
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())

@@ -81,16 +81,10 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 		},
 	}
 
-	if o.permissive {
-		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
-	} else {
-		// Configure service discovery based on traffic policies
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
-	}
+	// Configure service discovery based on traffic policies
+	remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+	remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+	remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 
 	if o.withActiveHealthChecks {
 		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)

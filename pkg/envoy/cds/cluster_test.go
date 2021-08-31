@@ -27,37 +27,26 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 
 	testCases := []struct {
 		name                string
-		permissiveMode      bool
 		expectedClusterType xds_cluster.Cluster_DiscoveryType
 		expectedLbPolicy    xds_cluster.Cluster_LbPolicy
 		addHealthCheck      bool
 	}{
 		{
 			name:                "Returns an EDS based cluster when permissive mode is disabled",
-			permissiveMode:      false,
 			expectedClusterType: xds_cluster.Cluster_EDS,
 			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 			addHealthCheck:      false,
 		},
 		{
-			name:                "Returns an Original Destination based cluster when permissive mode is enabled",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
-			addHealthCheck:      false,
-		},
-		{
 			name:                "Adds health checks when configured",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
+			expectedClusterType: xds_cluster.Cluster_EDS,
+			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 			addHealthCheck:      true,
 		},
 		{
 			name:                "Does not add health checks when not configured",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
+			expectedClusterType: xds_cluster.Cluster_EDS,
+			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 			addHealthCheck:      false,
 		},
 	}
@@ -67,9 +56,6 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 			assert := tassert.New(t)
 
 			opts := []clusterOption{}
-			if tc.permissiveMode {
-				opts = append(opts, permissive)
-			}
 			if tc.addHealthCheck {
 				opts = append(opts, withActiveHealthChecks)
 			}

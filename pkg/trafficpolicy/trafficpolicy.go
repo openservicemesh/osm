@@ -13,6 +13,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+// weightedClusterStrategyType is a type to signify the strategy associated with merging weighted clusters
+type weightedClusterStrategyType int
+
+const (
+	// UnionWeightedClusters is the weightedClusterStrategyType indicating union weighted clusters
+	UnionWeightedClusters weightedClusterStrategyType = 0
+	// OverwriteWeightedClusters is the weightedClusterStrategyType indicating union weighted clusters
+	OverwriteWeightedClusters weightedClusterStrategyType = 1
+)
+
 // WildCardRouteMatch represents a wildcard HTTP route match condition
 var WildCardRouteMatch HTTPRouteMatch = HTTPRouteMatch{
 	Path:          constants.RegexMatchAll,
@@ -142,14 +152,14 @@ func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTr
 // when a policy having its hostnames from a host header needs to be merged with other outbound policies
 // This is because there will be a single hostname (from the host header) and there is a possibility that this hostname is part of an existing traffic policy
 // hence the rules need to be merged
-func MergeOutboundPolicies(allowPartialHostnamesMatch bool, original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) []*OutboundTrafficPolicy {
+func MergeOutboundPolicies(allowPartialHostnamesMatch bool, weightedClusterStrategy weightedClusterStrategyType, original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) []*OutboundTrafficPolicy {
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
 			if !allowPartialHostnamesMatch {
 				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
 					foundHostnames = true
-					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
+					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes, weightedClusterStrategy)
 					or.Routes = mergedRoutes
 				}
 			} else {
@@ -157,7 +167,7 @@ func MergeOutboundPolicies(allowPartialHostnamesMatch bool, original []*Outbound
 				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
 					or.Hostnames = hostsUnion
 					foundHostnames = true
-					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
+					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes, weightedClusterStrategy)
 					or.Routes = mergedRoutes
 				}
 			}
@@ -189,16 +199,21 @@ func mergeRules(originalRules, latestRules []*Rule) []*Rule {
 }
 
 // mergeRoutesWeightedClusters merges two slices of RouteWeightedClusters and returns a slice where there is one RouteWeightedCluster
-//	for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters
-//  will be unioned as there can only be one set of WeightedClusters per HTTPRouteMatch.
-func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) []*RouteWeightedClusters {
+//	for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters from
+//  the latest HTTPRouteMatch will be taken if overwriteWeighted clusters is true. Otherwise, the WeightedClusters from the original
+// 	HTTPRouteMatch and the latest will be unioned as there can only be one set of WeightedClusters per HTTPRouteMatch.
+func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters, weightedClusterStrategy weightedClusterStrategyType) []*RouteWeightedClusters {
 	for _, latest := range latestRoutes {
 		foundRoute := false
 		for _, original := range originalRoutes {
 			if reflect.DeepEqual(original.HTTPRouteMatch, latest.HTTPRouteMatch) {
 				foundRoute = true
 				if !reflect.DeepEqual(original.WeightedClusters, latest.WeightedClusters) {
-					original.WeightedClusters = original.WeightedClusters.Union(latest.WeightedClusters)
+					if weightedClusterStrategy == OverwriteWeightedClusters {
+						original.WeightedClusters = latest.WeightedClusters
+					} else {
+						original.WeightedClusters = original.WeightedClusters.Union(latest.WeightedClusters)
+					}
 				}
 				continue
 			}

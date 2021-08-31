@@ -26,16 +26,18 @@ const (
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	inboundPoliciesFromSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
+
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		for _, svc := range upstreamServices {
 			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
 		}
+		inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, inboundPoliciesFromSplits...)
 		return inboundPolicies
 	}
 
 	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
-	inboundPoliciesFromSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
 	inbound = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inbound, inboundPoliciesFromSplits...)
 	return inbound
 }
@@ -72,6 +74,35 @@ func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity id
 func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	upstreamServiceAccount := upstreamIdentity.ToK8sServiceAccount()
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
+
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		for _, upstreamSvc := range upstreamServices {
+			//check if the upstream service belong to a traffic split
+			if !mc.isTrafficSplitBackendService(upstreamSvc) {
+				continue
+			}
+
+			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
+			for _, apexService := range apexServices {
+				// build an inbound policy for every apex service
+				locality := service.LocalCluster
+				if apexService.Namespace == upstreamServiceAccount.Namespace {
+					locality = service.LocalNS
+				}
+				hostnames, err := mc.GetServiceHostnames(apexService, locality)
+				if err != nil {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrServiceHostnames)).
+						Msgf("Error getting service hostnames for apex service %v", apexService)
+					continue
+				}
+				servicePolicy := trafficpolicy.NewInboundTrafficPolicy(apexService.FQDN(), hostnames)
+				weightedCluster := getDefaultWeightedClusterForService(upstreamSvc)
+				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{weightedCluster}), identity.WildcardServiceIdentity)
+				inboundPolicies = trafficpolicy.MergeInboundPolicies(AllowPartialHostnamesMatch, inboundPolicies, servicePolicy)
+			}
+		}
+		return inboundPolicies
+	}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		if !isValidTrafficTarget(t) {

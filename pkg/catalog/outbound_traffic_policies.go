@@ -41,18 +41,17 @@ var (
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
+
+	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamServiceAccount.Namespace)
+
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
-		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies(downstreamServiceAccount.Namespace)...)
-		outboundPolicies = mergedPolicies
-		return outboundPolicies
+		permissiveOutboundPolicies := mc.buildOutboundPermissiveModePolicies(downstreamServiceAccount.Namespace)
+		//TODO: I don't see a reason to disallow partial hostname match. Will follow up on this.
+		return trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, trafficpolicy.OverwriteWeightedClusters, permissiveOutboundPolicies, outboundPoliciesFromSplits...)
 	}
 
-	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
-	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamServiceAccount.Namespace)
-	outbound = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outbound, outboundPoliciesFromSplits...)
-
-	return outbound
+	allowedOutboundPolicies := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
+	return trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, trafficpolicy.OverwriteWeightedClusters, allowedOutboundPolicies, outboundPoliciesFromSplits...)
 }
 
 // listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
@@ -70,7 +69,7 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 		for _, source := range t.Spec.Sources {
 			// TODO(draychev): must check for the correct type of ServiceIdentity as well
 			if source.Name == downstreamServiceAccount.Name && source.Namespace == downstreamServiceAccount.Namespace { // found outbound
-				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, trafficpolicy.UnionWeightedClusters, outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				break
 			}
 		}
@@ -262,7 +261,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 						Msgf("Error adding Route to outbound policy for source %s/%s and destination %s/%s with host header %s", source.Namespace, source.Name, destService.Namespace, destService.Name, routeMatch.Headers[hostHeaderKey])
 					continue
 				}
-				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, trafficpolicy.UnionWeightedClusters, outboundPolicies, policyWithHostHeader)
 			} else {
 				needWildCardRoute = true
 			}
@@ -275,7 +274,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 			}
 		}
 
-		outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
+		outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, trafficpolicy.UnionWeightedClusters, outboundPolicies, policy)
 	}
 	return outboundPolicies
 }

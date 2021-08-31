@@ -332,6 +332,95 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 			},
 			permissiveMode: true,
 		},
+		{
+			name:                "permissive mode with traffic splits",
+			downstreamSA:        tests.BookbuyerServiceIdentity,
+			apexMeshServices:    []service.MeshService{tests.BookstoreApexService},
+			meshServices:        []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookbuyerService},
+			meshServiceAccounts: []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount},
+			trafficsplits:       []*split.TrafficSplit{&tests.TrafficSplit},
+			traffictargets:      []*access.TrafficTarget{},
+			trafficspecs:        []*spec.HTTPRouteGroup{},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex.default.svc.cluster.local",
+					Hostnames: tests.BookstoreApexHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+				{
+					Name: "bookstore-v1.default.svc.cluster.local",
+					Hostnames: []string{
+						"bookstore-v1",
+						"bookstore-v1.default",
+						"bookstore-v1.default.svc",
+						"bookstore-v1.default.svc.cluster",
+						"bookstore-v1.default.svc.cluster.local",
+						"bookstore-v1:8888",
+						"bookstore-v1.default:8888",
+						"bookstore-v1.default.svc:8888",
+						"bookstore-v1.default.svc.cluster:8888",
+						"bookstore-v1.default.svc.cluster.local:8888",
+					},
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name: "bookstore-v2.default.svc.cluster.local",
+					Hostnames: []string{
+						"bookstore-v2",
+						"bookstore-v2.default",
+						"bookstore-v2.default.svc",
+						"bookstore-v2.default.svc.cluster",
+						"bookstore-v2.default.svc.cluster.local",
+						"bookstore-v2:8888",
+						"bookstore-v2.default:8888",
+						"bookstore-v2.default.svc:8888",
+						"bookstore-v2.default.svc.cluster:8888",
+						"bookstore-v2.default.svc.cluster.local:8888",
+					},
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name: "bookbuyer.default.svc.cluster.local",
+					Hostnames: []string{
+						"bookbuyer",
+						"bookbuyer.default",
+						"bookbuyer.default.svc",
+						"bookbuyer.default.svc.cluster",
+						"bookbuyer.default.svc.cluster.local",
+						"bookbuyer:8888",
+						"bookbuyer.default:8888",
+						"bookbuyer.default.svc:8888",
+						"bookbuyer.default.svc.cluster:8888",
+						"bookbuyer.default.svc.cluster.local:8888",
+					},
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
+						},
+					},
+				},
+			},
+			permissiveMode: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -368,6 +457,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 				}
 				mockKubeController.EXPECT().ListServices().Return(services).AnyTimes()
 				mockKubeController.EXPECT().ListServiceAccounts().Return(serviceAccounts).AnyTimes()
+				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 			} else {
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
 				mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.traffictargets).AnyTimes()
@@ -1114,6 +1204,7 @@ func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
 			trafficsplits:     []*split.TrafficSplit{},
 			trafficspecs:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroupWithHost},
 			enableRetryPolicy: v1alpha1.FeatureFlags{EnableRetryPolicy: true},
+
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-v1.default.svc.cluster.local",
