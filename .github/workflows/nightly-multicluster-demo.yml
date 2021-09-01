@@ -1,21 +1,5 @@
 name: OSM Multicluster Demo Test Nightly Job
 on:
-  push:
-    branches:
-      - main
-      - release-*
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - "scripts/cleanup/**"
-  pull_request:
-    branches:
-      - main
-      - release-*
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - "scripts/cleanup/**"
   workflow_run:
     workflows: ["Nightly Images"]
     types: [completed]
