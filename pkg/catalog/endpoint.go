@@ -38,15 +38,24 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 	return endpoints, nil
 }
 
-// ListEndpointsForServiceIdentity returns a list of endpoints that belongs to an upstream service accounts
-// from the given downstream identity's perspective
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
+// ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
+// is allowed access the upstream service
+func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
 	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up endpoints for upstream service %s", upstreamSvc)
 		return nil, err
 	}
+
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		return outboundEndpoints, nil
+	}
+
+	// In SMI mode, the endpoints for an upstream service must be filtered based on the service account
+	// associated with the endpoint. Only endpoints associated with authorized service accounts as referenced
+	// in SMI TrafficTarget resources should be returned.
+	//
+	// The following code filters the upstream service's endpoints for this purpose.
 	outboundEndpointsSet := make(map[string][]endpoint.Endpoint)
 	for _, ep := range outboundEndpoints {
 		ipStr := ep.IP.String()
@@ -60,7 +69,7 @@ func (mc *MeshCatalog) ListEndpointsForServiceIdentity(downstreamIdentity identi
 	}
 
 	// allowedEndpoints comprises of only those endpoints from outboundEndpoints that matches the endpoints from listEndpointsForServiceIdentity
-	// i.e. only those interseting endpoints are taken into cosideration
+	// i.e. only those intersecting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
 	for _, destSvcIdentity := range destSvcIdentities {
 		for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {

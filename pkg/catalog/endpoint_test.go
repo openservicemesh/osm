@@ -54,7 +54,7 @@ var _ = Describe("Test catalog functions", func() {
 
 })
 
-func TestListEndpointsForServiceIdentity(t *testing.T) {
+func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -65,6 +65,7 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 		services                 []service.MeshService
 		outboundServices         map[identity.ServiceIdentity][]service.MeshService
 		outboundServiceEndpoints map[service.MeshService][]endpoint.Endpoint
+		permissiveMode           bool
 		expectedEndpoints        []endpoint.Endpoint
 	}{
 		{
@@ -81,6 +82,7 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
 				tests.BookstoreV1Service: {tests.Endpoint},
 			},
+			permissiveMode:    false,
 			expectedEndpoints: []endpoint.Endpoint{tests.Endpoint},
 		},
 		{
@@ -102,6 +104,7 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
+			permissiveMode:    false,
 			expectedEndpoints: []endpoint.Endpoint{},
 		},
 		{
@@ -124,10 +127,39 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 					Port: endpoint.Port(tests.ServicePort),
 				}},
 			},
+			permissiveMode: false,
 			expectedEndpoints: []endpoint.Endpoint{{
 				IP:   net.ParseIP("9.9.9.9"),
 				Port: endpoint.Port(tests.ServicePort),
 			}},
+		},
+		{
+			name:          `Permissive mode should return all endpoints for a service without filtering them`,
+			proxyIdentity: tests.BookbuyerServiceIdentity,
+			upstreamSvc:   tests.BookstoreV2Service,
+			outboundServiceEndpoints: map[service.MeshService][]endpoint.Endpoint{
+				tests.BookstoreV2Service: {
+					{
+						IP:   net.ParseIP("1.1.1.1"),
+						Port: 80,
+					},
+					{
+						IP:   net.ParseIP("2.2.2.2"),
+						Port: 80,
+					},
+				},
+			},
+			permissiveMode: true,
+			expectedEndpoints: []endpoint.Endpoint{
+				{
+					IP:   net.ParseIP("1.1.1.1"),
+					Port: 80,
+				},
+				{
+					IP:   net.ParseIP("2.2.2.2"),
+					Port: 80,
+				},
+			},
 		},
 	}
 	for _, tc := range testCases {
@@ -147,9 +179,22 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 				meshSpec:           mockMeshSpec,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
+				configurator:       mockConfigurator,
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+
+			for svc, endpoints := range tc.outboundServiceEndpoints {
+				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
+			}
+
+			if tc.permissiveMode {
+				actual, err := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
+				assert.Nil(err)
+				assert.ElementsMatch(actual, tc.expectedEndpoints)
+				return
+			}
+
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
@@ -160,10 +205,6 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
 				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services, nil).AnyTimes()
-			}
-
-			for svc, endpoints := range tc.outboundServiceEndpoints {
-				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
 			var pods []*v1.Pod
@@ -197,7 +238,7 @@ func TestListEndpointsForServiceIdentity(t *testing.T) {
 				}
 			}
 
-			actual, err := mc.ListEndpointsForServiceIdentity(tc.proxyIdentity, tc.upstreamSvc)
+			actual, err := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})

@@ -51,7 +51,7 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
 			continue
 		}
-		endpoints, err := meshCatalog.ListEndpointsForServiceIdentity(proxyIdentity, meshSvc)
+		endpoints, err := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s, for proxy identity %s", meshSvc, proxyIdentity)
 			continue
@@ -103,7 +103,7 @@ func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity ident
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-		endpoints, err := meshCatalog.ListEndpointsForServiceIdentity(proxyIdentity, dstSvc)
+		endpoints, err := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, dstSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)
 			continue
