@@ -57,15 +57,15 @@ var (
 	minSuccessThresholdStr                 = utils.GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = utils.GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = utils.GetEnv("BOOKSTORE_SVC", "bookstore")
+	warehouseServiceName                   = utils.GetEnv("WAREHOUSE_SVC", "bookwarehouse")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
-	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
 	// Due to a limitation on kubernetes on Windows we need to use the FQDN
 	// otherwise DNS will not be able to resolve it.
 	// https://kubernetes.io/docs/setup/production-environment/windows/intro-windows-in-kubernetes/#dns-limitations
 	bookstoreService = fmt.Sprintf("%s.%s.svc.cluster.local:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)
-	warehouseService = fmt.Sprintf("%s.%s.svc.cluster.local:%d", bookwarehouseNamespace, warehouseServiceName, bookwarehousePort)
+	warehouseService = fmt.Sprintf("%s.%s.svc.cluster.local:%d", warehouseServiceName, bookwarehouseNamespace, bookwarehousePort)
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
