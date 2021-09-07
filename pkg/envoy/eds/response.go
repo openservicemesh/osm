@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -50,7 +51,8 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 		}
 		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, meshSvc)
 		if len(endpoints) == 0 {
-			log.Error().Msgf("Endpoints not found for upstream cluster %s for proxy identity %s, skipping cluster in EDS response", cluster, proxyIdentity)
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
+				Msgf("Endpoints not found for upstream cluster %s for proxy identity %s, skipping cluster in EDS response", cluster, proxyIdentity)
 			continue
 		}
 		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxyIdentity, endpoints)
@@ -118,7 +120,8 @@ func getUpstreamEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, pro
 	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
 		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, dstSvc)
 		if len(endpoints) == 0 {
-			log.Error().Msgf("Endpoints not found for upstream MeshService %s for proxy identity %s, skipping cluster in EDS response", dstSvc, proxyIdentity)
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
+				Msgf("Endpoints not found for upstream MeshService %s for proxy identity %s, skipping cluster in EDS response", dstSvc, proxyIdentity)
 			continue
 		}
 		allowedServicesEndpoints[dstSvc] = endpoints
