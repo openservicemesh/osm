@@ -85,7 +85,7 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 			switch source.Kind {
 			case policyV1alpha1.KindService:
 				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
-				endpoints, _ := mc.listEndpointsForService(sourceMeshSvc)
+				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
 					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
 						CurrentStatus: "error",

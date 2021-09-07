@@ -31,7 +31,6 @@ func TestListInboundServiceIdentities(t *testing.T) {
 		trafficTargets                   []*smiAccess.TrafficTarget
 		serviceIdentity                  identity.ServiceIdentity
 		expectedInboundServiceIdentities []identity.ServiceIdentity
-		expectError                      bool
 	}{
 		// Test case 1 begin ------------------------------------
 		// There is a valid inbound service account
@@ -96,8 +95,6 @@ func TestListInboundServiceIdentities(t *testing.T) {
 					Namespace: "ns-1",
 				}.ToServiceIdentity(),
 			},
-
-			false, // no errors expected
 		},
 		// Test case 1 end ------------------------------------
 
@@ -137,8 +134,6 @@ func TestListInboundServiceIdentities(t *testing.T) {
 
 			// allowed inbound service accounts: no match
 			nil,
-
-			false, // no errors expected
 		},
 		// Test case 2 end ------------------------------------
 
@@ -178,8 +173,6 @@ func TestListInboundServiceIdentities(t *testing.T) {
 
 			// allowed inbound service accounts: no match
 			nil,
-
-			false, // will log an error but function will ignore policy with error
 		},
 		// Test case 3 end ------------------------------------
 	}
@@ -189,8 +182,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListInboundServiceIdentities(tc.serviceIdentity)
-			assert.Equal(err != nil, tc.expectError)
+			actual := meshCatalog.ListInboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedInboundServiceIdentities)
 		})
 	}
@@ -210,7 +202,6 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 		trafficTargets                    []*smiAccess.TrafficTarget
 		serviceIdentity                   identity.ServiceIdentity
 		expectedOutboundServiceIdentities []identity.ServiceIdentity
-		expectError                       bool
 	}{
 		// Test case 1 begin ------------------------------------
 		// There is a valid outbound service account
@@ -279,8 +270,6 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 					Namespace: "ns-3",
 				}.ToServiceIdentity(),
 			},
-
-			false, // no errors expected
 		},
 		// Test case 1 end ------------------------------------
 
@@ -320,8 +309,6 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 
 			// allowed inbound service accounts: no match
 			nil,
-
-			false, // no errors expected
 		},
 		// Test case 2 end ------------------------------------
 
@@ -361,8 +348,6 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 
 			// allowed inbound service accounts: no match
 			nil,
-
-			false, // will log an error but function will ignore policy with error
 		},
 		// Test case 3 end ------------------------------------
 	}
@@ -372,8 +357,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
-			actual, err := meshCatalog.ListOutboundServiceIdentities(tc.serviceIdentity)
-			assert.Equal(err != nil, tc.expectError)
+			actual := meshCatalog.ListOutboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedOutboundServiceIdentities)
 		})
 	}

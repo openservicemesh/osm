@@ -192,7 +192,7 @@ func main() {
 	}
 
 	// A nil configClient is passed in if multi cluster mode is not enabled.
-	kubeProvider := kube.NewClient(k8sClient, configClient, constants.KubeProviderName, cfg)
+	kubeProvider := kube.NewClient(k8sClient, configClient, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}

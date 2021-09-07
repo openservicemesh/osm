@@ -22,7 +22,7 @@ type Provider interface {
 
 	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
 	// the scope of the provider
-	GetResolvableEndpointsForService(service.MeshService) ([]Endpoint, error)
+	GetResolvableEndpointsForService(service.MeshService) []Endpoint
 
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string

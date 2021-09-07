@@ -50,23 +50,17 @@ type MeshCataloger interface {
 	ListOutboundServicesForMulticlusterGateway() []service.MeshService
 
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
-	ListInboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
+	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
 
 	// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
-	ListOutboundServiceIdentities(identity.ServiceIdentity) ([]identity.ServiceIdentity, error)
+	ListOutboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
 
 	// ListServiceIdentitiesForService lists the service identities associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) ([]identity.ServiceIdentity, error)
+	ListServiceIdentitiesForService(service.MeshService) []identity.ServiceIdentity
 
 	// ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
 	// is allowed access the upstream service
-	ListAllowedUpstreamEndpointsForService(identity.ServiceIdentity, service.MeshService) ([]endpoint.Endpoint, error)
-
-	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
-	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attempting to
-	// reach a specific service.
-	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
-	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
+	ListAllowedUpstreamEndpointsForService(identity.ServiceIdentity, service.MeshService) []endpoint.Endpoint
 
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)

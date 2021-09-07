@@ -65,7 +65,7 @@ func TestHelperFunctions(t *testing.T) {
 	}}
 	mockConfigController.EXPECT().GetMultiClusterServiceByServiceAccount(tests.BookbuyerServiceName, tests.Namespace).Return(toReturnServices).AnyTimes()
 
-	c = NewClient(mockKubeController, mockConfigController, "kubernetes-endpoint-provider", mockConfigurator)
+	c = NewClient(mockKubeController, mockConfigController, mockConfigurator)
 
 	// Test getMulticlusterEndpoints()
 	// returns Multicluster endpoints for a service

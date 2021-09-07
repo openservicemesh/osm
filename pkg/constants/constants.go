@@ -4,9 +4,6 @@ package constants
 import "time"
 
 const (
-	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
-	KubeProviderName = "Kubernetes"
-
 	// WildcardIPAddr is a string constant.
 	WildcardIPAddr = "0.0.0.0"
 

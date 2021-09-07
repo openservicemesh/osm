@@ -40,7 +40,6 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 		mockConfigurator   *configurator.MockConfigurator
 		c                  *client
 	)
-	const providerID = "provider"
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
@@ -50,11 +49,11 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		c = NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+		c = NewClient(mockKubeController, mockConfigController, mockConfigurator)
 	})
 
 	It("tests GetID", func() {
-		Expect(c.GetID()).To(Equal(providerID))
+		Expect(c.GetID()).To(Equal(providerName))
 	})
 
 	meshSvc := service.MeshService{
@@ -283,7 +282,6 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 
-	providerID := "test-provider"
 	testNamespace := "testNamespace"
 	meshName := "meshName"
 	stop := make(chan struct{})
@@ -306,7 +304,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			return kubeController.IsMonitoredNamespace(testNamespace.Name)
 		}, 3*time.Second).Should(BeTrue())
 
-		c = NewClient(kubeController, mockConfigController, providerID, mockConfigurator)
+		c = NewClient(kubeController, mockConfigController, mockConfigurator)
 		Expect(c).ToNot(BeNil())
 	})
 
@@ -314,7 +312,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		stop <- struct{}{}
 	})
 
-	It("should return an error when a pod matching the selector doesn't exist", func() {
+	It("should return an empty list when a pod matching the selector doesn't exist", func() {
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -335,9 +333,8 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		services, err := c.GetServicesForServiceIdentity(tests.BookbuyerServiceIdentity)
-		Expect(err).To(HaveOccurred())
-		Expect(services).To(BeNil())
+		services := c.GetServicesForServiceIdentity(tests.BookbuyerServiceIdentity)
+		Expect(services).To(HaveLen(0))
 
 		err = fakeClientSet.CoreV1().Services(testNamespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -416,8 +413,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			{Namespace: svc.Namespace, Name: svc.Name, Port: uint16(svc.Spec.Ports[0].Port), Protocol: constants.ProtocolHTTP},
 		}
 
-		meshSvcs, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
-		Expect(err).ToNot(HaveOccurred())
+		meshSvcs := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		expectedMeshSvcs := expectedMeshervices
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
 
@@ -426,7 +422,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		<-podsAndServiceChannel
 	})
 
-	It("should return an error when the Service selector doesn't match the pod", func() {
+	It("should return an an empty list when the Service selector doesn't match the pod", func() {
 		podsChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -488,17 +484,16 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
-		Expect(err).To(HaveOccurred())
-		Expect(svcs).To(BeNil())
+		// Expect no matching MeshService objects
+		svcs := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
+		Expect(svcs).To(HaveLen(0))
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-podsChannel
 	})
 
-	It("should return an error when the service doesn't have a selector", func() {
+	It("should return an empty list when the service doesn't have a selector", func() {
 		podsChannel := events.Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -556,10 +551,9 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		svcs, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
-		Expect(err).To(HaveOccurred())
-		Expect(svcs).To(BeNil())
+		// Expect no matching MeshService objects
+		svcs := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
+		Expect(svcs).To(HaveLen(0))
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -644,8 +638,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		meshServices, err := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
-		Expect(err).ToNot(HaveOccurred())
+		meshServices := c.GetServicesForServiceIdentity(givenSvcAccount.ToServiceIdentity())
 		expectedServices := []service.MeshService{
 			{Name: "test-1", Namespace: testNamespace, Port: tests.ServicePort, Protocol: "http"},
 			{Name: "test-2", Namespace: testNamespace, Port: tests.ServicePort, Protocol: "http"},
@@ -662,7 +655,6 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 
 func TestListEndpointsForIdentity(t *testing.T) {
 	assert := tassert.New(t)
-	providerID := "provider"
 
 	testCases := []struct {
 		name                            string
@@ -715,7 +707,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			mockConfigController := config.NewMockController(mockCtrl)
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
-			provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+			provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
 
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
@@ -754,8 +746,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	mockConfigController := config.NewMockController(mockCtrl)
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	providerID := "provider"
-	provider := NewClient(mockKubeController, mockConfigController, providerID, mockConfigurator)
+	provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
 
 	destServiceIdentity := tests.BookstoreServiceIdentity
 	destSA := destServiceIdentity.ToK8sServiceAccount()

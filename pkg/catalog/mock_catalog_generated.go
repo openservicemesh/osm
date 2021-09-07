@@ -110,28 +110,12 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
 }
 
-// GetResolvableServiceEndpoints mocks base method
-func (m *MockMeshCataloger) GetResolvableServiceEndpoints(arg0 service.MeshService) ([]endpoint.Endpoint, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetResolvableServiceEndpoints", arg0)
-	ret0, _ := ret[0].([]endpoint.Endpoint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetResolvableServiceEndpoints indicates an expected call of GetResolvableServiceEndpoints
-func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableServiceEndpoints", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableServiceEndpoints), arg0)
-}
-
 // ListAllowedUpstreamEndpointsForService mocks base method
-func (m *MockMeshCataloger) ListAllowedUpstreamEndpointsForService(arg0 identity.ServiceIdentity, arg1 service.MeshService) ([]endpoint.Endpoint, error) {
+func (m *MockMeshCataloger) ListAllowedUpstreamEndpointsForService(arg0 identity.ServiceIdentity, arg1 service.MeshService) []endpoint.Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllowedUpstreamEndpointsForService", arg0, arg1)
 	ret0, _ := ret[0].([]endpoint.Endpoint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListAllowedUpstreamEndpointsForService indicates an expected call of ListAllowedUpstreamEndpointsForService
@@ -141,12 +125,11 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedUpstreamEndpointsForService(
 }
 
 // ListInboundServiceIdentities mocks base method
-func (m *MockMeshCataloger) ListInboundServiceIdentities(arg0 identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (m *MockMeshCataloger) ListInboundServiceIdentities(arg0 identity.ServiceIdentity) []identity.ServiceIdentity {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListInboundServiceIdentities", arg0)
 	ret0, _ := ret[0].([]identity.ServiceIdentity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListInboundServiceIdentities indicates an expected call of ListInboundServiceIdentities
@@ -171,12 +154,11 @@ func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg
 }
 
 // ListOutboundServiceIdentities mocks base method
-func (m *MockMeshCataloger) ListOutboundServiceIdentities(arg0 identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (m *MockMeshCataloger) ListOutboundServiceIdentities(arg0 identity.ServiceIdentity) []identity.ServiceIdentity {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOutboundServiceIdentities", arg0)
 	ret0, _ := ret[0].([]identity.ServiceIdentity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListOutboundServiceIdentities indicates an expected call of ListOutboundServiceIdentities
@@ -214,12 +196,11 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundServicesForMulticlusterGate
 }
 
 // ListServiceIdentitiesForService mocks base method
-func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.ServiceIdentity, error) {
+func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) []identity.ServiceIdentity {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
 	ret0, _ := ret[0].([]identity.ServiceIdentity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService

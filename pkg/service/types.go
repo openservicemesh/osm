@@ -82,16 +82,14 @@ type WeightedCluster struct {
 // Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Provider interface {
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
-	// TODO(shashank): simplify method signature
-	GetServicesForServiceIdentity(identity.ServiceIdentity) ([]MeshService, error)
+	GetServicesForServiceIdentity(identity.ServiceIdentity) []MeshService
 
 	// ListServices returns a list of services that are part of monitored namespaces
-	// TODO(shashank): simplify method signature
-	ListServices() ([]MeshService, error)
+	ListServices() []MeshService
 
 	// ListServiceIdentitiesForService returns service identities for given service
-	ListServiceIdentitiesForService(MeshService) ([]identity.ServiceIdentity, error)
+	ListServiceIdentitiesForService(MeshService) []identity.ServiceIdentity
 
-	// GetID returns the unique identifier of the ServiceProvider.
+	// GetID returns the unique identifier of the Provider
 	GetID() string
 }

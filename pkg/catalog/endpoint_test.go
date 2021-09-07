@@ -30,8 +30,7 @@ var _ = Describe("Test catalog functions", func() {
 	mc := newFakeMeshCatalog()
 	Context("Testing ListEndpointsForService()", func() {
 		It("lists endpoints for a given service", func() {
-			actual, err := mc.listEndpointsForService(tests.BookstoreV1Service)
-			Expect(err).ToNot(HaveOccurred())
+			actual := mc.listEndpointsForService(tests.BookstoreV1Service)
 
 			expected := []endpoint.Endpoint{
 				tests.Endpoint,
@@ -40,10 +39,9 @@ var _ = Describe("Test catalog functions", func() {
 		})
 	})
 
-	Context("Testing GetResolvableServiceEndpoints()", func() {
+	Context("Testing getDNSResolvableServiceEndpoints()", func() {
 		It("returns the endpoint for the service", func() {
-			actual, err := mc.GetResolvableServiceEndpoints(tests.BookstoreV1Service)
-			Expect(err).ToNot(HaveOccurred())
+			actual := mc.getDNSResolvableServiceEndpoints(tests.BookstoreV1Service)
 
 			expected := []endpoint.Endpoint{
 				tests.Endpoint,
@@ -189,8 +187,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 			}
 
 			if tc.permissiveMode {
-				actual, err := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
-				assert.Nil(err)
+				actual := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
 				assert.ElementsMatch(actual, tc.expectedEndpoints)
 				return
 			}
@@ -204,7 +201,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services, nil).AnyTimes()
+				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
 			}
 
 			var pods []*v1.Pod
@@ -238,8 +235,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 				}
 			}
 
-			actual, err := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
-			assert.Nil(err)
+			actual := mc.ListAllowedUpstreamEndpointsForService(tc.proxyIdentity, tc.upstreamSvc)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})
 	}

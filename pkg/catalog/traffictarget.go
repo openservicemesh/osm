@@ -24,13 +24,13 @@ const (
 
 // ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (mc *MeshCatalog) ListInboundServiceIdentities(upstream identity.ServiceIdentity) []identity.ServiceIdentity {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
 // ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
+func (mc *MeshCatalog) ListOutboundServiceIdentities(downstream identity.ServiceIdentity) []identity.ServiceIdentity {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
@@ -83,7 +83,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity.ServiceIdentity, direction trafficDirection) ([]identity.ServiceIdentity, error) {
+func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity.ServiceIdentity, direction trafficDirection) []identity.ServiceIdentity {
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()
 
@@ -141,7 +141,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 		allowedSvcIdentities = append(allowedSvcIdentities, svcAccount.(identity.K8sServiceAccount).ToServiceIdentity())
 	}
 
-	return allowedSvcIdentities, nil
+	return allowedSvcIdentities
 }
 
 func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) identity.K8sServiceAccount {
