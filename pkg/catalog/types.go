@@ -43,12 +43,6 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service identity and inbound services
-	ListInboundTrafficPolicies(identity.ServiceIdentity, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
-
-	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service identity
-	ListOutboundTrafficPolicies(identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy
-
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
@@ -77,24 +71,8 @@ type MeshCataloger interface {
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
-	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
-	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
-	// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
-	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
-
-	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
-	// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
-	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
-
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
-
-	// GetWeightedClustersForUpstream lists the weighted cluster backends corresponding to the upstream service.
-	GetWeightedClustersForUpstream(service.MeshService) []service.WeightedCluster
-
-	// ListMeshServicesForIdentity lists the services for a given service identity.
-	ListMeshServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
@@ -102,8 +80,11 @@ type MeshCataloger interface {
 	// GetKubeController returns the kube controller instance handling the current cluster
 	GetKubeController() k8s.Controller
 
-	// GetServiceHostnames returns the hostnames for this service, based on the locality of the source.
-	GetServiceHostnames(service.MeshService, service.Locality) ([]string, error)
+	// GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
+	GetOutboundMeshTrafficPolicy(identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy
+
+	// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
+	GetInboundMeshTrafficPolicy(identity.ServiceIdentity, []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy
 }
 
 type trafficDirection string

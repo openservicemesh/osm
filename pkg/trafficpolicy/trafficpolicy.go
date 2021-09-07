@@ -118,14 +118,14 @@ func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTr
 			if !allowPartialHostnamesMatch {
 				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
 					foundHostnames = true
-					or.Rules = mergeRules(or.Rules, l.Rules)
+					or.Rules = MergeRules(or.Rules, l.Rules)
 				}
 			} else {
 				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
 				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
 					or.Hostnames = hostsUnion
 					foundHostnames = true
-					or.Rules = mergeRules(or.Rules, l.Rules)
+					or.Rules = MergeRules(or.Rules, l.Rules)
 				}
 			}
 		}
@@ -136,42 +136,9 @@ func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTr
 	return original
 }
 
-// MergeOutboundPolicies merges two slices of *OutboundTrafficPolicies so that there is only one traffic policy for a given set of a hostnames
-// allowPartialHostnamesMatch when set to true merges outbound policies by partially comparing (subset of one another) the hostnames of the original traffic policy to the latest traffic policy
-// Two outbound traffic policies can be merged by comparing their hostnames either partially or completely. A partial match on hostnames should be allowed for the following scenarios :
-// when a policy having its hostnames from a host header needs to be merged with other outbound policies
-// This is because there will be a single hostname (from the host header) and there is a possibility that this hostname is part of an existing traffic policy
-// hence the rules need to be merged
-func MergeOutboundPolicies(allowPartialHostnamesMatch bool, original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) []*OutboundTrafficPolicy {
-	for _, l := range latest {
-		foundHostnames := false
-		for _, or := range original {
-			if !allowPartialHostnamesMatch {
-				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
-					foundHostnames = true
-					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
-					or.Routes = mergedRoutes
-				}
-			} else {
-				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
-				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
-					or.Hostnames = hostsUnion
-					foundHostnames = true
-					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
-					or.Routes = mergedRoutes
-				}
-			}
-		}
-		if !foundHostnames {
-			original = append(original, l)
-		}
-	}
-	return original
-}
-
-// mergeRules merges the give slices of rules such that there is one Rule for a Route with all allowed service accounts listed in the
+// MergeRules merges the give slices of rules such that there is one Rule for a Route with all allowed service accounts listed in the
 //	returned slice of rules
-func mergeRules(originalRules, latestRules []*Rule) []*Rule {
+func MergeRules(originalRules, latestRules []*Rule) []*Rule {
 	for _, latest := range latestRules {
 		foundRoute := false
 		for _, original := range originalRules {

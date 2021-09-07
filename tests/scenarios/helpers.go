@@ -1,10 +1,6 @@
 package scenarios
 
 import (
-	"fmt"
-
-	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 
@@ -13,19 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-func toInt(val uint32) *wrappers.UInt32Value {
-	return &wrappers.UInt32Value{
-		Value: val,
-	}
-}
-
-func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedCluster_ClusterWeight {
-	return &xds_route.WeightedCluster_ClusterWeight{
-		Name:   fmt.Sprintf("default/%s", serviceName),
-		Weight: toInt(weight),
-	}
-}
 
 func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.CommonName, porxyCertSerialNumber certificate.SerialNumber) (*envoy.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{

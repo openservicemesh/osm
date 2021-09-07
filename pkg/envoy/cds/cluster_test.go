@@ -1,7 +1,6 @@
 package cds
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -23,42 +22,30 @@ import (
 
 func TestGetUpstreamServiceCluster(t *testing.T) {
 	downstreamSvcAccount := tests.BookbuyerServiceIdentity
-	upstreamSvc := tests.BookstoreV1Service
-
+	upstreamSvc := service.MeshService{
+		Namespace: "default",
+		Name:      "bookstore-v1",
+		Port:      14001,
+	}
 	testCases := []struct {
-		name                string
-		permissiveMode      bool
-		expectedClusterType xds_cluster.Cluster_DiscoveryType
-		expectedLbPolicy    xds_cluster.Cluster_LbPolicy
-		addHealthCheck      bool
+		name          string
+		clusterConfig trafficpolicy.MeshClusterConfig
 	}{
 		{
-			name:                "Returns an EDS based cluster when permissive mode is disabled",
-			permissiveMode:      false,
-			expectedClusterType: xds_cluster.Cluster_EDS,
-			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
-			addHealthCheck:      false,
+			name: "EDS based cluster adds health checks when configured",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:                          "default/bookstore-v1_14001",
+				Service:                       upstreamSvc,
+				EnableEnvoyActiveHealthChecks: true,
+			},
 		},
 		{
-			name:                "Returns an Original Destination based cluster when permissive mode is enabled",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
-			addHealthCheck:      false,
-		},
-		{
-			name:                "Adds health checks when configured",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
-			addHealthCheck:      true,
-		},
-		{
-			name:                "Does not add health checks when not configured",
-			permissiveMode:      true,
-			expectedClusterType: xds_cluster.Cluster_ORIGINAL_DST,
-			expectedLbPolicy:    xds_cluster.Cluster_CLUSTER_PROVIDED,
-			addHealthCheck:      false,
+			name: "EDS based cluster does not add health checks when not configured",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:                          "default/bookstore-v1_14001",
+				Service:                       upstreamSvc,
+				EnableEnvoyActiveHealthChecks: false,
+			},
 		},
 	}
 
@@ -66,20 +53,10 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			opts := []clusterOption{}
-			if tc.permissiveMode {
-				opts = append(opts, permissive)
-			}
-			if tc.addHealthCheck {
-				opts = append(opts, withActiveHealthChecks)
-			}
+			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, tc.clusterConfig)
+			assert.NotNil(remoteCluster)
 
-			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, opts...)
-			assert.NoError(err)
-			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
-			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
-
-			if tc.addHealthCheck {
+			if tc.clusterConfig.EnableEnvoyActiveHealthChecks {
 				assert.NotNil(remoteCluster.HealthChecks)
 			} else {
 				assert.Nil(remoteCluster.HealthChecks)
@@ -89,27 +66,29 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 }
 
 func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
-	upstreamSvc := tests.BookstoreV1Service
+	upstreamSvc := service.MeshService{
+		Namespace:  "ns1",
+		Name:       "s1",
+		TargetPort: 8080,
+	}
 
 	testCases := []struct {
 		name                        string
 		expectedClusterType         xds_cluster.Cluster_DiscoveryType
 		expectedLbPolicy            xds_cluster.Cluster_LbPolicy
-		portToProtocolMapping       map[uint32]string
 		expectedLocalityLbEndpoints []*xds_endpoint.LocalityLbEndpoints
 		addHealthCheck              bool
 	}{
 		{
-			name:                  "Gateway upstream cluster configuration with health checks configured",
-			expectedClusterType:   xds_cluster.Cluster_STRICT_DNS,
-			expectedLbPolicy:      xds_cluster.Cluster_ROUND_ROBIN,
-			portToProtocolMapping: map[uint32]string{uint32(8080): "something"},
+			name:                "Gateway upstream cluster configuration with health checks configured",
+			expectedClusterType: xds_cluster.Cluster_STRICT_DNS,
+			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(tests.BookstoreV1Service.ServerName(), uint32(8080)),
+								Address: envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(8080)),
 							},
 						},
 					}},
@@ -118,16 +97,15 @@ func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
 			addHealthCheck: true,
 		},
 		{
-			name:                  "Gateway upstream cluster configuration with health checks not configured",
-			expectedClusterType:   xds_cluster.Cluster_STRICT_DNS,
-			expectedLbPolicy:      xds_cluster.Cluster_ROUND_ROBIN,
-			portToProtocolMapping: map[uint32]string{uint32(8080): "something"},
+			name:                "Gateway upstream cluster configuration with health checks not configured",
+			expectedClusterType: xds_cluster.Cluster_STRICT_DNS,
+			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
 			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(tests.BookstoreV1Service.ServerName(), uint32(8080)),
+								Address: envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(8080)),
 							},
 						},
 					}},
@@ -143,14 +121,7 @@ func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-			opts := []clusterOption{}
-			if tc.addHealthCheck {
-				opts = append(opts, withActiveHealthChecks)
-			}
-
-			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(upstreamSvc).Return(tc.portToProtocolMapping, nil).Times(1)
-
-			remoteCluster, err := getMulticlusterGatewayUpstreamServiceCluster(mockCatalog, upstreamSvc, opts...)
+			remoteCluster, err := getMulticlusterGatewayUpstreamServiceCluster(mockCatalog, upstreamSvc, tc.addHealthCheck)
 			assert.NoError(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
@@ -168,19 +139,9 @@ func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
 }
 
 func TestGetLocalServiceCluster(t *testing.T) {
-	clusterName := "default/bookbuyer/local-local"
-	proxyService := service.MeshService{
-		Name:      "bookbuyer",
-		Namespace: "bookbuyer-ns",
-	}
-
-	mockCtrl := gomock.NewController(t)
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-
 	testCases := []struct {
 		name                             string
-		proxyService                     service.MeshService
-		portToProtocolMapping            map[uint32]string
+		clusterConfig                    trafficpolicy.MeshClusterConfig
 		expectedLocalityLbEndpoints      []*xds_endpoint.LocalityLbEndpoints
 		expectedLbPolicy                 xds_cluster.Cluster_LbPolicy
 		expectedProtocolSelection        xds_cluster.Cluster_ClusterProtocolSelection
@@ -188,9 +149,13 @@ func TestGetLocalServiceCluster(t *testing.T) {
 		expectedErr                      bool
 	}{
 		{
-			name:                  "when service returns a single port",
-			proxyService:          proxyService,
-			portToProtocolMapping: map[uint32]string{uint32(8080): "something"},
+			name: "Local service cluster",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:    "ns/foo|90|local",
+				Service: service.MeshService{Namespace: "ns", Name: "foo"},
+				Port:    90,
+				Address: "127.0.0.1",
+			},
 			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					Locality: &xds_core.Locality{
@@ -199,7 +164,7 @@ func TestGetLocalServiceCluster(t *testing.T) {
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(constants.LocalhostIPAddress, uint32(8080)),
+								Address: envoy.GetAddress("127.0.0.1", uint32(90)),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{
@@ -208,16 +173,7 @@ func TestGetLocalServiceCluster(t *testing.T) {
 					}},
 				},
 			},
-			expectedPortToProtocolMappingErr: false,
-			expectedErr:                      false,
-		},
-		{
-			name:                             "when err fetching ports",
-			proxyService:                     proxyService,
-			portToProtocolMapping:            map[uint32]string{},
-			expectedLocalityLbEndpoints:      []*xds_endpoint.LocalityLbEndpoints{},
-			expectedPortToProtocolMappingErr: true,
-			expectedErr:                      true,
+			expectedErr: false,
 		},
 	}
 
@@ -225,21 +181,13 @@ func TestGetLocalServiceCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			if tc.expectedPortToProtocolMappingErr {
-				mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tc.proxyService).Return(tc.portToProtocolMapping, errors.New("error")).Times(1)
-			} else {
-				mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(tc.proxyService).Return(tc.portToProtocolMapping, nil).Times(1)
-			}
-
-			cluster, err := getLocalServiceCluster(mockCatalog, tc.proxyService, clusterName)
+			cluster := getLocalServiceCluster(tc.clusterConfig)
 
 			if tc.expectedErr {
-				assert.NotNil(err)
 				assert.Nil(cluster)
 			} else {
-				assert.Nil(err)
-				assert.Equal(clusterName, cluster.Name)
-				assert.Equal(clusterName, cluster.AltStatName)
+				assert.Equal(tc.clusterConfig.Name, cluster.Name)
+				assert.Equal(tc.clusterConfig.Name, cluster.AltStatName)
 				assert.Equal(ptypes.DurationProto(clusterConnectTimeout), cluster.ConnectTimeout)
 				assert.Equal(xds_cluster.Cluster_ROUND_ROBIN, cluster.LbPolicy)
 				assert.Equal(&xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS}, cluster.ClusterDiscoveryType)

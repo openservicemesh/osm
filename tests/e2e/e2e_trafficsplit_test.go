@@ -23,15 +23,22 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 	},
 	func() {
 		Context("HTTP traffic splitting with SMI", func() {
-			testTrafficSplit(constants.ProtocolHTTP)
+			permissiveMode := false
+			testTrafficSplit(constants.ProtocolHTTP, permissiveMode)
 		})
 
 		Context("TCP traffic splitting with SMI", func() {
-			testTrafficSplit(constants.ProtocolTCP)
+			permissiveMode := false
+			testTrafficSplit(constants.ProtocolTCP, permissiveMode)
+		})
+
+		Context("HTTP traffic splitting with Permissive mode", func() {
+			permissiveMode := true
+			testTrafficSplit(constants.ProtocolHTTP, permissiveMode)
 		})
 	})
 
-func testTrafficSplit(appProtocol string) {
+func testTrafficSplit(appProtocol string, permissiveMode bool) {
 	const (
 		// to name the header we will use to identify the server that replies
 		HTTPHeaderName = "podname"
@@ -151,6 +158,22 @@ func testTrafficSplit(appProtocol string) {
 
 		wg.Wait()
 
+		meshConfig, err := Td.GetMeshConfig(Td.OsmNamespace)
+		Expect(err).ToNot(HaveOccurred())
+
+		if permissiveMode {
+			By("Enabling Permissive mode")
+			meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = true
+			_, err = Td.UpdateOSMConfig(meshConfig)
+			Expect(err).NotTo(HaveOccurred())
+			goto configureTrafficSplit
+		}
+
+		By("Enabling SMI mode and creating SMI traffic policies")
+		meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = false
+		_, err = Td.UpdateOSMConfig(meshConfig)
+		Expect(err).NotTo(HaveOccurred())
+
 		// Put allow traffic target rules
 		for _, srcClient := range clientServices {
 			for _, dstServer := range serverServices {
@@ -202,6 +225,8 @@ func testTrafficSplit(appProtocol string) {
 			}
 		}
 
+	configureTrafficSplit:
+		By("Creating SMI TrafficSplit policy")
 		// Create traffic split service. Use simple Pod to create a simple service definition
 		_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
 			Name:        trafficSplitName,

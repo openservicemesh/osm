@@ -109,32 +109,45 @@ const (
 var (
 	// BookstoreV1Service is the bookstore service.
 	BookstoreV1Service = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreV1ServiceName,
+		Namespace:  Namespace,
+		Name:       BookstoreV1ServiceName,
+		Port:       ServicePort,
+		TargetPort: ServicePort,
+		Protocol:   constants.ProtocolHTTP,
 	}
 
 	// BookstoreV2Service is the bookstore service.
 	BookstoreV2Service = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreV2ServiceName,
+		Namespace:  Namespace,
+		Name:       BookstoreV2ServiceName,
+		Port:       ServicePort,
+		TargetPort: ServicePort,
+		Protocol:   constants.ProtocolHTTP,
 	}
 
 	// BookbuyerService is the bookbuyer service.
 	BookbuyerService = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookbuyerServiceName,
+		Namespace:  Namespace,
+		Name:       BookbuyerServiceName,
+		Port:       ServicePort,
+		TargetPort: ServicePort,
+		Protocol:   constants.ProtocolHTTP,
 	}
 
 	// BookstoreApexService is the bookstore-apex service
 	BookstoreApexService = service.MeshService{
-		Namespace: Namespace,
-		Name:      BookstoreApexServiceName,
+		Namespace:  Namespace,
+		Name:       BookstoreApexServiceName,
+		Port:       ServicePort,
+		TargetPort: ServicePort,
+		Protocol:   constants.ProtocolHTTP,
 	}
 
 	// BookwarehouseService is the bookwarehouse service.
 	BookwarehouseService = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookwarehouseServiceName,
+		Port:      ServicePort,
 	}
 
 	// BookstoreHostnames are the hostnames for bookstore service

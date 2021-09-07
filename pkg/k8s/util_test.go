@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
@@ -16,47 +15,43 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestGetHostnamesForService(t *testing.T) {
+func TestGetHostnamesForServicePort(t *testing.T) {
 	testCases := []struct {
 		name              string
-		service           *corev1.Service
-		locality          service.Locality
+		service           service.MeshService
+		localNamespace    bool
 		expectedHostnames []string
 	}{
 		{
-			name: "hostnames corresponding to a service in the same namespace",
-			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
-				tests.SelectorKey: tests.SelectorValue,
-			}),
-			locality: service.LocalNS,
+			name:           "hostnames corresponding to a service in the same namespace",
+			service:        service.MeshService{Namespace: "ns1", Name: "s1", Port: 90},
+			localNamespace: true,
 			expectedHostnames: []string{
-				tests.BookbuyerServiceName,
-				fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
-				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				"s1",
+				"s1:90",
+				"s1.ns1",
+				"s1.ns1:90",
+				"s1.ns1.svc",
+				"s1.ns1.svc:90",
+				"s1.ns1.svc.cluster",
+				"s1.ns1.svc.cluster:90",
+				"s1.ns1.svc.cluster.local",
+				"s1.ns1.svc.cluster.local:90",
 			},
 		},
 		{
-			name: "hostnames corresponding to a service NOT in the same namespace",
-			service: tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, map[string]string{
-				tests.SelectorKey: tests.SelectorValue,
-			}),
-			locality: service.LocalCluster,
+			name:           "hostnames corresponding to a service in different namespace",
+			service:        service.MeshService{Namespace: "ns1", Name: "s1", Port: 90},
+			localNamespace: false,
 			expectedHostnames: []string{
-				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
-				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
-				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				"s1.ns1",
+				"s1.ns1:90",
+				"s1.ns1.svc",
+				"s1.ns1.svc:90",
+				"s1.ns1.svc.cluster",
+				"s1.ns1.svc.cluster:90",
+				"s1.ns1.svc.cluster.local",
+				"s1.ns1.svc.cluster.local:90",
 			},
 		},
 	}
@@ -65,7 +60,7 @@ func TestGetHostnamesForService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := GetHostnamesForService(tc.service, tc.locality)
+			actual := GetHostnamesForService(tc.service, tc.localNamespace)
 			assert.ElementsMatch(actual, tc.expectedHostnames)
 			assert.Len(actual, len(tc.expectedHostnames))
 		})

@@ -16,9 +16,9 @@ const (
 )
 
 // newClusterLoadAssignment returns the cluster load assignments for the given service and its endpoints
-func newClusterLoadAssignment(serviceName service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
+func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
 	cla := &xds_endpoint.ClusterLoadAssignment{
-		ClusterName: serviceName.String(),
+		ClusterName: svc.EnvoyClusterName(),
 		Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 			{
 				Locality: &xds_core.Locality{
@@ -36,7 +36,7 @@ func newClusterLoadAssignment(serviceName service.MeshService, serviceEndpoints 
 	weight := uint32(100 / lenIPs)
 
 	for _, meshEndpoint := range serviceEndpoints {
-		log.Trace().Msgf("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d", serviceName, serviceName, meshEndpoint, weight)
+		log.Trace().Msgf("Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%s, Weight=%d", svc, svc, meshEndpoint, weight)
 		lbEpt := xds_endpoint.LbEndpoint{
 			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 				Endpoint: &xds_endpoint.Endpoint{
@@ -49,6 +49,6 @@ func newClusterLoadAssignment(serviceName service.MeshService, serviceEndpoints 
 		}
 		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
 	}
-	log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	log.Trace().Msgf("Constructed ClusterLoadAssignment: %v", cla)
 	return cla
 }

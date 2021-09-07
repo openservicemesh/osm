@@ -4,7 +4,6 @@ import (
 	"net"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
@@ -50,11 +48,18 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 
 	var endpoints []endpoint.Endpoint
 	for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
-		for _, address := range kubernetesEndpoint.Addresses {
-			for _, port := range kubernetesEndpoint.Ports {
+		for _, port := range kubernetesEndpoint.Ports {
+			// If a TargetPort is specified for the service, filter the endpoint by this port.
+			// This is required to ensure we do not attempt to filter the endpoints when the endpoints
+			// are being listed for a MeshService whose TargetPort is not known.
+			if svc.TargetPort != 0 && port.Port != int32(svc.TargetPort) {
+				// k8s service's port does not match MeshService port, ignore this port
+				continue
+			}
+			for _, address := range kubernetesEndpoint.Addresses {
 				ip := net.ParseIP(address.IP)
 				if ip == nil {
-					log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
+					log.Error().Msgf("[%s] Error parsing endopint IP address %s for service %s", c.providerIdent, address.IP, svc)
 					break
 				}
 				ept := endpoint.Endpoint{
@@ -114,7 +119,8 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.
 func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
-	services := mapset.NewSet()
+	var meshServices []service.MeshService
+	svcSet := mapset.NewSet() // mapset is used to avoid duplicate elements in the output list
 
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 
@@ -128,80 +134,38 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 		}
 
 		podLabels := pod.ObjectMeta.Labels
-
-		k8sServices, err := c.getServicesByLabels(podLabels, pod.Namespace)
+		meshServicesForPod, err := c.getServicesByLabels(podLabels, pod.Namespace)
 		if err != nil {
 			log.Error().Err(err).Msgf("[%s] Error retrieving service matching labels %v in namespace %s", c.providerIdent, podLabels, pod.Namespace)
 			return nil, err
 		}
 
-		for _, svc := range k8sServices {
-			services.Add(service.MeshService{
-				Namespace: pod.Namespace,
-				Name:      svc.Name,
-			})
+		for _, svc := range meshServicesForPod {
+			if added := svcSet.Add(svc); added {
+				meshServices = append(meshServices, svc)
+			}
 		}
 	}
 
-	if services.Cardinality() == 0 {
+	if len(meshServices) == 0 {
 		log.Error().Err(errServiceNotFound).Msgf("[%s] No services for service account %s", c.providerIdent, svcAccount)
 		return nil, errServiceNotFound
 	}
 
-	log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
-	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
-	for svc := range services.Iterator().C {
-		servicesSlice = append(servicesSlice, svc.(service.MeshService))
-	}
-
-	return servicesSlice, nil
-}
-
-// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c *client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
-	portToProtocolMap := make(map[uint32]string)
-
-	endpoints, err := c.kubeController.GetEndpoints(svc)
-	if err != nil || endpoints == nil {
-		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
-		return nil, err
-	}
-
-	if !c.kubeController.IsMonitoredNamespace(endpoints.Namespace) {
-		return nil, errors.Errorf("Error fetching endpoints for service %s, namespace %s is not monitored", svc, endpoints.Namespace)
-	}
-
-	// A given port can only map to a single application protocol. Even if the same
-	// port appears as a separate endpoint 'ip:port', the application protocol is
-	// derived from the Service that fronts these endpoints, and a service's port
-	// can only have one application protocol. So for the same port we don't have
-	// to worry about different application protocols being set.
-	for _, endpointSet := range endpoints.Subsets {
-		for _, port := range endpointSet.Ports {
-			var appProtocol string
-			if port.AppProtocol != nil {
-				appProtocol = *port.AppProtocol
-			} else {
-				appProtocol = k8s.GetAppProtocolFromPortName(port.Name)
-				log.Debug().Msgf("endpoint port name: %s, appProtocol: %s", port.Name, appProtocol)
-			}
-
-			portToProtocolMap[uint32(port.Port)] = appProtocol
-		}
-	}
-
-	return portToProtocolMap, nil
+	log.Trace().Msgf("[%s] Services for service account %s: %v", c.providerIdent, svcAccount, meshServices)
+	return meshServices, nil
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *client) getServicesByLabels(podLabels map[string]string, namespace string) ([]service.MeshService, error) {
+// TODO(shashank): simplify method signature
+func (c *client) getServicesByLabels(podLabels map[string]string, targetNamespace string) ([]service.MeshService, error) {
 	var finalList []service.MeshService
 	serviceList := c.kubeController.ListServices()
 
 	for _, svc := range serviceList {
 		// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
 		// filtering themselves
-		if svc.Namespace != namespace {
+		if svc.Namespace != targetNamespace {
 			continue
 		}
 
@@ -212,7 +176,7 @@ func (c *client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, utils.K8sSvcToMeshSvc(svc))
+			finalList = append(finalList, c.kubeController.K8sServiceToMeshServices(*svc)...)
 		}
 	}
 
@@ -258,7 +222,7 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 func (c *client) ListServices() ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
-		services = append(services, utils.K8sSvcToMeshSvc(svc))
+		services = append(services, c.kubeController.K8sServiceToMeshServices(*svc)...)
 	}
 	return services, nil
 }
@@ -278,39 +242,4 @@ func (c *client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 	}
 
 	return serviceIdentities, nil
-}
-
-// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
-// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
-// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-func (c *client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
-	portToProtocolMap := make(map[uint32]string)
-
-	k8sSvc := c.kubeController.GetService(svc)
-	if k8sSvc == nil {
-		return nil, errors.Wrapf(errServiceNotFound, "Error retrieving k8s service %s", svc)
-	}
-
-	for _, portSpec := range k8sSvc.Spec.Ports {
-		var appProtocol string
-		if portSpec.AppProtocol != nil {
-			appProtocol = *portSpec.AppProtocol
-		} else {
-			appProtocol = k8s.GetAppProtocolFromPortName(portSpec.Name)
-		}
-		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
-	}
-
-	return portToProtocolMap, nil
-}
-
-// GetHostnamesForService returns a list of hostnames over which the service can be accessed within the local cluster.
-func (c *client) GetHostnamesForService(svc service.MeshService, locality service.Locality) ([]string, error) {
-	k8svc := c.kubeController.GetService(svc)
-	if k8svc == nil {
-		return nil, errors.Errorf("Error fetching service %q", svc)
-	}
-
-	hostnames := k8s.GetHostnamesForService(k8svc, locality)
-	return hostnames, nil
 }

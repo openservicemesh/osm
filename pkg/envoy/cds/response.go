@@ -25,17 +25,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	opts := []clusterOption{}
-	if cfg.IsPermissiveTrafficPolicyMode() {
-		opts = append(opts, permissive)
-	}
-	if cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks {
-		opts = append(opts, withActiveHealthChecks)
-	}
-
 	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
 		for _, dstService := range meshCatalog.ListOutboundServicesForMulticlusterGateway() {
-			cluster, err := getMulticlusterGatewayUpstreamServiceCluster(meshCatalog, dstService, opts...)
+			cluster, err := getMulticlusterGatewayUpstreamServiceCluster(meshCatalog, dstService, cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingUpstreamServiceCluster)).
 					Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -47,36 +39,22 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return removeDups(clusters), nil
 	}
 
-	// Build remote clusters based on allowed outbound services
-	for _, dstService := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, opts...)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingUpstreamServiceCluster)).
-				Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxy.String())
-			return nil, err
-		}
-
-		clusters = append(clusters, cluster)
+	// Build upstream clusters based on allowed outbound traffic policies
+	outboundMeshTrafficPolicy := meshCatalog.GetOutboundMeshTrafficPolicy(proxyIdentity)
+	if outboundMeshTrafficPolicy != nil {
+		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxyIdentity, outboundMeshTrafficPolicy.ClustersConfigs)...)
 	}
 
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
+	// Build local clusters based on allowed inbound traffic policies
+	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Msgf("Error looking up MeshService for proxy %s", proxy.String())
 		return nil, err
 	}
-
-	// Create a local cluster for each service behind the proxy.
-	// The local cluster will be used to handle incoming traffic.
-	for _, proxyService := range svcList {
-		localClusterName := envoy.GetLocalClusterNameForService(proxyService)
-		localCluster, err := getLocalServiceCluster(meshCatalog, proxyService, localClusterName)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingLocalServiceCluster)).
-				Msgf("Failed to get local cluster config for proxy %s", proxyService)
-			return nil, err
-		}
-		clusters = append(clusters, localCluster)
+	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
+	if inboundMeshTrafficPolicy != nil {
+		clusters = append(clusters, localClustersFromClusterConfigs(inboundMeshTrafficPolicy.ClustersConfigs)...)
 	}
 
 	// Add egress clusters based on applied policies

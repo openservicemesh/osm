@@ -31,46 +31,24 @@ const (
 // replacer used to configure an Envoy cluster's altStatName
 var replacer = strings.NewReplacer(".", "_", ":", "_")
 
-type clusterOptions struct {
-	permissive             bool
-	withActiveHealthChecks bool
-}
-
-// clusterOption is type of function that edits the defaults of the options struct.
-type clusterOption func(o *clusterOptions)
-
-// permissive is an option to not generate permissive endpoints discovery for clusters.
-func permissive(o *clusterOptions) {
-	o.permissive = true
-}
-
-// withActiveHealthChecks is an option to configure active health checks for upstream
-// clusters.
-func withActiveHealthChecks(o *clusterOptions) {
-	o.withActiveHealthChecks = true
-}
-
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, opts ...clusterOption) (*xds_cluster.Cluster, error) {
-	o := &clusterOptions{}
-	for _, opt := range opts {
-		opt(o)
-	}
-
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msgf("Error marshalling HTTP2ProtocolOptions for upstream cluster %s", config.Name)
+		return nil
 	}
 
 	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
-		envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
+		envoy.GetUpstreamTLSContext(downstreamIdentity, config.Service))
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msgf("Error marshalling UpstreamTLSContext for upstream cluster %s", config.Name)
+		return nil
 	}
 
 	remoteCluster := &xds_cluster.Cluster{
-		Name:                          upstreamSvc.String(),
+		Name:                          config.Name,
 		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 		TransportSocket: &xds_core.TransportSocket{
@@ -81,30 +59,19 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, upst
 		},
 	}
 
-	if o.permissive {
-		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
-	} else {
-		// Configure service discovery based on traffic policies
-		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
-	}
+	// Configure service discovery based on traffic policies
+	remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+	remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+	remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 
-	if o.withActiveHealthChecks {
-		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
+	if config.EnableEnvoyActiveHealthChecks {
+		enableHealthChecksOnCluster(remoteCluster, config.Service)
 	}
-	return remoteCluster, nil
+	return remoteCluster
 }
 
 // getMulticlusterGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service for the multicluster gateway
-func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, opts ...clusterOption) (*xds_cluster.Cluster, error) {
-	o := &clusterOptions{}
-	for _, opt := range opts {
-		opt(o)
-	}
-
+func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, withActiveHealthChecks bool) (*xds_cluster.Cluster, error) {
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
 	if err != nil {
 		return nil, err
@@ -118,37 +85,23 @@ func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger,
 		},
 		LbPolicy:                      xds_cluster.Cluster_ROUND_ROBIN,
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
-	}
-
-	ports, err := catalog.GetTargetPortToProtocolMappingForService(upstreamSvc)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
-			Msgf("Failed to get ports for service %s", upstreamSvc)
-		return nil, err
-	}
-
-	endpoints := []*xds_endpoint.LocalityLbEndpoints{}
-	for port := range ports {
-		LbEndpoint := []*xds_endpoint.LbEndpoint{{
-			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-				Endpoint: &xds_endpoint.Endpoint{
-					Address: envoy.GetAddress(upstreamSvc.ServerName(), port),
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: upstreamSvc.ServerName(),
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress(upstreamSvc.ServerName(), uint32(upstreamSvc.TargetPort)),
+							},
+						},
+					}},
 				},
 			},
-		}}
-
-		endpoint := xds_endpoint.LocalityLbEndpoints{
-			LbEndpoints: LbEndpoint,
-		}
-		endpoints = append(endpoints, &endpoint)
+		},
 	}
 
-	remoteCluster.LoadAssignment = &xds_endpoint.ClusterLoadAssignment{
-		ClusterName: upstreamSvc.ServerName(),
-		Endpoints:   endpoints,
-	}
-
-	if o.withActiveHealthChecks {
+	if withActiveHealthChecks {
 		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
 	}
 	return remoteCluster, nil
@@ -180,16 +133,17 @@ func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc servi
 }
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
-func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
+func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msgf("Error marshalling HTTP2ProtocolOptions for local cluster %s", config.Name)
+		return nil
 	}
 
-	xdsCluster := xds_cluster.Cluster{
+	return &xds_cluster.Cluster{
 		// The name must match the domain being cURLed in the demo
-		Name:           clusterName,
-		AltStatName:    clusterName,
+		Name:           config.Name,
+		AltStatName:    config.Name,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
 		RespectDnsTtl:  true,
@@ -199,41 +153,28 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 		DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			// NOTE: results.MeshService is the top level service that is cURLed.
-			ClusterName: clusterName,
-			Endpoints:   []*xds_endpoint.LocalityLbEndpoints{
+			ClusterName: config.Name,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				// Filled based on discovered endpoints for the service
+				{
+					Locality: &xds_core.Locality{
+						Zone: "zone",
+					},
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress(config.Address, config.Port),
+							},
+						},
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: constants.ClusterWeightAcceptAll, // Local cluster accepts all traffic
+						},
+					}},
+				},
 			},
 		},
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 	}
-
-	ports, err := catalog.GetTargetPortToProtocolMappingForService(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServicePorts)).
-			Msgf("Failed to get ports for service %s", proxyServiceName)
-		return nil, err
-	}
-
-	for port := range ports {
-		localityEndpoint := &xds_endpoint.LocalityLbEndpoints{
-			Locality: &xds_core.Locality{
-				Zone: "zone",
-			},
-			LbEndpoints: []*xds_endpoint.LbEndpoint{{
-				HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-					Endpoint: &xds_endpoint.Endpoint{
-						Address: envoy.GetAddress(constants.LocalhostIPAddress, port),
-					},
-				},
-				LoadBalancingWeight: &wrappers.UInt32Value{
-					Value: constants.ClusterWeightAcceptAll, // Local cluster accepts all traffic
-				},
-			}},
-		}
-		xdsCluster.LoadAssignment.Endpoints = append(xdsCluster.LoadAssignment.Endpoints, localityEndpoint)
-	}
-
-	return &xdsCluster, nil
 }
 
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
@@ -370,4 +311,22 @@ func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, err
 // can be assigned to the cluster's altStatName.
 func formatAltStatNameForPrometheus(clusterName string) string {
 	return replacer.Replace(clusterName)
+}
+
+func upstreamClustersFromClusterConfigs(downstreamIdentity identity.ServiceIdentity, configs []*trafficpolicy.MeshClusterConfig) []*xds_cluster.Cluster {
+	var clusters []*xds_cluster.Cluster
+
+	for _, c := range configs {
+		clusters = append(clusters, getUpstreamServiceCluster(downstreamIdentity, *c))
+	}
+	return clusters
+}
+
+func localClustersFromClusterConfigs(configs []*trafficpolicy.MeshClusterConfig) []*xds_cluster.Cluster {
+	var clusters []*xds_cluster.Cluster
+
+	for _, c := range configs {
+		clusters = append(clusters, getLocalServiceCluster(*c))
+	}
+	return clusters
 }

@@ -52,7 +52,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 		return nil, nil
 	}
 
-	meshServices := kubernetesServicesToMeshServices(services)
+	meshServices := kubernetesServicesToMeshServices(k.KubeController, services)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
@@ -148,7 +148,7 @@ func (k *AsyncKubeProxyServiceMapper) handlePodUpdate(pod *v1.Pod) {
 
 	services := listServicesForPod(pod, k.kubeController)
 
-	meshServices := kubernetesServicesToMeshServices(services)
+	meshServices := kubernetesServicesToMeshServices(k.kubeController, services)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
@@ -186,10 +186,12 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceUpdate(svc *v1.Service) {
 		return
 	}
 
-	updatedSvc := service.MeshService{
-		Name:      svc.Name,
-		Namespace: svc.Namespace,
+	meshServices := k.kubeController.K8sServiceToMeshServices(*svc)
+	if len(meshServices) == 0 {
+		return
 	}
+
+	updatedSvc := meshServices[0] // All MeshService objects derived from the same k8s Service will have the same CN
 	if k.cnsForService[updatedSvc] == nil {
 		k.cnsForService[updatedSvc] = make(map[certificate.CommonName]struct{})
 	}
@@ -221,10 +223,13 @@ func (k *AsyncKubeProxyServiceMapper) handleServiceDelete(svc *v1.Service) {
 		return
 	}
 
-	deleted := service.MeshService{
-		Name:      svc.Name,
-		Namespace: svc.Namespace,
+	meshServices := k.kubeController.K8sServiceToMeshServices(*svc)
+	if len(meshServices) == 0 {
+		return
 	}
+
+	deleted := meshServices[0] // All MeshService objects derived from the same k8s Service will have the same CN
+
 	for cn := range k.cnsForService[deleted] {
 		var rem []service.MeshService
 		for _, s := range k.servicesForCN[cn] {
@@ -245,12 +250,9 @@ func (k *AsyncKubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]servi
 	return k.servicesForCN[p.GetCertificateCommonName()], nil
 }
 
-func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		meshServices = append(meshServices, service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-		})
+		meshServices = append(meshServices, kubeController.K8sServiceToMeshServices(svc)...)
 	}
 	return meshServices
 }

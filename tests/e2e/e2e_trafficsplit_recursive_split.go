@@ -22,11 +22,11 @@ var _ = OSMDescribe("Test traffic split where root service is same as backend se
 		Bucket: 9,
 	},
 	func() {
-		Context("HTTP traffic splitting with SMI", func() {
+		Context("HTTP recursive traffic splitting with SMI", func() {
 			testRecursiveTrafficSplit(constants.ProtocolHTTP)
 		})
 
-		Context("TCP traffic splitting with SMI", func() {
+		Context("TCP recursive traffic splitting with SMI", func() {
 			testRecursiveTrafficSplit(constants.ProtocolTCP)
 		})
 	})

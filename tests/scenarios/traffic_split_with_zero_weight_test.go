@@ -122,7 +122,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1|8888",
 									Weight:      100,
 								}),
 							},
@@ -135,7 +135,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1|8888",
 									Weight:      100,
 								}),
 							},
@@ -165,7 +165,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1|8888",
 									Weight:      100,
 								}),
 							},
@@ -178,7 +178,7 @@ func TestRDSRespose(t *testing.T) {
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
-									ClusterName: "default/bookstore-v1",
+									ClusterName: "default/bookstore-v1|8888",
 									Weight:      100,
 								}),
 							},
@@ -198,8 +198,8 @@ func TestRDSRespose(t *testing.T) {
 						{
 							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 0},
-								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 100},
+								service.WeightedCluster{ClusterName: "default/bookstore-v1|8888", Weight: 0},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2|8888", Weight: 100},
 							}),
 						},
 					},
@@ -243,8 +243,12 @@ func TestRDSRespose(t *testing.T) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil
 			}))
 
-			mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
-			mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
+			outboundTestPort := 8888 // Port used for the outbound services in this test
+			inboundTestPort := 80    // Port used for the inbound services in this test
+			expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}}
+			expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.OutboundTrafficPolicy{outboundTestPort: tc.expectedOutboundPolicies}}
+			mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
+			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(expectedOutboundMeshPolicy).AnyTimes()
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
@@ -264,7 +268,7 @@ func TestRDSRespose(t *testing.T) {
 			// The rds-inbound will have the following virtual hosts :
 			// inbound_virtual-host|bookstore-v1.default
 			// inbound_virtual-host|bookstore-apex
-			assert.Equal("rds-inbound", routeConfig.Name)
+			assert.Equal("rds-inbound.80", routeConfig.Name)
 			assert.Equal(2, len(routeConfig.VirtualHosts))
 
 			assert.Equal("inbound_virtual-host|bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
@@ -293,7 +297,7 @@ func TestRDSRespose(t *testing.T) {
 
 			// The rds-outbound will have the following virtual hosts :
 			// outbound_virtual-host|bookstore-apex
-			assert.Equal("rds-outbound", routeConfig.Name)
+			assert.Equal("rds-outbound.8888", routeConfig.Name)
 			assert.Equal(1, len(routeConfig.VirtualHosts))
 
 			assert.Equal("outbound_virtual-host|bookstore-apex.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
