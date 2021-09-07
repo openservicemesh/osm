@@ -2,7 +2,6 @@ package lds
 
 import (
 	"fmt"
-	"net"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -12,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -97,20 +97,13 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 
 	var destinationPrefixes []*xds_core.CidrRange
 	for _, ipRange := range match.DestinationIPRanges {
-		ip, ipNet, err := net.ParseCIDR(ipRange)
+		cidr, err := envoy.GetCIDRRangeFromStr(ipRange)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
 				Msgf("Error parsing IP range %s while building TCP filter chain for match %v, skipping", ipRange, match)
 			continue
 		}
-
-		prefixLen, _ := ipNet.Mask.Size()
-		destinationPrefixes = append(destinationPrefixes, &xds_core.CidrRange{
-			AddressPrefix: ip.String(),
-			PrefixLen: &wrapperspb.UInt32Value{
-				Value: uint32(prefixLen),
-			},
-		})
+		destinationPrefixes = append(destinationPrefixes, cidr)
 	}
 
 	return &xds_listener.FilterChain{
