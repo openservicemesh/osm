@@ -50,12 +50,11 @@ func (mr *MockProviderMockRecorder) GetID() *gomock.Call {
 }
 
 // GetResolvableEndpointsForService mocks base method
-func (m *MockProvider) GetResolvableEndpointsForService(arg0 service.MeshService) ([]Endpoint, error) {
+func (m *MockProvider) GetResolvableEndpointsForService(arg0 service.MeshService) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResolvableEndpointsForService", arg0)
 	ret0, _ := ret[0].([]Endpoint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetResolvableEndpointsForService indicates an expected call of GetResolvableEndpointsForService

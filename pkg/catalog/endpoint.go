@@ -7,48 +7,39 @@ import (
 )
 
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service
-func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
 		ep := provider.ListEndpointsForService(svc)
 		if len(ep) == 0 {
-			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), svc)
+			log.Trace().Msgf("No endpoints found for service %s by endpoints provider %s", provider.GetID(), svc)
 			continue
 		}
 		endpoints = append(endpoints, ep...)
 	}
-	return endpoints, nil
+	return endpoints
 }
 
-// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
-func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
+// getDNSResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
+func (mc *MeshCatalog) getDNSResolvableServiceEndpoints(svc service.MeshService) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
-		ep, err := provider.GetResolvableEndpointsForService(svc)
-		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Error getting endpoints for Service %s", provider.GetID(), svc)
-			continue
-		}
-		if len(ep) == 0 {
-			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), svc)
-			continue
-		}
+		ep := provider.GetResolvableEndpointsForService(svc)
 		endpoints = append(endpoints, ep...)
 	}
-	return endpoints, nil
+	return endpoints
 }
 
 // ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
 // is allowed access the upstream service
-func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) ([]endpoint.Endpoint, error) {
-	outboundEndpoints, err := mc.listEndpointsForService(upstreamSvc)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up endpoints for upstream service %s", upstreamSvc)
-		return nil, err
+func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) []endpoint.Endpoint {
+	outboundEndpoints := mc.listEndpointsForService(upstreamSvc)
+	if len(outboundEndpoints) == 0 {
+		return nil
 	}
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return outboundEndpoints, nil
+		return outboundEndpoints
 	}
 
 	// In SMI mode, the endpoints for an upstream service must be filtered based on the service account
@@ -62,16 +53,10 @@ func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity
 		outboundEndpointsSet[ipStr] = append(outboundEndpointsSet[ipStr], ep)
 	}
 
-	destSvcIdentities, err := mc.ListOutboundServiceIdentities(downstreamIdentity)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up outbound service accounts for downstream identity %s", downstreamIdentity)
-		return nil, err
-	}
-
 	// allowedEndpoints comprises of only those endpoints from outboundEndpoints that matches the endpoints from listEndpointsForServiceIdentity
 	// i.e. only those intersecting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
-	for _, destSvcIdentity := range destSvcIdentities {
+	for _, destSvcIdentity := range mc.ListOutboundServiceIdentities(downstreamIdentity) {
 		for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {
 			epIPStr := ep.IP.String()
 			// check if endpoint IP is allowed
@@ -82,7 +67,7 @@ func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity
 		}
 	}
 
-	return allowedEndpoints, nil
+	return allowedEndpoints
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]

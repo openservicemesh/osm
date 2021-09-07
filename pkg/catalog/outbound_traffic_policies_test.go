@@ -550,7 +550,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			// Mock calls to k8s client caches
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha1.FeatureFlags{}).AnyTimes()
-			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices, nil).AnyTimes()
+			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			mockServiceProvider.EXPECT().GetID().Return("test").AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("test").AnyTimes()
@@ -573,11 +573,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			if !tc.permissiveMode {
 				for _, target := range trafficTargets {
 					dstSvcIdentity := identity.K8sServiceAccount{Namespace: target.Spec.Destination.Namespace, Name: target.Spec.Destination.Name}.ToServiceIdentity()
-					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()], nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()]).AnyTimes()
 				}
 			} else {
 				for svcIdentity, services := range svcIdentityToSvcMapping {
-					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services, nil).AnyTimes()
+					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
 				}
 			}
 
@@ -676,7 +676,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	}
 
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
-	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}, nil).AnyTimes()
+	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
@@ -704,8 +704,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 		},
 	}
 
-	actual, err := mc.getDestinationServicesFromTrafficTarget(trafficTarget)
-	assert.Nil(err)
+	actual := mc.getDestinationServicesFromTrafficTarget(trafficTarget)
 	assert.Equal([]service.MeshService{destMeshService}, actual)
 }
 
@@ -931,7 +930,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 			}
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
-			mockServiceProvider.EXPECT().ListServices().Return(meshServices, nil).Times(1)
+			mockServiceProvider.EXPECT().ListServices().Return(meshServices).Times(1)
 			if len(tc.trafficSplits) > 0 {
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
 			}

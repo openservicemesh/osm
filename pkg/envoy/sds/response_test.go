@@ -137,7 +137,7 @@ func TestGetRootCert(t *testing.T) {
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
 					Name:      "service-2",
 					Namespace: "ns-2",
-				}).Return(associatedSvcAccounts, nil).Times(1)
+				}).Return(associatedSvcAccounts).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
@@ -288,7 +288,7 @@ func TestGetSDSSecrets(t *testing.T) {
 					Name:      "service-2",
 					Namespace: "ns-2",
 				}
-				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts, nil).Times(1)
+				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts).Times(1)
 				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 

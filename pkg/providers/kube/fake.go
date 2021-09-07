@@ -3,8 +3,6 @@ package kube
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -63,31 +61,31 @@ func (f fakeClient) ListEndpointsForIdentity(serviceIdentity identity.ServiceIde
 	panic(fmt.Sprintf("You are asking for K8sServiceAccount=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", sa, f.svcAccountEndpoints))
 }
 
-func (f fakeClient) GetServicesForServiceIdentity(serviceIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
+func (f fakeClient) GetServicesForServiceIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	sa := serviceIdentity.ToK8sServiceAccount()
 	services, ok := f.services[sa]
 	if !ok {
-		return nil, errors.Errorf("ServiceAccount %s is not in cache: %+v", sa, f.services)
+		return nil
 	}
-	return services, nil
+	return services
 }
 
-func (f fakeClient) ListServices() ([]service.MeshService, error) {
+func (f fakeClient) ListServices() []service.MeshService {
 	var services []service.MeshService
 
 	for _, svcs := range f.services {
 		services = append(services, svcs...)
 	}
-	return services, nil
+	return services
 }
 
-func (f fakeClient) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.ServiceIdentity, error) {
+func (f fakeClient) ListServiceIdentitiesForService(svc service.MeshService) []identity.ServiceIdentity {
 	var serviceIdentities []identity.ServiceIdentity
 
 	for svcID := range f.services {
 		serviceIdentities = append(serviceIdentities, svcID.ToServiceIdentity())
 	}
-	return serviceIdentities, nil
+	return serviceIdentities
 }
 
 // GetID returns the unique identifier of the Provider.
@@ -95,10 +93,10 @@ func (f fakeClient) GetID() string {
 	return "Fake Kubernetes Client"
 }
 
-func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	endpoints, found := f.endpoints[svc.String()]
 	if !found {
-		return nil, errServiceNotFound
+		return nil
 	}
-	return endpoints, nil
+	return endpoints
 }

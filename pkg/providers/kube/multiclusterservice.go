@@ -18,7 +18,7 @@ func (c *client) getMulticlusterEndpoints(svc service.MeshService) []endpoint.En
 	var endpoints []endpoint.Endpoint
 	serviceIdentities, err := c.kubeController.ListServiceIdentitiesForService(svc)
 	if err != nil {
-		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msgf("[%s] Error getting Multicluster service identities for service %s", c.providerIdent, svc.Name)
+		log.Error().Str(constants.LogFieldContext, constants.LogContextMulticluster).Err(err).Msgf("[%s] Error getting Multicluster service identities for service %s", c.GetID(), svc.Name)
 		return endpoints
 	}
 
@@ -27,7 +27,7 @@ func (c *client) getMulticlusterEndpoints(svc service.MeshService) []endpoint.En
 		endpoints = append(endpoints, remoteEndpoints...)
 	}
 
-	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service %s: %+v", c.providerIdent, svc, endpoints)
+	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service %s: %+v", c.GetID(), svc, endpoints)
 	return endpoints
 }
 
@@ -54,7 +54,7 @@ func (c *client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 			endpoints = append(endpoints, ep)
 		}
 	}
-	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service account %s: %+v", c.providerIdent, serviceAccount, endpoints)
+	log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("[%s] Multicluster Endpoints for service account %s: %+v", c.GetID(), serviceAccount, endpoints)
 	return endpoints
 }
 

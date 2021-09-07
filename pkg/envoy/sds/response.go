@@ -178,12 +178,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 				Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcIdentities, err := meshCatalog.ListServiceIdentitiesForService(*meshSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
-			return nil, err
-		}
-		return svcIdentities, nil
+		return meshCatalog.ListServiceIdentitiesForService(*meshSvc), nil
 
 	case secrets.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
@@ -205,12 +200,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
-		svcIdentities, err := meshCatalog.ListInboundServiceIdentities(serviceIdentity)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", serviceIdentity)
-			return nil, err
-		}
-		return svcIdentities, nil
+		return meshCatalog.ListInboundServiceIdentities(serviceIdentity), nil
 
 	default:
 		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)

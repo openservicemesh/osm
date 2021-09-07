@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -39,15 +38,10 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity) {
 		// Retrieve the destination IP address from the endpoints for this service
-		endpoints, err := mc.GetResolvableServiceEndpoints(meshSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving endpoints for service %s", meshSvc)
-			continue
-		}
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range endpoints {
+		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
@@ -162,14 +156,8 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
-			destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
-			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNoMatchingServiceForServiceAccount)).
-					Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
-				continue
-			}
 
-			for _, destService := range destServices {
+			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
 				}
@@ -181,16 +169,12 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	return allowedServices
 }
 
-func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) ([]service.MeshService, error) {
+func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) []service.MeshService {
 	sa := identity.K8sServiceAccount{
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	destServices, err := mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
-	if err != nil {
-		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
-	}
-	return destServices, nil
+	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 }
 
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity

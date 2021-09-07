@@ -49,12 +49,11 @@ func (mr *MockProviderMockRecorder) GetID() *gomock.Call {
 }
 
 // GetServicesForServiceIdentity mocks base method
-func (m *MockProvider) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) ([]MeshService, error) {
+func (m *MockProvider) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) []MeshService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServicesForServiceIdentity", arg0)
 	ret0, _ := ret[0].([]MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetServicesForServiceIdentity indicates an expected call of GetServicesForServiceIdentity
@@ -64,12 +63,11 @@ func (mr *MockProviderMockRecorder) GetServicesForServiceIdentity(arg0 interface
 }
 
 // ListServiceIdentitiesForService mocks base method
-func (m *MockProvider) ListServiceIdentitiesForService(arg0 MeshService) ([]identity.ServiceIdentity, error) {
+func (m *MockProvider) ListServiceIdentitiesForService(arg0 MeshService) []identity.ServiceIdentity {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
 	ret0, _ := ret[0].([]identity.ServiceIdentity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService
@@ -79,12 +77,11 @@ func (mr *MockProviderMockRecorder) ListServiceIdentitiesForService(arg0 interfa
 }
 
 // ListServices mocks base method
-func (m *MockProvider) ListServices() ([]MeshService, error) {
+func (m *MockProvider) ListServices() []MeshService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServices")
 	ret0, _ := ret[0].([]MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // ListServices indicates an expected call of ListServices
