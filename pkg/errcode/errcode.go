@@ -28,9 +28,6 @@ const (
 	// ErrSettingLogLevel indicates the specified log level could not be set
 	ErrSettingLogLevel
 
-	// ErrParsingMeshConfig indicates the MeshConfig resource could not be parsed
-	ErrParsingMeshConfig
-
 	// ErrFetchingControllerPod indicates the osm-controller pod resource could not be fetched
 	ErrFetchingControllerPod
 
@@ -74,9 +71,6 @@ const (
 	// ErrAddingRouteToOutboundTrafficPolicy indicates there was an error adding a route to an outbound traffic policy
 	ErrAddingRouteToOutboundTrafficPolicy
 
-	// ErrFetchingServiceForTrafficTargetDestination indicates an error retrieving services associated with a TrafficTarget destination
-	ErrFetchingServiceForTrafficTargetDestination
-
 	// ErrGettingInboundTrafficTargets indicates the inbound traffic targets composed of its routes for a given
 	// desitination ServiceIdentity could not be obtained
 	ErrGettingInboundTrafficTargets
@@ -90,23 +84,8 @@ const (
 
 // Range 3000-3500 is reserved for errors related to k8s constructs (service accounts, namespaces, etc.)
 const (
-	// ErrServiceHostnames indicates the hostnames associated with a service could not be computed
-	ErrServiceHostnames ErrCode = iota + 3000
-
-	// ErrNoMatchingServiceForServiceAccount indicates there are no services associated with the service account
-	ErrNoMatchingServiceForServiceAccount
-
-	// ErrGettingResolvableServiceEndpoints indicates the resolvable set of endpoints over which the service is accessible using its FQDN cannot be obtained
-	ErrGettingResolvableServiceEndpoints
-
 	// ErrEndpointsNotFound indicates resolvable service endpoints could not be found
-	ErrEndpointsNotFound
-
-	// ErrGettingServicePorts indicates the mapping of a service's ports to their corresponding application protocol could not be obtained
-	ErrGettingServicePorts
-
-	// ErrGettingServiceIdentitiesForService indicates the ServiceIdentities associated with a specified MeshService could not be listed
-	ErrGettingServiceIdentitiesForService
+	ErrEndpointsNotFound = iota + 3000
 
 	// ErrMarshallingKubernetesResource indicates that a Kubernetes resource could not be marshalled
 	ErrMarshallingKubernetesResource
@@ -143,9 +122,6 @@ const (
 
 	// ErrCreatingCertReq indicates a certificate request could not be created
 	ErrCreatingCertReq
-
-	// ErrDeletingcertReq indicates a certificate request could not be deleted
-	ErrDeletingCertReq
 
 	// ErrdeletingCertReq inicates that the issue certificate request could not be deleted
 	ErrCreatingRootCert
@@ -264,9 +240,6 @@ const (
 	// ErrFetchingServiceList indicates the services corresponding to a specified proxy could not be listed
 	ErrFetchingServiceList
 
-	// ErrGettingLocalServiceCluster indicates that an Envoy cluster for a local service behind the Envoy proxy could not be configured
-	ErrGettingLocalServiceCluster
-
 	// ErrDuplicateluster indicates Envoy clusters with the same name were found
 	ErrDuplicateClusters
 
@@ -278,12 +251,6 @@ const (
 
 	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
 	ErrIngressFilterChain
-
-	// ErrGettingLuaFilter indicates the Lua XDS HttpFilter could not be configured
-	ErrGettingLuaFilter
-
-	// ErrGettingWASMFilter indicates the WASM XDS HttpFilter could not be configured
-	ErrGettingWASMFilter
 
 	// ErrBuildingRBACPolicyForRoute indicates a traffic policy rule could not be configured as an RBAC rule on a proxy
 	ErrBuildingRBACPolicyForRoute
@@ -405,10 +372,6 @@ An invalid command line argument was passed to the application.
 The specified log level could not be set in the system.
 `,
 
-	ErrParsingMeshConfig: `
-The 'osm-mesh-config' MeshConfig custom resource could not be parsed.
-`,
-
 	ErrFetchingControllerPod: `
 The osm-controller k8s pod resource was not able to be retrieved by the system.
 `,
@@ -488,12 +451,6 @@ within the system.
 The associated route was ignored by the system.
 `,
 
-	ErrFetchingServiceForTrafficTargetDestination: `
-The system was unable to lookup the services associated with the destination specified
-in the SMI TrafficTarget policy.
-The associated SMI TrafficTarget policy was ignored by the system.
-`,
-
 	ErrInvalidDestinationKind: `
 An applied SMI TrafficTarget policy has an invalid destination kind.
 `,
@@ -510,33 +467,8 @@ ServiceIdentity could not be configured.
 	//
 	// Range 3000-3500
 	//
-	ErrServiceHostnames: `
-The hostnames (FQDN) used to access the k8s service could not be retrieved by the system.
-Any HTTP traffic policy associated with this service was ignored by the system.
-`,
-
-	ErrNoMatchingServiceForServiceAccount: `
-The system expected k8s services to be associated with a service account, but no such
-service was found. A service matches a service account if the pods backing the service
-belong to the service account.
-`,
-
-	ErrGettingResolvableServiceEndpoints: `
-The expexted endpoints that are reached when the service's FQDN is resolved could not be
-retrieved by the system.
-`,
-
-	ErrGettingServicePorts: `
-The mapping of ports the application is exposing a service on to their corresponding
-application protocol could not be obtained for a specified service.
-`,
-
 	ErrEndpointsNotFound: `
 The system found 0 endpoints to be reached when the service's FQDN was resolved.
-`,
-
-	ErrGettingServiceIdentitiesForService: `
-The ServiceIdentities associated with a specified MeshService could not be listed.
 `,
 
 	ErrMarshallingKubernetesResource: `
@@ -586,10 +518,6 @@ PEM encoded key.
 
 	ErrCreatingCertReq: `
 The certificate request fails to be created when attempting to issue a certificate.
-`,
-
-	ErrDeletingCertReq: `
-The certificate request could not be deleted.
 `,
 
 	ErrCreatingRootCert: `
@@ -759,10 +687,6 @@ configured.
 The meshed services corresponding a specified Envoy proxy could not be listed.
 `,
 
-	ErrGettingLocalServiceCluster: `
-An Envoy cluster for a local service behind an Envoy proxy could not be configured.
-`,
-
 	ErrDuplicateClusters: `
 Multiple Envoy clusters with the same name were configured. The duplicate clusters
 will not be sent to the Envoy proxy in a ClusterDiscovery response.
@@ -780,14 +704,6 @@ policy.
 
 	ErrIngressFilterChain: `
 An XDS filter chain could not be constructed for ingress.
-`,
-
-	ErrGettingLuaFilter: `
-The Lua XDS HttpFilter could not be configured.
-`,
-
-	ErrGettingWASMFilter: `
-The WASM XDS HttpFilter could not be configured.
 `,
 
 	ErrBuildingRBACPolicyForRoute: `
