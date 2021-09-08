@@ -2,7 +2,6 @@ package lds
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -289,20 +288,13 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch tr
 		return nil, errors.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
 	}
 	for _, ipRange := range trafficMatch.DestinationIPRanges {
-		ip, ipNet, err := net.ParseCIDR(ipRange)
+		cidr, err := envoy.GetCIDRRangeFromStr(ipRange)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.ErrInvalidEgressIPRange.String()).
 				Msgf("Error parsing IP range %s while building outbound mesh filter chain match %s, skipping", ipRange, trafficMatch.Name)
 			continue
 		}
-
-		prefixLen, _ := ipNet.Mask.Size()
-		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
-			AddressPrefix: ip.String(),
-			PrefixLen: &wrapperspb.UInt32Value{
-				Value: uint32(prefixLen),
-			},
-		})
+		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, cidr)
 	}
 
 	return filterMatch, nil

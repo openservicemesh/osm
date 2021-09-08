@@ -1,7 +1,6 @@
 package lds
 
 import (
-	"net"
 	"strings"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -71,22 +70,14 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		return nil, errors.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
 	}
 
-	// TODO(shashankram): add helper to convert string IP ranges to xds_core.CidirRange
 	var sourcePrefixes []*xds_core.CidrRange
 	for _, ipRange := range trafficMatch.SourceIPRanges {
-		ip, ipNet, err := net.ParseCIDR(ipRange)
+		cidr, err := envoy.GetCIDRRangeFromStr(ipRange)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error parsing IP range %s while building Ingress filter chain for match %v, skipping", ipRange, trafficMatch)
 			continue
 		}
-
-		prefixLen, _ := ipNet.Mask.Size()
-		sourcePrefixes = append(sourcePrefixes, &xds_core.CidrRange{
-			AddressPrefix: ip.String(),
-			PrefixLen: &wrapperspb.UInt32Value{
-				Value: uint32(prefixLen),
-			},
-		})
+		sourcePrefixes = append(sourcePrefixes, cidr)
 	}
 
 	filterChain := &xds_listener.FilterChain{

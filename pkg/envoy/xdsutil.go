@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"net"
 	"strings"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -14,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -405,4 +407,20 @@ func GetKindFromProxyCertificate(cn certificate.CommonName) (ProxyKind, error) {
 	}
 
 	return cnMeta.ProxyKind, nil
+}
+
+// GetCIDRRangeFromStr converts the given CIDR as a string to an XDS CidrRange object
+func GetCIDRRangeFromStr(cidr string) (*xds_core.CidrRange, error) {
+	ip, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return nil, err
+	}
+
+	prefixLen, _ := ipNet.Mask.Size()
+	return &xds_core.CidrRange{
+		AddressPrefix: ip.String(),
+		PrefixLen: &wrapperspb.UInt32Value{
+			Value: uint32(prefixLen),
+		},
+	}, nil
 }

@@ -11,6 +11,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -358,4 +359,41 @@ func TestGetKindFromProxyCertificate(t *testing.T) {
 	assert.Nil(err, fmt.Sprintf("Expected err to be nil; Actually it was %+v", err))
 	expectedProxyKind := KindGateway
 	assert.Equal(expectedProxyKind, actualProxyKind)
+}
+
+func TestGetCIDRRangeFromStr(t *testing.T) {
+	testCases := []struct {
+		name              string
+		cidr              string
+		expectedCIDRRange *xds_core.CidrRange
+		expectErr         bool
+	}{
+		{
+			name: "valid CIDR range",
+			cidr: "10.0.0.0/10",
+			expectedCIDRRange: &xds_core.CidrRange{
+				AddressPrefix: "10.0.0.0",
+				PrefixLen: &wrapperspb.UInt32Value{
+					Value: 10,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:              "invalid CIDR range",
+			cidr:              "10.0.0.1",
+			expectedCIDRRange: nil,
+			expectErr:         true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			actual, err := GetCIDRRangeFromStr(tc.cidr)
+			assert.Equal(tc.expectedCIDRRange, actual)
+			assert.Equal(tc.expectErr, err != nil)
+		})
+	}
 }
