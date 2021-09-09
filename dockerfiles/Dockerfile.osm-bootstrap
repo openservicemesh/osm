@@ -1,2 +1,2 @@
 FROM gcr.io/distroless/static
-COPY osm-bootstrap /
+COPY . /
