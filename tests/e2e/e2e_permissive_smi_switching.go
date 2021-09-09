@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,13 +22,15 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 	},
 	func() {
 		Context("PermissiveToSmiSwitching", func() {
-			const destApp = "server"
-			const sourceAppBaseName = "client"
-			var sourceNamespaces []string = []string{}
+			var (
+				destApp           = framework.RandomNameWithPrefix("server")
+				sourceAppBaseName = framework.RandomNameWithPrefix("client")
+				sourceNamespaces  = []string{}
 
-			// Total (numberOfClientApps x replicaSetPerApp) pods
-			numberOfClientServices := 2
-			replicaSetPerService := 2
+				// Total (numberOfClientApps x replicaSetPerApp) pods
+				numberOfClientServices = 2
+				replicaSetPerService   = 2
+			)
 
 			// Used across the test to wait for concurrent steps to finish
 			var wg sync.WaitGroup
@@ -54,13 +57,15 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				// Use a deployment with multiple replicaset at serverside
 				svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 					SimpleDeploymentAppDef{
-						Name:         "server",
-						Namespace:    destApp,
-						ReplicaCount: int32(replicaSetPerService),
-						Image:        "kennethreitz/httpbin",
-						Ports:        []int{DefaultUpstreamServicePort},
-						Command:      HttpbinCmd,
-						OS:           Td.ClusterOS,
+						DeploymentName:     destApp,
+						Namespace:          destApp,
+						ServiceAccountName: destApp,
+						ServiceName:        destApp,
+						ReplicaCount:       int32(replicaSetPerService),
+						Image:              "kennethreitz/httpbin",
+						Ports:              []int{DefaultUpstreamServicePort},
+						Command:            HttpbinCmd,
+						OS:                 Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -68,7 +73,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateDeployment(destApp, deploymentDef)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateService(destApp, svcDef)
+				serverService, err := Td.CreateService(destApp, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
 				wg.Add(1)
@@ -82,14 +87,16 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				for _, srcClient := range sourceNamespaces {
 					svcAccDef, deploymentDef, svcDef, err = Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         srcClient,
-							Namespace:    srcClient,
-							ReplicaCount: int32(replicaSetPerService),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
-							OS:           Td.ClusterOS,
+							DeploymentName:     srcClient,
+							Namespace:          srcClient,
+							ServiceAccountName: srcClient,
+							ContainerName:      srcClient,
+							ReplicaCount:       int32(replicaSetPerService),
+							Command:            []string{"/bin/bash", "-c", "--"},
+							Args:               []string{"while true; do sleep 30; done;"},
+							Image:              "songrgg/alpine-debug",
+							Ports:              []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -121,9 +128,9 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						requests.Sources = append(requests.Sources, HTTPRequestDef{
 							SourceNs:        ns,
 							SourcePod:       pod.Name,
-							SourceContainer: ns, // container_name == NS for this test
+							SourceContainer: ns,
 
-							Destination: fmt.Sprintf("%s.%s:%d", destApp, destApp, DefaultUpstreamServicePort),
+							Destination: fmt.Sprintf("%s.%s:%d", serverService.Name, serverService.Namespace, DefaultUpstreamServicePort),
 						})
 					}
 				}

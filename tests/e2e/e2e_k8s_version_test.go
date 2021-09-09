@@ -50,7 +50,7 @@ func testK8sVersion(version string) {
 		// Get simple pod definitions for the HTTP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -78,10 +78,10 @@ func testK8sVersion(version string) {
 				TrafficTargetName: "test-target",
 
 				SourceNamespace:      sourceName,
-				SourceSVCAccountName: sourceName,
+				SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
 				DestinationNamespace:      destName,
-				DestinationSvcAccountName: destName,
+				DestinationSvcAccountName: svcAccDef.Name,
 			})
 
 		// Configs have to be put into a monitored NS
@@ -94,7 +94,7 @@ func testK8sVersion(version string) {
 		clientToServer := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 		}

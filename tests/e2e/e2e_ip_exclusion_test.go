@@ -43,7 +43,7 @@ func testIPExclusion() {
 		// Set up the destination HTTP server. It is not part of the mesh
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -74,7 +74,7 @@ func testIPExclusion() {
 		clientToServer := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 		}

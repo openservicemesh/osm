@@ -104,9 +104,9 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
 			// Get simple pod definitions for the HTTP server
-			svcAccDef, dstPodDef, svcDef, err := Td.SimplePodApp(
+			serverSvcAccDef, serverPodDef, serverSvcDef, err := Td.SimplePodApp(
 				SimplePodAppDef{
-					Name:      "server",
+					PodName:   "server",
 					Namespace: ns,
 					Image:     "kennethreitz/httpbin",
 					Ports:     []int{80},
@@ -114,16 +114,16 @@ var _ = OSMDescribe("Upgrade from latest",
 				})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = Td.CreateServiceAccount(ns, &svcAccDef)
+			_, err = Td.CreateServiceAccount(ns, &serverSvcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			dstPod, err := Td.CreatePod(ns, dstPodDef)
+			dstPod, err := Td.CreatePod(ns, serverPodDef)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateService(ns, svcDef)
+			_, err = Td.CreateService(ns, serverSvcDef)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Get simple Pod definitions for the client
 			svcAccDef, srcPodDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
-				Name:      "client",
+				PodName:   "client",
 				Namespace: ns,
 				Command:   []string{"/bin/bash", "-c", "--"},
 				Args:      []string{"while true; do sleep 30; done;"},
@@ -149,10 +149,10 @@ var _ = OSMDescribe("Upgrade from latest",
 					TrafficTargetName: "test-target",
 
 					SourceNamespace:      ns,
-					SourceSVCAccountName: "client",
+					SourceSVCAccountName: svcAccDef.Name,
 
 					DestinationNamespace:      ns,
-					DestinationSvcAccountName: "server",
+					DestinationSvcAccountName: serverSvcAccDef.Name,
 				},
 			)
 			_, err = Td.CreateHTTPRouteGroup(ns, httpRG)
@@ -168,7 +168,7 @@ var _ = OSMDescribe("Upgrade from latest",
 						Td.HTTPRequest(HTTPRequestDef{
 							SourceNs:        srcPod.Namespace,
 							SourcePod:       srcPod.Name,
-							SourceContainer: "client",
+							SourceContainer: srcPod.Name,
 							Destination:     dstPod.Name + "/status/200",
 						})
 
@@ -233,7 +233,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Recreating client and server pods")
-			for _, pod := range []corev1.Pod{srcPodDef, dstPodDef} {
+			for _, pod := range []corev1.Pod{srcPodDef, serverPodDef} {
 				err = Td.Client.CoreV1().Pods(ns).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreatePod(ns, pod)

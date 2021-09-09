@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -31,9 +32,11 @@ var _ = OSMDescribe("Test TCP traffic from 1 pod client -> 1 pod server",
 	})
 
 func testTCPTraffic(permissiveMode bool) {
-	const sourceName = "client"
-	const destName = "server"
-	var ns = []string{sourceName, destName}
+	var (
+		sourceNs = framework.RandomNameWithPrefix("client")
+		destNs   = framework.RandomNameWithPrefix("server")
+		ns       = []string{sourceNs, destNs}
+	)
 
 	It("Tests TCP traffic for client pod -> server pod", func() {
 		// Install OSM
@@ -55,8 +58,8 @@ func testTCPTraffic(permissiveMode bool) {
 		// Get simple pod definitions for the TCP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:        destName,
-				Namespace:   destName,
+				PodName:     framework.RandomNameWithPrefix("pod"),
+				Namespace:   destNs,
 				Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
 				Command:     []string{"/tcp-echo-server"},
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
@@ -66,17 +69,17 @@ func testTCPTraffic(permissiveMode bool) {
 			})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
+		_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreatePod(destName, podDef)
+		_, err = Td.CreatePod(destNs, podDef)
 		Expect(err).NotTo(HaveOccurred())
-		dstSvc, err := Td.CreateService(destName, svcDef)
+		dstSvc, err := Td.CreateService(destNs, svcDef)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 120*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destNs, 120*time.Second, 1, nil)).To(Succeed())
 
-		srcPod := setupSource(sourceName, false /* no kubernetes service for the client */)
+		srcPod := setupSource(sourceNs, false /* no kubernetes service for the client */)
 
 		trafficTargetName := "test-target"
 		trafficRouteName := "routes"
@@ -89,28 +92,28 @@ func testTCPTraffic(permissiveMode bool) {
 					RouteGroupName:    trafficRouteName,
 					TrafficTargetName: trafficTargetName,
 
-					SourceNamespace:      sourceName,
-					SourceSVCAccountName: sourceName,
+					SourceNamespace:      srcPod.Namespace,
+					SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
-					DestinationNamespace:      destName,
-					DestinationSvcAccountName: destName,
+					DestinationNamespace:      destNs,
+					DestinationSvcAccountName: svcAccDef.Name,
 				},
 				destinationPort,
 			)
 
 			// Configs have to be put into a monitored NS
-			_, err = Td.CreateTCPRoute(sourceName, tcpRoute)
+			_, err = Td.CreateTCPRoute(sourceNs, tcpRoute)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
+			_, err = Td.CreateTrafficTarget(sourceNs, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
 		// All ready. Expect client to reach server
 		requestMsg := "test request"
 		clientToServer := TCPRequestDef{
-			SourceNs:        sourceName,
+			SourceNs:        sourceNs,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			DestinationHost: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 			DestinationPort: destinationPort,
@@ -118,7 +121,7 @@ func testTCPTraffic(permissiveMode bool) {
 		}
 
 		srcToDestStr := fmt.Sprintf("%s -> %s:%d",
-			fmt.Sprintf("%s/%s", sourceName, srcPod.Name),
+			fmt.Sprintf("%s/%s", sourceNs, srcPod.Name),
 			clientToServer.DestinationHost, clientToServer.DestinationPort)
 
 		cond := Td.WaitForRepeatedSuccess(func() bool {
@@ -143,8 +146,8 @@ func testTCPTraffic(permissiveMode bool) {
 
 		if !permissiveMode {
 			By("Deleting SMI policies")
-			Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceName).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
-			Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceName).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
+			Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceNs).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
+			Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceNs).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
 
 			// Expect client not to reach server
 			cond = Td.WaitForRepeatedSuccess(func() bool {

@@ -53,7 +53,7 @@ func testTraffic(withSourceKubernetesService bool) {
 		// Get simple pod definitions for the HTTP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -81,10 +81,10 @@ func testTraffic(withSourceKubernetesService bool) {
 				TrafficTargetName: "test-target",
 
 				SourceNamespace:      sourceName,
-				SourceSVCAccountName: sourceName,
+				SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
 				DestinationNamespace:      destName,
-				DestinationSvcAccountName: destName,
+				DestinationSvcAccountName: svcAccDef.Name,
 			})
 
 		// Configs have to be put into a monitored NS
@@ -144,7 +144,7 @@ func testTraffic(withSourceKubernetesService bool) {
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	// Get simple Pod definitions for the client
 	svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
-		Name:      sourceName,
+		PodName:   sourceName,
 		Namespace: sourceName,
 		Command:   []string{"sleep", "365d"},
 		Image:     "curlimages/curl",

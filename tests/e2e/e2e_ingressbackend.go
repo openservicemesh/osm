@@ -14,6 +14,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -33,7 +34,7 @@ var _ = OSMDescribe("Ingress using IngressBackend API",
 	})
 
 func testIngressBackend() {
-	const destNs = "server"
+	var destNs = framework.RandomNameWithPrefix("server")
 
 	It("allows ingress traffic", func() {
 		// Install OSM
@@ -46,7 +47,7 @@ func testIngressBackend() {
 		// Get simple pod definitions for the HTTP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      "server",
+				PodName:   "server",
 				Namespace: destNs,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{serverPort},

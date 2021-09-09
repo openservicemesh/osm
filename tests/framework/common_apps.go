@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 
 	goversion "github.com/hashicorp/go-version"
@@ -212,14 +213,17 @@ func (td *OsmTestData) GetPodsForLabel(ns string, labelSel metav1.LabelSelector)
 
 // SimplePodAppDef defines some parametrization to create a pod-based application from template
 type SimplePodAppDef struct {
-	Namespace   string
-	Name        string
-	Image       string
-	Command     []string
-	Args        []string
-	Ports       []int
-	AppProtocol string
-	OS          string
+	Namespace          string
+	PodName            string
+	ServiceName        string
+	ServiceAccountName string
+	ContainerName      string
+	Image              string
+	Command            []string
+	Args               []string
+	Ports              []int
+	AppProtocol        string
+	OS                 string
 }
 
 // SimplePodApp returns a set of k8s typed definitions for a pod-based k8s definition.
@@ -229,25 +233,44 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
 	}
 
-	serviceAccountDefinition := Td.SimpleServiceAccount(def.Name, def.Namespace)
+	if len(def.PodName) == 0 {
+		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("PodName must be explicitly specified")
+	}
+
+	serviceAccountName := def.ServiceAccountName
+	if serviceAccountName == "" {
+		serviceAccountName = RandomNameWithPrefix("serviceaccount")
+	}
+
+	serviceName := def.ServiceName
+	if serviceName == "" {
+		serviceName = RandomNameWithPrefix("service")
+	}
+
+	containerName := def.ContainerName
+	if containerName == "" {
+		containerName = def.PodName
+	}
+
+	serviceAccountDefinition := Td.SimpleServiceAccount(serviceAccountName, def.Namespace)
 
 	podDefinition := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
+			Name:      def.PodName,
 			Namespace: def.Namespace,
 			Labels: map[string]string{
-				"app": def.Name,
+				"app": def.PodName,
 			},
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: new(int64), // 0
-			ServiceAccountName:            def.Name,
+			ServiceAccountName:            serviceAccountName,
 			NodeSelector: map[string]string{
 				"kubernetes.io/os": def.OS,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:            def.Name,
+					Name:            containerName,
 					Image:           def.Image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources: corev1.ResourceRequirements{
@@ -277,14 +300,14 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 	serviceDefinition := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
+			Name: serviceName,
 			Labels: map[string]string{
-				"app": def.Name,
+				"app": def.PodName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": def.Name,
+				"app": def.PodName,
 			},
 		},
 	}
@@ -375,15 +398,18 @@ func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
 
 // SimpleDeploymentAppDef defines some parametrization to create a deployment-based application from template
 type SimpleDeploymentAppDef struct {
-	Namespace    string
-	Name         string
-	Image        string
-	ReplicaCount int32
-	Command      []string
-	Args         []string
-	Ports        []int
-	AppProtocol  string
-	OS           string
+	Namespace          string
+	DeploymentName     string
+	ServiceName        string
+	ContainerName      string
+	ServiceAccountName string
+	Image              string
+	ReplicaCount       int32
+	Command            []string
+	Args               []string
+	Ports              []int
+	AppProtocol        string
+	OS                 string
 }
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
@@ -393,11 +419,25 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		return corev1.ServiceAccount{}, appsv1.Deployment{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
 	}
 
+	serviceAccountName := def.ServiceAccountName
+	if serviceAccountName == "" {
+		serviceAccountName = RandomNameWithPrefix("serviceaccount")
+	}
+
+	serviceName := def.ServiceName
+	if serviceName == "" {
+		serviceName = RandomNameWithPrefix("service")
+	}
+
 	serviceAccountDefinition := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
+			Name:      serviceAccountName,
 			Namespace: def.Namespace,
 		},
+	}
+	containerName := def.ContainerName
+	if containerName == "" {
+		containerName = def.DeploymentName
 	}
 
 	// Required, as replica count is a pointer to distinguish between 0 and not specified
@@ -405,31 +445,31 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 
 	deploymentDefinition := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
+			Name:      def.DeploymentName,
 			Namespace: def.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicaCountExplicitDeclaration,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": def.Name,
+					"app": def.DeploymentName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": def.Name,
+						"app": def.DeploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: new(int64), // 0
-					ServiceAccountName:            def.Name,
+					ServiceAccountName:            serviceAccountName,
 					NodeSelector: map[string]string{
 						"kubernetes.io/os": def.OS,
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            def.Name,
+							Name:            containerName,
 							Image:           def.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
@@ -456,15 +496,15 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 
 	serviceDefinition := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
+			Name:      serviceName,
 			Namespace: def.Namespace,
 			Labels: map[string]string{
-				"app": def.Name,
+				"app": def.DeploymentName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": def.Name,
+				"app": def.DeploymentName,
 			},
 		},
 	}
@@ -509,7 +549,7 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
 	if td.ClusterOS == constants.OSWindows {
 		return Td.SimplePodApp(SimplePodAppDef{
-			Name:      "client",
+			PodName:   RandomNameWithPrefix("pod"),
 			Namespace: sourceNs,
 			Command:   []string{"cmd", "/c"},
 			Args:      []string{"FOR /L %N IN () DO ping -n 30 127.0.0.1> nul"},
@@ -519,7 +559,7 @@ func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAcc
 		})
 	}
 	return Td.SimplePodApp(SimplePodAppDef{
-		Name:      "client",
+		PodName:   RandomNameWithPrefix("pod"),
 		Namespace: sourceNs,
 		Command:   []string{"/bin/bash", "-c", "--"},
 		Args:      []string{"while true; do sleep 30; done;"},
@@ -747,4 +787,13 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 	}
 
 	return ingressAddr, nil
+}
+
+// RandomNameWithPrefix generates a random string with the given prefix.
+// 	If the prefix is empty, the default prefix "test" will be used
+func RandomNameWithPrefix(prefix string) string {
+	if prefix == "" || len(prefix) > 100 {
+		prefix = "test"
+	}
+	return fmt.Sprintf("%s-%s", prefix, uuid.New().String())
 }

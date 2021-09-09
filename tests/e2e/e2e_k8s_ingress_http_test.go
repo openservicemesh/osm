@@ -35,7 +35,7 @@ var _ = OSMDescribe("HTTP ingress using k8s Ingress API",
 			// Get simple pod definitions for the HTTP server
 			svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 				SimplePodAppDef{
-					Name:      "server",
+					PodName:   "server",
 					Namespace: destNs,
 					Image:     "kennethreitz/httpbin",
 					Ports:     []int{80},

@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -18,7 +19,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 	},
 	func() {
 		Context("DebugServer", func() {
-			const sourceNs = "client"
+			var sourceNs = framework.RandomNameWithPrefix("client")
 
 			It("Starts debug server only when enableDebugServer flag is enabled", func() {
 				// Install OSM
@@ -32,7 +33,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 
 				// Get simple Pod definitions for the client
 				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      "client",
+					PodName:   "client",
 					Namespace: sourceNs,
 					Command:   []string{"/bin/bash", "-c", "--"},
 					Args:      []string{"while true; do sleep 30; done;"},
@@ -56,7 +57,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 				req := HTTPRequestDef{
 					SourceNs:        srcPod.Namespace,
 					SourcePod:       srcPod.Name,
-					SourceContainer: "client",
+					SourceContainer: srcPod.Name,
 
 					Destination: controllerDest,
 				}
