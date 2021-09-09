@@ -74,6 +74,8 @@ type OsmTestData struct {
 
 	DeployOnOpenShift      bool // Determines whether to configure tests for OpenShift
 	DeployOnWindowsWorkers bool // Determines whether to configure tests to run on Windows workers
+
+	RetryAppPodCreation bool // Whether to retry app pod creation due to issue #3973
 }
 
 // InstallOSMOpts describes install options for OSM

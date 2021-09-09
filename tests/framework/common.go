@@ -150,6 +150,7 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", true, "Enable tagging Namespaces for metrics collection")
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 	flag.BoolVar(&td.DeployOnWindowsWorkers, "deployOnWindowsWorkers", false, "Configure tests to run on Windows workers")
+	flag.BoolVar(&td.RetryAppPodCreation, "retryAppPodCreation", true, "Retry app pod creation on error")
 }
 
 // ValidateStringParams validates input string parameters are valid

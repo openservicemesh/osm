@@ -58,6 +58,13 @@ const (
 
 	// CPUPanel is the ID of the CPU panel on OSM's MeshDetails dashboard
 	CPUPanel int = 14
+
+	// maxPodCreationRetries determines the max number of retries for creating
+	// a Pod (including via a Deployment) upon failure
+	maxPodCreationRetries = 2
+
+	// delayIntervalForPodCreationRetries
+	delayIntervalForPodCreationRetries = 5 * time.Second
 )
 
 var (
@@ -105,24 +112,49 @@ func (td *OsmTestData) createRoleBinding(ns string, roleBinding *rbacv1.RoleBind
 	return rb, nil
 }
 
+func (td *OsmTestData) getMaxPodCreationRetries() int {
+	if td.RetryAppPodCreation {
+		return maxPodCreationRetries
+	}
+	return 1
+}
+
 // CreatePod is a wrapper to create a pod
 func (td *OsmTestData) CreatePod(ns string, pod corev1.Pod) (*corev1.Pod, error) {
-	podRet, err := td.Client.CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
-	if err != nil {
-		err := fmt.Errorf("Could not create Pod: %v", err)
-		return nil, err
+	maxRetries := td.getMaxPodCreationRetries()
+
+	for i := 1; i <= maxRetries; i++ {
+		if i > 1 {
+			// Sleep before next retry
+			time.Sleep(delayIntervalForPodCreationRetries)
+		}
+		podRet, err := td.Client.CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
+		if err != nil {
+			td.T.Logf("Could not create Pod in attempt %d due to error: %v", i, err)
+			continue
+		}
+		return podRet, nil
 	}
-	return podRet, nil
+	return nil, errors.Errorf("Error creating pod in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateDeployment is a wrapper to create a deployment
 func (td *OsmTestData) CreateDeployment(ns string, deployment appsv1.Deployment) (*appsv1.Deployment, error) {
-	deploymentRet, err := td.Client.AppsV1().Deployments(ns).Create(context.Background(), &deployment, metav1.CreateOptions{})
-	if err != nil {
-		err := fmt.Errorf("Could not create Deployment: %v", err)
-		return nil, err
+	maxRetries := td.getMaxPodCreationRetries()
+
+	for i := 1; i <= maxRetries; i++ {
+		if i > 1 {
+			// Sleep before next retry
+			time.Sleep(delayIntervalForPodCreationRetries)
+		}
+		deploymentRet, err := td.Client.AppsV1().Deployments(ns).Create(context.Background(), &deployment, metav1.CreateOptions{})
+		if err != nil {
+			td.T.Logf("Could not create Deployment in attempt %d due to error: %v", i, err)
+			continue
+		}
+		return deploymentRet, nil
 	}
-	return deploymentRet, nil
+	return nil, errors.Errorf("Error creating Deployment in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateService is a wrapper to create a service
