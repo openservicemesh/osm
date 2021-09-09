@@ -2,6 +2,7 @@
 # shellcheck disable=SC1091
 
 IMAGE_TAG=$1
+OS=$2
 IMAGE_REPO=openservicemesh
 
 if [ -z "${CTR_TAG}" ]
@@ -19,6 +20,11 @@ exists=$(echo "$version_list" | jq --arg t "${CTR_TAG}" '.tags | index($t)')
 
 if [[ $exists == null ]]
 then
-    make docker-build-"$IMAGE_TAG"
-    docker push "$IMAGE_REPO/$IMAGE_TAG:${CTR_TAG}" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }
+    if [[ $OS == "linux" ]]
+    then
+        make docker-build-"$IMAGE_TAG"
+        docker push "$IMAGE_REPO/$IMAGE_TAG:${CTR_TAG}" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }
+    else
+        make ARGS=--push "docker-build-$(NAME)"
+    fi
 fi

@@ -173,8 +173,11 @@ DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-c
 DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
 .PHONY: $(DEMO_BUILD_TARGETS)
 $(DEMO_BUILD_TARGETS): NAME=$(@:build-%=%)
+ifeq ($(OS), windows)
+	EXT=.exe
+endif
 $(DEMO_BUILD_TARGETS):
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME)/$(NAME) ./demo/cmd/$(NAME)
+	GOOS=$(OS) GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME)/$(NAME)$(EXT) ./demo/cmd/$(NAME)
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONE: build-bookwatcher
@@ -189,8 +192,22 @@ DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_DEMO_TARGETS)
 $(DOCKER_DEMO_TARGETS): NAME=$(@:docker-build-%=%)
 $(DOCKER_DEMO_TARGETS):
-	make build-$(NAME)
+	make OS=linux build-$(NAME)
 	docker build -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.$(NAME) demo/bin/$(NAME)
+
+
+# docker-build-windows-bookbuyer, etc
+# This command can be used to push the images as well if the ARGS is set to --push
+# see https://docs.docker.com/engine/reference/commandline/buildx_build/#push
+# The reason for that is that on linux we can't load a Windows image so we need to build and push with one command.
+DOCKER_WINDOWS_DEMO_TARGETS = $(addprefix docker-build-windows-, $(DEMO_TARGETS))
+.PHONY: $(DOCKER_WINDOWS_DEMO_TARGETS)
+$(DOCKER_WINDOWS_DEMO_TARGETS): OS = windows
+$(DOCKER_WINDOWS_DEMO_TARGETS): NAME=$(@:docker-build-windows-%=%)
+$(DOCKER_WINDOWS_DEMO_TARGETS):
+	make OS=windows build-$(NAME)
+	@if ! docker buildx ls | grep -q "img-builder "; then  echo "Setting buildx img-builder"; docker buildx create --name img-builder --use; fi
+	docker buildx build --platform "windows/amd64" -t $(CTR_REGISTRY)/$(NAME)-windows:$(CTR_TAG) $(ARGS) -f dockerfiles/Dockerfile.$(NAME).windows demo/bin/$(NAME)
 
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
@@ -231,10 +248,27 @@ VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME); fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME) "linux"; fi
+
+
+DOCKER_PUSH_WINDOWS_TARGETS = $(addprefix docker-push-windows-, $(DEMO_TARGETS))
+VERIFY_TAGS = 0
+.PHONY: $(DOCKER_PUSH_WINDOWS_TARGETS)
+$(DOCKER_PUSH_WINDOWS_TARGETS): NAME=$(@:docker-push-%=%)
+$(DOCKER_PUSH_WINDOWS_TARGETS):
+	@if [ $(VERIFY_TAGS) != 1 ]; then make ARGS=--output=type=registry docker-build-$(NAME); else bash scripts/publish-image.sh $(addprefix windows-, $(NAME)) "windows"; fi
+
+
+.PHONY: docker-linux-push
+docker-linux-push: $(DOCKER_PUSH_TARGETS)
+
+# notably the init container is missing here because we don't use it for windows
+OSM_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init-osm-controller osm-controller osm-injector osm-crds osm-crd-converter)
+.PHONY: docker-windows-push
+docker-windows-push: $(DOCKER_PUSH_WINDOWS_TARGETS) $(OSM_CONTROL_PLANE_TARGETS)
 
 .PHONY: docker-push
-docker-push: $(DOCKER_PUSH_TARGETS)
+docker-push: docker-linux-push docker-windows-push
 
 .PHONY: shellcheck
 shellcheck:

@@ -87,8 +87,8 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
 fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
-    make docker-push
-fi
+    make docker-linux-push
+fi 
 
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
