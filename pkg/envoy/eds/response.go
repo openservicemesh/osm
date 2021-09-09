@@ -50,11 +50,6 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 			continue
 		}
 		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, meshSvc)
-		if len(endpoints) == 0 {
-			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
-				Msgf("Endpoints not found for upstream cluster %s for proxy identity %s, skipping cluster in EDS response", cluster, proxyIdentity)
-			continue
-		}
 		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxyIdentity, endpoints)
 		loadAssignment := newClusterLoadAssignment(meshSvc, endpoints)
 		rdsResources = append(rdsResources, loadAssignment)

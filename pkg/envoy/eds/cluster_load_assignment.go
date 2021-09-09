@@ -29,26 +29,32 @@ func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoi
 		},
 	}
 
-	lenIPs := len(serviceEndpoints)
-	if lenIPs == 0 {
-		lenIPs = 1
+	// If there are no service endpoints corresponding to this service, we
+	// return a ClusterLoadAssignment without any endpoints.
+	// Envoy will correctly handle this response.
+	// This can happen if we create a cluster via CDS corresponding to a traffic split
+	// apex service that has no endpoints.
+	if len(serviceEndpoints) == 0 {
+		return cla
 	}
-	weight := uint32(100 / lenIPs)
+
+	// Equal weight is assigned to a cluster with multiple endpoints in the same locality
+	lbWeightPerEndpoint := 100 / len(serviceEndpoints)
 
 	for _, meshEndpoint := range serviceEndpoints {
-		log.Trace().Msgf("Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%s, Weight=%d", svc, svc, meshEndpoint, weight)
-		lbEpt := xds_endpoint.LbEndpoint{
+		log.Trace().Msgf("Adding Endpoint: cluster=%s, endpoint=%s, weight=%d", svc, meshEndpoint, lbWeightPerEndpoint)
+		lbEpt := &xds_endpoint.LbEndpoint{
 			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 				Endpoint: &xds_endpoint.Endpoint{
 					Address: envoy.GetAddress(meshEndpoint.IP.String(), uint32(meshEndpoint.Port)),
 				},
 			},
 			LoadBalancingWeight: &wrappers.UInt32Value{
-				Value: weight,
+				Value: uint32(lbWeightPerEndpoint),
 			},
 		}
-		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
+		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, lbEpt)
 	}
-	log.Trace().Msgf("Constructed ClusterLoadAssignment: %v", cla)
+
 	return cla
 }
