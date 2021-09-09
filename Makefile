@@ -263,7 +263,7 @@ $(DOCKER_PUSH_WINDOWS_TARGETS):
 docker-linux-push: $(DOCKER_PUSH_TARGETS)
 
 # notably the init container is missing here because we don't use it for windows
-OSM_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init-osm-controller osm-controller osm-injector osm-crds osm-crd-converter)
+OSM_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, osm-controller osm-controller osm-injector osm-crds osm-bootstrap)
 .PHONY: docker-windows-push
 docker-windows-push: $(DOCKER_PUSH_WINDOWS_TARGETS) $(OSM_CONTROL_PLANE_TARGETS)
 
