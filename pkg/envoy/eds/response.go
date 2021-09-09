@@ -14,7 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -66,14 +65,10 @@ func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([
 		return nil, err
 	}
 
-	allowedEndpoints, err := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxyIdentity)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up endpoints for proxy %s", proxy.String())
-		return nil, err
-	}
-
 	var edsResources []types.Resource
-	for svc, endpoints := range allowedEndpoints {
+	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxyIdentity)
+
+	for svc, endpoints := range upstreamSvcEndpoints {
 		loadAssignment := newClusterLoadAssignment(svc, endpoints)
 		edsResources = append(edsResources, loadAssignment)
 	}
@@ -109,18 +104,13 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 
 // getUpstreamEndpointsForProxyIdentity returns only those service endpoints that belong to the allowed upstream service accounts for the proxy
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) (map[service.MeshService][]endpoint.Endpoint, error) {
+func getUpstreamEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) map[service.MeshService][]endpoint.Endpoint {
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, dstSvc)
-		if len(endpoints) == 0 {
-			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEndpointsNotFound)).
-				Msgf("Endpoints not found for upstream MeshService %s for proxy identity %s, skipping cluster in EDS response", dstSvc, proxyIdentity)
-			continue
-		}
-		allowedServicesEndpoints[dstSvc] = endpoints
+		allowedServicesEndpoints[dstSvc] = meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, dstSvc)
 	}
+
 	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
-	return allowedServicesEndpoints, nil
+	return allowedServicesEndpoints
 }
