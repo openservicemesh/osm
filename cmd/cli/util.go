@@ -12,7 +12,8 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -113,25 +114,18 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([
 	return meshInfoList, nil
 }
 
-// getNamespacePods returns a map of controller pods
-func getNamespacePods(clientSet kubernetes.Interface, m string, ns string) map[string][]string {
-	x := make(map[string][]string)
-
+// GetOSMControllerPods returns a list of osm-controller pods in the namespace
+func GetOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
-	pods, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
-
-	for pno := 0; pno < len(pods.Items); pno++ {
-		x["Pods"] = append(x["Pods"], pods.Items[pno].GetName())
-	}
-
-	return x
+	podList, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
+	return podList
 }
 
 // getControllerDeployments returns a list of Deployments corresponding to osm-controller
-func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentList, error) {
+func getControllerDeployments(clientSet kubernetes.Interface) (*appsv1.DeploymentList, error) {
 	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
@@ -176,11 +170,13 @@ func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernete
 	var meshSmiInfoList []meshSmiInfo
 
 	for _, mesh := range meshInfoList {
-		meshControllerPods := getNamespacePods(clientSet, mesh.name, mesh.namespace)
+		meshControllerPods := GetOSMControllerPods(clientSet, mesh.namespace)
 
 		meshSmiSupportedVersions := []string{"Unknown"}
-		if pods, ok := meshControllerPods["Pods"]; ok && len(pods) > 0 {
-			smiMap, err := getSupportedSmiForControllerPod(meshControllerPods["Pods"][0], mesh.namespace, config, clientSet, localPort)
+		if len(meshControllerPods.Items) > 0 {
+			// for listing mesh information, checking info using the first osm-controller pod should suffice
+			controllerPod := meshControllerPods.Items[0]
+			smiMap, err := getSupportedSmiForControllerPod(controllerPod.Name, mesh.namespace, config, clientSet, localPort)
 			if err == nil {
 				meshSmiSupportedVersions = []string{}
 				for smi, version := range smiMap {
