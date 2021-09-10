@@ -22,6 +22,7 @@ import (
 var log = logger.New("reconciler")
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
+// TODO: Deprecate as a part of #4065
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
 	KubeClient   *kubernetes.Clientset
