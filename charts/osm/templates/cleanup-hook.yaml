@@ -128,22 +128,19 @@ spec:
       restartPolicy: Never
       containers:
         - name: garbage-collector
-          image: bitnami/kubectl
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-crds:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           command:
             - sh
             - -c
             - >
              kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
-             kubectl patch crd/meshconfigs.config.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/traffictargets.access.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/httproutegroups.specs.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/multiclusterservices.config.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/egresses.policy.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/ingressbackends.policy.openservicemesh.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/trafficsplits.split.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
-             kubectl patch crd/tcproutes.specs.smi-spec.io -p '{"spec":{"conversion":{"strategy":"None", "webhook":null}}}' --type=merge;
+             kubectl apply -f /osm-crds;
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+{{- if .Values.OpenServiceMesh.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+{{- end }}
 

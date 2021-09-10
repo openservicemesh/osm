@@ -31,6 +31,14 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      initContainers:
+        - name: init-osm-bootstrap
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-crds:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          args:
+          - apply
+          - -f
+          - /osm-crds
       containers:
         - name: osm-bootstrap
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-bootstrap:{{ .Values.OpenServiceMesh.image.tag }}"

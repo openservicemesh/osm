@@ -74,11 +74,12 @@ build-osm-injector: clean-osm-injector
 
 .PHONY: build-osm-crds
 build-osm-crds: clean-osm-crds
-	cp -R ./charts/osm/crds ./bin/osm-crds
+	cp -R ./cmd/osm-bootstrap/crds ./bin/osm-crds
 
 .PHONY: build-osm-bootstrap
 build-osm-bootstrap: clean-osm-bootstrap
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-bootstrap/osm-bootstrap -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-bootstrap
+	cp -R ./cmd/osm-bootstrap/crds ./bin/osm-crds
 
 .PHONY: build-osm
 build-osm: cmd/cli/chart.tgz
