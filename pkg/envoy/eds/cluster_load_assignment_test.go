@@ -45,18 +45,12 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 										Address: envoy.GetAddress("1.1.1.1", 80),
 									},
 								},
-								LoadBalancingWeight: &wrappers.UInt32Value{
-									Value: 50,
-								},
 							},
 							{
 								HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 									Endpoint: &xds_endpoint.Endpoint{
 										Address: envoy.GetAddress("2.2.2.2", 80),
 									},
-								},
-								LoadBalancingWeight: &wrappers.UInt32Value{
-									Value: 50,
 								},
 							},
 						},
@@ -101,9 +95,6 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 										Address: envoy.GetAddress("1.2.3.4", 80),
 									},
 								},
-								LoadBalancingWeight: &wrappers.UInt32Value{
-									Value: 50,
-								},
 							},
 						},
 					},
@@ -117,9 +108,6 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 									Endpoint: &xds_endpoint.Endpoint{
 										Address: envoy.GetAddress("2.3.4.5", 80),
 									},
-								},
-								LoadBalancingWeight: &wrappers.UInt32Value{
-									Value: 50,
 								},
 							},
 						},
@@ -156,9 +144,6 @@ func TestNewClusterLoadAssignment(t *testing.T) {
 									Endpoint: &xds_endpoint.Endpoint{
 										Address: envoy.GetAddress("2.3.4.5", 80),
 									},
-								},
-								LoadBalancingWeight: &wrappers.UInt32Value{
-									Value: 100,
 								},
 							},
 						},
