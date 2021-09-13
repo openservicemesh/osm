@@ -46,7 +46,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
 		Image:           containerImage,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
 		Ports:           getEnvoyContainerPorts(originalHealthProbes),
 		VolumeMounts: []corev1.VolumeMount{{

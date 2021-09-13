@@ -58,13 +58,13 @@ const (
 	// DefaultOSMLogLevel is the default OSM log level if none is specified
 	DefaultOSMLogLevel = "info"
 
-	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig
-	DefaultEnvoyImage = "envoyproxy/envoy-alpine:v1.19.1"
+	// DefaultEnvoyImage is the default envoy proxy sidecar image if not defined in the osm MeshConfig (v1.19.1)
+	DefaultEnvoyImage = "envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd"
 
-	// DefaultEnvoyWindowsImage is the default envoy proxy windows sidecar image if not defined in the osm MeshConfig
+	// DefaultEnvoyWindowsImage is the default envoy proxy windows sidecar image if not defined in the osm MeshConfig (v1.19.1)
 	// TODO(#3864): This should be updated to the nanoserver based image when it becomes available
 	// See https://github.com/envoyproxy/envoy/issues/16759
-	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows:v1.19.1"
+	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
 	DefaultInitContainerImage = "openservicemesh/init:v0.9.2"
