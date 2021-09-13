@@ -121,7 +121,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.multicluster.gatewayLogLevel | string | `"error"` | Log level for the multicluster gateway |
 | OpenServiceMesh.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
 | OpenServiceMesh.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
-| OpenServiceMesh.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | OSM bootstrap's container resource parameters |
+| OpenServiceMesh.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"128M"},"requests":{"cpu":"0.3","memory":"128M"}}` | OSM bootstrap's container resource parameters |
 | OpenServiceMesh.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
 | OpenServiceMesh.osmController.autoScale.enable | bool | `false` | Enable Autoscale |
 | OpenServiceMesh.osmController.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |

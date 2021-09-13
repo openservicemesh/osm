@@ -287,10 +287,10 @@ OpenServiceMesh:
     resource:
       limits:
         cpu: "0.5"
-        memory: "64M"
+        memory: "128M"
       requests:
         cpu: "0.3"
-        memory: "64M"
+        memory: "128M"
     # -- OSM bootstrap's pod labels
     podLabels: {}
 
