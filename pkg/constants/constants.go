@@ -192,7 +192,17 @@ const (
 
 // OSM HTTP Server Paths
 const (
-	HTTPServerSmiVersionPath = "/smi/version"
+	HTTPServerHealthReadinessPath = "/health/ready"
+	HTTPServerHealthLivenessPath  = "/health/alive"
+	HTTPServerMetricsPath         = "/metrics"
+	HTTPServerVersionPath         = "/version"
+	HTTPServerSmiVersionPath      = "/smi/version"
+)
+
+// OSM HTTP Server Responses
+const (
+	HTTPServerServiceReadyResponse = "Service is ready"
+	HTTPServerServiceAliveResponse = "Service is alive"
 )
 
 // Application protocols

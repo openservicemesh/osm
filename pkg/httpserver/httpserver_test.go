@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -17,11 +18,6 @@ const (
 	url              = "http://localhost"
 	invalidRoutePath = "/debug/test2"
 	testPort         = 9999
-
-	// These paths are internal to debugServer
-	readyPath   = "/health/ready"
-	alivePath   = "/health/alive"
-	metricsPath = "/metrics"
 )
 
 // Records an HTTP request and returns a response
@@ -44,11 +40,11 @@ func TestNewHTTPServer(t *testing.T) {
 	httpServ := NewHTTPServer(testPort)
 
 	httpServ.AddHandlers(map[string]http.Handler{
-		"/health/ready": health.ReadinessHandler(testProbes, nil),
-		"/health/alive": health.LivenessHandler(testProbes, nil),
+		constants.HTTPServerHealthReadinessPath: health.ReadinessHandler(testProbes, nil),
+		constants.HTTPServerHealthLivenessPath:  health.LivenessHandler(testProbes, nil),
 	})
 
-	httpServ.AddHandler("/metrics", metricsStore.Handler())
+	httpServ.AddHandler(constants.HTTPServerMetricsPath, metricsStore.Handler())
 
 	testServer := &httptest.Server{
 		Config: httpServ.server,
@@ -62,10 +58,10 @@ func TestNewHTTPServer(t *testing.T) {
 
 	//Readiness/Liveness Check
 	newHTTPServerTests := []newHTTPServerTest{
-		{true, readyPath, http.StatusOK},
-		{false, readyPath, http.StatusServiceUnavailable},
-		{true, alivePath, http.StatusOK},
-		{false, alivePath, http.StatusServiceUnavailable},
+		{true, constants.HTTPServerHealthReadinessPath, http.StatusOK},
+		{false, constants.HTTPServerHealthReadinessPath, http.StatusServiceUnavailable},
+		{true, constants.HTTPServerHealthLivenessPath, http.StatusOK},
+		{false, constants.HTTPServerHealthLivenessPath, http.StatusServiceUnavailable},
 	}
 
 	for _, rt := range newHTTPServerTests {
@@ -85,7 +81,7 @@ func TestNewHTTPServer(t *testing.T) {
 	assert.Equal(http.StatusNotFound, respL.StatusCode)
 
 	//Metrics path Check
-	req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, metricsPath), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, constants.HTTPServerMetricsPath), nil)
 	w := httptest.NewRecorder()
 	testServer.Config.Handler.ServeHTTP(w, req)
 	respM := w.Result()

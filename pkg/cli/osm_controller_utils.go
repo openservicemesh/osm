@@ -1,0 +1,22 @@
+package cli
+
+import (
+	"context"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
+)
+
+// GetOSMControllerPods returns a list of osm-controller pods in the namespace
+func GetOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	podList, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
+	return podList
+}
