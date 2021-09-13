@@ -41,25 +41,19 @@ func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoi
 		return cla
 	}
 
-	// Equal weight is assigned to a cluster with multiple endpoints in the same locality
-	lbWeightPerEndpoint := 100 / len(serviceEndpoints)
-
 	for _, meshEndpoint := range serviceEndpoints {
-		log.Trace().Msgf("Adding Endpoint: cluster=%s, endpoint=%s, weight=%d", svc, meshEndpoint, lbWeightPerEndpoint)
 		lbEpt := &xds_endpoint.LbEndpoint{
 			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 				Endpoint: &xds_endpoint.Endpoint{
 					Address: envoy.GetAddress(meshEndpoint.IP.String(), uint32(meshEndpoint.Port)),
 				},
 			},
-			LoadBalancingWeight: &wrappers.UInt32Value{
-				Value: uint32(lbWeightPerEndpoint),
-			},
 		}
 
 		// Endpoint without a weight set implies it belongs to the local cluster
 		if meshEndpoint.Weight == 0 {
 			localLbEndpoints.LbEndpoints = append(localLbEndpoints.LbEndpoints, lbEpt)
+			log.Trace().Msgf("Adding local endpoint: cluster=%s, endpoint=%s", svc, meshEndpoint)
 			continue
 		}
 
@@ -78,6 +72,7 @@ func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoi
 			remoteLbEndpoints.Priority = uint32(meshEndpoint.Priority)
 		}
 		cla.Endpoints = append(cla.Endpoints, remoteLbEndpoints)
+		log.Trace().Msgf("Adding Endpoint: cluster=%s, endpoint=%s, weight=%d", svc, meshEndpoint, meshEndpoint.Weight)
 	}
 
 	return cla
