@@ -46,7 +46,7 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			// Install latest patch release
 			i.ChartPathOptions.RepoURL = "https://openservicemesh.github.io/osm"
-			i.Version = "0.9.2" // Include pre-releases
+			i.Version = "0.9.2"
 			i.Namespace = Td.OsmNamespace
 			i.Wait = true
 			i.ReleaseName = releaseName
