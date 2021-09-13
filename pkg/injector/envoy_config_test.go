@@ -256,7 +256,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
 				Image:           envoyImage,
-				ImagePullPolicy: corev1.PullAlways,
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
 					RunAsUser: func() *int64 {
 						uid := constants.EnvoyUID
@@ -381,7 +381,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
 				Image:           envoyImage,
-				ImagePullPolicy: corev1.PullAlways,
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
 					WindowsOptions: &corev1.WindowsSecurityContextOptions{
 						RunAsUserName: func() *string {
