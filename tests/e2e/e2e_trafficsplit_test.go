@@ -39,26 +39,27 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 	})
 
 func testTrafficSplit(appProtocol string, permissiveMode bool) {
-	const (
+	var (
 		// to name the header we will use to identify the server that replies
-		HTTPHeaderName = "podname"
+		HTTPHeaderName    = "podname"
+		clientAppBaseName = "client"
+		serverNamespace   = "server"
+		trafficSplitName  = "traffic-split"
+
+		// Scale number of client services/pods here
+		numberOfClientServices = 2
+		clientReplicaSet       = 5
+
+		// Scale number of server services/pods here
+		numberOfServerServices = 5
+		serverReplicaSet       = 2
+
+		clientServices = []string{}
+		serverServices = []string{}
+		namespaces     = []string{serverNamespace}
+
+		clientContainerName = "client-container"
 	)
-
-	clientAppBaseName := "client"
-	serverNamespace := "server"
-	trafficSplitName := "traffic-split"
-
-	// Scale number of client services/pods here
-	numberOfClientServices := 2
-	clientReplicaSet := 5
-
-	// Scale number of server services/pods here
-	numberOfServerServices := 5
-	serverReplicaSet := 2
-
-	var clientServices []string
-	var serverServices []string
-	var allNamespaces []string
 
 	for i := 0; i < numberOfClientServices; i++ {
 		clientServices = append(clientServices, fmt.Sprintf("%s%d", clientAppBaseName, i))
@@ -68,8 +69,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		serverServices = append(serverServices, fmt.Sprintf("%s%d", serverNamespace, i))
 	}
 
-	allNamespaces = append(allNamespaces, clientServices...)
-	allNamespaces = append(allNamespaces, serverNamespace) // 1 namespace for all server services (for the trafficsplit)
+	namespaces = append(namespaces, clientServices...) // 1 namespace for all server services (for the trafficsplit)
 
 	// Used across the test to wait for concurrent steps to finish
 	var wg sync.WaitGroup
@@ -79,21 +79,23 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
 		// Create NSs
-		Expect(Td.CreateMultipleNs(allNamespaces...)).To(Succeed())
-		Expect(Td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
+		Expect(Td.CreateMultipleNs(namespaces...)).To(Succeed())
+		Expect(Td.AddNsToMesh(true, namespaces...)).To(Succeed())
 
 		// Create server apps
 		for _, serverApp := range serverServices {
 			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
-					Name:         serverApp,
-					Namespace:    serverNamespace,
-					ReplicaCount: int32(serverReplicaSet),
-					Image:        "simonkowallik/httpbin",
-					Ports:        []int{DefaultUpstreamServicePort},
-					AppProtocol:  appProtocol,
-					Command:      HttpbinCmd,
-					OS:           Td.ClusterOS,
+					DeploymentName:     serverApp,
+					Namespace:          serverNamespace,
+					ServiceAccountName: serverApp,
+					ServiceName:        serverApp,
+					ReplicaCount:       int32(serverReplicaSet),
+					Image:              "simonkowallik/httpbin",
+					Ports:              []int{DefaultUpstreamServicePort},
+					AppProtocol:        appProtocol,
+					Command:            HttpbinCmd,
+					OS:                 Td.ClusterOS,
 				})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -130,14 +132,16 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		for _, clientApp := range clientServices {
 			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
-					Name:         clientApp,
-					Namespace:    clientApp,
-					ReplicaCount: int32(clientReplicaSet),
-					Command:      []string{"/bin/bash", "-c", "--"},
-					Args:         []string{"while true; do sleep 30; done;"},
-					Image:        "songrgg/alpine-debug",
-					Ports:        []int{DefaultUpstreamServicePort},
-					OS:           Td.ClusterOS,
+					DeploymentName:     clientApp,
+					Namespace:          clientApp,
+					ServiceAccountName: clientApp,
+					ContainerName:      clientContainerName,
+					ReplicaCount:       int32(clientReplicaSet),
+					Command:            []string{"/bin/bash", "-c", "--"},
+					Args:               []string{"while true; do sleep 30; done;"},
+					Image:              "songrgg/alpine-debug",
+					Ports:              []int{DefaultUpstreamServicePort},
+					OS:                 Td.ClusterOS,
 				})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -229,7 +233,8 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		By("Creating SMI TrafficSplit policy")
 		// Create traffic split service. Use simple Pod to create a simple service definition
 		_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
-			Name:        trafficSplitName,
+			PodName:     trafficSplitName,
+			ServiceName: trafficSplitName,
 			Namespace:   serverNamespace,
 			Ports:       []int{DefaultUpstreamServicePort},
 			AppProtocol: appProtocol,
@@ -280,7 +285,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 				requests.Sources = append(requests.Sources, HTTPRequestDef{
 					SourceNs:        ns,
 					SourcePod:       pod.Name,
-					SourceContainer: ns, // container_name == NS for this test
+					SourceContainer: clientContainerName,
 
 					// Targeting the trafficsplit FQDN
 					Destination: fmt.Sprintf("%s.%s:%d", trafficSplitName, serverNamespace, DefaultUpstreamServicePort),
@@ -341,7 +346,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 					requests.Sources = append(requests.Sources, HTTPRequestDef{
 						SourceNs:        pod.Namespace,
 						SourcePod:       pod.Name,
-						SourceContainer: pod.Namespace, // We generally code it like so for test purposes
+						SourceContainer: clientContainerName,
 
 						// direct traffic target against the specific server service in the server namespace
 						Destination: fmt.Sprintf("%s.%s:%d", svcNs, serverNamespace, DefaultUpstreamServicePort),

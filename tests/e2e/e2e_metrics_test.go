@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -20,9 +21,17 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 		Bucket: 6,
 	},
 	func() {
-		const sourceNs = "clientns"
-		const destNs = "serverns"
-		var ns []string = []string{sourceNs, destNs}
+		var (
+			sourceNs = "clientns"
+			destNs   = "serverns"
+
+			ns = []string{sourceNs, destNs}
+
+			clientName = framework.RandomNameWithPrefix("client")
+			serverName = framework.RandomNameWithPrefix("server")
+
+			clientContainerName = "client-container"
+		)
 
 		It("Generates metrics with the right labels and values", func() {
 			// Install OSM
@@ -51,19 +60,21 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 			// Get simple pod definitions for the HTTP server
 			svcAccDef, depDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
-					ReplicaCount: 1,
-					Name:         "server",
-					Namespace:    destNs,
-					Image:        "kennethreitz/httpbin",
-					Ports:        []int{DefaultUpstreamServicePort},
-					Command:      HttpbinCmd,
-					OS:           Td.ClusterOS,
+					ReplicaCount:       1,
+					DeploymentName:     serverName,
+					Namespace:          destNs,
+					ServiceAccountName: serverName,
+					ServiceName:        serverName,
+					Image:              "kennethreitz/httpbin",
+					Ports:              []int{DefaultUpstreamServicePort},
+					Command:            HttpbinCmd,
+					OS:                 Td.ClusterOS,
 				})
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			dstDep, err := Td.CreateDeployment(destNs, depDef)
+			_, err = Td.CreateDeployment(destNs, depDef)
 			Expect(err).NotTo(HaveOccurred())
 			dstSvc, err := Td.CreateService(destNs, svcDef)
 			Expect(err).NotTo(HaveOccurred())
@@ -73,14 +84,17 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 
 			// Get simple Pod definitions for the client
 			svcAccDef, depDef, svcDef, err = Td.SimpleDeploymentApp(SimpleDeploymentAppDef{
-				ReplicaCount: 1,
-				Name:         "client",
-				Namespace:    sourceNs,
-				Command:      []string{"/bin/bash", "-c", "--"},
-				Args:         []string{"while true; do sleep 30; done;"},
-				Image:        "songrgg/alpine-debug",
-				Ports:        []int{DefaultUpstreamServicePort},
-				OS:           Td.ClusterOS,
+				ReplicaCount:       1,
+				DeploymentName:     clientName,
+				Namespace:          sourceNs,
+				ServiceAccountName: clientName,
+				ServiceName:        clientName,
+				ContainerName:      clientContainerName,
+				Command:            []string{"/bin/bash", "-c", "--"},
+				Args:               []string{"while true; do sleep 30; done;"},
+				Image:              "songrgg/alpine-debug",
+				Ports:              []int{DefaultUpstreamServicePort},
+				OS:                 Td.ClusterOS,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -101,10 +115,10 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 					TrafficTargetName: "test-target",
 
 					SourceNamespace:      sourceNs,
-					SourceSVCAccountName: "client",
+					SourceSVCAccountName: clientName,
 
 					DestinationNamespace:      destNs,
-					DestinationSvcAccountName: "server",
+					DestinationSvcAccountName: serverName,
 				})
 
 			// SMI is formally deployed on destination NS
@@ -123,7 +137,7 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 					Td.HTTPRequest(HTTPRequestDef{
 						SourceNs:        srcPod.Namespace,
 						SourcePod:       srcPod.Name,
-						SourceContainer: "client",
+						SourceContainer: clientContainerName,
 
 						Destination: fmt.Sprintf("%s.%s:%d/status/200", dstSvc.Name, dstSvc.Namespace, DefaultUpstreamServicePort),
 					})
@@ -170,11 +184,11 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 					"destination_pod=%q,"+
 					"destination_kind=\"Deployment\"",
 				sourceNs,
-				srcDep.Name,
+				strings.ReplaceAll(srcDep.Name, "-", "_"), // proxy-wasm turns '-' into '_' for metric labels
 				strings.ReplaceAll(srcPod.Name, "-", "_"), // proxy-wasm turns '-' into '_' for metric labels
 				destNs,
-				dstDep.Name,
-				strings.ReplaceAll(dstPod.Name, "-", "_"),
+				strings.ReplaceAll(serverName, "-", "_"), // proxy-wasm turns '-' into '_' for metric labels
+				strings.ReplaceAll(dstPod.Name, "-", "_"), // proxy-wasm turns '-' into '_' for metric labels
 			)
 
 			metricsOK := func(query string) func() bool {

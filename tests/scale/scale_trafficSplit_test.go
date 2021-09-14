@@ -95,12 +95,13 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 				for _, serverApp := range serverServices {
 					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         serverApp,
-							Namespace:    serverNamespace,
-							ReplicaCount: int32(serverReplicaSet),
-							Image:        "simonkowallik/httpbin",
-							Ports:        []int{80},
-							OS:           Td.ClusterOS,
+							DeploymentName:     serverApp,
+							Namespace:          serverNamespace,
+							ServiceAccountName: serverApp,
+							ReplicaCount:       int32(serverReplicaSet),
+							Image:              "simonkowallik/httpbin",
+							Ports:              []int{80},
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -134,14 +135,15 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 				for _, clientApp := range clientServices {
 					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         clientApp,
-							Namespace:    clientApp,
-							ReplicaCount: int32(clientReplicaSet),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{80},
-							OS:           Td.ClusterOS,
+							DeploymentName:     clientApp,
+							Namespace:          clientApp,
+							ServiceAccountName: clientApp,
+							ReplicaCount:       int32(clientReplicaSet),
+							Command:            []string{"/bin/bash", "-c", "--"},
+							Args:               []string{"while true; do sleep 30; done;"},
+							Image:              "songrgg/alpine-debug",
+							Ports:              []int{80},
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -184,9 +186,9 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 					}
 				}
 
-				// Create traffic split service. We are just interested in the service def
+				// Create traffic split root service. We are just interested in the service def
 				_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      TrafficSplitPrefix,
+					PodName:   TrafficSplitPrefix,
 					Namespace: serverNamespace,
 					Ports:     []int{80},
 					OS:        Td.ClusterOS,
@@ -197,11 +199,11 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 				_, err = Td.CreateService(serverNamespace, trafficSplitService)
 				Expect(err).NotTo(HaveOccurred())
 
-				// Create Traffic split with all server processes as backends
+				// Create Traffic split resource with all server processes as backends
 				trafficSplit := TrafficSplitDef{
-					Name:                    TrafficSplitPrefix,
+					Name:                    trafficSplitService.Name,
 					Namespace:               serverNamespace,
-					TrafficSplitServiceName: TrafficSplitPrefix,
+					TrafficSplitServiceName: trafficSplitService.Name,
 					Backends:                []TrafficSplitBackend{},
 				}
 				assignment := 100 / len(serverServices) // Spread loadbalancing between backends
@@ -237,10 +239,10 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 						requests.Sources = append(requests.Sources, HTTPRequestDef{
 							SourceNs:        ns,
 							SourcePod:       pod.Name,
-							SourceContainer: ns, // container_name == NS for this test
+							SourceContainer: pod.Namespace,
 
 							// Targeting the trafficsplit FQDN
-							Destination: fmt.Sprintf("%s.%s", TrafficSplitPrefix, serverNamespace),
+							Destination: fmt.Sprintf("%s.%s", trafficSplitService.Name, serverNamespace),
 						})
 					}
 				}

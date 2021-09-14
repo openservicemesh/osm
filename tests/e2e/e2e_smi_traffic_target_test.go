@@ -13,6 +13,7 @@ import (
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -23,10 +24,12 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 	},
 	func() {
 		Context("SMI TrafficTarget", func() {
-			const sourceOne = "client-one"
-			const sourceTwo = "client-two"
-			const destName = "server"
-			var ns = []string{sourceOne, sourceTwo, destName}
+			var (
+				sourceOne = framework.RandomNameWithPrefix("client1")
+				sourceTwo = framework.RandomNameWithPrefix("client2")
+				destName  = framework.RandomNameWithPrefix("server")
+				ns        = []string{sourceOne, sourceTwo, destName}
+			)
 
 			It("Tests HTTP traffic for client pod -> server pod", func() {
 				// Install OSM
@@ -41,11 +44,12 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// Set up the destination HTTP server
 				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 					SimplePodAppDef{
-						Name:      destName,
-						Namespace: destName,
-						Image:     "kennethreitz/httpbin",
-						Ports:     []int{80},
-						OS:        Td.ClusterOS,
+						PodName:            destName,
+						Namespace:          destName,
+						ServiceAccountName: destName,
+						Image:              "kennethreitz/httpbin",
+						Ports:              []int{80},
+						OS:                 Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -58,12 +62,13 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 
 				// Set up the HTTP client that is allowed access to the destination
 				allowedSvcAccDef, allowedSrcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      sourceOne,
-					Namespace: sourceOne,
-					Command:   []string{"sleep", "365d"},
-					Image:     "curlimages/curl",
-					Ports:     []int{80},
-					OS:        Td.ClusterOS,
+					PodName:            sourceOne,
+					Namespace:          sourceOne,
+					ServiceAccountName: sourceOne,
+					Command:            []string{"sleep", "365d"},
+					Image:              "curlimages/curl",
+					Ports:              []int{80},
+					OS:                 Td.ClusterOS,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -74,12 +79,13 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 
 				// Set up the HTTP client that is denied access to the destination
 				deniedSvcAccDef, deniedSrcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      sourceTwo,
-					Namespace: sourceTwo,
-					Command:   []string{"sleep", "365d"},
-					Image:     "curlimages/curl",
-					Ports:     []int{80},
-					OS:        Td.ClusterOS,
+					PodName:            sourceTwo,
+					Namespace:          sourceTwo,
+					ServiceAccountName: sourceTwo,
+					Command:            []string{"sleep", "365d"},
+					Image:              "curlimages/curl",
+					Ports:              []int{80},
+					OS:                 Td.ClusterOS,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -103,7 +109,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				By("Creating SMI policies")
 				// Deploy policies to allow 'sourceOne' to access destination at HTTP path '/anything'
 				anythingPath := "/anything"
-				httpRGOne, trafficTargetOne := createPolicyForRoutePath(sourceOne, destName, anythingPath)
+				httpRGOne, trafficTargetOne := createPolicyForRoutePath(sourceOne, sourceOne, destName, destName, anythingPath)
 				_, err = Td.CreateHTTPRouteGroup(sourceOne, httpRGOne)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateTrafficTarget(sourceOne, trafficTargetOne)
@@ -113,7 +119,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// This is done so that 'sourceTwo' can access the destination server but not on
 				// path '/anything' which is used to demonstrate RBAC per route.
 				fooPath := "/foo"
-				httpRGTwo, trafficTargetTwo := createPolicyForRoutePath(sourceTwo, destName, fooPath)
+				httpRGTwo, trafficTargetTwo := createPolicyForRoutePath(sourceTwo, sourceTwo, destName, destName, fooPath)
 				_, err = Td.CreateHTTPRouteGroup(sourceTwo, httpRGTwo)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateTrafficTarget(sourceTwo, trafficTargetTwo)
@@ -195,7 +201,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 	})
 
 // createPolicyForRoutePath creates an HTTPRouteGroup and TrafficTarget policy for the given source, destination and HTTP path regex
-func createPolicyForRoutePath(source string, destination string, pathRegex string) (smiSpecs.HTTPRouteGroup, smiAccess.TrafficTarget) {
+func createPolicyForRoutePath(source, sourceNamespace, destination, destinationNamespace, pathRegex string) (smiSpecs.HTTPRouteGroup, smiAccess.TrafficTarget) {
 	routeGroupName := "test-route"
 	routeMatchName := "allowed-route"
 
@@ -223,13 +229,13 @@ func createPolicyForRoutePath(source string, destination string, pathRegex strin
 				{
 					Kind:      "ServiceAccount",
 					Name:      source,
-					Namespace: source,
+					Namespace: sourceNamespace,
 				},
 			},
 			Destination: smiAccess.IdentityBindingSubject{
 				Kind:      "ServiceAccount",
 				Name:      destination,
-				Namespace: destination,
+				Namespace: destinationNamespace,
 			},
 			Rules: []smiAccess.TrafficTargetRule{
 				{

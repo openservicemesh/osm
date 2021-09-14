@@ -37,14 +37,14 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 				// User app
 				svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 					SimpleDeploymentAppDef{
-						Name:         userService,
-						Namespace:    userService,
-						ReplicaCount: int32(userReplicaSet),
-						Command:      []string{"/bin/bash", "-c", "--"},
-						Args:         []string{"while true; do sleep 30; done;"},
-						Image:        "songrgg/alpine-debug",
-						Ports:        []int{80},
-						OS:           Td.ClusterOS,
+						DeploymentName: userService,
+						Namespace:      userService,
+						ReplicaCount:   int32(userReplicaSet),
+						Command:        []string{"/bin/bash", "-c", "--"},
+						Args:           []string{"while true; do sleep 30; done;"},
+						Image:          "songrgg/alpine-debug",
+						Ports:          []int{80},
+						OS:             Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
 

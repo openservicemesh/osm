@@ -32,26 +32,26 @@ var _ = OSMDescribe("Test traffic split where root service is same as backend se
 	})
 
 func testRecursiveTrafficSplit(appProtocol string) {
-	const (
+	var (
 		// to name the header we will use to identify the server that replies
 		HTTPHeaderName = "podname"
+
+		clientAppBaseName = "client"
+		serverNamespace   = "server-namespace"
+		trafficSplitName  = "server"
+
+		// Scale number of client services/pods here
+		numberOfClientServices = 1
+		clientReplicaSet       = 1
+
+		// Scale number of server services/pods here
+		numberOfServerServices = 1
+		serverReplicaSet       = 1
+
+		clientServices = []string{}
+		serverServices = []string{trafficSplitName}
+		allNamespaces  = []string{}
 	)
-
-	clientAppBaseName := "client"
-	serverNamespace := "server-namespace"
-	trafficSplitName := "server"
-
-	// Scale number of client services/pods here
-	numberOfClientServices := 1
-	clientReplicaSet := 1
-
-	// Scale number of server services/pods here
-	numberOfServerServices := 1
-	serverReplicaSet := 1
-
-	var clientServices []string
-	serverServices := []string{trafficSplitName}
-	var allNamespaces []string
 
 	for i := 0; i < numberOfClientServices; i++ {
 		clientServices = append(clientServices, fmt.Sprintf("%s%d", clientAppBaseName, i))
@@ -72,16 +72,18 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		Expect(Td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
 
 		// Create server app
-		svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
+		serverSvcAccDef, serverDeploymentDef, serverSvcDef, err := Td.SimpleDeploymentApp(
 			SimpleDeploymentAppDef{
-				Name:         trafficSplitName,
-				Namespace:    serverNamespace,
-				ReplicaCount: int32(serverReplicaSet),
-				Image:        "simonkowallik/httpbin",
-				Ports:        []int{DefaultUpstreamServicePort},
-				AppProtocol:  appProtocol,
-				Command:      HttpbinCmd,
-				OS:           Td.ClusterOS,
+				DeploymentName:     trafficSplitName,
+				Namespace:          serverNamespace,
+				ServiceAccountName: trafficSplitName, // 	TODO refactor
+				ServiceName:        trafficSplitName,
+				ReplicaCount:       int32(serverReplicaSet),
+				Image:              "simonkowallik/httpbin",
+				Ports:              []int{DefaultUpstreamServicePort},
+				AppProtocol:        appProtocol,
+				Command:            HttpbinCmd,
+				OS:                 Td.ClusterOS,
 			})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -89,7 +91,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		// This httpbin fork will pick certain env variable formats and reply the values as headers.
 		// We will expose pod name as one of these env variables, and will use it
 		// to identify the pod that replies to the request, and validate the test
-		deploymentDef.Spec.Template.Spec.Containers[0].Env = []v1.EnvVar{
+		serverDeploymentDef.Spec.Template.Spec.Containers[0].Env = []v1.EnvVar{
 			{
 				Name: fmt.Sprintf("XHTTPBIN_%s", HTTPHeaderName),
 				ValueFrom: &v1.EnvVarSource{
@@ -100,11 +102,11 @@ func testRecursiveTrafficSplit(appProtocol string) {
 			},
 		}
 
-		_, err = Td.CreateServiceAccount(serverNamespace, &svcAccDef)
+		_, err = Td.CreateServiceAccount(serverNamespace, &serverSvcAccDef)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
+		_, err = Td.CreateDeployment(serverNamespace, serverDeploymentDef)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreateService(serverNamespace, svcDef)
+		_, err = Td.CreateService(serverNamespace, serverSvcDef)
 		Expect(err).NotTo(HaveOccurred())
 
 		wg.Add(1)
@@ -118,14 +120,16 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		for _, clientApp := range clientServices {
 			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
-					Name:         clientApp,
-					Namespace:    clientApp,
-					ReplicaCount: int32(clientReplicaSet),
-					Command:      []string{"/bin/bash", "-c", "--"},
-					Args:         []string{"while true; do sleep 30; done;"},
-					Image:        "songrgg/alpine-debug",
-					Ports:        []int{DefaultUpstreamServicePort},
-					OS:           Td.ClusterOS,
+					DeploymentName:     clientApp,
+					ServiceAccountName: clientApp,
+					Namespace:          clientApp,
+					ContainerName:      clientApp,
+					ReplicaCount:       int32(clientReplicaSet),
+					Command:            []string{"/bin/bash", "-c", "--"},
+					Args:               []string{"while true; do sleep 30; done;"},
+					Image:              "songrgg/alpine-debug",
+					Ports:              []int{DefaultUpstreamServicePort},
+					OS:                 Td.ClusterOS,
 				})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -234,7 +238,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 				requests.Sources = append(requests.Sources, HTTPRequestDef{
 					SourceNs:        ns,
 					SourcePod:       pod.Name,
-					SourceContainer: ns, // container_name == NS for this test
+					SourceContainer: ns,
 
 					// Targeting the trafficsplit FQDN
 					Destination: fmt.Sprintf("%s.%s:%d", trafficSplitName, serverNamespace, DefaultUpstreamServicePort),

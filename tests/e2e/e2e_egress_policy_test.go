@@ -69,7 +69,7 @@ func testEgressPolicy(scenario testScenario) {
 
 		// Create simple pod definitions for the source
 		srcSvcAcc, srcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
-			Name:      sourceName,
+			PodName:   sourceName,
 			Namespace: sourceNs,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},

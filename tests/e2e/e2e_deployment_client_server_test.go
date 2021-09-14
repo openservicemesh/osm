@@ -29,13 +29,15 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 		var maxTestDuration = 150 * time.Second
 
 		Context("DeploymentsClientServer", func() {
-			const destApp = "server"
-			const sourceAppBaseName = "client"
-			var sourceNamespaces []string = []string{}
+			var (
+				destApp           = "server"
+				sourceAppBaseName = "client"
+				sourceNamespaces  = []string{}
 
-			// Total (numberOfClientApps x replicaSetPerApp) pods
-			numberOfClientServices := 5
-			replicaSetPerService := 5
+				// Total (numberOfClientApps x replicaSetPerApp) pods
+				numberOfClientServices = 5
+				replicaSetPerService   = 5
+			)
 
 			// Used across the test to wait for concurrent steps to finish
 			var wg sync.WaitGroup
@@ -62,13 +64,15 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				// Use a deployment with multiple replicaset at serverside
 				svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 					SimpleDeploymentAppDef{
-						Name:         "server",
-						Namespace:    destApp,
-						ReplicaCount: int32(replicaSetPerService),
-						Image:        "simonkowallik/httpbin",
-						Ports:        []int{DefaultUpstreamServicePort},
-						Command:      HttpbinCmd,
-						OS:           Td.ClusterOS,
+						DeploymentName:     destApp,
+						Namespace:          destApp,
+						ServiceName:        destApp,
+						ServiceAccountName: destApp,
+						ReplicaCount:       int32(replicaSetPerService),
+						Image:              "simonkowallik/httpbin",
+						Ports:              []int{DefaultUpstreamServicePort},
+						Command:            HttpbinCmd,
+						OS:                 Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -105,14 +109,17 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				for _, srcClient := range sourceNamespaces {
 					svcAccDef, deploymentDef, svcDef, err = Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         srcClient,
-							Namespace:    srcClient,
-							ReplicaCount: int32(replicaSetPerService),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
-							OS:           Td.ClusterOS,
+							DeploymentName:     srcClient,
+							Namespace:          srcClient,
+							ServiceAccountName: srcClient,
+							ServiceName:        srcClient,
+							ContainerName:      srcClient,
+							ReplicaCount:       int32(replicaSetPerService),
+							Command:            []string{"/bin/bash", "-c", "--"},
+							Args:               []string{"while true; do sleep 30; done;"},
+							Image:              "songrgg/alpine-debug",
+							Ports:              []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 

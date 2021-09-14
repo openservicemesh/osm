@@ -48,7 +48,7 @@ func testMultipleServicePorts() {
 		// Create an HTTP server that clients will send requests to.
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      serverName,
+				PodName:   serverName,
 				Namespace: serverName,
 				Image:     "kennethreitz/httpbin",
 				// To test multiple ports per service, an additional port 90 is exposed
@@ -85,7 +85,7 @@ func testMultipleServicePorts() {
 		clientToServerRequest := HTTPRequestDef{
 			SourceNs:        clientName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: clientName,
+			SourceContainer: srcPod.Name,
 			Destination:     fmt.Sprintf("%s.%s:%d", serverService.Name, serverService.Namespace, servicePort),
 		}
 

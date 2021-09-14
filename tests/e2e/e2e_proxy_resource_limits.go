@@ -96,7 +96,7 @@ func createSimpleApp(appName string, ns string) {
 	// Get simple pod definitions for the HTTP server
 	svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 		SimplePodAppDef{
-			Name:      appName,
+			PodName:   appName,
 			Namespace: ns,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},

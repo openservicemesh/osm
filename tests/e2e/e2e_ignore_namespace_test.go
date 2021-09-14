@@ -39,7 +39,7 @@ var _ = OSMDescribe("Ignore Namespaces",
 				// Get simple Pod definitions
 				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 					SimplePodAppDef{
-						Name:      "pod1",
+						PodName:   "pod1",
 						Namespace: ignoreNs,
 						Command:   []string{"/bin/bash", "-c", "--"},
 						Args:      []string{"while true; do sleep 30; done;"},

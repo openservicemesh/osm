@@ -50,7 +50,7 @@ func testTCPEgressTraffic() {
 		// Get simple pod definitions for the TCP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:        destName,
+				PodName:     destName,
 				Namespace:   destName,
 				Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
 				Command:     []string{"/tcp-echo-server"},
@@ -78,7 +78,7 @@ func testTCPEgressTraffic() {
 		clientToServer := TCPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			DestinationHost: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 			DestinationPort: destinationPort,

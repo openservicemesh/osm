@@ -30,17 +30,19 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				trafficSplitName  = "traffic-split"
 			)
 
-			// Scale number of client services/pods here
-			numberOfClientServices := 2
-			clientReplicaSet := 5
+			var (
+				// Scale number of client services/pods here
+				numberOfClientServices = 2
+				clientReplicaSet       = 5
 
-			// Scale number of server services/pods here
-			numberOfServerServices := 5
-			serverReplicaSet := 2
+				// Scale number of server services/pods here
+				numberOfServerServices = 5
+				serverReplicaSet       = 2
 
-			var clientServices []string
-			var serverServices []string
-			var allNamespaces []string
+				clientServices = []string{}
+				serverServices = []string{}
+				allNamespaces  = []string{serverNamespace} // 1 namespace for all server services (for the trafficsplit)
+			)
 
 			for i := 0; i < numberOfClientServices; i++ {
 				clientServices = append(clientServices, fmt.Sprintf("%s%d", clientAppBaseName, i))
@@ -51,7 +53,6 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 			}
 
 			allNamespaces = append(allNamespaces, clientServices...)
-			allNamespaces = append(allNamespaces, serverNamespace) // 1 namespace for all server services (for the trafficsplit)
 
 			// Used across the test to wait for concurrent steps to finish
 			var wg sync.WaitGroup
@@ -60,7 +61,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				// Install OSM
 				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
-				// Create NSs
+				// Create namespaces
 				Expect(Td.CreateMultipleNs(allNamespaces...)).To(Succeed())
 				Expect(Td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
 
@@ -76,13 +77,15 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				for _, serverApp := range serverServices {
 					_, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         serverApp,
-							Namespace:    serverNamespace,
-							ReplicaCount: int32(serverReplicaSet),
-							Image:        "simonkowallik/httpbin",
-							Ports:        []int{DefaultUpstreamServicePort},
-							Command:      HttpbinCmd,
-							OS:           Td.ClusterOS,
+							DeploymentName:     serverApp,
+							Namespace:          serverNamespace,
+							ServiceAccountName: svcAcc.Name,
+							ServiceName:        serverApp,
+							ReplicaCount:       int32(serverReplicaSet),
+							Image:              "simonkowallik/httpbin",
+							Ports:              []int{DefaultUpstreamServicePort},
+							Command:            HttpbinCmd,
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -101,8 +104,6 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 						},
 					}
 
-					deploymentDef.Spec.Template.Spec.ServiceAccountName = svcAcc.Name
-
 					_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = Td.CreateService(serverNamespace, svcDef)
@@ -118,14 +119,16 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				for _, clientApp := range clientServices {
 					svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							Name:         clientApp,
-							Namespace:    clientApp,
-							ReplicaCount: int32(clientReplicaSet),
-							Command:      []string{"/bin/bash", "-c", "--"},
-							Args:         []string{"while true; do sleep 30; done;"},
-							Image:        "songrgg/alpine-debug",
-							Ports:        []int{DefaultUpstreamServicePort},
-							OS:           Td.ClusterOS,
+							DeploymentName:     clientApp,
+							Namespace:          clientApp,
+							ServiceAccountName: clientApp,
+							ContainerName:      clientApp,
+							ReplicaCount:       int32(clientReplicaSet),
+							Command:            []string{"/bin/bash", "-c", "--"},
+							Args:               []string{"while true; do sleep 30; done;"},
+							Image:              "songrgg/alpine-debug",
+							Ports:              []int{DefaultUpstreamServicePort},
+							OS:                 Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -167,10 +170,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 				// Create traffic split service. Use simple Pod to create a simple service definition
 				_, _, trafficSplitService, err := Td.SimplePodApp(SimplePodAppDef{
-					Name:      trafficSplitName,
-					Namespace: serverNamespace,
-					Ports:     []int{DefaultUpstreamServicePort},
-					OS:        Td.ClusterOS,
+					PodName:     trafficSplitName,
+					ServiceName: trafficSplitName,
+					Namespace:   serverNamespace,
+					Ports:       []int{DefaultUpstreamServicePort},
+					OS:          Td.ClusterOS,
 				})
 				Expect(err).NotTo(HaveOccurred())
 

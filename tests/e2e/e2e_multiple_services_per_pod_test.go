@@ -46,7 +46,7 @@ func testMultipleServicePerPod() {
 		// Create an HTTP server that clients will send requests to
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -70,7 +70,7 @@ func testMultipleServicePerPod() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(podDef.Name, 90*time.Second, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, false /* no service for client */)
 
@@ -81,11 +81,11 @@ func testMultipleServicePerPod() {
 				RouteGroupName:    "routes",
 				TrafficTargetName: "test-target",
 
-				SourceNamespace:      sourceName,
-				SourceSVCAccountName: sourceName,
+				SourceNamespace:      srcPod.Namespace,
+				SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
 				DestinationNamespace:      destName,
-				DestinationSvcAccountName: destName,
+				DestinationSvcAccountName: svcAccDef.Name,
 			})
 
 		// Configs have to be put into a monitored NS
@@ -98,7 +98,7 @@ func testMultipleServicePerPod() {
 		clientToFirstService := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", firstSvc.Name, firstSvc.Namespace),
 		}
@@ -124,7 +124,7 @@ func testMultipleServicePerPod() {
 		clientToSecondService := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", secondSvc.Name, secondSvc.Namespace),
 		}

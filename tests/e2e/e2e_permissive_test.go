@@ -56,7 +56,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 		// Get simple pod definitions for the HTTP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      "server",
+				PodName:   "server",
 				Namespace: destNs,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -75,7 +75,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 
 		// Get simple Pod definitions for the client
 		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
-			Name:      "client",
+			PodName:   "client",
 			Namespace: sourceNs,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},
@@ -107,7 +107,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 
 		// Get simple Pod definitions for the non mesh client
 		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
-			Name:      "ext-client",
+			PodName:   "ext-client",
 			Namespace: extSourceNs,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},

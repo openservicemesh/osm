@@ -47,12 +47,13 @@ func testSecureGRPCTraffic() {
 		// Get simple pod definitions for the gRPC server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:        destName,
-				Namespace:   destName,
-				Image:       "moul/grpcbin",
-				Ports:       []int{grpcbinSecurePort},
-				AppProtocol: "tcp",
-				OS:          Td.ClusterOS,
+				PodName:            destName,
+				Namespace:          destName,
+				ServiceAccountName: destName,
+				Image:              "moul/grpcbin",
+				Ports:              []int{grpcbinSecurePort},
+				AppProtocol:        "tcp",
+				OS:                 Td.ClusterOS,
 			})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -79,7 +80,7 @@ func testSecureGRPCTraffic() {
 				TrafficTargetName: trafficTargetName,
 
 				SourceNamespace:      sourceName,
-				SourceSVCAccountName: sourceName,
+				SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
 				DestinationNamespace:      destName,
 				DestinationSvcAccountName: destName,
@@ -95,7 +96,7 @@ func testSecureGRPCTraffic() {
 		clientToServer := GRPCRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, grpcbinSecurePort),
 

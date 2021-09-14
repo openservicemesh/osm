@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -22,9 +23,11 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server before 
 	})
 
 func testHTTPTrafficWithControllerRestart() {
-	const sourceName = "client"
-	const destName = "server"
-	var ns = []string{sourceName, destName}
+	var (
+		sourceName = framework.RandomNameWithPrefix("client")
+		destName   = framework.RandomNameWithPrefix("server")
+		ns         = []string{sourceName, destName}
+	)
 
 	It("Tests HTTP traffic for client pod -> server pod", func() {
 		// Install OSM
@@ -39,7 +42,7 @@ func testHTTPTrafficWithControllerRestart() {
 		// Get simple pod definitions for the HTTP server
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -67,10 +70,10 @@ func testHTTPTrafficWithControllerRestart() {
 				TrafficTargetName: "test-target",
 
 				SourceNamespace:      sourceName,
-				SourceSVCAccountName: sourceName,
+				SourceSVCAccountName: srcPod.Spec.ServiceAccountName,
 
 				DestinationNamespace:      destName,
-				DestinationSvcAccountName: destName,
+				DestinationSvcAccountName: svcAccDef.Name,
 			})
 
 		// Configs have to be put into a monitored NS
@@ -83,7 +86,7 @@ func testHTTPTrafficWithControllerRestart() {
 		clientToServer := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 		}

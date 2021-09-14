@@ -47,7 +47,7 @@ func testGlobalPortExclusion() {
 		// Set up the destination HTTP server. It is not part of the mesh
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -78,7 +78,7 @@ func testGlobalPortExclusion() {
 		clientToServer := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 		}
@@ -125,7 +125,7 @@ func testPodLevelPortExclusion() {
 		// Set up the destination HTTP server. It is not part of the mesh
 		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 			SimplePodAppDef{
-				Name:      destName,
+				PodName:   destName,
 				Namespace: destName,
 				Image:     "kennethreitz/httpbin",
 				Ports:     []int{80},
@@ -145,7 +145,7 @@ func testPodLevelPortExclusion() {
 
 		// Set up the source curl client. It will be a part of the mesh
 		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
-			Name:      sourceName,
+			PodName:   sourceName,
 			Namespace: sourceName,
 			Command:   []string{"sleep", "365d"},
 			Image:     "curlimages/curl",
@@ -174,7 +174,7 @@ func testPodLevelPortExclusion() {
 		clientToServer := HTTPRequestDef{
 			SourceNs:        sourceName,
 			SourcePod:       srcPod.Name,
-			SourceContainer: sourceName,
+			SourceContainer: srcPod.Name,
 
 			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 		}

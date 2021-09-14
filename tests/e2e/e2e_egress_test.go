@@ -71,7 +71,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 						result := Td.HTTPRequest(HTTPRequestDef{
 							SourceNs:        srcPod.Namespace,
 							SourcePod:       srcPod.Name,
-							SourceContainer: "client",
+							SourceContainer: srcPod.Name,
 
 							Destination: url,
 						})
@@ -96,7 +96,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 						result := Td.HTTPRequest(HTTPRequestDef{
 							SourceNs:        srcPod.Namespace,
 							SourcePod:       srcPod.Name,
-							SourceContainer: "client",
+							SourceContainer: srcPod.Name,
 
 							Destination: url,
 						})
