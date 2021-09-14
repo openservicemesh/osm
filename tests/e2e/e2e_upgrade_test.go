@@ -44,13 +44,9 @@ var _ = OSMDescribe("Upgrade from latest",
 			const releaseName = "osm"
 			i := action.NewInstall(helmCfg)
 
-			// Latest version excluding pre-releases used by default. Using the
-			// latest assumes we aren't maintaining multiple release branches
-			// at once. e.g. if a patch is cut for both v0.5.0 and v0.6.0, we
-			// wouldn't want to test "upgrading" backwards from v0.6.0 to
-			// v0.5.1.
+			// Install latest patch release
 			i.ChartPathOptions.RepoURL = "https://openservicemesh.github.io/osm"
-			i.Version = ">0.0.0-0" // Include pre-releases
+			i.Version = "0.9.2"
 			i.Namespace = Td.OsmNamespace
 			i.Wait = true
 			i.ReleaseName = releaseName
