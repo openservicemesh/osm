@@ -26,7 +26,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
   "logLevel": "error",
   "maxDataPlaneConnections": 0,
   "envoyImage": "envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd",
-  "initContainerImage": "openservicemesh/init:v0.9.2",
+  "initContainerImage": "openservicemesh/init:latest-main",
   "configResyncInterval": "2s"
 },
 "traffic": {

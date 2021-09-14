@@ -33,7 +33,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: init-osm-bootstrap
-          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-crds:{{ .Values.OpenServiceMesh.image.tag }}"
+          image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           args:
           - apply
@@ -41,7 +41,7 @@ spec:
           - /osm-crds
       containers:
         - name: osm-bootstrap
-          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-bootstrap:{{ .Values.OpenServiceMesh.image.tag }}"
+          image: "{{ include "osmBootstrap.image" . }}"
           imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           ports:
             - name: "tls"

@@ -215,7 +215,8 @@
                     "required": [
                         "registry",
                         "pullPolicy",
-                        "tag"
+                        "tag",
+                        "digest"
                     ],
                     "properties": {
                         "registry": {
@@ -245,6 +246,51 @@
                             "examples": [
                                 "v0.4.2"
                             ]
+                        },
+                        "digest": {
+                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest",
+                            "type": "object",
+                            "title": "Default image digests",
+                            "description": "Default image digests for control plane.",
+                            "required": [
+                                "osmController",
+                                "osmInjector",
+                                "osmSidecarInit",
+                                "osmCRDs",
+                                "osmBootstrap"
+                            ],
+                            "properties": {
+                                "osmController": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmController",
+                                    "type": "string",
+                                    "title": "osm-controller's image digest",
+                                    "description": "osm-controller container's image digest."
+                                },
+                                "osmInjector": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmInjector",
+                                    "type": "string",
+                                    "title": "osm-injector's image digest",
+                                    "description": "osm-injector container's image digest."
+                                },
+                                "osmSidecarInit": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmSidecarInit",
+                                    "type": "string",
+                                    "title": "osm-osmSidecarInit's image digest",
+                                    "description": "osm-osmSidecarInit container's image digest."
+                                },
+                                "osmCRDs": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmCRDs",
+                                    "type": "string",
+                                    "title": "osm-crds' image digest",
+                                    "description": "osm-crds container's image digest."
+                                },
+                                "osmBootstrap": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmBootstrap",
+                                    "type": "string",
+                                    "title": "osm-boostrap's image digest",
+                                    "description": "osm-bootstrap container's image digest."
+                                }
+                            }
                         }
                     },
                     "additionalProperties": false

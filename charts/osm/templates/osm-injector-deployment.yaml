@@ -46,7 +46,7 @@ spec:
             done
       containers:
         - name: osm-injector
-          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-injector:{{ .Values.OpenServiceMesh.image.tag }}"
+          image: "{{ include "osmInjector.image" . }}"
           imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           ports:
             - name: "sidecar-inject"
