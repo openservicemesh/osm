@@ -294,8 +294,6 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyReconnectCount,
 		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
 		metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount,
-		metricsstore.DefaultMetricsStore.CertIssuedCount,
-		metricsstore.DefaultMetricsStore.CertIssuedTime,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 	)
 }
