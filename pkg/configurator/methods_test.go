@@ -248,15 +248,15 @@ func TestCreateUpdateConfig(t *testing.T) {
 			name:                  "GetInitContainerImage",
 			initialMeshConfigData: &v1alpha1.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("openservicemesh/init:v0.10.0-rc.1", cfg.GetInitContainerImage())
+				assert.Equal("openservicemesh/init:v0.10.0-rc.2", cfg.GetInitContainerImage())
 			},
 			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
 				Sidecar: v1alpha1.SidecarSpec{
-					InitContainerImage: "openservicemesh/init:v0.10.0-rc.1",
+					InitContainerImage: "openservicemesh/init:v0.10.0-rc.2",
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("openservicemesh/init:v0.10.0-rc.1", cfg.GetInitContainerImage())
+				assert.Equal("openservicemesh/init:v0.10.0-rc.2", cfg.GetInitContainerImage())
 			},
 		},
 		{
