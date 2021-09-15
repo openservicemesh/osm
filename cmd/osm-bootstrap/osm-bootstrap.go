@@ -150,6 +150,11 @@ func main() {
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start the default metrics store
+	metricsstore.DefaultMetricsStore.Start(
+		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+	)
+
 	// Initialize Configurator to retrieve mesh specific config
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
 

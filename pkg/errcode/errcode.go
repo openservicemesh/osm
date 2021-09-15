@@ -39,6 +39,9 @@ const (
 
 	// ErrStartingIngressClient indicates the Ingress client failed to start
 	ErrStartingIngressClient
+
+	// ErrStartingReconciler indicates the reconciler client failed to start
+	ErrStartingReconciler
 )
 
 // Range 2000-2500 is reserved for errors related to traffic policies
@@ -333,6 +336,21 @@ const (
 	ErrParsingValidatingWebhookCert
 )
 
+// Range 7000-7100 reserved for errors related to OSM Reconciler
+const (
+	// ErrUpdatingCRD indicates an error occurred when OSM Reconciler failed to update a modified CRD
+	ErrUpdatingCRD ErrCode = iota + 7000
+
+	// ErrAddingDeletedCRD indicates an error occurred when OSM Reconciler failed to add a deleted CRD
+	ErrAddingDeletedCRD
+
+	// ErrUpdatingMutatingWebhook indicates an error occurred when OSM Reconciler failed to update the mutating webhook
+	ErrUpdatingMutatingWebhook
+
+	// ErrAddingDeletedMutatingWebhook indicates an error occurred when OSM Reconciler failed to add a deleted mutating webhook
+	ErrAddingDeletedMutatingWebhook
+)
+
 // String returns the error code as a string, ex. E1000
 func (e ErrCode) String() string {
 	return fmt.Sprintf("E%d", e)
@@ -387,6 +405,11 @@ reconciler failed to start.
 
 	ErrStartingIngressClient: `
 The Ingress client created by the osm-controller to monitor Ingress resources
+failed to start.
+`,
+
+	ErrStartingReconciler: `
+The Reconciler client to monitor updates and deletes to OSM's CRDs and mutating webhook
 failed to start.
 `,
 
@@ -817,5 +840,21 @@ The ValidatingWebhookConfiguration could not be patched with the CA Bundle.
 	ErrParsingValidatingWebhookCert: `
 The validating webhook certificate could not be parsed.
 The validating webhook HTTP server was not started.
+`,
+
+	ErrUpdatingCRD: `
+An error occurred while updating the CRD to its original state.
+`,
+
+	ErrAddingDeletedCRD: `
+An error occurred while adding back a deleted CRD.
+`,
+
+	ErrUpdatingMutatingWebhook: `
+An error occurred while updating the mutating webhook to its original state.
+`,
+
+	ErrAddingDeletedMutatingWebhook: `
+An error occurred while adding back the deleted mutating webhook.
 `,
 }

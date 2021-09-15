@@ -10,21 +10,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/injector"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
-
-var log = logger.New("reconciler")
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 // TODO: Deprecate as a part of #4065
 type MutatingWebhookConfigurationReconciler struct {
-	client.Client
+	runtimeclient.Client
 	KubeClient   *kubernetes.Clientset
 	Scheme       *runtime.Scheme
 	OsmWebhook   string
@@ -39,7 +36,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 		if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 			log.Error().Err(err).Msgf("Error reading object %s ", req.NamespacedName)
-			return ctrl.Result{}, client.IgnoreNotFound(err)
+			return ctrl.Result{}, runtimeclient.IgnoreNotFound(err)
 		}
 
 		var shouldUpdate bool
@@ -68,7 +65,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 			// TODO(#3962): metric might not be scraped before process restart resulting from this error
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhookCABundle)).
 				Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
-			return ctrl.Result{}, client.IgnoreNotFound(err)
+			return ctrl.Result{}, runtimeclient.IgnoreNotFound(err)
 		}
 
 		log.Debug().Msgf("Successfully updated CA Bundle for MutatingWebhookConfiguration %s ", req.Name)

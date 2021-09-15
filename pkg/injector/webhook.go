@@ -43,8 +43,8 @@ const (
 	// webhookTimeoutStr is the url variable name for timeout
 	webhookMutateTimeoutKey = "timeout"
 
-	// injectorServiceName is the name of the OSM sidecar injector service
-	injectorServiceName = "osm-injector"
+	// InjectorServiceName is the name of the OSM sidecar injector service
+	InjectorServiceName = "osm-injector"
 
 	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
 	outboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
@@ -59,7 +59,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the MutatingWebhookConfiguration
 	webhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", injectorServiceName, osmNamespace)),
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", InjectorServiceName, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
