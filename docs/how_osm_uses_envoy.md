@@ -1,6 +1,4 @@
-# Life of an OSM Request
-
-## A bit on Envoy
+# How OSM Uses Envoy
 
 OSM heavily uses envoy for proxying requests, applying mTLS, and exporting statistics. Envoy itself has 5 main
 configuration mechanisms for request manipulation:
@@ -11,7 +9,7 @@ configuration mechanisms for request manipulation:
 * ClusterConfigs
 * SecretConfigs
 
-### Listeners
+## Listeners
 
 Envoy is able to intercept all inbound and outbound traffic through [IPtables redirection](./iptables_redirection.md)
 
@@ -34,7 +32,7 @@ address from a syscall `getsockopt` with the option `SO_ORIGINAL_DST` that gets 
 the socket (prior to the IP table redirect). Otherwise, the IP used in the filter chain match would be the the
 redirected IP referencing the sidecar itself.
 
-#### Example flow
+### Example flow
 
 The flow of a request from `pod-1` backed by `service-a` to `service-b` is as follows:
 
@@ -100,7 +98,7 @@ Below is a significantly paired down Listener configuration, which depicts the r
 ```
 
 
-### Routes
+## Routes
 
 The next step is the RoutesConfig. The RoutesConfig is comprised of a series of "virtual hosts", one for each service.
 When the route config is applied to a request, it will iterate over the list of virtual hosts, looking for a match. A
@@ -209,7 +207,7 @@ Below is a significantly paired down Route configuration, which depicts the rele
 
 ```
 
-### Clusters
+## Clusters
 
 With a cluster chosen from the routes above, Envoy can now apply the Cluster Configuration. The cluster configuration
 is relatively simple, which picks the server and client certs for mTLS, the SNI field for routing TLS, and the endpoints
@@ -262,7 +260,7 @@ from the endpoints discovery service. An Envoy cluster is the closest concept to
 NOTE: Envoy heavily uses these mapping concepts, typically based on cluster name, to match from one entity to another,
 to allow for reuse. ie: the `rds-outbound` mapping above.
 
-### Endpoints
+## Endpoints
 
 The final step of the outbound flow, Envoy matches the set of endpoints based on the cluster_name, or the service_name
 field set above, and routes to one of the available endpoints. For OSM, the endpoints will contain the ip + port for
