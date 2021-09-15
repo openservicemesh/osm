@@ -8,7 +8,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -53,11 +52,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
-	if log.GetLevel() <= zerolog.DebugLevel {
-		// If log level is Debug or Trace
-		return fmt.Sprintf("Proxy: [Serial: %s], [Pod metadata: %s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
-	}
-	return fmt.Sprintf("Proxy: [Serial: %s]", p.xDSCertificateSerialNumber)
+	return fmt.Sprintf("Proxy: [Serial: %s], [Pod metadata: %s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
