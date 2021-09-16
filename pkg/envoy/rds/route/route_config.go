@@ -8,6 +8,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -225,6 +226,9 @@ func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, meth
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: buildWeightedCluster(weightedClusters),
 				},
+				// Disable default 15s timeout. This otherwise results in requests that take
+				// longer than 15s to timeout, e.g. large file transfers.
+				Timeout: &duration.Duration{Seconds: 0},
 				RetryPolicy: &xds_route.RetryPolicy{
 					RetryOn:       retryPolicy.RetryOn,
 					NumRetries:    retryPolicy.NumRetries,
