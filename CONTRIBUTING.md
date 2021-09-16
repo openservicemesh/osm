@@ -1,7 +1,18 @@
 # Contributing Guidelines
+
 The OSM project accepts contributions via GitHub pull requests. This document outlines the requirements for contributing to this project.
 
-## Pull request workflow
+## Table of Contents
+
+- [Pull Request Workflow](#pull-request-workflow)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
+- [Issues](#issues)
+- [Milestones](#milestones)
+- [Semantic Versioning](#semantic-versioning)
+- [Attribution](#attribution)
+
+## Pull Request Workflow
 
 The following sections describe how to contribute code by opening a pull request.
 
@@ -11,12 +22,15 @@ The following sections describe how to contribute code by opening a pull request
 1. Click the `Fork` button.
 
 ### 2. Clone the new fork to your workstation
+
 Set `GITHUB_USERNAME` to match your Github username:
-```
+
+```sh
 export GITHUB_USERNAME=<github username>
 ```
 
 Clone and set up your fork:
+
 ```sh
 git clone git@github.com:$GITHUB_USERNAME/osm.git
 
@@ -33,6 +47,7 @@ git remote -v
 ### 3. Git branch
 
 Get your local `main` branch up to date with upstream's `main` branch:
+
 ```sh
 git fetch upstream
 git checkout main
@@ -40,6 +55,7 @@ git rebase upstream/main
 ```
 
 Create a local branch from `main` for your development:
+
 ```sh
 # While on the main branch
 git checkout -b <branch name>
@@ -47,6 +63,7 @@ git checkout -b <branch name>
 ```
 
 Keep your branch up to date during development:
+
 ```sh
 git fetch upstream
 git rebase upstream/main
@@ -55,7 +72,9 @@ git rebase upstream/main
 ```
 
 ### 4. Commit
+
 Make code changes on the `feature` branch and commit them with your signature
+
 ```sh
 git commit -s
 ```
@@ -65,12 +84,15 @@ Follow the [commit style guidelines](#commit-style-guideline).
 Make sure to squash your commits before opening a pull request. This is preferred so that your pull request can be merged as is without requesting to be squashed before merge if possible.
 
 ### 5. Push
+
 Push your branch to your remote fork:
+
 ```sh
 git push -f <remote name> <branch name>
 ```
 
 ### 6. Open a pull request
+
 1. Visit your fork at `https://github.com/$GITHUB_USERNAME/osm`.
 1. Open a pull request from your `feature` branch using the `Compare & Pull Request` button.
 1. Fill the pull request template and provide enough description so that it can be reviewed.
@@ -78,10 +100,13 @@ git push -f <remote name> <branch name>
 If your pull request is not ready to be reviewed, open it as a draft.
 
 #### Get code reviewed
+
 Your pull request will be reviewed by the maintainers to ensure correctness. Reviewers might approve the pull request or suggest improvements to make before the changes can be committed.
 
 #### Squash commits
+
 Address review comments, squash all commits in the pull request into a single commit and get your branch up to date with upstream's `main` branch before pushing to your remote.
+
 ```sh
 git fetch upstream
 git rebase upstream/main
@@ -90,6 +115,7 @@ git push -f
 ```
 
 ### Merging pull requests
+
 Pull requests by default must be merged by a core maintainer.
 Maintainers can add the `automerge` or `autorebase` label to a pull request, additional details [here](docs/automerge.md).
 
@@ -104,8 +130,10 @@ Pull requests will be merged based on the following criteria:
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
 
 ### Commit Style Guideline
+
 We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
-```
+
+```vim
 feat(scripts/test-cluster): add a cluster test command
 
 Adds test experience where there was none before
@@ -113,7 +141,8 @@ and resolves #1213243.
 ```
 
 This is a more formal template:
-```
+
+```vim
 {type}({scope}): {subject}
 <BLANK LINE>
 {body}
@@ -128,7 +157,8 @@ Just like the `{subject}`, the message `{body}` needs to be in the present tense
 Any line of the commit message cannot be longer than 72 characters, with the subject line limited to 50 characters. This allows the message to be easier to read on GitHub as well as in various git tools.
 
 The allowed types for `{type}` are as follows:
-```
+
+```text
 feat -> feature
 fix -> bug fix
 docs -> documentation
@@ -145,7 +175,7 @@ signed. Your signature certifies that you wrote the patch or otherwise have the 
 the material. The rules are pretty simple, if you can certify the below (from
 [developercertificate.org](https://developercertificate.org/)):
 
-```
+```properties
 Developer Certificate of Origin
 Version 1.1
 
@@ -186,7 +216,10 @@ By making a contribution to this project, I certify that:
 
 Then you just add a line to every git commit message:
 
+```vi
+
     Signed-off-by: Joe Smith <joe.smith@example.com>
+```
 
 Use your real name (sorry, no pseudonyms or anonymous contributions.)
 
@@ -196,7 +229,7 @@ with `git commit -s`.
 Note: If your git config information is set properly then viewing the `git log` information for your
  commit will look something like this:
 
-```
+```vi
 Author: Joe Smith <joe.smith@example.com>
 Date:   Thu Feb 2 11:41:15 2018 -0800
 
@@ -208,7 +241,8 @@ Date:   Thu Feb 2 11:41:15 2018 -0800
 Notice the `Author` and `Signed-off-by` lines match. If they don't your PR will be rejected by the
 automated DCO check.
 
-## Contributing Documentation
+## Documentation
+
 OSM's primary documentation is made available at [https://docs.openservicemesh.io/](https://docs.openservicemesh.io/). Any documentation content that needs to be visible on the website must be created in the [`osm-docs`](https://github.com/openservicemesh/osm-docs) repository. Refer to the [OSM documentation guide](https://github.com/openservicemesh/osm-docs/blob/main/README.md) for more details.
 
 Documentation that is primarily intended for use with this code repo (instead of as a website) can be found in [docs/]((docs/).
@@ -216,13 +250,21 @@ Documentation that is primarily intended for use with this code repo (instead of
 Refer to the [custom API reference generation guide](/docs/apidocs/README.md) to document custom APIs.
 
 ## Roadmap
+
 We use [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
 
 ## Issues
+
 If a bug is found, need clarification, or want to propose a feature, submit an issue using [GitHub issues](https://github.com/openservicemesh/osm/issues).
 
 ## Milestones
+
 We use [GitHub Milestones] to track progress of releases. A milestone contains a set of GitHub issues we've agreed to complete for the release. A milestone will be given a semantic version and a soft `due date`. We will cut a [GitHub release](https://github.com/openservicemesh/osm/releases) once all issues tagged in the milestone are closed or moved to the next milestone.
 
 ## Semantic Versioning
+
 This project's releases will follow [semantic versioning](https://semver.org/) for labeling releases to maintain backwards compatibility. Features and functionality may be added in major (x.0.0) and minor (0.x.0) releases. Bug fixes may be added in patch releases (0.0.x). We will follow semantic versioning to guarantee features, flags, functionality, public APIs will be backwards compatible as the versioning scheme suggests.
+
+## Attribution
+
+Please properly attribute any code that is copied or inspired by another project to the author(s) of the work. Read the license of the original project to understand how to properly attribute work from that project and include this in your pull request.
