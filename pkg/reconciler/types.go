@@ -15,8 +15,8 @@ import (
 var log = logger.New("reconciler")
 
 const (
-	// crdInformerKey lookup identifier
-	crdInformerKey k8s.InformerKey = "CRDInformerKey"
+	// CrdInformerKey lookup identifier
+	CrdInformerKey k8s.InformerKey = "CRDInformerKey"
 
 	// mutatingWebhookInformerKey lookup identifier
 	mutatingWebhookInformerKey k8s.InformerKey = "MutatingWebhookConfigInformerKey"

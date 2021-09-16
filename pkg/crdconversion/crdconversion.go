@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -52,7 +53,7 @@ var crdConversionWebhookConfiguration = map[string]string{
 var conversionReviewVersions = []string{"v1beta1", "v1"}
 
 // NewConversionWebhook starts a new web server handling requests from the CRD's
-func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager certificate.Manager, osmNamespace string, stop <-chan struct{}) error {
+func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager certificate.Manager, osmNamespace string, enableReconciler bool, stop <-chan struct{}) error {
 	// This is a certificate issued for the crd-converter webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ConversionWebhook on the CRD's
@@ -78,7 +79,7 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 	// Start the ConversionWebhook web server
 	go crdWh.run(stop)
 
-	if err = patchCrdsWithConversionWehook(crdConversionWebhookHandlerCert, crdClient, osmNamespace); err != nil {
+	if err = patchCrds(crdConversionWebhookHandlerCert, crdClient, osmNamespace, enableReconciler); err != nil {
 		return errors.Errorf("Error patching crds with conversion webhook %v", err)
 	}
 
@@ -163,9 +164,9 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func patchCrdsWithConversionWehook(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string) error {
+func patchCrds(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
 	for crdName, crdConversionPath := range crdConversionWebhookConfiguration {
-		if err := updateCrdConversionWebhookConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath); err != nil {
+		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
 			return err
 		}
@@ -173,8 +174,8 @@ func patchCrdsWithConversionWehook(cert certificate.Certificater, crdClient apic
 	return nil
 }
 
-// updateCrdConversionWebhookConfiguration updates the Conversion section of the CRD that needs to be updated.
-func updateCrdConversionWebhookConfiguration(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string) error {
+// updateCrdConfiguration updates the Conversion section of the CRD and adds a reconcile label if OSM's reconciler is enabled.
+func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
 	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -193,6 +194,15 @@ func updateCrdConversionWebhookConfiguration(cert certificate.Certificater, crdC
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},
+	}
+
+	if enableReconciler {
+		existingLabels := crd.Labels
+		if existingLabels == nil {
+			existingLabels = map[string]string{}
+		}
+		existingLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
+		crd.Labels = existingLabels
 	}
 
 	if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {

@@ -32,12 +32,13 @@ jobs:
         run: |
           make build-osm
           go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 180m -deployOnOpenShift=true
-      - name: Run Simulation w/ Tresor, SMI policies, and egress disabled
+      - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
         env:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
           ENABLE_EGRESS: "false"
+          ENABLE_RECONCILER: "false"
           DEPLOY_TRAFFIC_SPLIT: "true"
           DEPLOY_ON_OPENSHIFT: "true"
           TIMEOUT: 150s

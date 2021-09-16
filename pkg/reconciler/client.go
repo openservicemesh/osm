@@ -29,13 +29,13 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 
 	// Initialize informers
 	informerInitHandlerMap := map[k8s.InformerKey]func(){
-		crdInformerKey:             c.initCustomResourceDefinitionMonitor,
+		CrdInformerKey:             c.initCustomResourceDefinitionMonitor,
 		mutatingWebhookInformerKey: c.initMutatingWebhookConfigurationMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []k8s.InformerKey{crdInformerKey, mutatingWebhookInformerKey}
+		selectInformers = []k8s.InformerKey{CrdInformerKey, mutatingWebhookInformerKey}
 	}
 
 	for _, informer := range selectInformers {
@@ -63,10 +63,10 @@ func (c *client) initCustomResourceDefinitionMonitor() {
 	informerFactory := customResourceDefinitionInformer.NewFilteredCustomResourceDefinitionInformer(c.apiServerClient, k8s.DefaultKubeEventResyncInterval, cache.Indexers{nameIndex: metaNameIndexFunc}, options)
 
 	// Add informer
-	c.informers[crdInformerKey] = informerFactory
+	c.informers[CrdInformerKey] = informerFactory
 
 	// Add event handler to informer
-	c.informers[crdInformerKey].AddEventHandler(c.crdEventHandler())
+	c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler())
 }
 
 // Initializes mutating webhook monitoring
