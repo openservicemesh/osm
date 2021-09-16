@@ -956,8 +956,16 @@ func TestPodCreationHandler(t *testing.T) {
 }
 
 func TestWebhookMutate(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
+	mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
+	mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
+
 	t.Run("invalid JSON", func(t *testing.T) {
-		var wh *mutatingWebhook
+		wh := &mutatingWebhook{
+			configurator: mockConfigurator,
+		}
 		req := &admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{Raw: []byte("{")},
 		}
@@ -978,6 +986,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
+			configurator:        mockConfigurator,
 		}
 
 		req := &admissionv1.AdmissionRequest{
@@ -1010,8 +1019,9 @@ func TestWebhookMutate(t *testing.T) {
 		cfg.EXPECT().GetInboundPortExclusionList()
 		cfg.EXPECT().GetOutboundIPRangeExclusionList()
 		cfg.EXPECT().IsPrivilegedInitContainer()
-		cfg.EXPECT().GetInitContainerImage()
-		cfg.EXPECT().GetEnvoyImage()
+		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
+		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
+		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
 		cfg.EXPECT().GetProxyResources()
 		cfg.EXPECT().GetEnvoyLogLevel()
 
@@ -1057,8 +1067,9 @@ func TestWebhookMutate(t *testing.T) {
 		cfg.EXPECT().GetInboundPortExclusionList()
 		cfg.EXPECT().GetOutboundIPRangeExclusionList()
 		cfg.EXPECT().IsPrivilegedInitContainer()
-		cfg.EXPECT().GetInitContainerImage()
-		cfg.EXPECT().GetEnvoyImage()
+		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
+		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
+		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
 		cfg.EXPECT().GetProxyResources()
 		cfg.EXPECT().GetEnvoyLogLevel()
 

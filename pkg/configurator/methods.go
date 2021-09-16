@@ -129,29 +129,17 @@ func (c *client) GetEnvoyLogLevel() string {
 
 // GetEnvoyImage returns the envoy image
 func (c *client) GetEnvoyImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.EnvoyImage
-	if image != "" {
-		return image
-	}
-	return constants.DefaultEnvoyImage
+	return c.getMeshConfig().Spec.Sidecar.EnvoyImage
 }
 
 // GetEnvoyWindowsImage returns the envoy windows image
 func (c *client) GetEnvoyWindowsImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
-	if image != "" {
-		return image
-	}
-	return constants.DefaultEnvoyWindowsImage
+	return c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
 }
 
 // GetInitContainerImage returns the init container image
 func (c *client) GetInitContainerImage() string {
-	initImage := c.getMeshConfig().Spec.Sidecar.InitContainerImage
-	if initImage != "" {
-		return initImage
-	}
-	return constants.DefaultInitContainerImage
+	return c.getMeshConfig().Spec.Sidecar.InitContainerImage
 }
 
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
