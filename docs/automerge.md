@@ -4,7 +4,7 @@ description: "How to use labels and commands to automerge/autorebase your pull r
 type: docs
 ---
 
-OSM uses [Mergify](https://docs.mergify.io/) to automatically merge (automerge) and automatically rebase (autorebase) pull requests.
+OSM uses [Mergify](https://docs.mergify.io/) to automatically merge (automerge), automatically squash and merge (autosquash), and automatically rebase (autorebase) pull requests.
 
 # Automerge
 A pull request will be automerged via a merge commit if it meets the following criteria:
@@ -15,10 +15,20 @@ A pull request will be automerged via a merge commit if it meets the following c
  - Has at least 2 maintainer approvals
  - Base branch is either main or a release branch
 If the pull request has an `automerge` label, the OSM-PR-bot will also autorebase the pull request if the PR branch goes out-of-date.
-> Note: Currently, pull requests that are paths-ignore cannot be merged automatically.
+> Note: Pull requests that are paths-ignore cannot be merged automatically.
+
+A pull request will be autosquashed (commits will be squashed then merged) if it meets the following criteria:
+ - Has the `automerge-squash` label
+ - Does not have the `wip` label
+ - Does not have the `do-not-merge/hold` label
+ - Successfully completed all checks
+ - Has at least 2 maintainer approvals
+ - Base branch is main branch
+ If the pull request has an `automerge-squash` label, the OSM-PR-bot will also autorebase the pull request if the PR branch goes out-of-date.
+> Note: Pull requests that are paths-ignore cannot be merged automatically.
 
 # Autorebase
-A pull request will be autorebased only and not automerged if it has the `autorebase` label. The rebase action will be completed by OSM-PR-bot.
+A pull request will be autorebased only and not automerged/autosquashed if it has the `autorebase` label, as long as there are no conflicts. The rebase action will be completed by OSM-PR-bot.
 
 # In Pull Request Comments
 Some Mergify commands can also be triggered via comments on the pull request.
