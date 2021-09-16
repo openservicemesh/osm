@@ -11,6 +11,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
+// OSCrossPlatform indicates that a test can run on all operating systems.
+const OSCrossPlatform string = "Cross-platform"
+
 // OSMDescribeInfo is a struct to represent the Tier and Bucket of a given e2e test
 type OSMDescribeInfo struct {
 	// Tier represents the priority of the test. Lower value indicates higher priority.
@@ -19,6 +22,9 @@ type OSMDescribeInfo struct {
 	// Bucket indicates in which test Bucket the test will run in for CI. Each
 	// Bucket is run in parallel while tests in the same Bucket run sequentially.
 	Bucket int
+
+	// OS indicates which OS the test can run on.
+	OS string
 }
 
 // InstallType defines several OSM test deployment scenarios

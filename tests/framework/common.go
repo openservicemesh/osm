@@ -82,7 +82,7 @@ var _ = AfterSuite(func() {
 })
 
 func (o OSMDescribeInfo) String() string {
-	return fmt.Sprintf("[Tier %d][Bucket %d]", o.Tier, o.Bucket)
+	return fmt.Sprintf("[Tier %d][Bucket %d][%s]", o.Tier, o.Bucket, o.OS)
 }
 
 // OSMDescribe givens the description of an e2e test

@@ -15,6 +15,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 2,
+		OS:     OSCrossPlatform,
 	},
 	func() {
 		Context("Egress", func() {
