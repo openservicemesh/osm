@@ -1,7 +1,7 @@
 name: Windows Nightly Job
 on: 
   workflow_run:
-    workflows: ["Windows Images"]
+    workflows: ["Nightly Images"]
     types: [completed]
 
 env:
