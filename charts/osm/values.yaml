@@ -156,7 +156,7 @@ OpenServiceMesh:
   # -- Enable mesh-wide HTTPS ingress capability (HTTP ingress is the default)
   useHTTPSIngress: false
 
-  # -- Log level for the Envoy proxy sidecar
+  # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
