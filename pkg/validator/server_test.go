@@ -3,13 +3,23 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 type fakeObj struct {
@@ -122,4 +132,99 @@ func TestHandleValidation(t *testing.T) {
 			assert.Equal(tc.expResp, resp)
 		})
 	}
+}
+
+func TestNewValidatingWebhook(t *testing.T) {
+	t.Run("error updating ValidatingWebhookConfig", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		cert := certificate.NewMockCertificater(mockCtrl)
+		cert.EXPECT().GetCertificateChain()
+
+		kube := fake.NewSimpleClientset()
+
+		err := NewValidatingWebhook("my-webhook", 0, cert, kube, nil)
+		tassert.Error(t, err)
+	})
+
+	t.Run("successful startup", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		cert := certificate.NewMockCertificater(mockCtrl)
+		cert.EXPECT().GetCertificateChain().AnyTimes()
+		cert.EXPECT().GetPrivateKey().AnyTimes()
+
+		port := 41414
+		stop := make(chan struct{})
+		defer close(stop)
+		webhook := &admissionregv1.ValidatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "my-webhook",
+			},
+		}
+		kube := fake.NewSimpleClientset(webhook)
+
+		err := NewValidatingWebhook(webhook.Name, port, cert, kube, nil)
+		tassert.NoError(t, err)
+	})
+}
+
+func TestDoValidation(t *testing.T) {
+	tests := []struct {
+		name                 string
+		req                  *http.Request
+		expectedResponseCode int
+	}{
+		{
+			name: "bad Content-Type",
+			req: &http.Request{
+				Header: map[string][]string{
+					webhook.HTTPHeaderContentType: {"not-" + webhook.ContentTypeJSON},
+				},
+			},
+			expectedResponseCode: http.StatusUnsupportedMediaType,
+		},
+		{
+			name: "error reading request body",
+			req: &http.Request{
+				Header: map[string][]string{
+					webhook.HTTPHeaderContentType: {webhook.ContentTypeJSON},
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name: "successful response",
+			req: &http.Request{
+				Header: map[string][]string{
+					webhook.HTTPHeaderContentType: {webhook.ContentTypeJSON},
+				},
+				Body: io.NopCloser(strings.NewReader(`{
+				"metadata": {
+					"uid": "some-uid"
+				},
+				"request": {}
+			}`)),
+			},
+			expectedResponseCode: http.StatusOK,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			s := &validatingWebhookServer{
+				validators: map[string]validateFunc{},
+			}
+			s.doValidation(w, test.req)
+			res := w.Result()
+			tassert.Equal(t, test.expectedResponseCode, res.StatusCode)
+		})
+	}
+}
+
+func TestHealthHandler(t *testing.T) {
+	w := httptest.NewRecorder()
+	healthHandler(w, nil)
+
+	res := w.Result()
+	tassert.Equal(t, http.StatusOK, res.StatusCode)
 }
