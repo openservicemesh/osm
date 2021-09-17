@@ -140,11 +140,11 @@ func TestCreatePatch(t *testing.T) {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("").AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("").AnyTimes()
+			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
+			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
+			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().GetInitContainerImage().Return("").Times(1)
 			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
 			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
@@ -261,6 +261,73 @@ func TestMergePortExclusionLists(t *testing.T) {
 
 			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
 			assert.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
+		})
+	}
+}
+
+func TestVerifyPrerequisites(t *testing.T) {
+	testCases := []struct {
+		name         string
+		podOS        string
+		linuxImage   string
+		windowsImage string
+		initImage    string
+		expectErr    bool
+	}{
+		{
+			name:       "prereqs met for linux pod",
+			linuxImage: "envoy",
+			initImage:  "init",
+			expectErr:  false,
+		},
+		{
+			name:       "prereqs not met for linux pod when init container image is missing",
+			linuxImage: "envoy",
+			expectErr:  true,
+		},
+		{
+			name:      "prereqs not met for linux pod when envoy container image is missing",
+			initImage: "init",
+			expectErr: true,
+		},
+		{
+			name:         "prereqs met for windows pod",
+			podOS:        "windows",
+			windowsImage: "windows",
+			initImage:    "init",
+			expectErr:    false,
+		},
+		{
+			name:         "prereqs met for windows pod when init container image is missing",
+			podOS:        "windows",
+			windowsImage: "envoy",
+			expectErr:    false,
+		},
+		{
+			name:      "prereqs not met for windows pod when envoy container image is missing",
+			initImage: "init",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			assert := tassert.New(t)
+			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+
+			wh := &mutatingWebhook{
+				configurator: mockCfg,
+			}
+
+			mockCfg.EXPECT().GetEnvoyImage().Return(tc.linuxImage).AnyTimes()
+			mockCfg.EXPECT().GetEnvoyWindowsImage().Return(tc.windowsImage).AnyTimes()
+			mockCfg.EXPECT().GetInitContainerImage().Return(tc.initImage).AnyTimes()
+
+			err := wh.verifyPrerequisites(tc.podOS)
+			assert.Equal(tc.expectErr, err != nil)
 		})
 	}
 }

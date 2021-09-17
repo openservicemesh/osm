@@ -9,6 +9,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,9 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
 	// Skip adding the init container and only patch the pod spec with sidecar container.
 	podOS := pod.Spec.NodeSelector["kubernetes.io/os"]
+	if err := wh.verifyPrerequisites(podOS); err != nil {
+		return nil, err
+	}
 	if !strings.EqualFold(podOS, constants.OSWindows) {
 		// Build outbound port exclusion list
 		podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
@@ -103,6 +107,27 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
 	return json.Marshal(makePatches(req, pod))
+}
+
+// verifyPrerequisites verifies if the prerequisites to patch the request are met by returning an error if unmet
+func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
+	isWindows := strings.EqualFold(podOS, constants.OSWindows)
+
+	// Verify that the required images are configured
+	if image := wh.configurator.GetEnvoyImage(); !isWindows && image == "" {
+		// Linux pods require Envoy Linux image
+		return errors.New("MeshConfig sidecar.envoyImage not set")
+	}
+	if image := wh.configurator.GetEnvoyWindowsImage(); isWindows && image == "" {
+		// Windows pods require Envoy Windows image
+		return errors.New("MeshConfig sidecar.envoyWindowsImage not set")
+	}
+	if image := wh.configurator.GetInitContainerImage(); !isWindows && image == "" {
+		// Linux pods require init container image
+		return errors.New("MeshConfig sidecar.initContainerImage not set")
+	}
+
+	return nil
 }
 
 func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch.JsonPatchOperation {
