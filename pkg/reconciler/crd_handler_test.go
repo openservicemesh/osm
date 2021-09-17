@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
@@ -35,6 +36,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -89,6 +91,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -147,6 +150,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -201,6 +205,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 						"some":                       "label",
 					},
 				},
@@ -260,6 +265,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -314,6 +320,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io.NEW",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -368,12 +375,12 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 			a := tassert.New(t)
 
 			kubeClient := testclient.NewSimpleClientset()
-			crdClient := apiservertestclient.NewSimpleClientset(&tc.originalCrd)
+			apiServerClient := apiservertestclient.NewSimpleClientset(&tc.originalCrd)
 
 			c := client{
 				kubeClient:      kubeClient,
 				meshName:        meshName,
-				apiServerClient: crdClient,
+				apiServerClient: apiServerClient,
 				informers:       informerCollection{},
 			}
 			// Invoke update handler
@@ -408,6 +415,7 @@ func TestCRDEventHandlerDeleteFunc(t *testing.T) {
 			Name: "meshconfigs.config.openservicemesh.io",
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+				constants.ReconcileLabel:     strconv.FormatBool(true),
 			},
 		},
 		Spec: apiv1.CustomResourceDefinitionSpec{
@@ -456,12 +464,12 @@ func TestCRDEventHandlerDeleteFunc(t *testing.T) {
 
 	a := tassert.New(t)
 	kubeClient := testclient.NewSimpleClientset()
-	crdClient := apiservertestclient.NewSimpleClientset(&originalCrd)
+	apiServerClient := apiservertestclient.NewSimpleClientset(&originalCrd)
 
 	c := client{
 		kubeClient:      kubeClient,
 		meshName:        meshName,
-		apiServerClient: crdClient,
+		apiServerClient: apiServerClient,
 		informers:       informerCollection{},
 	}
 	// Invoke delete handler
@@ -492,6 +500,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -546,6 +555,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -604,6 +614,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -658,6 +669,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 						"some":                       "label",
 					},
 				},
@@ -717,6 +729,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -771,6 +784,7 @@ func TestIsCRDUpdated(t *testing.T) {
 					Name: "meshconfigs.config.openservicemesh.io.NEW",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:     strconv.FormatBool(true),
 					},
 				},
 				Spec: apiv1.CustomResourceDefinitionSpec{
@@ -842,6 +856,7 @@ func TestIsLabelModified(t *testing.T) {
 			name: "labels not modified",
 			labelMap: map[string]string{
 				constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+				constants.ReconcileLabel:     strconv.FormatBool(true),
 			},
 			key:           constants.OSMAppNameLabelKey,
 			value:         constants.OSMAppNameLabelValue,

@@ -3,6 +3,7 @@ package reconciler
 import (
 	"context"
 	reflect "reflect"
+	"strconv"
 	"strings"
 
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -57,7 +58,7 @@ func (c client) addCrd(oldCrd *apiv1.CustomResourceDefinition) {
 func isCRDUpdated(oldCrd, newCrd *apiv1.CustomResourceDefinition) bool {
 	crdSpecEqual := reflect.DeepEqual(oldCrd.Spec, newCrd.Spec)
 	crdNameChanged := strings.Compare(oldCrd.ObjectMeta.Name, newCrd.ObjectMeta.Name)
-	crdLabelsChanged := isLabelModified(constants.OSMAppNameLabelKey, constants.OSMAppNameLabelValue, newCrd.ObjectMeta.Labels)
+	crdLabelsChanged := isLabelModified(constants.OSMAppNameLabelKey, constants.OSMAppNameLabelValue, newCrd.ObjectMeta.Labels) || isLabelModified(constants.ReconcileLabel, strconv.FormatBool(true), newCrd.ObjectMeta.Labels)
 	crdUpdated := !crdSpecEqual || crdNameChanged != 0 || crdLabelsChanged
 	return crdUpdated
 }

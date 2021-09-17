@@ -1,6 +1,8 @@
 package reconciler
 
 import (
+	"strconv"
+
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	customResourceDefinitionInformer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 	internalinterfaces "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/internalinterfaces"
@@ -16,12 +18,12 @@ import (
 )
 
 // NewReconcilerClient implements a client to reconcile osm managed resources
-func NewReconcilerClient(kubeClient kubernetes.Interface, crdClient clientset.Interface, meshName string, stop chan struct{}, selectInformers ...k8s.InformerKey) error {
+func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient clientset.Interface, meshName string, stop chan struct{}, selectInformers ...k8s.InformerKey) error {
 	// Initialize client object
 	c := client{
 		kubeClient:      kubeClient,
 		meshName:        meshName,
-		apiServerClient: crdClient,
+		apiServerClient: apiServerClient,
 		informers:       informerCollection{},
 	}
 
@@ -51,7 +53,7 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, crdClient clientset.In
 
 // Initializes CustomResourceDefinition monitoring
 func (c *client) initCustomResourceDefinitionMonitor() {
-	osmCrdsLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue}
+	osmCrdsLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.ReconcileLabel: strconv.FormatBool(true)}
 
 	labelSelector := fields.SelectorFromSet(osmCrdsLabel).String()
 	options := internalinterfaces.TweakListOptionsFunc(func(opt *metav1.ListOptions) {
@@ -69,7 +71,7 @@ func (c *client) initCustomResourceDefinitionMonitor() {
 
 // Initializes mutating webhook monitoring
 func (c *client) initMutatingWebhookConfigurationMonitor() {
-	osmMwhcLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.OSMAppInstanceLabelKey: c.meshName}
+	osmMwhcLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.OSMAppInstanceLabelKey: c.meshName, constants.ReconcileLabel: strconv.FormatBool(true)}
 	labelSelector := fields.SelectorFromSet(osmMwhcLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 		opt.LabelSelector = labelSelector

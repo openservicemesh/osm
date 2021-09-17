@@ -165,6 +165,9 @@ const (
 const (
 	// IgnoreLabel is the label used to ignore a resource
 	IgnoreLabel = "openservicemesh.io/ignore"
+
+	// ReconcileLabel is the label used to reconcile a resource
+	ReconcileLabel = "openservicemesh.io/reconcile"
 )
 
 // Annotations used for Metrics

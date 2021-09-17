@@ -3,6 +3,7 @@ package reconciler
 import (
 	"context"
 	reflect "reflect"
+	"strconv"
 	"strings"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -61,7 +62,8 @@ func (c *client) isMutatingWebhookUpdated(oldMwhc, newMwhc *admissionv1.Mutating
 	mwhcNameChanged := strings.Compare(oldMwhc.ObjectMeta.Name, newMwhc.ObjectMeta.Name)
 	mwhcLabelsChanged := isLabelModified(constants.OSMAppNameLabelKey, constants.OSMAppNameLabelValue, newMwhc.ObjectMeta.Labels) ||
 		isLabelModified(constants.OSMAppInstanceLabelKey, c.meshName, newMwhc.ObjectMeta.Labels) ||
-		isLabelModified("app", injector.InjectorServiceName, newMwhc.ObjectMeta.Labels)
+		isLabelModified("app", injector.InjectorServiceName, newMwhc.ObjectMeta.Labels) ||
+		isLabelModified(constants.ReconcileLabel, strconv.FormatBool(true), newMwhc.ObjectMeta.Labels)
 	mwhcUpdated := !webhookEqual || mwhcNameChanged != 0 || mwhcLabelsChanged
 	return mwhcUpdated
 }
