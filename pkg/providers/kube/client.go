@@ -20,7 +20,7 @@ var _ endpoint.Provider = (*client)(nil)
 var _ service.Provider = (*client)(nil)
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, configClient config.Controller, cfg configurator.Configurator) *client { //nolint:golint // exported func returns unexported type
+func NewClient(kubeController k8s.Controller, configClient config.Controller, cfg configurator.Configurator) *client { //nolint: revive // unexported-return
 	return &client{
 		kubeController:   kubeController,
 		configClient:     configClient,

@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rulesfile.Close() //nolint: gosec,go-lint,errcheck
+	defer rulesfile.Close() //nolint: gosec,errcheck
 
 	scanner := bufio.NewScanner(rulesfile)
 	for scanner.Scan() {

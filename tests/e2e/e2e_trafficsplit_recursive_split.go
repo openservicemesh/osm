@@ -247,7 +247,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		}
 
 		var results HTTPMultipleResults
-		var serversSeen map[string]bool = map[string]bool{} // Just counts unique servers seen
+		var serversSeen = map[string]bool{} // Just counts unique servers seen
 		success := Td.WaitForRepeatedSuccess(func() bool {
 			curlSuccess := true
 

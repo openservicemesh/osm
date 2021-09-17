@@ -12,10 +12,10 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
     - gosec
     - govet
     - misspell
+    - revive
     - unused
     - whitespace
 
@@ -27,12 +27,12 @@ issues:
   exclude-rules:
     # Ignore error for ginkgo and gomega dot imports
     - linters:
-        - golint
+        - revive
       source: ". \"github.com/onsi/(ginkgo|gomega)\""
       text: "dot imports"
     # Ignore error for test framework imports
     - linters:
-        - golint
+        - revive
       source: ". \"github.com/openservicemesh/osm/tests/framework\""
       text: "dot imports"
     # Exclude staticcheck messages for deprecated function, variable or constant

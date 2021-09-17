@@ -100,8 +100,8 @@ func TestNamespaceErr(t *testing.T) {
 	// doesn't matter, this was just the simplest way to force an error to
 	// occur. Users of this package are not able to do this, but the resulting
 	// behavior is the same as if any other error had occurred.
-	kConfigPath := "This doesn't even look like a valid path name"
-	env.config.KubeConfig = &kConfigPath
+	configPath := "This doesn't even look like a valid path name"
+	env.config.KubeConfig = &configPath
 
 	tassert.Equal(t, env.Namespace(), "osm-system")
 }
