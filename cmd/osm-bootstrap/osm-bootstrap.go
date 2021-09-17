@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 )
@@ -47,6 +49,7 @@ var (
 	osmNamespace       string
 	caBundleSecretName string
 	osmMeshConfigName  string
+	meshName           string
 
 	crdConverterConfig crdconversion.Config
 
@@ -55,6 +58,8 @@ var (
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
+
+	enableReconciler bool
 
 	scheme = runtime.NewScheme()
 )
@@ -65,6 +70,7 @@ var (
 )
 
 func init() {
+	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
@@ -84,6 +90,9 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
+
+	// Reconciler options
+	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs and mutating webhook")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -111,6 +120,7 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
+	apiServerClient := clientset.NewForConfigOrDie(kubeConfig)
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not access Kubernetes cluster, check kubeconfig.")
@@ -170,7 +180,7 @@ func main() {
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
 	crdConverterConfig.ListenPort = 443
-	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, stop); err != nil {
+	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, enableReconciler, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
@@ -186,6 +196,14 @@ func main() {
 	err = httpServer.Start()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
+	}
+
+	if enableReconciler {
+		log.Info().Msgf("OSM reconciler enabled")
+		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, stop, reconciler.CrdInformerKey)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client")
+		}
 	}
 
 	<-stop

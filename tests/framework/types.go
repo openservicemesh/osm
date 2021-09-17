@@ -2,6 +2,7 @@ package framework
 
 import (
 	"github.com/onsi/ginkgo"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/kind/pkg/cluster"
@@ -66,9 +67,10 @@ type OsmTestData struct {
 	ClusterOS string // The operating system of the working nodes in the cluster. Mixed OS traffic is not supported.
 
 	// Cluster handles and rest config
-	Env        *cli.EnvSettings
-	RestConfig *rest.Config
-	Client     *kubernetes.Clientset
+	Env             *cli.EnvSettings
+	RestConfig      *rest.Config
+	Client          *kubernetes.Clientset
+	APIServerClient *clientset.Clientset
 
 	SmiClients *smiClients
 
@@ -95,6 +97,7 @@ type InstallOSMOpts struct {
 	DeployPrometheus        bool
 	DeployJaeger            bool
 	DeployFluentbit         bool
+	EnableReconciler        bool
 
 	VaultHost     string
 	VaultProtocol string

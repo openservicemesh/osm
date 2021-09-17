@@ -136,6 +136,7 @@
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
                 "enableEgress",
+                "enableReconciler",
                 "deployPrometheus",
                 "deployGrafana",
                 "enableFluentbit",
@@ -340,6 +341,15 @@
                     "type": "boolean",
                     "title": "The enableEgress schema",
                     "description": "Indicates whether egress should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enableReconciler": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableReconciler",
+                    "type": "boolean",
+                    "title": "The enableReconciler schema",
+                    "description": "Indicates whether OSM's reconciler should be enabled or not.",
                     "examples": [
                         false
                     ]

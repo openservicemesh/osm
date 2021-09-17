@@ -117,6 +117,9 @@ OpenServiceMesh:
   # -- Enable egress in the mesh
   enableEgress: false
 
+  # -- Enable reconciler for OSM's CRDs and mutating webhook
+  enableReconciler: false
+
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
 

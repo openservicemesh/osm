@@ -33,6 +33,7 @@ CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
+ENABLE_RECONCILER="${ENABLE_RECONCILER:-false}"
 DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
 DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
@@ -119,6 +120,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
         --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
         --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
+        --set=OpenServiceMesh.enableReconciler="$ENABLE_RECONCILER" \
         --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
         --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
         --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \

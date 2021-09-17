@@ -33,6 +33,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -288,10 +289,16 @@ nodeRegistration:
 		return errors.Wrapf(err, "failed to create %s client", policyV1alpha1.SchemeGroupVersion)
 	}
 
+	apiServerClient, err := apiclientset.NewForConfig(kubeConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create api server client")
+	}
+
 	td.RestConfig = kubeConfig
 	td.Client = clientset
 	td.ConfigClient = configClient
 	td.PolicyClient = policyClient
+	td.APIServerClient = apiServerClient
 
 	td.Env = cli.New()
 
@@ -333,6 +340,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		DeployPrometheus:        false,
 		DeployJaeger:            false,
 		DeployFluentbit:         false,
+		EnableReconciler:        false,
 
 		VaultHost:     "vault." + td.OsmNamespace + ".svc.cluster.local",
 		VaultProtocol: "http",
@@ -426,7 +434,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.InstType == NoInstall {
-		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit {
+		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit || instOpts.EnableReconciler {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
@@ -473,6 +481,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
 		fmt.Sprintf("OpenServiceMesh.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
 		fmt.Sprintf("OpenServiceMesh.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
+		fmt.Sprintf("OpenServiceMesh.enableReconciler=%v", instOpts.EnableReconciler),
 	)
 
 	switch instOpts.CertManager {
