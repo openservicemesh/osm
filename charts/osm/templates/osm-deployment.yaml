@@ -42,7 +42,7 @@ spec:
           - -c
           - >
             set -x;
-            while [ $(curl -sw '%{http_code}' "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz" -o /dev/null) -ne 200 ]; do
+            while [ $(curl --connect-timeout 2 -sw '%{http_code}' "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz" -o /dev/null) -ne 200 ]; do
               sleep 10;
             done
       containers:
