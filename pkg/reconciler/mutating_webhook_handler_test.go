@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
@@ -25,12 +26,14 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 		mwhcUpdated  bool
 	}{
 		{
-			name: "webhook changed",
+			name: "webhook name and namespace selector changed",
 			originalMwhc: admissionv1.MutatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -58,6 +61,8 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -88,6 +93,8 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -115,6 +122,8 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
 					},
@@ -125,19 +134,20 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name-",
+								Name:      "test-service-name",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			mwhcUpdated: false,
 		},
 		{
 			name: "mutataing webhook name changed",
@@ -146,6 +156,8 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -173,6 +185,8 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Name: "--updatedWebhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -182,13 +196,14 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name-",
+								Name:      "test-service-name",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
@@ -203,12 +218,12 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 			a := tassert.New(t)
 
 			kubeClient := testclient.NewSimpleClientset(&tc.originalMwhc)
-			crdClient := apiservertestclient.NewSimpleClientset()
+			apiServerClient := apiservertestclient.NewSimpleClientset()
 
 			c := client{
 				kubeClient:      kubeClient,
 				meshName:        meshName,
-				apiServerClient: crdClient,
+				apiServerClient: apiServerClient,
 				informers:       informerCollection{},
 			}
 			// Invoke update handler
@@ -239,6 +254,8 @@ func TestMutatingWebhookEventHandlerDeleteFunc(t *testing.T) {
 			Name: "--webhookName--",
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+				constants.ReconcileLabel:         strconv.FormatBool(true),
+				"app":                            injector.InjectorServiceName,
 				constants.OSMAppInstanceLabelKey: meshName,
 			},
 		},
@@ -264,12 +281,12 @@ func TestMutatingWebhookEventHandlerDeleteFunc(t *testing.T) {
 
 	a := tassert.New(t)
 	kubeClient := testclient.NewSimpleClientset(&originalMwhc)
-	crdClient := apiservertestclient.NewSimpleClientset()
+	apiServerClient := apiservertestclient.NewSimpleClientset()
 
 	c := client{
 		kubeClient:      kubeClient,
 		meshName:        meshName,
-		apiServerClient: crdClient,
+		apiServerClient: apiServerClient,
 		informers:       informerCollection{},
 	}
 	// Invoke delete handler
@@ -290,12 +307,14 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 		mwhcUpdated  bool
 	}{
 		{
-			name: "webhook changed",
+			name: "webhook and namespace selector changed",
 			originalMwhc: admissionv1.MutatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -323,6 +342,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -353,6 +374,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -380,6 +403,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
 					},
@@ -390,19 +415,20 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name-",
+								Name:      "test-service-name",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			mwhcUpdated: false,
 		},
 		{
 			name: "mutataing webhook name changed",
@@ -411,6 +437,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -438,6 +466,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Name: "--updatedWebhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+						constants.ReconcileLabel:         strconv.FormatBool(true),
+						"app":                            injector.InjectorServiceName,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
@@ -447,13 +477,14 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name-",
+								Name:      "test-service-name",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
@@ -468,12 +499,12 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 			assert := tassert.New(t)
 
 			kubeClient := testclient.NewSimpleClientset(&tc.originalMwhc)
-			crdClient := apiservertestclient.NewSimpleClientset()
+			apiServerClient := apiservertestclient.NewSimpleClientset()
 
 			c := client{
 				kubeClient:      kubeClient,
 				meshName:        meshName,
-				apiServerClient: crdClient,
+				apiServerClient: apiServerClient,
 				informers:       informerCollection{},
 			}
 			result := c.isMutatingWebhookUpdated(&tc.originalMwhc, &tc.updatedMwhc)
