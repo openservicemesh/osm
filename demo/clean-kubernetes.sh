@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+TIMEOUT="${TIMEOUT:-90s}"
+
 bin/osm uninstall -f --mesh-name "$MESH_NAME" --osm-namespace "$K8S_NAMESPACE"
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
