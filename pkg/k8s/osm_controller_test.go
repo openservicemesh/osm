@@ -1,4 +1,4 @@
-package controller
+package k8s
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func TestGetNamespaceOsmControllerPods(t *testing.T) {
+func TestGetOSMControllerPods(t *testing.T) {
 	testNamespace := "osm-namespace"
 
 	tests := []struct {

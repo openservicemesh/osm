@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/openservicemesh/osm/pkg/httpserver"
-
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 

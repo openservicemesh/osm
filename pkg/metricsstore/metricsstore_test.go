@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/httpserver"
-
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/httpserver"
 )
 
 func setup() {

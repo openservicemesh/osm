@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/openservicemesh/osm/pkg/httpserver"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -23,6 +21,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"

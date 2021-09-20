@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/openservicemesh/osm/pkg/httpserver"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/openservicemesh/osm/pkg/httpserver"
 )
 
 const (

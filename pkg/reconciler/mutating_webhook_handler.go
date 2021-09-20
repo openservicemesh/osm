@@ -12,7 +12,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/injector"
 )
 
 // mutatingWebhookEventHandler creates mutating webhook events handlers.
@@ -62,7 +61,7 @@ func (c *client) isMutatingWebhookUpdated(oldMwhc, newMwhc *admissionv1.Mutating
 	mwhcNameChanged := strings.Compare(oldMwhc.ObjectMeta.Name, newMwhc.ObjectMeta.Name)
 	mwhcLabelsChanged := isLabelModified(constants.OSMAppNameLabelKey, constants.OSMAppNameLabelValue, newMwhc.ObjectMeta.Labels) ||
 		isLabelModified(constants.OSMAppInstanceLabelKey, c.meshName, newMwhc.ObjectMeta.Labels) ||
-		isLabelModified("app", injector.InjectorServiceName, newMwhc.ObjectMeta.Labels) ||
+		isLabelModified("app", constants.OSMInjectorName, newMwhc.ObjectMeta.Labels) ||
 		isLabelModified(constants.ReconcileLabel, strconv.FormatBool(true), newMwhc.ObjectMeta.Labels)
 	mwhcUpdated := !webhookEqual || mwhcNameChanged != 0 || mwhcLabelsChanged
 	return mwhcUpdated

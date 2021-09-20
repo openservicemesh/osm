@@ -10,8 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/httpserver"
-
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,7 +19,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/controller"
+	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -162,7 +160,7 @@ func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernete
 	var meshSmiInfoList []meshSmiInfo
 
 	for _, mesh := range meshInfoList {
-		meshControllerPods := controller.GetOSMControllerPods(clientSet, mesh.namespace)
+		meshControllerPods := k8s.GetOSMControllerPods(clientSet, mesh.namespace)
 
 		meshSmiSupportedVersions := []string{"Unknown"}
 		if len(meshControllerPods.Items) > 0 {
