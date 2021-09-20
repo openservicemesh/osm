@@ -21,7 +21,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/httpserver"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -494,7 +494,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		testServer         *httptest.Server
 		url                = "http://localhost"
 		testHTTPServerPort = 8888
-		smiVerionPath      = httpserver.SmiVersionPath
+		smiVerionPath      = httpserverconstants.SmiVersionPath
 		recordCall         = func(ts *httptest.Server, path string) *http.Response {
 			req := httptest.NewRequest("GET", path, nil)
 			w := httptest.NewRecorder()

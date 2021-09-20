@@ -40,6 +40,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -259,15 +260,15 @@ func main() {
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
-		httpserver.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
-		httpserver.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+		httpserverconstants.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
+		httpserverconstants.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
 	// Metrics
-	httpServer.AddHandler(httpserver.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(httpserver.VersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
 	// Supported SMI Versions
-	httpServer.AddHandler(httpserver.SmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
+	httpServer.AddHandler(httpserverconstants.SmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
 
 	// Start HTTP server
 	err = httpServer.Start()

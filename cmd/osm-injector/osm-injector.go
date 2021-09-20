@@ -28,6 +28,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/httpserver"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -167,9 +168,9 @@ func main() {
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
-	httpServer.AddHandler(httpserver.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(httpserver.VersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {

@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/httpserver"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -203,7 +203,7 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		defer pf.Stop()
-		url := fmt.Sprintf("http://localhost:%d%s", localPort, httpserver.SmiVersionPath)
+		url := fmt.Sprintf("http://localhost:%d%s", localPort, httpserverconstants.SmiVersionPath)
 
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)

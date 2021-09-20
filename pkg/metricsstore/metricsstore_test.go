@@ -8,7 +8,7 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/httpserver"
+	"github.com/openservicemesh/osm/pkg/httpserver/constants"
 )
 
 func setup() {
@@ -41,7 +41,7 @@ func TestMetricsStore(t *testing.T) {
 
 			handler := DefaultMetricsStore.Handler()
 
-			req, err := http.NewRequest("GET", httpserver.MetricsPath, nil)
+			req, err := http.NewRequest("GET", constants.MetricsPath, nil)
 			assert.Nil(err)
 
 			rr := httptest.NewRecorder()
@@ -97,7 +97,7 @@ osm_proxy_connect_count %d
 
 			handler := DefaultMetricsStore.Handler()
 
-			req, err := http.NewRequest("GET", httpserver.MetricsPath, nil)
+			req, err := http.NewRequest("GET", constants.MetricsPath, nil)
 			assert.Nil(err)
 
 			rr := httptest.NewRecorder()

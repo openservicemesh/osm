@@ -1,4 +1,4 @@
-package httpserver
+package constants
 
 // OSM HTTP Server Paths
 const (
