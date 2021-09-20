@@ -189,9 +189,9 @@ func main() {
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
-	httpServer.AddHandler(constants.HTTPServerMetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(httpserver.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(constants.HTTPServerVersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(httpserver.VersionPath, version.GetVersionHandler())
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {

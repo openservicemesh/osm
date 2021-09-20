@@ -193,21 +193,6 @@ const (
 	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
 )
 
-// OSM HTTP Server Paths
-const (
-	HTTPServerHealthReadinessPath = "/health/ready"
-	HTTPServerHealthLivenessPath  = "/health/alive"
-	HTTPServerMetricsPath         = "/metrics"
-	HTTPServerVersionPath         = "/version"
-	HTTPServerSmiVersionPath      = "/smi/version"
-)
-
-// OSM HTTP Server Responses
-const (
-	HTTPServerServiceReadyResponse = "Service is ready"
-	HTTPServerServiceAliveResponse = "Service is alive"
-)
-
 // Application protocols
 const (
 	// HTTP protocol

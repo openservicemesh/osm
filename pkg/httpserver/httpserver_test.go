@@ -9,7 +9,6 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -40,11 +39,11 @@ func TestNewHTTPServer(t *testing.T) {
 	httpServ := NewHTTPServer(testPort)
 
 	httpServ.AddHandlers(map[string]http.Handler{
-		constants.HTTPServerHealthReadinessPath: health.ReadinessHandler(testProbes, nil),
-		constants.HTTPServerHealthLivenessPath:  health.LivenessHandler(testProbes, nil),
+		HealthReadinessPath: health.ReadinessHandler(testProbes, nil),
+		HealthLivenessPath:  health.LivenessHandler(testProbes, nil),
 	})
 
-	httpServ.AddHandler(constants.HTTPServerMetricsPath, metricsStore.Handler())
+	httpServ.AddHandler(MetricsPath, metricsStore.Handler())
 
 	testServer := &httptest.Server{
 		Config: httpServ.server,
@@ -58,10 +57,10 @@ func TestNewHTTPServer(t *testing.T) {
 
 	//Readiness/Liveness Check
 	newHTTPServerTests := []newHTTPServerTest{
-		{true, constants.HTTPServerHealthReadinessPath, http.StatusOK},
-		{false, constants.HTTPServerHealthReadinessPath, http.StatusServiceUnavailable},
-		{true, constants.HTTPServerHealthLivenessPath, http.StatusOK},
-		{false, constants.HTTPServerHealthLivenessPath, http.StatusServiceUnavailable},
+		{true, HealthReadinessPath, http.StatusOK},
+		{false, HealthReadinessPath, http.StatusServiceUnavailable},
+		{true, HealthLivenessPath, http.StatusOK},
+		{false, HealthLivenessPath, http.StatusServiceUnavailable},
 	}
 
 	for _, rt := range newHTTPServerTests {
@@ -81,7 +80,7 @@ func TestNewHTTPServer(t *testing.T) {
 	assert.Equal(http.StatusNotFound, respL.StatusCode)
 
 	//Metrics path Check
-	req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, constants.HTTPServerMetricsPath), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, MetricsPath), nil)
 	w := httptest.NewRecorder()
 	testServer.Config.Handler.ServeHTTP(w, req)
 	respM := w.Result()

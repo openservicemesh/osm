@@ -259,15 +259,15 @@ func main() {
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
-		constants.HTTPServerHealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
-		constants.HTTPServerHealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+		httpserver.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
+		httpserver.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
 	// Metrics
-	httpServer.AddHandler(constants.HTTPServerMetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(httpserver.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(constants.HTTPServerVersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(httpserver.VersionPath, version.GetVersionHandler())
 	// Supported SMI Versions
-	httpServer.AddHandler(constants.HTTPServerSmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
+	httpServer.AddHandler(httpserver.SmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
 
 	// Start HTTP server
 	err = httpServer.Start()

@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/openservicemesh/osm/pkg/httpserver"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
@@ -60,8 +60,8 @@ var _ = Describe("Test httpserver with probes", func() {
 		testProbes := []Probes{mockProbe}
 
 		handlers := map[string]http.Handler{
-			constants.HTTPServerHealthReadinessPath: ReadinessHandler(testProbes, nil),
-			constants.HTTPServerHealthLivenessPath:  LivenessHandler(testProbes, nil),
+			httpserver.HealthReadinessPath: ReadinessHandler(testProbes, nil),
+			httpserver.HealthLivenessPath:  LivenessHandler(testProbes, nil),
 		}
 		router := http.NewServeMux()
 		for url, handler := range handlers {
@@ -79,7 +79,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		mockProbe.EXPECT().Readiness().Return(true).Times(1)
 		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, constants.HTTPServerHealthReadinessPath))
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, httpserver.HealthReadinessPath))
 
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	})
@@ -88,7 +88,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		mockProbe.EXPECT().Readiness().Return(false).Times(1)
 		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, constants.HTTPServerHealthReadinessPath))
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, httpserver.HealthReadinessPath))
 
 		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
 	})
@@ -97,7 +97,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		mockProbe.EXPECT().Liveness().Return(true).Times(1)
 		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, constants.HTTPServerHealthLivenessPath))
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, httpserver.HealthLivenessPath))
 
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	})
@@ -106,7 +106,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		mockProbe.EXPECT().Liveness().Return(false).Times(1)
 		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, constants.HTTPServerHealthLivenessPath))
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, httpserver.HealthLivenessPath))
 
 		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
 	})

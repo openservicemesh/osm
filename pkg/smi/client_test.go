@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/openservicemesh/osm/pkg/httpserver"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -493,7 +495,7 @@ var _ = Describe("Test httpserver with probes", func() {
 		testServer         *httptest.Server
 		url                = "http://localhost"
 		testHTTPServerPort = 8888
-		smiVerionPath      = constants.HTTPServerSmiVersionPath
+		smiVerionPath      = httpserver.SmiVersionPath
 		recordCall         = func(ts *httptest.Server, path string) *http.Response {
 			req := httptest.NewRequest("GET", path, nil)
 			w := httptest.NewRecorder()
