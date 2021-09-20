@@ -208,8 +208,8 @@ $(DOCKER_WINDOWS_DEMO_TARGETS): OS = windows
 $(DOCKER_WINDOWS_DEMO_TARGETS): NAME=$(@:docker-build-windows-%=%)
 $(DOCKER_WINDOWS_DEMO_TARGETS):
 	make OS=windows build-$(NAME)
-	@if ! docker buildx ls | grep -q "img-builder "; then  echo "Setting buildx img-builder"; docker buildx create --name img-builder --use; fi
-	docker buildx build --platform "windows/amd64" -t $(CTR_REGISTRY)/$(NAME)-windows:$(CTR_TAG) $(ARGS) -f dockerfiles/Dockerfile.$(NAME).windows demo/bin/$(NAME)
+	@if ! docker buildx ls | grep -q "img-builder "; then  echo "Creating buildx img-builder"; docker buildx create --name img-builder; fi
+	docker buildx build --builder img-builder --platform "windows/amd64" -t $(CTR_REGISTRY)/$(NAME)-windows:$(CTR_TAG) $(ARGS) -f dockerfiles/Dockerfile.$(NAME).windows demo/bin/$(NAME)
 
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
