@@ -96,7 +96,7 @@ func ReadinessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 			}
 		}
 
-		setProbeResponse(w, http.StatusOK, constants.HTTPServerHealthReadinessPath)
+		setProbeResponse(w, http.StatusOK, constants.HTTPServerServiceReadyResponse)
 	})
 }
 
