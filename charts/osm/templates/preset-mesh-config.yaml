@@ -30,7 +30,7 @@ data:
           "enable": {{.Values.OpenServiceMesh.tracing.enable}}{{- if .Values.OpenServiceMesh.tracing.enable }},{{- end }}
           {{- if .Values.OpenServiceMesh.tracing.enable }}
           "port": {{.Values.OpenServiceMesh.tracing.port}},
-          "address": {{include "osm.tracingAddress"}},
+          "address": {{include "osm.tracingAddress" .}},
           "endpoint": {{.Values.OpenServiceMesh.tracing.endpoint  | quote}}
           {{- end }}
         }
