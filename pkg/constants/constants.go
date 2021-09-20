@@ -70,7 +70,7 @@ const (
 	DefaultEnvoyWindowsImage = "envoyproxy/envoy-windows:v1.19.1"
 
 	// DefaultInitContainerImage is the default init container image if not defined in the osm MeshConfig
-	DefaultInitContainerImage = "openservicemesh/init:v0.10.0-rc.2"
+	DefaultInitContainerImage = "openservicemesh/init:v0.10.0"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
