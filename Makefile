@@ -5,6 +5,8 @@ BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
 CTR_REGISTRY    ?= openservicemesh
 CTR_TAG         ?= latest
+CTR_DIGEST_FILE ?= /tmp/osm_image_digest
+VERIFY_TAGS ?= 0
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
@@ -242,30 +244,43 @@ embed-files-test:
 build-ci: embed-files
 	go build -v ./...
 
-# docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-controller osm-injector osm-crds osm-bootstrap)
-VERIFY_TAGS = 0
-.PHONY: $(DOCKER_PUSH_TARGETS)
-$(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
-$(DOCKER_PUSH_TARGETS):
+.PHONY: clean-image-digest
+clean-image-digest:
+	@rm -f "$(CTR_DIGEST_FILE)"
+
+# OSM control plane components
+DOCKER_PUSH_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init osm-controller osm-injector osm-crds osm-bootstrap)
+.PHONY: $(DOCKER_PUSH_CONTROL_PLANE_TARGETS)
+$(DOCKER_PUSH_CONTROL_PLANE_TARGETS): NAME=$(@:docker-push-%=%)
+$(DOCKER_PUSH_CONTROL_PLANE_TARGETS):
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME) "linux"; fi
+	@docker images --digests | grep "$(CTR_REGISTRY)/$(NAME)\s*$(CTR_TAG)" >> "$(CTR_DIGEST_FILE)"
+
+
+# Linux demo applications
+DOCKER_PUSH_LINUX_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS))
+.PHONY: $(DOCKER_PUSH_LINUX_TARGETS)
+$(DOCKER_PUSH_LINUX_TARGETS): NAME=$(@:docker-push-%=%)
+$(DOCKER_PUSH_LINUX_TARGETS):
 	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME) "linux"; fi
 
 
+# Windows demo applications
 DOCKER_PUSH_WINDOWS_TARGETS = $(addprefix docker-push-windows-, $(DEMO_TARGETS))
-VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_WINDOWS_TARGETS)
 $(DOCKER_PUSH_WINDOWS_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_WINDOWS_TARGETS):
 	@if [ $(VERIFY_TAGS) != 1 ]; then make ARGS=--output=type=registry docker-build-$(NAME); else bash scripts/publish-image.sh $(addprefix windows-, $(NAME)) "windows"; fi
 
 
-.PHONY: docker-linux-push
-docker-linux-push: $(DOCKER_PUSH_TARGETS)
+.PHONY: docker-control-plane-push
+docker-control-plane-push: clean-image-digest $(DOCKER_PUSH_CONTROL_PLANE_TARGETS)
 
-# notably the init container is missing here because we don't use it for windows
-OSM_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, osm-controller osm-controller osm-injector osm-crds osm-bootstrap)
+.PHONY: docker-linux-push
+docker-linux-push: docker-control-plane-push $(DOCKER_PUSH_LINUX_TARGETS)
+
 .PHONY: docker-windows-push
-docker-windows-push: $(DOCKER_PUSH_WINDOWS_TARGETS) $(OSM_CONTROL_PLANE_TARGETS)
+docker-windows-push: docker-control-plane-push $(DOCKER_PUSH_WINDOWS_TARGETS)
 
 .PHONY: docker-push
 docker-push: docker-linux-push docker-windows-push
