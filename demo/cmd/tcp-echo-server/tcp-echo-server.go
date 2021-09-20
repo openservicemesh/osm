@@ -48,7 +48,9 @@ func main() {
 }
 
 func echoResponse(conn net.Conn) {
-	defer conn.Close() //nolint: errcheck,gosec
+	//nolint: errcheck
+	//#nosec G307
+	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
 	for {

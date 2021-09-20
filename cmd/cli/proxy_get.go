@@ -94,8 +94,10 @@ func (cmd *proxyGetCmd) run() error {
 		if err != nil {
 			return errors.Errorf("Error opening file %s: %s", cmd.outFile, err)
 		}
-		defer fd.Close() //nolint: errcheck, gosec
-		out = fd         // write output to file
+		//nolint: errcheck
+		//#nosec G307
+		defer fd.Close()
+		out = fd // write output to file
 	}
 
 	_, err = out.Write(envoyProxyConfig)

@@ -76,7 +76,9 @@ func main() {
 			}
 		}
 
-		conn.Close() //nolint: errcheck,gosec
+		//nolint: errcheck
+		//#nosec G104
+		conn.Close()
 		log.Info().Msgf("Ended connection #%d ---------------------------", connectionCounter)
 	}
 }
