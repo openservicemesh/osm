@@ -191,7 +191,7 @@ func (td *OsmTestData) GRPCRequest(req GRPCRequestDef) GRPCRequestResult {
 // MapCurlOuput maps stdout from our specific curl,
 // it expects headers on stdout like "<name>: <value...>"
 func mapCurlOuput(curlOut string) map[string]string {
-	var ret map[string]string = make(map[string]string)
+	var ret = make(map[string]string)
 	scanner := bufio.NewScanner(strings.NewReader(curlOut))
 
 	for scanner.Scan() {

@@ -24,7 +24,7 @@ type ResyncTicker struct {
 var (
 	log = logger.New("ticker")
 	// Local reference to global ticker
-	rTicker *ResyncTicker = nil
+	rTicker *ResyncTicker
 )
 
 // InitTicker initializes a global ticker that is configured via

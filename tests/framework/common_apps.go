@@ -669,7 +669,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 	waitGroup.Wait()
 
 	if errController != nil || errInjector != nil {
-		return errors.New(fmt.Sprintf("OSM Control plane was not ready in time (%v, %v, %v)", errController, errInjector, errBootstrap))
+		return fmt.Errorf("OSM Control plane was not ready in time (%v, %v, %v)", errController, errInjector, errBootstrap)
 	}
 
 	return nil

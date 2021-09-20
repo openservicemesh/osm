@@ -35,7 +35,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 	const sourceNs = "client"
 	const destNs = "server"
 	const extSourceNs = "ext-client"
-	var meshNs []string = []string{sourceNs, destNs}
+	var meshNs = []string{sourceNs, destNs}
 
 	It("Tests HTTP traffic for client pod -> server pod with permissive mode", func() {
 		// Install OSM

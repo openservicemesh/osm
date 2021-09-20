@@ -123,7 +123,9 @@ func runCmdAndWriteToFile(cmdList []string, outFile string) error {
 	if err != nil {
 		return err
 	}
-	defer outfile.Close() //nolint: errcheck, #nosec G307
+	//nolint: errcheck
+	//#nosec G307
+	defer outfile.Close()
 	cmd.Stdout = outfile
 	cmd.Stderr = outfile
 
