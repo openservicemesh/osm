@@ -89,7 +89,9 @@ func getPodLogs(namespace string, podName string, containerName string) (string,
 		return "Error in opening stream", err
 	}
 
-	defer logStream.Close() //nolint: errcheck,gosec
+	//nolint: errcheck
+	//#nosec G307
+	defer logStream.Close()
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(logStream)
 	if err != nil {

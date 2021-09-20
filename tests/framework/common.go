@@ -389,7 +389,9 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	}
 
 	reader := bytes.NewReader(imageReader)
-	defer imageData.Close() //nolint: errcheck,gosec
+	//nolint: errcheck
+	//#nosec G307
+	defer imageData.Close()
 	nodes, err := td.ClusterProvider.ListNodes(td.ClusterName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list kind nodes")
