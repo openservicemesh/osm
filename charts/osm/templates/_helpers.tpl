@@ -39,3 +39,48 @@ securityContext:
 {{- $validatorWebhookConfigName := printf "osm-validator-mesh-%s" .Values.OpenServiceMesh.meshName -}}
 {{ default $validatorWebhookConfigName .Values.OpenServiceMesh.validatorWebhook.webhookConfigurationName}}
 {{- end -}}
+
+{{/* osm-controller image */}}
+{{- define "osmController.image" -}}
+{{- if .Values.OpenServiceMesh.image.digest.osmController -}}
+{{- printf "%s/osm-controller@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmController -}}
+{{- else -}}
+{{- printf "%s/osm-controller:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{/* osm-injector image */}}
+{{- define "osmInjector.image" -}}
+{{- if .Values.OpenServiceMesh.image.digest.osmInjector -}}
+{{- printf "%s/osm-injector@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmInjector -}}
+{{- else -}}
+{{- printf "%s/osm-injector:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Sidecar init image */}}
+{{- define "osmSidecarInit.image" -}}
+{{- if .Values.OpenServiceMesh.image.digest.osmSidecarInit -}}
+{{- printf "%s/init@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmSidecarInit -}}
+{{- else -}}
+{{- printf "%s/init:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{/* osm-bootstrap image */}}
+{{- define "osmBootstrap.image" -}}
+{{- if .Values.OpenServiceMesh.image.digest.osmBootstrap -}}
+{{- printf "%s/osm-bootstrap@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmBootstrap -}}
+{{- else -}}
+{{- printf "%s/osm-bootstrap:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{/* osm-crds image */}}
+{{- define "osmCRDs.image" -}}
+{{- if .Values.OpenServiceMesh.image.digest.osmCRDs -}}
+{{- printf "%s/osm-crds@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmCRDs -}}
+{{- else -}}
+{{- printf "%s/osm-crds:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- end -}}
+{{- end -}}

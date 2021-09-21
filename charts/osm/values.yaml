@@ -7,12 +7,25 @@ OpenServiceMesh:
   #
   # -- OSM control plane image parameters
   image:
-    # -- Container image registry
+    # -- Container image registry for control plane images
     registry: openservicemesh
-    # -- Container image pull policy
+    # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
-    # -- Container image tag
-    tag: v0.9.2
+    # -- Container image tag for control plane images
+    tag: "latest-main"
+    # -- Image digest (defaults to latest compatible tag)
+    digest:
+      # -- osm-controller's image digest
+      osmController: ""
+      # -- osm-injector's image digest
+      osmInjector: ""
+      # -- Sidecar init container's image digest
+      osmSidecarInit: ""
+      # -- osm-crds' image digest
+      osmCRDs: ""
+      # -- osm-boostrap's image digest
+      osmBootstrap: ""
+
 
   # -- `osm-controller` image pull secret
   imagePullSecrets: []

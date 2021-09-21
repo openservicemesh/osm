@@ -30,7 +30,7 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: bookthief
-          image: openservicemesh/bookthief:v0.9.2
+          image: openservicemesh/bookthief:latest-main
           imagePullPolicy: Always
           command: ["/bookthief"]
           env:

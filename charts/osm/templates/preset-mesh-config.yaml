@@ -12,7 +12,7 @@ data:
         "maxDataPlaneConnections": {{.Values.OpenServiceMesh.maxDataPlaneConnections}},
         "envoyImage": "{{.Values.OpenServiceMesh.sidecarImage}}",
         "envoyWindowsImage": "{{.Values.OpenServiceMesh.sidecarWindowsImage}}",
-        "initContainerImage": "{{ .Values.OpenServiceMesh.image.registry }}/init:{{ .Values.OpenServiceMesh.image.tag }}",
+        "initContainerImage": "{{ include "osmSidecarInit.image" . }}",
         "configResyncInterval": "{{.Values.OpenServiceMesh.configResyncInterval}}"
       },
       "traffic": {

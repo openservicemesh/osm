@@ -46,6 +46,29 @@ Push the release branch to the upstream repo (NOT forked), identified here by th
 $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
+## Create and push the pre-release Git tag
+
+The pre-release Git tag publishes the OSM control plane images to the Openservicemesh container registry in Dockerhub, and publishes the image digests as an artifact of the pre-release Github workflow. The image digests must be used in the next step to update the default control plane image referenced in the Helm charts.
+
+The pre-release Git tag is of the form `pre-rel-<release-version>`, e.g. `pre-rel-v0.4.0`.
+
+```console
+$ PRE_RELEASE_VERSION=<pre-release-version> # ex: PRE_RELEASE_VERSION=pre-rel-v0.4.0
+$ git tag "$PRE_RELEASE_VERSION"
+$ git push upstream "$PRE_RELEASE_VERSION"
+```
+
+Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are uploaded as a part of the Pre-release workflow. Note that multiple image digest files will be present in the uploaded artifact, one per image tag, e.g. v0.4.0 and latest. Use the release version specific image digest file to extract the image digests to be used as the default for the control plane images, i.e. osm_image_digest_v0.4.0.txt instead of osm_image_digest_latest.txt if the release version if v0.4.0.
+
+The image digest file contains the sha256 image digest for each control plane image as follows:
+```console
+openservicemesh/init   v0.4.0    sha256:a9f3b6b53132266d9090d1fe9e1cbbcf9caa5ca6b8ed247797ce7af6df22bf0e   67349d2e350f   4 seconds ago   7.77MB
+openservicemesh/osm-controller           v0.4.0                                   sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee   e61b990a7926   6 seconds ago   54.1MB
+openservicemesh/osm-injector             v0.4.0                                   sha256:311d87892778d976baf2560622a258ac011a5a3f755d05566ce17458d04fdda1   2ff0e76bccdc   6 seconds ago    52.1MB
+openservicemesh/osm-crds                 v0.4.0                                   sha256:542d6dd31d9ceae8f0d4bc4020d6df19791c7207e8a76047193968bb51799d7e   1c7eb6b2a25c   2 seconds ago    133MB
+openservicemesh/osm-bootstrap            v0.4.0                                   sha256:9aad07e55e7d1e650b9398f1487695ac016a1b74d60a9879ddcf6455f84cd8f0   f40ca40df626   6 seconds ago    51MB
+```
+
 ## Update release branch with patches and versioning changes
 
 Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
@@ -54,28 +77,17 @@ If there are other commits on the `main` branch to be included in the release (s
 
 Create a new commit on the patch branch to update the hardcoded version information in the following locations:
 
-* The container image tag in [charts/osm/values.yaml](/charts/osm/values.yaml)
-* The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml)
-* The default osm image tag in [osm cli mesh upgrade](/cmd/cli/mesh_upgrade.go)
+* The control plane image digests  defined by `OpenServiceMesh.image.digest` for images in [charts/osm/values.yaml](/charts/osm/values.yaml) from the image digests obtained from the Pre-release workflow. For example, if the osm-controller image digest is `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`, update the value of `OpenServiceMesh.image.digest.osmController` to `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`.
+* Replace the `latest-main` tag with the release version tag for all images throughout the repo, e.g. `v0.4.0`. This includes updating the image references in `charts/osm` and `docs/example/manifests` folders.
+* The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to the release version.
 * The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
-* The init container image version in [charts/osm/crds/meshconfig.yaml](/charts/osm/crds/meshconfig.yaml)
-* The init container image version in [pkg/constants/constants.go](/pkg/constants/constants.go)
-* The image versions contained in tests.
-  - [pkg/configurator/methods_test.go](/pkg/configurator/methods_test.go)
-* The container image versions used in the examples.
-  - [docs/example/manifests/apps/bookbuyer.yaml](/docs/example/manifests/apps/bookbuyer.yaml)
-  - [docs/example/manifests/apps/bookstore-v2.yaml](/docs/example/manifests/apps/bookstore-v2.yaml)
-  - [docs/example/manifests/apps/bookstore.yaml](/docs/example/manifests/apps/bookstore.yaml)
-  - [docs/example/manifests/apps/bookthief.yaml](/docs/example/manifests/apps/bookthief.yaml)
-  - [docs/example/manifests/apps/bookwarehouse.yaml](/docs/example/manifests/apps/bookwarehouse.yaml)
-  - [docs/example/manifests/meshconfig/mesh-config.yaml](/docs/example/manifests/meshconfig/mesh-config.yaml)
 
 Once patches and version information have been updated on the patch branch off of the release branch, create a pull request from the patch branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
 Proceed to the next step once the pull request is approved and merged.
 
-## Create and push a Git tag
+## Create and push the release Git tag
 
 Ensure your local copy of the release branch has the latest changes from the PR merged above.
 
@@ -145,7 +157,7 @@ Make an announcement on the [OSM mailing list](https://groups.google.com/g/opens
 
 Skip this step if the release is a release candidate (RC).
 
-Open a pull request against the `main` branch making the same version updates as [above](#update-release-branch-with-patches-and-versioning-changes) so the latest release assets are referenced there.
+Open a pull request against the `main` branch to update the `version` field in `charts/osm/Chart.yaml` to the release version.
 
 ## Make version changes on docs.openservicemesh.io
 
