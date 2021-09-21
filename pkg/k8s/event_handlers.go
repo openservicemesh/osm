@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -16,9 +16,9 @@ type observeFilter func(obj interface{}) bool
 
 // EventTypes is a struct helping pass the correct types to GetKubernetesEventHandlers
 type EventTypes struct {
-	Add    a.AnnouncementType
-	Update a.AnnouncementType
-	Delete a.AnnouncementType
+	Add    announcements.AnnouncementType
+	Update announcements.AnnouncementType
+	Delete announcements.AnnouncementType
 }
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
@@ -32,39 +32,39 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			if !shouldObserve(obj) {
 				return
 			}
+			ns := getNamespace(obj)
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Add,
 				NewObj:           obj,
 				OldObj:           nil,
 			})
-			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			if !shouldObserve(newObj) {
 				return
 			}
+			ns := getNamespace(newObj)
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Update,
 				NewObj:           newObj,
 				OldObj:           oldObj,
 			})
-			ns := getNamespace(newObj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 		},
 
 		DeleteFunc: func(obj interface{}) {
 			if !shouldObserve(obj) {
 				return
 			}
+			ns := getNamespace(obj)
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
 				AnnouncementType: eventTypes.Delete,
 				NewObj:           nil,
 				OldObj:           obj,
 			})
-			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 		},
 	}
 }
