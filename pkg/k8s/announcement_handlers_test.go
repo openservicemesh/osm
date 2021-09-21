@@ -79,9 +79,9 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Publish a podAdded event
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.PodAdded,
-				NewObj:           &pod,
-				OldObj:           nil,
+				Kind:   announcements.PodAdded,
+				NewObj: &pod,
+				OldObj: nil,
 			})
 
 			expectedOwnerReference := metav1.OwnerReference{

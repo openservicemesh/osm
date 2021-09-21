@@ -70,8 +70,8 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 	// Initial config
 	if currentDuration >= minimumTickerDuration {
 		events.Publish(events.PubSubMessage{
-			AnnouncementType: announcements.TickerStart,
-			NewObj:           currentDuration,
+			Kind:   announcements.TickerStart,
+			NewObj: currentDuration,
 		})
 	}
 	close(ready)
@@ -90,15 +90,15 @@ func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, st
 				// Notify to re/start ticker
 				log.Warn().Msgf("Interval %s >= %s, issuing start ticker.", newResyncInterval, minimumTickerDuration)
 				events.Publish(events.PubSubMessage{
-					AnnouncementType: announcements.TickerStart,
-					NewObj:           newResyncInterval,
+					Kind:   announcements.TickerStart,
+					NewObj: newResyncInterval,
 				})
 			} else {
 				// Notify to ticker to stop
 				log.Warn().Msgf("Interval %s < %s, issuing ticker stop.", newResyncInterval, minimumTickerDuration)
 				events.Publish(events.PubSubMessage{
-					AnnouncementType: announcements.TickerStop,
-					NewObj:           newResyncInterval,
+					Kind:   announcements.TickerStop,
+					NewObj: newResyncInterval,
 				})
 			}
 			currentDuration = newResyncInterval
@@ -145,7 +145,7 @@ func ticker(ready chan struct{}, stop <-chan struct{}) {
 			log.Info().Msgf("Ticker requesting broadcast proxy update")
 			events.Publish(
 				events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
+					Kind: announcements.ScheduleProxyBroadcast,
 				},
 			)
 		case <-stop:
