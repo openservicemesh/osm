@@ -1,6 +1,8 @@
 package framework
 
 import (
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -65,6 +67,9 @@ type OsmTestData struct {
 	ClusterVersion                 string // Kind cluster version, ex. v1.20.2
 
 	ClusterOS string // The operating system of the working nodes in the cluster. Mixed OS traffic is not supported.
+
+	ReqSuccessTimeout    time.Duration // ReqSuccessTimeout timeout duration that the test expects for all requests from the client to server to succeed.
+	PodDeploymentTimeout time.Duration // PodDeploymentTimeout timeout duration that the test expects for all pods to be in ready state after they are deployed.
 
 	// Cluster handles and rest config
 	Env             *cli.EnvSettings

@@ -217,8 +217,13 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 
 	if td.DeployOnWindowsWorkers {
 		td.ClusterOS = constants.OSWindows
+		//TODO(#4027): Make the timeouts equal on all platforms.
+		td.ReqSuccessTimeout = 5 * 60 * time.Second
+		td.PodDeploymentTimeout = 240 * time.Second
 	} else {
 		td.ClusterOS = constants.OSLinux
+		td.ReqSuccessTimeout = 60 * time.Second
+		td.PodDeploymentTimeout = 90 * time.Second
 	}
 
 	// String parameter validation

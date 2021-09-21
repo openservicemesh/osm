@@ -12,6 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -19,6 +20,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 7,
+		OS:     OSCrossPlatform,
 	},
 	func() {
 		Context("Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP", func() {
@@ -51,14 +53,7 @@ func testTraffic(withSourceKubernetesService bool) {
 		}
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
-			SimplePodAppDef{
-				PodName:   destName,
-				Namespace: destName,
-				Image:     "kennethreitz/httpbin",
-				Ports:     []int{80},
-				OS:        Td.ClusterOS,
-			})
+		svcAccDef, podDef, svcDef, err := Td.GetOSSpecificHTTPBinPod(destName, destName)
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
@@ -99,7 +94,7 @@ func testTraffic(withSourceKubernetesService bool) {
 			SourcePod:       srcPod.Name,
 			SourceContainer: sourceName,
 
-			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+			Destination: fmt.Sprintf("%s.%s.svc.cluster.local", dstSvc.Name, dstSvc.Namespace),
 		}
 
 		srcToDestStr := fmt.Sprintf("%s -> %s",
@@ -116,7 +111,7 @@ func testTraffic(withSourceKubernetesService bool) {
 			}
 			Td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 			return true
-		}, 5, 90*time.Second)
+		}, 5, Td.ReqSuccessTimeout)
 
 		sourceService := map[bool]string{true: "with", false: "without"}[withSourceKubernetesService]
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s Kubernetes Service to a destination", sourceService)
@@ -142,15 +137,32 @@ func testTraffic(withSourceKubernetesService bool) {
 }
 
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
-	// Get simple Pod definitions for the client
-	svcAccDef, podDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
-		PodName:   sourceName,
-		Namespace: sourceName,
-		Command:   []string{"sleep", "365d"},
-		Image:     "curlimages/curl",
-		Ports:     []int{80},
-		OS:        Td.ClusterOS,
-	})
+	var svcAccDef v1.ServiceAccount
+	var podDef v1.Pod
+	var svcDef v1.Service
+	var err error
+	if Td.ClusterOS == constants.OSWindows {
+		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
+			PodName:   sourceName,
+			Namespace: sourceName,
+			Command:   []string{"cmd", "/c"},
+			Args:      []string{"FOR /L %N IN () DO ping -n 30 127.0.0.1> nul"},
+			Image:     WindowsNanoserverDockerImage,
+			Ports:     []int{80},
+			OS:        Td.ClusterOS,
+		})
+	} else {
+		// Get simple Pod definitions for the client
+		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
+			PodName:   sourceName,
+			Namespace: sourceName,
+			Command:   []string{"sleep", "365d"},
+			Image:     "curlimages/curl",
+			Ports:     []int{80},
+			OS:        Td.ClusterOS,
+		})
+	}
+
 	Expect(err).NotTo(HaveOccurred())
 
 	_, err = Td.CreateServiceAccount(sourceName, &svcAccDef)
@@ -166,7 +178,7 @@ func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	}
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(sourceName, Td.PodDeploymentTimeout, 1, nil)).To(Succeed())
 
 	return srcPod
 }

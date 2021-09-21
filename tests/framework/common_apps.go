@@ -545,6 +545,30 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 	return serviceAccountDefinition, deploymentDefinition, serviceDefinition, nil
 }
 
+// GetOSSpecificHTTPBinPod returns a OS pod that runs httpbin.
+func (td *OsmTestData) GetOSSpecificHTTPBinPod(podName string, namespace string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
+	if td.ClusterOS == constants.OSWindows {
+		return Td.SimplePodApp(
+			SimplePodAppDef{
+				PodName:   podName,
+				Namespace: namespace,
+				Command:   []string{"bin/go-httpbin.exe"},
+				Args:      []string{"--port", "80"},
+				Image:     HttpbinOSMWindowsImage,
+				Ports:     []int{80},
+				OS:        Td.ClusterOS,
+			})
+	}
+	return Td.SimplePodApp(
+		SimplePodAppDef{
+			PodName:   podName,
+			Namespace: namespace,
+			Image:     "kennethreitz/httpbin",
+			Ports:     []int{80},
+			OS:        Td.ClusterOS,
+		})
+}
+
 // GetOSSpecificSleepPod returns a simple OS specific busy loop pod.
 func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
 	if td.ClusterOS == constants.OSWindows {
@@ -567,6 +591,31 @@ func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAcc
 		Ports:     []int{80},
 		OS:        td.ClusterOS,
 	})
+}
+
+// GetOSSpecificTCPEchoPod returns a simple OS specific tcp-echo pod.
+func (td *OsmTestData) GetOSSpecificTCPEchoPod(podName string, namespace string, destinationPort int) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
+	var image string
+	var command string
+	installOpts := Td.GetOSMInstallOpts()
+	if td.ClusterOS == constants.OSWindows {
+		image = fmt.Sprintf("%s/tcp-echo-server-windows:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		command = "/tcp-echo-server.exe"
+	} else {
+		image = fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		command = "/tcp-echo-server"
+	}
+	return Td.SimplePodApp(
+		SimplePodAppDef{
+			PodName:     podName,
+			Namespace:   namespace,
+			Image:       image,
+			Command:     []string{command},
+			Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
+			Ports:       []int{destinationPort},
+			AppProtocol: constants.ProtocolTCP,
+			OS:          Td.ClusterOS,
+		})
 }
 
 // GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource
