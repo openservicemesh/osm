@@ -306,16 +306,16 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 	assert.NotEmpty(svcs)
 
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.ServiceDeleted,
-		OldObj:           svc,
+		Kind:   announcements.ServiceDeleted,
+		OldObj: svc,
 	})
 	<-broadcast
 
 	assert.Empty(k.servicesForCN[cn])
 
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.PodDeleted,
-		OldObj:           pod,
+		Kind:   announcements.PodDeleted,
+		OldObj: pod,
 	})
 	<-broadcast
 
@@ -323,8 +323,8 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 
 	kubeController.EXPECT().ListServices().Return(nil).Times(1)
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.PodAdded,
-		NewObj:           pod,
+		Kind:   announcements.PodAdded,
+		NewObj: pod,
 	})
 	<-broadcast
 
@@ -334,8 +334,8 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 
 	kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.ServiceAdded,
-		NewObj:           svc,
+		Kind:   announcements.ServiceAdded,
+		NewObj: svc,
 	})
 	<-broadcast
 
@@ -1777,23 +1777,23 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 		for i := 0; i < numWriteLoopIters; i++ {
 			kubeController.EXPECT().ListServices().Return(nil).Times(1)
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.PodAdded,
-				NewObj:           pod,
+				Kind:   announcements.PodAdded,
+				NewObj: pod,
 			})
 
 			kubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.ServiceAdded,
-				NewObj:           svc,
+				Kind:   announcements.ServiceAdded,
+				NewObj: svc,
 			})
 
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.ServiceDeleted,
-				OldObj:           svc,
+				Kind:   announcements.ServiceDeleted,
+				OldObj: svc,
 			})
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.PodDeleted,
-				OldObj:           pod,
+				Kind:   announcements.PodDeleted,
+				OldObj: pod,
 			})
 		}
 	}

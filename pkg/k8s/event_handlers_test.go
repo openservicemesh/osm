@@ -47,7 +47,7 @@ func TestGetKubernetesEventHandlers(t *testing.T) {
 	// Pubsub msg
 	pubsubMsg, castOk := an.(events.PubSubMessage)
 	a.True(castOk)
-	a.Equal(pubsubMsg.AnnouncementType, announcements.PodAdded)
+	a.Equal(pubsubMsg.Kind, announcements.PodAdded)
 	a.Nil(pubsubMsg.OldObj)
 
 	// Cast New obj, expect v1.Pod

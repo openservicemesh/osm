@@ -17,16 +17,16 @@ func TestPubSubEvents(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		register      announcements.AnnouncementType
+		register      announcements.Kind
 		publish       PubSubMessage
 		expectMessage bool
 	}{
 		{
 			register: announcements.EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.EndpointAdded,
-				NewObj:           nil,
-				OldObj:           "randomString",
+				Kind:   announcements.EndpointAdded,
+				NewObj: nil,
+				OldObj: "randomString",
 			},
 			expectMessage: true,
 		},
@@ -61,7 +61,7 @@ func TestPubSubClose(t *testing.T) {
 
 	// publish something
 	Publish(PubSubMessage{
-		AnnouncementType: announcements.EndpointUpdated,
+		Kind: announcements.EndpointUpdated,
 	})
 
 	// make sure channel is drained and closed

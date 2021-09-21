@@ -21,7 +21,7 @@ const (
 
 // isDeltaUpdate assesses and returns if a pubsub message contains an actual delta in config
 func isDeltaUpdate(psubMsg events.PubSubMessage) bool {
-	return !(strings.HasSuffix(psubMsg.AnnouncementType.String(), "updated") &&
+	return !(strings.HasSuffix(psubMsg.Kind.String(), "updated") &&
 		reflect.DeepEqual(psubMsg.OldObj, psubMsg.NewObj))
 }
 
@@ -76,12 +76,12 @@ func (mc *MeshCatalog) dispatcher() {
 
 			// Identify if this is an actual delta, or just resync
 			delta := isDeltaUpdate(psubMessage)
-			log.Debug().Msgf("[Pubsub] %s - delta: %v", psubMessage.AnnouncementType, delta)
+			log.Debug().Msgf("[Pubsub] %s - delta: %v", psubMessage.Kind, delta)
 
 			// Schedule an envoy broadcast update if we either:
 			// - detected a config delta
 			// - another module requested a broadcast through ScheduleProxyBroadcast
-			if delta || psubMessage.AnnouncementType == a.ScheduleProxyBroadcast {
+			if delta || psubMessage.Kind == a.ScheduleProxyBroadcast {
 				if !broadcastScheduled {
 					broadcastScheduled = true
 					chanMaxDeadline = time.After(maxBroadcastDeadlineTime)
@@ -100,7 +100,7 @@ func (mc *MeshCatalog) dispatcher() {
 		case <-chanMovingDeadline:
 			log.Info().Msgf("Moving deadline trigger - Broadcast envoy update")
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: a.ProxyBroadcast,
+				Kind: a.ProxyBroadcast,
 			})
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 
@@ -112,7 +112,7 @@ func (mc *MeshCatalog) dispatcher() {
 		case <-chanMaxDeadline:
 			log.Info().Msgf("Max deadline trigger - Broadcast envoy update")
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: a.ProxyBroadcast,
+				Kind: a.ProxyBroadcast,
 			})
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 

@@ -80,7 +80,7 @@ func (c *client) runMeshConfigListener(stop <-chan struct{}) {
 				continue
 			}
 
-			switch psubMsg.AnnouncementType {
+			switch psubMsg.Kind {
 			case announcements.MeshConfigAdded:
 				meshConfigAddedMessageHandler(&psubMsg)
 			case announcements.MeshConfigDeleted:
@@ -110,22 +110,22 @@ func (c *client) run(stop <-chan struct{}) {
 
 func meshConfigAddedMessageHandler(psubMsg *events.PubSubMessage) {
 	log.Debug().Msgf("[%s] OSM MeshConfig added event triggered a global proxy broadcast",
-		psubMsg.AnnouncementType)
+		psubMsg.Kind)
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.ScheduleProxyBroadcast,
-		OldObj:           nil,
-		NewObj:           nil,
+		Kind:   announcements.ScheduleProxyBroadcast,
+		OldObj: nil,
+		NewObj: nil,
 	})
 }
 
 func meshConfigDeletedMessageHandler(psubMsg *events.PubSubMessage) {
 	// Ignore deletion. We expect config to be present
 	log.Debug().Msgf("[%s] OSM MeshConfig deleted event triggered a global proxy broadcast",
-		psubMsg.AnnouncementType)
+		psubMsg.Kind)
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.ScheduleProxyBroadcast,
-		OldObj:           nil,
-		NewObj:           nil,
+		Kind:   announcements.ScheduleProxyBroadcast,
+		OldObj: nil,
+		NewObj: nil,
 	})
 }
 
@@ -135,7 +135,7 @@ func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
 	newMeshConfig, okNewCast := psubMsg.NewObj.(*v1alpha1.MeshConfig)
 	if !okPrevCast || !okNewCast {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigStructCasting)).Msgf("[%s] Error casting old/new MeshConfigs objects (%v %v)",
-			psubMsg.AnnouncementType, okPrevCast, okNewCast)
+			psubMsg.Kind, okPrevCast, okNewCast)
 		return
 	}
 
@@ -171,15 +171,15 @@ func meshConfigUpdatedMessageHandler(psubMsg *events.PubSubMessage) {
 
 	if triggerGlobalBroadcast {
 		log.Debug().Msgf("[%s] OSM MeshConfig update triggered global proxy broadcast",
-			psubMsg.AnnouncementType)
+			psubMsg.Kind)
 		events.Publish(events.PubSubMessage{
-			AnnouncementType: announcements.ScheduleProxyBroadcast,
-			OldObj:           nil,
-			NewObj:           nil,
+			Kind:   announcements.ScheduleProxyBroadcast,
+			OldObj: nil,
+			NewObj: nil,
 		})
 	} else {
 		log.Trace().Msgf("[%s] OSM MeshConfig update, NOT triggering global proxy broadcast",
-			psubMsg.AnnouncementType)
+			psubMsg.Kind)
 	}
 }
 

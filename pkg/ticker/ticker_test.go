@@ -67,8 +67,8 @@ func TestTicker(t *testing.T) {
 
 	// Start ticker, tick at 100ms rate
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.TickerStart,
-		NewObj:           time.Duration(100 * time.Millisecond),
+		Kind:   announcements.TickerStart,
+		NewObj: time.Duration(100 * time.Millisecond),
 	})
 
 	// broadcast events should increase in the next few seconds
@@ -78,7 +78,7 @@ func TestTicker(t *testing.T) {
 
 	// Stop the ticker
 	events.Publish(events.PubSubMessage{
-		AnnouncementType: announcements.TickerStop,
+		Kind: announcements.TickerStop,
 	})
 
 	// Should stop increasing
@@ -128,7 +128,7 @@ func TestTickerConfigurator(t *testing.T) {
 		// Simulate a meshconfig change, expect the right calls if it is enabled
 		mockConfigurator.EXPECT().GetConfigResyncInterval().Return(test.mockTickerDurationVal)
 		events.Publish(events.PubSubMessage{
-			AnnouncementType: announcements.MeshConfigUpdated,
+			Kind: announcements.MeshConfigUpdated,
 		})
 
 		receivedStartEvent := 0
