@@ -2,184 +2,184 @@
 // Kubernetes API server that are propagated internally within the control plane to trigger configuration changes.
 package announcements
 
-// AnnouncementType is used to record the type of announcement
-type AnnouncementType string
+// Kind is used to record the kind of announcement
+type Kind string
 
-func (at AnnouncementType) String() string {
+func (at Kind) String() string {
 	return string(at)
 }
 
 const (
 	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
-	ScheduleProxyBroadcast AnnouncementType = "schedule-proxy-broadcast"
+	ScheduleProxyBroadcast Kind = "schedule-proxy-broadcast"
 
 	// TickerStart starts Ticker to trigger time-based proxy updates
-	TickerStart AnnouncementType = "ticker-start"
+	TickerStart Kind = "ticker-start"
 
 	// TickerStop stops Ticker to stop time-based proxy updates
-	TickerStop AnnouncementType = "ticker-stop"
+	TickerStop Kind = "ticker-stop"
 
 	// ProxyBroadcast is used to notify all Proxy streams that they need to trigger an update
-	ProxyBroadcast AnnouncementType = "proxy-broadcast"
+	ProxyBroadcast Kind = "proxy-broadcast"
 
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
-	PodAdded AnnouncementType = "pod-added"
+	PodAdded Kind = "pod-added"
 
 	// PodDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Pod
-	PodDeleted AnnouncementType = "pod-deleted"
+	PodDeleted Kind = "pod-deleted"
 
 	// PodUpdated is the type of announcement emitted when we observe an update to a Kubernetes Pod
-	PodUpdated AnnouncementType = "pod-updated"
+	PodUpdated Kind = "pod-updated"
 
 	// ---
 
 	// EndpointAdded is the type of announcement emitted when we observe an addition of a Kubernetes Endpoint
-	EndpointAdded AnnouncementType = "endpoint-added"
+	EndpointAdded Kind = "endpoint-added"
 
 	// EndpointDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Endpoint
-	EndpointDeleted AnnouncementType = "endpoint-deleted"
+	EndpointDeleted Kind = "endpoint-deleted"
 
 	// EndpointUpdated is the type of announcement emitted when we observe an update to a Kubernetes Endpoint
-	EndpointUpdated AnnouncementType = "endpoint-updated"
+	EndpointUpdated Kind = "endpoint-updated"
 
 	// ---
 
 	// NamespaceAdded is the type of announcement emitted when we observe an addition of a Kubernetes Namespace
-	NamespaceAdded AnnouncementType = "namespace-added"
+	NamespaceAdded Kind = "namespace-added"
 
 	// NamespaceDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Namespace
-	NamespaceDeleted AnnouncementType = "namespace-deleted"
+	NamespaceDeleted Kind = "namespace-deleted"
 
 	// NamespaceUpdated is the type of announcement emitted when we observe an update to a Kubernetes Namespace
-	NamespaceUpdated AnnouncementType = "namespace-updated"
+	NamespaceUpdated Kind = "namespace-updated"
 
 	// ---
 
 	// ServiceAdded is the type of announcement emitted when we observe an addition of a Kubernetes Service
-	ServiceAdded AnnouncementType = "service-added"
+	ServiceAdded Kind = "service-added"
 
 	// ServiceDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Service
-	ServiceDeleted AnnouncementType = "service-deleted"
+	ServiceDeleted Kind = "service-deleted"
 
 	// ServiceUpdated is the type of announcement emitted when we observe an update to a Kubernetes Service
-	ServiceUpdated AnnouncementType = "service-updated"
+	ServiceUpdated Kind = "service-updated"
 
 	// ---
 
 	// ServiceAccountAdded is the type of announcement emitted when we observe an addition of a Kubernetes Service Account
-	ServiceAccountAdded AnnouncementType = "serviceaccount-added"
+	ServiceAccountAdded Kind = "serviceaccount-added"
 
 	// ServiceAccountDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Service Account
-	ServiceAccountDeleted AnnouncementType = "serviceaccount-deleted"
+	ServiceAccountDeleted Kind = "serviceaccount-deleted"
 
 	// ServiceAccountUpdated is the type of announcement emitted when we observe an update to a Kubernetes Service
-	ServiceAccountUpdated AnnouncementType = "serviceaccount-updated"
+	ServiceAccountUpdated Kind = "serviceaccount-updated"
 
 	// ---
 
 	// TrafficSplitAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficSplit
-	TrafficSplitAdded AnnouncementType = "trafficsplit-added"
+	TrafficSplitAdded Kind = "trafficsplit-added"
 
 	// TrafficSplitDeleted the type of announcement emitted when we observe the deletion of a Kubernetes TrafficSplit
-	TrafficSplitDeleted AnnouncementType = "trafficsplit-deleted"
+	TrafficSplitDeleted Kind = "trafficsplit-deleted"
 
 	// TrafficSplitUpdated is the type of announcement emitted when we observe an update to a Kubernetes TrafficSplit
-	TrafficSplitUpdated AnnouncementType = "trafficsplit-updated"
+	TrafficSplitUpdated Kind = "trafficsplit-updated"
 
 	// ---
 
 	// RouteGroupAdded is the type of announcement emitted when we observe an addition of a Kubernetes RouteGroup
-	RouteGroupAdded AnnouncementType = "routegroup-added"
+	RouteGroupAdded Kind = "routegroup-added"
 
 	// RouteGroupDeleted the type of announcement emitted when we observe the deletion of a Kubernetes RouteGroup
-	RouteGroupDeleted AnnouncementType = "routegroup-deleted"
+	RouteGroupDeleted Kind = "routegroup-deleted"
 
 	// RouteGroupUpdated is the type of announcement emitted when we observe an update to a Kubernetes RouteGroup
-	RouteGroupUpdated AnnouncementType = "routegroup-updated"
+	RouteGroupUpdated Kind = "routegroup-updated"
 
 	// ---
 
 	// TCPRouteAdded is the type of announcement emitted when we observe an addition of a Kubernetes TCPRoute
-	TCPRouteAdded AnnouncementType = "tcproute-added"
+	TCPRouteAdded Kind = "tcproute-added"
 
 	// TCPRouteDeleted the type of announcement emitted when we observe the deletion of a Kubernetes TCPRoute
-	TCPRouteDeleted AnnouncementType = "tcproute-deleted"
+	TCPRouteDeleted Kind = "tcproute-deleted"
 
 	// TCPRouteUpdated is the type of announcement emitted when we observe an update to a Kubernetes TCPRoute
-	TCPRouteUpdated AnnouncementType = "tcproute-updated"
+	TCPRouteUpdated Kind = "tcproute-updated"
 
 	// ---
 
 	// TrafficTargetAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficTarget
-	TrafficTargetAdded AnnouncementType = "traffictarget-added"
+	TrafficTargetAdded Kind = "traffictarget-added"
 
 	// TrafficTargetDeleted the type of announcement emitted when we observe the deletion of a Kubernetes TrafficTarget
-	TrafficTargetDeleted AnnouncementType = "traffictarget-deleted"
+	TrafficTargetDeleted Kind = "traffictarget-deleted"
 
 	// TrafficTargetUpdated is the type of announcement emitted when we observe an update to a Kubernetes TrafficTarget
-	TrafficTargetUpdated AnnouncementType = "traffictarget-updated"
+	TrafficTargetUpdated Kind = "traffictarget-updated"
 
 	// ---
 
 	// IngressAdded is the type of announcement emitted when we observe an addition of a Kubernetes Ingress
-	IngressAdded AnnouncementType = "ingress-added"
+	IngressAdded Kind = "ingress-added"
 
 	// IngressDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Ingress
-	IngressDeleted AnnouncementType = "ingress-deleted"
+	IngressDeleted Kind = "ingress-deleted"
 
 	// IngressUpdated is the type of announcement emitted when we observe an update to a Kubernetes Ingress
-	IngressUpdated AnnouncementType = "ingress-updated"
+	IngressUpdated Kind = "ingress-updated"
 
 	// ---
 
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
-	CertificateRotated AnnouncementType = "certificate-rotated"
+	CertificateRotated Kind = "certificate-rotated"
 
 	// ---
 
 	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig
-	MeshConfigAdded AnnouncementType = "meshconfig-added"
+	MeshConfigAdded Kind = "meshconfig-added"
 
 	// MeshConfigDeleted the type of announcement emitted when we observe the deletion of a Kubernetes MeshConfig
-	MeshConfigDeleted AnnouncementType = "meshconfig-deleted"
+	MeshConfigDeleted Kind = "meshconfig-deleted"
 
 	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
-	MeshConfigUpdated AnnouncementType = "meshconfig-updated"
+	MeshConfigUpdated Kind = "meshconfig-updated"
 
 	// --- policy.openservicemesh.io API events
 
 	// EgressAdded is the type of announcement emitted when we observe an addition of egresses.policy.openservicemesh.io
-	EgressAdded AnnouncementType = "egress-added"
+	EgressAdded Kind = "egress-added"
 
 	// EgressDeleted the type of announcement emitted when we observe a deletion of egresses.policy.openservicemesh.io
-	EgressDeleted AnnouncementType = "egress-deleted"
+	EgressDeleted Kind = "egress-deleted"
 
 	// EgressUpdated is the type of announcement emitted when we observe an update to egresses.policy.openservicemesh.io
-	EgressUpdated AnnouncementType = "egress-updated"
+	EgressUpdated Kind = "egress-updated"
 
 	// IngressBackendAdded is the type of announcement emitted when we observe an addition of ingressbackends.policy.openservicemesh.io
-	IngressBackendAdded AnnouncementType = "ingressbackend-added"
+	IngressBackendAdded Kind = "ingressbackend-added"
 
 	// IngressBackendDeleted the type of announcement emitted when we observe a deletion of ingressbackends.policy.openservicemesh.io
-	IngressBackendDeleted AnnouncementType = "ingressbackend-deleted"
+	IngressBackendDeleted Kind = "ingressbackend-deleted"
 
 	// IngressBackendUpdated is the type of announcement emitted when we observe an update to ingressbackends.policy.openservicemesh.io
-	IngressBackendUpdated AnnouncementType = "ingressbackend-updated"
+	IngressBackendUpdated Kind = "ingressbackend-updated"
 
 	// ---
 
 	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceAdded AnnouncementType = "multiclusterservice-added"
+	MultiClusterServiceAdded Kind = "multiclusterservice-added"
 
 	// MultiClusterServiceDeleted is the type of announcement emitted when we observe an deletion of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceDeleted AnnouncementType = "multiclusterservice-deleted"
+	MultiClusterServiceDeleted Kind = "multiclusterservice-deleted"
 
 	// MultiClusterServiceUpdated is the type of announcement emitted when we observe an update of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceUpdated AnnouncementType = "multiclusterservice-updated"
+	MultiClusterServiceUpdated Kind = "multiclusterservice-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration
 type Announcement struct {
-	Type               AnnouncementType
+	Type               Kind
 	ReferencedObjectID interface{}
 }

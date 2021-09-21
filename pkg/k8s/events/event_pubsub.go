@@ -17,7 +17,7 @@ var (
 )
 
 // Subscribe is the Subscribe implementation for PubSub
-func Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
+func Subscribe(aTypes ...announcements.Kind) chan interface{} {
 	var subTypes []string
 	for _, v := range aTypes {
 		subTypes = append(subTypes, string(v))
@@ -28,7 +28,7 @@ func Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
 
 // Publish is the Publish implementation for PubSub
 func Publish(message PubSubMessage) {
-	getPubSubInstance().Pub(message, message.AnnouncementType.String())
+	getPubSubInstance().Pub(message, message.Kind.String())
 }
 
 // Unsub is the Unsub implementation for PubSub.

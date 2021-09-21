@@ -16,9 +16,9 @@ type observeFilter func(obj interface{}) bool
 
 // EventTypes is a struct helping pass the correct types to GetKubernetesEventHandlers
 type EventTypes struct {
-	Add    announcements.AnnouncementType
-	Update announcements.AnnouncementType
-	Delete announcements.AnnouncementType
+	Add    announcements.Kind
+	Update announcements.Kind
+	Delete announcements.Kind
 }
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
@@ -35,9 +35,9 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: eventTypes.Add,
-				NewObj:           obj,
-				OldObj:           nil,
+				Kind:   eventTypes.Add,
+				NewObj: obj,
+				OldObj: nil,
 			})
 		},
 
@@ -48,9 +48,9 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: eventTypes.Update,
-				NewObj:           newObj,
-				OldObj:           oldObj,
+				Kind:   eventTypes.Update,
+				NewObj: newObj,
+				OldObj: oldObj,
 			})
 		},
 
@@ -61,9 +61,9 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: eventTypes.Delete,
-				NewObj:           nil,
-				OldObj:           obj,
+				Kind:   eventTypes.Delete,
+				NewObj: nil,
+				OldObj: obj,
 			})
 		},
 	}

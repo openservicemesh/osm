@@ -113,7 +113,7 @@ func (k *AsyncKubeProxyServiceMapper) Run(stop <-chan struct{}) {
 					continue
 				}
 				k.cacheLock.Lock()
-				switch event.AnnouncementType {
+				switch event.Kind {
 				case announcements.PodAdded, announcements.PodUpdated:
 					pod := event.NewObj.(*v1.Pod)
 					k.handlePodUpdate(pod)
@@ -129,7 +129,7 @@ func (k *AsyncKubeProxyServiceMapper) Run(stop <-chan struct{}) {
 				}
 				k.cacheLock.Unlock()
 				events.Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
+					Kind: announcements.ScheduleProxyBroadcast,
 				})
 			}
 		}

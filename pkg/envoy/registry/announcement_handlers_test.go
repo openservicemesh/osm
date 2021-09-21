@@ -79,8 +79,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Publish a podDeleted event
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.PodDeleted,
-				NewObj:           nil,
+				Kind:   announcements.PodDeleted,
+				NewObj: nil,
 				OldObj: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						UID: types.UID(podUID),
@@ -116,8 +116,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Publish some event unrelated to podDeleted
 			events.Publish(events.PubSubMessage{
-				AnnouncementType: announcements.IngressAdded,
-				NewObj:           nil,
+				Kind:   announcements.IngressAdded,
+				NewObj: nil,
 				OldObj: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						UID: types.UID(proxy.PodMetadata.UID),
