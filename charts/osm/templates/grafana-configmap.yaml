@@ -75,6 +75,8 @@ data:
 {{ .Files.Get "grafana/dashboards/osm-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
   osm-service-to-service.json: |
 {{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-data-plane-container.json: |
+{{ .Files.Get "grafana/dashboards/osm-data-plane-container.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
 
 ---
 
