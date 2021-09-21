@@ -13,13 +13,13 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -114,16 +114,6 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([
 	return meshInfoList, nil
 }
 
-// GetOSMControllerPods returns a list of osm-controller pods in the namespace
-func GetOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	podList, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
-	return podList
-}
-
 // getControllerDeployments returns a list of Deployments corresponding to osm-controller
 func getControllerDeployments(clientSet kubernetes.Interface) (*appsv1.DeploymentList, error) {
 	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
@@ -170,7 +160,7 @@ func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernete
 	var meshSmiInfoList []meshSmiInfo
 
 	for _, mesh := range meshInfoList {
-		meshControllerPods := GetOSMControllerPods(clientSet, mesh.namespace)
+		meshControllerPods := k8s.GetOSMControllerPods(clientSet, mesh.namespace)
 
 		meshSmiSupportedVersions := []string{"Unknown"}
 		if len(meshControllerPods.Items) > 0 {
@@ -213,7 +203,7 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		defer pf.Stop()
-		url := fmt.Sprintf("http://localhost:%d%s", localPort, constants.HTTPServerSmiVersionPath)
+		url := fmt.Sprintf("http://localhost:%d%s", localPort, httpserverconstants.SmiVersionPath)
 
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)

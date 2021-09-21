@@ -76,6 +76,9 @@ const (
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
 
+	// OSMInjectorName is the name of the OSM Injector.
+	OSMInjectorName = "osm-injector"
+
 	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Envoy proxies
 	ADSServerPort = 15128
 
@@ -188,11 +191,6 @@ const (
 	OSMAppNameLabelValue   = "openservicemesh.io"
 	OSMAppInstanceLabelKey = "app.kubernetes.io/instance"
 	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
-)
-
-// OSM HTTP Server Paths
-const (
-	HTTPServerSmiVersionPath = "/smi/version"
 )
 
 // Application protocols

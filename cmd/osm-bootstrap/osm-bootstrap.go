@@ -30,6 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/crdconversion"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/httpserver"
+	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -189,9 +190,9 @@ func main() {
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
-	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler("/version", version.GetVersionHandler())
+	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {

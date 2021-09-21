@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -95,7 +96,7 @@ func ReadinessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 			}
 		}
 
-		setProbeResponse(w, http.StatusOK, "Service is ready")
+		setProbeResponse(w, http.StatusOK, constants.ServiceReadyResponse)
 	})
 }
 
@@ -123,6 +124,6 @@ func LivenessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 			}
 		}
 
-		setProbeResponse(w, http.StatusOK, "Service is alive")
+		setProbeResponse(w, http.StatusOK, constants.ServiceAliveResponse)
 	})
 }
