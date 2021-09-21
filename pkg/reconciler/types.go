@@ -18,8 +18,8 @@ const (
 	// CrdInformerKey lookup identifier
 	CrdInformerKey k8s.InformerKey = "CRDInformerKey"
 
-	// mutatingWebhookInformerKey lookup identifier
-	mutatingWebhookInformerKey k8s.InformerKey = "MutatingWebhookConfigInformerKey"
+	// MutatingWebhookInformerKey lookup identifier
+	MutatingWebhookInformerKey k8s.InformerKey = "MutatingWebhookConfigInformerKey"
 
 	// nameIndex is the lookup name for the most comment index function, which is to index by the name field
 	nameIndex string = "name"

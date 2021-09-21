@@ -200,10 +200,10 @@ func main() {
 	}
 
 	if enableReconciler {
-		log.Info().Msgf("OSM reconciler enabled")
+		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
 		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, stop, reconciler.CrdInformerKey)
 		if err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client")
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client for custom resource definitions")
 		}
 	}
 

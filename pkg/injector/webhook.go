@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -51,7 +50,7 @@ const (
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the MutatingWebhookConfiguration
@@ -90,9 +89,16 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	// Start the MutatingWebhook web server
 	go wh.run(stop)
 
-	// Update the MutatingWebhookConfig with the OSM CA bundle
-	if err = updateMutatingWebhookCABundle(webhookHandlerCert, webhookConfigName, wh.kubeClient); err != nil {
-		return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+	if enableReconciler {
+		// Create the MutatingWebhook
+		if err = createMutatingWebhook(wh.kubeClient, webhookHandlerCert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion); err != nil {
+			return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		}
+	} else {
+		// Update the MutatingWebhookConfig with the OSM CA bundle only, as the MutatingWebhook is created via Helm
+		if err = updateMutatingWebhookCABundle(webhookHandlerCert, webhookConfigName, wh.kubeClient); err != nil {
+			return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		}
 	}
 	return nil
 }
@@ -437,7 +443,79 @@ func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName st
 	return nil
 }
 
-func webhookExists(mwc admissionRegistrationTypes.MutatingWebhookConfigurationInterface, webhookName string) error {
-	_, err := mwc.Get(context.Background(), webhookName, metav1.GetOptions{})
-	return err
+func createMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string) error {
+	webhookPath := webhookCreatePod
+	webhookPort := int32(constants.InjectorWebhookPort)
+	failuerPolicy := admissionregv1.Fail
+	matchPolict := admissionregv1.Exact
+
+	mwhc := admissionregv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: webhookName,
+			Labels: map[string]string{
+				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+				constants.OSMAppInstanceLabelKey: meshName,
+				constants.OSMAppVersionLabelKey:  osmVersion,
+				"app":                            constants.OSMInjectorName,
+				constants.ReconcileLabel:         strconv.FormatBool(true)}},
+		Webhooks: []admissionregv1.MutatingWebhook{
+			{
+				Name: MutatingWebhookName,
+				ClientConfig: admissionregv1.WebhookClientConfig{
+					Service: &admissionregv1.ServiceReference{
+						Namespace: osmNamespace,
+						Name:      constants.OSMInjectorName,
+						Path:      &webhookPath,
+						Port:      &webhookPort,
+					},
+					CABundle: cert.GetCertificateChain()},
+				FailurePolicy: &failuerPolicy,
+				MatchPolicy:   &matchPolict,
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: meshName,
+					},
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      constants.IgnoreLabel,
+							Operator: metav1.LabelSelectorOpDoesNotExist,
+						},
+						{
+							Key:      "name",
+							Operator: metav1.LabelSelectorOpNotIn,
+							Values:   []string{osmNamespace},
+						},
+						{
+							Key:      "control-plane",
+							Operator: metav1.LabelSelectorOpDoesNotExist,
+						},
+					},
+				},
+				Rules: []admissionregv1.RuleWithOperations{
+					{
+						Operations: []admissionregv1.OperationType{admissionregv1.Create},
+						Rule: admissionregv1.Rule{
+							APIGroups:   []string{"*"},
+							APIVersions: []string{"v1"},
+							Resources:   []string{"pods"},
+						},
+					},
+				},
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				TimeoutSeconds:          &webhookTimeout,
+				AdmissionReviewVersions: []string{"v1"}}},
+	}
+
+	if _, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), &mwhc, metav1.CreateOptions{}); err != nil {
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingMutatingWebhook)).
+			Msgf("Error creating MutatingWebhookConfiguration %s", webhookName)
+		return err
+	}
+
+	log.Info().Msgf("Finished creating MutatingWebhookConfiguration %s", webhookName)
+	return nil
 }

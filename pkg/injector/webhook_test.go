@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -64,19 +65,6 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 		})
 
-		mwc := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations()
-
-		It("checks if the hook exists", func() {
-			err := webhookExists(mwc, webhookName)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("checks if a non existent hook exists", func() {
-
-			err := webhookExists(mwc, webhookName+"blah")
-			Expect(err).To(HaveOccurred())
-		})
-
 		It("patches a webhook", func() {
 			err := updateMutatingWebhookCABundle(cert, webhookName, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
@@ -98,6 +86,72 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		})
 	})
 })
+
+func TestCreateMutatingWebhook(t *testing.T) {
+	assert := tassert.New(t)
+	cert := mockCertificate{}
+	webhookName := "--webhookName--"
+	webhookTimeout := int32(20)
+	meshName := "test-mesh"
+	osmNamespace := "test-namespace"
+	osmVersion := "test-version"
+	webhookPath := webhookCreatePod
+	webhookPort := int32(constants.InjectorWebhookPort)
+
+	kubeClient := fake.NewSimpleClientset()
+	err := createMutatingWebhook(kubeClient, cert, webhookTimeout, webhookName, meshName, osmNamespace, osmVersion)
+	assert.Nil(err)
+
+	webhooks, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
+	assert.Nil(err)
+	assert.Len(webhooks.Items, 1)
+
+	wh := webhooks.Items[0]
+	assert.Len(wh.Webhooks, 1)
+	assert.Equal(wh.ObjectMeta.Name, webhookName)
+	assert.EqualValues(wh.ObjectMeta.Labels, map[string]string{
+		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+		constants.OSMAppInstanceLabelKey: meshName,
+		constants.OSMAppVersionLabelKey:  osmVersion,
+		"app":                            constants.OSMInjectorName,
+		constants.ReconcileLabel:         strconv.FormatBool(true),
+	})
+
+	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Namespace, osmNamespace)
+	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Name, constants.OSMInjectorName)
+	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Path, &webhookPath)
+	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Port, &webhookPort)
+	assert.Equal(wh.Webhooks[0].ClientConfig.CABundle, []byte("chain"))
+
+	assert.Equal(wh.Webhooks[0].NamespaceSelector.MatchLabels[constants.OSMKubeResourceMonitorAnnotation], meshName)
+	assert.EqualValues(wh.Webhooks[0].NamespaceSelector.MatchExpressions, []metav1.LabelSelectorRequirement{
+		{
+			Key:      constants.IgnoreLabel,
+			Operator: metav1.LabelSelectorOpDoesNotExist,
+		},
+		{
+			Key:      "name",
+			Operator: metav1.LabelSelectorOpNotIn,
+			Values:   []string{osmNamespace},
+		},
+		{
+			Key:      "control-plane",
+			Operator: metav1.LabelSelectorOpDoesNotExist,
+		},
+	})
+	assert.ElementsMatch(wh.Webhooks[0].Rules, []admissionregv1.RuleWithOperations{
+		{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"*"},
+				APIVersions: []string{"v1"},
+				Resources:   []string{"pods"},
+			},
+		},
+	})
+	assert.Equal(wh.Webhooks[0].TimeoutSeconds, &webhookTimeout)
+	assert.Equal(wh.Webhooks[0].AdmissionReviewVersions, []string{"v1"})
+}
 
 type mockCertificate struct{}
 
@@ -484,6 +538,12 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 })
 
 var _ = Describe("Testing Injector Functions", func() {
+	meshName := "-mesh-name-"
+	osmNamespace := "-osm-namespace-"
+	webhookName := "-webhook-name-"
+	osmVersion := "-osm-version"
+	enableReconciler := false
+	webhookTimeout := int32(20)
 	admissionRequestBody := `{
   "kind": "AdmissionReview",
   "apiVersion": "admission.k8s.io/v1",
@@ -536,9 +596,6 @@ var _ = Describe("Testing Injector Functions", func() {
 		injectorConfig := Config{}
 		kubeClient := fake.NewSimpleClientset()
 		var kubeController k8s.Controller
-		meshName := "-mesh-name-"
-		osmNamespace := "-osm-namespace-"
-		webhookName := "-webhook-name-"
 		stop := make(<-chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
@@ -546,15 +603,12 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
 		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
 	})
 
 	It("creates new webhook", func() {
-		meshName := "-mesh-name-"
-		osmNamespace := "-osm-namespace-"
-		webhookName := "-webhook-name-"
 		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: webhookName,
@@ -570,8 +624,26 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
 		Expect(actualErr).NotTo(HaveOccurred())
+		close(stop)
+	})
+
+	It("creates new webhook with reconciler enabled", func() {
+		enableReconciler = true
+		kubeClient := fake.NewSimpleClientset()
+		var kubeController k8s.Controller
+		stop := make(chan struct{})
+		mockController := gomock.NewController(GinkgoT())
+		cfg := configurator.NewMockConfigurator(mockController)
+		certManager := tresor.NewFakeCertManager(cfg)
+
+		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+
+		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
+		Expect(actualErr).NotTo(HaveOccurred())
+		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
 		close(stop)
 	})
 
