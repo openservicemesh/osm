@@ -1,9 +1,13 @@
 #!/bin/bash
 # shellcheck disable=SC1091
 
+set -euo pipefail
+
 IMAGE_NAME="$1"
 OS="$2"
 IMAGE_REPO="$3"
+CTR_TAG="$4"
+VERIFY_TAGS="${VERIFY_TAGS:-false}"
 
 if [ -z "${IMAGE_NAME}" ]; then
     echo "Error: IMAGE_NAME not specified"
@@ -22,19 +26,22 @@ if [ -z "${CTR_TAG}" ]; then
     exit 1
 fi
 
-tokenUri="https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMAGE_REPO/$IMAGE_NAME:pull"
-bearerToken="$(curl --silent --get "$tokenUri" | jq --raw-output '.token')"
-listUri="https://registry-1.docker.io/v2/$IMAGE_REPO/$IMAGE_NAME/tags/list"
-authz="Authorization: Bearer $bearerToken"
-version_list="$(curl --silent --get -H "Accept: application/json" -H "$authz" "$listUri" | jq --raw-output '.')"
-exists=$(echo "$version_list" | jq --arg t "${CTR_TAG}" '.tags | index($t)')
-
-if [[ $exists == null ]]
-then
-    if [[ $OS == "linux" ]]; then
-        make docker-build-"$IMAGE_NAME"
-        docker push "$IMAGE_REPO/$IMAGE_NAME:${CTR_TAG}" || { echo "Error pushing images to container registry $CTR_REGISTRY/$IMAGE_NAME:$CTR_TAG"; exit 1; }
-    else
-        make ARGS=--push "docker-build-$IMAGE_NAME"
+if [[ "$VERIFY_TAGS" == "true" ]]; then
+    tokenUri="https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMAGE_REPO/$IMAGE_NAME:pull"
+    bearerToken="$(curl --silent --get "$tokenUri" | jq --raw-output '.token')"
+    listUri="https://registry-1.docker.io/v2/$IMAGE_REPO/$IMAGE_NAME/tags/list"
+    authz="Authorization: Bearer $bearerToken"
+    version_list="$(curl --silent --get -H "Accept: application/json" -H "$authz" "$listUri" | jq --raw-output '.')"
+    exists=$(echo "$version_list" | jq --arg t "${CTR_TAG}" '.tags | index($t)')
+    if [[ $exists != null ]]; then
+        echo "image $IMAGE_REPO/$IMAGE_NAME:$CTR_TAG already exists and \$VERIFY_TAGS is set"
+        exit 1
     fi
+fi
+
+if [[ $OS == "linux" ]]; then
+    make "docker-build-$IMAGE_NAME"
+    docker push "$IMAGE_REPO/$IMAGE_NAME:$CTR_TAG"
+else
+    make ARGS=--push "docker-build-windows-$IMAGE_NAME"
 fi
