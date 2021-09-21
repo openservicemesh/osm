@@ -5,7 +5,7 @@ BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
 CTR_REGISTRY    ?= openservicemesh
 CTR_TAG         ?= latest
-CTR_DIGEST_FILE ?= /tmp/osm_image_digest
+CTR_DIGEST_FILE ?= /tmp/osm_image_digest_$(CTR_TAG).txt
 VERIFY_TAGS ?= 0
 
 GOPATH = $(shell go env GOPATH)
@@ -253,7 +253,7 @@ DOCKER_PUSH_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init osm-controlle
 .PHONY: $(DOCKER_PUSH_CONTROL_PLANE_TARGETS)
 $(DOCKER_PUSH_CONTROL_PLANE_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_CONTROL_PLANE_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME) "linux"; fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh "$(NAME)" "linux" "$(CTR_REGISTRY)"; fi
 	@docker images --digests | grep "$(CTR_REGISTRY)/$(NAME)\s*$(CTR_TAG)" >> "$(CTR_DIGEST_FILE)"
 
 
@@ -262,7 +262,7 @@ DOCKER_PUSH_LINUX_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_PUSH_LINUX_TARGETS)
 $(DOCKER_PUSH_LINUX_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_LINUX_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh $(NAME) "linux"; fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make docker-build-$(NAME) && docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; else bash scripts/publish-image.sh "$(NAME)" "linux" "$(CTR_REGISTRY)"; fi
 
 
 # Windows demo applications
@@ -270,7 +270,7 @@ DOCKER_PUSH_WINDOWS_TARGETS = $(addprefix docker-push-windows-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_PUSH_WINDOWS_TARGETS)
 $(DOCKER_PUSH_WINDOWS_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_WINDOWS_TARGETS):
-	@if [ $(VERIFY_TAGS) != 1 ]; then make ARGS=--output=type=registry docker-build-$(NAME); else bash scripts/publish-image.sh $(addprefix windows-, $(NAME)) "windows"; fi
+	@if [ $(VERIFY_TAGS) != 1 ]; then make ARGS=--output=type=registry docker-build-$(NAME); else bash scripts/publish-image.sh "$(NAME)" "windows" "$(CTR_REGISTRY)"; fi
 
 
 .PHONY: docker-control-plane-push

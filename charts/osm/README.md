@@ -101,9 +101,15 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
-| OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy |
-| OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry |
-| OpenServiceMesh.image.tag | string | `"v0.9.2"` | Container image tag |
+| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmInjector":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
+| OpenServiceMesh.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
+| OpenServiceMesh.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
+| OpenServiceMesh.image.digest.osmController | string | `""` | osm-controller's image digest |
+| OpenServiceMesh.image.digest.osmInjector | string | `""` | osm-injector's image digest |
+| OpenServiceMesh.image.digest.osmSidecarInit | string | `""` | Sidecar init container's image digest |
+| OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
+| OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
+| OpenServiceMesh.image.tag | string | `"latest-main"` | Container image tag for control plane images |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | OpenServiceMesh.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
