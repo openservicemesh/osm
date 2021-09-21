@@ -41,8 +41,9 @@ func GetPodLogs(kubeClient kubernetes.Interface, namespace string, podName strin
 		fmt.Println("Error in opening stream: ", err)
 		os.Exit(1)
 	}
-
-	defer logStream.Close() //nolint: errcheck,gosec
+	//nolint: errcheck
+	//#nosec G307
+	defer logStream.Close()
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(logStream)
 	if err != nil {
@@ -147,7 +148,9 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 
 	go func() {
 		defer close(result)
-		defer logStream.Close() //nolint: errcheck,gosec
+		//nolint: errcheck
+		//#nosec G307
+		defer logStream.Close()
 
 		r := bufio.NewReader(logStream)
 		type readResult struct {
