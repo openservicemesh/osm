@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -45,7 +44,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Expect it to be up and running in it's receiver namespace
-				Expect(Td.WaitForPodsRunningReady(sourceNs, 240*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceNs, Td.PodDeploymentTimeout, 1, nil)).To(Succeed())
 				protocols := []string{
 					"http://",
 					"https://",
@@ -59,12 +58,6 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 					for _, test := range egressURLs {
 						urls = append(urls, protocol+test)
 					}
-				}
-
-				waitTime := 60 * time.Second
-				if Td.ClusterOS == constants.OSWindows {
-					//TODO(#4027): Make the timeouts equal on all platforms.
-					waitTime = 5 * 60 * time.Second
 				}
 
 				for _, url := range urls {
@@ -83,7 +76,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 						}
 						Td.T.Logf("%s > REST req succeeded: %d", url, result.StatusCode)
 						return true
-					}, 5, waitTime)
+					}, 5, Td.ReqSuccessTimeout)
 					Expect(cond).To(BeTrue())
 				}
 
