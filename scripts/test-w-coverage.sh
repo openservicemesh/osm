@@ -14,9 +14,10 @@ readarray -t modules < <(go list ./... | \
 
 go test -timeout 120s \
    -failfast \
+   -race \
    -v \
    -coverprofile=coverage.txt.with_generated_code \
-   -covermode count "${modules[@]}" | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
+   -covermode atomic "${modules[@]}" | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
 # shellcheck disable=SC2002
 cat coverage.txt.with_generated_code | grep -v "_generated.go" | grep -v "fake.go" | grep -v "pkg/gen" | grep -v "pkg/apis" > coverage.txt
