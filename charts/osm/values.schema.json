@@ -826,7 +826,6 @@
                         "enableEgressPolicy",
                         "enableMulticlusterMode",
                         "enableAsyncProxyServiceMapping",
-                        "enableValidatingWebhook",
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
                         "enableSnapshotCacheMode",
@@ -865,15 +864,6 @@
                             "type": "boolean",
                             "title": "Enable async proxy-service mapping",
                             "description": "Enable async proxy-service mapping",
-                            "examples": [
-                                true
-                            ]
-                        },
-                        "enableValidatingWebhook": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableValidatingWebhook",
-                            "type": "boolean",
-                            "title": "Enable kubernetes validating webhook",
-                            "description": "Enable kubernetes validating webhook",
                             "examples": [
                                 true
                             ]
