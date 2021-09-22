@@ -1,3 +1,4 @@
+{{- if not .Values.OpenServiceMesh.enableReconciler }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
@@ -47,3 +48,4 @@ webhooks:
   # Default k8s timeout is 10s if a timeout is not specified. This is set to 20s to account for slowness in scale environments.
   timeoutSeconds: {{.Values.OpenServiceMesh.injector.webhookTimeoutSeconds}}
   admissionReviewVersions: ["v1"]
+  {{- end }}

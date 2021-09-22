@@ -30,12 +30,12 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 	// Initialize informers
 	informerInitHandlerMap := map[k8s.InformerKey]func(){
 		CrdInformerKey:             c.initCustomResourceDefinitionMonitor,
-		mutatingWebhookInformerKey: c.initMutatingWebhookConfigurationMonitor,
+		MutatingWebhookInformerKey: c.initMutatingWebhookConfigurationMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []k8s.InformerKey{CrdInformerKey, mutatingWebhookInformerKey}
+		selectInformers = []k8s.InformerKey{CrdInformerKey, MutatingWebhookInformerKey}
 	}
 
 	for _, informer := range selectInformers {
@@ -80,10 +80,10 @@ func (c *client) initMutatingWebhookConfigurationMonitor() {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(c.kubeClient, k8s.DefaultKubeEventResyncInterval, option)
 
 	// Add informer
-	c.informers[mutatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().MutatingWebhookConfigurations().Informer()
+	c.informers[MutatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().MutatingWebhookConfigurations().Informer()
 
 	// Add event handler to informer
-	c.informers[mutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
+	c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
 }
 
 func (c *client) run(stop <-chan struct{}) error {

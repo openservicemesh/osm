@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiServerClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +23,7 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -46,10 +48,14 @@ var (
 	webhookConfigName  string
 	caBundleSecretName string
 	osmMeshConfigName  string
+	webhookTimeout     int32
+	osmVersion         string
 
 	injectorConfig injector.Config
 
 	certProviderKind string
+
+	enableReconciler bool
 
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
@@ -69,7 +75,9 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-injector")
+	flags.Int32Var(&webhookTimeout, "webhook-timeout", int32(20), "Timeout of the MutatingWebhookConfiguration")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
 
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
@@ -89,6 +97,9 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
+
+	// Reconciler options
+	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs and mutating webhook")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -110,6 +121,7 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
+	apiServerClient := apiServerClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-injector pod resource
 	injectorPod, err := getInjectorPod(kubeClient)
@@ -159,7 +171,7 @@ func main() {
 	}
 
 	// Initialize the sidecar injector webhook
-	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
+	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
@@ -177,9 +189,12 @@ func main() {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
-	// Initialize the reconciler for the injector's MutatingWebhookConfiguration
-	if err := createReconciler(kubeClient); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile sidecar injector webhook config")
+	if enableReconciler {
+		log.Info().Msgf("OSM reconciler enabled for sidecar injector webhook")
+		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, stop, reconciler.MutatingWebhookInformerKey)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile mutating webhook")
+		}
 	}
 
 	<-stop

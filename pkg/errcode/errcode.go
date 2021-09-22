@@ -34,9 +34,6 @@ const (
 	// ErrFetchingInjectorPod indicates the osm-injector pod resource could not be fetched
 	ErrFetchingInjectorPod
 
-	// ErrStartingReconcileManager indicates the controller-runtime Manager failed to start
-	ErrStartingReconcileManager
-
 	// ErrStartingIngressClient indicates the Ingress client failed to start
 	ErrStartingIngressClient
 
@@ -313,6 +310,9 @@ const (
 	// ErrUpdatingMutatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
 	ErrUpdatingMutatingWebhookCABundle
 
+	// ErrCreatingMutatingWebhook indicates the MutatingWebhookConfiguration could not be created
+	ErrCreatingMutatingWebhook
+
 	// ErrReadingAdmissionReqBody indicates the AdmissionRequest body could not be read
 	ErrReadingAdmissionReqBody
 
@@ -396,11 +396,6 @@ The osm-controller k8s pod resource was not able to be retrieved by the system.
 
 	ErrFetchingInjectorPod: `
 The osm-injector k8s pod resource was not able to be retrieved by the system.
-`,
-
-	ErrStartingReconcileManager: `
-The controller-runtime manager for the MutatingWebhookConfigurartion's
-reconciler failed to start.
 `,
 
 	ErrStartingIngressClient: `
@@ -812,6 +807,10 @@ No port exclusions are added to the init container's spec.
 
 	ErrUpdatingMutatingWebhookCABundle: `
 The MutatingWebhookConfiguration could not be patched with the CA Bundle.
+`,
+
+	ErrCreatingMutatingWebhook: `
+The MutatingWebhookConfiguration could not be created.
 `,
 
 	ErrReadingAdmissionReqBody: `
