@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	meshName = "test-mesh"
+	meshName   = "test-mesh"
+	osmVersion = "test-version"
 )
 
 func TestCRDEventHandlerUpdateFunc(t *testing.T) {
@@ -464,7 +465,7 @@ func TestCRDEventHandlerDeleteFunc(t *testing.T) {
 
 	a := tassert.New(t)
 	kubeClient := testclient.NewSimpleClientset()
-	apiServerClient := apiservertestclient.NewSimpleClientset(&originalCrd)
+	apiServerClient := apiservertestclient.NewSimpleClientset()
 
 	c := client{
 		kubeClient:      kubeClient,

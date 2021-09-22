@@ -34,7 +34,7 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(webhookConfigName string, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
+func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler bool, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
 	v := &validatingWebhookServer{
 		validators: map[string]validateFunc{
 			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String(): ingressBackendValidator,
@@ -42,9 +42,16 @@ func NewValidatingWebhook(webhookConfigName string, port int, certificater certi
 		},
 	}
 
-	// Update the updateValidatingWebhookConfig with the OSM CA bundle
-	if err := updateValidatingWebhookCABundle(webhookConfigName, certificater, kubeClient); err != nil {
-		return errors.Wrapf(err, "Error configuring ValidatingWebhookConfiguration %s", webhookConfigName)
+	if enableReconciler {
+		// Create the ValidatingWebhook
+		if err := createValidatingWebhook(kubeClient, certificater, webhookConfigName, meshName, osmNamespace, osmVersion); err != nil {
+			return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		}
+	} else {
+		// Update the updateValidatingWebhookConfig with the OSM CA bundle, as the MutatingWebhook is created via Helm
+		if err := updateValidatingWebhookCABundle(webhookConfigName, certificater, kubeClient); err != nil {
+			return errors.Wrapf(err, "Error configuring ValidatingWebhookConfiguration %s", webhookConfigName)
+		}
 	}
 
 	go v.run(port, certificater, stop)

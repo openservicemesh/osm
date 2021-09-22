@@ -60,6 +60,7 @@ spec:
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-version", "{{ .Chart.AppVersion }}",
             "--osm-service-account", "{{ .Release.Name }}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
@@ -73,6 +74,7 @@ spec:
             "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.OpenServiceMesh.enableReconciler}}",
           ]
           resources:
             limits:
