@@ -1,6 +1,8 @@
 package events
 
 import (
+	"sync"
+
 	"github.com/cskr/pubsub"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -14,6 +16,9 @@ const (
 var (
 	// Globally accessible instance, through singleton pattern using getPubSubInstance()
 	pubSubInstance *pubsub.PubSub
+
+	// pubSubOnce is used to ensure PubSub object creation happens just once
+	pubSubOnce sync.Once
 )
 
 // Subscribe is the Subscribe implementation for PubSub
@@ -59,8 +64,8 @@ func Unsub(unsubChan chan interface{}) {
 // Note that spawning the instance is not thread-safe. First call should happen on
 // a single-routine context to avoid races.
 func getPubSubInstance() *pubsub.PubSub {
-	if pubSubInstance == nil {
+	pubSubOnce.Do(func() {
 		pubSubInstance = pubsub.New(defaultAnnouncementChannelSize)
-	}
+	})
 	return pubSubInstance
 }
