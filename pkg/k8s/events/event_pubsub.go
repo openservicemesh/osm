@@ -28,11 +28,14 @@ func Subscribe(aTypes ...announcements.Kind) chan interface{} {
 		subTypes = append(subTypes, string(v))
 	}
 
-	return getPubSubInstance().Sub(subTypes...)
+	c := getPubSubInstance().Sub(subTypes...)
+	log.Trace().Msgf("subscribing to events %v on channel %v", aTypes, c)
+	return c
 }
 
 // Publish is the Publish implementation for PubSub
 func Publish(message PubSubMessage) {
+	log.Trace().Msgf("publishing event kind %s", message.Kind)
 	getPubSubInstance().Pub(message, message.Kind.String())
 }
 
@@ -41,6 +44,8 @@ func Publish(message PubSubMessage) {
 // unsubbed to all topics and closed.
 // This is a necessary step to guarantee garbage collection
 func Unsub(unsubChan chan interface{}) {
+	log.Trace().Msgf("unsubscribing from events on channel %v", unsubChan)
+
 	// implementation has several requirements (including different goroutine context)
 	// https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L102
 
