@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiServerClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -99,7 +98,7 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
 	// Reconciler options
-	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs and mutating webhook")
+	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -121,7 +120,6 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
-	apiServerClient := apiServerClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-injector pod resource
 	injectorPod, err := getInjectorPod(kubeClient)
@@ -191,9 +189,9 @@ func main() {
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for sidecar injector webhook")
-		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, stop, reconciler.MutatingWebhookInformerKey)
+		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, stop, reconciler.MutatingWebhookInformerKey)
 		if err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile mutating webhook")
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile sidecar injector webhook")
 		}
 	}
 

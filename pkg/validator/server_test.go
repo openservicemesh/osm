@@ -135,6 +135,10 @@ func TestHandleValidation(t *testing.T) {
 }
 
 func TestNewValidatingWebhook(t *testing.T) {
+	testNamespace := "test-namespace"
+	testMeshName := "test-mesh"
+	testVersion := "test-version"
+	enableReconciler := false
 	t.Run("error updating ValidatingWebhookConfig", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		cert := certificate.NewMockCertificater(mockCtrl)
@@ -142,7 +146,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 
 		kube := fake.NewSimpleClientset()
 
-		err := NewValidatingWebhook("my-webhook", 0, cert, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, 0, cert, kube, nil)
 		tassert.Error(t, err)
 	})
 
@@ -162,7 +166,23 @@ func TestNewValidatingWebhook(t *testing.T) {
 		}
 		kube := fake.NewSimpleClientset(webhook)
 
-		err := NewValidatingWebhook(webhook.Name, port, cert, kube, nil)
+		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, port, cert, kube, nil)
+		tassert.NoError(t, err)
+	})
+
+	t.Run("successful startup with reconciler enabled", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		cert := certificate.NewMockCertificater(mockCtrl)
+		cert.EXPECT().GetCertificateChain().AnyTimes()
+		cert.EXPECT().GetPrivateKey().AnyTimes()
+		enableReconciler = true
+
+		port := 41414
+		stop := make(chan struct{})
+		defer close(stop)
+		kube := fake.NewSimpleClientset()
+
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, port, cert, kube, nil)
 		tassert.NoError(t, err)
 	})
 }

@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -26,11 +25,6 @@ var _ = OSMDescribe("Test OSM Reconciler",
 				installOpts := Td.GetOSMInstallOpts()
 				installOpts.EnableReconciler = true
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-
-				_, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{"app": OsmBootstrapAppLabel}).String(),
-				})
-				Expect(err).NotTo(HaveOccurred())
 
 				// Get the meshConfig crd
 				crd, err := Td.APIServerClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), "meshconfigs.config.openservicemesh.io", metav1.GetOptions{})
@@ -64,11 +58,6 @@ var _ = OSMDescribe("Test OSM Reconciler",
 				installOpts.EnableReconciler = true
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
-				_, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{"app": OsmInjectorAppLabel}).String(),
-				})
-				Expect(err).NotTo(HaveOccurred())
-
 				// Get the mutating webhook
 				mwhc, err := Td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), "osm-webhook-osm", metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -92,6 +81,40 @@ var _ = OSMDescribe("Test OSM Reconciler",
 				// verify the mutating webhook exists in the cluster after deletion
 				Eventually(func() error {
 					_, err = Td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), "osm-webhook-osm", metav1.GetOptions{})
+					return err
+				}, 3*time.Second).Should(BeNil())
+			})
+
+			It("Update and delete validating webhook configuration", func() {
+
+				// Install OSM with reconciler enabled
+				installOpts := Td.GetOSMInstallOpts()
+				installOpts.EnableReconciler = true
+				Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+				// Get the validating webhook
+				vwhc, err := Td.Client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), "osm-validator-mesh-osm", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				originalWebhookServiceName := vwhc.Webhooks[0].ClientConfig.Service.Name
+
+				// update the webhook service name
+				vwhc.Webhooks[0].ClientConfig.Service.Name = "random-new-service"
+				_, err = Td.Client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), vwhc, metav1.UpdateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// verify that validating webhook remains unchanged
+				Eventually(func() (string, error) {
+					updatedVwhc, err := Td.Client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), "osm-validator-mesh-osm", metav1.GetOptions{})
+					return updatedVwhc.Webhooks[0].ClientConfig.Service.Name, err
+				}, 3*time.Second).Should(Equal(originalWebhookServiceName))
+
+				// delete the validating webhook
+				err = Td.Client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.Background(), "osm-validator-mesh-osm", metav1.DeleteOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// verify the validating webhook exists in the cluster after deletion
+				Eventually(func() error {
+					_, err = Td.Client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), "osm-validator-mesh-osm", metav1.GetOptions{})
 					return err
 				}, 3*time.Second).Should(BeNil())
 			})

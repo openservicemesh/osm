@@ -26,6 +26,7 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -57,7 +58,6 @@ import (
 
 const (
 	xdsServerCertificateCommonName = "ads"
-	validatorWebhookSvc            = "osm-validator"
 )
 
 var (
@@ -68,12 +68,15 @@ var (
 	validatorWebhookConfigName string
 	caBundleSecretName         string
 	osmMeshConfigName          string
+	osmVersion                 string
 
 	certProviderKind string
 
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
+
+	enableReconciler bool
 
 	scheme = runtime.NewScheme()
 )
@@ -90,6 +93,7 @@ func init() {
 	flags.StringVar(&osmServiceAccount, "osm-service-account", "", "OSM controller's service account")
 	flags.StringVar(&validatorWebhookConfigName, "validator-webhook-config", "", "Name of the ValidatingWebhookConfiguration for the resource validator webhook")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -106,6 +110,9 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
+
+	// Reconciler options
+	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -245,13 +252,13 @@ func main() {
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
 	webhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorWebhookSvc, osmNamespace)),
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validator.ValidatorWebhookSvc, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
 	}
 
-	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
+	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 
@@ -282,6 +289,14 @@ func main() {
 	debugConfig.StartDebugServerConfigListener()
 
 	k8s.PatchSecretHandler(kubeClient)
+
+	if enableReconciler {
+		log.Info().Msgf("OSM reconciler enabled for validating webhook")
+		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, stop, reconciler.ValidatingWebhookInformerKey)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile validating webhook")
+		}
+	}
 
 	<-stop
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)

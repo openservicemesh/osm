@@ -1,3 +1,4 @@
+{{- if not .Values.OpenServiceMesh.enableReconciler }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -41,3 +42,4 @@ webhooks:
         - egresses
   sideEffects: NoneOnDryRun
   admissionReviewVersions: ["v1"]
+{{- end }}

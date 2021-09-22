@@ -93,7 +93,7 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
 	// Reconciler options
-	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs and mutating webhook")
+	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
