@@ -1,6 +1,7 @@
 package ticker
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -44,6 +45,7 @@ func TestTicker(t *testing.T) {
 	broadcastEvents := events.Subscribe(announcements.ScheduleProxyBroadcast)
 	defer events.Unsub(broadcastEvents)
 
+	var counterMutex sync.Mutex
 	broadcastsReceived := 0
 	stop := make(chan struct{})
 	defer close(stop)
@@ -51,7 +53,9 @@ func TestTicker(t *testing.T) {
 		for {
 			select {
 			case <-broadcastEvents:
+				counterMutex.Lock()
 				broadcastsReceived++
+				counterMutex.Unlock()
 			case <-stop:
 				return
 			}
@@ -73,6 +77,8 @@ func TestTicker(t *testing.T) {
 
 	// broadcast events should increase in the next few seconds
 	assert.Eventually(func() bool {
+		counterMutex.Lock()
+		defer counterMutex.Unlock()
 		return broadcastsReceived > 0
 	}, 3*time.Second, 500*time.Millisecond)
 
@@ -83,6 +89,8 @@ func TestTicker(t *testing.T) {
 
 	// Should stop increasing
 	assert.Eventually(func() bool {
+		counterMutex.Lock()
+		defer counterMutex.Unlock()
 		firstRead := broadcastsReceived
 		time.Sleep(1 * time.Second)
 		secondRead := broadcastsReceived
