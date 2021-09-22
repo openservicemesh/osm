@@ -229,8 +229,6 @@ spec:
                       type: boolean
                     enableAsyncProxyServiceMapping:
                       type: boolean
-                    enableValidatingWebhook:
-                      type: boolean
                     enableIngressBackendPolicy:
                       type: boolean
                     enableEnvoyActiveHealthChecks:
