@@ -193,9 +193,6 @@ type FeatureFlags struct {
 	//EnableAsyncProxyServiceMapping defines if OSM will map proxies to services asynchronously.
 	EnableAsyncProxyServiceMapping bool `json:"enableAsyncProxyServiceMapping,omitempty"`
 
-	// EnableValidatingWebhook defines if the OSM controller will create a validating webhook handler.
-	EnableValidatingWebhook bool `json:"enableValidatingWebhook,omitempty"`
-
 	// EnableIngressBackendPolicy defines if OSM will use the IngressBackend API to allow ingress traffic to
 	// service mesh backends.
 	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy,omitempty"`
