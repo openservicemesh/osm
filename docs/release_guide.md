@@ -40,6 +40,7 @@ Identify the base commit in the `main` branch for the release and cut a release 
 ```console
 $ git checkout -b release-<version> <commit-id> # ex: git checkout -b release-v0.4 0d05587
 ```
+> Note: Care must be taken to ensure the release branch is created from a commit meant for the release. If unsure about the commit to use to create the release branch, please open an issue in the `osm` repo and a maintainer will assist you with this.
 
 Push the release branch to the upstream repo (NOT forked), identified here by the `upstream` remote.
 ```console
@@ -110,25 +111,27 @@ upload the packaged binaries and checksums as release assets, build and push Doc
 In the description section of the new release, add information about feature additions, bug fixes,
 and any other administrative tasks completed on the repository.
 
-## Update docs site
+## Update documentation and docs.openservicemesh.io website
 
-In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update any version references in the manual demo.
+### 1. Create the release specific branch in osm-docs repo
 
-  - [This demo of OSM <version_number> requires:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L13)
-  - [Download the 64-bit GNU/Linux or macOS binary of OSM <version_number>:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L30)
-  - [release=<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L33)
-  - [Download the 64-bit Windows OSM <version_number> binary via Powershell:](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L40)
-  - [wget  https://github.com/openservicemesh/osm/releases/download/<version_number>/osm-<version_number>-windows-amd64.zip -o osm.zip](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L42)
-  - [image: openservicemesh/bookbuyer:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L199)
-  - [image: openservicemesh/bookthief:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L231)
-  - [image: openservicemesh/bookstore:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L283)
-  - [image: openservicemesh/bookwarehouse:<version_number>](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md#L339)
+If a branch corresponding to the Major.Minor version is not available in the [osm-docs](https://github.com/openservicemesh/osm-docs) repo, create it based on https://github.com/openservicemesh/osm-docs/blob/main/README.md#adding-release-specific-docs. For example, to publish the documentation for v0.10.0, there must exist a release-v0.10 branch in the `osm-docs` repo.
 
-### Update API reference documentation
+*Note:
+1. Do not create a branch for patch releases. The same documentation is used for patches having the same Major.Minor version.
+1. Care must be taken to ensure the release branch is created from a commit that meant for the release. If unsure about the commit to use to create the release branch, please open an issue in the `osm-docs` repo and a maintainer will assist you with this.
+
+### 2. Update version references to the latest version for the given Major.Minor version
+
+For example, when v0.10.1 is being released, update all the version references from v0.10.0 to v0.10.1 to reflect the latest documentation for the Major.Minor version. The suggested way is to search for hard coded instances of the current version number and release branch name in the osm-docs repo, then update the ones that may break users' experiences if they follow the documentation, such as demonstration commands, reference links and anything that is strongly related to the next release.
+
+See https://github.com/openservicemesh/osm-docs/pull/109 for an example of the update from v0.8.4 to v0.9.0.
+
+### 3. Update API reference documentation
 
 Follow the [Generating API Reference Documentation](/docs/api_reference/README) guide to update the API references on the docs site.
 
-### Update error code documentation
+### 4. Update error code documentation
 
 In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update the OSM error code table.
 
@@ -149,6 +152,7 @@ In the docs site's main branch, edit the file [https://github.com/openservicemes
 1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
 
+
 ## Announce the new release
 
 Make an announcement on the [OSM mailing list](https://groups.google.com/g/openservicemesh) and [OSM Slack channel](https://cloud-native.slack.com/archives/openservicemesh) after you [join CNCF Slack](https://slack.cncf.io/).
@@ -158,16 +162,6 @@ Make an announcement on the [OSM mailing list](https://groups.google.com/g/opens
 Skip this step if the release is a release candidate (RC).
 
 Open a pull request against the `main` branch to update the `version` field in `charts/osm/Chart.yaml` to the release version.
-
-## Make version changes on docs.openservicemesh.io
-
-**Note**: do not perform this step for pre-releases.
-
-Associated version numbers need to be updated in the [docs.openservicemesh.io](https://github.com/openservicemesh/osm-docs/) repo.
-
-The suggested way is to search for hard coded instances of the current version number and release branch name in the osm-docs repo, then update the ones that may break users' experiences if they follow the documentation, such as demonstration commands, reference links and anything that is strongly related to the next release. We don't need to update the version numbers that just serve the purpose of examples, like [this](https://github.com/openservicemesh/osm-docs/blob/4fea5fa72dd419c7561bb99acd710ee555e0716f/README.md#adding-release-specific-docs).
-
-See https://github.com/openservicemesh/osm-docs/pull/109 for an example of the update from v0.8.4 to v0.9.0.
 
 ## Workflow Diagram
 
