@@ -15,6 +15,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server before 
 	OSMDescribeInfo{
 		Tier:   2,
 		Bucket: 1,
+		OS:     OSCrossPlatform,
 	},
 	func() {
 		Context("SimpleClientServer traffic test involving osm-controller restart: HTTP", func() {
@@ -40,14 +41,7 @@ func testHTTPTrafficWithControllerRestart() {
 		}
 
 		// Get simple pod definitions for the HTTP server
-		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
-			SimplePodAppDef{
-				PodName:   destName,
-				Namespace: destName,
-				Image:     "kennethreitz/httpbin",
-				Ports:     []int{80},
-				OS:        Td.ClusterOS,
-			})
+		svcAccDef, podDef, svcDef, err := Td.GetOSSpecificHTTPBinPod(destName, destName)
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
@@ -88,7 +82,7 @@ func testHTTPTrafficWithControllerRestart() {
 			SourcePod:       srcPod.Name,
 			SourceContainer: srcPod.Name,
 
-			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+			Destination: fmt.Sprintf("%s.%s.svc.cluster.local", dstSvc.Name, dstSvc.Namespace),
 		}
 
 		srcToDestStr := fmt.Sprintf("%s -> %s",
@@ -105,7 +99,7 @@ func testHTTPTrafficWithControllerRestart() {
 			}
 			Td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 			return true
-		}, 5, 90*time.Second)
+		}, 5, Td.ReqSuccessTimeout)
 
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s to destination service %s", srcPod.Name, dstSvc.Name)
 
@@ -124,7 +118,7 @@ func testHTTPTrafficWithControllerRestart() {
 			}
 			Td.T.Logf("%s > (%s) HTTP Req succeeded: %d", time.Now(), srcToDestStr, result.StatusCode)
 			return true
-		}, 20, 80*time.Second)
+		}, 20, Td.ReqSuccessTimeout)
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s to destination service %s after osm-controller restart", srcPod.Name, dstSvc.Name)
 	})
 }

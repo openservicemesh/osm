@@ -16,6 +16,10 @@ var _ = OSMDescribe("Test TCP traffic from 1 pod client -> egress server",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 9,
+		// TODO(#1610): This test assumes that the user can create a pod that is not part of the mesh.
+		// On Windows we set the HNS policies on all pods on the cluster and as a result we can't
+		// have pods that are not part of the mesh. This will be resolved when OSM CNI is available.
+		OS: constants.OSLinux,
 	},
 	func() {
 		Context("SimpleClientServer egress TCP", func() {

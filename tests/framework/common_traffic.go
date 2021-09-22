@@ -134,8 +134,18 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 
 // TCPRequest runs a synchronous TCP request to run the TCPRequestDef and return a TCPRequestResult
 func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
-	commandArgs := fmt.Sprintf("echo \"%s\" | nc %s %d", req.Message, req.DestinationHost, req.DestinationPort)
-	command := []string{"sh", "-c", commandArgs}
+	var command []string
+	if td.ClusterOS == constants.OSWindows {
+		powershellCommand := fmt.Sprintf("$IP = [System.Net.Dns]::GetHostAddresses('%s');", req.DestinationHost) +
+			fmt.Sprintf("$Socket = New-Object System.Net.Sockets.TCPClient($IP, %d);", req.DestinationPort) +
+			"$Stream = $Socket.GetStream(); $Writer = New-Object System.IO.StreamWriter($Stream);" +
+			fmt.Sprintf(" $Writer.WriteLine('%s'); $Writer.Flush();", req.Message) +
+			"$reader = New-Object System.IO.StreamReader($Stream); Write-Host -NoNewline $reader.ReadLine()"
+		command = []string{"pwsh.exe", "-c", powershellCommand}
+	} else {
+		commandArgs := fmt.Sprintf("echo \"%s\" | nc %s %d", req.Message, req.DestinationHost, req.DestinationPort)
+		command = []string{"sh", "-c", commandArgs}
+	}
 
 	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
 	if err != nil {

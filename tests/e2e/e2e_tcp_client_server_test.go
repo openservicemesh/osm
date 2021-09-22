@@ -11,7 +11,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -20,6 +19,7 @@ var _ = OSMDescribe("Test TCP traffic from 1 pod client -> 1 pod server",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 8,
+		OS:     OSCrossPlatform,
 	},
 	func() {
 		Context("SimpleClientServer TCP with SMI policies", func() {
@@ -56,17 +56,8 @@ func testTCPTraffic(permissiveMode bool) {
 		destinationPort := 80
 
 		// Get simple pod definitions for the TCP server
-		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
-			SimplePodAppDef{
-				PodName:     framework.RandomNameWithPrefix("pod"),
-				Namespace:   destNs,
-				Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
-				Command:     []string{"/tcp-echo-server"},
-				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
-				Ports:       []int{destinationPort},
-				AppProtocol: constants.ProtocolTCP,
-				OS:          Td.ClusterOS,
-			})
+		svcAccDef, podDef, svcDef, err := Td.GetOSSpecificTCPEchoPod(framework.RandomNameWithPrefix("pod"), destNs, destinationPort)
+
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = Td.CreateServiceAccount(destNs, &svcAccDef)
@@ -115,7 +106,7 @@ func testTCPTraffic(permissiveMode bool) {
 			SourcePod:       srcPod.Name,
 			SourceContainer: srcPod.Name,
 
-			DestinationHost: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+			DestinationHost: fmt.Sprintf("%s.%s.svc.cluster.local", dstSvc.Name, dstSvc.Namespace),
 			DestinationPort: destinationPort,
 			Message:         requestMsg,
 		}
@@ -140,7 +131,7 @@ func testTCPTraffic(permissiveMode bool) {
 			}
 			Td.T.Logf("> (%s) TCP Req succeeded, response: %s", srcToDestStr, result.Response)
 			return true
-		}, 5, 90*time.Second)
+		}, 5, Td.ReqSuccessTimeout)
 
 		Expect(cond).To(BeTrue(), "Failed testing TCP traffic from %s", srcToDestStr)
 
