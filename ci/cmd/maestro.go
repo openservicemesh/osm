@@ -30,17 +30,15 @@ const (
 	bookstoreV1Label   = "bookstore-v1"
 	bookstoreV2Label   = "bookstore-v2"
 	bookWarehouseLabel = "bookwarehouse"
-
-	selectorKey = "app"
 )
 
 var (
-	osmControllerPodSelector = fmt.Sprintf("%s=%s", selectorKey, constants.OSMControllerName)
-	bookThiefSelector        = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
-	bookBuyerSelector        = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
-	bookstoreV1Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV1Label)
-	bookstoreV2Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV2Label)
-	bookWarehouseSelector    = fmt.Sprintf("%s=%s", selectorKey, bookWarehouseLabel)
+	osmControllerPodSelector = fmt.Sprintf("%s=%s", constants.AppLabel, constants.OSMControllerName)
+	bookThiefSelector        = fmt.Sprintf("%s=%s", constants.AppLabel, bookThiefLabel)
+	bookBuyerSelector        = fmt.Sprintf("%s=%s", constants.AppLabel, bookBuyerLabel)
+	bookstoreV1Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV1Label)
+	bookstoreV2Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV2Label)
+	bookWarehouseSelector    = fmt.Sprintf("%s=%s", constants.AppLabel, bookWarehouseLabel)
 
 	osmNamespace    = utils.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
 	bookbuyerNS     = utils.GetEnv(maestro.BookbuyerNamespaceEnvVar, "bookbuyer")

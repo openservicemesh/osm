@@ -576,7 +576,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 // RestartOSMController restarts the osm-controller pod in the installed controller's namespace
 func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
@@ -647,20 +647,20 @@ func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: appName,
 			Labels: map[string]string{
-				"app": appName,
+				constants.AppLabel: appName,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": appName,
+					constants.AppLabel: appName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": appName,
+						constants.AppLabel: appName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -768,13 +768,13 @@ tail /dev/random;
 		ObjectMeta: metav1.ObjectMeta{
 			Name: appName,
 			Labels: map[string]string{
-				"app": appName,
+				constants.AppLabel: appName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeLoadBalancer,
 			Selector: map[string]string{
-				"app": appName,
+				constants.AppLabel: appName,
 			},
 			Ports: []corev1.ServicePort{
 				{
@@ -1368,7 +1368,7 @@ func (td *OsmTestData) GetOsmCtlComponentRestarts() map[string]int {
 	for _, ctlAppLabel := range OsmCtlLabels {
 		pods, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": ctlAppLabel,
+				constants.AppLabel: ctlAppLabel,
 			},
 		})
 		if err != nil {

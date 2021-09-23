@@ -672,7 +672,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 			proxyUUID := uuid.New()
 			namespace := uuid.New().String()
 			podlabels := map[string]string{
-				tests.SelectorKey:                tests.SelectorValue,
+				constants.AppLabel:               tests.SelectorValue,
 				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 			}
 

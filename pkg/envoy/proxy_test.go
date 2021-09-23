@@ -241,11 +241,11 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			namespace := uuid.New().String()
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			podlabels := map[string]string{
-				tests.SelectorKey:                tests.SelectorValue,
+				constants.AppLabel:               tests.SelectorValue,
 				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 			}
 			someOthePodLabels := map[string]string{
-				tests.SelectorKey:                tests.SelectorValue,
+				constants.AppLabel:               tests.SelectorValue,
 				constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID,
 			}
 

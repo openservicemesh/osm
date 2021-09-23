@@ -13,7 +13,7 @@ import (
 
 // GetOSMInjectorPods returns a list of osm-injector pods in the namespace
 func GetOSMInjectorPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMInjectorName}}
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMInjectorName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}

@@ -117,7 +117,7 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([
 // getControllerDeployments returns a list of Deployments corresponding to osm-controller
 func getControllerDeployments(clientSet kubernetes.Interface) (*appsv1.DeploymentList, error) {
 	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}

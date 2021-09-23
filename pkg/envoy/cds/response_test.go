@@ -103,7 +103,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 
 	podlabels := map[string]string{
-		tests.SelectorKey:                testMeshSvc.Name,
+		constants.AppLabel:               testMeshSvc.Name,
 		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 	}
 

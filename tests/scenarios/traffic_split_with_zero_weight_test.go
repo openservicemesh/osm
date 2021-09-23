@@ -313,7 +313,7 @@ func TestRDSRespose(t *testing.T) {
 func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 	// Create pod for bookbuyer
 	bookbuyerPodLabels := map[string]string{
-		tests.SelectorKey:                tests.BookbuyerService.Name,
+		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
@@ -322,7 +322,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 
 	// Create pod for bookstore-v1
 	bookstoreV1PodLabels := map[string]string{
-		tests.SelectorKey:                tests.BookstoreV1ServiceName,
+		constants.AppLabel:               tests.BookstoreV1ServiceName,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookstoreV1ServiceName, tests.BookstoreServiceAccountName, bookstoreV1PodLabels); err != nil {
@@ -331,7 +331,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 
 	// Create a pod for bookstore-v2
 	bookstoreV2PodLabels := map[string]string{
-		tests.SelectorKey:                tests.BookstoreV1ServiceName,
+		constants.AppLabel:               tests.BookstoreV1ServiceName,
 		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookstoreV2ServiceName, tests.BookstoreServiceAccountName, bookstoreV2PodLabels); err != nil {
@@ -341,7 +341,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 	// Create service for bookstore-v1 and bookstore-v2
 	for _, svcName := range []string{tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
 		selectors := map[string]string{
-			tests.SelectorKey: svcName,
+			constants.AppLabel: svcName,
 		}
 		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
 			return nil, err
@@ -351,7 +351,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 	// Create service for traffic split apex
 	for _, svcName := range []string{tests.BookstoreApexServiceName} {
 		selectors := map[string]string{
-			tests.SelectorKey: "bookstore",
+			constants.AppLabel: "bookstore",
 		}
 		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
 			return nil, err

@@ -171,6 +171,9 @@ const (
 
 	// ReconcileLabel is the label used to reconcile a resource
 	ReconcileLabel = "openservicemesh.io/reconcile"
+
+	// AppLabel is the label used to identify the app
+	AppLabel = "app"
 )
 
 // Annotations used for Metrics

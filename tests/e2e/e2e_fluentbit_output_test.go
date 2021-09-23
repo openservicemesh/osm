@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -33,7 +34,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				pods, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{"app": "osm-controller"}).String(),
+					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: OsmControllerAppLabel}).String(),
 				})
 				Expect(err).NotTo(HaveOccurred())
 

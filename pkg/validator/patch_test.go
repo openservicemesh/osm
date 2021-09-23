@@ -43,7 +43,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 		constants.OSMAppInstanceLabelKey: meshName,
 		constants.OSMAppVersionLabelKey:  osmVersion,
-		"app":                            constants.OSMControllerName,
+		constants.AppLabel:               constants.OSMControllerName,
 		constants.ReconcileLabel:         strconv.FormatBool(true),
 	})
 

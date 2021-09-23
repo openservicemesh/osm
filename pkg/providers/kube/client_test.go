@@ -325,7 +325,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 					Port:     tests.ServicePort,
 				}},
 				Selector: map[string]string{
-					"app": "test",
+					constants.AppLabel: "test",
 				},
 			},
 		}
@@ -441,7 +441,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 					Port:     tests.ServicePort,
 				}},
 				Selector: map[string]string{
-					"app":                         "test",
+					constants.AppLabel:            "test",
 					"key-specified-in-deployment": "no", // Since this label is missing in the deployment, the selector match should fail
 				},
 			},
@@ -454,7 +454,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"app": "test",
+					constants.AppLabel: "test",
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -521,7 +521,7 @@ var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"app": "test",
+					constants.AppLabel: "test",
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -712,7 +712,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
 				podlabels := map[string]string{
-					tests.SelectorKey:                tests.SelectorValue,
+					constants.AppLabel:               tests.SelectorValue,
 					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 				}
 				sa := serviceIdentity.ToK8sServiceAccount()
