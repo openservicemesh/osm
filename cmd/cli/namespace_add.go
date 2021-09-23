@@ -97,7 +97,7 @@ func (a *namespaceAddCmd) run() error {
 		}
 
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
-		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
 
 		listOptions := metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),

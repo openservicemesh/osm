@@ -43,13 +43,13 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName,
 				map[string]string{
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
-					tests.SelectorKey:                tests.SelectorValue})
+					constants.AppLabel:               tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
 			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
-			selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
+			selector := map[string]string{constants.AppLabel: tests.SelectorValue}
 			svc1 := tests.NewServiceFixture(svcName, tests.Namespace, selector)
 
 			svcName2 := uuid.New().String()
@@ -99,7 +99,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
-			selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
+			selector := map[string]string{constants.AppLabel: tests.SelectorValue}
 			svc := tests.NewServiceFixture(svcName, namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
@@ -127,7 +127,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 	Context("Test listServicesForPod()", func() {
 		It("lists services for pod", func() {
 			namespace := uuid.New().String()
-			selectors := map[string]string{tests.SelectorKey: tests.SelectorValue}
+			selectors := map[string]string{constants.AppLabel: tests.SelectorValue}
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			var serviceNames []string
 			var services []*v1.Service = []*v1.Service{}
@@ -184,8 +184,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			// Even though the first selector label matches the label on the pod, the
 			// second selector label invalidates k8s selector matching criteria.
 			selectors := map[string]string{
-				tests.SelectorKey: tests.SelectorValue,
-				"some-key":        "some-value",
+				constants.AppLabel: tests.SelectorValue,
+				"some-key":         "some-value",
 			}
 
 			// Create a service
@@ -269,7 +269,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "my-namespace",
 			Labels: map[string]string{
-				"app":                            "my-app",
+				constants.AppLabel:               "my-app",
 				constants.EnvoyUniqueIDLabelName: proxyUID.String(),
 			},
 		},
@@ -285,7 +285,7 @@ func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 		},
 		Spec: v1.ServiceSpec{
 			Selector: map[string]string{
-				"app": "my-app",
+				constants.AppLabel: "my-app",
 			},
 			Ports: []v1.ServicePort{{
 				Name: "p1",
@@ -387,7 +387,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					Namespace: "ns",
 					Labels: map[string]string{
 						constants.EnvoyUniqueIDLabelName: uid1.String(),
-						"app":                            "my-app",
+						constants.AppLabel:               "my-app",
 					},
 				},
 				Spec: v1.PodSpec{
@@ -402,7 +402,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					},
 					Spec: v1.ServiceSpec{
 						Selector: map[string]string{
-							"app": "my-app",
+							constants.AppLabel: "my-app",
 						},
 						Ports: []v1.ServicePort{{
 							Name: "p1",
@@ -434,7 +434,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					Namespace: "ns",
 					Labels: map[string]string{
 						constants.EnvoyUniqueIDLabelName: uid1.String(),
-						"app":                            "my-app",
+						constants.AppLabel:               "my-app",
 					},
 				},
 				Spec: v1.PodSpec{
@@ -449,7 +449,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					},
 					Spec: v1.ServiceSpec{
 						Selector: map[string]string{
-							"app": "my-app",
+							constants.AppLabel: "my-app",
 						},
 						Ports: []v1.ServicePort{{
 							Name: "p1",
@@ -464,7 +464,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					},
 					Spec: v1.ServiceSpec{
 						Selector: map[string]string{
-							"app": "my-app",
+							constants.AppLabel: "my-app",
 						},
 						Ports: []v1.ServicePort{{
 							Name: "p1",
@@ -569,7 +569,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					Namespace: "ns",
 					Labels: map[string]string{
 						constants.EnvoyUniqueIDLabelName: uid2.String(),
-						"app":                            "my-app",
+						constants.AppLabel:               "my-app",
 					},
 				},
 				Spec: v1.PodSpec{
@@ -584,7 +584,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 					},
 					Spec: v1.ServiceSpec{
 						Selector: map[string]string{
-							"app": "my-app",
+							constants.AppLabel: "my-app",
 						},
 						Ports: []v1.ServicePort{{
 							Name: "p1",
@@ -921,7 +921,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -935,7 +935,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid1.String(),
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -970,7 +970,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -984,7 +984,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid1.String() + "-invalid",
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -1029,7 +1029,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -1043,7 +1043,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid1.String(),
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -1055,7 +1055,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid2.String(),
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -1099,7 +1099,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -1113,7 +1113,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid1.String(),
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -1125,7 +1125,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 						Namespace: "ns",
 						Labels: map[string]string{
 							constants.EnvoyUniqueIDLabelName: uid2.String(),
-							"app":                            "my-app",
+							constants.AppLabel:               "my-app",
 						},
 					},
 					Spec: v1.PodSpec{
@@ -1299,7 +1299,7 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -1357,7 +1357,7 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -1394,7 +1394,7 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 				},
 				Spec: v1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "my-app",
+						constants.AppLabel: "my-app",
 					},
 					Ports: []v1.ServicePort{{
 						Name: "p1",
@@ -1756,14 +1756,14 @@ func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
-				"app":                            "my-app",
+				constants.AppLabel:               "my-app",
 			},
 		},
 	}
 	svc := &v1.Service{
 		Spec: v1.ServiceSpec{
 			Selector: map[string]string{
-				"app": "my-app",
+				constants.AppLabel: "my-app",
 			},
 		},
 	}

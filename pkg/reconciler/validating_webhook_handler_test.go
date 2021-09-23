@@ -30,7 +30,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -65,7 +65,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -105,7 +105,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -129,7 +129,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
@@ -158,7 +158,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -182,7 +182,7 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -246,7 +246,7 @@ func TestValidatingWebhookEventHandlerDeleteFunc(t *testing.T) {
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 				constants.ReconcileLabel:         strconv.FormatBool(true),
-				"app":                            constants.OSMControllerName,
+				constants.AppLabel:               constants.OSMControllerName,
 				constants.OSMAppVersionLabelKey:  osmVersion,
 				constants.OSMAppInstanceLabelKey: meshName,
 			},
@@ -300,7 +300,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -335,7 +335,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -375,7 +375,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -399,7 +399,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
@@ -428,7 +428,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -452,7 +452,7 @@ func TestIsValidatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMControllerName,
+						constants.AppLabel:               constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},

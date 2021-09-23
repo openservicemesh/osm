@@ -211,7 +211,7 @@ func (i *installCmd) validateOptions() error {
 	// ensure no osm-controller is running in the same namespace
 	debug("Verifying no osm-controller exists in the install namespace")
 	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
 	listOptions = metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}

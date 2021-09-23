@@ -210,7 +210,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 				sa := serviceIdentity.ToK8sServiceAccount()
 				for _, svc := range services {
 					podlabels := map[string]string{
-						tests.SelectorKey:                tests.SelectorValue,
+						constants.AppLabel:               tests.SelectorValue,
 						constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 					}
 					pod := tests.NewPodFixture(tests.Namespace, svc.Name, sa.Name, podlabels)

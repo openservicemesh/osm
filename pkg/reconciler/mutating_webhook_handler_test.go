@@ -32,7 +32,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -62,7 +62,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -95,7 +95,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -125,7 +125,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
@@ -160,7 +160,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -190,7 +190,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -260,7 +260,7 @@ func TestMutatingWebhookEventHandlerDeleteFunc(t *testing.T) {
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 				constants.ReconcileLabel:         strconv.FormatBool(true),
-				"app":                            constants.OSMInjectorName,
+				constants.AppLabel:               constants.OSMInjectorName,
 				constants.OSMAppVersionLabelKey:  osmVersion,
 				constants.OSMAppInstanceLabelKey: meshName,
 			},
@@ -320,7 +320,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -350,7 +350,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -383,7 +383,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -413,7 +413,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
@@ -448,7 +448,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
@@ -478,7 +478,7 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						constants.AppLabel:               constants.OSMInjectorName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},

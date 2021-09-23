@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -89,7 +90,7 @@ func getOSMTrackResources() []TrackedLabel {
 			Namespace: Td.OsmNamespace,
 			Label: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": OsmControllerAppLabel,
+					constants.AppLabel: OsmControllerAppLabel,
 				},
 			},
 		},
@@ -97,7 +98,7 @@ func getOSMTrackResources() []TrackedLabel {
 			Namespace: Td.OsmNamespace,
 			Label: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": OsmPrometheusAppLabel,
+					constants.AppLabel: OsmPrometheusAppLabel,
 				},
 			},
 		},

@@ -259,7 +259,7 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 			Name:      def.PodName,
 			Namespace: def.Namespace,
 			Labels: map[string]string{
-				"app": def.PodName,
+				constants.AppLabel: def.PodName,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -302,12 +302,12 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 			Labels: map[string]string{
-				"app": def.PodName,
+				constants.AppLabel: def.PodName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": def.PodName,
+				constants.AppLabel: def.PodName,
 			},
 		},
 	}
@@ -452,13 +452,13 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 			Replicas: &replicaCountExplicitDeclaration,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": def.DeploymentName,
+					constants.AppLabel: def.DeploymentName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": def.DeploymentName,
+						constants.AppLabel: def.DeploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -499,12 +499,12 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 			Name:      serviceName,
 			Namespace: def.Namespace,
 			Labels: map[string]string{
-				"app": def.DeploymentName,
+				constants.AppLabel: def.DeploymentName,
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": def.DeploymentName,
+				constants.AppLabel: def.DeploymentName,
 			},
 		},
 	}
@@ -689,7 +689,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": OsmControllerAppLabel,
+				constants.AppLabel: OsmControllerAppLabel,
 			},
 		})
 		waitGroup.Done()
@@ -699,7 +699,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": OsmInjectorAppLabel,
+				constants.AppLabel: OsmInjectorAppLabel,
 			},
 		})
 		waitGroup.Done()
@@ -709,7 +709,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errBootstrap = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": OsmBootstrapAppLabel,
+				constants.AppLabel: OsmBootstrapAppLabel,
 			},
 		})
 		waitGroup.Done()
@@ -729,7 +729,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 	prometheusPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app": OsmPrometheusAppLabel,
+			constants.AppLabel: OsmPrometheusAppLabel,
 		},
 	})
 	if err != nil || len(prometheusPod) == 0 {
@@ -748,7 +748,7 @@ func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 func (td *OsmTestData) GetOSMGrafanaHandle() (*Grafana, error) {
 	grafanaPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app": OsmGrafanaAppLabel,
+			constants.AppLabel: OsmGrafanaAppLabel,
 		},
 	})
 	if err != nil || len(grafanaPod) == 0 {

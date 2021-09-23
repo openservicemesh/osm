@@ -113,7 +113,7 @@ func TestCreateMutatingWebhook(t *testing.T) {
 		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 		constants.OSMAppInstanceLabelKey: meshName,
 		constants.OSMAppVersionLabelKey:  osmVersion,
-		"app":                            constants.OSMInjectorName,
+		constants.AppLabel:               constants.OSMInjectorName,
 		constants.ReconcileLabel:         strconv.FormatBool(true),
 	})
 

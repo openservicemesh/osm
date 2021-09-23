@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
@@ -172,7 +173,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 	}
 
 	// Create Bookstore-v1 Service
-	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
+	selector := map[string]string{constants.AppLabel: tests.SelectorValue}
 	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, selector)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		ginkgo.GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())

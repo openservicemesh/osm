@@ -167,11 +167,11 @@ func addDeployment(fakeClientSet kubernetes.Interface, depName string, meshName 
 func createDeployment(deploymentName, meshName string, osmVersion string, isMesh bool) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if isMesh {
-		labelMap["app"] = constants.OSMControllerName
+		labelMap[constants.AppLabel] = constants.OSMControllerName
 		labelMap["meshName"] = meshName
 		labelMap[constants.OSMAppVersionLabelKey] = osmVersion
 	} else {
-		labelMap["app"] = "non-mesh-app"
+		labelMap[constants.AppLabel] = "non-mesh-app"
 	}
 	dep := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

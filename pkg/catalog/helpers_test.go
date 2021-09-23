@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -73,19 +74,19 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	}
 
 	// Create Bookstore-v1 Service
-	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{"app": "bookstore", "version": "v1"})
+	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v1"})
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore v1 service: %s", err.Error())
 	}
 
 	// Create Bookstore-v2 Service
-	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{"app": "bookstore", "version": "v2"})
+	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v2"})
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV2Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore v2 service: %s", err.Error())
 	}
 
 	// Create Bookstore-apex Service
-	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{"app": "bookstore"})
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{constants.AppLabel: "bookstore"})
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore Apex service: %s", err.Error())
 	}

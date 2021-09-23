@@ -13,7 +13,7 @@ import (
 
 // GetOSMControllerPods returns a list of osm-controller pods in the namespace
 func GetOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}

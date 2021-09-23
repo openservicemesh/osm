@@ -51,7 +51,7 @@ var _ = Describe("Running the mesh list command", func() {
 					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 						"Namespace": Equal("testNs1"),
 						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
-							"app":                           Equal(constants.OSMControllerName),
+							constants.AppLabel:              Equal(constants.OSMControllerName),
 							"meshName":                      Equal("testMesh1"),
 							constants.OSMAppVersionLabelKey: Equal("testVersion0.1.2"),
 						}),
@@ -61,7 +61,7 @@ var _ = Describe("Running the mesh list command", func() {
 					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 						"Namespace": Equal("testNs2"),
 						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
-							"app":                           Equal(constants.OSMControllerName),
+							constants.AppLabel:              Equal(constants.OSMControllerName),
 							"meshName":                      Equal("testMesh2"),
 							constants.OSMAppVersionLabelKey: Equal("testVersion0.1.3"),
 						}),
