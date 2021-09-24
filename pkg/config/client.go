@@ -39,7 +39,7 @@ func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller,
 		Update: announcements.MultiClusterServiceUpdated,
 		Delete: announcements.MultiClusterServiceDeleted,
 	}
-	client.informer.Informer().AddEventHandler(k8s.GetKubernetesEventHandlers(multiclusterInformerName, "Kube", shouldObserve, multiclusterServiceEventTypes))
+	client.informer.Informer().AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, multiclusterServiceEventTypes))
 
 	if err := client.run(stop); err != nil {
 		return client, errors.Errorf("Could not start %s client: %s", apiGroup, err)

@@ -42,9 +42,6 @@ const (
 const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
 	DefaultKubeEventResyncInterval = 5 * time.Minute
-
-	// providerName is the name of the Kubernetes event provider
-	providerName = "Kubernetes"
 )
 
 // InformerKey stores the different Informers we keep for K8s resources

@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	testProvider  = "test-provider"
-	testInformer  = "test-informer"
 	testNamespace = "test-namespace"
 )
 
@@ -39,7 +37,7 @@ func TestGetKubernetesEventHandlers(t *testing.T) {
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	handlers := GetKubernetesEventHandlers(testInformer, testProvider, shouldObserve, eventTypes)
+	handlers := GetKubernetesEventHandlers(shouldObserve, eventTypes)
 	handlers.AddFunc(&pod)
 	an := <-podAddChannel
 	a.Len(podAddChannel, 0)
@@ -61,7 +59,7 @@ func TestGetKubernetesEventHandlers(t *testing.T) {
 
 	// should not add the event to the announcement channel
 	pod.Namespace = "not-a-monitored-namespace"
-	handlers = GetKubernetesEventHandlers(testInformer, testProvider, shouldObserve, EventTypes{})
+	handlers = GetKubernetesEventHandlers(shouldObserve, EventTypes{})
 	handlers.AddFunc(&pod)
 	a.Len(podAddChannel, 0)
 
@@ -83,7 +81,7 @@ func TestUpdateEvent(t *testing.T) {
 	updatedPod.Labels = nil // updated does not have any labels
 
 	// Invoke update handler
-	handlers := GetKubernetesEventHandlers(testInformer, testProvider, nil, EventTypes{Update: announcements.PodUpdated})
+	handlers := GetKubernetesEventHandlers(nil, EventTypes{Update: announcements.PodUpdated})
 	handlers.UpdateFunc(&originalPod, &updatedPod)
 
 	// Compare old vs new object

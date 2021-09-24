@@ -64,13 +64,13 @@ func newPolicyClient(policyClient policyClientset.Interface, kubeController k8s.
 		Update: announcements.EgressUpdated,
 		Delete: announcements.EgressDeleted,
 	}
-	informerCollection.egress.AddEventHandler(k8s.GetKubernetesEventHandlers("Egress", "Policy", shouldObserve, egressEventTypes))
+	informerCollection.egress.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, egressEventTypes))
 	ingressBackendEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressBackendAdded,
 		Update: announcements.IngressBackendUpdated,
 		Delete: announcements.IngressBackendDeleted,
 	}
-	informerCollection.ingressBackend.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressBackend", "Policy", shouldObserve, ingressBackendEventTypes))
+	informerCollection.ingressBackend.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressBackendEventTypes))
 
 	err := client.run(stop)
 	if err != nil {
