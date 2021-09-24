@@ -33,7 +33,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
+		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error looking up proxy identity")
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up identity for proxy %s", proxy.String())
+		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error looking up proxy identity")
 		return nil, err
 	}
 

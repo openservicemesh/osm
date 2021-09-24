@@ -21,14 +21,14 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-				log.Debug().Err(recvErr).Msgf("[grpc] Connection terminated")
+				log.Debug().Err(recvErr).Str("proxy", proxy.String()).Msg("gRPC Connection terminated")
 				return
 			}
 			log.Error().Err(recvErr).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGRPCConnectionFailed)).
-				Msgf("[grpc] Connection error")
+				Str("proxy", proxy.String()).Msg("gRPC Connection error")
 			return
 		}
-		log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())
+		log.Debug().Str("proxy", proxy.String()).Msgf("Received DiscoveryRequest from proxy")
 		requests <- *request
 	}
 }

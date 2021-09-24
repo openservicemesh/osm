@@ -26,7 +26,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error looking up proxy identity for proxy %s", proxy.String())
+			Str("proxy", proxy.String()).Msgf("Error looking up proxy identity")
 		return nil
 	}
 

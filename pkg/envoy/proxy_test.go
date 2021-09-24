@@ -137,7 +137,7 @@ var _ = Describe("Test proxy methods", func() {
 
 			Expect(proxy.HasPodMetadata()).To(BeTrue())
 			Expect(proxy.PodMetadata.UID).To(Equal(podUID))
-			Expect(strings.Contains(proxy.String(), "Proxy: [Serial: 123456]")).To(BeTrue())
+			Expect(strings.Contains(proxy.String(), "[Serial=123456]")).To(BeTrue())
 		})
 	})
 })

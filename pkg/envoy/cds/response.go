@@ -21,7 +21,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error looking up identity for proxy %s", proxy.String())
+			Str("proxy", proxy.String()).Msgf("Error looking up proxy identity")
 		return nil, err
 	}
 
@@ -29,9 +29,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		for _, dstService := range meshCatalog.ListOutboundServicesForMulticlusterGateway() {
 			cluster, err := getMulticlusterGatewayUpstreamServiceCluster(meshCatalog, dstService, cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
 			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingUpstreamServiceCluster)).
-					Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
-						dstService.Name, proxy.GetCertificateSerialNumber(), proxy.String())
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingUpstreamServiceCluster)).Str("proxy", proxy.String()).
+					Msgf("Failed to construct service cluster for service %s for proxy", dstService)
 				return nil, err
 			}
 			clusters = append(clusters, cluster)
@@ -49,7 +48,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up MeshService for proxy %s", proxy.String())
+			Str("proxy", proxy.String()).Msg("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
 	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
@@ -80,7 +79,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// Add an inbound prometheus cluster (from Prometheus to localhost)
 	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
-		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+		log.Warn().Str("proxy", proxy.String()).Msg("Could not find pod for connecting proxy, no metadata was recorded")
 	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
 		clusters = append(clusters, getPrometheusCluster())
 	}

@@ -8,7 +8,6 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/rs/zerolog"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -20,10 +19,10 @@ const (
 	MaxXdsLogsPerProxy = 20
 )
 
-func xdsPathTimeTrack(startedAt time.Time, log *zerolog.Event, typeURI envoy.TypeURI, proxy *envoy.Proxy, success bool) {
+func xdsPathTimeTrack(startedAt time.Time, typeURI envoy.TypeURI, proxy *envoy.Proxy, success bool) {
 	elapsed := time.Since(startedAt)
 
-	log.Msgf("[%s] processing for Proxy with Certificate SerialNumber=%s took %s", typeURI, proxy.GetCertificateSerialNumber(), elapsed)
+	log.Debug().Str("proxy", proxy.String()).Msgf("Time taken proxy to generate response for request with typeURI=%s: %s", typeURI, elapsed)
 
 	metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime.
 		WithLabelValues(typeURI.String(), fmt.Sprintf("%t", success)).
@@ -73,8 +72,8 @@ func validateRequestResponse(proxy *envoy.Proxy, request *xds_discovery.Discover
 	resDifference := resourcesRequested.Difference(resourcesToSend)
 	diffCardinality := resDifference.Cardinality()
 	if diffCardinality != 0 {
-		log.Warn().Msgf("Proxy %s: not all request resources for type %s are being responded to req [%v] resp [%v] diff [%v]",
-			proxy.String(), envoy.TypeURI(request.TypeUrl).Short(),
+		log.Warn().Str("proxy", proxy.String()).Msgf("Not all request resources for type %s are being responded to req [%v] resp [%v] diff [%v]",
+			envoy.TypeURI(request.TypeUrl).Short(),
 			resourcesRequested, resourcesToSend, resDifference)
 	}
 

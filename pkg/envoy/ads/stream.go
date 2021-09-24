@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -52,7 +53,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
 		// Service Account mismatch
-		log.Error().Err(err).Msgf("Mismatched service account for proxy with certificate SerialNumber=%s", certSerialNumber)
+		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
 		return err
 	}
 
@@ -94,21 +95,23 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case <-quit:
-			log.Debug().Msgf("gRPC stream closed for proxy %s!", proxy.String())
+			log.Debug().Str("proxy", proxy.String()).Msgf("gRPC stream closed")
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
 		case discoveryRequest, ok := <-requests:
 			if !ok {
-				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGRPCStreamClosedByProxy)).
-					Msgf("gRPC stream closed by proxy %s!", proxy.String())
+				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGRPCStreamClosedByProxy)).Str("proxy", proxy.String()).
+					Msgf("gRPC stream closed by proxy %s!", proxy)
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
+			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(&discoveryRequest))
 
 			// This function call runs xDS proto state machine given DiscoveryRequest as input.
 			// It's output is the decision to reply or not to this request.
 			if !respondToRequest(proxy, &discoveryRequest) {
+				log.Debug().Str("proxy", proxy.String()).Msgf("Ignoring DiscoveryRequest %s that does not need to be responded to", discoveryReqToStr(&discoveryRequest))
 				continue
 			}
 
@@ -117,13 +120,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Broadcast update received for proxy %s", proxy.String())
+			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
 
 			// Per protocol, we have to wait for the proxy to go through init phase (initial no-nonce request),
 			// otherwise we will be generating versions that will be ignored as empty nonce will generate a new version anyway.
 			// We only have to push an update from control plane if we have provided already something before.
 			if !shouldPushUpdate(proxy) {
-				log.Error().Msgf("Proxy %s has still not gone through init phase, not force-pushing new version", proxy.String())
+				log.Error().Str("proxy", proxy.String()).Msg("Proxy has still not gone through init phase, not force-pushing new version")
 				continue
 			}
 
@@ -136,7 +139,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if isCNforProxy(proxy, cert.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.
-				log.Debug().Msgf("Certificate has been updated for proxy %s", proxy.String())
+				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
 
 				// Empty DiscoveryRequest should create the SDS specific request
 				// Prepare to queue the SDS proxy response job on the worker pool
@@ -152,9 +155,8 @@ func shouldPushUpdate(proxy *envoy.Proxy) bool {
 	// In ADS, CDS and LDS will come first in all cases. Only allow an control-plane-push update push if
 	// we have sent either to the proxy already.
 	if proxy.GetLastSentNonce(envoy.TypeLDS) == "" && proxy.GetLastSentNonce(envoy.TypeCDS) == "" {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnexpectedXDSRequest)).
-			Msgf("Proxy %s: LDS and CDS unrequested yet, waiting for first request for this proxy to be responded to",
-				proxy.String())
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnexpectedXDSRequest)).Str("proxy", proxy.String()).
+			Msg("LDS and CDS unrequested yet, waiting for first request for this proxy to be responded to")
 		return false
 	}
 	return true
@@ -170,6 +172,11 @@ func parseRequestVersion(discoveryRequest *xds_discovery.DiscoveryRequest) (uint
 	return strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
 }
 
+func discoveryReqToStr(discoveryReq *xds_discovery.DiscoveryRequest) string {
+	return fmt.Sprintf("[TypeUrl=%s], [nonce=%s], [version=%s], resources=[%v]",
+		discoveryReq.TypeUrl, discoveryReq.ResponseNonce, discoveryReq.VersionInfo, discoveryReq.ResourceNames)
+}
+
 // respondToRequest assesses if a given DiscoveryRequest for a given proxy should be responded with
 // an xDS DiscoveryResponse.
 func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.DiscoveryRequest) bool {
@@ -178,38 +185,36 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	var requestNonce string
 	var lastNonce string
 
-	log.Debug().Msgf("Proxy %s: Request %s [nonce=%s; version=%s; resources=%v] last sent [nonce=%s; version=%d]",
-		proxy.String(), discoveryRequest.TypeUrl,
-		discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames,
-		proxy.GetLastSentNonce(envoy.TypeURI(discoveryRequest.TypeUrl)), proxy.GetLastSentVersion(envoy.TypeURI(discoveryRequest.TypeUrl)))
+	log.Debug().Str("proxy", proxy.String()).Msgf("DiscoveryRequest %s; last sent [nonce=%s; version=%d]",
+		discoveryReqToStr(discoveryRequest), proxy.GetLastSentNonce(envoy.TypeURI(discoveryRequest.TypeUrl)),
+		proxy.GetLastSentVersion(envoy.TypeURI(discoveryRequest.TypeUrl)))
 
 	// Parse TypeURL of the request
 	typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
 	if !ok {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidXDSTypeURI)).
-			Msgf("Proxy %s: Unknown/Unsupported URI: %s",
-				proxy.String(), discoveryRequest.TypeUrl)
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidXDSTypeURI)).Str("proxy", proxy.String()).
+			Msgf("Unknown/Unsupported URI: %s", discoveryRequest.TypeUrl)
 		return false
 	}
 
 	if typeURL == envoy.TypeEmptyURI {
 		// Skip handling TypeEmptyURI for now, context #3258
-		log.Debug().Msgf("Proxy %s: Ignoring EmptyURI Type", proxy.String())
+		log.Debug().Str("proxy", proxy.String()).Msg("Ignoring EmptyURI Type")
 		return false
 	}
 
 	// Parse ACK'd verion on the proxy for this given resource
 	requestVersion, err = parseRequestVersion(discoveryRequest)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingDiscoveryReqVersion)).
-			Msgf("Proxy %s: Error parsing version %s for type %s", proxy.String(), discoveryRequest.VersionInfo, typeURL)
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingDiscoveryReqVersion)).Str("proxy", proxy.String()).
+			Msgf("Error parsing version %s for type %s", discoveryRequest.VersionInfo, typeURL)
 		return false
 	}
 
 	// Handle NACK case
 	if discoveryRequest.ErrorDetail != nil {
-		log.Error().Msgf("Proxy %s: [NACK] err: \"%s\" for nonce %s, last version applied on request %s",
-			proxy.String(), discoveryRequest.ErrorDetail, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo)
+		log.Error().Str("proxy", proxy.String()).Msgf("[NACK] err: \"%s\" for nonce %s, last version applied on request %s",
+			discoveryRequest.ErrorDetail, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo)
 		// TODO: if NACK's on our latest nonce, we can also update lastAppliedVersion
 		// TODO: if the NACK's nonce is our latest nonce, we should retry to avoid leaving the envoy in a wrong config state and update
 		// last applied version to this requests one's, as it tells us what version is the proxy using.
@@ -219,8 +224,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Handle first request on stream case, should always reply to empty nonce
 	requestNonce = discoveryRequest.ResponseNonce
 	if requestNonce == "" {
-		log.Debug().Msgf("Proxy %s: Empty nonce for %s, should be first message on stream (req resources: %v)",
-			proxy.String(), typeURL.Short(), discoveryRequest.ResourceNames)
+		log.Debug().Str("proxy", proxy.String()).Msgf("Empty nonce for %s, should be first message on stream (req resources: %v)",
+			typeURL.Short(), discoveryRequest.ResourceNames)
 		proxy.SetSubscribedResources(typeURL, getRequestedResourceNamesSet(discoveryRequest))
 		return true
 	}
@@ -233,8 +238,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 		// Version applied is going to be X, we will set our version to be also X, and trigger a response. This will make
 		// this control plane to generate version X+1 for this proxy, thus keeping linearity between versions even if the proxy
 		// moves around different control planes, and updating the resources to the SotW of this control plane.
-		log.Debug().Msgf("Proxy %s: Request type %s nonce %s for a proxy we didn't yet issue a nonce for. Updating version to %d",
-			proxy.String(), typeURL.Short(), requestNonce, requestVersion)
+		log.Debug().Str("proxy", proxy.String()).Msgf("Request type %s nonce %s for a proxy we didn't yet issue a nonce for. Updating version to %d",
+			typeURL.Short(), requestNonce, requestVersion)
 		proxy.SetLastSentVersion(typeURL, requestVersion)
 		proxy.SetLastAppliedVersion(typeURL, requestVersion)
 		proxy.SetSubscribedResources(typeURL, getRequestedResourceNamesSet(discoveryRequest))
@@ -245,8 +250,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// Handle regular proto (nonce based) from now on
 	// As per protocol, we can ignore any request on the TypeURL stream that has not caught up with last sent nonce.
 	if requestNonce != lastNonce {
-		log.Debug().Msgf("Proxy %s: Ignoring request for %s non-latest nonce (request: %s, current: %s)",
-			proxy.String(), typeURL.Short(), requestNonce, lastNonce)
+		log.Debug().Str("proxy", proxy.String()).Msgf("Ignoring request for %s non-latest nonce (request: %s, current: %s)",
+			typeURL.Short(), requestNonce, lastNonce)
 		return false
 	}
 
@@ -258,8 +263,8 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	// to ACK wildcard types.
 	// This is the case for LDS and CDS, "Envoy will always use wildcard mode for Listener and Cluster resources".
 	if envoy.IsWildcardTypeURI(typeURL) {
-		log.Debug().Msgf("Proxy %s: ACK received for %s, version: %d nonce: %s",
-			proxy.String(), typeURL.Short(), requestVersion, requestNonce)
+		log.Debug().Str("proxy", proxy.String()).Msgf("ACK received for %s, version: %d nonce: %s",
+			typeURL.Short(), requestVersion, requestNonce)
 		return false
 	}
 
@@ -275,13 +280,13 @@ func respondToRequest(proxy *envoy.Proxy, discoveryRequest *xds_discovery.Discov
 	resourcesLastSent := proxy.GetLastResourcesSent(typeURL)
 
 	if !resourcesRequested.Equal(resourcesLastSent) {
-		log.Debug().Msgf("Proxy %s: request difference in v:%d - requested: %v lastSent: %v, triggering update",
-			proxy.String(), requestVersion, resourcesRequested, resourcesLastSent)
+		log.Debug().Str("proxy", proxy.String()).Msgf("Request difference in v:%d - requested: %v lastSent: %v, triggering update",
+			requestVersion, resourcesRequested, resourcesLastSent)
 		return true
 	}
 
-	log.Debug().Msgf("Proxy %s: ACK received for %s, version: %d nonce: %s resources ACKd: %v",
-		proxy.String(), typeURL.Short(), requestVersion, requestNonce, resourcesRequested)
+	log.Debug().Str("proxy", proxy.String()).Msgf("ACK received for %s, version: %d nonce: %s resources ACKd: %v",
+		typeURL.Short(), requestVersion, requestNonce, resourcesRequested)
 	return false
 }
 
@@ -319,7 +324,7 @@ func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy %s", proxy.String())
+		log.Error().Str("proxy", proxy.String()).Err(err).Msg("Error looking up proxy identity")
 		return false
 	}
 
@@ -337,13 +342,14 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	if p.Kind() == envoy.KindGateway {
-		log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Proxy with serial no %s is a Multicluster gateway, skipping recording pod metadata", p.GetCertificateSerialNumber())
+		log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Str("proxy", p.String()).
+			Msgf("Proxy is a Multicluster gateway, skipping recording pod metadata")
 		return nil
 	}
 
 	pod, err := envoy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubecontroller)
 	if err != nil {
-		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", p.GetCertificateSerialNumber())
+		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 		return nil
 	}
 
@@ -373,12 +379,12 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	cn := p.GetCertificateCommonName()
 	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
+		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
 		return err
 	}
 
 	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).Str("proxy", p.String()).
 			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
 		return errServiceAccountMismatch
 	}

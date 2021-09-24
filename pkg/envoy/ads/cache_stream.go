@@ -100,7 +100,7 @@ func (s *Server) RecordFullSnapshot(proxy *envoy.Proxy, snapshotResources map[en
 	)
 
 	if err := snapshot.Consistent(); err != nil {
-		log.Warn().Msgf("Snapshot for for proxy %s not consistent: %v", proxy.GetCertificateCommonName(), err)
+		log.Warn().Err(err).Str("proxy", proxy.String()).Msgf("Snapshot for proxy not consistent")
 	}
 
 	return s.ch.SetSnapshot(proxy.GetCertificateCommonName().String(), snapshot)
