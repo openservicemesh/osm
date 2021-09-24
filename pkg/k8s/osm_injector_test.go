@@ -28,7 +28,7 @@ func TestGetOSMInjectorPods(t *testing.T) {
 						Name:      "osm-injector-pod-1",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": constants.OSMInjectorName,
+							constants.AppLabel: constants.OSMInjectorName,
 						},
 					},
 				},
@@ -37,7 +37,7 @@ func TestGetOSMInjectorPods(t *testing.T) {
 						Name:      "osm-injector-pod-2",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": constants.OSMInjectorName,
+							constants.AppLabel: constants.OSMInjectorName,
 						},
 					},
 				},
@@ -46,7 +46,7 @@ func TestGetOSMInjectorPods(t *testing.T) {
 						Name:      "some-other-osm-injector-pod",
 						Namespace: "some-other-namespace",
 						Labels: map[string]string{
-							"app": constants.OSMInjectorName,
+							constants.AppLabel: constants.OSMInjectorName,
 						},
 					},
 				},
@@ -55,7 +55,7 @@ func TestGetOSMInjectorPods(t *testing.T) {
 						Name:      "application-pod-1",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": "myapp",
+							constants.AppLabel: "myapp",
 						},
 					},
 				},
@@ -64,7 +64,7 @@ func TestGetOSMInjectorPods(t *testing.T) {
 						Name:      "application-pod-2",
 						Namespace: "some-other-namespace",
 						Labels: map[string]string{
-							"app": "myapp",
+							constants.AppLabel: "myapp",
 						},
 					},
 				},

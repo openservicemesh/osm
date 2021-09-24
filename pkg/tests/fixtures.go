@@ -84,9 +84,6 @@ const (
 	// BookstoreSellPath is the path to the bookstore.
 	BookstoreSellPath = "/sell"
 
-	// SelectorKey is a Pod selector key constant.
-	SelectorKey = "app"
-
 	// SelectorValue is a Pod selector value constant.
 	SelectorValue = "frontend"
 
@@ -542,7 +539,7 @@ var (
 
 	// PodLabels is a map of the default labels on pods
 	PodLabels = map[string]string{
-		SelectorKey:                      SelectorValue,
+		constants.AppLabel:               SelectorValue,
 		constants.EnvoyUniqueIDLabelName: ProxyUUID,
 	}
 

@@ -58,7 +58,7 @@ func (c client) addValidatingWebhook(oldVwhc *admissionv1.ValidatingWebhookConfi
 func (c *client) isValidatingWebhookUpdated(oldVwhc, newVwhc *admissionv1.ValidatingWebhookConfiguration) bool {
 	webhookEqual := reflect.DeepEqual(oldVwhc.Webhooks, newVwhc.Webhooks)
 	vwhcNameChanged := strings.Compare(oldVwhc.ObjectMeta.Name, newVwhc.ObjectMeta.Name) != 0
-	vwhcLabelsChanged := isLabelModified("app", constants.OSMControllerName, newVwhc.ObjectMeta.Labels) ||
+	vwhcLabelsChanged := isLabelModified(constants.AppLabel, constants.OSMControllerName, newVwhc.ObjectMeta.Labels) ||
 		isLabelModified(constants.OSMAppVersionLabelKey, c.osmVersion, newVwhc.ObjectMeta.Labels)
 	vwhcUpdated := !webhookEqual || vwhcNameChanged || vwhcLabelsChanged
 	return vwhcUpdated

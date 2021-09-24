@@ -697,7 +697,7 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 
 	labelMap := make(map[string]string)
 	labelMap["meshName"] = defaultMeshName
-	labelMap["app"] = constants.OSMControllerName
+	labelMap[constants.AppLabel] = constants.OSMControllerName
 	labelMap["enforceSingleMesh"] = "true"
 
 	deploymentSpec := &v1.Deployment{
@@ -789,7 +789,7 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if meshName != "" {
 		labelMap["meshName"] = meshName
-		labelMap["app"] = constants.OSMControllerName
+		labelMap[constants.AppLabel] = constants.OSMControllerName
 	}
 	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

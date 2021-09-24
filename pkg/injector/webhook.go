@@ -456,7 +456,7 @@ func createMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Cert
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 				constants.OSMAppInstanceLabelKey: meshName,
 				constants.OSMAppVersionLabelKey:  osmVersion,
-				"app":                            constants.OSMInjectorName,
+				constants.AppLabel:               constants.OSMInjectorName,
 				constants.ReconcileLabel:         strconv.FormatBool(true)}},
 		Webhooks: []admissionregv1.MutatingWebhook{
 			{

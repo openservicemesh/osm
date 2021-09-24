@@ -28,7 +28,7 @@ func TestGetOSMControllerPods(t *testing.T) {
 						Name:      "osm-controller-pod-1",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": constants.OSMControllerName,
+							constants.AppLabel: constants.OSMControllerName,
 						},
 					},
 				},
@@ -37,7 +37,7 @@ func TestGetOSMControllerPods(t *testing.T) {
 						Name:      "osm-controller-pod-2",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": constants.OSMControllerName,
+							constants.AppLabel: constants.OSMControllerName,
 						},
 					},
 				},
@@ -46,7 +46,7 @@ func TestGetOSMControllerPods(t *testing.T) {
 						Name:      "some-other-osm-controller-pod",
 						Namespace: "some-other-namespace",
 						Labels: map[string]string{
-							"app": constants.OSMControllerName,
+							constants.AppLabel: constants.OSMControllerName,
 						},
 					},
 				},
@@ -55,7 +55,7 @@ func TestGetOSMControllerPods(t *testing.T) {
 						Name:      "application-pod-1",
 						Namespace: testNamespace,
 						Labels: map[string]string{
-							"app": "myapp",
+							constants.AppLabel: "myapp",
 						},
 					},
 				},
@@ -64,7 +64,7 @@ func TestGetOSMControllerPods(t *testing.T) {
 						Name:      "application-pod-2",
 						Namespace: "some-other-namespace",
 						Labels: map[string]string{
-							"app": "myapp",
+							constants.AppLabel: "myapp",
 						},
 					},
 				},

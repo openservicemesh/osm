@@ -12,7 +12,7 @@ import (
 
 func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.CommonName, porxyCertSerialNumber certificate.SerialNumber) (*envoy.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{
-		tests.SelectorKey:                tests.BookbuyerService.Name,
+		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
@@ -20,7 +20,7 @@ func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.C
 	}
 
 	bookstorePodLabels := map[string]string{
-		tests.SelectorKey:                "bookstore",
+		constants.AppLabel:               "bookstore",
 		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, bookstorePodLabels); err != nil {
@@ -28,7 +28,7 @@ func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.C
 	}
 
 	selectors := map[string]string{
-		tests.SelectorKey: tests.BookbuyerServiceName,
+		constants.AppLabel: tests.BookbuyerServiceName,
 	}
 	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.C
 
 	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
 		selectors := map[string]string{
-			tests.SelectorKey: "bookstore",
+			constants.AppLabel: "bookstore",
 		}
 		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
 			return nil, err
