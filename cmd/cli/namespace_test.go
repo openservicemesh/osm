@@ -66,7 +66,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
@@ -110,7 +110,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
@@ -154,7 +154,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", true)
@@ -204,7 +204,7 @@ var _ = Describe("Running the namespace add command", func() {
 				fakeClientSet = fake.NewSimpleClientset()
 				testNamespace2 = "namespace2"
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
@@ -253,7 +253,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				nsSpec := createNamespaceSpec(testNamespace, "", false)
@@ -328,7 +328,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				_, err = addDeployment(fakeClientSet, "osm-controller", testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
 				namespaceAddCmd := &namespaceAddCmd{

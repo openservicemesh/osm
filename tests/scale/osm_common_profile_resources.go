@@ -90,7 +90,7 @@ func getOSMTrackResources() []TrackedLabel {
 			Namespace: Td.OsmNamespace,
 			Label: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					constants.AppLabel: OsmControllerAppLabel,
+					constants.AppLabel: constants.OSMControllerName,
 				},
 			},
 		},

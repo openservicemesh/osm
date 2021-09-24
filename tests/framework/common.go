@@ -586,7 +586,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "error fetching controller pod")
 	}
 
-	controllerDeployment, errDeployment := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Get(context.TODO(), "osm-controller", metav1.GetOptions{})
+	controllerDeployment, errDeployment := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Get(context.TODO(), constants.OSMControllerName, metav1.GetOptions{})
 	if errDeployment != nil {
 		return errors.Wrap(err, "error fetching controller deployment")
 	}
@@ -620,11 +620,11 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*v1alpha1.MeshConfig, er
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
-		"osm-controller",
-		"osm-injector",
+		constants.OSMControllerName,
+		constants.OSMInjectorName,
 		"init",
 		"osm-crds",
-		"osm-bootstrap",
+		constants.OSMBootstrapName,
 	}
 
 	return td.LoadImagesToKind(imageNames)

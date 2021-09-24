@@ -113,7 +113,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 		EnvoyAdminPort: 15000,
 
-		XDSClusterName: "osm-controller",
+		XDSClusterName: constants.OSMControllerName,
 		XDSHost:        "osm-controller.b.svc.cluster.local",
 		XDSPort:        15128,
 

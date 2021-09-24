@@ -38,16 +38,10 @@ const (
 	// DefaultOsmPrometheusPort default OSM prometheus port
 	DefaultOsmPrometheusPort = 7070
 
-	// OsmControllerAppLabel is the OSM Controller deployment app label
-	OsmControllerAppLabel = "osm-controller"
 	// OsmGrafanaAppLabel is the OSM Grafana deployment app label
 	OsmGrafanaAppLabel = "osm-grafana"
 	// OsmPrometheusAppLabel is the OSM Prometheus deployment app label
 	OsmPrometheusAppLabel = "osm-prometheus"
-	// OsmInjectorAppLabel is the OSM injector deployment app label
-	OsmInjectorAppLabel = "osm-injector"
-	// OsmBootstrapAppLabel is the OSM bootstrap deployment app label
-	OsmBootstrapAppLabel = "osm-bootstrap"
 
 	// OSM Grafana Dashboard specifics
 
@@ -70,7 +64,7 @@ const (
 
 var (
 	// OsmCtlLabels is the list of app labels for OSM CTL
-	OsmCtlLabels = []string{OsmControllerAppLabel, OsmGrafanaAppLabel, OsmPrometheusAppLabel, OsmInjectorAppLabel, OsmBootstrapAppLabel}
+	OsmCtlLabels = []string{constants.OSMControllerName, OsmGrafanaAppLabel, OsmPrometheusAppLabel, constants.OSMInjectorName, constants.OSMBootstrapName}
 
 	// NginxIngressSvc is the namespaced name of the nginx ingress service
 	NginxIngressSvc = types.NamespacedName{Namespace: "ingress-ns", Name: "ingress-nginx-controller"}
@@ -689,7 +683,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				constants.AppLabel: OsmControllerAppLabel,
+				constants.AppLabel: constants.OSMControllerName,
 			},
 		})
 		waitGroup.Done()
@@ -699,7 +693,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				constants.AppLabel: OsmInjectorAppLabel,
+				constants.AppLabel: constants.OSMInjectorName,
 			},
 		})
 		waitGroup.Done()
@@ -709,7 +703,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 		defer GinkgoRecover()
 		errBootstrap = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				constants.AppLabel: OsmBootstrapAppLabel,
+				constants.AppLabel: constants.OSMBootstrapName,
 			},
 		})
 		waitGroup.Done()

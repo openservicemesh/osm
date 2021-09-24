@@ -90,7 +90,7 @@ func TestUpdateCrdConversionWebhookConfiguration(t *testing.T) {
 			assert.Equal(crd.Spec.Conversion.Strategy, apiv1.WebhookConverter)
 			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.CABundle, []byte("chain"))
 			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace, tests.Namespace)
-			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.Service.Name, crdConverterServiceName)
+			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.Service.Name, constants.OSMBootstrapName)
 			assert.Equal(crd.Spec.Conversion.Webhook.ConversionReviewVersions, conversionReviewVersions)
 
 			assert.Equal(crd.Labels[constants.OSMAppNameLabelKey], constants.OSMAppNameLabelValue)
