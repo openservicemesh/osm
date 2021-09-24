@@ -80,7 +80,7 @@ func (c *client) initNamespaceMonitor() {
 		Update: announcements.NamespaceUpdated,
 		Delete: announcements.NamespaceDeleted,
 	}
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), providerName, nil, nsEventTypes))
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers(nil, nsEventTypes))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -102,7 +102,7 @@ func (c *client) initServicesMonitor() {
 		Update: announcements.ServiceUpdated,
 		Delete: announcements.ServiceDeleted,
 	}
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), providerName, c.shouldObserve, svcEventTypes))
+	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, svcEventTypes))
 }
 
 // Initializes Service Account monitoring
@@ -115,7 +115,7 @@ func (c *client) initServiceAccountsMonitor() {
 		Update: announcements.ServiceAccountUpdated,
 		Delete: announcements.ServiceAccountDeleted,
 	}
-	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers((string)(ServiceAccounts), providerName, c.shouldObserve, svcEventTypes))
+	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, svcEventTypes))
 }
 
 func (c *client) initPodMonitor() {
@@ -127,7 +127,7 @@ func (c *client) initPodMonitor() {
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), providerName, c.shouldObserve, podEventTypes))
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, podEventTypes))
 }
 
 func (c *client) initEndpointMonitor() {
@@ -139,7 +139,7 @@ func (c *client) initEndpointMonitor() {
 		Update: announcements.EndpointUpdated,
 		Delete: announcements.EndpointDeleted,
 	}
-	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), providerName, c.shouldObserve, eptEventTypes))
+	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, eptEventTypes))
 }
 
 func (c *client) run(stop <-chan struct{}) error {

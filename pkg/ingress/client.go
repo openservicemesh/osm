@@ -64,13 +64,13 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	if v1Supported, ok := supportedIngressVersions[networkingV1.SchemeGroupVersion.String()]; ok && v1Supported {
 		c.informerV1 = informerFactory.Networking().V1().Ingresses().Informer()
 		c.cacheV1 = c.informerV1.GetStore()
-		c.informerV1.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressV1", "Kubernetes", shouldObserve, ingressEventTypes))
+		c.informerV1.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressEventTypes))
 	}
 
 	if v1beta1Supported, ok := supportedIngressVersions[networkingV1beta1.SchemeGroupVersion.String()]; ok && v1beta1Supported {
 		c.informerV1beta1 = informerFactory.Networking().V1beta1().Ingresses().Informer()
 		c.cacheV1Beta1 = c.informerV1beta1.GetStore()
-		c.informerV1beta1.AddEventHandler(k8s.GetKubernetesEventHandlers("IngressV1beta1", "Kubernetes", shouldObserve, ingressEventTypes))
+		c.informerV1beta1.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressEventTypes))
 	}
 
 	if err := c.run(stop); err != nil {
