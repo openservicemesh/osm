@@ -19,13 +19,13 @@ import (
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
-	log.Info().Msgf("Composing SDS Discovery Response for proxy %s", proxy.String())
+	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
+			Str("proxy", proxy.String()).Msg("Error retrieving ServiceAccount for proxy")
 		return nil, err
 	}
 
@@ -41,12 +41,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
 
-	log.Info().Msgf("Creating SDS response for request for resources %v for proxy %s", requestedCerts, proxy.String())
+	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
 	cert, err := certManager.IssueCertificate(certificate.CommonName(s.serviceIdentity), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing a certificate for proxy %s", proxy.String())
+		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
 	}
 
@@ -74,7 +74,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			continue
 		}
 
-		log.Debug().Msgf("Proxy %s requested cert %s", proxy.String(), requestedCertificate)
+		log.Debug().Str("proxy", proxy.String()).Msgf("Proxy requested cert %s", requestedCertificate)
 
 		switch sdsCert.CertType {
 		// A service certificate is requested
@@ -82,7 +82,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceCertSecret)).
-					Msgf("Error creating cert %s for proxy %s", requestedCertificate, proxy.String())
+					Str("proxy", proxy.String()).Msgf("Error getting service cert %s for proxy", requestedCertificate)
 				continue
 			}
 			certs = append(certs, envoySecret)
@@ -91,13 +91,13 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound:
 			envoySecret, err := s.getRootCert(cert, *sdsCert)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s", requestedCertificate, proxy.String())
+				log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error getting root cert %s for proxy", requestedCertificate)
 				continue
 			}
 			certs = append(certs, envoySecret)
 
 		default:
-			log.Error().Msgf("Unexpected certificate type %s requested for proxy %s", requestedCertificate, proxy)
+			log.Error().Str("proxy", proxy.String()).Msgf("Unexpected certificate type %s requested by proxy", requestedCertificate)
 		}
 	}
 

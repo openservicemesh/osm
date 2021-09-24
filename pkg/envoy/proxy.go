@@ -52,7 +52,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("Proxy: [Serial: %s], [Pod metadata: %s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
+	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
