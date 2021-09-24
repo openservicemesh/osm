@@ -15,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
@@ -36,7 +36,7 @@ type Server struct {
 	certManager    certificate.Manager
 	ready          bool
 	workqueues     *workerpool.WorkerPool
-	kubecontroller k8s.Controller
+	kubecontroller k8sInterfaces.Controller
 
 	// ---
 	// SnapshotCache implementation structrues below

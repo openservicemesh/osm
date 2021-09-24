@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -34,7 +34,7 @@ type MeshCatalog struct {
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local
 	// lookups
-	kubeController k8s.Controller
+	kubeController k8sInterfaces.Controller
 
 	// policyController implements the functionality related to the resources part of the policy.openrservicemesh.io
 	// API group, such as egress.
@@ -72,7 +72,7 @@ type MeshCataloger interface {
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
 
 	// GetKubeController returns the kube controller instance handling the current cluster
-	GetKubeController() k8s.Controller
+	GetKubeController() k8sInterfaces.Controller
 
 	// GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
 	GetOutboundMeshTrafficPolicy(identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy

@@ -15,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -29,7 +29,7 @@ type DebugConfig struct {
 	proxyRegistry       *registry.ProxyRegistry
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
-	kubeController      k8s.Controller
+	kubeController      k8sInterfaces.Controller
 	configurator        configurator.Configurator
 }
 

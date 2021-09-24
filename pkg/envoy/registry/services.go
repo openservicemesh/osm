@@ -14,8 +14,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -34,7 +34,7 @@ func (e ExplicitProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service
 
 // KubeProxyServiceMapper maps an Envoy instance to services in a Kubernetes cluster.
 type KubeProxyServiceMapper struct {
-	KubeController k8s.Controller
+	KubeController k8sInterfaces.Controller
 }
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
@@ -65,7 +65,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 // Kubernetes cluster. It maintains a cache of the mapping updated in response
 // to Kubernetes events.
 type AsyncKubeProxyServiceMapper struct {
-	kubeController k8s.Controller
+	kubeController k8sInterfaces.Controller
 	kubeEvents     chan interface{}
 	servicesForCN  map[certificate.CommonName][]service.MeshService
 	cnsForService  map[service.MeshService]map[certificate.CommonName]struct{}
@@ -73,7 +73,7 @@ type AsyncKubeProxyServiceMapper struct {
 }
 
 // NewAsyncKubeProxyServiceMapper initializes a KubeProxyServiceMapper with an empty cache.
-func NewAsyncKubeProxyServiceMapper(controller k8s.Controller) *AsyncKubeProxyServiceMapper {
+func NewAsyncKubeProxyServiceMapper(controller k8sInterfaces.Controller) *AsyncKubeProxyServiceMapper {
 	return &AsyncKubeProxyServiceMapper{
 		kubeController: controller,
 		servicesForCN:  make(map[certificate.CommonName][]service.MeshService),
@@ -250,7 +250,7 @@ func (k *AsyncKubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]servi
 	return k.servicesForCN[p.GetCertificateCommonName()], nil
 }
 
-func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8sInterfaces.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, kubeController.K8sServiceToMeshServices(svc)...)
 	}
@@ -265,7 +265,7 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service {
+func listServicesForPod(pod *v1.Pod, kubeController k8sInterfaces.Controller) []v1.Service {
 	var serviceList []v1.Service
 	svcList := kubeController.ListServices()
 
@@ -287,7 +287,7 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service
 	return serviceList
 }
 
-func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1.Pod {
+func listPodsForService(service *v1.Service, kubeController k8sInterfaces.Controller) []v1.Pod {
 	svcRawSelector := service.Spec.Selector
 	// service has no selectors, we do not need to match against the pod label
 	if len(svcRawSelector) == 0 {

@@ -25,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -137,7 +138,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 	Context("service controller", func() {
 		var kubeClient *testclient.Clientset
-		var kubeController Controller
+		var kubeController interfaces.Controller
 		var err error
 
 		BeforeEach(func() {
@@ -253,7 +254,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 	Context("service account controller", func() {
 		var kubeClient *testclient.Clientset
-		var kubeController Controller
+		var kubeController interfaces.Controller
 		var err error
 
 		BeforeEach(func() {
@@ -356,7 +357,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 	Context("Test ListServiceIdentitiesForService()", func() {
 		var kubeClient *testclient.Clientset
-		var kubeController Controller
+		var kubeController interfaces.Controller
 		var err error
 		testMeshName := "foo"
 

@@ -21,11 +21,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
+func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (k8sInterfaces.Controller, error) {
 	// Initialize client object
 	c := client{
 		kubeClient:   kubeClient,

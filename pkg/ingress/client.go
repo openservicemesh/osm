@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -29,7 +30,7 @@ const (
 var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), networkingV1beta1.SchemeGroupVersion.String()}
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
+func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8sInterfaces.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
 	// Ignore ingresses that have the ignore label
 	ignoreLabel, _ := labels.NewRequirement(constants.IgnoreLabel, selection.DoesNotExist, nil)
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {

@@ -31,6 +31,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -595,7 +596,7 @@ var _ = Describe("Testing Injector Functions", func() {
 	It("creates new webhook", func() {
 		injectorConfig := Config{}
 		kubeClient := fake.NewSimpleClientset()
-		var kubeController k8s.Controller
+		var kubeController k8sInterfaces.Controller
 		stop := make(<-chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
@@ -614,7 +615,7 @@ var _ = Describe("Testing Injector Functions", func() {
 				Name: webhookName,
 			},
 		})
-		var kubeController k8s.Controller
+		var kubeController k8sInterfaces.Controller
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
@@ -632,7 +633,7 @@ var _ = Describe("Testing Injector Functions", func() {
 	It("creates new webhook with reconciler enabled", func() {
 		enableReconciler = true
 		kubeClient := fake.NewSimpleClientset()
-		var kubeController k8s.Controller
+		var kubeController k8sInterfaces.Controller
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)

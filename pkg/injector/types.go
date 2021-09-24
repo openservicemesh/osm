@@ -8,7 +8,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -23,7 +23,7 @@ type mutatingWebhook struct {
 	config         Config
 	kubeClient     kubernetes.Interface
 	certManager    certificate.Manager
-	kubeController k8s.Controller
+	kubeController k8sInterfaces.Controller
 	osmNamespace   string
 	meshName       string
 	cert           certificate.Certificater

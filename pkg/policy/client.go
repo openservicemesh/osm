@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterface "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -21,7 +22,7 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}) (Controller, error) {
+func NewPolicyController(kubeController k8sInterface.Controller, policyClient policyClientset.Interface, stop chan struct{}) (Controller, error) {
 	client, err := newPolicyClient(
 		policyClient,
 		kubeController,
@@ -32,7 +33,7 @@ func NewPolicyController(kubeController k8s.Controller, policyClient policyClien
 }
 
 // newPolicyClient creates k8s clients for the resources in the policy.openservicemesh.io API group
-func newPolicyClient(policyClient policyClientset.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
+func newPolicyClient(policyClient policyClientset.Interface, kubeController k8sInterface.Controller, stop chan struct{}) (client, error) {
 	informerFactory := policyInformers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{

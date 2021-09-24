@@ -9,7 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -25,7 +25,7 @@ type client struct {
 	cacheV1         cache.Store
 	informerV1beta1 cache.SharedIndexInformer
 	cacheV1Beta1    cache.Store
-	kubeController  k8s.Controller
+	kubeController  k8sInterfaces.Controller
 	cfg             configurator.Configurator
 	certProvider    certificate.Manager
 }

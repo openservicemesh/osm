@@ -10,6 +10,7 @@ import (
 	configV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 )
 
 // NewConfigController returns a config.Controller struct related to functionality provided by the resources in the config.openservicemesh.io API group
-func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}) (Controller, error) {
+func NewConfigController(kubeConfig *rest.Config, kubeController k8sInterfaces.Controller, stop chan struct{}) (Controller, error) {
 	configClient := configV1alpha1Client.NewForConfigOrDie(kubeConfig)
 	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
 

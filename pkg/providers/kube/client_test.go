@@ -29,6 +29,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -272,7 +273,7 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 var _ = Describe("Test Kube client Provider (/w kubecontroller)", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		kubeController   k8s.Controller
+		kubeController   k8sInterfaces.Controller
 		mockConfigurator *configurator.MockConfigurator
 		fakeClientSet    *testclient.Clientset
 		c                *client

@@ -3,7 +3,7 @@ package kube
 import (
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -18,7 +18,7 @@ var (
 
 // client is the type used to represent the k8s client for endpoints and service provider
 type client struct {
-	kubeController   k8s.Controller
+	kubeController   k8sInterfaces.Controller
 	configClient     config.Controller
 	meshConfigurator configurator.Configurator
 }
