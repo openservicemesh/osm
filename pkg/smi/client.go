@@ -124,28 +124,28 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		Update: a.TrafficSplitUpdated,
 		Delete: a.TrafficSplitDeleted,
 	}
-	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", shouldObserve, splitEventTypes))
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, splitEventTypes))
 
 	routeGroupEventTypes := k8s.EventTypes{
 		Add:    a.RouteGroupAdded,
 		Update: a.RouteGroupUpdated,
 		Delete: a.RouteGroupDeleted,
 	}
-	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", shouldObserve, routeGroupEventTypes))
+	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, routeGroupEventTypes))
 
 	tcpRouteEventTypes := k8s.EventTypes{
 		Add:    a.TCPRouteAdded,
 		Update: a.TCPRouteUpdated,
 		Delete: a.TCPRouteDeleted,
 	}
-	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", shouldObserve, tcpRouteEventTypes))
+	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, tcpRouteEventTypes))
 
 	trafficTargetEventTypes := k8s.EventTypes{
 		Add:    a.TrafficTargetAdded,
 		Update: a.TrafficTargetUpdated,
 		Delete: a.TrafficTargetDeleted,
 	}
-	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", shouldObserve, trafficTargetEventTypes))
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, trafficTargetEventTypes))
 
 	err := client.run(stop)
 	if err != nil {

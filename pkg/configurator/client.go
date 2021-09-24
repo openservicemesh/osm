@@ -17,10 +17,6 @@ import (
 
 const (
 	meshConfigInformerName = "MeshConfig"
-	meshConfigProviderName = "OSM"
-
-	// DefaultMeshConfigName is the default name of MeshConfig object
-	DefaultMeshConfigName = "osm-mesh-config"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -48,7 +44,7 @@ func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct
 		Update: announcements.MeshConfigUpdated,
 		Delete: announcements.MeshConfigDeleted,
 	}
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(meshConfigInformerName, meshConfigProviderName, nil, eventTypes))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(nil, eventTypes))
 
 	// start listener
 	go c.runMeshConfigListener(stop)
