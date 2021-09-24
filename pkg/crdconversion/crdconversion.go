@@ -22,9 +22,6 @@ const (
 	// webhookHealthPath is the HTTP path at which the health of the conversion webhook can be queried
 	webhookHealthPath = "/healthz"
 
-	// crdConverterServiceName is the name of the OSM crd converter webhook service
-	crdConverterServiceName = "osm-bootstrap"
-
 	// healthPort is the port on which the '/healthz` requests are served
 	healthPort = 9095
 
@@ -58,7 +55,7 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ConversionWebhook on the CRD's
 	crdConversionWebhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", crdConverterServiceName, osmNamespace)),
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMBootstrapName, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
@@ -187,7 +184,7 @@ func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.A
 			ClientConfig: &apiv1.WebhookClientConfig{
 				Service: &apiv1.ServiceReference{
 					Namespace: osmNamespace,
-					Name:      crdConverterServiceName,
+					Name:      constants.OSMBootstrapName,
 					Path:      &crdConversionPath,
 				},
 				CABundle: cert.GetCertificateChain(),

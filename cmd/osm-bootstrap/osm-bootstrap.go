@@ -67,7 +67,7 @@ var (
 
 var (
 	flags = pflag.NewFlagSet(`osm-bootstrap`, pflag.ExitOnError)
-	log   = logger.New("osm-bootstrap/main")
+	log   = logger.New(constants.OSMBootstrapName)
 )
 
 func init() {

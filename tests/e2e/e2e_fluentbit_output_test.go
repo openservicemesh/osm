@@ -34,7 +34,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				pods, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: OsmControllerAppLabel}).String(),
+					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: constants.OSMControllerName}).String(),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -43,7 +43,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				for _, pod := range pods.Items {
 					// Wait until osm-controller has generated a log to check against
 					logLevel := "\"level\":\"info\""
-					err := waitForLogEmission(pod.Namespace, pod.Name, "osm-controller", logLevel)
+					err := waitForLogEmission(pod.Namespace, pod.Name, constants.OSMControllerName, logLevel)
 					Expect(err).To(BeNil())
 					for _, container := range pod.Spec.Containers {
 						if strings.Contains(container.Image, "fluent-bit") {

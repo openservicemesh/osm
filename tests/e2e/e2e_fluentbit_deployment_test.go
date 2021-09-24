@@ -31,7 +31,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				pods, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: OsmControllerAppLabel}).String(),
+					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: constants.OSMControllerName}).String(),
 				})
 
 				Expect(err).NotTo(HaveOccurred())
@@ -56,7 +56,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 2 /* controller, injector */, nil)).To(Succeed())
 
 				pods, err = Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: OsmControllerAppLabel}).String(),
+					LabelSelector: labels.SelectorFromSet(map[string]string{constants.AppLabel: constants.OSMControllerName}).String(),
 				})
 
 				Expect(err).NotTo(HaveOccurred())

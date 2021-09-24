@@ -6,6 +6,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -16,7 +17,7 @@ func TestBuildFromConfig(t *testing.T) {
 	config := Config{
 		NodeID:           cert.GetCommonName().String(),
 		AdminPort:        15000,
-		XDSClusterName:   "osm-controller",
+		XDSClusterName:   constants.OSMControllerName,
 		TrustedCA:        cert.GetIssuingCA(),
 		CertificateChain: cert.GetCertificateChain(),
 		PrivateKey:       cert.GetPrivateKey(),
