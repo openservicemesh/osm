@@ -20,7 +20,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	startedAt := time.Now()
 	typeURI := envoy.TypeURI(request.TypeUrl)
-	log.Trace().Msgf("Proxy %s: getting resources for type %s", proxy.String(), typeURI.Short())
+	log.Trace().Str("proxy", proxy.String()).Msgf("Getting resources for type %s", typeURI.Short())
 
 	handler, ok := s.xdsHandlers[typeURI]
 	if !ok {
@@ -34,11 +34,11 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	// Invoke XDS handler
 	resources, err := handler(s.catalog, proxy, request, s.cfg, s.certManager, s.proxyRegistry)
 	if err != nil {
-		xdsPathTimeTrack(startedAt, log.Debug(), typeURI, proxy, false)
+		xdsPathTimeTrack(startedAt, typeURI, proxy, false)
 		return nil, errCreatingResponse
 	}
 
-	xdsPathTimeTrack(startedAt, log.Debug(), typeURI, proxy, true)
+	xdsPathTimeTrack(startedAt, typeURI, proxy, true)
 	return resources, nil
 }
 
@@ -77,8 +77,8 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 		// Generate the resources for this request
 		resources, err := s.getTypeResources(proxy, finalReq)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingReqResource)).
-				Msgf("Error generating response for typeURI: %s, proxy %s", typeURI.Short(), proxy.String())
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingReqResource)).Str("proxy", proxy.String()).
+				Msgf("Error generating response for typeURI: %s", typeURI.Short())
 			thereWereErrors = true
 			continue
 		}
@@ -89,7 +89,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 		} else {
 			// If cache disabled, craft and send a reply to the proxy on the stream
 			if err := s.SendDiscoveryResponse(proxy, finalReq, server, resources); err != nil {
-				log.Error().Err(err).Msgf("Creating %s update for Proxy %s", typeURI.Short(), proxy.GetCertificateCommonName())
+				log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error sending DiscoveryResponse for typeUrl: %s", typeURI.Short())
 				thereWereErrors = true
 			}
 		}
@@ -98,8 +98,8 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	if s.cacheEnabled {
 		// Store the aggregated resources as a full snapshot
 		if err := s.RecordFullSnapshot(proxy, cacheResourceMap); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRecordingSnapshot)).
-				Msgf("Failed to record snapshot for proxy %s: %v", proxy.GetCertificateCommonName(), err)
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRecordingSnapshot)).Str("proxy", proxy.String()).
+				Msgf("Error recording snapshot for proxy: %v", err)
 			thereWereErrors = true
 		}
 	}
@@ -107,7 +107,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	isFullUpdate := len(typeURIsToSend) == len(envoy.XDSResponseOrder)
 	if isFullUpdate {
 		success := !thereWereErrors
-		xdsPathTimeTrack(time.Now(), log.Info(), envoy.TypeADS, proxy, success)
+		xdsPathTimeTrack(time.Now(), envoy.TypeADS, proxy, success)
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 	// Send the response
 	if err := (*server).Send(response); err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
-			Msgf("Error sending response for type %s to proxy %s", typeURI.Short(), proxy.String())
+			Str("proxy", proxy.String()).Msgf("Error sending response for typeURI %s to proxy", typeURI.Short())
 		return err
 	}
 

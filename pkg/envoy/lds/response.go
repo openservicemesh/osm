@@ -22,7 +22,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error retrieving ServiceAccount for proxy %s", proxy.String())
+			Str("proxy", proxy.String()).Msgf("Error retrieving ServiceAccount for proxy")
 		return nil, err
 	}
 
@@ -39,7 +39,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		gatewayListener, err := lb.buildMulticlusterGatewayListener()
 
 		if err != nil {
-			log.Error().Err(err).Msgf("Error building gateway listener for proxy %s", proxy.String())
+			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building multicluster gateway listener")
 			return ldsResources, err
 		}
 		ldsResources = append(ldsResources, gatewayListener)
@@ -49,12 +49,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building outbound listener for proxy %s", proxy.String())
+		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error building outbound listener")
 	} else {
 		if outboundListener == nil {
 			// This check is important to prevent attempting to configure a listener without a filter chain which
 			// otherwise results in an error.
-			log.Debug().Msgf("Not programming outbound listener for proxy %s", proxy.String())
+			log.Debug().Str("proxy", proxy.String()).Msg("Not programming nil outbound listener")
 		} else {
 			ldsResources = append(ldsResources, outboundListener)
 		}
@@ -65,7 +65,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcList, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).Msgf("Error looking up MeshService for proxy %s", proxy.String())
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
+			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
 	// Create inbound filter chains per service behind proxy
@@ -86,12 +87,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
-		log.Warn().Msgf("Could not find pod for connecting proxy %s. No metadata was recorded.", proxy.GetCertificateSerialNumber())
+		log.Warn().Str("proxy", proxy.String()).Msgf("Could not find pod for connecting proxy, no metadata was recorded")
 	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
-			log.Error().Err(err).Msgf("Error building Prometheus listener for proxy %s", proxy.String())
+			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building Prometheus listener")
 		} else {
 			ldsResources = append(ldsResources, prometheusListener)
 		}
