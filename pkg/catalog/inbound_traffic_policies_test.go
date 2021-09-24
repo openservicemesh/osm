@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -35,7 +36,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		trafficTargets            []*access.TrafficTarget
 		httpRouteGroups           []*spec.HTTPRouteGroup
 		trafficSplits             []*split.TrafficSplit
-		prepare                   func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit)
+		prepare                   func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit)
 		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
 	}{
 		{
@@ -112,7 +113,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
@@ -315,7 +316,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
@@ -549,13 +550,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				// Only return traffic split for service ns1/s1. This is required to verify
 				// that service ns1/s2 which doesn't have an associated traffic split does
 				// not createi inbound routes corresponding to the apex service.
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
+					func(options ...smiSpecs.TrafficSplitListOption) []*split.TrafficSplit {
+						o := &smiSpecs.TrafficSplitListOpt{}
 						for _, opt := range options {
 							opt(o)
 						}
@@ -743,13 +744,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				// Only return traffic split for service ns1/s1. This is required to verify
 				// that service ns1/s2 which doesn't have an associated traffic split does
 				// not createi inbound routes corresponding to the apex service.
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
+					func(options ...smiSpecs.TrafficSplitListOption) []*split.TrafficSplit {
+						o := &smiSpecs.TrafficSplitListOpt{}
 						for _, opt := range options {
 							opt(o)
 						}
@@ -939,7 +940,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
@@ -1104,7 +1105,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
@@ -1306,13 +1307,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+			prepare: func(mockMeshSpec *smiSpecs.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
 				// Only return traffic split for service ns1/s1. This is required to verify
 				// that service ns1/s2 which doesn't have an associated traffic split does
 				// not createi inbound routes corresponding to the apex service.
 				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
+					func(options ...smiSpecs.TrafficSplitListOption) []*split.TrafficSplit {
+						o := &smiSpecs.TrafficSplitListOpt{}
 						for _, opt := range options {
 							opt(o)
 						}
@@ -1432,7 +1433,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
@@ -1679,7 +1680,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 

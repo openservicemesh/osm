@@ -26,6 +26,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -40,7 +41,7 @@ type fakeKubeClientSet struct {
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
 }
 
-func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
+func bootstrapClient() (specs.MeshSpec, *fakeKubeClientSet, error) {
 	defer GinkgoRecover()
 
 	osmNamespace := "osm-system"
@@ -89,7 +90,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 
 var _ = Describe("When listing TrafficSplit", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -156,7 +157,7 @@ var _ = Describe("When listing TrafficSplit", func() {
 
 var _ = Describe("When listing ServiceAccounts", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -216,7 +217,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 
 var _ = Describe("When listing TrafficTargets", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -280,7 +281,7 @@ var _ = Describe("When listing TrafficTargets", func() {
 
 var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -350,7 +351,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 
 var _ = Describe("When listing TCP routes", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -397,7 +398,7 @@ var _ = Describe("When listing TCP routes", func() {
 
 var _ = Describe("When getting a TCP route by its namespaced name", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)
@@ -440,7 +441,7 @@ var _ = Describe("When getting a TCP route by its namespaced name", func() {
 
 var _ = Describe("When getting an HTTP route by its namespaced name", func() {
 	var (
-		meshSpec      MeshSpec
+		meshSpec      specs.MeshSpec
 		fakeClientSet *fakeKubeClientSet
 		err           error
 	)

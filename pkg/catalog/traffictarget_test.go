@@ -13,7 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -22,7 +22,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockMeshSpec := specs.NewMockMeshSpec(mockCtrl)
 	meshCatalog := MeshCatalog{
 		meshSpec: mockMeshSpec,
 	}
@@ -193,7 +193,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockMeshSpec := specs.NewMockMeshSpec(mockCtrl)
 	meshCatalog := MeshCatalog{
 		meshSpec: mockMeshSpec,
 	}
@@ -843,7 +843,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Initialize test objects
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := specs.NewMockMeshSpec(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			meshCatalog := MeshCatalog{
 				meshSpec:     mockMeshSpec,

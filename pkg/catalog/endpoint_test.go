@@ -22,7 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -170,7 +170,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,

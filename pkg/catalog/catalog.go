@@ -8,12 +8,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/ticker"
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, policyController policy.Controller, stop <-chan struct{}, cfg configurator.Configurator, serviceProviders []service.Provider, endpointsProviders []endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(kubeController k8s.Controller, meshSpec specs.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, policyController policy.Controller, stop <-chan struct{}, cfg configurator.Configurator, serviceProviders []service.Provider, endpointsProviders []endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	mc := MeshCatalog{
 		serviceProviders:   serviceProviders,

@@ -300,7 +300,7 @@ The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and t
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
-	GetSMISpec() smi.MeshSpec
+	GetSMISpec() smiSpecs.MeshSpec
 
 	// ListInboundServiceIdentities lists the downstream service identities that can connect to the given service account
 	ListInboundServiceIdentities(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)

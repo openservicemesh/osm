@@ -23,7 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -35,7 +35,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockIngressMonitor := ingress.NewMockMonitor(mockCtrl)

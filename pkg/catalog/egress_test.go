@@ -18,9 +18,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -340,7 +340,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			for _, rg := range tc.httpRouteGroups {
@@ -652,7 +652,7 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 
 			for _, rg := range tc.httpRouteGroups {
 				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()

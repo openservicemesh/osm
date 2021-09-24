@@ -20,7 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -538,7 +538,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
@@ -557,8 +557,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			firstSplitCall := mockMeshSpec.EXPECT().ListTrafficSplits().Return(trafficSplits).Times(1)
 			// Mock conditional traffic split for service
 			mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-					o := &smi.TrafficSplitListOpt{}
+				func(options ...smiSpecs.TrafficSplitListOption) []*split.TrafficSplit {
+					o := &smiSpecs.TrafficSplitListOpt{}
 					for _, opt := range options {
 						opt(o)
 					}
@@ -712,7 +712,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockController := k8s.NewMockController(mockCtrl)
 	mockServiceProvider := service.NewMockProvider(mockCtrl)

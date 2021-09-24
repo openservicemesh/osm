@@ -23,13 +23,14 @@ import (
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/smi/specs"
 )
 
 // We have a few different k8s clients. This identifies these in logs.
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller, stop chan struct{}) (MeshSpec, error) {
+func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller, stop chan struct{}) (specs.MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
@@ -156,7 +157,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
-func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSplit.TrafficSplit {
+func (c *client) ListTrafficSplits(options ...specs.TrafficSplitListOption) []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
 
 	for _, splitIface := range c.caches.TrafficSplit.List() {
@@ -174,12 +175,12 @@ func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSpli
 }
 
 // filterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
-func filterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
+func filterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...specs.TrafficSplitListOption) *smiSplit.TrafficSplit {
 	if trafficSplit == nil {
 		return nil
 	}
 
-	o := &TrafficSplitListOpt{}
+	o := &specs.TrafficSplitListOpt{}
 	for _, opt := range options {
 		opt(o)
 	}
@@ -270,7 +271,7 @@ func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
-func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAccess.TrafficTarget {
+func (c *client) ListTrafficTargets(options ...specs.TrafficTargetListOption) []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
 
 	for _, targetIface := range c.caches.TrafficTarget.List() {
@@ -288,12 +289,12 @@ func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAc
 	return trafficTargets
 }
 
-func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
+func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...specs.TrafficTargetListOption) *smiAccess.TrafficTarget {
 	if trafficTarget == nil {
 		return nil
 	}
 
-	o := &TrafficTargetListOpt{}
+	o := &specs.TrafficTargetListOpt{}
 	for _, opt := range options {
 		opt(o)
 	}

@@ -30,7 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	smiSpecs "github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -255,7 +255,7 @@ func TestNewResponse(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockMeshSpec := smiSpecs.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)

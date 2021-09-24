@@ -14,7 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/smi/specs"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -26,7 +26,7 @@ var (
 type MeshCatalog struct {
 	endpointsProviders []endpoint.Provider
 	serviceProviders   []service.Provider
-	meshSpec           smi.MeshSpec
+	meshSpec           specs.MeshSpec
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
