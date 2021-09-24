@@ -310,14 +310,14 @@ const (
 	// ErrUpdatingMutatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
 	ErrUpdatingMutatingWebhookCABundle
 
-	// ErrCreatingMutatingWebhook indicates the MutatingWebhookConfiguration could not be created
-	ErrCreatingMutatingWebhook
-
 	// ErrReadingAdmissionReqBody indicates the AdmissionRequest body could not be read
 	ErrReadingAdmissionReqBody
 
 	// ErrNilAdmissionReqBody indicates the admissionRequest body was nil
 	ErrNilAdmissionReqBody
+
+	// ErrCreatingMutatingWebhook indicates the MutatingWebhookConfiguration could not be created
+	ErrCreatingMutatingWebhook
 )
 
 // Range 6700-6800 reserved for errors related to the validating webhook
@@ -334,21 +334,30 @@ const (
 
 	// ErrParsingWebhookCert indicates the validating webhook certificate could not be parsed
 	ErrParsingValidatingWebhookCert
+
+	// ErrCreatingValidatingWebhook indicates the ValidatingWebhookConfiguration could not be created
+	ErrCreatingValidatingWebhook
 )
 
 // Range 7000-7100 reserved for errors related to OSM Reconciler
 const (
-	// ErrUpdatingCRD indicates an error occurred when OSM Reconciler failed to update a modified CRD
-	ErrUpdatingCRD ErrCode = iota + 7000
+	// ErrReconcilingUpdatedCRD indicates an error occurred when OSM Reconciler failed to update a modified CRD
+	ErrReconcilingUpdatedCRD ErrCode = iota + 7000
 
-	// ErrAddingDeletedCRD indicates an error occurred when OSM Reconciler failed to add a deleted CRD
-	ErrAddingDeletedCRD
+	// ErrReconcilingDeletedCRD indicates an error occurred when OSM Reconciler failed to add a deleted CRD
+	ErrReconcilingDeletedCRD
 
-	// ErrUpdatingMutatingWebhook indicates an error occurred when OSM Reconciler failed to update the mutating webhook
-	ErrUpdatingMutatingWebhook
+	// ErrReconcilingUpdatedMutatingWebhook indicates an error occurred when OSM Reconciler failed to update the mutating webhook
+	ErrReconcilingUpdatedMutatingWebhook
 
-	// ErrAddingDeletedMutatingWebhook indicates an error occurred when OSM Reconciler failed to add a deleted mutating webhook
-	ErrAddingDeletedMutatingWebhook
+	// ErrReconcilingDeletedMutatingWebhook indicates an error occurred when OSM Reconciler failed to add a deleted mutating webhook
+	ErrReconcilingDeletedMutatingWebhook
+
+	// ErrReconcilingUpdatedValidatingWebhook indicates an error occurred when OSM Reconciler failed to update the validating webhook
+	ErrReconcilingUpdatedValidatingWebhook
+
+	// ErrReconcilingDeletedValidatingWebhook indicates an error occurred when OSM Reconciler failed to add a deleted validating webhook
+	ErrReconcilingDeletedValidatingWebhook
 )
 
 // String returns the error code as a string, ex. E1000
@@ -836,24 +845,36 @@ The validating webhook HTTP server failed to start.
 The ValidatingWebhookConfiguration could not be patched with the CA Bundle.
 `,
 
+	ErrCreatingValidatingWebhook: `
+The ValidatingWebhookConfiguration could not be created.
+`,
+
 	ErrParsingValidatingWebhookCert: `
 The validating webhook certificate could not be parsed.
 The validating webhook HTTP server was not started.
 `,
 
-	ErrUpdatingCRD: `
-An error occurred while updating the CRD to its original state.
+	ErrReconcilingUpdatedCRD: `
+An error occurred while reconciling the updated CRD to its original state.
 `,
 
-	ErrAddingDeletedCRD: `
-An error occurred while adding back a deleted CRD.
+	ErrReconcilingDeletedCRD: `
+An error occurred while reconciling the deleted CRD.
 `,
 
-	ErrUpdatingMutatingWebhook: `
-An error occurred while updating the mutating webhook to its original state.
+	ErrReconcilingUpdatedMutatingWebhook: `
+An error occurred while reconciling the updated mutating webhook to its original state.
 `,
 
-	ErrAddingDeletedMutatingWebhook: `
-An error occurred while adding back the deleted mutating webhook.
+	ErrReconcilingDeletedMutatingWebhook: `
+An error occurred while reconciling the deleted mutating webhook.
+`,
+
+	ErrReconcilingUpdatedValidatingWebhook: `
+An error occurred while while reconciling the updated validating webhook to its original state.
+`,
+
+	ErrReconcilingDeletedValidatingWebhook: `
+An error occurred while reconciling the deleted validating webhook.
 `,
 }

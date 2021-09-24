@@ -29,13 +29,19 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 
 	// Initialize informers
 	informerInitHandlerMap := map[k8s.InformerKey]func(){
-		CrdInformerKey:             c.initCustomResourceDefinitionMonitor,
-		MutatingWebhookInformerKey: c.initMutatingWebhookConfigurationMonitor,
+		CrdInformerKey:               c.initCustomResourceDefinitionMonitor,
+		MutatingWebhookInformerKey:   c.initMutatingWebhookConfigurationMonitor,
+		ValidatingWebhookInformerKey: c.initValidatingWebhookConfigurationMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []k8s.InformerKey{CrdInformerKey, MutatingWebhookInformerKey}
+		informers := []k8s.InformerKey{MutatingWebhookInformerKey, ValidatingWebhookInformerKey}
+		// initialize informer for CRDs only if the apiServerClient is not nil
+		if apiServerClient != nil {
+			informers = append(informers, CrdInformerKey)
+		}
+		selectInformers = informers
 	}
 
 	for _, informer := range selectInformers {
@@ -84,6 +90,23 @@ func (c *client) initMutatingWebhookConfigurationMonitor() {
 
 	// Add event handler to informer
 	c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
+}
+
+// Initializes validating webhook monitoring
+func (c *client) initValidatingWebhookConfigurationMonitor() {
+	osmVwhcLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.OSMAppInstanceLabelKey: c.meshName, constants.ReconcileLabel: strconv.FormatBool(true)}
+	labelSelector := fields.SelectorFromSet(osmVwhcLabel).String()
+	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+		opt.LabelSelector = labelSelector
+	})
+
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(c.kubeClient, k8s.DefaultKubeEventResyncInterval, option)
+
+	// Add informer
+	c.informers[ValidatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().ValidatingWebhookConfigurations().Informer()
+
+	// Add event handler to informer
+	c.informers[ValidatingWebhookInformerKey].AddEventHandler(c.validatingWebhookEventHandler())
 }
 
 func (c *client) run(stop <-chan struct{}) error {

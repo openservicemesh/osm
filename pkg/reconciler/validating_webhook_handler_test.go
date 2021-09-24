@@ -12,34 +12,32 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/injector"
+	"github.com/openservicemesh/osm/pkg/validator"
 )
 
-var testWebhookServicePath = "/path"
-
-func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
+func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 	testCases := []struct {
 		name         string
-		originalMwhc admissionv1.MutatingWebhookConfiguration
-		updatedMwhc  admissionv1.MutatingWebhookConfiguration
-		mwhcUpdated  bool
+		originalVwhc admissionv1.ValidatingWebhookConfiguration
+		updatedVwhc  admissionv1.ValidatingWebhookConfiguration
+		vwhcUpdated  bool
 	}{
 		{
 			name: "webhook name and namespace selector changed",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -49,60 +47,72 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
+								constants.OSMKubeResourceMonitorAnnotation: meshName,
+							},
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      constants.IgnoreLabel,
+									Operator: metav1.LabelSelectorOpDoesNotExist,
+								},
 							},
 						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "new-test-service-name-",
+								Name:      "test-service-name-new",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMKubeResourceMonitorAnnotation: meshName,
+								"some": "label",
+							},
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      constants.IgnoreLabel,
+									Operator: metav1.LabelSelectorOpDoesNotExist,
+								},
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			vwhcUpdated: true,
 		},
 		{
-			name: "mutating webhook new label added",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			name: "validating webhook new label added",
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -110,30 +120,24 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -141,33 +145,27 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			mwhcUpdated: false,
+			vwhcUpdated: false,
 		},
 		{
-			name: "mutataing webhook name changed",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			name: "validating webhook name changed",
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -175,46 +173,34 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "--updatedWebhookName--",
+					Name: "--webhookName-updated--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name",
+								Name:      "test-service-name-new",
 								Path:      &testWebhookServicePath,
-							},
-						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			vwhcUpdated: true,
 		},
 	}
 
@@ -222,7 +208,7 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			kubeClient := testclient.NewSimpleClientset(&tc.originalMwhc)
+			kubeClient := testclient.NewSimpleClientset(&tc.originalVwhc)
 
 			c := client{
 				kubeClient:      kubeClient,
@@ -232,53 +218,47 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 				informers:       informerCollection{},
 			}
 			// Invoke update handler
-			handlers := c.mutatingWebhookEventHandler()
-			handlers.UpdateFunc(&tc.originalMwhc, &tc.updatedMwhc)
+			handlers := c.validatingWebhookEventHandler()
+			handlers.UpdateFunc(&tc.originalVwhc, &tc.updatedVwhc)
 
-			if tc.mwhcUpdated {
-				a.Equal(&tc.originalMwhc, &tc.updatedMwhc)
+			if tc.vwhcUpdated {
+				a.Equal(&tc.originalVwhc, &tc.updatedVwhc)
 			} else {
-				a.NotEqual(&tc.originalMwhc, &tc.updatedMwhc)
+				a.NotEqual(&tc.originalVwhc, &tc.updatedVwhc)
 			}
 
-			crd, err := c.kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), tc.originalMwhc.Name, metav1.GetOptions{})
+			vwhc, err := c.kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), tc.originalVwhc.Name, metav1.GetOptions{})
 			a.Nil(err)
 
-			if tc.mwhcUpdated {
-				a.Equal(crd, &tc.updatedMwhc)
+			if tc.vwhcUpdated {
+				a.Equal(vwhc, &tc.updatedVwhc)
 			} else {
-				a.Equal(crd, &tc.originalMwhc)
+				a.Equal(vwhc, &tc.originalVwhc)
 			}
 		})
 	}
 }
 
-func TestMutatingWebhookEventHandlerDeleteFunc(t *testing.T) {
-	originalMwhc := admissionv1.MutatingWebhookConfiguration{
+func TestValidatingWebhookEventHandlerDeleteFunc(t *testing.T) {
+	originalVwhc := admissionv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "--webhookName--",
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 				constants.ReconcileLabel:         strconv.FormatBool(true),
-				"app":                            constants.OSMInjectorName,
+				"app":                            constants.OSMControllerName,
 				constants.OSMAppVersionLabelKey:  osmVersion,
 				constants.OSMAppInstanceLabelKey: meshName,
 			},
 		},
-		Webhooks: []admissionv1.MutatingWebhook{
+		Webhooks: []admissionv1.ValidatingWebhook{
 			{
-				Name: injector.MutatingWebhookName,
+				Name: validator.ValidatingWebhookName,
 				ClientConfig: v1.WebhookClientConfig{
 					Service: &v1.ServiceReference{
 						Namespace: "test-namespace",
 						Name:      "test-service-name",
 						Path:      &testWebhookServicePath,
-					},
-				},
-				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
 			},
@@ -296,38 +276,38 @@ func TestMutatingWebhookEventHandlerDeleteFunc(t *testing.T) {
 		informers:       informerCollection{},
 	}
 	// Invoke delete handler
-	handlers := c.mutatingWebhookEventHandler()
-	handlers.DeleteFunc(&originalMwhc)
+	handlers := c.validatingWebhookEventHandler()
+	handlers.DeleteFunc(&originalVwhc)
 
 	// verify mwhc exists after deletion
-	mwhc, err := c.kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), originalMwhc.Name, metav1.GetOptions{})
+	mwhc, err := c.kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), originalVwhc.Name, metav1.GetOptions{})
 	a.Nil(err)
-	a.Equal(mwhc, &originalMwhc)
+	a.Equal(mwhc, &originalVwhc)
 }
 
-func TestIsMutatingWebhookUpdated(t *testing.T) {
+func TestIsValidatingWebhookUpdated(t *testing.T) {
 	testCases := []struct {
 		name         string
-		originalMwhc admissionv1.MutatingWebhookConfiguration
-		updatedMwhc  admissionv1.MutatingWebhookConfiguration
-		mwhcUpdated  bool
+		originalVwhc admissionv1.ValidatingWebhookConfiguration
+		updatedVwhc  admissionv1.ValidatingWebhookConfiguration
+		vwhcUpdated  bool
 	}{
 		{
-			name: "webhook and namespace selector changed",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			name: "webhook name and namespace selector changed",
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -337,60 +317,72 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
+								constants.OSMKubeResourceMonitorAnnotation: meshName,
+							},
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      constants.IgnoreLabel,
+									Operator: metav1.LabelSelectorOpDoesNotExist,
+								},
 							},
 						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "new-test-service-name-",
+								Name:      "test-service-name-new",
 								Path:      &testWebhookServicePath,
 							},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								"some-key": "some-value",
+								constants.OSMKubeResourceMonitorAnnotation: meshName,
+								"some": "label",
+							},
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      constants.IgnoreLabel,
+									Operator: metav1.LabelSelectorOpDoesNotExist,
+								},
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			vwhcUpdated: true,
 		},
 		{
-			name: "mutating webhook new label added",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			name: "validating webhook new label added",
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -398,30 +390,24 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 						"some":                           "label",
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -429,33 +415,27 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			mwhcUpdated: false,
+			vwhcUpdated: false,
 		},
 		{
-			name: "mutataing webhook name changed",
-			originalMwhc: admissionv1.MutatingWebhookConfiguration{
+			name: "validating webhook name changed",
+			originalVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "--webhookName--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
@@ -463,46 +443,34 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 								Path:      &testWebhookServicePath,
 							},
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
-							},
-						},
 					},
 				},
 			},
-			updatedMwhc: admissionv1.MutatingWebhookConfiguration{
+			updatedVwhc: admissionv1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "--updatedWebhookName--",
+					Name: "--webhookName-updated--",
 					Labels: map[string]string{
 						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 						constants.ReconcileLabel:         strconv.FormatBool(true),
-						"app":                            constants.OSMInjectorName,
+						"app":                            constants.OSMControllerName,
 						constants.OSMAppVersionLabelKey:  osmVersion,
 						constants.OSMAppInstanceLabelKey: meshName,
 					},
 				},
-				Webhooks: []admissionv1.MutatingWebhook{
+				Webhooks: []admissionv1.ValidatingWebhook{
 					{
-						Name: injector.MutatingWebhookName,
+						Name: validator.ValidatingWebhookName,
 						ClientConfig: v1.WebhookClientConfig{
 							Service: &v1.ServiceReference{
 								Namespace: "test-namespace",
-								Name:      "test-service-name",
+								Name:      "test-service-name-new",
 								Path:      &testWebhookServicePath,
-							},
-						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-								constants.OSMAppInstanceLabelKey: meshName,
 							},
 						},
 					},
 				},
 			},
-			mwhcUpdated: true,
+			vwhcUpdated: true,
 		},
 	}
 
@@ -512,8 +480,8 @@ func TestIsMutatingWebhookUpdated(t *testing.T) {
 			c := client{
 				osmVersion: osmVersion,
 			}
-			result := c.isMutatingWebhookUpdated(&tc.originalMwhc, &tc.updatedMwhc)
-			assert.Equal(result, tc.mwhcUpdated)
+			result := c.isValidatingWebhookUpdated(&tc.originalVwhc, &tc.updatedVwhc)
+			assert.Equal(result, tc.vwhcUpdated)
 		})
 	}
 }
