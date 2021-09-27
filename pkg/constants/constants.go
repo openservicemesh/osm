@@ -79,6 +79,9 @@ const (
 	// OSMInjectorName is the name of the OSM Injector.
 	OSMInjectorName = "osm-injector"
 
+	// OSMBootstrapName is the name of the OSM Bootstrap.
+	OSMBootstrapName = "osm-bootstrap"
+
 	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Envoy proxies
 	ADSServerPort = 15128
 

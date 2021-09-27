@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 // EventRecorder is a type used to record Kubernetes events
@@ -30,7 +32,7 @@ var (
 
 const (
 	// eventSource is the name of the event source which generates Kubernetes events
-	eventSource = "osm-controller"
+	eventSource = constants.OSMControllerName
 
 	// fatalEventPrefix is the prefix used with fatal event reasons which is used to identify Fatal events.
 	fatalEventPrefix = "Fatal"
