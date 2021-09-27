@@ -139,6 +139,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	testMeshName := "test-mesh"
 	testVersion := "test-version"
 	enableReconciler := false
+	validateTrafficTarget := true
 	t.Run("error updating ValidatingWebhookConfig", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		cert := certificate.NewMockCertificater(mockCtrl)
@@ -146,7 +147,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 
 		kube := fake.NewSimpleClientset()
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, 0, cert, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, 0, cert, kube, nil)
 		tassert.Error(t, err)
 	})
 
@@ -166,11 +167,11 @@ func TestNewValidatingWebhook(t *testing.T) {
 		}
 		kube := fake.NewSimpleClientset(webhook)
 
-		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, port, cert, kube, nil)
+		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, cert, kube, nil)
 		tassert.NoError(t, err)
 	})
 
-	t.Run("successful startup with reconciler enabled", func(t *testing.T) {
+	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		cert := certificate.NewMockCertificater(mockCtrl)
 		cert.EXPECT().GetCertificateChain().AnyTimes()
@@ -182,7 +183,24 @@ func TestNewValidatingWebhook(t *testing.T) {
 		defer close(stop)
 		kube := fake.NewSimpleClientset()
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, port, cert, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, cert, kube, nil)
+		tassert.NoError(t, err)
+	})
+
+	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		cert := certificate.NewMockCertificater(mockCtrl)
+		cert.EXPECT().GetCertificateChain().AnyTimes()
+		cert.EXPECT().GetPrivateKey().AnyTimes()
+		enableReconciler = true
+		validateTrafficTarget = false
+
+		port := 41414
+		stop := make(chan struct{})
+		defer close(stop)
+		kube := fake.NewSimpleClientset()
+
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, cert, kube, nil)
 		tassert.NoError(t, err)
 	})
 }

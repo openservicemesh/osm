@@ -83,9 +83,9 @@ func testTraffic(withSourceKubernetesService bool) {
 			})
 
 		// Configs have to be put into a monitored NS
-		_, err = Td.CreateHTTPRouteGroup(sourceName, httpRG)
+		_, err = Td.CreateHTTPRouteGroup(destName, httpRG)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
+		_, err = Td.CreateTrafficTarget(destName, trafficTarget)
 		Expect(err).NotTo(HaveOccurred())
 
 		// All ready. Expect client to reach server
@@ -117,8 +117,8 @@ func testTraffic(withSourceKubernetesService bool) {
 		Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s Kubernetes Service to a destination", sourceService)
 
 		By("Deleting SMI policies")
-		Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
-		Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(sourceName).Delete(context.TODO(), httpRG.Name, metav1.DeleteOptions{})).To(Succeed())
+		Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(destName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
+		Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(destName).Delete(context.TODO(), httpRG.Name, metav1.DeleteOptions{})).To(Succeed())
 
 		// Expect client not to reach server
 		cond = Td.WaitForRepeatedSuccess(func() bool {

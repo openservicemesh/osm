@@ -110,9 +110,9 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// Deploy policies to allow 'sourceOne' to access destination at HTTP path '/anything'
 				anythingPath := "/anything"
 				httpRGOne, trafficTargetOne := createPolicyForRoutePath(sourceOne, sourceOne, destName, destName, anythingPath)
-				_, err = Td.CreateHTTPRouteGroup(sourceOne, httpRGOne)
+				_, err = Td.CreateHTTPRouteGroup(destName, httpRGOne)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(sourceOne, trafficTargetOne)
+				_, err = Td.CreateTrafficTarget(destName, trafficTargetOne)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Deploy policies to allow 'sourceTwo' to access destination at HTTP path '/foo'
@@ -120,9 +120,9 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				// path '/anything' which is used to demonstrate RBAC per route.
 				fooPath := "/foo"
 				httpRGTwo, trafficTargetTwo := createPolicyForRoutePath(sourceTwo, sourceTwo, destName, destName, fooPath)
-				_, err = Td.CreateHTTPRouteGroup(sourceTwo, httpRGTwo)
+				_, err = Td.CreateHTTPRouteGroup(destName, httpRGTwo)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(sourceTwo, trafficTargetTwo)
+				_, err = Td.CreateTrafficTarget(destName, trafficTargetTwo)
 				Expect(err).NotTo(HaveOccurred())
 
 				// HTTP request from 'sourceOne': http://<address>/anything
@@ -180,8 +180,8 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				Expect(cond).To(BeTrue())
 
 				By("Deleting SMI policies")
-				Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceOne).Delete(context.TODO(), trafficTargetOne.Name, metav1.DeleteOptions{})).To(Succeed())
-				Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(sourceOne).Delete(context.TODO(), httpRGOne.Name, metav1.DeleteOptions{})).To(Succeed())
+				Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(destName).Delete(context.TODO(), trafficTargetOne.Name, metav1.DeleteOptions{})).To(Succeed())
+				Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(destName).Delete(context.TODO(), httpRGOne.Name, metav1.DeleteOptions{})).To(Succeed())
 
 				// Verify HTTP requests fail from allowed client to destination server after SMI policies are deleted
 				cond = Td.WaitForRepeatedSuccess(func() bool {
@@ -202,7 +202,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 
 // createPolicyForRoutePath creates an HTTPRouteGroup and TrafficTarget policy for the given source, destination and HTTP path regex
 func createPolicyForRoutePath(source, sourceNamespace, destination, destinationNamespace, pathRegex string) (smiSpecs.HTTPRouteGroup, smiAccess.TrafficTarget) {
-	routeGroupName := "test-route"
+	routeGroupName := source + "-" + destination
 	routeMatchName := "allowed-route"
 
 	routeGroup := smiSpecs.HTTPRouteGroup{

@@ -160,6 +160,7 @@ The following table lists the configurable parameters of the osm chart and their
 | contour.contour | object | `{"image":{"registry":"docker.io","repository":"projectcontour/contour","tag":"v1.18.0"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
 | contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.19.1"}}` | Contour envoy edge proxy configuration |
+| smi.validateTrafficTarget | bool | `true` | Enables validation of SMI Traffic Target |
 
 <!-- markdownlint-enable MD013 MD034 -->
 <!-- markdownlint-restore -->

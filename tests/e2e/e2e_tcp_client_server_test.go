@@ -93,9 +93,9 @@ func testTCPTraffic(permissiveMode bool) {
 			)
 
 			// Configs have to be put into a monitored NS
-			_, err = Td.CreateTCPRoute(sourceNs, tcpRoute)
+			_, err = Td.CreateTCPRoute(destNs, tcpRoute)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateTrafficTarget(sourceNs, trafficTarget)
+			_, err = Td.CreateTrafficTarget(destNs, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -137,8 +137,8 @@ func testTCPTraffic(permissiveMode bool) {
 
 		if !permissiveMode {
 			By("Deleting SMI policies")
-			Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceNs).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
-			Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceNs).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
+			Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(destNs).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
+			Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(destNs).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
 
 			// Expect client not to reach server
 			cond = Td.WaitForRepeatedSuccess(func() bool {

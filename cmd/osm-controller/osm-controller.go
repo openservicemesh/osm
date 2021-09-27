@@ -76,7 +76,8 @@ var (
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
-	enableReconciler bool
+	enableReconciler      bool
+	validateTrafficTarget bool
 
 	scheme = runtime.NewScheme()
 )
@@ -113,6 +114,7 @@ func init() {
 
 	// Reconciler options
 	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
+	flags.BoolVar(&validateTrafficTarget, "validate-traffic-target", true, "Enable traffic target validation")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -258,7 +260,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing certificate for the validating webhook")
 	}
 
-	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
+	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, constants.ValidatorWebhookPort, webhookHandlerCert, kubeClient, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 

@@ -155,9 +155,9 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						})
 
 					// Configs have to be put into a monitored NS, and osm-system can't be by cli
-					_, err = Td.CreateHTTPRouteGroup(srcClient, httpRG)
+					_, err = Td.CreateHTTPRouteGroup(destApp, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(destApp, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 				}
 
