@@ -101,9 +101,9 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 					})
 
 				// Configs have to be put into a monitored NS, and osm-system can't be by cli
-				_, err = Td.CreateHTTPRouteGroup(clientNamespace, httpRG)
+				_, err = Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateTrafficTarget(clientNamespace, trafficTarget)
+				_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 				Expect(err).NotTo(HaveOccurred())
 
 				// All ready. Expect client to reach server

@@ -9,11 +9,11 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/webhook"
@@ -34,17 +34,18 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler bool, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
+func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, port int, certificater certificate.Certificater, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
 	v := &validatingWebhookServer{
 		validators: map[string]validateFunc{
 			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String(): ingressBackendValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():         egressValidator,
+			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():       trafficTargetValidator,
 		},
 	}
 
 	if enableReconciler {
 		// Create the ValidatingWebhook
-		if err := createValidatingWebhook(kubeClient, certificater, webhookConfigName, meshName, osmNamespace, osmVersion); err != nil {
+		if err := createValidatingWebhook(kubeClient, certificater, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget); err != nil {
 			return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 		}
 	} else {

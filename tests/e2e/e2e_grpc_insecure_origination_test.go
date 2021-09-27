@@ -90,9 +90,9 @@ func testGRPCTraffic() {
 			})
 
 		// Configs have to be put into a monitored NS
-		_, err = Td.CreateHTTPRouteGroup(sourceNs, httpRG)
+		_, err = Td.CreateHTTPRouteGroup(destNs, httpRG)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreateTrafficTarget(sourceNs, trafficTarget)
+		_, err = Td.CreateTrafficTarget(destNs, trafficTarget)
 		Expect(err).NotTo(HaveOccurred())
 
 		// All ready. Expect client to reach server
@@ -127,8 +127,8 @@ func testGRPCTraffic() {
 		Expect(cond).To(BeTrue(), "Failed testing gRPC traffic for: %s", srcToDestStr)
 
 		By("Deleting SMI policies")
-		Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceNs).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
-		Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(sourceNs).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
+		Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(destNs).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
+		Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(destNs).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
 
 		// Expect client not to reach server
 		cond = Td.WaitForRepeatedSuccess(func() bool {

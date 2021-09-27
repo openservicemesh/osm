@@ -4,7 +4,8 @@
     "title": "The OSM Helm chart values schema",
     "required": [
         "OpenServiceMesh",
-        "contour"
+        "contour",
+        "smi"
     ],
     "definitions": {
         "containerResources": {
@@ -1205,6 +1206,20 @@
                     "$id": "#/properties/contour/enabled",
                     "title": "Enable Contour",
                     "description": "Enables Contour control plane and gateway",
+                    "type": "boolean"
+                }
+            }
+        },
+        "smi": {
+            "$id": "#/properties/smi",
+            "type": "object",
+            "title": "SMI Configuration",
+            "description": "SMI configuration",
+            "properties": {
+                "validateTrafficTarget": {
+                    "$id": "#/properties/contour/validateTrafficTarget",
+                    "title": "Validate Traffic Target",
+                    "description": "Enables validation of SMI Traffic Target",
                     "type": "boolean"
                 }
             }

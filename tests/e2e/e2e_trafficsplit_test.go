@@ -196,9 +196,9 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 							DestinationSvcAccountName: dstServer,
 						})
 
-					_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
+					_, err := Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 
 				// TCP traffic
@@ -218,9 +218,9 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 					)
 
 					// Configs have to be put into a monitored NS
-					_, err := Td.CreateTCPRoute(srcClient, tcpRoute)
+					_, err := Td.CreateTCPRoute(serverNamespace, tcpRoute)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 
 				default:

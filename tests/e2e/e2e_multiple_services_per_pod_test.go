@@ -89,9 +89,9 @@ func testMultipleServicePerPod() {
 			})
 
 		// Configs have to be put into a monitored NS
-		_, err = Td.CreateHTTPRouteGroup(sourceName, httpRG)
+		_, err = Td.CreateHTTPRouteGroup(destName, httpRG)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
+		_, err = Td.CreateTrafficTarget(destName, trafficTarget)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect client to reach HTTP server using the first service as FQDN

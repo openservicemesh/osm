@@ -179,9 +179,9 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 								DestinationSvcAccountName: dstServer,
 							})
 
-						_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
+						_, err := Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 						Expect(err).NotTo(HaveOccurred())
-						_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+						_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 						Expect(err).NotTo(HaveOccurred())
 					}
 				}

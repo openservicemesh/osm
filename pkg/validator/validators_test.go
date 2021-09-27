@@ -569,3 +569,85 @@ func TestMulticlusterServiceValidator(t *testing.T) {
 		})
 	}
 }
+
+func TestTrafficTargetValidator(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
+	}{
+		{
+			name: "TrafficTarget namespace matches destination namespace",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha3",
+					Version: "access.smi-spec.io",
+					Kind:    "TrafficTarget",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha3",
+						"kind": "TrafficTarget",
+						"metadata": {
+							"namespace": "destination-namespace"
+						},
+						"spec": {
+							"destination": {
+								"kind": "ServiceAccount",
+								"name": "destination-name",
+								"namespace": "destination-namespace"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "Traffic Target namespace does not match destination namespace",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha3",
+					Version: "access.smi-spec.io",
+					Kind:    "TrafficTarget",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha3",
+						"kind": "TrafficTarget",
+						"metadata": {
+							"namespace": "another-namespace"
+						},
+						"spec": {
+							"destination": {
+								"kind": "ServiceAccount",
+								"name": "destination-name",
+								"namespace": "destination-namespace"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "The traffic target namespace (another-namespace) must match spec.Destination.Namespace (destination-namespace)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			resp, err := trafficTargetValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
