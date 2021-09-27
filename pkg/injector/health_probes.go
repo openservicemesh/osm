@@ -2,6 +2,7 @@ package injector
 
 import (
 	"errors"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -20,8 +21,9 @@ const (
 var errNoMatchingPort = errors.New("no matching port")
 
 type healthProbe struct {
-	path string
-	port int32
+	path    string
+	port    int32
+	timeout time.Duration
 
 	// isHTTP corresponds to an httpGet probe with a scheme of HTTP or undefined.
 	// This helps inform what kind of Envoy config to add to the pod.
@@ -89,6 +91,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
 	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
+	originalProbe.timeout = time.Duration(probe.TimeoutSeconds) * time.Second
 
 	log.Debug().Msgf(
 		"Rewriting %s probe (:%d%s) to :%d%s",

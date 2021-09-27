@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -145,7 +144,6 @@ func TestNewResponse(t *testing.T) {
 		AltStatName:                   "default/bookbuyer|8080|local",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS},
 		EdsClusterConfig:              nil,
-		ConnectTimeout:                ptypes.DurationProto(1 * time.Second),
 		RespectDnsTtl:                 true,
 		DnsLookupFamily:               xds_cluster.Cluster_V4_ONLY,
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
@@ -199,7 +197,6 @@ func TestNewResponse(t *testing.T) {
 			},
 			ServiceName: "",
 		},
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
@@ -228,7 +225,6 @@ func TestNewResponse(t *testing.T) {
 			},
 			ServiceName: "",
 		},
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
@@ -308,7 +304,6 @@ func TestNewResponse(t *testing.T) {
 		AltStatName:            constants.EnvoyMetricsCluster,
 		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 		EdsClusterConfig:       nil,
-		ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: constants.EnvoyMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{

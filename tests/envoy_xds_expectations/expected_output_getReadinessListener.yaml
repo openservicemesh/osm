@@ -46,5 +46,6 @@ filter_chains:
             route:
               cluster: readiness_cluster
               prefix_rewrite: /readiness
+              timeout: 42s
       stat_prefix: health_probes_http
 name: readiness_listener

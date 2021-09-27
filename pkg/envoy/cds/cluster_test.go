@@ -2,13 +2,11 @@ package cds
 
 import (
 	"testing"
-	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 
@@ -188,7 +186,6 @@ func TestGetLocalServiceCluster(t *testing.T) {
 			} else {
 				assert.Equal(tc.clusterConfig.Name, cluster.Name)
 				assert.Equal(tc.clusterConfig.Name, cluster.AltStatName)
-				assert.Equal(ptypes.DurationProto(clusterConnectTimeout), cluster.ConnectTimeout)
 				assert.Equal(xds_cluster.Cluster_ROUND_ROBIN, cluster.LbPolicy)
 				assert.Equal(&xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STRICT_DNS}, cluster.ClusterDiscoveryType)
 				assert.Equal(true, cluster.RespectDnsTtl)
@@ -209,7 +206,6 @@ func TestGetPrometheusCluster(t *testing.T) {
 		AltStatName:            constants.EnvoyMetricsCluster,
 		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 		EdsClusterConfig:       nil,
-		ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: constants.EnvoyMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -261,8 +257,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 			name:        "foo cluster",
 			clusterName: "foo",
 			expected: &xds_cluster.Cluster{
-				Name:           "foo",
-				ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+				Name: "foo",
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
@@ -274,8 +269,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 			name:        "bar cluster",
 			clusterName: "bar",
 			expected: &xds_cluster.Cluster{
-				Name:           "bar",
-				ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+				Name: "bar",
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
@@ -371,9 +365,8 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 				Port: 80,
 			},
 			expectedCluster: &xds_cluster.Cluster{
-				Name:           "foo.com:80",
-				AltStatName:    "foo_com_80",
-				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+				Name:        "foo.com:80",
+				AltStatName: "foo_com_80",
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 					Type: xds_cluster.Cluster_STRICT_DNS,
 				},

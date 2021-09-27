@@ -2,6 +2,7 @@ package injector
 
 import (
 	"testing"
+	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -14,17 +15,21 @@ import (
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
 
-	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true}
-	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false}
-	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true}
-	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true}
+	timeout := 42 * time.Second
+	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true, timeout: timeout}
+	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false, timeout: timeout}
+	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true, timeout: timeout}
+	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true, timeout: timeout}
 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.
 	// The key (function name) is used to locate and load the YAML file with the expected return for this function.
 	clusterFunctionsToTest := map[string]func() protoreflect.ProtoMessage{
 		"getVirtualHosts": func() protoreflect.ProtoMessage {
-			return getVirtualHost("/some/path", "-cluster-name-", "/original/probe/path")
+			return getVirtualHost("/some/path", "-cluster-name-", "/original/probe/path", timeout)
+		},
+		"getVirtualHostsDefault": func() protoreflect.ProtoMessage {
+			return getVirtualHost("/some/path", "-cluster-name-", "/original/probe/path", 0*time.Second)
 		},
 		"getProbeCluster":     func() protoreflect.ProtoMessage { return getProbeCluster("cluster-name", 12341234) },
 		"getLivenessCluster":  func() protoreflect.ProtoMessage { return getLivenessCluster(liveness) },
