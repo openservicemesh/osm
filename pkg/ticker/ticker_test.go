@@ -1,160 +1,232 @@
 package ticker
 
 import (
-	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-func teardownTicker() {
-	close(rTicker.stopConfigRoutine)
-	close(rTicker.stopTickerRoutine)
-	rTicker = nil
-}
-
-func TestInitTicker(t *testing.T) {
-	assert := assert.New(t)
-	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
-	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
-
-	events.Subscribe(announcements.TickerStart)
-	events.Subscribe(announcements.TickerStop)
-
-	assert.Nil(rTicker)
-	ticker := InitTicker(mockConfigurator)
-	assert.NotNil(ticker)
-	assert.NotNil(rTicker)
-
-	newTicker := InitTicker(mockConfigurator)
-	assert.Same(ticker, newTicker)
-
-	// clean up
-	teardownTicker()
-}
-
-func TestTicker(t *testing.T) {
-	assert := assert.New(t)
-
-	broadcastEvents := events.Subscribe(announcements.ScheduleProxyBroadcast)
-	defer events.Unsub(broadcastEvents)
-
-	var counterMutex sync.Mutex
-	broadcastsReceived := 0
+func TestResyncTicker(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
-	go func() {
-		for {
-			select {
-			case <-broadcastEvents:
-				counterMutex.Lock()
-				broadcastsReceived++
-				counterMutex.Unlock()
-			case <-stop:
-				return
+	msgBroker := messaging.NewBroker(stop)
+
+	minTickerInterval := 100 * time.Millisecond
+	r := NewResyncTicker(msgBroker, minTickerInterval)
+	// Start the ResyncTicker
+	r.Start(stop)
+	// Give enough time for Ticker to start and subscribe to MeshConfig updates
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify that the ticker ticks at the configured interval
+	kubePubSub := msgBroker.GetKubeEventPubSub()
+	proxyUpdatePubSub := msgBroker.GetProxyUpdatePubSub()
+	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
+	defer msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
+
+	type test struct {
+		name                 string
+		event                events.PubSubMessage
+		waitUntil            time.Duration
+		minExpectedTicks     int
+		expectedInvalidCount int
+	}
+
+	testCases := []test{
+		{
+			name: "Start ticker that ticks every 1s",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "1s",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:        6 * time.Second,
+			minExpectedTicks: 5,
+		},
+		{
+			name: "Update ticker from 1s to 500ms",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "1s",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500ms",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:        6 * time.Second,
+			minExpectedTicks: 10,
+		},
+		{
+			name: "Stop ticker - 500ms to 0",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "0",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:        2 * time.Second,
+			minExpectedTicks: 0,
+		},
+		{
+			name: "Restart ticker from 0 to 500ms",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "0",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500ms",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:        3 * time.Second,
+			minExpectedTicks: 4,
+		},
+		{
+			name: "Ticker continues to operate when the tick value is unchanged",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500ms",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500ms",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:        3 * time.Second,
+			minExpectedTicks: 4,
+		},
+		{
+			name: "Set ticker interval below min allowed and verify it is ignored",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "0",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "1ms", // Less than 'minTickerInterval'
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:            1 * time.Second,
+			minExpectedTicks:     0,
+			expectedInvalidCount: 1,
+		},
+		{
+			name: "Restart ticker from invalid interval to 500ms",
+			event: events.PubSubMessage{
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "1ms",
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						Sidecar: configv1alpha1.SidecarSpec{
+							ConfigResyncInterval: "500ms",
+						},
+					},
+				},
+				Kind: announcements.MeshConfigUpdated,
+			},
+			waitUntil:            3 * time.Second,
+			minExpectedTicks:     4,
+			expectedInvalidCount: 1, // From previous test case
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			done := false
+			eventsReceived := 0
+
+			kubePubSub.Pub(tc.event, announcements.MeshConfigUpdated.String())
+			timeout := time.After(tc.waitUntil)
+			for !done {
+				select {
+				case <-timeout:
+					done = true
+					log.Debug().Msg("Done!")
+				default:
+					// Process next select statement
+				}
+
+				select {
+				case <-proxyUpdateChan:
+					eventsReceived++
+					log.Debug().Msgf("Received event %d", eventsReceived)
+				default:
+					// Process next select statement
+				}
 			}
-		}
-	}()
 
-	// Start the ticker routine
-	doneInit := make(chan struct{})
-	stopTicker := make(chan struct{})
-	defer close(stopTicker)
-	go ticker(doneInit, stop)
-	<-doneInit
-
-	// Start ticker, tick at 100ms rate
-	events.Publish(events.PubSubMessage{
-		Kind:   announcements.TickerStart,
-		NewObj: time.Duration(100 * time.Millisecond),
-	})
-
-	// broadcast events should increase in the next few seconds
-	assert.Eventually(func() bool {
-		counterMutex.Lock()
-		defer counterMutex.Unlock()
-		return broadcastsReceived > 0
-	}, 3*time.Second, 500*time.Millisecond)
-
-	// Stop the ticker
-	events.Publish(events.PubSubMessage{
-		Kind: announcements.TickerStop,
-	})
-
-	// Should stop increasing
-	assert.Eventually(func() bool {
-		counterMutex.Lock()
-		defer counterMutex.Unlock()
-		firstRead := broadcastsReceived
-		time.Sleep(1 * time.Second)
-		secondRead := broadcastsReceived
-
-		return firstRead == secondRead
-	}, 6*time.Second, 2*time.Second)
-}
-
-// Test the MeshConfig event listener code for ticker
-func TestTickerConfigurator(t *testing.T) {
-	assert := assert.New(t)
-	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
-
-	tickerStartEvents := events.Subscribe(announcements.TickerStart)
-	tickerStopEvents := events.Subscribe(announcements.TickerStop)
-
-	// First init will expect defaults to false
-	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
-
-	doneInit := make(chan struct{})
-	stopConfig := make(chan struct{})
-	defer close(stopConfig)
-	go tickerConfigListener(mockConfigurator, doneInit, stopConfig)
-	<-doneInit
-
-	type tickerConfigTests struct {
-		mockTickerDurationVal time.Duration
-		expectStartEvent      int
-		expectStopEvent       int
-	}
-
-	tickerConfTests := []tickerConfigTests{
-		{time.Duration(2 * time.Minute), 1, 0},  // default (off) -> 2m, expect start
-		{time.Duration(2 * time.Minute), 0, 0},  // No change, expect no event
-		{time.Duration(3 * time.Minute), 1, 0},  // 2m -> enabled 3m, expect start
-		{time.Duration(0), 0, 1},                // 2m -> stop, expect stop
-		{time.Duration(30 * time.Second), 0, 1}, // stop -> still smaller than threshold, expect stop
-		{time.Duration(0), 0, 1},                // stopped -> stopped, still trigger change
-		{time.Duration(2 * time.Minute), 1, 0},  // stopped -> start, expect start
-	}
-
-	for _, test := range tickerConfTests {
-		// Simulate a meshconfig change, expect the right calls if it is enabled
-		mockConfigurator.EXPECT().GetConfigResyncInterval().Return(test.mockTickerDurationVal)
-		events.Publish(events.PubSubMessage{
-			Kind: announcements.MeshConfigUpdated,
+			a.GreaterOrEqual(eventsReceived, tc.minExpectedTicks)
+			a.EqualValues(tc.expectedInvalidCount, atomic.LoadUint64(&r.invalidIntervalCounter))
 		})
-
-		receivedStartEvent := 0
-		receivedStopEvent := 0
-		done := false
-		for !done {
-			select {
-			case <-tickerStartEvents:
-				receivedStartEvent++
-			case <-tickerStopEvents:
-				receivedStopEvent++
-			// 500mili should be plenty for this
-			case <-time.After(500 * time.Millisecond):
-				done = true
-			}
-		}
-
-		assert.Equal(test.expectStartEvent, receivedStartEvent)
-		assert.Equal(test.expectStopEvent, receivedStopEvent)
 	}
 }

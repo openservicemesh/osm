@@ -1,6 +1,8 @@
 package debugger
 
 import (
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -8,47 +10,57 @@ import (
 )
 
 // StartDebugServerConfigListener registers a go routine to listen to configuration and configure debug server as needed
-func (d *DebugConfig) StartDebugServerConfigListener() {
-	// Subscribe to configuration updates
-	ch := events.Subscribe(
-		announcements.MeshConfigAdded,
-		announcements.MeshConfigDeleted,
-		announcements.MeshConfigUpdated)
-
+func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
 	// This is the Debug server
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)
 	httpDebugServer.AddHandlers(d.GetHandlers())
 
-	// Run config listener
-	go func(cfgSubChannel chan interface{}, dConf *DebugConfig, httpServ *httpserver.HTTPServer) {
-		// Bootstrap after subscribing
-		started := false
+	kubePubSub := d.msgBroker.GetKubeEventPubSub()
+	meshCfgUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
+	defer d.msgBroker.Unsub(kubePubSub, meshCfgUpdateChan)
 
-		if d.configurator.IsDebugServerEnabled() {
-			if err := httpDebugServer.Start(); err != nil {
-				log.Error().Err(err).Msgf("error starting debug server")
-			}
-			started = true
+	started := false
+	if d.configurator.IsDebugServerEnabled() {
+		if err := httpDebugServer.Start(); err != nil {
+			log.Error().Err(err).Msgf("error starting debug server")
 		}
+		started = true
+	}
 
-		for {
-			<-cfgSubChannel
-			isDbgSrvEnabled := d.configurator.IsDebugServerEnabled()
+	for {
+		select {
+		case event := <-meshCfgUpdateChan:
+			msg, ok := event.(events.PubSubMessage)
+			if !ok {
+				log.Error().Msgf("Error casting to PubSubMessage, got type %T", msg)
+				continue
+			}
 
-			if isDbgSrvEnabled && !started {
+			prevSpec := msg.OldObj.(*configv1alpha1.MeshConfig).Spec
+			newSpec := msg.NewObj.(*configv1alpha1.MeshConfig).Spec
+
+			if prevSpec.Observability.EnableDebugServer == newSpec.Observability.EnableDebugServer {
+				continue
+			}
+
+			enableDbgServer := newSpec.Observability.EnableDebugServer
+			if enableDbgServer && !started {
 				if err := httpDebugServer.Start(); err != nil {
 					log.Error().Err(err).Msgf("error starting debug server")
 				} else {
 					started = true
 				}
-			}
-			if !isDbgSrvEnabled && started {
+			} else if !enableDbgServer && started {
 				if err := httpDebugServer.Stop(); err != nil {
 					log.Error().Err(err).Msgf("error stopping debug server")
 				} else {
 					started = false
 				}
 			}
+
+		case <-stop:
+			log.Info().Msg("Received stop signal, exiting debug server config listener")
+			return
 		}
-	}(ch, d, httpDebugServer)
+	}
 }

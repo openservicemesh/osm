@@ -13,18 +13,6 @@ const (
 	// ProxyUpdate is the event kind used to trigger an update to subscribed proxies
 	ProxyUpdate Kind = "proxy-update"
 
-	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
-	ScheduleProxyBroadcast Kind = "schedule-proxy-broadcast"
-
-	// TickerStart starts Ticker to trigger time-based proxy updates
-	TickerStart Kind = "ticker-start"
-
-	// TickerStop stops Ticker to stop time-based proxy updates
-	TickerStop Kind = "ticker-stop"
-
-	// ProxyBroadcast is used to notify all Proxy streams that they need to trigger an update
-	ProxyBroadcast Kind = "proxy-broadcast"
-
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
 	PodAdded Kind = "pod-added"
 

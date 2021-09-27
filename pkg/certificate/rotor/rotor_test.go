@@ -13,7 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var _ = Describe("Test Rotor", func() {
@@ -52,18 +52,14 @@ var _ = Describe("Test Rotor", func() {
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
 		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		stop := make(chan struct{})
+		defer close(stop)
+		msgBroker := messaging.NewBroker(stop)
+		certManager := tresor.NewFakeCertManagerForRotation(mockConfigurator, msgBroker)
 
 		certA, err := certManager.IssueCertificate(cn, validityPeriod)
 
-		var certAnnouncement chan interface{}
-		BeforeEach(func() {
-			certAnnouncement = events.Subscribe(announcements.CertificateRotated)
-		})
-
-		AfterEach(func() {
-			events.Unsub(certAnnouncement)
-		})
+		certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
 
 		It("issued a new certificate", func() {
 			Expect(err).ToNot(HaveOccurred())
@@ -80,7 +76,7 @@ var _ = Describe("Test Rotor", func() {
 			start := time.Now()
 			rotor.New(certManager).Start(360 * time.Second)
 			// Wait for one certificate rotation to be announced and terminate
-			<-certAnnouncement
+			<-certRotateChan
 			close(done)
 
 			fmt.Printf("It took %+v to rotate certificate %s\n", time.Since(start), cn)

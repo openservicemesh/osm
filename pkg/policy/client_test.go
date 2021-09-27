@@ -1,12 +1,11 @@
 package policy
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	tassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -17,24 +16,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func TestNewPolicyClient(t *testing.T) {
-	assert := tassert.New(t)
-
-	client, err := newPolicyClient(fakePolicyClient.NewSimpleClientset(), nil, nil)
-	assert.Nil(err)
-	assert.NotNil(client)
-	assert.NotNil(client.informers.egress)
-	assert.NotNil(client.caches.egress)
-}
-
 func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
-
-	stop := make(chan struct{})
 
 	testCases := []struct {
 		name             string
@@ -142,22 +129,19 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
+			a := assert.New(t)
 
-			fakepolicyClientSet := fakePolicyClient.NewSimpleClientset()
+			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, egressPolicy := range tc.allEgresses {
-				_, err := fakepolicyClientSet.PolicyV1alpha1().Egresses(egressPolicy.Namespace).Create(context.TODO(), egressPolicy, metav1.CreateOptions{})
-				assert.Nil(err)
+				_ = c.caches.egress.Add(egressPolicy)
 			}
 
-			policyClient, err := newPolicyClient(fakepolicyClientSet, mockKubeController, stop)
-			assert.Nil(err)
-			assert.NotNil(policyClient)
-
-			actual := policyClient.ListEgressPoliciesForSourceIdentity(tc.source)
-			assert.ElementsMatch(tc.expectedEgresses, actual)
+			actual := c.ListEgressPoliciesForSourceIdentity(tc.source)
+			a.ElementsMatch(tc.expectedEgresses, actual)
 		})
 	}
 }
@@ -277,22 +261,19 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
+			a := assert.New(t)
 
-			fakepolicyClientSet := fakePolicyClient.NewSimpleClientset()
+			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, ingressBackend := range tc.allResources {
-				_, err := fakepolicyClientSet.PolicyV1alpha1().IngressBackends(ingressBackend.Namespace).Create(context.TODO(), ingressBackend, metav1.CreateOptions{})
-				assert.Nil(err)
+				_ = c.caches.ingressBackend.Add(ingressBackend)
 			}
 
-			policyClient, err := newPolicyClient(fakepolicyClientSet, mockKubeController, make(chan struct{}))
-			assert.Nil(err)
-			assert.NotNil(policyClient)
-
-			actual := policyClient.GetIngressBackendPolicy(tc.backend)
-			assert.Equal(tc.expectedIngressBackend, actual)
+			actual := c.GetIngressBackendPolicy(tc.backend)
+			a.Equal(tc.expectedIngressBackend, actual)
 		})
 	}
 }

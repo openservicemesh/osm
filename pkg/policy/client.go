@@ -8,6 +8,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -21,18 +22,11 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}) (Controller, error) {
-	client, err := newPolicyClient(
-		policyClient,
-		kubeController,
-		stop,
-	)
-
-	return client, err
+func NewPolicyController(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}, msgBroker *messaging.Broker) (Controller, error) {
+	return newClient(kubeController, policyClient, stop, msgBroker)
 }
 
-// newPolicyClient creates k8s clients for the resources in the policy.openservicemesh.io API group
-func newPolicyClient(policyClient policyClientset.Interface, kubeController k8s.Controller, stop chan struct{}) (client, error) {
+func newClient(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}, msgBroker *messaging.Broker) (client, error) {
 	informerFactory := policyInformers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
@@ -64,13 +58,13 @@ func newPolicyClient(policyClient policyClientset.Interface, kubeController k8s.
 		Update: announcements.EgressUpdated,
 		Delete: announcements.EgressDeleted,
 	}
-	informerCollection.egress.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, egressEventTypes))
+	informerCollection.egress.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, egressEventTypes, msgBroker))
 	ingressBackendEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressBackendAdded,
 		Update: announcements.IngressBackendUpdated,
 		Delete: announcements.IngressBackendDeleted,
 	}
-	informerCollection.ingressBackend.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressBackendEventTypes))
+	informerCollection.ingressBackend.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
 
 	err := client.run(stop)
 	if err != nil {

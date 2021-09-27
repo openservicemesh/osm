@@ -66,7 +66,7 @@ func TestNewCertificateProvider(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			_, _, _, err := NewCertificateProvider(fakeClient, kubeConfig, mockConfigurator, tc.providerKind, "osm-system", "osm-ca-bundle", tc.tresorOpt, tc.vaultOpt, tc.certManagerOpt)
+			_, _, _, err := NewCertificateProvider(fakeClient, kubeConfig, mockConfigurator, tc.providerKind, "osm-system", "osm-ca-bundle", tc.tresorOpt, tc.vaultOpt, tc.certManagerOpt, nil)
 			assert.Equal(tc.expErr, err != nil)
 		})
 	}

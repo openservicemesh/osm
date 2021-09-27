@@ -93,14 +93,14 @@ func TestNewResponse(t *testing.T) {
 	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, fmt.Errorf("dummy error")
-	}))
+	}), nil)
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)
 
 	proxyRegistry = registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookbuyerService}, nil
-	}))
+	}), nil)
 
 	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Empty(err)
@@ -173,7 +173,7 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 
 	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
 		tests.BookstoreV1Service,

@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -29,7 +30,8 @@ const (
 var candidateVersions = []string{networkingV1.SchemeGroupVersion.String(), networkingV1beta1.SchemeGroupVersion.String()}
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator, certProvider certificate.Manager) (Monitor, error) {
+func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{},
+	cfg configurator.Configurator, certProvider certificate.Manager, msgBroker *messaging.Broker) (Monitor, error) {
 	// Ignore ingresses that have the ignore label
 	ignoreLabel, _ := labels.NewRequirement(constants.IgnoreLabel, selection.DoesNotExist, nil)
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
@@ -57,6 +59,7 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		kubeController: kubeController,
 		cfg:            cfg,
 		certProvider:   certProvider,
+		msgBroker:      msgBroker,
 	}
 
 	supportedIngressVersions := getSupportedIngressVersions(kubeClient.Discovery())
@@ -64,13 +67,13 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	if v1Supported, ok := supportedIngressVersions[networkingV1.SchemeGroupVersion.String()]; ok && v1Supported {
 		c.informerV1 = informerFactory.Networking().V1().Ingresses().Informer()
 		c.cacheV1 = c.informerV1.GetStore()
-		c.informerV1.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressEventTypes))
+		c.informerV1.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressEventTypes, msgBroker))
 	}
 
 	if v1beta1Supported, ok := supportedIngressVersions[networkingV1beta1.SchemeGroupVersion.String()]; ok && v1beta1Supported {
 		c.informerV1beta1 = informerFactory.Networking().V1beta1().Ingresses().Informer()
 		c.cacheV1Beta1 = c.informerV1beta1.GetStore()
-		c.informerV1beta1.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, ingressEventTypes))
+		c.informerV1beta1.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressEventTypes, msgBroker))
 	}
 
 	if err := c.run(stop); err != nil {

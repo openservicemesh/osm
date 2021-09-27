@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("vault")
@@ -39,11 +40,13 @@ func NewCertManager(
 	token string,
 	role string,
 	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration) (*CertManager, error) {
+	serviceCertValidityDuration time.Duration,
+	msgBroker *messaging.Broker) (*CertManager, error) {
 	c := &CertManager{
 		role:                        vaultRole(role),
 		cfg:                         cfg,
 		serviceCertValidityDuration: serviceCertValidityDuration,
+		msgBroker:                   msgBroker,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -192,11 +195,11 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	cm.cache.Store(cn, newCert)
 
-	events.Publish(events.PubSubMessage{
+	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
 		NewObj: newCert,
 		OldObj: oldCert.(certificate.Certificater),
-	})
+	}, announcements.CertificateRotated.String())
 
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 

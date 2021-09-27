@@ -34,17 +34,3 @@ type PubSubMessage struct {
 	OldObj interface{}
 	NewObj interface{}
 }
-
-// PubSub is a simple interface to call for pubsub functionality in front of a pubsub implementation
-type PubSub interface {
-	// Subscribe returns a channel subscribed to the specific type/s of announcement/s passed by parameter
-	Subscribe(...announcements.Kind) chan interface{}
-
-	// Publish publishes the message to all subscribers that have subscribed to <message.Kind> topic
-	Publish(PubSubMessage)
-
-	// Unsub unsubscribes and closes the channel on pubsub backend
-	// Note this is a necessary step to ensure a channel can be
-	// garbage collected when it is freed.
-	Unsub(chan interface{})
-}

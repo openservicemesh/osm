@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -50,6 +51,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			mockConfigurator,
 			mockConfigurator.GetServiceCertValidityPeriod(),
 			mockConfigurator.GetCertKeyBitSize(),
+			nil,
 		)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
@@ -87,6 +89,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			mockConfigurator,
 			mockConfigurator.GetServiceCertValidityPeriod(),
 			mockConfigurator.GetCertKeyBitSize(),
+			nil,
 		)
 		It("should return nil and error of no certificate", func() {
 			Expect(m).To(BeNil())
@@ -115,6 +118,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			mockConfigurator,
 			mockConfigurator.GetServiceCertValidityPeriod(),
 			mockConfigurator.GetCertKeyBitSize(),
+			nil,
 		)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
@@ -258,7 +262,10 @@ func TestRotateCertificate(t *testing.T) {
 	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
 	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
 
-	manager := &CertManager{ca: rootCert, cfg: mockConfigurator}
+	stop := make(chan struct{})
+	defer close(stop)
+	msgBroker := messaging.NewBroker(stop)
+	manager := &CertManager{ca: rootCert, cfg: mockConfigurator, msgBroker: msgBroker}
 	manager.cache.Store(cn, oldCert)
 
 	testCases := []struct {

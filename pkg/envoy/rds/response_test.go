@@ -265,7 +265,7 @@ func TestNewResponse(t *testing.T) {
 
 			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil
-			}))
+			}), nil)
 
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
@@ -443,7 +443,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil
-	}))
+	}), nil)
 
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()

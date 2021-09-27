@@ -9,22 +9,24 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // observeFilter returns true for YES observe and false for NO do not pay attention to this
-// This filter could be added optionally by anything using GetKubernetesEventHandlers()
+// This filter could be added optionally by anything using GetEventHandlerFuncs()
 type observeFilter func(obj interface{}) bool
 
-// EventTypes is a struct helping pass the correct types to GetKubernetesEventHandlers
+// EventTypes is a struct helping pass the correct types to GetEventHandlerFuncs()
 type EventTypes struct {
 	Add    announcements.Kind
 	Update announcements.Kind
 	Delete announcements.Kind
 }
 
-// GetKubernetesEventHandlers creates Kubernetes events handlers.
-func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTypes) cache.ResourceEventHandlerFuncs {
+// GetEventHandlerFuncs returns the ResourceEventHandlerFuncs object used to receive events when a k8s
+// object is added/updated/deleted.
+func GetEventHandlerFuncs(shouldObserve observeFilter, eventTypes EventTypes, msgBroker *messaging.Broker) cache.ResourceEventHandlerFuncs {
 	if shouldObserve == nil {
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
@@ -37,7 +39,7 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 			logResourceEvent(log, eventTypes.Add, obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
-			events.Publish(events.PubSubMessage{
+			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
 				Kind:   eventTypes.Add,
 				NewObj: obj,
 				OldObj: nil,
@@ -51,7 +53,7 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 			logResourceEvent(log, eventTypes.Update, newObj)
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
-			events.Publish(events.PubSubMessage{
+			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
 				Kind:   eventTypes.Update,
 				NewObj: newObj,
 				OldObj: oldObj,
@@ -65,7 +67,7 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 			logResourceEvent(log, eventTypes.Delete, obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
-			events.Publish(events.PubSubMessage{
+			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
 				Kind:   eventTypes.Delete,
 				NewObj: nil,
 				OldObj: obj,

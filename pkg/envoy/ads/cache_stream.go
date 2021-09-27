@@ -15,15 +15,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
 // Routine which fulfills listening to proxy broadcasts
 func (s *Server) broadcastListener() {
-	// Register to Envoy global broadcast updates
-	broadcastUpdate := events.Subscribe(announcements.ProxyBroadcast)
+	// Register for proxy config updates broadcasted by the message broker
+	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
+	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
+	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
+
 	for {
-		<-broadcastUpdate
+		<-proxyUpdateChan
 		s.allPodUpdater()
 	}
 }

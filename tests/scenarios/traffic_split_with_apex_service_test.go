@@ -41,7 +41,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 
 	// ---[  Get the config from rds.NewResponse()  ]-------
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()

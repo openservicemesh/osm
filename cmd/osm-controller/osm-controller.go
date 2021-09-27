@@ -26,6 +26,7 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -159,25 +160,24 @@ func main() {
 	// Start the default metrics store
 	startMetricsStore()
 
+	msgBroker := messaging.NewBroker(stop)
+
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
 
-	// Start Global log level handler, reads from configurator (meshconfig)
-	StartGlobalLogLevelHandler(cfg, stop)
-
-	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop)
+	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, k8sClient, stop)
+	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, k8sClient, stop, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
 	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
+		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
@@ -195,7 +195,7 @@ func main() {
 	var configClient config.Controller
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
-		if configClient, err = config.NewConfigController(kubeConfig, k8sClient, stop); err != nil {
+		if configClient, err = config.NewConfigController(kubeConfig, k8sClient, stop, msgBroker); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes config client")
 		}
 	}
@@ -206,12 +206,12 @@ func main() {
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, k8sClient, stop, cfg, certManager)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}
 
-	policyController, err := policy.NewPolicyController(k8sClient, policyClient, stop)
+	policyController, err := policy.NewPolicyController(k8sClient, policyClient, stop, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
@@ -226,18 +226,12 @@ func main() {
 		cfg,
 		serviceProviders,
 		endpointsProviders,
+		msgBroker,
 	)
 
-	var proxyMapper registry.ProxyServiceMapper
-	if cfg.GetFeatureFlags().EnableAsyncProxyServiceMapping {
-		m := registry.NewAsyncKubeProxyServiceMapper(k8sClient)
-		m.Run(stop)
-		proxyMapper = m
-	} else {
-		proxyMapper = &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper)
-	proxyRegistry.ReleaseCertificateHandler(certManager)
+	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
+	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
@@ -245,7 +239,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient)
+	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
 	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
@@ -279,10 +273,13 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient)
-	debugConfig.StartDebugServerConfigListener()
+	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	go debugConfig.StartDebugServerConfigListener(stop)
 
-	k8s.PatchSecretHandler(kubeClient)
+	// Start the k8s pod watcher that updates corresponding k8s secrets
+	go k8s.WatchAndUpdateProxyBootstrapSecret(kubeClient, msgBroker, stop)
+	// Start the global log level watcher that updates the log level dynamically
+	go k8s.WatchAndUpdateLogLevel(msgBroker, stop)
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for validating webhook")
