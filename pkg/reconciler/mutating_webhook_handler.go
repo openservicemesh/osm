@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -40,8 +41,12 @@ func (c client) reconcileMutatingWebhook(oldMwhc, newMwhc *admissionv1.MutatingW
 	newMwhc.ObjectMeta.Name = oldMwhc.ObjectMeta.Name
 	newMwhc.ObjectMeta.Labels = oldMwhc.ObjectMeta.Labels
 	if _, err := c.kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), newMwhc, metav1.UpdateOptions{}); err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingDeletedMutatingWebhook)).
-			Msgf("Error updating mutating webhook: %s", newMwhc.Name)
+		// There might be conflicts when multiple injectors try to update the same resource
+		// One of the injectors will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+		if !apierrors.IsConflict(err) {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingDeletedMutatingWebhook)).
+				Msgf("Error updating mutating webhook: %s", newMwhc.Name)
+		}
 	}
 	log.Debug().Msgf("Successfully reconciled mutating webhook %s", newMwhc.Name)
 }
@@ -58,7 +63,7 @@ func (c client) addMutatingWebhook(oldMwhc *admissionv1.MutatingWebhookConfigura
 func (c *client) isMutatingWebhookUpdated(oldMwhc, newMwhc *admissionv1.MutatingWebhookConfiguration) bool {
 	webhookEqual := reflect.DeepEqual(oldMwhc.Webhooks, newMwhc.Webhooks)
 	mwhcNameChanged := strings.Compare(oldMwhc.ObjectMeta.Name, newMwhc.ObjectMeta.Name) != 0
-	mwhcLabelsChanged := isLabelModified("app", constants.OSMInjectorName, newMwhc.ObjectMeta.Labels) ||
+	mwhcLabelsChanged := isLabelModified(constants.AppLabel, constants.OSMInjectorName, newMwhc.ObjectMeta.Labels) ||
 		isLabelModified(constants.OSMAppVersionLabelKey, c.osmVersion, newMwhc.ObjectMeta.Labels)
 	mwhcUpdated := !webhookEqual || mwhcNameChanged || mwhcLabelsChanged
 	return mwhcUpdated

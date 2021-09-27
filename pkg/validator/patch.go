@@ -2,12 +2,11 @@ package validator
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -23,51 +22,7 @@ const (
 	ValidatorWebhookSvc = "osm-validator"
 )
 
-// getPartialValidatingWebhookConfiguration returns only the portion of the ValidatingWebhookConfiguration that needs
-// to be updated.
-func getPartialValidatingWebhookConfiguration(name string, cert certificate.Certificater) admissionregv1.ValidatingWebhookConfiguration {
-	return admissionregv1.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Webhooks: []admissionregv1.ValidatingWebhook{
-			{
-				Name: ValidatingWebhookName,
-				ClientConfig: admissionregv1.WebhookClientConfig{
-					CABundle: cert.GetCertificateChain(),
-				},
-				SideEffects: func() *admissionregv1.SideEffectClass {
-					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
-					return &sideEffect
-				}(),
-				AdmissionReviewVersions: []string{"v1"},
-			},
-		},
-	}
-}
-
-// updateValidatingWebhookCABundle updates the existing ValidatingWebhookConfiguration with the CA this OSM instance runs with.
-// It is necessary to perform this patch because the original ValidatingWebhookConfig YAML does not contain the root certificate.
-func updateValidatingWebhookCABundle(webhookConfigName string, certificater certificate.Certificater, kubeClient kubernetes.Interface) error {
-	vwc := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations()
-
-	patchJSON, err := json.Marshal(getPartialValidatingWebhookConfiguration(webhookConfigName, certificater))
-	if err != nil {
-		return err
-	}
-
-	if _, err = vwc.Patch(context.Background(), webhookConfigName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingValidatingWebhookCABundle)).
-			Msgf("Error updating CA Bundle for ValidatingWebhookConfiguration %s", webhookConfigName)
-		return err
-	}
-
-	log.Info().Msgf("Finished updating CA Bundle for ValidatingWebhookConfiguration %s", webhookConfigName)
-	return nil
-}
-
-func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool) error {
+func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool, enableReconciler bool) error {
 	webhookPath := validationAPIPath
 	webhookPort := int32(constants.ValidatorWebhookPort)
 	failuerPolicy := admissionregv1.Fail
@@ -95,15 +50,22 @@ func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Ce
 		})
 	}
 
+	vwhcLabels := map[string]string{
+		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+		constants.OSMAppInstanceLabelKey: meshName,
+		constants.OSMAppVersionLabelKey:  osmVersion,
+		constants.AppLabel:               constants.OSMControllerName,
+	}
+
+	if enableReconciler {
+		vwhcLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
+	}
+
 	vwhc := admissionregv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
-			Labels: map[string]string{
-				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-				constants.OSMAppInstanceLabelKey: meshName,
-				constants.OSMAppVersionLabelKey:  osmVersion,
-				"app":                            constants.OSMControllerName,
-				constants.ReconcileLabel:         strconv.FormatBool(true)}},
+			Name:   webhookName,
+			Labels: vwhcLabels,
+		},
 		Webhooks: []admissionregv1.ValidatingWebhook{
 			{
 				Name: ValidatingWebhookName,
@@ -146,10 +108,32 @@ func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Ce
 	}
 
 	if _, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.Background(), &vwhc, metav1.CreateOptions{}); err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingValidatingWebhook)).
-			Msgf("Error creating ValidatingWebhookConfiguration %s", webhookName)
-		return err
+		// Webhook already exists, update the webhook in this scenario
+		if apierrors.IsAlreadyExists(err) {
+			existingVwhc, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), vwhc.Name, metav1.GetOptions{})
+			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
+					Msgf("Error getting ValidatingWebhookConfiguration %s", webhookName)
+				return err
+			}
+
+			existingVwhc.Webhooks = vwhc.Webhooks
+			existingVwhc.Labels = vwhc.Labels
+			if _, err = clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), existingVwhc, metav1.UpdateOptions{}); err != nil {
+				// There might be conflicts when multiple controllers try to update the same resource
+				// One of the controllers will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+				if !apierrors.IsConflict(err) {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
+						Msgf("Error updating ValidatingWebhookConfiguration %s with error %v", webhookName, err)
+					return err
+				}
+			}
+		} else {
+			// Webhook doesn't exist and could not be created, an error is logged and returned
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingValidatingWebhook)).
+				Msgf("Error creating ValidatingWebhookConfiguration %s", webhookName)
+			return err
+		}
 	}
 
 	log.Info().Msgf("Finished creating ValidatingWebhookConfiguration %s", webhookName)

@@ -140,17 +140,6 @@ func TestNewValidatingWebhook(t *testing.T) {
 	testVersion := "test-version"
 	enableReconciler := false
 	validateTrafficTarget := true
-	t.Run("error updating ValidatingWebhookConfig", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
-		cert := certificate.NewMockCertificater(mockCtrl)
-		cert.EXPECT().GetCertificateChain()
-
-		kube := fake.NewSimpleClientset()
-
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, 0, cert, kube, nil)
-		tassert.Error(t, err)
-	})
-
 	t.Run("successful startup", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		cert := certificate.NewMockCertificater(mockCtrl)
