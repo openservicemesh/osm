@@ -2,6 +2,7 @@ package injector
 
 import (
 	"testing"
+	"time"
 
 	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -9,6 +10,8 @@ import (
 )
 
 func TestRewriteProbe(t *testing.T) {
+	const probeTimeoutSeconds = 2
+	const probeTimeoutDuration = probeTimeoutSeconds * time.Second
 	makePort := func(port int32) intstr.IntOrString {
 		return intstr.IntOrString{
 			Type:   intstr.Int,
@@ -25,7 +28,7 @@ func TestRewriteProbe(t *testing.T) {
 				},
 			},
 			InitialDelaySeconds: 1,
-			TimeoutSeconds:      2,
+			TimeoutSeconds:      probeTimeoutSeconds,
 			PeriodSeconds:       3,
 			SuccessThreshold:    4,
 			FailureThreshold:    5,
@@ -42,7 +45,7 @@ func TestRewriteProbe(t *testing.T) {
 				},
 			},
 			InitialDelaySeconds: 1,
-			TimeoutSeconds:      2,
+			TimeoutSeconds:      probeTimeoutSeconds,
 			PeriodSeconds:       3,
 			SuccessThreshold:    4,
 			FailureThreshold:    5,
@@ -57,7 +60,7 @@ func TestRewriteProbe(t *testing.T) {
 				},
 			},
 			InitialDelaySeconds: 1,
-			TimeoutSeconds:      2,
+			TimeoutSeconds:      probeTimeoutSeconds,
 			PeriodSeconds:       3,
 			SuccessThreshold:    4,
 			FailureThreshold:    5,
@@ -85,19 +88,22 @@ func TestRewriteProbe(t *testing.T) {
 		actual := rewriteHealthProbes(pod)
 		expected := healthProbes{
 			liveness: &healthProbe{
-				path:   "/b",
-				port:   2,
-				isHTTP: true,
+				path:    "/b",
+				port:    2,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 			readiness: &healthProbe{
-				path:   "/a",
-				port:   1,
-				isHTTP: true,
+				path:    "/a",
+				port:    1,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 			startup: &healthProbe{
-				path:   "/c",
-				port:   3,
-				isHTTP: true,
+				path:    "/c",
+				port:    3,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 		}
 		tassert.Equal(t, expected, actual)
@@ -106,9 +112,10 @@ func TestRewriteProbe(t *testing.T) {
 	t.Run("rewriteLiveness", func(t *testing.T) {
 		actual := rewriteLiveness(container)
 		expected := &healthProbe{
-			path:   "/k/l/m",
-			port:   7890,
-			isHTTP: true,
+			path:    "/k/l/m",
+			port:    7890,
+			isHTTP:  true,
+			timeout: probeTimeoutDuration,
 		}
 		tassert.Equal(t, expected, actual)
 	})
@@ -116,9 +123,10 @@ func TestRewriteProbe(t *testing.T) {
 	t.Run("rewriteReadiness", func(t *testing.T) {
 		actual := rewriteReadiness(container)
 		expected := &healthProbe{
-			path:   "/a/b/c",
-			port:   1234,
-			isHTTP: true,
+			path:    "/a/b/c",
+			port:    1234,
+			isHTTP:  true,
+			timeout: probeTimeoutDuration,
 		}
 		tassert.Equal(t, expected, actual)
 	})
@@ -126,9 +134,10 @@ func TestRewriteProbe(t *testing.T) {
 	t.Run("rewriteStartup", func(t *testing.T) {
 		actual := rewriteStartup(container)
 		expected := &healthProbe{
-			path:   "/x/y/z",
-			port:   3456,
-			isHTTP: true,
+			path:    "/x/y/z",
+			port:    3456,
+			isHTTP:  true,
+			timeout: probeTimeoutDuration,
 		}
 		tassert.Equal(t, expected, actual)
 	})
@@ -155,9 +164,10 @@ func TestRewriteProbe(t *testing.T) {
 				name:  "getPort() error",
 				probe: makeHTTPProbe("/x/y/z", 0),
 				expected: &healthProbe{
-					path:   "/x/y/z",
-					port:   0,
-					isHTTP: true,
+					path:    "/x/y/z",
+					port:    0,
+					isHTTP:  true,
+					timeout: probeTimeoutDuration,
 				},
 			},
 			{
@@ -166,9 +176,10 @@ func TestRewriteProbe(t *testing.T) {
 				newPath: "/x",
 				newPort: 3465,
 				expected: &healthProbe{
-					path:   "/x/y/z",
-					port:   3456,
-					isHTTP: true,
+					path:    "/x/y/z",
+					port:    3456,
+					isHTTP:  true,
+					timeout: probeTimeoutDuration,
 				},
 			},
 			{
@@ -177,9 +188,10 @@ func TestRewriteProbe(t *testing.T) {
 				newPath: "/x/y/z",
 				newPort: 3465,
 				expected: &healthProbe{
-					path:   "/x/y/z",
-					port:   3456,
-					isHTTP: false,
+					path:    "/x/y/z",
+					port:    3456,
+					isHTTP:  false,
+					timeout: probeTimeoutDuration,
 				},
 			},
 			{
@@ -187,8 +199,9 @@ func TestRewriteProbe(t *testing.T) {
 				probe:   makeTCPProbe(3456),
 				newPort: 3465,
 				expected: &healthProbe{
-					port:   3456,
-					isHTTP: false,
+					port:    3456,
+					isHTTP:  false,
+					timeout: probeTimeoutDuration,
 				},
 			},
 		}

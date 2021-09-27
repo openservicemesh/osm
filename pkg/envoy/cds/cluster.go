@@ -23,11 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-const (
-	// clusterConnectTimeout is the timeout duration used by Envoy to timeout connections to the cluster
-	clusterConnectTimeout = 1 * time.Second
-)
-
 // replacer used to configure an Envoy cluster's altStatName
 var replacer = strings.NewReplacer(".", "_", ":", "_")
 
@@ -49,7 +44,6 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 
 	remoteCluster := &xds_cluster.Cluster{
 		Name:                          config.Name,
-		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
 		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
@@ -78,8 +72,7 @@ func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger,
 	}
 
 	remoteCluster := &xds_cluster.Cluster{
-		Name:           upstreamSvc.ServerName(),
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		Name: upstreamSvc.ServerName(),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STRICT_DNS,
 		},
@@ -142,11 +135,10 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 
 	return &xds_cluster.Cluster{
 		// The name must match the domain being cURLed in the demo
-		Name:           config.Name,
-		AltStatName:    config.Name,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
-		RespectDnsTtl:  true,
+		Name:          config.Name,
+		AltStatName:   config.Name,
+		LbPolicy:      xds_cluster.Cluster_ROUND_ROBIN,
+		RespectDnsTtl: true,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STRICT_DNS,
 		},
@@ -180,9 +172,8 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
 func getPrometheusCluster() *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
-		Name:           constants.EnvoyMetricsCluster,
-		AltStatName:    constants.EnvoyMetricsCluster,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		Name:        constants.EnvoyMetricsCluster,
+		AltStatName: constants.EnvoyMetricsCluster,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STATIC,
 		},
@@ -259,9 +250,8 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 	}
 
 	return &xds_cluster.Cluster{
-		Name:           config.Name,
-		AltStatName:    formatAltStatNameForPrometheus(config.Name),
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		Name:        config.Name,
+		AltStatName: formatAltStatNameForPrometheus(config.Name),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STRICT_DNS,
 		},
@@ -295,8 +285,7 @@ func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, err
 	}
 
 	return &xds_cluster.Cluster{
-		Name:           name,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		Name: name,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_ORIGINAL_DST,
 		},

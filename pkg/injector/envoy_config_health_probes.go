@@ -5,7 +5,6 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -56,8 +55,7 @@ func getStartupCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
 
 func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
-		Name:           clusterName,
-		ConnectTimeout: durationpb.New(time.Second),
+		Name: clusterName,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STATIC,
 		},
@@ -128,7 +126,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				RouteConfig: &xds_route.RouteConfiguration{
 					Name: "local_route",
 					VirtualHosts: []*xds_route.VirtualHost{
-						getVirtualHost(newPath, clusterName, originalProbe.path),
+						getVirtualHost(newPath, clusterName, originalProbe.path, originalProbe.timeout),
 					},
 				},
 			},
@@ -204,7 +202,13 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 	}, nil
 }
 
-func getVirtualHost(newPath, clusterName, originalProbePath string) *xds_route.VirtualHost {
+func getVirtualHost(newPath, clusterName, originalProbePath string, routeTimeout time.Duration) *xds_route.VirtualHost {
+	if routeTimeout < 1*time.Second {
+		// This should never happen in practice because the minimum value in Kubernetes
+		// is set to 1. However it is easy to check and setting the timeout to 0 will lead
+		// to leaks.
+		routeTimeout = 1 * time.Second
+	}
 	return &xds_route.VirtualHost{
 		Name: "local_service",
 		Domains: []string{
@@ -223,6 +227,7 @@ func getVirtualHost(newPath, clusterName, originalProbePath string) *xds_route.V
 							Cluster: clusterName,
 						},
 						PrefixRewrite: originalProbePath,
+						Timeout:       ptypes.DurationProto(routeTimeout),
 					},
 				},
 			},

@@ -7,4 +7,4 @@ routes:
   route:
     cluster: -cluster-name-
     prefix_rewrite: /original/probe/path
-    timeout: 42s
+    timeout: 1s

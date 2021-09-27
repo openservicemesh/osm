@@ -2,13 +2,11 @@ package utils
 
 import (
 	"testing"
-	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -28,7 +26,6 @@ func TestProtoToYAML(t *testing.T) {
 				AltStatName:            "foo",
 				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 				EdsClusterConfig:       nil,
-				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
 				LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 					ClusterName: "foo",
 					Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -59,7 +56,6 @@ func TestProtoToYAML(t *testing.T) {
 				},
 			},
 			expectedYAML: `alt_stat_name: foo
-connect_timeout: 1s
 load_assignment:
   cluster_name: foo
   endpoints:
