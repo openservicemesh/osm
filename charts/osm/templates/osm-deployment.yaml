@@ -75,6 +75,7 @@ spec:
             "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
             "--enable-reconciler={{.Values.OpenServiceMesh.enableReconciler}}",
+            "--validate-traffic-target={{.Values.smi.validateTrafficTarget}}",
           ]
           resources:
             limits:

@@ -67,11 +67,33 @@ func updateValidatingWebhookCABundle(webhookConfigName string, certificater cert
 	return nil
 }
 
-func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string) error {
+func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool) error {
 	webhookPath := validationAPIPath
 	webhookPort := int32(constants.ValidatorWebhookPort)
 	failuerPolicy := admissionregv1.Fail
 	matchPolict := admissionregv1.Exact
+
+	rules := []admissionregv1.RuleWithOperations{
+		{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"policy.openservicemesh.io"},
+				APIVersions: []string{"v1alpha1"},
+				Resources:   []string{"ingressbackends", "egresses"},
+			},
+		},
+	}
+
+	if validateTrafficTarget {
+		rules = append(rules, admissionregv1.RuleWithOperations{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"access.smi-spec.io"},
+				APIVersions: []string{"v1alpha3"},
+				Resources:   []string{"traffictargets"},
+			},
+		})
+	}
 
 	vwhc := admissionregv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -115,16 +137,7 @@ func createValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Ce
 						},
 					},
 				},
-				Rules: []admissionregv1.RuleWithOperations{
-					{
-						Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-						Rule: admissionregv1.Rule{
-							APIGroups:   []string{"policy.openservicemesh.io"},
-							APIVersions: []string{"v1alpha1"},
-							Resources:   []string{"ingressbackends", "egresses"},
-						},
-					},
-				},
+				Rules: rules,
 				SideEffects: func() *admissionregv1.SideEffectClass {
 					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
 					return &sideEffect

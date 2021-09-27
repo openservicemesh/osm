@@ -190,9 +190,9 @@ func testRecursiveTrafficSplit(appProtocol string) {
 						})
 
 					// Configs have to be put into same NS as server/destination
-					_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
+					_, err := Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 
 				// TCP traffic
@@ -212,9 +212,9 @@ func testRecursiveTrafficSplit(appProtocol string) {
 					)
 
 					// Configs have to be put into same NS as server/destination
-					_, err := Td.CreateTCPRoute(srcClient, tcpRoute)
+					_, err := Td.CreateTCPRoute(serverNamespace, tcpRoute)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 
 				default:

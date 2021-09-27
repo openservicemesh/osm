@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	admissionv1 "k8s.io/api/admission/v1"
 
 	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
@@ -58,6 +59,20 @@ func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionRes
 }
 */
 type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
+
+func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	trafficTarget := &smiAccess.TrafficTarget{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(trafficTarget); err != nil {
+		return nil, err
+	}
+
+	if trafficTarget.Spec.Destination.Namespace != trafficTarget.Namespace {
+		return nil, errors.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
+			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
+	}
+
+	return nil, nil
+}
 
 // ingressBackendValidator validates the IngressBackend custom resource
 func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {

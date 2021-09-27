@@ -328,3 +328,9 @@ contour:
       registry: docker.io
       repository: envoyproxy/envoy-alpine
       tag: v1.19.1
+
+#
+# -- SMI configuration
+smi:
+  # -- Enables validation of SMI Traffic Target
+  validateTrafficTarget: true

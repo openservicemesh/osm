@@ -40,6 +40,17 @@ webhooks:
       resources:
         - ingressbackends
         - egresses
+    {{- if .Values.smi.validateTrafficTarget }}
+    - apiGroups:
+        - access.smi-spec.io
+      apiVersions:
+        - v1alpha3
+      operations:
+        - CREATE
+        - UPDATE
+      resources:
+        - traffictargets
+    {{- end }}
   sideEffects: NoneOnDryRun
   admissionReviewVersions: ["v1"]
 {{- end }}
