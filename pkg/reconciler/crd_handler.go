@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -38,8 +39,12 @@ func (c client) reconcileCrd(oldCrd, newCrd *apiv1.CustomResourceDefinition) {
 	newCrd.ObjectMeta.Name = oldCrd.ObjectMeta.Name
 	newCrd.ObjectMeta.Labels = oldCrd.ObjectMeta.Labels
 	if _, err := c.apiServerClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.Background(), newCrd, metav1.UpdateOptions{}); err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingUpdatedCRD)).
-			Msgf("Error updating crd: %s", newCrd.Name)
+		// There might be conflicts when multiple osm-bootstraps try to update the same resource
+		// One of the bootstrap will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+		if !apierrors.IsConflict(err) {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingUpdatedCRD)).
+				Msgf("Error updating crd: %s", newCrd.Name)
+		}
 	}
 	log.Debug().Msgf("Successfully reconciled CRD %s", newCrd.Name)
 }

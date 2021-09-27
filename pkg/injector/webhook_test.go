@@ -34,59 +34,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
-var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
-	Context("find and patches the mutating webhook and updates the CABundle", func() {
-		cert := mockCertificate{}
-		webhookName := "--webhookName--"
-		//TODO:seed a test webhook
-		testWebhookServiceNamespace := "test-namespace"
-		testWebhookServiceName := "test-service-name"
-		testWebhookServicePath := "/path"
-		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: webhookName,
-			},
-			Webhooks: []admissionregv1.MutatingWebhook{
-				{
-					Name: MutatingWebhookName,
-					ClientConfig: admissionregv1.WebhookClientConfig{
-						Service: &admissionregv1.ServiceReference{
-							Namespace: testWebhookServiceNamespace,
-							Name:      testWebhookServiceName,
-							Path:      &testWebhookServicePath,
-						},
-					},
-					NamespaceSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"some-key": "some-value",
-						},
-					},
-				},
-			},
-		})
-
-		It("patches a webhook", func() {
-			err := updateMutatingWebhookCABundle(cert, webhookName, kubeClient)
-			Expect(err).ToNot(HaveOccurred())
-
-		})
-
-		It("ensures webhook is configured correctly", func() {
-			webhooks, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(webhooks.Items)).To(Equal(1))
-
-			wh := webhooks.Items[0]
-			Expect(len(wh.Webhooks)).To(Equal(1))
-			Expect(wh.Webhooks[0].NamespaceSelector.MatchLabels["some-key"]).To(Equal("some-value"))
-			Expect(wh.Webhooks[0].ClientConfig.Service.Namespace).To(Equal(testWebhookServiceNamespace))
-			Expect(wh.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
-			Expect(wh.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
-			Expect(wh.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
-		})
-	})
-})
-
 func TestCreateMutatingWebhook(t *testing.T) {
 	assert := tassert.New(t)
 	cert := mockCertificate{}
@@ -97,9 +44,10 @@ func TestCreateMutatingWebhook(t *testing.T) {
 	osmVersion := "test-version"
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
+	enableReconciler := true
 
 	kubeClient := fake.NewSimpleClientset()
-	err := createMutatingWebhook(kubeClient, cert, webhookTimeout, webhookName, meshName, osmNamespace, osmVersion)
+	err := createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookName, meshName, osmNamespace, osmVersion, enableReconciler)
 	assert.Nil(err)
 
 	webhooks, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
@@ -593,22 +541,6 @@ var _ = Describe("Testing Injector Functions", func() {
   }
 }`
 	It("creates new webhook", func() {
-		injectorConfig := Config{}
-		kubeClient := fake.NewSimpleClientset()
-		var kubeController k8s.Controller
-		stop := make(<-chan struct{})
-		mockController := gomock.NewController(GinkgoT())
-		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFakeCertManager(cfg)
-
-		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-
-		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
-		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
-		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
-	})
-
-	It("creates new webhook", func() {
 		kubeClient := fake.NewSimpleClientset(&admissionregv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: webhookName,
@@ -789,33 +721,6 @@ var _ = Describe("Testing Injector Functions", func() {
 			PatchType: &expectedPatchType,
 		}
 		Expect(admRes).To(Equal(expected))
-	})
-
-	It("creates partial mutating webhook configuration", func() {
-		cert := mockCertificate{}
-		webhookConfigName := "-webhook-config-name-"
-
-		actual := getPartialMutatingWebhookConfiguration(cert, webhookConfigName)
-
-		expected := admissionregv1.MutatingWebhookConfiguration{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "-webhook-config-name-",
-			},
-			Webhooks: []admissionregv1.MutatingWebhook{
-				{
-					Name: MutatingWebhookName,
-					ClientConfig: admissionregv1.WebhookClientConfig{
-						CABundle: cert.GetCertificateChain(),
-					},
-					SideEffects: func() *admissionregv1.SideEffectClass {
-						sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
-						return &sideEffect
-					}(),
-					AdmissionReviewVersions: []string{"v1"},
-				},
-			},
-		}
-		Expect(actual).To(Equal(expected))
 	})
 })
 

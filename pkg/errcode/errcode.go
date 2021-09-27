@@ -307,9 +307,6 @@ const (
 	// ErrDeterminingPodPortExclusions indicates the oubound port exclusions for a pod could not be obtained
 	ErrDeterminingPodPortExclusions
 
-	// ErrUpdatingMutatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
-	ErrUpdatingMutatingWebhookCABundle
-
 	// ErrReadingAdmissionReqBody indicates the AdmissionRequest body could not be read
 	ErrReadingAdmissionReqBody
 
@@ -318,6 +315,9 @@ const (
 
 	// ErrCreatingMutatingWebhook indicates the MutatingWebhookConfiguration could not be created
 	ErrCreatingMutatingWebhook
+
+	// ErrUpdatingMutatingWebhook indicates the MutatingWebhookConfiguration could not be updated
+	ErrUpdatingMutatingWebhook
 )
 
 // Range 6700-6800 reserved for errors related to the validating webhook
@@ -328,9 +328,6 @@ const (
 
 	// ErrStartingValidatingWebhookHTTPServer indicates the validating webhook HTTP server failed to start
 	ErrStartingValidatingWebhookHTTPServer
-
-	// ErrUpdatingValidatingWebhookCABundle indicates the MutatingWebhookConfiguration could not be patched with the CA Bundle
-	ErrUpdatingValidatingWebhookCABundle
 
 	// ErrParsingWebhookCert indicates the validating webhook certificate could not be parsed
 	ErrParsingValidatingWebhookCert
@@ -814,12 +811,12 @@ The port exclusions for a pod could not be obtained.
 No port exclusions are added to the init container's spec.
 `,
 
-	ErrUpdatingMutatingWebhookCABundle: `
-The MutatingWebhookConfiguration could not be patched with the CA Bundle.
-`,
-
 	ErrCreatingMutatingWebhook: `
 The MutatingWebhookConfiguration could not be created.
+`,
+
+	ErrUpdatingMutatingWebhook: `
+The MutatingWebhookConfiguration could not be updated.
 `,
 
 	ErrReadingAdmissionReqBody: `
@@ -839,10 +836,6 @@ An error occurred when shutting down the validating webhook HTTP server.
 
 	ErrStartingValidatingWebhookHTTPServer: `
 The validating webhook HTTP server failed to start.
-`,
-
-	ErrUpdatingValidatingWebhookCABundle: `
-The ValidatingWebhookConfiguration could not be patched with the CA Bundle.
 `,
 
 	ErrCreatingValidatingWebhook: `

@@ -43,16 +43,9 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 		},
 	}
 
-	if enableReconciler {
-		// Create the ValidatingWebhook
-		if err := createValidatingWebhook(kubeClient, certificater, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget); err != nil {
-			return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
-		}
-	} else {
-		// Update the updateValidatingWebhookConfig with the OSM CA bundle, as the MutatingWebhook is created via Helm
-		if err := updateValidatingWebhookCABundle(webhookConfigName, certificater, kubeClient); err != nil {
-			return errors.Wrapf(err, "Error configuring ValidatingWebhookConfiguration %s", webhookConfigName)
-		}
+	// Create the ValidatingWebhook
+	if err := createOrUpdateValidatingWebhook(kubeClient, certificater, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
+		return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 
 	go v.run(port, certificater, stop)
