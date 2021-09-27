@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -131,7 +132,7 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 	meshSvc := service.MeshService{Name: "foo", Namespace: "test"}

@@ -10,7 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
-	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
+	interfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -83,10 +83,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficPolicy(arg0 interface{
 }
 
 // GetKubeController mocks base method
-func (m *MockMeshCataloger) GetKubeController() k8sInterfaces.Controller {
+func (m *MockMeshCataloger) GetKubeController() interfaces.Controller {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetKubeController")
-	ret0, _ := ret[0].(k8sInterfaces.Controller)
+	ret0, _ := ret[0].(interfaces.Controller)
 	return ret0
 }
 

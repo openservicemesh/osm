@@ -9,7 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 )
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
@@ -22,7 +22,7 @@ func TestGetHandlers(t *testing.T) {
 	mockCatalogDebugger := NewMockMeshCatalogDebugger(mockCtrl)
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry(nil)
 
 	ds := NewDebugConfig(mockCertDebugger,

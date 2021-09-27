@@ -19,7 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -127,7 +127,7 @@ func TestCreatePatch(t *testing.T) {
 			client := fake.NewSimpleClientset()
 			mockCtrl := gomock.NewController(t)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockNsController := k8s.NewMockController(mockCtrl)
+			mockNsController := k8sInterfaces.NewMockController(mockCtrl)
 			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace)
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
 			assert.NoError(err)
@@ -179,7 +179,7 @@ func TestCreatePatch(t *testing.T) {
 		client := fake.NewSimpleClientset()
 		mockCtrl := gomock.NewController(t)
 		mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-		mockNsController := k8s.NewMockController(mockCtrl)
+		mockNsController := k8sInterfaces.NewMockController(mockCtrl)
 		mockNsController.EXPECT().GetNamespace("not-" + namespace).Return(nil)
 
 		wh := &mutatingWebhook{

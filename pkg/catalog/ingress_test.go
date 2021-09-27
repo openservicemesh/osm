@@ -17,7 +17,7 @@ import (
 	configV1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -2665,7 +2665,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
 				ingressMonitor:     mockIngressMonitor,

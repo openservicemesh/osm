@@ -30,7 +30,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
@@ -244,13 +243,13 @@ func TestIsAnnotatedForInjection(t *testing.T) {
 var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockController
+		mockKubeController *k8sInterfaces.MockController
 		fakeClientSet      *fake.Clientset
 		wh                 *mutatingWebhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockKubeController = k8sInterfaces.NewMockController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
 	osmNamespace := "osm-namespace"
@@ -650,7 +649,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 	It("creates new webhook", func() {
 		client := fake.NewSimpleClientset()
-		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController := k8sInterfaces.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
 		testNamespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -684,7 +683,7 @@ var _ = Describe("Testing Injector Functions", func() {
 	It("getAdmissionReqResp creates admission ", func() {
 		namespace := "default"
 		client := fake.NewSimpleClientset()
-		mockKubeController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockKubeController := k8sInterfaces.NewMockController(gomock.NewController(GinkgoT()))
 		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 
@@ -718,7 +717,7 @@ var _ = Describe("Testing Injector Functions", func() {
 	It("getAdmissionReqResp creates admission with error when decoding body fails", func() {
 		namespace := "default"
 		client := fake.NewSimpleClientset()
-		mockKubeController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockKubeController := k8sInterfaces.NewMockController(gomock.NewController(GinkgoT()))
 		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 
@@ -739,7 +738,7 @@ var _ = Describe("Testing Injector Functions", func() {
 	})
 
 	It("handles health requests", func() {
-		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController := k8sInterfaces.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
 		w := httptest.NewRecorder()
 		body := strings.NewReader(``)
@@ -757,7 +756,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 	It("mutate() handles nil admission request", func() {
 		client := fake.NewSimpleClientset()
-		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController := k8sInterfaces.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
 		wh := &mutatingWebhook{
 			kubeClient:          client,
@@ -930,7 +929,7 @@ func TestGetPodOutboundPortExclusionList(t *testing.T) {
 			assert := tassert.New(t)
 
 			mockCtrl := gomock.NewController(GinkgoT())
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 			fakeClientSet := fake.NewSimpleClientset()
 			namespace := "test"
 			osmNamespace := "osm-namespace"
@@ -1053,7 +1052,7 @@ func TestWebhookMutate(t *testing.T) {
 		namespace := "ns"
 
 		mockCtrl := gomock.NewController(t)
-		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController := k8sInterfaces.NewMockController(mockCtrl)
 		kubeController.EXPECT().GetNamespace(namespace).Return(nil)
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 		wh := &mutatingWebhook{
@@ -1082,7 +1081,7 @@ func TestWebhookMutate(t *testing.T) {
 		namespace := "ns"
 
 		mockCtrl := gomock.NewController(t)
-		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController := k8sInterfaces.NewMockController(mockCtrl)
 		kubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{}).Times(1)
 		kubeController.EXPECT().GetNamespace(namespace).Return(nil).Times(1)
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
@@ -1131,7 +1130,7 @@ func TestWebhookMutate(t *testing.T) {
 		namespace := "ns"
 
 		mockCtrl := gomock.NewController(t)
-		kubeController := k8s.NewMockController(mockCtrl)
+		kubeController := k8sInterfaces.NewMockController(mockCtrl)
 		kubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{}).Times(2)
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 

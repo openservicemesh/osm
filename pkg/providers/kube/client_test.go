@@ -37,13 +37,13 @@ import (
 var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockController
+		mockKubeController *k8sInterfaces.MockController
 		mockConfigurator   *configurator.MockConfigurator
 		c                  *client
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockKubeController = k8sInterfaces.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 
@@ -703,7 +703,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			kubeClient := testclient.NewSimpleClientset()
 			defer mockCtrl.Finish()
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockConfigController := config.NewMockController(mockCtrl)
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
@@ -742,7 +742,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 

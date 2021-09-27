@@ -18,7 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -534,7 +534,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
@@ -655,7 +655,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 	mockServiceProvider := service.NewMockProvider(mockCtrl)
 
@@ -714,7 +714,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockController := k8s.NewMockController(mockCtrl)
+	mockController := k8sInterfaces.NewMockController(mockCtrl)
 	mockServiceProvider := service.NewMockProvider(mockCtrl)
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()

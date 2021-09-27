@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
 
-	mockKubeController := k8s.NewMockController(gomock.NewController(t))
+	mockKubeController := k8sInterfaces.NewMockController(gomock.NewController(t))
 
 	ds := DebugConfig{
 		kubeController: mockKubeController,

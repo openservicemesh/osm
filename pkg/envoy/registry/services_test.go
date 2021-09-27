@@ -20,8 +20,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -33,7 +33,7 @@ const (
 var _ = Describe("Test Proxy-Service mapping", func() {
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	kubeClient := testclient.NewSimpleClientset()
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	proxyRegistry := NewProxyRegistry(&KubeProxyServiceMapper{mockKubeController})
 
 	Context("Test ListProxyServices()", func() {
@@ -128,7 +128,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 		It("lists services for pod", func() {
 			namespace := uuid.New().String()
 			selectors := map[string]string{tests.SelectorKey: tests.SelectorValue}
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 			var serviceNames []string
 			var services []*v1.Service = []*v1.Service{}
 
@@ -163,7 +163,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 		It("should correctly not list services for pod that don't match the service's selectors", func() {
 			namespace := uuid.New().String()
 			selectors := map[string]string{"some-key": "some-value"}
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			// Create a service
 			service := tests.NewServiceFixture(service1Name, namespace, selectors)
@@ -178,7 +178,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 		It("should correctly not list services for pod that don't match the service's selectors", func() {
 			namespace := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			// The selector below has an additional label which the pod does not have.
 			// Even though the first selector label matches the label on the pod, the
@@ -255,7 +255,7 @@ func TestAsyncKubeProxyServiceMapperListServicesForProxy(t *testing.T) {
 func TestAsyncKubeProxyServiceMapperRun(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	kubeController := k8s.NewMockController(mockCtrl)
+	kubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 	stop := make(chan struct{})
 	defer close(stop)
@@ -638,7 +638,7 @@ func TestKubeHandlePodUpdate(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			kubeController := k8s.NewMockController(mockCtrl)
+			kubeController := k8sInterfaces.NewMockController(mockCtrl)
 			kubeController.EXPECT().ListServices().Return(test.existingSvcs)
 
 			k := &AsyncKubeProxyServiceMapper{
@@ -1216,7 +1216,7 @@ func TestKubeHandleServiceUpdate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			kubeController := k8s.NewMockController(mockCtrl)
+			kubeController := k8sInterfaces.NewMockController(mockCtrl)
 			kubeController.EXPECT().ListPods().Return(test.existingPods).AnyTimes()
 
 			k := &AsyncKubeProxyServiceMapper{
@@ -1469,7 +1469,7 @@ func TestKubeHandleServiceDelete(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			kubeController := k8s.NewMockController(mockCtrl)
+			kubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			k := &AsyncKubeProxyServiceMapper{
 				servicesForCN:  test.existingCNsToServices,
@@ -1664,7 +1664,7 @@ func TestListPodsForService(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			kubeController := k8s.NewMockController(ctrl)
+			kubeController := k8sInterfaces.NewMockController(ctrl)
 			kubeController.EXPECT().ListPods().Return(test.existingPods).Times(1)
 
 			actual := listPodsForService(test.service, kubeController)
@@ -1741,7 +1741,7 @@ func TestGetCertCommonNameForPod(t *testing.T) {
 
 func TestAsyncKubeProxyServiceMapperRace(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	kubeController := k8s.NewMockController(mockCtrl)
+	kubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 	k := NewAsyncKubeProxyServiceMapper(kubeController)
 
@@ -1883,7 +1883,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 			assert := tassert.New(t)
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			for i, svc := range tc.k8sServices {
 				mockKubeController.EXPECT().K8sServiceToMeshServices(svc).Return([]service.MeshService{tc.expectedMeshServices[i]})

@@ -17,7 +17,7 @@ import (
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -29,13 +29,13 @@ import (
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versioned.Interface) *MeshCatalog {
 	var (
 		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
+		mockKubeController   *k8sInterfaces.MockController
 		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockKubeController = k8sInterfaces.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
 
@@ -126,13 +126,13 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
 		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
+		mockKubeController   *k8sInterfaces.MockController
 		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockKubeController = k8sInterfaces.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
 

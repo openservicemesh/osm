@@ -35,7 +35,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -49,7 +49,7 @@ func TestNewResponse(t *testing.T) {
 	kubeClient := testclient.NewSimpleClientset()
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 	proxyUUID := uuid.New()
 	// The format of the CN matters
@@ -440,7 +440,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	mockKubeController := k8s.NewMockController(ctrl)
+	mockKubeController := k8sInterfaces.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 
 	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -469,7 +469,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	mockKubeController := k8s.NewMockController(ctrl)
+	mockKubeController := k8sInterfaces.NewMockController(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)

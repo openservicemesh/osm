@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 )
 
 func newNamespace(name string, annotations map[string]string) *corev1.Namespace {
@@ -69,7 +69,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 		{nsDoesntExist.Name, false, true},
 	}
 
-	mockController := k8s.NewMockController(gomock.NewController(t))
+	mockController := k8sInterfaces.NewMockController(gomock.NewController(t))
 	wh := &mutatingWebhook{
 		kubeClient:          fakeClient,
 		kubeController:      mockController,

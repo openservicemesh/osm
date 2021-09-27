@@ -13,7 +13,7 @@ import (
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -31,7 +31,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
 
 	stop := make(chan struct{})
@@ -166,7 +166,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
 
 	testCases := []struct {

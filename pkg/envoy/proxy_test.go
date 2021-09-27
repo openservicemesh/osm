@@ -24,7 +24,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -239,7 +239,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			proxyUUID := uuid.New()
 			someOtherEnvoyUID := uuid.New().String()
 			namespace := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 			podlabels := map[string]string{
 				tests.SelectorKey:                tests.SelectorValue,
 				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
@@ -286,7 +286,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		It("fails with invalid certificate", func() {
 			namespace := uuid.New().String()
 			proxyUUID := uuid.New()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			// Create a pod with the same certificateCN twice
 			for range []int{0, 1} {
@@ -311,7 +311,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		It("fails with two pods with same cert", func() {
 			namespace := uuid.New().String()
 			proxyUUID := uuid.New()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			// Create a pod with the same certificateCN twice
 			var pods []*v1.Pod
@@ -339,7 +339,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			namespace := uuid.New().String()
 			proxyUUID := uuid.New()
 			randomServiceAccount := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			podName := uuid.New().String()
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -364,7 +364,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			namespace := uuid.New().String()
 			proxyUUID := uuid.New()
 			someOtherRandomNamespace := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockKubeController := k8sInterfaces.NewMockController(mockCtrl)
 
 			podName := uuid.New().String()
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)

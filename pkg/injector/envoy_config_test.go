@@ -20,7 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sInterfaces "github.com/openservicemesh/osm/pkg/k8s/interfaces"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -137,7 +137,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		It("Creates bootstrap config for the Envoy proxy", func() {
 			wh := &mutatingWebhook{
 				kubeClient:          fake.NewSimpleClientset(),
-				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				kubeController:      k8sInterfaces.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
 			}
@@ -194,7 +194,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			}
 			wh := &mutatingWebhook{
 				kubeClient:          fake.NewSimpleClientset(existing),
-				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				kubeController:      k8sInterfaces.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
 			}
