@@ -59,8 +59,7 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http2_protocol_options: {}
-  - connect_timeout: 1s
-    load_assignment:
+  - load_assignment:
       cluster_name: liveness_cluster
       endpoints:
       - lb_endpoints:
@@ -71,8 +70,7 @@ static_resources:
                 port_value: 81
     name: liveness_cluster
     type: STATIC
-  - connect_timeout: 1s
-    load_assignment:
+  - load_assignment:
       cluster_name: readiness_cluster
       endpoints:
       - lb_endpoints:
@@ -83,8 +81,7 @@ static_resources:
                 port_value: 82
     name: readiness_cluster
     type: STATIC
-  - connect_timeout: 1s
-    load_assignment:
+  - load_assignment:
       cluster_name: startup_cluster
       endpoints:
       - lb_endpoints:
@@ -144,6 +141,7 @@ static_resources:
                 route:
                   cluster: liveness_cluster
                   prefix_rewrite: /liveness
+                  timeout: 1s
           stat_prefix: health_probes_http
     name: liveness_listener
   - address:
@@ -194,6 +192,7 @@ static_resources:
                 route:
                   cluster: readiness_cluster
                   prefix_rewrite: /readiness
+                  timeout: 1s
           stat_prefix: health_probes_http
     name: readiness_listener
   - address:
@@ -244,5 +243,6 @@ static_resources:
                 route:
                   cluster: startup_cluster
                   prefix_rewrite: /startup
+                  timeout: 1s
           stat_prefix: health_probes_http
     name: startup_listener

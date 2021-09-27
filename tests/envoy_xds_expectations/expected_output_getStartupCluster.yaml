@@ -1,4 +1,3 @@
-connect_timeout: 1s
 load_assignment:
   cluster_name: startup_cluster
   endpoints:

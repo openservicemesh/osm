@@ -3,7 +3,6 @@ package cds
 import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -12,9 +11,8 @@ import (
 
 func getTracingCluster(cfg configurator.Configurator) *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
-		Name:           constants.EnvoyTracingCluster,
-		AltStatName:    constants.EnvoyTracingCluster,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		Name:        constants.EnvoyTracingCluster,
+		AltStatName: constants.EnvoyTracingCluster,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_LOGICAL_DNS,
 		},
