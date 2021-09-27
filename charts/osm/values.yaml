@@ -285,9 +285,6 @@ OpenServiceMesh:
     # -- Log level for the multicluster gateway
     gatewayLogLevel: error
 
-  # -- Run OSM with PodSecurityPolicy configured
-  pspEnabled: false
-
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
   controlPlaneTolerations: []
