@@ -16,8 +16,8 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -89,16 +89,8 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	// Start the MutatingWebhook web server
 	go wh.run(stop)
 
-	if enableReconciler {
-		// Create the MutatingWebhook
-		if err = createMutatingWebhook(wh.kubeClient, webhookHandlerCert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion); err != nil {
-			return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
-		}
-	} else {
-		// Update the MutatingWebhookConfig with the OSM CA bundle only, as the MutatingWebhook is created via Helm
-		if err = updateMutatingWebhookCABundle(webhookHandlerCert, webhookConfigName, wh.kubeClient); err != nil {
-			return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
-		}
+	if err = createOrUpdateMutatingWebhook(wh.kubeClient, webhookHandlerCert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
+		return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 	return nil
 }
@@ -400,54 +392,22 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 	resp.PatchType = &pt
 }
 
-// getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
-func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionregv1.MutatingWebhookConfiguration {
-	return admissionregv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookConfigName,
-		},
-		Webhooks: []admissionregv1.MutatingWebhook{
-			{
-				Name: MutatingWebhookName,
-				ClientConfig: admissionregv1.WebhookClientConfig{
-					CABundle: cert.GetCertificateChain(),
-				},
-				SideEffects: func() *admissionregv1.SideEffectClass {
-					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
-					return &sideEffect
-				}(),
-				AdmissionReviewVersions: []string{"v1"},
-			},
-		},
-	}
-}
-
-// updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
-// It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
-func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
-	mwc := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations()
-
-	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
-	if err != nil {
-		return err
-	}
-
-	if _, err = mwc.Patch(context.Background(), webhookName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhookCABundle)).
-			Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
-		return err
-	}
-
-	log.Info().Msgf("Finished updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
-	return nil
-}
-
-func createMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string) error {
+func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
 	failuerPolicy := admissionregv1.Fail
 	matchPolict := admissionregv1.Exact
+
+	mwhcLabels := map[string]string{
+		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
+		constants.OSMAppInstanceLabelKey: meshName,
+		constants.OSMAppVersionLabelKey:  osmVersion,
+		constants.AppLabel:               constants.OSMInjectorName,
+	}
+
+	if enableReconciler {
+		mwhcLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
+	}
 
 	mwhc := admissionregv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -510,10 +470,32 @@ func createMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Cert
 	}
 
 	if _, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), &mwhc, metav1.CreateOptions{}); err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingMutatingWebhook)).
-			Msgf("Error creating MutatingWebhookConfiguration %s", webhookName)
-		return err
+		// Webhook already exists, update the webhook in this scenario
+		if apierrors.IsAlreadyExists(err) {
+			existingMwhc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhc.Name, metav1.GetOptions{})
+			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
+					Msgf("Error getting MutatingWebhookConfiguration %s", webhookName)
+				return err
+			}
+
+			existingMwhc.Webhooks = mwhc.Webhooks
+			existingMwhc.Labels = mwhc.Labels
+			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), existingMwhc, metav1.UpdateOptions{}); err != nil {
+				// There might be conflicts when multiple injectors try to update the same resource
+				// One of the injectors will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+				if !apierrors.IsConflict(err) {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
+						Msgf("Error updating MutatingWebhookConfiguration %s", webhookName)
+					return err
+				}
+			}
+		} else {
+			// Webhook doesn't exist and could not be created, an error is logged and returned
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingMutatingWebhook)).
+				Msgf("Error creating MutatingWebhookConfiguration %s", webhookName)
+			return err
+		}
 	}
 
 	log.Info().Msgf("Finished creating MutatingWebhookConfiguration %s", webhookName)

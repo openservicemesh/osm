@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -40,8 +41,12 @@ func (c client) reconcileValidatingWebhook(oldVwhc, newVwhc *admissionv1.Validat
 	newVwhc.ObjectMeta.Name = oldVwhc.ObjectMeta.Name
 	newVwhc.ObjectMeta.Labels = oldVwhc.ObjectMeta.Labels
 	if _, err := c.kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), newVwhc, metav1.UpdateOptions{}); err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingUpdatedValidatingWebhook)).
-			Msgf("Error updating validating webhook: %s", newVwhc.Name)
+		// There might be conflicts when multiple controllers try to update the same resource
+		// One of the controllers will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+		if !apierrors.IsConflict(err) {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingUpdatedValidatingWebhook)).
+				Msgf("Error updating validating webhook: %s with error %v", newVwhc.Name, err)
+		}
 	}
 	log.Debug().Msgf("Successfully reconciled validating webhook %s", newVwhc.Name)
 }

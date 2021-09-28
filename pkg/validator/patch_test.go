@@ -42,6 +42,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 	webhookName := "--webhookName--"
 	meshName := "test-mesh"
 	osmNamespace := "test-namespace"
+	enableReconciler := true
 
 	testCases := []struct {
 		name                  string
@@ -69,7 +70,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 
 			kubeClient := fake.NewSimpleClientset()
 
-			err := createValidatingWebhook(kubeClient, cert, webhookName, meshName, osmNamespace, osmVersion, tc.validateTrafficTarget)
+			err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookName, meshName, osmNamespace, osmVersion, tc.validateTrafficTarget, enableReconciler)
 			assert.Nil(err)
 			webhooks, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
 			assert.Nil(err)
