@@ -70,6 +70,12 @@ var (
 	log   = logger.New(constants.OSMBootstrapName)
 )
 
+type bootstrap struct {
+	kubeClient       kubernetes.Interface
+	meshConfigClient configClientset.Interface
+	namespace        string
+}
+
 func init() {
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
@@ -120,6 +126,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error creating kube configs using in-cluster config")
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+
 	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
 	apiServerClient := clientset.NewForConfigOrDie(kubeConfig)
 	configClient, err := configClientset.NewForConfig(kubeConfig)
@@ -128,23 +135,16 @@ func main() {
 		return
 	}
 
-	presetMeshConfigMap, presetConfigErr := kubeClient.CoreV1().ConfigMaps(osmNamespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
-	_, meshConfigErr := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
-
-	// If the presetMeshConfig could not be loaded and a default meshConfig doesn't exist, return the error
-	if presetConfigErr != nil && apierrors.IsNotFound(meshConfigErr) {
-		log.Fatal().Err(err).Msgf("Unable to create default meshConfig, as %s could not be found", presetMeshConfigName)
-		return
+	bootstrap := bootstrap{
+		kubeClient:       kubeClient,
+		meshConfigClient: configClient,
+		namespace:        osmNamespace,
 	}
 
-	// Create a default meshConfig
-	defaultMeshConfig := createDefaultMeshConfig(presetMeshConfigMap)
-	if createdMeshConfig, err := configClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
-		log.Info().Msgf("MeshConfig created in %s, %v", osmNamespace, createdMeshConfig)
-	} else if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", osmNamespace)
-	} else {
-		log.Fatal().Err(err).Msgf("Error creating default MeshConfig")
+	err = bootstrap.ensureMeshConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error setting up default MeshConfig %s from ConfigMap %s", meshConfigName, presetMeshConfigName)
+		return
 	}
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-bootstrap pod resource
@@ -167,7 +167,7 @@ func main() {
 	)
 
 	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName)
 
 	// Intitialize certificate manager/provider
 	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
@@ -211,6 +211,46 @@ func main() {
 	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
+func (b *bootstrap) createDefaultMeshConfig() error {
+	// find presets config map to build the default MeshConfig from that
+	presetsConfigMap, err := b.kubeClient.CoreV1().ConfigMaps(b.namespace).Get(context.TODO(), presetMeshConfigName, metav1.GetOptions{})
+
+	// If the presets MeshConfig could not be loaded return the error
+	if err != nil {
+		return err
+	}
+
+	// Create a default meshConfig
+	defaultMeshConfig := buildDefaultMeshConfig(presetsConfigMap)
+	if _, err := b.meshConfigClient.ConfigV1alpha1().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
+		return nil
+	}
+
+	if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("MeshConfig already exists in %s. Skip creating.", b.namespace)
+		return nil
+	}
+
+	return err
+}
+
+func (b *bootstrap) ensureMeshConfig() error {
+	_, err := b.meshConfigClient.ConfigV1alpha1().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+	if err == nil {
+		return nil // default meshConfig was found
+	}
+
+	if apierrors.IsNotFound(err) {
+		// create a default mesh config since it was not found
+		if err = b.createDefaultMeshConfig(); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 func parseFlags() error {
 	if err := flags.Parse(os.Args); err != nil {
 		return err
@@ -249,7 +289,7 @@ func validateCLIParams() error {
 	return nil
 }
 
-func createDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.MeshConfig {
+func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.MeshConfig {
 	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
 	presetMeshConfigSpec := v1alpha1.MeshConfigSpec{}
 	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
