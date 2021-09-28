@@ -202,7 +202,7 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 
 // createPolicyForRoutePath creates an HTTPRouteGroup and TrafficTarget policy for the given source, destination and HTTP path regex
 func createPolicyForRoutePath(source, sourceNamespace, destination, destinationNamespace, pathRegex string) (smiSpecs.HTTPRouteGroup, smiAccess.TrafficTarget) {
-	routeGroupName := source + "-" + destination
+	routeGroupName := fmt.Sprintf("%s-%s", source, destination)
 	routeMatchName := "allowed-route"
 
 	routeGroup := smiSpecs.HTTPRouteGroup{

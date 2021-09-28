@@ -67,8 +67,8 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	}
 
 	if trafficTarget.Spec.Destination.Namespace != trafficTarget.Namespace {
-		return nil, errors.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
-			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
+		log.Error().Err(ErrTrafficTargetNamespaceMismatch).Msgf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)", trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
+		return nil, ErrTrafficTargetNamespaceMismatch
 	}
 
 	return nil, nil
