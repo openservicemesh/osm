@@ -97,8 +97,11 @@ const (
 	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
 	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
 
-	// WebhookCertificateSecretName is the default value for webhook secret name
-	WebhookCertificateSecretName = "mutating-webhook-cert-secret"
+	// MutatingWebhookCertificateSecretName is the default value for mutating webhook secret name
+	MutatingWebhookCertificateSecretName = "mutating-webhook-cert-secret"
+
+	// ValidatingWebhookCertificateSecretName is the default value for validating webhook secret name
+	ValidatingWebhookCertificateSecretName = "validating-webhook-cert-secret" // #nosec G101: Potential hardcoded credentials
 
 	// CrdConverterCertificateSecretName is the default value for conversion webhook secret name
 	CrdConverterCertificateSecretName = "crd-converter-cert-secret" // #nosec G101: Potential hardcoded credentials
