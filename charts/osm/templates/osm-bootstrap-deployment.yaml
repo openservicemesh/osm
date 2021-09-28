@@ -54,6 +54,7 @@ spec:
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-version", "{{ .Chart.AppVersion }}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateProvider.kind}}",
             {{ if eq .Values.OpenServiceMesh.certificateProvider.kind "vault" }}
