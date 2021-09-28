@@ -286,7 +286,7 @@ func main() {
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for validating webhook")
-		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, stop, reconciler.ValidatingWebhookInformerKey)
+		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, osmVersion, stop, reconciler.ValidatingWebhookInformerKey)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile validating webhook")
 		}

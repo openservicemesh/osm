@@ -51,6 +51,7 @@ var (
 	caBundleSecretName string
 	osmMeshConfigName  string
 	meshName           string
+	osmVersion         string
 
 	crdConverterConfig crdconversion.Config
 
@@ -81,6 +82,7 @@ func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -201,7 +203,7 @@ func main() {
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
-		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, stop, reconciler.CrdInformerKey)
+		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, osmVersion, stop, reconciler.CrdInformerKey)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client for custom resource definitions")
 		}

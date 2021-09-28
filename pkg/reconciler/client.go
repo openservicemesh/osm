@@ -18,11 +18,12 @@ import (
 )
 
 // NewReconcilerClient implements a client to reconcile osm managed resources
-func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient clientset.Interface, meshName string, stop chan struct{}, selectInformers ...k8s.InformerKey) error {
+func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient clientset.Interface, meshName, osmVersion string, stop chan struct{}, selectInformers ...k8s.InformerKey) error {
 	// Initialize client object
 	c := client{
 		kubeClient:      kubeClient,
 		meshName:        meshName,
+		osmVersion:      osmVersion,
 		apiServerClient: apiServerClient,
 		informers:       informerCollection{},
 	}

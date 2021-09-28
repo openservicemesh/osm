@@ -189,7 +189,7 @@ func main() {
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for sidecar injector webhook")
-		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, stop, reconciler.MutatingWebhookInformerKey)
+		err = reconciler.NewReconcilerClient(kubeClient, nil, meshName, osmVersion, stop, reconciler.MutatingWebhookInformerKey)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile sidecar injector webhook")
 		}
