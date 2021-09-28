@@ -63,7 +63,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 
 	// The following function ensures to atomically create or get the certificate from Kubernetes
 	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
-	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.MutatingWebhookCertificateSecretName, webhookHandlerCert, kubeClient)
 	if err != nil {
 		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
 	}
