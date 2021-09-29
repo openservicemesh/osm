@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
@@ -260,4 +261,71 @@ func TestEnsureMeshConfig(t *testing.T) {
 			assert.Nil(err)
 		}
 	}
+}
+
+func TestGetBootstrapPod(t *testing.T) {
+	assert := tassert.New(t)
+	testPodName := "test-pod-name"
+	testNamespace := "test-namespace"
+	testPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testPodName,
+			Namespace: testNamespace,
+		},
+	}
+
+	tests := []struct {
+		name                string
+		namespace           string
+		bootstrapPodNameEnv string
+		kubeClient          kubernetes.Interface
+		expectErr           bool
+	}{
+		{
+			name:                "BOOTSTRAP_POD_NAME env var not set",
+			namespace:           testNamespace,
+			bootstrapPodNameEnv: "",
+			kubeClient:          fakeKube.NewSimpleClientset(),
+			expectErr:           true,
+		},
+		{
+			name:                "BOOTSTRAP_POD_NAME env var set correctly and pod exists",
+			namespace:           testNamespace,
+			bootstrapPodNameEnv: testPodName,
+			kubeClient:          fakeKube.NewSimpleClientset([]runtime.Object{testPod}...),
+			expectErr:           false,
+		},
+		{
+			name:                "BOOTSTRAP_POD_NAME env var set incorrectly",
+			namespace:           testNamespace,
+			bootstrapPodNameEnv: "something-random",
+			kubeClient:          fakeKube.NewSimpleClientset([]runtime.Object{testPod}...),
+			expectErr:           true,
+		},
+	}
+
+	for _, tc := range tests {
+		b := bootstrap{
+			namespace:  tc.namespace,
+			kubeClient: tc.kubeClient,
+		}
+		defer func() {
+			err := resetEnv("BOOTSTRAP_POD_NAME", os.Getenv("BOOTSTRAP_POD_NAME"))
+			assert.Nil(err)
+		}()
+
+		err := os.Setenv("BOOTSTRAP_POD_NAME", tc.bootstrapPodNameEnv)
+		assert.Nil(err)
+
+		_, err = b.getBootstrapPod()
+		if tc.expectErr {
+			assert.NotNil(err)
+		} else {
+			assert.Nil(err)
+		}
+	}
+}
+
+func resetEnv(key, val string) error {
+	return os.Setenv(key, val)
 }
