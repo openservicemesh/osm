@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -35,6 +36,9 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 				return
 			}
 			logResourceEvent(log, eventTypes.Add, obj)
+			if eventTypes.Add == announcements.NamespaceAdded {
+				metricsstore.DefaultMetricsStore.NamespaceCount.Inc()
+			}
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
@@ -49,6 +53,13 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 				return
 			}
 			logResourceEvent(log, eventTypes.Update, newObj)
+			if eventTypes.Update == announcements.NamespaceUpdated {
+				if !isMonitoredNamespace(oldObj) && isMonitoredNamespace(newObj) {
+					metricsstore.DefaultMetricsStore.NamespaceCount.Inc()
+				} else if isMonitoredNamespace(oldObj) && !isMonitoredNamespace(newObj) {
+					metricsstore.DefaultMetricsStore.NamespaceCount.Dec()
+				}
+			}
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
@@ -63,6 +74,9 @@ func GetKubernetesEventHandlers(shouldObserve observeFilter, eventTypes EventTyp
 				return
 			}
 			logResourceEvent(log, eventTypes.Delete, obj)
+			if eventTypes.Delete == announcements.NamespaceDeleted {
+				metricsstore.DefaultMetricsStore.NamespaceCount.Dec()
+			}
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 			events.Publish(events.PubSubMessage{
@@ -90,4 +104,19 @@ func logResourceEvent(parent zerolog.Logger, event announcements.Kind, obj inter
 		name = o.GetNamespace() + "/" + name
 	}
 	log.Debug().Str("resource_name", name).Msg("received kubernetes resource event")
+}
+
+func isMonitoredNamespace(obj interface{}) bool {
+	labels := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Labels").Interface()
+	if labels == nil {
+		return false
+	}
+
+	switch labels := labels.(type) {
+	case map[string]string:
+		mesh := labels[constants.OSMKubeResourceMonitorAnnotation]
+		return mesh != ""
+	default:
+		return false
+	}
 }

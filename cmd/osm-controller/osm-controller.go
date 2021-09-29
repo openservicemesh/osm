@@ -306,6 +306,7 @@ func main() {
 func startMetricsStore() {
 	metricsstore.DefaultMetricsStore.Start(
 		metricsstore.DefaultMetricsStore.K8sAPIEventCounter,
+		metricsstore.DefaultMetricsStore.NamespaceCount,
 		metricsstore.DefaultMetricsStore.ProxyConnectCount,
 		metricsstore.DefaultMetricsStore.ProxyReconnectCount,
 		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
