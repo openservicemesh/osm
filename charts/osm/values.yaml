@@ -185,7 +185,7 @@ OpenServiceMesh:
   controllerLogLevel: info
 
   # -- Enforce only deploying one mesh in the cluster
-  enforceSingleMesh: false
+  enforceSingleMesh: true
 
   # -- Prefix used in name of the webhook configuration resources
   webhookConfigNamePrefix: osm-webhook

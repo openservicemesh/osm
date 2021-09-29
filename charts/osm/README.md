@@ -78,7 +78,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | OpenServiceMesh.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | OpenServiceMesh.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
-| OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
+| OpenServiceMesh.enforceSingleMesh | bool | `true` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
 | OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | OpenServiceMesh.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced |

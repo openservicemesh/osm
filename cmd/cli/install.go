@@ -57,7 +57,7 @@ plane should watch for sidecar injection of Envoy proxies.
 const (
 	defaultChartPath         = ""
 	defaultMeshName          = "osm"
-	defaultEnforceSingleMesh = false
+	defaultEnforceSingleMesh = true
 )
 
 // chartTGZSource is the `helm package`d representation of the default Helm chart.
