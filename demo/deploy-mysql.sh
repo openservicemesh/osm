@@ -70,6 +70,8 @@ spec:
       volumes:
         - name: data
           emptyDir: {}
+      imagePullSecrets:
+        - name: $CTR_REGISTRY_CREDS_NAME
   volumeClaimTemplates:
   - metadata:
       name: data
