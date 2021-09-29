@@ -149,14 +149,9 @@ func main() {
 		return
 	}
 
-	// Initialize the generic Kubernetes event recorder and associate it with the osm-bootstrap pod resource
-	bootstrapPod, err := getBootstrapPod(kubeClient)
+	err = bootstrap.initiatilizeKubernetesEventsRecorder()
 	if err != nil {
-		log.Fatal().Msg("Error fetching osm-bootstrap pod")
-	}
-	eventRecorder := events.GenericEventRecorder()
-	if err := eventRecorder.Initialize(bootstrapPod, kubeClient, osmNamespace); err != nil {
-		log.Fatal().Msg("Error initializing generic event recorder")
+		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
 
 	stop := signals.RegisterExitHandlers()
@@ -253,29 +248,41 @@ func (b *bootstrap) ensureMeshConfig() error {
 	return err
 }
 
-func parseFlags() error {
-	if err := flags.Parse(os.Args); err != nil {
-		return err
+// initiatilizeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
+//	the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
+// 	report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
+func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
+	bootstrapPod, err := b.getBootstrapPod()
+	if err != nil {
+		return errors.Errorf("Error fetching osm-bootstrap pod: %s", err)
 	}
-	_ = flag.CommandLine.Parse([]string{})
-	return nil
+	eventRecorder := events.GenericEventRecorder()
+	return eventRecorder.Initialize(bootstrapPod, b.kubeClient, osmNamespace)
 }
 
 // getBootstrapPod returns the osm-bootstrap pod spec.
 // The pod name is inferred from the 'BOOTSTRAP_POD_NAME' env variable which is set during deployment.
-func getBootstrapPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
+func (b *bootstrap) getBootstrapPod() (*corev1.Pod, error) {
 	podName := os.Getenv("BOOTSTRAP_POD_NAME")
 	if podName == "" {
 		return nil, errors.New("BOOTSTRAP_POD_NAME env variable cannot be empty")
 	}
 
-	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := b.kubeClient.CoreV1().Pods(b.namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving osm-bootstrap pod %s", podName)
 		return nil, err
 	}
 
 	return pod, nil
+}
+
+func parseFlags() error {
+	if err := flags.Parse(os.Args); err != nil {
+		return err
+	}
+	_ = flag.CommandLine.Parse([]string{})
+	return nil
 }
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
