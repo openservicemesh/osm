@@ -9,7 +9,7 @@ metadata:
 spec:
   ports:
     - name: tls
-      port: 443
+      port: 9443
       targetPort: tls
     - name: health
       port: 9095

@@ -45,7 +45,7 @@ spec:
           imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           ports:
             - name: "tls"
-              containerPort: 443
+              containerPort: 9443
             - name: "metrics"
               containerPort: 9091
             - name: "health"
