@@ -1072,7 +1072,7 @@ func (td *OsmTestData) RunRemote(
 		Stderr: &stderr,
 	})
 	if err != nil {
-		return "", "", err
+		return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
 	}
 
 	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil

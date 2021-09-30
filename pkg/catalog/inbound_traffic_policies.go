@@ -215,7 +215,7 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	}
 
 	for _, rule := range rules {
-		trafficSpecName := mc.getTrafficSpecName("HTTPRouteGroup", trafficTargetNamespace, rule.Name)
+		trafficSpecName := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficTargetNamespace, rule.Name)
 		for _, match := range rule.Matches {
 			matchedRoute, found := specMatchRoute[trafficSpecName][trafficpolicy.TrafficSpecMatchName(match)]
 			if found {
@@ -240,7 +240,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		}
 
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
-		specKey := mc.getTrafficSpecName(httpRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
+		specKey := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch)
 		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.HTTPRouteMatch{

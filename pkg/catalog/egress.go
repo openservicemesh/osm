@@ -9,11 +9,11 @@ import (
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -135,7 +135,7 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 	var httpRouteMatches []trafficpolicy.HTTPRouteMatch
 	httpMatchSpecified := false
 	for _, match := range egressPolicy.Spec.Matches {
-		if match.APIGroup != nil && *match.APIGroup == smiSpecs.SchemeGroupVersion.String() && match.Kind == httpRouteGroupKind {
+		if match.APIGroup != nil && *match.APIGroup == smiSpecs.SchemeGroupVersion.String() && match.Kind == smi.HTTPRouteGroupKind {
 			// HTTPRouteGroup resource referenced, build a routing rule from this resource
 			httpMatchSpecified = true
 
