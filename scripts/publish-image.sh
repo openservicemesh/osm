@@ -27,14 +27,18 @@ if [ -z "${CTR_TAG}" ]; then
 fi
 
 if [[ "$VERIFY_TAGS" == "true" ]]; then
-    tokenUri="https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMAGE_REPO/$IMAGE_NAME:pull"
+    image="$IMAGE_NAME"
+    if [[ $OS == "windows" ]]; then
+      image="$image-windows"
+    fi
+    tokenUri="https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMAGE_REPO/$image:pull"
     bearerToken="$(curl --silent --get "$tokenUri" | jq --raw-output '.token')"
-    listUri="https://registry-1.docker.io/v2/$IMAGE_REPO/$IMAGE_NAME/tags/list"
+    listUri="https://registry-1.docker.io/v2/$IMAGE_REPO/$image/tags/list"
     authz="Authorization: Bearer $bearerToken"
     version_list="$(curl --silent --get -H "Accept: application/json" -H "$authz" "$listUri" | jq --raw-output '.')"
     exists=$(echo "$version_list" | jq --arg t "${CTR_TAG}" '.tags | index($t)')
     if [[ $exists != null ]]; then
-        echo "image $IMAGE_REPO/$IMAGE_NAME:$CTR_TAG already exists and \$VERIFY_TAGS is set"
+        echo "image $IMAGE_REPO/$image:$CTR_TAG already exists and \$VERIFY_TAGS is set"
         exit 1
     fi
 fi
