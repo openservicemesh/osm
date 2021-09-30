@@ -3,7 +3,7 @@
 Welcome to the Open Service Mesh development guide!
 Thank you for joining us on a journey to build an SMI-native lightweight service mesh. The first of our [core principles](https://github.com/openservicemesh/osm#core-principles) is to create a system, which is "simple to understand and contribute to." We hope that you would find the source code easy to understand. If not - we invite you to help us fulfill this principle. There is no PR too small!
 
-To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [the manual demo guide](https://docs.openservicemesh.io/docs/install/manual_demo/).
+To understand _what_ Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [the getting started guide](https://docs.openservicemesh.io/docs/getting_started/).
 
 To get a deeper understanding of how OSM functions - take a look at the detailed [software design](https://docs.openservicemesh.io/docs/design_concepts/).
 

@@ -93,7 +93,7 @@ spec:
     namespace: $BOOKWAREHOUSE_NAMESPACE
   rules:
   - kind: TCPRoute
-    name: tcp-route
+    name: mysql
   sources:
   - kind: ServiceAccount
     name: bookwarehouse
@@ -102,7 +102,7 @@ spec:
 apiVersion: specs.smi-spec.io/v1alpha4
 kind: TCPRoute
 metadata:
-  name: tcp-route
+  name: mysql
   namespace: $BOOKWAREHOUSE_NAMESPACE
 spec:
   matches:
