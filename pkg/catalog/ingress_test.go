@@ -2652,6 +2652,45 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:                        "MeshService.TargetPort does not match ingress backend port",
+			ingressBackendPolicyEnabled: true,
+			// meshSvc.TargetPort does not match ingressBackend.Spec.Backends[].Port.Number
+			meshSvc: service.MeshService{Name: "foo", Namespace: "testns", Protocol: "http", TargetPort: 90},
+			ingressBackend: &policyV1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "testns",
+				},
+				Spec: policyV1alpha1.IngressBackendSpec{
+					Backends: []policyV1alpha1.BackendSpec{
+						{
+							Name: "foo",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.IngressSourceSpec{
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "10.0.0.0/10",
+						},
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "20.0.0.0/10",
+						},
+						{
+							Kind: policyV1alpha1.KindIPRange,
+							Name: "invalid", // should be ignored
+						},
+					},
+				},
+			},
+			expectedPolicy: nil,
+			expectError:    false,
+		},
 	}
 
 	for _, tc := range testCases {
