@@ -17,6 +17,7 @@ spec:
         app: osm-multicluster-gateway
       name: osm-multicluster-gateway
     spec:
+      priorityClassName: osm-critical
       serviceAccountName: {{ .Release.Name }}
       nodeSelector:
         kubernetes.io/arch: amd64
