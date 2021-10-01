@@ -100,15 +100,15 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
-| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmInjector":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
-| OpenServiceMesh.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
-| OpenServiceMesh.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
-| OpenServiceMesh.image.digest.osmController | string | `""` | osm-controller's image digest |
-| OpenServiceMesh.image.digest.osmInjector | string | `""` | osm-injector's image digest |
-| OpenServiceMesh.image.digest.osmSidecarInit | string | `""` | Sidecar init container's image digest |
+| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"sha256:35b657184c0c145b19e1614575cf1c8e4800621a3c4ea3067f71d3e0431beed5","osmCRDs":"sha256:4d85f94733f2fd009c7b956276aca9ac86b1be6ecca91243486254307a5beaae","osmController":"sha256:147e6155b6bbb69c97715e552cf2effbb26ede3380d379bb7e0de03493c85045","osmInjector":"sha256:cf301763aa21b7973b5fc963399e553dac88517d590cfb72eceb2f985fb63a86","osmSidecarInit":"sha256:0da5863eb304717a73079054fc8b1b5c18cede6903224701a011166551e63990"}` | Image digest (ignored when image.tag is set) |
+| OpenServiceMesh.image.digest.osmBootstrap | string | `"sha256:35b657184c0c145b19e1614575cf1c8e4800621a3c4ea3067f71d3e0431beed5"` | osm-boostrap's image digest |
+| OpenServiceMesh.image.digest.osmCRDs | string | `"sha256:4d85f94733f2fd009c7b956276aca9ac86b1be6ecca91243486254307a5beaae"` | osm-crds' image digest |
+| OpenServiceMesh.image.digest.osmController | string | `"sha256:147e6155b6bbb69c97715e552cf2effbb26ede3380d379bb7e0de03493c85045"` | osm-controller's image digest |
+| OpenServiceMesh.image.digest.osmInjector | string | `"sha256:cf301763aa21b7973b5fc963399e553dac88517d590cfb72eceb2f985fb63a86"` | osm-injector's image digest |
+| OpenServiceMesh.image.digest.osmSidecarInit | string | `"sha256:0da5863eb304717a73079054fc8b1b5c18cede6903224701a011166551e63990"` | Sidecar init container's image digest |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
-| OpenServiceMesh.image.tag | string | `"latest-main"` | Container image tag for control plane images |
+| OpenServiceMesh.image.tag | string | `""` | Container image tag for control plane images (must not be set on release branches) |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | OpenServiceMesh.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
