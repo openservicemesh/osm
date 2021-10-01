@@ -67,7 +67,7 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 	sourceServiceIdentities := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
-		if backend.Name != svc.Name {
+		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
 			continue
 		}
 
@@ -152,6 +152,13 @@ func (mc *MeshCatalog) getIngressTrafficPolicy(svc service.MeshService) (*traffi
 			AllowedServiceIdentities: sourceServiceIdentities,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
+	}
+
+	if len(trafficMatches) == 0 {
+		// Since no trafficMatches exist for this IngressBackend config, it implies that the given
+		// MeshService does not map to this IngressBackend config.
+		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.EnvoyLocalClusterName())
+		return nil, nil
 	}
 
 	ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
