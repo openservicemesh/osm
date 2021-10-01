@@ -59,8 +59,12 @@ OpenServiceMesh:
       minReplicas: 1
       # -- Maximum replicas for autoscale
       maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
+      memory:
+        # -- Average target Memory usage
+        targetAverageValue: "100Mi"
+      cpu:
+        # -- Average target CPU utilization (%)
+        targetAverageUtilization: 80
 
   #
   # -- Prometheus parameters

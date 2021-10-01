@@ -14,6 +14,12 @@ spec:
   metrics:
   - type: Resource
     resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: {{.Values.OpenServiceMesh.injector.autoScale.memory.targetAverageValue}}
+  - type: Resource
+    resource:
       name: cpu
       target:
         type: Utilization

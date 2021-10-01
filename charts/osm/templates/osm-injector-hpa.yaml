@@ -12,7 +12,6 @@ spec:
   minReplicas: {{.Values.OpenServiceMesh.injector.autoScale.minReplicas}}
   maxReplicas: {{.Values.OpenServiceMesh.injector.autoScale.maxReplicas}}
   metrics:
-  metrics:
   - type: Resource
     resource:
       name: memory

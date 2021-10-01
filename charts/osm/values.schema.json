@@ -94,7 +94,6 @@
                     "title": "Autoscale minimum replicas",
                     "description": "Indicates the minimum replicas for autoscale.",
                     "minimum": 1,
-                    "maximum": 10,
                     "examples": [
                         1
                     ]
@@ -105,21 +104,47 @@
                     "title": "Autoscale maximum replicase",
                     "description": "Indicates the maximum replicas for autoscale.",
                     "minimum": 1,
-                    "maximum": 10,
                     "examples": [
                         5
                     ]
                 },
-                "targetAverageUtilization": {
-                    "$id": "#/properties/definitions/properties/autoScale/properties/targetAverageUtilization",
-                    "type": "integer",
-                    "title": "Autoscale targetAverageUtilization",
-                    "description": "Indicates average target CPU utilization (percentage) for autoscale.",
-                    "minimum": 0,
-                    "maximum": 100,
-                    "examples": [
-                        80
-                    ]
+                "memory": {
+                    "$id": "#/properties/definitions/properties/autoScale/memory",
+                    "type": "object",
+                    "title": "Autoscale on memory resource schema",
+                    "description": "Autoscale on memory configuration parameters",
+                    "required": [
+                        "targetAverageValue"
+                    ],
+                    "targetAverageValue": {
+                        "$id": "#/properties/definitions/properties/autoScale/properties/targetAverageValue",
+                        "type": "string",
+                        "title": "Autoscale Memory targetAverageValue",
+                        "description": "Indicates average target Memory usage (Mi) for autoscale.",
+                        "examples": [
+                            "10Mi"
+                        ]
+                    }
+                },
+                "cpu": {
+                    "$id": "#/properties/definitions/properties/autoScale/memory",
+                    "type": "object",
+                    "title": "Autoscale on CPU resource schema",
+                    "description": "Autoscale on CPU configuration parameters",
+                    "required": [
+                        "targetAverageUtilization"
+                    ],
+                    "targetAverageUtilization": {
+                        "$id": "#/properties/definitions/properties/autoScale/properties/targetAverageUtilization",
+                        "type": "integer",
+                        "title": "Autoscale targetAverageUtilization",
+                        "description": "Indicates average target CPU utilization (percentage) for autoscale.",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "examples": [
+                            80
+                        ]
+                    }
                 }
             }
         }
