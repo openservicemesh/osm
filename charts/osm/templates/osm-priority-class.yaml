@@ -1,7 +1,0 @@
-apiVersion: scheduling.k8s.io/v1
-description: For Open Service Mesh pods with critical importance.
-kind: PriorityClass
-metadata:
-  name: osm-critical
-preemptionPolicy: PreemptLowerPriority
-value: 1000000
