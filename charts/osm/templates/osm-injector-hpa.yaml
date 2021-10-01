@@ -12,10 +12,17 @@ spec:
   minReplicas: {{.Values.OpenServiceMesh.injector.autoScale.minReplicas}}
   maxReplicas: {{.Values.OpenServiceMesh.injector.autoScale.maxReplicas}}
   metrics:
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: {{.Values.OpenServiceMesh.injector.autoScale.memory.targetAverageValue}}
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: {{.Values.OpenServiceMesh.injector.autoScale.targetAverageUtilization}}
+        averageUtilization: {{.Values.OpenServiceMesh.injector.autoScale.cpu.targetAverageUtilization}}
 {{- end }}
