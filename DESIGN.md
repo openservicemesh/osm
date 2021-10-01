@@ -445,7 +445,7 @@ type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
+	// ListServiceAccounts lists Service Account resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a Kubernetes Service resource for the given MeshService
@@ -454,7 +454,7 @@ type MeshSpec interface {
 	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
 	ListServices() []*corev1.Service
 
-	// ListServiceAccounts Lists Kubernets Service Account resources that are part of monitored namespaces
+	// ListServiceAccounts Lists Kubernetes Service Account resources that are part of monitored namespaces
 	ListServiceAccounts() []*corev1.ServiceAccounts
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources

@@ -25,8 +25,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
-// We have a few different k8s clients. This identifies these in logs.
-const kubernetesClientName = "MeshSpec"
+const (
+	// ServiceAccountKind is the kind specified for the destination and sources in an SMI TrafficTarget policy
+	ServiceAccountKind = "ServiceAccount"
+
+	// TCPRouteKind is the kind specified for the TCP route rules in an SMI Traffictarget policy
+	TCPRouteKind = "TCPRoute"
+
+	// HTTPRouteGroupKind is the kind specified for the HTTP route rules in an SMI Traffictarget policy
+	HTTPRouteGroupKind = "HTTPRouteGroup"
+
+	// We have a few different k8s clients. This identifies these in logs.
+	kubernetesClientName = "MeshSpec"
+)
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller, stop chan struct{}) (MeshSpec, error) {
@@ -280,12 +291,47 @@ func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAc
 			continue
 		}
 
+		if !isValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
 		// Filter TrafficTarget based on the given options
 		if filteredTrafficTarget := filterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
 			trafficTargets = append(trafficTargets, trafficTarget)
 		}
 	}
 	return trafficTargets
+}
+
+func isValidTrafficTarget(trafficTarget *smiAccess.TrafficTarget) bool {
+	// destination namespace must be same as traffic target namespace
+	if trafficTarget.Namespace != trafficTarget.Spec.Destination.Namespace {
+		return false
+	}
+
+	if !hasValidRules(trafficTarget.Spec.Rules) {
+		return false
+	}
+
+	return true
+}
+
+// hasValidRules checks if the given SMI TrafficTarget object has valid rules
+func hasValidRules(rules []smiAccess.TrafficTargetRule) bool {
+	if len(rules) == 0 {
+		return false
+	}
+	for _, rule := range rules {
+		switch rule.Kind {
+		case HTTPRouteGroupKind, TCPRouteKind:
+			// valid Kind for rules
+
+		default:
+			log.Error().Msgf("Invalid Kind for rule %s in TrafficTarget policy %s", rule.Name, rule.Kind)
+			return false
+		}
+	}
+	return true
 }
 
 func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
@@ -312,6 +358,14 @@ func (c *client) ListServiceAccounts() []identity.K8sServiceAccount {
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
+		if !c.kubeController.IsMonitoredNamespace(trafficTarget.Namespace) {
+			continue
+		}
+
+		if !isValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
 		for _, sources := range trafficTarget.Spec.Sources {
 			// Only monitor sources in namespaces OSM is observing
 			if !c.kubeController.IsMonitoredNamespace(sources.Namespace) {
@@ -325,11 +379,6 @@ func (c *client) ListServiceAccounts() []identity.K8sServiceAccount {
 			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 		}
 
-		// Only monitor destination in namespaces OSM is observing
-		if !c.kubeController.IsMonitoredNamespace(trafficTarget.Spec.Destination.Namespace) {
-			// Doesn't belong to namespaces we are observing
-			continue
-		}
 		namespacedServiceAccount := identity.K8sServiceAccount{
 			Namespace: trafficTarget.Spec.Destination.Namespace,
 			Name:      trafficTarget.Spec.Destination.Name,
