@@ -102,10 +102,9 @@
                 "maxReplicas": {
                     "$id": "#/properties/definitions/properties/autoScale/properties/maxReplicas",
                     "type": "integer",
-                    "title": "Autoscale maximum replicase",
+                    "title": "Autoscale maximum replicas",
                     "description": "Indicates the maximum replicas for autoscale.",
                     "minimum": 1,
-                    "maximum": 10,
                     "examples": [
                         5
                     ]

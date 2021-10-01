@@ -10,6 +10,7 @@ spec:
     kind: Deployment
     name: osm-injector
   minReplicas: {{.Values.OpenServiceMesh.injector.autoScale.minReplicas}}
+  # no max limit set for maxReplicas
   maxReplicas: {{.Values.OpenServiceMesh.injector.autoScale.maxReplicas}}
   metrics:
   - type: Resource

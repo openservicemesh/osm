@@ -10,6 +10,7 @@ spec:
     kind: Deployment
     name: osm-controller
   minReplicas: {{.Values.OpenServiceMesh.osmController.autoScale.minReplicas}}
+  # no max limit set for maxReplicas
   maxReplicas: {{.Values.OpenServiceMesh.osmController.autoScale.maxReplicas}}
   metrics:
   - type: Resource
