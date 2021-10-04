@@ -10,6 +10,9 @@ func (at Kind) String() string {
 }
 
 const (
+	// ProxyUpdate is the event kind used to trigger an update to subscribed proxies
+	ProxyUpdate Kind = "proxy-update"
+
 	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
 	ScheduleProxyBroadcast Kind = "schedule-proxy-broadcast"
 
