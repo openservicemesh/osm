@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -35,7 +36,7 @@ const (
 // NewCertificateProvider returns a new certificate provider and associated config
 func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
 	providerNamespace string, caBundleSecretName string, tresorOptions TresorOptions, vaultOptions VaultOptions,
-	certManagerOptions CertManagerOptions) (certificate.Manager, debugger.CertificateManagerDebugger, *Config, error) {
+	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) (certificate.Manager, debugger.CertificateManagerDebugger, *Config, error) {
 	config := &Config{
 		kubeClient:         kubeClient,
 		kubeConfig:         kubeConfig,
@@ -47,6 +48,8 @@ func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Co
 		tresorOptions:      tresorOptions,
 		vaultOptions:       vaultOptions,
 		certManagerOptions: certManagerOptions,
+
+		msgBroker: msgBroker,
 	}
 
 	if err := config.Validate(); err != nil {
@@ -64,7 +67,7 @@ func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Co
 // NewCertificateProviderConfig returns a new certificate provider config
 func NewCertificateProviderConfig(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
 	providerNamespace string, caBundleSecretName string, tresorOptions TresorOptions, vaultOptions VaultOptions,
-	certManagerOptions CertManagerOptions) *Config {
+	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) *Config {
 	return &Config{
 		kubeClient:         kubeClient,
 		kubeConfig:         kubeConfig,
@@ -76,6 +79,8 @@ func NewCertificateProviderConfig(kubeClient kubernetes.Interface, kubeConfig *r
 		tresorOptions:      tresorOptions,
 		vaultOptions:       vaultOptions,
 		certManagerOptions: certManagerOptions,
+
+		msgBroker: msgBroker,
 	}
 }
 
@@ -236,6 +241,7 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 		c.cfg,
 		c.cfg.GetServiceCertValidityPeriod(),
 		c.cfg.GetCertKeyBitSize(),
+		c.msgBroker,
 	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
@@ -310,6 +316,7 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certi
 		options.VaultRole,
 		c.cfg,
 		c.cfg.GetServiceCertValidityPeriod(),
+		c.msgBroker,
 	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
@@ -352,6 +359,7 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 		c.cfg,
 		c.cfg.GetServiceCertValidityPeriod(),
 		c.cfg.GetCertKeyBitSize(),
+		c.msgBroker,
 	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)

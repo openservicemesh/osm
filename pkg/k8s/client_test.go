@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,10 +18,8 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -33,597 +28,505 @@ var (
 	testMeshName = "mesh"
 )
 
-const (
-	nsInformerSyncTimeout           = 3 * time.Second
-	assertEventuallyPollingInterval = 10 * time.Millisecond
-)
-
-var _ = Describe("Test Namespace KubeController Methods", func() {
-	Context("Testing ListMonitoredNamespaces", func() {
-		It("should return monitored namespaces", func() {
-			// Create namespace controller
-			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-
-			// Create a test namespace that is monitored
-			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
-			testNamespace := corev1.Namespace{
+func TestIsMonitoredNamespace(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		ns        string
+		expected  bool
+	}{
+		{
+			name: "namespace is monitored if is found in the namespace cache",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespaceName,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "foo",
 				},
-			}
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			// Eventually asserts that all return values apart from the first value are nil or zero-valued,
-			// so asserting that an error is nil is implicit.
-			Eventually(func() ([]string, error) {
-				return kubeController.ListMonitoredNamespaces()
-			}, nsInformerSyncTimeout).Should(Equal([]string{testNamespaceName}))
-		})
-	})
-
-	Context("Testing GetNamespace", func() {
-		It("should return existing namespace if it exists", func() {
-			// Create namespace controller
-			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-
-			// Create a test namespace that is monitored
-			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
-			testNamespace := corev1.Namespace{
+			},
+			ns:       "foo",
+			expected: true,
+		},
+		{
+			name: "namespace is not monitored if is not in the namespace cache",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespaceName,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "foo",
 				},
-			}
+			},
+			ns:       "invalid",
+			expected: false,
+		},
+	}
 
-			// Create it
-			nsCreate, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
 
-			// Check it is present
-			Eventually(func() *corev1.Namespace {
-				return kubeController.GetNamespace(testNamespaceName)
-			}, nsInformerSyncTimeout).Should(Equal(nsCreate))
-
-			// Delete it
-			err = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), testNamespaceName, metav1.DeleteOptions{})
-			Expect(err).To(BeNil())
-
-			// Check it is gone
-			Eventually(func() *corev1.Namespace {
-				return kubeController.GetNamespace(testNamespaceName)
-			}, nsInformerSyncTimeout).Should(BeNil())
+			actual := c.IsMonitoredNamespace(tc.ns)
+			a.Equal(tc.expected, actual)
 		})
-	})
+	}
+}
 
-	Context("Testing IsMonitoredNamespace", func() {
-		It("should work as expected", func() {
-			// Create namespace controller
-			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-
-			// Create a test namespace that is monitored
-			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
-			testNamespace := corev1.Namespace{
+func TestGetNamespace(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		ns        string
+		expected  bool
+	}{
+		{
+			name: "gets the namespace from the cache given its key",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespaceName,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "foo",
 				},
-			}
-
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			Eventually(func() bool {
-				return kubeController.IsMonitoredNamespace(testNamespaceName)
-			}, nsInformerSyncTimeout).Should(BeTrue())
-
-			fakeNamespaceIsMonitored := kubeController.IsMonitoredNamespace("fake")
-			Expect(fakeNamespaceIsMonitored).To(BeFalse())
-		})
-	})
-
-	Context("service controller", func() {
-		var kubeClient *testclient.Clientset
-		var kubeController Controller
-		var err error
-
-		BeforeEach(func() {
-			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-		})
-
-		It("should create and delete services, and be detected if NS is monitored", func() {
-			meshSvc := tests.BookbuyerService
-			serviceChannel := events.Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.Unsub(serviceChannel)
-
-			// Create monitored namespace for this service
-			testNamespace := &corev1.Namespace{
+			},
+			ns:       "foo",
+			expected: true,
+		},
+		{
+			name: "returns nil if the namespace is not found in the cache",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   tests.BookbuyerService.Namespace,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "foo",
 				},
+			},
+			ns:       "invalid",
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+
+			actual := c.GetNamespace(tc.ns)
+			if tc.expected {
+				a.Equal(tc.namespace, actual)
+			} else {
+				a.Nil(actual)
 			}
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-			Eventually(func() bool {
-				return kubeController.IsMonitoredNamespace(testNamespace.Name)
-			}, nsInformerSyncTimeout).Should(BeTrue())
-
-			svc := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, nil)
-			_, err = kubeClient.CoreV1().Services(meshSvc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-
-			svcIncache := kubeController.GetService(meshSvc)
-			Expect(svcIncache).To(Equal(svc))
-
-			err = kubeClient.CoreV1().Services(meshSvc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-
-			svcIncache = kubeController.GetService(meshSvc)
-			Expect(svcIncache).To(BeNil())
 		})
+	}
+}
 
-		It("should return nil when the given MeshService is not found", func() {
-			meshSvc := tests.BookbuyerService
-
-			svcIncache := kubeController.GetService(meshSvc)
-			Expect(svcIncache).To(BeNil())
-		})
-
-		It("should return an empty list when no services are found", func() {
-			services := kubeController.ListServices()
-			Expect(len(services)).To(Equal(0))
-		})
-
-		It("should return a list of Services", func() {
-			// Define services to test with
-			serviceChannel := events.Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.Unsub(serviceChannel)
-			testSvcs := []service.MeshService{
-				{Name: uuid.New().String(), Namespace: "ns-1"},
-				{Name: uuid.New().String(), Namespace: "ns-2"},
-			}
-
-			// Test services could belong to the same namespace, so ensure we create a list of unique namespaces
-			testNamespaces := mapset.NewSet()
-			for _, svc := range testSvcs {
-				testNamespaces.Add(svc.Namespace)
-			}
-
-			// Create a namespace resource for each namespace
-			for ns := range testNamespaces.Iter() {
-				namespace := ns.(string)
-
-				testNamespace := corev1.Namespace{
+func TestListMonitoredNamespaces(t *testing.T) {
+	testCases := []struct {
+		name       string
+		namespaces []*corev1.Namespace
+		expected   []string
+	}{
+		{
+			name: "gets the namespace from the cache given its key",
+			namespaces: []*corev1.Namespace{
+				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:   namespace,
-						Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+						Name: "ns1",
 					},
-				}
-				_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
-				Expect(err).To(BeNil())
-			}
-			for ns := range testNamespaces.Iter() {
-				namespace := ns.(string)
-				// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-				Eventually(func() bool {
-					return kubeController.IsMonitoredNamespace(namespace)
-				}, nsInformerSyncTimeout).Should(BeTrue())
-			}
-
-			// Add services
-			for _, svcAdd := range testSvcs {
-				svcSpec := tests.NewServiceFixture(svcAdd.Name, svcAdd.Namespace, nil)
-				_, err := kubeClient.CoreV1().Services(svcAdd.Namespace).Create(context.TODO(), svcSpec, metav1.CreateOptions{})
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			// Wait for all the service related events: 1 for each service created
-			for range testSvcs {
-				<-serviceChannel
-			}
-
-			services := kubeController.ListServices()
-			Expect(len(testSvcs)).To(Equal(len(services)))
-		})
-	})
-
-	Context("service account controller", func() {
-		var kubeClient *testclient.Clientset
-		var kubeController Controller
-		var err error
-
-		BeforeEach(func() {
-			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-		})
-
-		It("should create and delete service accounts, and be detected if NS is monitored", func() {
-			k8sSvcAccount := tests.BookbuyerServiceAccount
-			serviceChannel := events.Subscribe(announcements.ServiceAccountAdded,
-				announcements.ServiceAccountDeleted,
-				announcements.ServiceAccountUpdated)
-			defer events.Unsub(serviceChannel)
-
-			// Create monitored namespace for this service
-			testNamespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   tests.BookbuyerService.Namespace,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
 				},
-			}
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-			Eventually(func() bool {
-				return kubeController.IsMonitoredNamespace(testNamespace.Name)
-			}, nsInformerSyncTimeout).Should(BeTrue())
-
-			svcAccount := tests.NewServiceAccountFixture(k8sSvcAccount.Name, k8sSvcAccount.Namespace)
-			_, err = kubeClient.CoreV1().ServiceAccounts(svcAccount.Namespace).Create(context.TODO(), svcAccount, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-
-			err = kubeClient.CoreV1().ServiceAccounts(svcAccount.Namespace).Delete(context.TODO(), svcAccount.Name, metav1.DeleteOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-		})
-
-		It("should return an empty list when no service accounts are found", func() {
-			services := kubeController.ListServiceAccounts()
-			Expect(len(services)).To(Equal(0))
-		})
-
-		It("should return a list of service accounts", func() {
-			// Define services to test with
-			serviceChannel := events.Subscribe(announcements.ServiceAccountAdded,
-				announcements.ServiceAccountDeleted,
-				announcements.ServiceAccountUpdated)
-			defer events.Unsub(serviceChannel)
-			testSvcAccounts := []identity.K8sServiceAccount{
-				{Name: uuid.New().String(), Namespace: "ns-1"},
-				{Name: uuid.New().String(), Namespace: "ns-2"},
-			}
-
-			// Test service accounts could belong to the same namespace, so ensure we create a list of unique namespaces
-			testNamespaces := mapset.NewSet()
-			for _, svc := range testSvcAccounts {
-				testNamespaces.Add(svc.Namespace)
-			}
-
-			// Create a namespace resource for each namespace
-			for ns := range testNamespaces.Iter() {
-				namespace := ns.(string)
-
-				testNamespace := corev1.Namespace{
+				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:   namespace,
-						Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+						Name: "ns2",
 					},
-				}
-				_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
-				Expect(err).To(BeNil())
-			}
-			for ns := range testNamespaces.Iter() {
-				namespace := ns.(string)
-				// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-				Eventually(func() bool {
-					return kubeController.IsMonitoredNamespace(namespace)
-				}, nsInformerSyncTimeout).Should(BeTrue())
+				},
+			},
+			expected: []string{"ns1", "ns2"},
+		},
+		{
+			name:       "gets the namespace from the cache given its key",
+			namespaces: nil,
+			expected:   []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			for _, ns := range tc.namespaces {
+				_ = c.informers[Namespaces].GetStore().Add(ns)
 			}
 
-			// Add service accounts
-			for _, svcAccountAdd := range testSvcAccounts {
-				svcSpec := tests.NewServiceAccountFixture(svcAccountAdd.Name, svcAccountAdd.Namespace)
-				_, err := kubeClient.CoreV1().ServiceAccounts(svcAccountAdd.Namespace).Create(context.TODO(), svcSpec, metav1.CreateOptions{})
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			// Wait for all the service account related events: 1 for each service acount created
-			for range testSvcAccounts {
-				<-serviceChannel
-			}
-
-			svcAccounts := kubeController.ListServiceAccounts()
-			Expect(len(testSvcAccounts)).To(Equal(len(svcAccounts)))
+			actual, err := c.ListMonitoredNamespaces()
+			a.Nil(err)
+			a.ElementsMatch(tc.expected, actual)
 		})
-	})
+	}
+}
 
-	Context("Test ListServiceIdentitiesForService()", func() {
-		var kubeClient *testclient.Clientset
-		var kubeController Controller
-		var err error
-		testMeshName := "foo"
+func TestGetService(t *testing.T) {
+	testCases := []struct {
+		name     string
+		service  *corev1.Service
+		svc      service.MeshService
+		expected bool
+	}{
+		{
+			name: "gets the service from the cache given its key",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			svc:      service.MeshService{Name: "foo", Namespace: "ns1"},
+			expected: true,
+		},
+		{
+			name: "returns nil if the service is not found in the cache",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
+			expected: false,
+		},
+	}
 
-		BeforeEach(func() {
-			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesController(kubeClient, nil, testMeshName, make(chan struct{}))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Services].GetStore().Add(tc.service)
+
+			actual := c.GetService(tc.svc)
+			if tc.expected {
+				a.Equal(tc.service, actual)
+			} else {
+				a.Nil(actual)
+			}
 		})
+	}
+}
 
-		It("should correctly return the ServiceAccounts associated with a service", func() {
-			testNamespaceName := "test-ns"
-			testSvcAccountName1 := "test-service-account-1"
-			testSvcAccountName2 := "test-service-account-2"
-
-			serviceChannel := events.Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.Unsub(serviceChannel)
-			podsChannel := events.Subscribe(announcements.PodAdded,
-				announcements.PodDeleted,
-				announcements.PodUpdated)
-			defer events.Unsub(podsChannel)
-
-			// Create a namespace
-			testNamespace := &corev1.Namespace{
+func TestListServices(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		services  []*corev1.Service
+		expected  []*corev1.Service
+	}{
+		{
+			name: "gets the k8s services if their namespaces are monitored",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespaceName,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "ns1",
 				},
-			}
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-			Eventually(func() bool {
-				return kubeController.IsMonitoredNamespace(testNamespace.Name)
-			}, nsInformerSyncTimeout).Should(BeTrue())
-
-			// Create pods with labels that match the service
-			pod1 := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod1",
-					Namespace: testNamespaceName,
-					Labels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
+			},
+			services: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
 					},
 				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: testSvcAccountName1,
-				},
-			}
-			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod1, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			<-podsChannel
-
-			pod2 := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod2",
-					Namespace: testNamespaceName,
-					Labels: map[string]string{
-						"some-label": "test",
-						"version":    "v2",
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
 					},
 				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: testSvcAccountName2,
+			},
+			expected: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
 				},
-			}
-			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod2, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			<-podsChannel
+			},
+		},
+	}
 
-			// Create a service with selector that matches the pods above
-			svc := &corev1.Service{
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+
+			for _, s := range tc.services {
+				_ = c.informers[Services].GetStore().Add(s)
+			}
+
+			actual := c.ListServices()
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestListServiceAccounts(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		sa        []*corev1.ServiceAccount
+		expected  []*corev1.ServiceAccount
+	}{
+		{
+			name: "gets the k8s service accounts if their namespaces are monitored",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-1",
-					Namespace: testNamespaceName,
+					Name: "ns1",
+				},
+			},
+			sa: []*corev1.ServiceAccount{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+					},
+				},
+			},
+			expected: []*corev1.ServiceAccount{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+
+			for _, s := range tc.sa {
+				_ = c.informers[ServiceAccounts].GetStore().Add(s)
+			}
+
+			actual := c.ListServiceAccounts()
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestListPods(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		pods      []*corev1.Pod
+		expected  []*corev1.Pod
+	}{
+		{
+			name: "gets the k8s pods if their namespaces are monitored",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ns1",
+				},
+			},
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+					},
+				},
+			},
+			expected: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+
+			for _, s := range tc.pods {
+				_ = c.informers[Pods].GetStore().Add(s)
+			}
+
+			actual := c.ListPods()
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetEndpoints(t *testing.T) {
+	testCases := []struct {
+		name      string
+		endpoints *corev1.Endpoints
+		svc       service.MeshService
+		expected  *corev1.Endpoints
+	}{
+		{
+			name: "gets the service from the cache given its key",
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			svc: service.MeshService{Name: "foo", Namespace: "ns1"},
+			expected: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+		},
+		{
+			name: "returns nil if the service is not found in the cache",
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Endpoints].GetStore().Add(tc.endpoints)
+
+			actual, err := c.GetEndpoints(tc.svc)
+			a.Nil(err)
+			a.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestListServiceIdentitiesForService(t *testing.T) {
+	testCases := []struct {
+		name      string
+		namespace *corev1.Namespace
+		pods      []*corev1.Pod
+		service   *corev1.Service
+		svc       service.MeshService
+		expected  []identity.K8sServiceAccount
+		expectErr bool
+	}{
+		{
+			name: "returns the service accounts for the given MeshService",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ns1",
+				},
+			},
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p1",
+						Labels: map[string]string{
+							"k1": "v1", // matches selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p2",
+						Labels: map[string]string{
+							"k1": "v2", // does not match selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa2",
+					},
+				},
+			},
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
 				},
 				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name:     "servicePort",
-						Protocol: corev1.ProtocolTCP,
-						Port:     tests.ServicePort,
-					}},
 					Selector: map[string]string{
-						"some-label": "test",
+						"k1": "v1", // matches labels on pod ns1/p1
 					},
 				},
-			}
-
-			_, err := kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-
-			meshSvc := service.MeshService{
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-			}
-
-			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
-
-			Expect(err).ToNot(HaveOccurred())
-
-			expectedSvcAccounts := []identity.K8sServiceAccount{
-				{Name: pod1.Spec.ServiceAccountName, Namespace: pod1.Namespace},
-				{Name: pod2.Spec.ServiceAccountName, Namespace: pod2.Namespace},
-			}
-			Expect(svcAccounts).Should(HaveLen(len(expectedSvcAccounts)))
-			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
-		})
-
-		It("should not return any ServiceAccounts associated with a service without selectors", func() {
-			testNamespaceName := "test-ns"
-			testSvcAccountName1 := "test-service-account-1"
-			testSvcAccountName2 := "test-service-account-2"
-
-			serviceChannel := events.Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.Unsub(serviceChannel)
-			podsChannel := events.Subscribe(announcements.PodAdded,
-				announcements.PodDeleted,
-				announcements.PodUpdated)
-			defer events.Unsub(podsChannel)
-
-			// Create a namespace
-			testNamespace := &corev1.Namespace{
+			},
+			svc: service.MeshService{Name: "s1", Namespace: "ns1"}, // Matches service ns1/s1
+			expected: []identity.K8sServiceAccount{
+				{Namespace: "ns1", Name: "sa1"},
+			},
+			expectErr: false,
+		},
+		{
+			name: "returns an error when the given MeshService is not found",
+			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespaceName,
-					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					Name: "ns1",
 				},
-			}
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
-			Eventually(func() bool {
-				return kubeController.IsMonitoredNamespace(testNamespace.Name)
-			}, nsInformerSyncTimeout).Should(BeTrue())
-
-			// Create pods with labels that match the service
-			pod1 := &corev1.Pod{
+			},
+			service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod1",
-					Namespace: testNamespaceName,
-					Labels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
-					},
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: testSvcAccountName1,
-				},
-			}
-			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod1, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			<-podsChannel
-
-			pod2 := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod2",
-					Namespace: testNamespaceName,
-					Labels: map[string]string{
-						"some-label": "test",
-						"version":    "v2",
-					},
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: testSvcAccountName2,
-				},
-			}
-			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod2, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-			<-podsChannel
-
-			// Create a service with selector that matches the pods above
-			svc := &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-1",
-					Namespace: testNamespaceName,
+					Name:      "s1",
+					Namespace: "ns1",
 				},
 				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name:     "servicePort",
-						Protocol: corev1.ProtocolTCP,
-						Port:     tests.ServicePort,
-					}},
+					Selector: map[string]string{
+						"k1": "v1", // matches labels on pod ns1/p1
+					},
 				},
+			},
+			svc:       service.MeshService{Name: "invalid", Namespace: "ns1"}, // Does not match service ns1/s1
+			expected:  nil,
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a.Nil(err)
+			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			for _, p := range tc.pods {
+				_ = c.informers[Pods].GetStore().Add(p)
 			}
+			_ = c.informers[Services].GetStore().Add(tc.service)
 
-			_, err := kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			<-serviceChannel
-
-			meshSvc := service.MeshService{
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-			}
-
-			svcAccounts, err := kubeController.ListServiceIdentitiesForService(meshSvc)
-
-			Expect(err).ToNot(HaveOccurred())
-
-			var expectedSvcAccounts []identity.K8sServiceAccount
-			Expect(svcAccounts).Should(HaveLen(0))
-			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
+			actual, err := c.ListServiceIdentitiesForService(tc.svc)
+			a.Equal(tc.expectErr, err != nil)
+			a.ElementsMatch(tc.expected, actual)
 		})
-
-	})
-
-})
-
-func TestGetEndpoint(t *testing.T) {
-	assert := tassert.New(t)
-
-	// Create kubernetes controller
-	kubeClient := testclient.NewSimpleClientset()
-	stop := make(chan struct{})
-	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
-	assert.Nil(err)
-	assert.NotNil(kubeController)
-
-	endpointsChannel := events.Subscribe(announcements.EndpointAdded,
-		announcements.EndpointDeleted,
-		announcements.EndpointUpdated)
-	defer events.Unsub(endpointsChannel)
-
-	// Create a namespace
-	testNamespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   tests.BookbuyerService.Namespace,
-			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
-		},
 	}
-	_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-	assert.Nil(err)
-	// Wait on namespace to be ready
-	assert.Eventually(func() bool {
-		return kubeController.IsMonitoredNamespace(tests.BookbuyerService.Namespace)
-	}, nsInformerSyncTimeout, assertEventuallyPollingInterval)
-
-	testEndpoint := corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      tests.BookbuyerService.Name,
-			Namespace: tests.BookbuyerService.Namespace,
-		},
-	}
-
-	// Create endpoint
-	expectedEndpoint, err := kubeClient.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Create(context.TODO(), &testEndpoint, metav1.CreateOptions{})
-	assert.Nil(err)
-	<-endpointsChannel
-
-	endpoint, err := kubeController.GetEndpoints(tests.BookbuyerService)
-	assert.Nil(err)
-	assert.NotNil(endpoint)
-	assert.Equal(expectedEndpoint, endpoint)
-
-	// Delete it
-	err = kubeClient.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Delete(context.TODO(), tests.BookbuyerService.Name, metav1.DeleteOptions{})
-	assert.Nil(err)
-	<-endpointsChannel
-
-	// Check it is gone
-	endpoint, err = kubeController.GetEndpoints(tests.BookbuyerService)
-	assert.Nil(err)
-	assert.Nil(endpoint)
 }
 
 func TestIsMetricsEnabled(t *testing.T) {
@@ -665,7 +568,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, nil)
 			assert.Nil(err)
 			assert.NotNil(kubeController)
 
@@ -777,7 +680,7 @@ func TestUpdateStatus(t *testing.T) {
 			kubeClient := testclient.NewSimpleClientset()
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
 
-			c, err := NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}))
+			c, err := NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}), nil)
 			a.Nil(err)
 
 			_, err = c.UpdateStatus(tc.updatedResource)
@@ -917,12 +820,9 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 
 			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(fakeClient, nil, testMeshName, stop)
+			kubeController, err := NewKubernetesController(fakeClient, nil, testMeshName, stop, nil)
 			assert.Nil(err)
 			assert.NotNil(kubeController)
-
-			endpointsChannel := events.Subscribe(announcements.EndpointAdded)
-			defer events.Unsub(endpointsChannel)
 
 			actual := kubeController.K8sServiceToMeshServices(tc.svc)
 			assert.ElementsMatch(tc.expected, actual)

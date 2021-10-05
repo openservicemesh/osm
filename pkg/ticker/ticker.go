@@ -1,155 +1,147 @@
 package ticker
 
 import (
+	"sync/atomic"
 	"time"
 
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-const (
-	// Any value under minimumTickerDuration will be understood as a ticker stop
-	// Conversely, a value equals or above it will be understood as ticker start
-	minimumTickerDuration = time.Duration(1 * time.Minute)
-)
-
-// ResyncTicker contains the stop configuration for the ticker routines
+// ResyncTicker is the type that implements a ticker to trigger internal system resyncs
+// periodicially based on the configuration specified in the MeshConfig resource.
 type ResyncTicker struct {
-	stopTickerRoutine chan struct{}
-	stopConfigRoutine chan struct{}
+	stopTickerCh chan struct{}
+	msgBroker    *messaging.Broker
+	running      bool
+	// minTickerDuration is the minimum duration that can be used to configure
+	// the ticker. Any value under minTickerDuration will be ignored with a warn
+	// log, while a value of 0 indicates that the ticker must be stopped.
+	minTickInterval time.Duration
+
+	invalidIntervalCounter uint64
 }
 
 var (
 	log = logger.New("ticker")
-	// Local reference to global ticker
-	rTicker *ResyncTicker
 )
 
-// InitTicker initializes a global ticker that is configured via
-// pubsub, and triggers global proxy updates also through pubsub.
-// Upon this function return, the ticker is guaranteed to be started
-// and ready to receive new events.
-func InitTicker(c configurator.Configurator) *ResyncTicker {
-	if rTicker != nil {
-		return rTicker
+// NewResyncTicker returns a ResyncTicker instance that is used to periodically
+// trigger proxy config resyncs.
+func NewResyncTicker(msgBroker *messaging.Broker, minTickInterval time.Duration) *ResyncTicker {
+	return &ResyncTicker{
+		stopTickerCh:    make(chan struct{}),
+		msgBroker:       msgBroker,
+		minTickInterval: minTickInterval,
 	}
-
-	// Start config resync ticker routine
-	tickerIsReady := make(chan struct{})
-	stopTicker := make(chan struct{})
-	go ticker(tickerIsReady, stopTicker)
-	<-tickerIsReady
-
-	// Start config listener
-	configIsReady := make(chan struct{})
-	stopConfig := make(chan struct{})
-	go tickerConfigListener(c, configIsReady, stopConfig)
-	<-configIsReady
-
-	rTicker = &ResyncTicker{
-		stopTickerRoutine: stopTicker,
-		stopConfigRoutine: stopConfig,
-	}
-	return rTicker
 }
 
-// Listens to meshconfig events and notifies ticker routine to start/stop
-func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, stop <-chan struct{}) {
-	// Subscribe to configuration updates
-	meshConfigChannel := events.Subscribe(
-		announcements.MeshConfigAdded,
-		announcements.MeshConfigDeleted,
-		announcements.MeshConfigUpdated)
+// Start starts the ResyncTicker's configuration watcher in a goroutine which runs
+// until the given channel is closed.
+func (r *ResyncTicker) Start(quit <-chan struct{}) {
+	go r.watchConfig(quit)
+}
 
-	// Run config listener
-	// Bootstrap after subscribing
-	currentDuration := cfg.GetConfigResyncInterval()
-
-	// Initial config
-	if currentDuration >= minimumTickerDuration {
-		events.Publish(events.PubSubMessage{
-			Kind:   announcements.TickerStart,
-			NewObj: currentDuration,
-		})
-	}
-	close(ready)
+// watchConfig watches for new ticker configuration and starts/stops/resets ticker
+// based on the configuration.
+func (r *ResyncTicker) watchConfig(quit <-chan struct{}) {
+	// Subscribe to MeshConfig updates through which Ticker can be turned on/off
+	kubePubSub := r.msgBroker.GetKubeEventPubSub()
+	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
+	defer r.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
 	for {
 		select {
-		case <-meshConfigChannel:
-			newResyncInterval := cfg.GetConfigResyncInterval()
-			// Skip no changes from current applied conf
-			if currentDuration == newResyncInterval {
+		case msg, ok := <-meshConfigUpdateChan:
+			if !ok {
+				log.Warn().Msgf("Notification channel closed for MeshConfig")
+				continue
+			}
+
+			event, ok := msg.(events.PubSubMessage)
+			if !ok {
+				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
+				continue
+			}
+
+			oldMeshSpec, oldOk := event.OldObj.(*configv1alpha1.MeshConfig)
+			newMeshSpec, newOk := event.NewObj.(*configv1alpha1.MeshConfig)
+			if !oldOk || !newOk {
+				log.Error().Msgf("Received unexpected message old=%T new=%T on channel, expected *MeshConfig", oldMeshSpec, newMeshSpec)
+				continue
+			}
+
+			if oldMeshSpec.Spec.Sidecar.ConfigResyncInterval == newMeshSpec.Spec.Sidecar.ConfigResyncInterval {
+				// No change in Ticker configuration
+				continue
+			}
+
+			if newMeshSpec.Spec.Sidecar.ConfigResyncInterval == "" {
+				// No resync configured
+				continue
+			}
+
+			newResyncInterval, err := time.ParseDuration(newMeshSpec.Spec.Sidecar.ConfigResyncInterval)
+			if err != nil {
+				log.Error().Err(err).Msg("Error parsing config new resync interval")
 				continue
 			}
 
 			// We have a change
-			if newResyncInterval >= minimumTickerDuration {
-				// Notify to re/start ticker
-				log.Warn().Msgf("Interval %s >= %s, issuing start ticker.", newResyncInterval, minimumTickerDuration)
-				events.Publish(events.PubSubMessage{
-					Kind:   announcements.TickerStart,
-					NewObj: newResyncInterval,
-				})
-			} else {
+			if newResyncInterval >= r.minTickInterval {
+				log.Debug().Msgf("Updating resync ticker to tick every %v", newResyncInterval)
+				// The check to only stop ticker when it is running is required to avoid
+				// writing to a blocked channel when the ticker routine is not running, which
+				// would happen when 'stopTicker()' is invoked.
+				// For e.g., when the ticker routine was not started previously, we must not try to
+				// stop it.
+				if r.running {
+					r.stopTicker()
+				}
+				go r.startTicker(newResyncInterval)
+			} else if newResyncInterval == 0 {
 				// Notify to ticker to stop
-				log.Warn().Msgf("Interval %s < %s, issuing ticker stop.", newResyncInterval, minimumTickerDuration)
-				events.Publish(events.PubSubMessage{
-					Kind:   announcements.TickerStop,
-					NewObj: newResyncInterval,
-				})
+				log.Warn().Msg("Resync interval set to 0, stopping ticker")
+				r.stopTicker()
+			} else {
+				log.Warn().Msgf("New resync interval is less than min allowed interval %v, ticker will not be updated", r.minTickInterval)
+				atomic.AddUint64(&r.invalidIntervalCounter, 1)
 			}
-			currentDuration = newResyncInterval
-		case <-stop:
+
+		case <-quit:
+			r.stopTicker()
 			return
 		}
 	}
 }
 
-func ticker(ready chan struct{}, stop <-chan struct{}) {
-	ticker := make(<-chan time.Time)
-	tickStart := events.Subscribe(
-		announcements.TickerStart)
-	tickStop := events.Subscribe(
-		announcements.TickerStop)
+// stopTicker stops the ticker routine
+func (r *ResyncTicker) stopTicker() {
+	r.stopTickerCh <- struct{}{}
+	r.running = false
+}
 
-	// Notify the calling function we are ready to receive events
-	// Necessary as starting the ticker could loose events by the
-	// caller if the caller intends to immedaitely start it
-	close(ready)
+// startTicker runs the ticker routine and ticks periodically at the given interval.
+// It stops when 'stopTicker()' is invoked.
+func (r *ResyncTicker) startTicker(tickIterval time.Duration) {
+	ticker := time.NewTicker(time.Duration(tickIterval))
+	r.running = true
 
 	for {
 		select {
-		case msg := <-tickStart:
-			psubMsg, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Could not cast to pubsub msg %v", msg)
-				continue
-			}
-
-			// Cast new object to duration value
-			tickerDuration, ok := psubMsg.NewObj.(time.Duration)
-			if !ok {
-				log.Error().Msgf("Failed to cast ticker duration %v", psubMsg)
-				continue
-			}
-
-			log.Info().Msgf("Ticker Starting with duration of %s", tickerDuration)
-			ticker = time.NewTicker(tickerDuration).C
-		case <-tickStop:
-			log.Info().Msgf("Ticker Stopping")
-			ticker = make(<-chan time.Time)
-		case <-ticker:
-			log.Info().Msgf("Ticker requesting broadcast proxy update")
-			events.Publish(
-				events.PubSubMessage{
-					Kind: announcements.ScheduleProxyBroadcast,
-				},
-			)
-		case <-stop:
+		case <-r.stopTickerCh:
+			log.Info().Msgf("Received signal to stop ticker, exiting ticker routine")
 			return
+
+		case <-ticker.C:
+			r.msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
+				Kind: announcements.ProxyUpdate,
+			})
+			log.Trace().Msg("Ticking, queued internal event")
 		}
 	}
 }

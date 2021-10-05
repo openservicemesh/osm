@@ -7,6 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("cert-provider-util")
@@ -53,6 +54,8 @@ type Config struct {
 
 	// certManagerOptions is the options for 'cert-manager.io' certiticate provider
 	certManagerOptions CertManagerOptions
+
+	msgBroker *messaging.Broker
 }
 
 // TresorOptions is a type that specifies 'Tresor' certificate provider options

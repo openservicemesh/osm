@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("debugger")
@@ -31,6 +32,7 @@ type DebugConfig struct {
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller
 	configurator        configurator.Configurator
+	msgBroker           *messaging.Broker
 }
 
 // CertificateManagerDebugger is an interface with methods for debugging certificate issuance.

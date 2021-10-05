@@ -6,6 +6,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("proxy-registry")
@@ -23,6 +24,8 @@ type ProxyRegistry struct {
 
 	// Maintain a mapping of pod UID to certificate SerialNumber of the Envoy on the given pod
 	podUIDToCertificateSerialNumber sync.Map
+
+	msgBroker *messaging.Broker
 }
 
 type connectedProxy struct {

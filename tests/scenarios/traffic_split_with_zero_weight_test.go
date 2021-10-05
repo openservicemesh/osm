@@ -241,7 +241,7 @@ func TestRDSRespose(t *testing.T) {
 
 			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil
-			}))
+			}), nil)
 
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test

@@ -23,6 +23,7 @@ import (
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -40,7 +41,8 @@ const (
 )
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller, stop chan struct{}) (MeshSpec, error) {
+func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller,
+	stop chan struct{}, msgBroker *messaging.Broker) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
@@ -54,6 +56,7 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 		kubeController,
 		kubernetesClientName,
 		stop,
+		msgBroker,
 	)
 
 	return client, err
@@ -96,7 +99,10 @@ func (c *client) run(stop <-chan struct{}) error {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{}) (*client, error) {
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface,
+	smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface,
+	osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{},
+	msgBroker *messaging.Broker) (*client, error) {
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, k8s.DefaultKubeEventResyncInterval)
@@ -135,28 +141,28 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		Update: a.TrafficSplitUpdated,
 		Delete: a.TrafficSplitDeleted,
 	}
-	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, splitEventTypes))
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, splitEventTypes, msgBroker))
 
 	routeGroupEventTypes := k8s.EventTypes{
 		Add:    a.RouteGroupAdded,
 		Update: a.RouteGroupUpdated,
 		Delete: a.RouteGroupDeleted,
 	}
-	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, routeGroupEventTypes))
+	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, routeGroupEventTypes, msgBroker))
 
 	tcpRouteEventTypes := k8s.EventTypes{
 		Add:    a.TCPRouteAdded,
 		Update: a.TCPRouteUpdated,
 		Delete: a.TCPRouteDeleted,
 	}
-	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, tcpRouteEventTypes))
+	informerCollection.TCPRoute.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, tcpRouteEventTypes, msgBroker))
 
 	trafficTargetEventTypes := k8s.EventTypes{
 		Add:    a.TrafficTargetAdded,
 		Update: a.TrafficTargetUpdated,
 		Delete: a.TrafficTargetDeleted,
 	}
-	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers(shouldObserve, trafficTargetEventTypes))
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, trafficTargetEventTypes, msgBroker))
 
 	err := client.run(stop)
 	if err != nil {

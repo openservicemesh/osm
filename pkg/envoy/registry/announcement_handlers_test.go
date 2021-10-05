@@ -2,136 +2,135 @@ package registry
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-var _ = Describe("Test Announcement Handlers", func() {
-	var proxyRegistry *ProxyRegistry
-	var podUID string
-	var proxy *envoy.Proxy
-	var certManager certificate.Manager
-	envoyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New()))
+func TestReleaseCertificateHandler(t *testing.T) {
+	podUID := uuid.New().String()
+	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", podUID))
 
-	BeforeEach(func() {
-		proxyRegistry = NewProxyRegistry(nil)
-		podUID = uuid.New().String()
+	testCases := []struct {
+		name       string
+		eventFunc  func(*messaging.Broker)
+		assertFunc func(*assert.Assertions, certificate.Manager)
+	}{
+		{
+			name: "The certificate is released when the corresponding pod is deleted",
+			eventFunc: func(m *messaging.Broker) {
+				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
+					Kind:   announcements.PodDeleted,
+					NewObj: nil,
+					OldObj: &v1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							UID: types.UID(podUID),
+						},
+					},
+				}, announcements.PodDeleted.String())
+			},
+			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+				a.Eventually(func() bool {
+					cert, err := cm.GetCertificate(proxyCN)
+					return err != nil && cert == nil
+				}, 2*time.Second, 500*time.Millisecond)
+			},
+		},
+		{
+			name: "The certificate is not released when an unrelated pod is deleted",
+			eventFunc: func(m *messaging.Broker) {
+				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
+					Kind:   announcements.PodDeleted,
+					NewObj: nil,
+					OldObj: &v1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							UID: types.UID(uuid.New().String()), // Pod UUID does not match cert
+						},
+					},
+				}, announcements.PodDeleted.String())
+			},
+			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+				// Give enough time for the cert to be removed
+				// and only then verify that the cert still exists.
+				// This delay is important because even when the cert is
+				// removed, it happens asynchronously.
+				time.Sleep(2 * time.Second)
+				cert, err := cm.GetCertificate(proxyCN)
+				a.Nil(err)
+				a.NotNil(cert)
+			},
+		},
+		{
+			name: "The certificate is not released when an event other than PodDeleted is received",
+			eventFunc: func(m *messaging.Broker) {
+				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
+					Kind:   announcements.PodAdded,
+					NewObj: nil,
+					OldObj: &v1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							UID: types.UID(podUID),
+						},
+					},
+				}, announcements.PodAdded.String())
+			},
+			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+				// Give enough time for the cert to be removed
+				// and only then verify that the cert still exists.
+				// This delay is important because even when the cert is
+				// removed, it happens asynchronously.
+				time.Sleep(2 * time.Second)
+				cert, err := cm.GetCertificate(proxyCN)
+				a.Nil(err)
+				a.NotNil(cert)
+			},
+		},
+	}
 
-		stop := make(<-chan struct{})
-		configClient := configFake.NewSimpleClientset()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
 
-		osmNamespace := "-test-osm-namespace-"
-		osmMeshConfigName := "-test-osm-mesh-config-"
-		cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName)
-		certManager = tresor.NewFakeCertManager(cfg)
+			stop := make(chan struct{})
+			defer close(stop)
 
-		_, err := certManager.IssueCertificate(envoyCN, 5*time.Second)
-		Expect(err).ToNot(HaveOccurred())
+			msgBroker := messaging.NewBroker(stop)
+			proxyRegistry := NewProxyRegistry(nil, msgBroker)
+			certManager := tresor.NewFakeCertManager(nil)
 
-		proxy, err = envoy.NewProxy(envoyCN, "-cert-serial-number-", nil)
-		Expect(err).ToNot(HaveOccurred())
+			_, err := certManager.IssueCertificate(proxyCN, 1*time.Hour)
+			a.Nil(err)
+			cert, err := certManager.GetCertificate(proxyCN)
+			a.Nil(err)
+			a.NotNil(cert)
 
-		proxy.PodMetadata = &envoy.PodMetadata{
-			UID: podUID,
-		}
+			proxy, err := envoy.NewProxy(proxyCN, "-cert-serial-number-", nil)
+			a.Nil(err)
 
-		proxyRegistry.RegisterProxy(proxy)
-	})
-
-	Context("test releaseCertificate()", func() {
-		var stopChannel chan struct{}
-		BeforeEach(func() {
-			stopChannel = proxyRegistry.ReleaseCertificateHandler(certManager)
-		})
-
-		AfterEach(func() {
-			stopChannel <- struct{}{}
-		})
-
-		It("deletes certificate when Pod is terminated", func() {
-			// Ensure setup is correct
-			{
-				certs, err := certManager.ListCertificates()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(certs)).To(Equal(1))
+			proxy.PodMetadata = &envoy.PodMetadata{
+				UID: podUID,
 			}
 
-			// Register to Update proxies event. We should see a schedule broadcast update
-			// requested by the handler when the certificate is released.
-			rcvBroadcastChannel := events.Subscribe(announcements.ScheduleProxyBroadcast)
+			proxyRegistry.RegisterProxy(proxy)
 
-			// Publish a podDeleted event
-			events.Publish(events.PubSubMessage{
-				Kind:   announcements.PodDeleted,
-				NewObj: nil,
-				OldObj: &v1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						UID: types.UID(podUID),
-					},
-				},
-			})
-
-			// Expect the certificate to eventually be gone for the deleted Pod
-			Eventually(func() int {
-				certs, err := certManager.ListCertificates()
-				Expect(err).ToNot(HaveOccurred())
-				return len(certs)
-			}).Should(Equal(0))
-
-			select {
-			case <-rcvBroadcastChannel:
-				// broadcast event received
-			case <-time.After(1 * time.Second):
-				Fail("Did not see a broadcast request in time")
-			}
-		})
-
-		It("ignores events other than pod-deleted", func() {
-			var connectedProxies []envoy.Proxy
-			proxyRegistry.connectedProxies.Range(func(key interface{}, value interface{}) bool {
-				connectedProxy := value.(connectedProxy)
-				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
-				return true // continue the iteration
-			})
-
-			Expect(len(connectedProxies)).To(Equal(1))
-			Expect(connectedProxies[0]).To(Equal(*proxy))
-
-			// Publish some event unrelated to podDeleted
-			events.Publish(events.PubSubMessage{
-				Kind:   announcements.IngressAdded,
-				NewObj: nil,
-				OldObj: &v1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						UID: types.UID(proxy.PodMetadata.UID),
-					},
-				},
-			})
-
-			// Give some grace period for event to propagate
+			go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
+			// Subscription should happen before an event is published by the test, so
+			// add a delay before the test triggers events
 			time.Sleep(500 * time.Millisecond)
 
-			// Ensure it was not deleted due to an unrelated event
-			certs, err := certManager.ListCertificates()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(certs)).To(Equal(1))
+			tc.eventFunc(msgBroker)
+			tc.assertFunc(a, certManager)
 		})
-	})
-})
+	}
+}

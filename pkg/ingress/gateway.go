@@ -104,14 +104,18 @@ func (c client) storeCertInSecret(cert certificate.Certificater, secret corev1.S
 // handleCertificateChange updates the gateway certificate and secret when the MeshConfig resource changes or
 // when the corresponding gateway certificate is rotated.
 func (c client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressGatewayCertSpec, stop <-chan struct{}) {
-	meshConfigUpdated := events.Subscribe(announcements.MeshConfigUpdated)
+	kubePubSub := c.msgBroker.GetKubeEventPubSub()
+	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
+	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
-	certRotated := events.Subscribe(announcements.CertificateRotated)
+	certPubSub := c.msgBroker.GetCertPubSub()
+	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
+	defer c.msgBroker.Unsub(certPubSub, certRotateChan)
 
 	for {
 		select {
 		// MeshConfig was updated
-		case msg, ok := <-meshConfigUpdated:
+		case msg, ok := <-meshConfigUpdateChan:
 			if !ok {
 				log.Warn().Msgf("Notification channel closed for MeshConfig")
 				continue
@@ -148,7 +152,7 @@ func (c client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressG
 			currentCertSpec = newCertSpec
 
 		// A certificate was rotated
-		case msg, ok := <-certRotated:
+		case msg, ok := <-certRotateChan:
 			if !ok {
 				log.Warn().Msg("Notification channel closed for certificate rotation")
 				continue

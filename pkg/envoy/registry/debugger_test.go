@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
-	proxyRegistry := NewProxyRegistry(nil)
+	proxyRegistry := NewProxyRegistry(nil, nil)
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New()))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)

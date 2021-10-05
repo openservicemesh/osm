@@ -6,6 +6,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -48,7 +49,8 @@ func NewCertManager(
 	certificatesOrganization string,
 	cfg configurator.Configurator,
 	serviceCertValidityDuration time.Duration,
-	keySize int) (*CertManager, error) {
+	keySize int,
+	msgBroker *messaging.Broker) (*CertManager, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
@@ -60,6 +62,7 @@ func NewCertManager(
 		cfg:                         cfg,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		keySize:                     keySize,
+		msgBroker:                   msgBroker,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

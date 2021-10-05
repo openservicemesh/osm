@@ -6,12 +6,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // NewProxyRegistry initializes a new empty *ProxyRegistry.
-func NewProxyRegistry(mapper ProxyServiceMapper) *ProxyRegistry {
+func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *ProxyRegistry {
 	return &ProxyRegistry{
 		ProxyServiceMapper: mapper,
+		msgBroker:          msgBroker,
 	}
 }
 
