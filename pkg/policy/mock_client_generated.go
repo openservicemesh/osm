@@ -13,30 +13,30 @@ import (
 	service "github.com/openservicemesh/osm/pkg/service"
 )
 
-// MockController is a mock of Controller interface
+// MockController is a mock of Controller interface.
 type MockController struct {
 	ctrl     *gomock.Controller
 	recorder *MockControllerMockRecorder
 }
 
-// MockControllerMockRecorder is the mock recorder for MockController
+// MockControllerMockRecorder is the mock recorder for MockController.
 type MockControllerMockRecorder struct {
 	mock *MockController
 }
 
-// NewMockController creates a new mock instance
+// NewMockController creates a new mock instance.
 func NewMockController(ctrl *gomock.Controller) *MockController {
 	mock := &MockController{ctrl: ctrl}
 	mock.recorder = &MockControllerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
-// GetIngressBackendPolicy mocks base method
+// GetIngressBackendPolicy mocks base method.
 func (m *MockController) GetIngressBackendPolicy(arg0 service.MeshService) *v1alpha1.IngressBackend {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0)
@@ -44,13 +44,13 @@ func (m *MockController) GetIngressBackendPolicy(arg0 service.MeshService) *v1al
 	return ret0
 }
 
-// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy
+// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy.
 func (mr *MockControllerMockRecorder) GetIngressBackendPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockController)(nil).GetIngressBackendPolicy), arg0)
 }
 
-// ListEgressPoliciesForSourceIdentity mocks base method
+// ListEgressPoliciesForSourceIdentity mocks base method.
 func (m *MockController) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEgressPoliciesForSourceIdentity", arg0)
@@ -58,7 +58,7 @@ func (m *MockController) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sSe
 	return ret0
 }
 
-// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity
+// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity.
 func (mr *MockControllerMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockController)(nil).ListEgressPoliciesForSourceIdentity), arg0)

@@ -17,30 +17,30 @@ import (
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
-// MockCertificateManagerDebugger is a mock of CertificateManagerDebugger interface
+// MockCertificateManagerDebugger is a mock of CertificateManagerDebugger interface.
 type MockCertificateManagerDebugger struct {
 	ctrl     *gomock.Controller
 	recorder *MockCertificateManagerDebuggerMockRecorder
 }
 
-// MockCertificateManagerDebuggerMockRecorder is the mock recorder for MockCertificateManagerDebugger
+// MockCertificateManagerDebuggerMockRecorder is the mock recorder for MockCertificateManagerDebugger.
 type MockCertificateManagerDebuggerMockRecorder struct {
 	mock *MockCertificateManagerDebugger
 }
 
-// NewMockCertificateManagerDebugger creates a new mock instance
+// NewMockCertificateManagerDebugger creates a new mock instance.
 func NewMockCertificateManagerDebugger(ctrl *gomock.Controller) *MockCertificateManagerDebugger {
 	mock := &MockCertificateManagerDebugger{ctrl: ctrl}
 	mock.recorder = &MockCertificateManagerDebuggerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockCertificateManagerDebugger) EXPECT() *MockCertificateManagerDebuggerMockRecorder {
 	return m.recorder
 }
 
-// ListIssuedCertificates mocks base method
+// ListIssuedCertificates mocks base method.
 func (m *MockCertificateManagerDebugger) ListIssuedCertificates() []certificate.Certificater {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListIssuedCertificates")
@@ -48,36 +48,36 @@ func (m *MockCertificateManagerDebugger) ListIssuedCertificates() []certificate.
 	return ret0
 }
 
-// ListIssuedCertificates indicates an expected call of ListIssuedCertificates
+// ListIssuedCertificates indicates an expected call of ListIssuedCertificates.
 func (mr *MockCertificateManagerDebuggerMockRecorder) ListIssuedCertificates() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIssuedCertificates", reflect.TypeOf((*MockCertificateManagerDebugger)(nil).ListIssuedCertificates))
 }
 
-// MockMeshCatalogDebugger is a mock of MeshCatalogDebugger interface
+// MockMeshCatalogDebugger is a mock of MeshCatalogDebugger interface.
 type MockMeshCatalogDebugger struct {
 	ctrl     *gomock.Controller
 	recorder *MockMeshCatalogDebuggerMockRecorder
 }
 
-// MockMeshCatalogDebuggerMockRecorder is the mock recorder for MockMeshCatalogDebugger
+// MockMeshCatalogDebuggerMockRecorder is the mock recorder for MockMeshCatalogDebugger.
 type MockMeshCatalogDebuggerMockRecorder struct {
 	mock *MockMeshCatalogDebugger
 }
 
-// NewMockMeshCatalogDebugger creates a new mock instance
+// NewMockMeshCatalogDebugger creates a new mock instance.
 func NewMockMeshCatalogDebugger(ctrl *gomock.Controller) *MockMeshCatalogDebugger {
 	mock := &MockMeshCatalogDebugger{ctrl: ctrl}
 	mock.recorder = &MockMeshCatalogDebuggerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMeshCatalogDebugger) EXPECT() *MockMeshCatalogDebuggerMockRecorder {
 	return m.recorder
 }
 
-// ListSMIPolicies mocks base method
+// ListSMIPolicies mocks base method.
 func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []identity.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSMIPolicies")
@@ -88,36 +88,36 @@ func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, [
 	return ret0, ret1, ret2, ret3
 }
 
-// ListSMIPolicies indicates an expected call of ListSMIPolicies
+// ListSMIPolicies indicates an expected call of ListSMIPolicies.
 func (mr *MockMeshCatalogDebuggerMockRecorder) ListSMIPolicies() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSMIPolicies", reflect.TypeOf((*MockMeshCatalogDebugger)(nil).ListSMIPolicies))
 }
 
-// MockXDSDebugger is a mock of XDSDebugger interface
+// MockXDSDebugger is a mock of XDSDebugger interface.
 type MockXDSDebugger struct {
 	ctrl     *gomock.Controller
 	recorder *MockXDSDebuggerMockRecorder
 }
 
-// MockXDSDebuggerMockRecorder is the mock recorder for MockXDSDebugger
+// MockXDSDebuggerMockRecorder is the mock recorder for MockXDSDebugger.
 type MockXDSDebuggerMockRecorder struct {
 	mock *MockXDSDebugger
 }
 
-// NewMockXDSDebugger creates a new mock instance
+// NewMockXDSDebugger creates a new mock instance.
 func NewMockXDSDebugger(ctrl *gomock.Controller) *MockXDSDebugger {
 	mock := &MockXDSDebugger{ctrl: ctrl}
 	mock.recorder = &MockXDSDebuggerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockXDSDebugger) EXPECT() *MockXDSDebuggerMockRecorder {
 	return m.recorder
 }
 
-// GetXDSLog mocks base method
+// GetXDSLog mocks base method.
 func (m *MockXDSDebugger) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetXDSLog")
@@ -125,7 +125,7 @@ func (m *MockXDSDebugger) GetXDSLog() *map[certificate.CommonName]map[envoy.Type
 	return ret0
 }
 
-// GetXDSLog indicates an expected call of GetXDSLog
+// GetXDSLog indicates an expected call of GetXDSLog.
 func (mr *MockXDSDebuggerMockRecorder) GetXDSLog() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetXDSLog", reflect.TypeOf((*MockXDSDebugger)(nil).GetXDSLog))

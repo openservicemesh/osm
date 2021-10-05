@@ -13,30 +13,30 @@ import (
 	v1beta1 "k8s.io/api/networking/v1beta1"
 )
 
-// MockMonitor is a mock of Monitor interface
+// MockMonitor is a mock of Monitor interface.
 type MockMonitor struct {
 	ctrl     *gomock.Controller
 	recorder *MockMonitorMockRecorder
 }
 
-// MockMonitorMockRecorder is the mock recorder for MockMonitor
+// MockMonitorMockRecorder is the mock recorder for MockMonitor.
 type MockMonitorMockRecorder struct {
 	mock *MockMonitor
 }
 
-// NewMockMonitor creates a new mock instance
+// NewMockMonitor creates a new mock instance.
 func NewMockMonitor(ctrl *gomock.Controller) *MockMonitor {
 	mock := &MockMonitor{ctrl: ctrl}
 	mock.recorder = &MockMonitorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMonitor) EXPECT() *MockMonitorMockRecorder {
 	return m.recorder
 }
 
-// GetIngressNetworkingV1 mocks base method
+// GetIngressNetworkingV1 mocks base method.
 func (m *MockMonitor) GetIngressNetworkingV1(arg0 service.MeshService) ([]*v1.Ingress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetIngressNetworkingV1", arg0)
@@ -45,13 +45,13 @@ func (m *MockMonitor) GetIngressNetworkingV1(arg0 service.MeshService) ([]*v1.In
 	return ret0, ret1
 }
 
-// GetIngressNetworkingV1 indicates an expected call of GetIngressNetworkingV1
+// GetIngressNetworkingV1 indicates an expected call of GetIngressNetworkingV1.
 func (mr *MockMonitorMockRecorder) GetIngressNetworkingV1(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1", reflect.TypeOf((*MockMonitor)(nil).GetIngressNetworkingV1), arg0)
 }
 
-// GetIngressNetworkingV1beta1 mocks base method
+// GetIngressNetworkingV1beta1 mocks base method.
 func (m *MockMonitor) GetIngressNetworkingV1beta1(arg0 service.MeshService) ([]*v1beta1.Ingress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetIngressNetworkingV1beta1", arg0)
@@ -60,7 +60,7 @@ func (m *MockMonitor) GetIngressNetworkingV1beta1(arg0 service.MeshService) ([]*
 	return ret0, ret1
 }
 
-// GetIngressNetworkingV1beta1 indicates an expected call of GetIngressNetworkingV1beta1
+// GetIngressNetworkingV1beta1 indicates an expected call of GetIngressNetworkingV1beta1.
 func (mr *MockMonitorMockRecorder) GetIngressNetworkingV1beta1(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNetworkingV1beta1", reflect.TypeOf((*MockMonitor)(nil).GetIngressNetworkingV1beta1), arg0)
