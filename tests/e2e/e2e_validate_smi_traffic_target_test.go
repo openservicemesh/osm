@@ -58,6 +58,9 @@ var _ = OSMDescribe("Test SMI TrafficTarget Validation",
 
 		Context("With SMI validation disabled ", func() {
 			It("allows SMI traffic target to be created regardless of whether the namespace matches the destination namespace in any namespace", func() {
+				if Td.InstType == NoInstall {
+					Skip("SMI Validation is not configurable via MeshConfig so cannot be tested with NoInstall")
+				}
 				var (
 					source                  = framework.RandomNameWithPrefix("source")
 					destination             = framework.RandomNameWithPrefix("destination")
