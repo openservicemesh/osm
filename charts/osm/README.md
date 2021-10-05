@@ -144,8 +144,8 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | OpenServiceMesh.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd"` | Envoy sidecar image for Linux workloads (v1.19.1) |
-| OpenServiceMesh.sidecarWindowsImage | string | `"envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85"` | Envoy sidecar image for Windows workloads (v1.19.1) |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine@sha256:e368e254b426ef3d5e8235ee5f51c1d6534fefb1da4217fa2d5ba2eee9edbb63"` | Envoy sidecar image for Linux workloads (v1.20.0) |
+| OpenServiceMesh.sidecarWindowsImage | string | `"envoyproxy/envoy-windows-ltsc2022@sha256:f54023e4acce7f668e66dad7ea7487f986521af3b0f3a41366e9455bb05025d5"` | Envoy sidecar image for Windows workloads (v1.20.0) |
 | OpenServiceMesh.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |

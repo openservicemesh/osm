@@ -39,7 +39,6 @@ spec:
             - "envoy"
           args: [
             "--config-path", "/etc/envoy/bootstrap.yaml",
-            "--bootstrap-version", "3",
             "--service-node", "osm-multicluster-gateway",
             "--service-cluster", "osm-multicluster-gateway",
             "--log-level", {{ .Values.OpenServiceMesh.multicluster.gatewayLogLevel }},

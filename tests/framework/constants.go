@@ -71,7 +71,7 @@ const (
 const (
 	// EnvoyOSMWindowsImage is Envoy Windows image used for testing.
 	// On Windows until Windows Server 2022 is publicly available we have to rely on this testing images.
-	EnvoyOSMWindowsImage = "openservicemesh/envoy-windows-nanoserver@sha256:94590d10bc8a46c60cd3a3858d80f3d6577d4e9a191fa05c0077f8b3d6002e22"
+	EnvoyOSMWindowsImage = "envoyproxy/envoy-windows-ltsc2022@sha256:f54023e4acce7f668e66dad7ea7487f986521af3b0f3a41366e9455bb05025d5"
 
 	// WindowsNanoserverDockerImage is the base Windows image that is compatible with the test cluster.
 	WindowsNanoserverDockerImage = "mcr.microsoft.com/powershell:lts-nanoserver-ltsc2022"
