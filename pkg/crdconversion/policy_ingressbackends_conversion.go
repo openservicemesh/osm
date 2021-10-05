@@ -13,7 +13,7 @@ func serveIngressBackendsPolicyConversion(w http.ResponseWriter, r *http.Request
 }
 
 // convertIngressBackendsPolicy contains the business logic to convert ingressbackends.policy.openservicemesh.io CRD
-// Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.21/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
+// Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
 func convertIngressBackendsPolicy(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
 	convertedObject := Object.DeepCopy()
 	fromVersion := Object.GetAPIVersion()

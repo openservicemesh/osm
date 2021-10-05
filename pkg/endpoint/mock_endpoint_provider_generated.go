@@ -12,30 +12,30 @@ import (
 	service "github.com/openservicemesh/osm/pkg/service"
 )
 
-// MockProvider is a mock of Provider interface
+// MockProvider is a mock of Provider interface.
 type MockProvider struct {
 	ctrl     *gomock.Controller
 	recorder *MockProviderMockRecorder
 }
 
-// MockProviderMockRecorder is the mock recorder for MockProvider
+// MockProviderMockRecorder is the mock recorder for MockProvider.
 type MockProviderMockRecorder struct {
 	mock *MockProvider
 }
 
-// NewMockProvider creates a new mock instance
+// NewMockProvider creates a new mock instance.
 func NewMockProvider(ctrl *gomock.Controller) *MockProvider {
 	mock := &MockProvider{ctrl: ctrl}
 	mock.recorder = &MockProviderMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 	return m.recorder
 }
 
-// GetID mocks base method
+// GetID mocks base method.
 func (m *MockProvider) GetID() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetID")
@@ -43,13 +43,13 @@ func (m *MockProvider) GetID() string {
 	return ret0
 }
 
-// GetID indicates an expected call of GetID
+// GetID indicates an expected call of GetID.
 func (mr *MockProviderMockRecorder) GetID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetID", reflect.TypeOf((*MockProvider)(nil).GetID))
 }
 
-// GetResolvableEndpointsForService mocks base method
+// GetResolvableEndpointsForService mocks base method.
 func (m *MockProvider) GetResolvableEndpointsForService(arg0 service.MeshService) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResolvableEndpointsForService", arg0)
@@ -57,13 +57,13 @@ func (m *MockProvider) GetResolvableEndpointsForService(arg0 service.MeshService
 	return ret0
 }
 
-// GetResolvableEndpointsForService indicates an expected call of GetResolvableEndpointsForService
+// GetResolvableEndpointsForService indicates an expected call of GetResolvableEndpointsForService.
 func (mr *MockProviderMockRecorder) GetResolvableEndpointsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockProvider)(nil).GetResolvableEndpointsForService), arg0)
 }
 
-// ListEndpointsForIdentity mocks base method
+// ListEndpointsForIdentity mocks base method.
 func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.ServiceIdentity) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEndpointsForIdentity", arg0)
@@ -71,13 +71,13 @@ func (m *MockProvider) ListEndpointsForIdentity(arg0 identity.ServiceIdentity) [
 	return ret0
 }
 
-// ListEndpointsForIdentity indicates an expected call of ListEndpointsForIdentity
+// ListEndpointsForIdentity indicates an expected call of ListEndpointsForIdentity.
 func (mr *MockProviderMockRecorder) ListEndpointsForIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsForIdentity", reflect.TypeOf((*MockProvider)(nil).ListEndpointsForIdentity), arg0)
 }
 
-// ListEndpointsForService mocks base method
+// ListEndpointsForService mocks base method.
 func (m *MockProvider) ListEndpointsForService(arg0 service.MeshService) []Endpoint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEndpointsForService", arg0)
@@ -85,7 +85,7 @@ func (m *MockProvider) ListEndpointsForService(arg0 service.MeshService) []Endpo
 	return ret0
 }
 
-// ListEndpointsForService indicates an expected call of ListEndpointsForService
+// ListEndpointsForService indicates an expected call of ListEndpointsForService.
 func (mr *MockProviderMockRecorder) ListEndpointsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsForService", reflect.TypeOf((*MockProvider)(nil).ListEndpointsForService), arg0)
