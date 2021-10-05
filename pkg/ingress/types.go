@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -28,6 +29,7 @@ type client struct {
 	kubeController  k8s.Controller
 	cfg             configurator.Configurator
 	certProvider    certificate.Manager
+	msgBroker       *messaging.Broker
 }
 
 // Monitor is the client interface for K8s Ingress resource

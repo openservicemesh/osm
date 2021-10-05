@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -48,4 +49,6 @@ type Server struct {
 	// tracks at which version we are at given a proxy UUID
 	configVerMutex sync.Mutex
 	configVersion  map[string]uint64
+
+	msgBroker *messaging.Broker
 }

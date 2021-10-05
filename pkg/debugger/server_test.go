@@ -23,7 +23,7 @@ func TestGetHandlers(t *testing.T) {
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	proxyRegistry := registry.NewProxyRegistry(nil)
+	proxyRegistry := registry.NewProxyRegistry(nil, nil)
 
 	ds := NewDebugConfig(mockCertDebugger,
 		mockXdsDebugger,
@@ -32,7 +32,8 @@ func TestGetHandlers(t *testing.T) {
 		nil,
 		client,
 		mockConfig,
-		mockKubeController)
+		mockKubeController,
+		nil)
 
 	handlers := ds.GetHandlers()
 

@@ -66,7 +66,7 @@ var _ = Describe("Test ADS response functions", func() {
 	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -144,7 +144,7 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 
@@ -221,7 +221,7 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 

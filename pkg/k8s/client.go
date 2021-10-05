@@ -17,6 +17,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -25,13 +26,20 @@ import (
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
+func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string,
+	stop <-chan struct{}, msgBroker *messaging.Broker, selectInformers ...InformerKey) (Controller, error) {
+	return newClient(kubeClient, policyClient, meshName, stop, msgBroker, selectInformers...)
+}
+
+func newClient(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string,
+	stop <-chan struct{}, msgBroker *messaging.Broker, selectInformers ...InformerKey) (*client, error) {
 	// Initialize client object
-	c := client{
+	c := &client{
 		kubeClient:   kubeClient,
 		policyClient: policyClient,
 		meshName:     meshName,
 		informers:    informerCollection{},
+		msgBroker:    msgBroker,
 	}
 
 	// Initialize informers
@@ -80,7 +88,7 @@ func (c *client) initNamespaceMonitor() {
 		Update: announcements.NamespaceUpdated,
 		Delete: announcements.NamespaceDeleted,
 	}
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers(nil, nsEventTypes))
+	c.informers[Namespaces].AddEventHandler(GetEventHandlerFuncs(nil, nsEventTypes, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -102,7 +110,7 @@ func (c *client) initServicesMonitor() {
 		Update: announcements.ServiceUpdated,
 		Delete: announcements.ServiceDeleted,
 	}
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, svcEventTypes))
+	c.informers[Services].AddEventHandler(GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
 }
 
 // Initializes Service Account monitoring
@@ -115,7 +123,7 @@ func (c *client) initServiceAccountsMonitor() {
 		Update: announcements.ServiceAccountUpdated,
 		Delete: announcements.ServiceAccountDeleted,
 	}
-	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, svcEventTypes))
+	c.informers[ServiceAccounts].AddEventHandler(GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
 }
 
 func (c *client) initPodMonitor() {
@@ -127,7 +135,7 @@ func (c *client) initPodMonitor() {
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, podEventTypes))
+	c.informers[Pods].AddEventHandler(GetEventHandlerFuncs(c.shouldObserve, podEventTypes, c.msgBroker))
 }
 
 func (c *client) initEndpointMonitor() {
@@ -139,7 +147,7 @@ func (c *client) initEndpointMonitor() {
 		Update: announcements.EndpointUpdated,
 		Delete: announcements.EndpointDeleted,
 	}
-	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers(c.shouldObserve, eptEventTypes))
+	c.informers[Endpoints].AddEventHandler(GetEventHandlerFuncs(c.shouldObserve, eptEventTypes, c.msgBroker))
 }
 
 func (c *client) run(stop <-chan struct{}) error {

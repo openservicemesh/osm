@@ -2,31 +2,29 @@ package smi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	testTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	testTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
 	testTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
-	tassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
+	httpServerConstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -42,19 +40,17 @@ type fakeKubeClientSet struct {
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
 }
 
-func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
-	defer GinkgoRecover()
-
+func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	osmNamespace := "osm-system"
 	meshName := "osm"
-	stop := make(chan struct{})
 	kubeClient := testclient.NewSimpleClientset()
 	smiTrafficSplitClientSet := testTrafficSplitClient.NewSimpleClientset()
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop)
+	msgBroker := messaging.NewBroker(stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop, msgBroker)
 	if err != nil {
-		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
+		return nil, nil, err
 	}
 
 	fakeClientSet := &fakeKubeClientSet{
@@ -72,7 +68,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("Error creating Namespace %v: %s", testNamespace, err.Error())
+		return nil, nil, err
 	}
 
 	meshSpec, err := newSMIClient(
@@ -84,476 +80,315 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		kubernetesClient,
 		kubernetesClientName,
 		stop,
+		msgBroker,
 	)
 
 	return meshSpec, fakeClientSet, err
 }
 
-var _ = Describe("When listing TrafficSplit", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
+func TestListTrafficSplits(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
 
-	It("should return a list of traffic split resources", func() {
-		tsChannel := events.Subscribe(announcements.TrafficSplitAdded,
-			announcements.TrafficSplitDeleted,
-			announcements.TrafficSplitUpdated)
-		defer events.Unsub(tsChannel)
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
 
-		split := &smiSplit.TrafficSplit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-ListTrafficSplits",
+	obj := &smiSplit.TrafficSplit{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficSplits",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiSplit.TrafficSplitSpec{
+			Service: tests.BookstoreApexServiceName,
+			Backends: []smiSplit.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight90,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight10,
+				},
+			},
+		},
+	}
+	err = c.caches.TrafficSplit.Add(obj)
+	a.Nil(err)
+
+	// Verify
+	actual := c.ListTrafficSplits()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify filter for apex service
+	filteredApexAvailable := c.ListTrafficSplits(WithTrafficSplitApexService(service.MeshService{Name: tests.BookstoreApexServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredApexAvailable, 1)
+	a.Equal(obj, filteredApexAvailable[0])
+	filteredApexUnavailable := c.ListTrafficSplits(WithTrafficSplitApexService(tests.BookstoreV1Service))
+	a.Len(filteredApexUnavailable, 0)
+
+	// Verify filter for backend service
+	filteredBackendAvailable := c.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredBackendAvailable, 1)
+	a.Equal(obj, filteredBackendAvailable[0])
+	filteredBackendNameMismatch := c.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: testNamespaceName, Name: "invalid"}))
+	a.Len(filteredBackendNameMismatch, 0)
+	filteredBackendNamespaceMismatch := c.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: "invalid", Name: tests.BookstoreV1ServiceName}))
+	a.Len(filteredBackendNamespaceMismatch, 0)
+}
+
+func TestListTrafficTargets(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
+
+	obj := &smiAccess.TrafficTarget{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha3",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficTargets",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiAccess.TrafficTargetSpec{
+			Destination: smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookstoreServiceAccountName,
 				Namespace: testNamespaceName,
 			},
-			Spec: smiSplit.TrafficSplitSpec{
-				Service: tests.BookstoreApexServiceName,
-				Backends: []smiSplit.TrafficSplitBackend{
-					{
-						Service: tests.BookstoreV1ServiceName,
-						Weight:  tests.Weight90,
+			Sources: []smiAccess.IdentityBindingSubject{{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookbuyerServiceAccountName,
+				Namespace: testNamespaceName,
+			}},
+			Rules: []smiAccess.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    tests.RouteGroupName,
+				Matches: []string{tests.BuyBooksMatchName},
+			}},
+		},
+	}
+	err = c.caches.TrafficTarget.Add(obj)
+	a.Nil(err)
+
+	// Verify
+	actual := c.ListTrafficTargets()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify destination based filtering
+	filteredAvailable := c.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: tests.BookstoreServiceAccountName}))
+	a.Len(filteredAvailable, 1)
+	filteredUnavailable := c.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: "unavailable"}))
+	a.Len(filteredUnavailable, 0)
+}
+
+func TestListHTTPTrafficSpecs(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
+
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "test-ListHTTPTrafficSpecs",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
 					},
-					{
-						Service: tests.BookstoreV2ServiceName,
-						Weight:  tests.Weight10,
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
 					},
 				},
 			},
-		}
+		},
+	}
+	err = c.caches.HTTPRouteGroup.Add(obj)
+	a.Nil(err)
 
-		_, err := fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Create(context.TODO(), split, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-tsChannel
+	// Verify
+	actual := c.ListHTTPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
 
-		splits := meshSpec.ListTrafficSplits()
-		Expect(len(splits)).To(Equal(1))
-		Expect(split).To(Equal(splits[0]))
+func TestGetHTTPRouteGroup(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
 
-		// --
-		// Verify filter for apex service
-		filteredApexAvailable := meshSpec.ListTrafficSplits(WithTrafficSplitApexService(service.MeshService{Name: tests.BookstoreApexServiceName, Namespace: testNamespaceName}))
-		Expect(len(filteredApexAvailable)).To(Equal(1))
-		Expect(split).To(Equal(filteredApexAvailable[0]))
-		filteredApexUnavailable := meshSpec.ListTrafficSplits(WithTrafficSplitApexService(tests.BookstoreV1Service))
-		Expect(len(filteredApexUnavailable)).To(Equal(0))
-		// Verify filter for backend service
-		filteredBackendAvailable := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: testNamespaceName}))
-		Expect(len(filteredBackendAvailable)).To(Equal(1))
-		Expect(split).To(Equal(filteredBackendAvailable[0]))
-		filteredBackendNameMismatch := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: testNamespaceName, Name: "invalid"}))
-		Expect(len(filteredBackendNameMismatch)).To(Equal(0))
-		filteredBackendNamespaceMismatch := meshSpec.ListTrafficSplits(WithTrafficSplitBackendService(service.MeshService{Namespace: "invalid", Name: tests.BookstoreV1ServiceName}))
-		Expect(len(filteredBackendNamespaceMismatch)).To(Equal(0))
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
 
-		err = fakeClientSet.smiTrafficSplitClientSet.SplitV1alpha2().TrafficSplits(testNamespaceName).Delete(context.TODO(), split.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-tsChannel
-	})
-})
-
-var _ = Describe("When listing ServiceAccounts", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return a list of service accounts specified in TrafficTarget resources", func() {
-		ttChannel := events.Subscribe(announcements.TrafficTargetAdded,
-			announcements.TrafficTargetDeleted,
-			announcements.TrafficTargetUpdated)
-		defer events.Unsub(ttChannel)
-
-		trafficTarget := &smiAccess.TrafficTarget{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha3",
-				Kind:       "TrafficTarget",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-ListServiceAccounts",
-				Namespace: testNamespaceName,
-			},
-			Spec: smiAccess.TrafficTargetSpec{
-				Destination: smiAccess.IdentityBindingSubject{
-					Kind:      "ServiceAccount",
-					Name:      tests.BookstoreServiceAccountName,
-					Namespace: testNamespaceName,
-				},
-				Sources: []smiAccess.IdentityBindingSubject{{
-					Kind:      "ServiceAccount",
-					Name:      tests.BookbuyerServiceAccountName,
-					Namespace: testNamespaceName,
-				}},
-				Rules: []smiAccess.TrafficTargetRule{{
-					Kind:    "HTTPRouteGroup",
-					Name:    tests.RouteGroupName,
-					Matches: []string{tests.BuyBooksMatchName},
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-ttChannel
-
-		svcAccounts := meshSpec.ListServiceAccounts()
-
-		numExpectedSvcAccounts := len(trafficTarget.Spec.Sources) + 1 // 1 for the destination ServiceAccount
-		Expect(len(svcAccounts)).To(Equal(numExpectedSvcAccounts))
-
-		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-ttChannel
-	})
-})
-
-var _ = Describe("When listing TrafficTargets", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("Returns a list of TrafficTarget resources", func() {
-		ttChannel := events.Subscribe(announcements.TrafficTargetAdded,
-			announcements.TrafficTargetDeleted,
-			announcements.TrafficTargetUpdated)
-		defer events.Unsub(ttChannel)
-
-		trafficTarget := &smiAccess.TrafficTarget{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha3",
-				Kind:       "TrafficTarget",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-ListTrafficTargets",
-				Namespace: testNamespaceName,
-			},
-			Spec: smiAccess.TrafficTargetSpec{
-				Destination: smiAccess.IdentityBindingSubject{
-					Kind:      "ServiceAccount",
-					Name:      tests.BookstoreServiceAccountName,
-					Namespace: testNamespaceName,
-				},
-				Sources: []smiAccess.IdentityBindingSubject{{
-					Kind:      "ServiceAccount",
-					Name:      tests.BookbuyerServiceAccountName,
-					Namespace: testNamespaceName,
-				}},
-				Rules: []smiAccess.TrafficTargetRule{{
-					Kind:    "HTTPRouteGroup",
-					Name:    tests.RouteGroupName,
-					Matches: []string{tests.BuyBooksMatchName},
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-ttChannel
-
-		targets := meshSpec.ListTrafficTargets()
-		Expect(len(targets)).To(Equal(1))
-
-		// Verify destination based filtering
-		filteredAvailable := meshSpec.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: tests.BookstoreServiceAccountName}))
-		Expect(len(filteredAvailable)).To(Equal(1))
-		filteredUnavailable := meshSpec.ListTrafficTargets(WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: "unavailable"}))
-		Expect(len(filteredUnavailable)).To(Equal(0))
-
-		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-ttChannel
-	})
-})
-
-var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("Returns an empty list when no HTTPRouteGroup are found", func() {
-		services := meshSpec.ListHTTPTrafficSpecs()
-		Expect(len(services)).To(Equal(0))
-	})
-
-	It("should return a list of ListHTTPTrafficSpecs resources", func() {
-		rgChannel := events.Subscribe(announcements.RouteGroupAdded,
-			announcements.RouteGroupDeleted,
-			announcements.RouteGroupUpdated)
-		defer events.Unsub(rgChannel)
-
-		routeSpec := &smiSpecs.HTTPRouteGroup{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha4",
-				Kind:       "HTTPRouteGroup",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "test-ListHTTPTrafficSpecs",
-			},
-			Spec: smiSpecs.HTTPRouteGroupSpec{
-				Matches: []smiSpecs.HTTPMatch{
-					{
-						Name:      tests.BuyBooksMatchName,
-						PathRegex: tests.BookstoreBuyPath,
-						Methods:   []string{"GET"},
-						Headers: map[string]string{
-							"user-agent": tests.HTTPUserAgent,
-						},
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "foo",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
 					},
-					{
-						Name:      tests.SellBooksMatchName,
-						PathRegex: tests.BookstoreSellPath,
-						Methods:   []string{"GET"},
-					},
-					{
-						Name: tests.WildcardWithHeadersMatchName,
-						Headers: map[string]string{
-							"user-agent": tests.HTTPUserAgent,
-						},
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
 					},
 				},
 			},
-		}
+		},
+	}
+	err = c.caches.HTTPRouteGroup.Add(obj)
+	a.Nil(err)
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-rgChannel
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetHTTPRouteGroup(key)
+	a.Equal(obj, actual)
 
-		httpRoutes := meshSpec.ListHTTPTrafficSpecs()
-		Expect(len(httpRoutes)).To(Equal(1))
-		Expect(httpRoutes[0].Name).To(Equal(routeSpec.Name))
+	invalid := c.GetHTTPRouteGroup("invalid")
+	a.Nil(invalid)
+}
 
-		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-rgChannel
-	})
-})
+func TestListTCPTrafficSpecs(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
 
-var _ = Describe("When listing TCP routes", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
 
-	It("Returns an empty list when no TCPRoute resources are found", func() {
-		services := meshSpec.ListTCPTrafficSpecs()
-		Expect(len(services)).To(Equal(0))
-	})
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	err = c.caches.TCPRoute.Add(obj)
+	a.Nil(err)
 
-	It("should return a list of TCPRoute resources", func() {
-		trChannel := events.Subscribe(announcements.TCPRouteAdded,
-			announcements.TCPRouteDeleted,
-			announcements.TCPRouteUpdated)
-		defer events.Unsub(trChannel)
-		routeSpec := &smiSpecs.TCPRoute{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha4",
-				Kind:       "TCPRoute",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "tcp-route",
-			},
-			Spec: smiSpecs.TCPRouteSpec{},
-		}
+	// Verify
+	actual := c.ListTCPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-trChannel
+func TestGetTCPRoute(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
 
-		tcpRoutes := meshSpec.ListTCPTrafficSpecs()
-		Expect(len(tcpRoutes)).To(Equal(1))
-		Expect(tcpRoutes[0].Name).To(Equal(routeSpec.Name))
+	c, _, err := bootstrapClient(stop)
+	a.Nil(err)
 
-		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-trChannel
-	})
-})
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	err = c.caches.TCPRoute.Add(obj)
+	a.Nil(err)
 
-var _ = Describe("When getting a TCP route by its namespaced name", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetTCPRoute(key)
+	a.Equal(obj, actual)
 
-	It("should return nil when a TCP route is not found", func() {
-		tcpRoute := meshSpec.GetTCPRoute("ns/route")
-		Expect(tcpRoute).To(BeNil())
-	})
+	invalid := c.GetTCPRoute("invalid")
+	a.Nil(invalid)
+}
 
-	It("should return a non nil TCPRoute when found", func() {
-		trChannel := events.Subscribe(announcements.TCPRouteAdded,
-			announcements.TCPRouteDeleted,
-			announcements.TCPRouteUpdated)
-		defer events.Unsub(trChannel)
-		routeSpec := &smiSpecs.TCPRoute{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha4",
-				Kind:       "TCPRoute",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "tcp-route",
-			},
-			Spec: smiSpecs.TCPRouteSpec{},
-		}
+func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
+	a := assert.New(t)
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-trChannel
+	url := "http://localhost"
+	testHTTPServerPort := 8888
+	smiVerionPath := httpServerConstants.SmiVersionPath
+	recordCall := func(ts *httptest.Server, path string) *http.Response {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
 
-		tcpRoute := meshSpec.GetTCPRoute(fmt.Sprintf("%s/%s", routeSpec.Namespace, routeSpec.Name))
-		Expect(tcpRoute).ToNot(BeNil())
-		Expect(tcpRoute).To(Equal(routeSpec))
-	})
-})
+		ts.Config.Handler.ServeHTTP(w, req)
 
-var _ = Describe("When getting an HTTP route by its namespaced name", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
+		return w.Result()
+	}
+	handlers := map[string]http.Handler{
+		smiVerionPath: GetSmiClientVersionHTTPHandler(),
+	}
 
-	It("should return nil when a HTTP route is not found", func() {
-		route := meshSpec.GetHTTPRouteGroup("ns/route")
-		Expect(route).To(BeNil())
-	})
+	router := http.NewServeMux()
+	for path, handler := range handlers {
+		router.Handle(path, handler)
+	}
 
-	It("should return a non nil HTTPRouteGroup when found", func() {
-		trChannel := events.Subscribe(announcements.RouteGroupAdded,
-			announcements.RouteGroupDeleted,
-			announcements.RouteGroupUpdated)
-		defer events.Unsub(trChannel)
-		routeSpec := &smiSpecs.HTTPRouteGroup{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha4",
-				Kind:       "HTTPRouteGroup",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "test-GetHTTPRouteGroup",
-			},
-			Spec: smiSpecs.HTTPRouteGroupSpec{
-				Matches: []smiSpecs.HTTPMatch{
-					{
-						Name:      tests.SellBooksMatchName,
-						PathRegex: tests.BookstoreSellPath,
-						Methods:   []string{"GET"},
-					},
-				},
-			},
-		}
+	testServer := &httptest.Server{
+		Config: &http.Server{
+			Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
+			Handler: router,
+		},
+	}
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-trChannel
-
-		route := meshSpec.GetHTTPRouteGroup(fmt.Sprintf("%s/%s", routeSpec.Namespace, routeSpec.Name))
-		Expect(route).ToNot(BeNil())
-		Expect(route).To(Equal(routeSpec))
-	})
-})
-
-var _ = Describe("Test httpserver with probes", func() {
-	var (
-		testServer         *httptest.Server
-		url                = "http://localhost"
-		testHTTPServerPort = 8888
-		smiVerionPath      = httpserverconstants.SmiVersionPath
-		recordCall         = func(ts *httptest.Server, path string) *http.Response {
-			req := httptest.NewRequest("GET", path, nil)
-			w := httptest.NewRecorder()
-
-			ts.Config.Handler.ServeHTTP(w, req)
-
-			return w.Result()
-		}
-	)
-
-	BeforeEach(func() {
-		handlers := map[string]http.Handler{
-			smiVerionPath: GetSmiClientVersionHTTPHandler(),
-		}
-
-		router := http.NewServeMux()
-		for path, handler := range handlers {
-			router.Handle(path, handler)
-		}
-
-		testServer = &httptest.Server{
-			Config: &http.Server{
-				Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
-				Handler: router,
-			},
-		}
-	})
-
-	It("should result in a successful smi version probe", func() {
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, smiVerionPath))
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-	})
-
-	It("should result in probe response body with smi version info", func() {
-		expectedSmiVersionInfo := map[string]string{
-			"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
-			"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
-			"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
-			"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
-		}
-		var actualSmiVersionInfo map[string]string
-
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, smiVerionPath))
-
-		if err := json.NewDecoder(resp.Body).Decode(&actualSmiVersionInfo); err != nil {
-			Fail("Error json decoding smi version info from response body")
-		}
-
-		for k, expectedValue := range expectedSmiVersionInfo {
-			Expect(expectedValue).To(Equal(actualSmiVersionInfo[k]))
-		}
-	})
-})
+	// Verify
+	resp := recordCall(testServer, fmt.Sprintf("%s%s", url, smiVerionPath))
+	a.Equal(http.StatusOK, resp.StatusCode)
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	a.Nil(err)
+	a.Equal(`{"HTTPRouteGroup":"specs.smi-spec.io/v1alpha4","TCPRoute":"specs.smi-spec.io/v1alpha4","TrafficSplit":"split.smi-spec.io/v1alpha2","TrafficTarget":"access.smi-spec.io/v1alpha3"}`, string(bodyBytes))
+}
 
 func TestHasValidRules(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name           string
 		expectedResult bool
@@ -622,15 +457,14 @@ func TestHasValidRules(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
 			result := hasValidRules(tc.rules)
-			assert.Equal(tc.expectedResult, result)
+			a.Equal(tc.expectedResult, result)
 		})
 	}
 }
 
 func TestIsValidTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-
 	testCases := []struct {
 		name           string
 		expectedResult bool
@@ -730,8 +564,9 @@ func TestIsValidTrafficTarget(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
 			result := isValidTrafficTarget(tc.trafficTarget)
-			assert.Equal(tc.expectedResult, result)
+			a.Equal(tc.expectedResult, result)
 		})
 	}
 }

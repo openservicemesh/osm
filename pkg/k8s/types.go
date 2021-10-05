@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -69,6 +70,7 @@ type client struct {
 	kubeClient   kubernetes.Interface
 	policyClient policyv1alpha1Client.Interface
 	informers    informerCollection
+	msgBroker    *messaging.Broker
 }
 
 // Controller is the controller interface for K8s services

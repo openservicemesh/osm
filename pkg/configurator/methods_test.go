@@ -1,7 +1,6 @@
 package configurator
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -13,9 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
 func TestGetMeshConfigCacheKey(t *testing.T) {
@@ -33,7 +30,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
 
 		stop := make(chan struct{})
-		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
 		tassert.Equal(t, &v1alpha1.MeshConfig{}, cfg.getMeshConfig())
 	})
 
@@ -541,16 +538,10 @@ func TestCreateUpdateConfig(t *testing.T) {
 			assert := tassert.New(t)
 			meshConfigClientSet := testclient.NewSimpleClientset()
 
-			// Prepare the pubsub channel
-			confChannel := events.Subscribe(
-				announcements.MeshConfigAdded,
-				announcements.MeshConfigUpdated)
-			defer events.Unsub(confChannel)
-
 			// Create configurator
 			stop := make(chan struct{})
 			defer close(stop)
-			cfg := NewConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+			cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
 
 			meshConfig := v1alpha1.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
@@ -560,10 +551,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 				Spec: *test.initialMeshConfigData,
 			}
 
-			_, err := meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Create(context.TODO(), &meshConfig, metav1.CreateOptions{})
+			err := cfg.cache.Add(&meshConfig)
 			assert.Nil(err)
-			log.Info().Msg("Waiting for create announcement")
-			<-confChannel
 
 			test.checkCreate(assert, cfg)
 
@@ -572,12 +561,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 			}
 
 			meshConfig.Spec = *test.updatedMeshConfigData
-			_, err = meshConfigClientSet.ConfigV1alpha1().MeshConfigs(osmNamespace).Update(context.TODO(), &meshConfig, metav1.UpdateOptions{})
+			err = cfg.cache.Update(&meshConfig)
 			assert.Nil(err)
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for update announcement")
-			<-confChannel
 
 			test.checkUpdate(assert, cfg)
 		})

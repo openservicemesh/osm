@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
@@ -35,7 +36,8 @@ const (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager, kubecontroller k8s.Controller) *Server {
+func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, enableDebug bool, osmNamespace string,
+	cfg configurator.Configurator, certManager certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
 	server := Server{
 		catalog:       meshCatalog,
 		proxyRegistry: proxyRegistry,
@@ -56,6 +58,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 		cacheEnabled:   cfg.GetFeatureFlags().EnableSnapshotCacheMode,
 		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
+		msgBroker:      msgBroker,
 	}
 
 	return &server

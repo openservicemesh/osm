@@ -3,19 +3,16 @@ package registry
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -59,195 +56,6 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 		pod.ObjectMeta.UID, pod.Namespace, pod.Name, servicesForPod)
 
 	return meshServices, nil
-}
-
-// AsyncKubeProxyServiceMapper maps an Envoy instance to services in a
-// Kubernetes cluster. It maintains a cache of the mapping updated in response
-// to Kubernetes events.
-type AsyncKubeProxyServiceMapper struct {
-	kubeController k8s.Controller
-	kubeEvents     chan interface{}
-	servicesForCN  map[certificate.CommonName][]service.MeshService
-	cnsForService  map[service.MeshService]map[certificate.CommonName]struct{}
-	cacheLock      sync.RWMutex
-}
-
-// NewAsyncKubeProxyServiceMapper initializes a KubeProxyServiceMapper with an empty cache.
-func NewAsyncKubeProxyServiceMapper(controller k8s.Controller) *AsyncKubeProxyServiceMapper {
-	return &AsyncKubeProxyServiceMapper{
-		kubeController: controller,
-		servicesForCN:  make(map[certificate.CommonName][]service.MeshService),
-		cnsForService:  make(map[service.MeshService]map[certificate.CommonName]struct{}),
-		kubeEvents: events.Subscribe(
-			announcements.PodAdded,
-			announcements.PodUpdated,
-			announcements.PodDeleted,
-			announcements.ServiceAdded,
-			announcements.ServiceUpdated,
-			announcements.ServiceDeleted,
-		),
-	}
-}
-
-// Run starts updating the proxy-to-services cache based on k8s notifications.
-func (k *AsyncKubeProxyServiceMapper) Run(stop <-chan struct{}) {
-	// Populate the cache using the cluster's existing state. Otherwise if
-	// existing resources are not modified, no events will come through to
-	// update the cache.
-	k.cacheLock.Lock()
-	for _, pod := range k.kubeController.ListPods() {
-		k.handlePodUpdate(pod)
-	}
-	k.cacheLock.Unlock()
-
-	go func() {
-		for {
-			select {
-			case <-stop:
-				events.Unsub(k.kubeEvents)
-				return
-			case ev := <-k.kubeEvents:
-				event, ok := ev.(events.PubSubMessage)
-				if !ok {
-					log.Error().Msgf("ignoring unexpected pubsub message type: %T %v", ev, ev)
-					continue
-				}
-				k.cacheLock.Lock()
-				switch event.Kind {
-				case announcements.PodAdded, announcements.PodUpdated:
-					pod := event.NewObj.(*v1.Pod)
-					k.handlePodUpdate(pod)
-				case announcements.PodDeleted:
-					pod := event.OldObj.(*v1.Pod)
-					k.handlePodDelete(pod)
-				case announcements.ServiceAdded, announcements.ServiceUpdated:
-					svc := event.NewObj.(*v1.Service)
-					k.handleServiceUpdate(svc)
-				case announcements.ServiceDeleted:
-					svc := event.OldObj.(*v1.Service)
-					k.handleServiceDelete(svc)
-				}
-				k.cacheLock.Unlock()
-				events.Publish(events.PubSubMessage{
-					Kind: announcements.ScheduleProxyBroadcast,
-				})
-			}
-		}
-	}()
-}
-
-func (k *AsyncKubeProxyServiceMapper) handlePodUpdate(pod *v1.Pod) {
-	if pod == nil {
-		return
-	}
-	cn, err := getCertCommonNameForPod(*pod)
-	if err != nil {
-		log.Error().Err(err).Msgf("ignoring updated pod %s/%s", pod.Namespace, pod.Name)
-		return
-	}
-
-	services := listServicesForPod(pod, k.kubeController)
-
-	meshServices := kubernetesServicesToMeshServices(k.kubeController, services)
-
-	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
-	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
-		pod.ObjectMeta.UID, pod.Namespace, pod.Name, servicesForPod)
-
-	k.servicesForCN[cn] = meshServices
-
-	for _, svc := range meshServices {
-		if k.cnsForService[svc] == nil {
-			k.cnsForService[svc] = make(map[certificate.CommonName]struct{})
-		}
-		k.cnsForService[svc][cn] = struct{}{}
-	}
-}
-
-func (k *AsyncKubeProxyServiceMapper) handlePodDelete(pod *v1.Pod) {
-	if pod == nil {
-		return
-	}
-	cn, err := getCertCommonNameForPod(*pod)
-	if err != nil {
-		log.Error().Err(err).Msgf("ignoring deleted pod %s/%s", pod.Namespace, pod.Name)
-		return
-	}
-
-	for _, svc := range k.servicesForCN[cn] {
-		delete(k.cnsForService[svc], cn)
-	}
-
-	delete(k.servicesForCN, cn)
-}
-
-func (k *AsyncKubeProxyServiceMapper) handleServiceUpdate(svc *v1.Service) {
-	if svc == nil {
-		return
-	}
-
-	meshServices := k.kubeController.K8sServiceToMeshServices(*svc)
-	if len(meshServices) == 0 {
-		return
-	}
-
-	updatedSvc := meshServices[0] // All MeshService objects derived from the same k8s Service will have the same CN
-	if k.cnsForService[updatedSvc] == nil {
-		k.cnsForService[updatedSvc] = make(map[certificate.CommonName]struct{})
-	}
-
-	pods := listPodsForService(svc, k.kubeController)
-	for _, pod := range pods {
-		cn, err := getCertCommonNameForPod(pod)
-		if err != nil {
-			log.Error().Err(err)
-			continue
-		}
-		alreadyCached := false
-		for _, cachedSvc := range k.servicesForCN[cn] {
-			if cachedSvc == updatedSvc {
-				alreadyCached = true
-				break
-			}
-		}
-		if !alreadyCached {
-			k.servicesForCN[cn] = append(k.servicesForCN[cn], updatedSvc)
-		}
-
-		k.cnsForService[updatedSvc][cn] = struct{}{}
-	}
-}
-
-func (k *AsyncKubeProxyServiceMapper) handleServiceDelete(svc *v1.Service) {
-	if svc == nil {
-		return
-	}
-
-	meshServices := k.kubeController.K8sServiceToMeshServices(*svc)
-	if len(meshServices) == 0 {
-		return
-	}
-
-	deleted := meshServices[0] // All MeshService objects derived from the same k8s Service will have the same CN
-
-	for cn := range k.cnsForService[deleted] {
-		var rem []service.MeshService
-		for _, s := range k.servicesForCN[cn] {
-			if s == deleted {
-				continue
-			}
-			rem = append(rem, s)
-		}
-		k.servicesForCN[cn] = rem
-	}
-	delete(k.cnsForService, deleted)
-}
-
-// ListProxyServices maps an Envoy instance to a number of Kubernetes services.
-func (k *AsyncKubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
-	k.cacheLock.RLock()
-	defer k.cacheLock.RUnlock()
-	return k.servicesForCN[p.GetCertificateCommonName()], nil
 }
 
 func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
