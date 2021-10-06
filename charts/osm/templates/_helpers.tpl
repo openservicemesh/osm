@@ -42,45 +42,45 @@ securityContext:
 
 {{/* osm-controller image */}}
 {{- define "osmController.image" -}}
-{{- if .Values.OpenServiceMesh.image.digest.osmController -}}
-{{- printf "%s/osm-controller@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmController -}}
-{{- else -}}
+{{- if .Values.OpenServiceMesh.image.tag -}}
 {{- printf "%s/osm-controller:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-controller@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmController -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-injector image */}}
 {{- define "osmInjector.image" -}}
-{{- if .Values.OpenServiceMesh.image.digest.osmInjector -}}
-{{- printf "%s/osm-injector@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmInjector -}}
-{{- else -}}
+{{- if .Values.OpenServiceMesh.image.tag -}}
 {{- printf "%s/osm-injector:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-injector@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmInjector -}}
 {{- end -}}
 {{- end -}}
 
 {{/* Sidecar init image */}}
 {{- define "osmSidecarInit.image" -}}
-{{- if .Values.OpenServiceMesh.image.digest.osmSidecarInit -}}
-{{- printf "%s/init@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmSidecarInit -}}
-{{- else -}}
+{{- if .Values.OpenServiceMesh.image.tag -}}
 {{- printf "%s/init:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- else -}}
+{{- printf "%s/init@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmSidecarInit -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-bootstrap image */}}
 {{- define "osmBootstrap.image" -}}
-{{- if .Values.OpenServiceMesh.image.digest.osmBootstrap -}}
-{{- printf "%s/osm-bootstrap@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmBootstrap -}}
-{{- else -}}
+{{- if .Values.OpenServiceMesh.image.tag -}}
 {{- printf "%s/osm-bootstrap:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-bootstrap@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmBootstrap -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-crds image */}}
 {{- define "osmCRDs.image" -}}
-{{- if .Values.OpenServiceMesh.image.digest.osmCRDs -}}
-{{- printf "%s/osm-crds@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmCRDs -}}
-{{- else -}}
+{{- if .Values.OpenServiceMesh.image.tag -}}
 {{- printf "%s/osm-crds:%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-crds@%s" .Values.OpenServiceMesh.image.registry .Values.OpenServiceMesh.image.digest.osmCRDs -}}
 {{- end -}}
 {{- end -}}
