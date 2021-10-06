@@ -34,8 +34,6 @@ func (ds DebugConfig) getProxies() http.Handler {
 			ds.getProxy(certificate.CommonName(specificProxy[0]), w)
 		} else {
 			printProxies(w, listConnected(), "Connected")
-			// TODO(#2481): Print expected proxies once #2481 is addressed
-			printProxies(w, ds.proxyRegistry.ListDisconnectedProxies(), "Disconnected")
 		}
 	})
 }
