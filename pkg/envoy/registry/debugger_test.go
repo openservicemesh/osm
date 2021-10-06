@@ -23,12 +23,9 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 	})
 
 	Context("Test register/unregister proxies", func() {
-		It("no proxies connected or disconnected", func() {
+		It("no proxies connected", func() {
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(0))
-
-			disconnectedProxies := proxyRegistry.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(0))
 		})
 
 		It("one proxy connected to OSM", func() {
@@ -36,9 +33,6 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(1))
-
-			disconnectedProxies := proxyRegistry.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(0))
 
 			_, ok := connectedProxies[certCommonName]
 			Expect(ok).To(BeTrue())
@@ -49,12 +43,6 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(0))
-
-			disconnectedProxies := proxyRegistry.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(1))
-
-			_, ok := disconnectedProxies[certCommonName]
-			Expect(ok).To(BeTrue())
 		})
 	})
 })
