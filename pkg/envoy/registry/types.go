@@ -16,8 +16,7 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	connectedProxies    sync.Map
-	disconnectedProxies sync.Map
+	connectedProxies sync.Map
 
 	// Maintain a mapping of pod UID to CN of the Envoy on the given pod
 	podUIDToCN sync.Map
@@ -34,8 +33,4 @@ type connectedProxy struct {
 
 	// When the proxy connected to the XDS control plane
 	connectedAt time.Time
-}
-
-type disconnectedProxy struct {
-	lastSeen time.Time
 }

@@ -40,11 +40,6 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
 	pr.connectedProxies.Delete(p.GetCertificateCommonName())
-
-	pr.disconnectedProxies.Store(p.GetCertificateCommonName(), disconnectedProxy{
-		lastSeen: time.Now(),
-	})
-
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 
