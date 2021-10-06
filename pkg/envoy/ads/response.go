@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // getTypeResource invokes the XDS handler (LDS, CDS etc.) to respond to the XDS request containing the requests' type and associated resources
@@ -159,14 +160,15 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
+		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.Inc()
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
 			Str("proxy", proxy.String()).Msgf("Error sending response for typeURI %s to proxy", typeURI.Short())
 		return err
 	}
 
 	// Sending discovery response succeeded, record last resources sent
-	// TODO: increase version and nonce only if Send succeeded
 	proxy.SetLastResourcesSent(typeURI, resourcesSent)
+	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.Inc()
 
 	return nil
 }
