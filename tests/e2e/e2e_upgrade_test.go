@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -104,30 +105,22 @@ var _ = OSMDescribe("Upgrade from latest",
 			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
 			// Get simple pod definitions for the HTTP server
-			serverSvcAccDef, serverPodDef, serverSvcDef, err := Td.SimplePodApp(
-				SimplePodAppDef{
-					PodName:   "server",
-					Namespace: ns,
-					Image:     "kennethreitz/httpbin",
-					Ports:     []int{80},
-					OS:        Td.ClusterOS,
-				})
+			serverSvcAccDef, serverPodDef, serverSvcDef, err := Td.GetOSSpecificHTTPBinPod("server", ns)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = Td.CreateServiceAccount(ns, &serverSvcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			dstPod, err := Td.CreatePod(ns, serverPodDef)
+			_, err = Td.CreatePod(ns, serverPodDef)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateService(ns, serverSvcDef)
+			dstSvc, err := Td.CreateService(ns, serverSvcDef)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Get simple Pod definitions for the client
 			svcAccDef, srcPodDef, svcDef, err := Td.SimplePodApp(SimplePodAppDef{
 				PodName:   "client",
 				Namespace: ns,
-				Command:   []string{"/bin/bash", "-c", "--"},
-				Args:      []string{"while true; do sleep 30; done;"},
-				Image:     "songrgg/alpine-debug",
+				Command:   []string{"sleep", "365d"},
+				Image:     "curlimages/curl",
 				Ports:     []int{80},
 				OS:        Td.ClusterOS,
 			})
@@ -169,7 +162,7 @@ var _ = OSMDescribe("Upgrade from latest",
 							SourceNs:        srcPod.Namespace,
 							SourcePod:       srcPod.Name,
 							SourceContainer: srcPod.Name,
-							Destination:     dstPod.Name + "/status/200",
+							Destination:     fmt.Sprintf("%s.%s.svc.cluster.local", dstSvc.Name, dstSvc.Namespace) + "/status/200",
 						})
 
 					if result.Err != nil || result.StatusCode != 200 {
@@ -225,7 +218,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			// Verify that all the CRD's required by OSM are present in the cluster post an upgrade
 			// TODO: Find a decent way to do this without relying on the kubectl binary
 			// TODO: In the future when we bump the version on a CRD, we need to update this check to ensure that the version is the latest required version
-			stdout, stderr, err = Td.RunLocal("kubectl", "get", "-f", filepath.FromSlash("../../charts/osm/crds"))
+			stdout, stderr, err = Td.RunLocal("kubectl", "get", "-f", filepath.FromSlash("../../cmd/osm-bootstrap/crds"))
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())
