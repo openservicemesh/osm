@@ -144,11 +144,13 @@ func TestCreatePatch(t *testing.T) {
 			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
 			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 
+			if tc.os == constants.OSLinux {
+				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
+				mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
+				mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
+				mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
+			}
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-			mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
-			mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
-			mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -180,7 +182,6 @@ func TestCreatePatch(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 		mockNsController := k8s.NewMockController(mockCtrl)
-		mockNsController.EXPECT().GetNamespace("not-" + namespace).Return(nil)
 
 		wh := &mutatingWebhook{
 			kubeClient:          client,
@@ -190,17 +191,7 @@ func TestCreatePatch(t *testing.T) {
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
-		mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("")
 		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
-
-		mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("")
-		mockConfigurator.EXPECT().GetInitContainerImage().Return("")
-		mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false)
-		mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil)
-		mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil)
-		mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil)
-		mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{})
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048)
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 
