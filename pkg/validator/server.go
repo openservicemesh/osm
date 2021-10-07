@@ -178,6 +178,7 @@ func (s *validatingWebhookServer) run(port int, certificater certificate.Certifi
 		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS13,
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
