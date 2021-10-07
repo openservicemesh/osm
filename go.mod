@@ -32,7 +32,7 @@ require (
 	github.com/norwoodj/helm-docs v1.4.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/gomega v1.15.0
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
@@ -43,24 +43,23 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/tools v0.1.1-0.20210319172145-bda8f5cee399 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0
-	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.1.1
 	gorm.io/gorm v1.21.12
 	helm.sh/helm/v3 v3.6.1
 	honnef.co/go/tools v0.1.1 // indirect
-	k8s.io/api v0.21.1
-	k8s.io/apiextensions-apiserver v0.21.1
-	k8s.io/apimachinery v0.21.1
+	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery v0.22.2
 	k8s.io/cli-runtime v0.21.1
-	k8s.io/client-go v0.21.1
-	k8s.io/code-generator v0.21.1
-	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
+	k8s.io/client-go v0.22.2
+	k8s.io/code-generator v0.22.2
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 	mvdan.cc/gofumpt v0.1.0 // indirect
-	sigs.k8s.io/controller-runtime v0.9.0
+	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/kind v0.11.1
 )
 
