@@ -395,7 +395,9 @@ func TestListPodsForService(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			kubeController := k8s.NewMockController(ctrl)
-			kubeController.EXPECT().ListPods().Return(test.existingPods).Times(1)
+			if test.service != nil && len(test.service.Spec.Selector) != 0 {
+				kubeController.EXPECT().ListPods().Return(test.existingPods).Times(1)
+			}
 
 			actual := listPodsForService(test.service, kubeController)
 			tassert.Equal(t, test.expected, actual)
