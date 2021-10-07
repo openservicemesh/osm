@@ -126,6 +126,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS13,
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {

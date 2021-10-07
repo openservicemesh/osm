@@ -114,6 +114,7 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 		// #nosec G402
 		webhookServer.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS13,
 		}
 
 		if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
