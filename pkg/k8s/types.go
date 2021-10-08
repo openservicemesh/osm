@@ -42,7 +42,9 @@ const (
 
 const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	DefaultKubeEventResyncInterval = 5 * time.Minute
+	// This is set to 0 because we do not need resyncs from k8s client, and have our
+	// own Ticker to turn on periodic resyncs.
+	DefaultKubeEventResyncInterval = 0 * time.Second
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
