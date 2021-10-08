@@ -14,30 +14,30 @@ import (
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
-// MockMeshSpec is a mock of MeshSpec interface
+// MockMeshSpec is a mock of MeshSpec interface.
 type MockMeshSpec struct {
 	ctrl     *gomock.Controller
 	recorder *MockMeshSpecMockRecorder
 }
 
-// MockMeshSpecMockRecorder is the mock recorder for MockMeshSpec
+// MockMeshSpecMockRecorder is the mock recorder for MockMeshSpec.
 type MockMeshSpecMockRecorder struct {
 	mock *MockMeshSpec
 }
 
-// NewMockMeshSpec creates a new mock instance
+// NewMockMeshSpec creates a new mock instance.
 func NewMockMeshSpec(ctrl *gomock.Controller) *MockMeshSpec {
 	mock := &MockMeshSpec{ctrl: ctrl}
 	mock.recorder = &MockMeshSpecMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMeshSpec) EXPECT() *MockMeshSpecMockRecorder {
 	return m.recorder
 }
 
-// GetHTTPRouteGroup mocks base method
+// GetHTTPRouteGroup mocks base method.
 func (m *MockMeshSpec) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHTTPRouteGroup", arg0)
@@ -45,13 +45,13 @@ func (m *MockMeshSpec) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
 	return ret0
 }
 
-// GetHTTPRouteGroup indicates an expected call of GetHTTPRouteGroup
+// GetHTTPRouteGroup indicates an expected call of GetHTTPRouteGroup.
 func (mr *MockMeshSpecMockRecorder) GetHTTPRouteGroup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHTTPRouteGroup", reflect.TypeOf((*MockMeshSpec)(nil).GetHTTPRouteGroup), arg0)
 }
 
-// GetTCPRoute mocks base method
+// GetTCPRoute mocks base method.
 func (m *MockMeshSpec) GetTCPRoute(arg0 string) *v1alpha4.TCPRoute {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTCPRoute", arg0)
@@ -59,13 +59,13 @@ func (m *MockMeshSpec) GetTCPRoute(arg0 string) *v1alpha4.TCPRoute {
 	return ret0
 }
 
-// GetTCPRoute indicates an expected call of GetTCPRoute
+// GetTCPRoute indicates an expected call of GetTCPRoute.
 func (mr *MockMeshSpecMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockMeshSpec)(nil).GetTCPRoute), arg0)
 }
 
-// ListHTTPTrafficSpecs mocks base method
+// ListHTTPTrafficSpecs mocks base method.
 func (m *MockMeshSpec) ListHTTPTrafficSpecs() []*v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListHTTPTrafficSpecs")
@@ -73,13 +73,13 @@ func (m *MockMeshSpec) ListHTTPTrafficSpecs() []*v1alpha4.HTTPRouteGroup {
 	return ret0
 }
 
-// ListHTTPTrafficSpecs indicates an expected call of ListHTTPTrafficSpecs
+// ListHTTPTrafficSpecs indicates an expected call of ListHTTPTrafficSpecs.
 func (mr *MockMeshSpecMockRecorder) ListHTTPTrafficSpecs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHTTPTrafficSpecs", reflect.TypeOf((*MockMeshSpec)(nil).ListHTTPTrafficSpecs))
 }
 
-// ListServiceAccounts mocks base method
+// ListServiceAccounts mocks base method.
 func (m *MockMeshSpec) ListServiceAccounts() []identity.K8sServiceAccount {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceAccounts")
@@ -87,13 +87,13 @@ func (m *MockMeshSpec) ListServiceAccounts() []identity.K8sServiceAccount {
 	return ret0
 }
 
-// ListServiceAccounts indicates an expected call of ListServiceAccounts
+// ListServiceAccounts indicates an expected call of ListServiceAccounts.
 func (mr *MockMeshSpecMockRecorder) ListServiceAccounts() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockMeshSpec)(nil).ListServiceAccounts))
 }
 
-// ListTCPTrafficSpecs mocks base method
+// ListTCPTrafficSpecs mocks base method.
 func (m *MockMeshSpec) ListTCPTrafficSpecs() []*v1alpha4.TCPRoute {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTCPTrafficSpecs")
@@ -101,13 +101,13 @@ func (m *MockMeshSpec) ListTCPTrafficSpecs() []*v1alpha4.TCPRoute {
 	return ret0
 }
 
-// ListTCPTrafficSpecs indicates an expected call of ListTCPTrafficSpecs
+// ListTCPTrafficSpecs indicates an expected call of ListTCPTrafficSpecs.
 func (mr *MockMeshSpecMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTCPTrafficSpecs", reflect.TypeOf((*MockMeshSpec)(nil).ListTCPTrafficSpecs))
 }
 
-// ListTrafficSplits mocks base method
+// ListTrafficSplits mocks base method.
 func (m *MockMeshSpec) ListTrafficSplits(arg0 ...TrafficSplitListOption) []*v1alpha2.TrafficSplit {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
@@ -119,13 +119,13 @@ func (m *MockMeshSpec) ListTrafficSplits(arg0 ...TrafficSplitListOption) []*v1al
 	return ret0
 }
 
-// ListTrafficSplits indicates an expected call of ListTrafficSplits
+// ListTrafficSplits indicates an expected call of ListTrafficSplits.
 func (mr *MockMeshSpecMockRecorder) ListTrafficSplits(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficSplits), arg0...)
 }
 
-// ListTrafficTargets mocks base method
+// ListTrafficTargets mocks base method.
 func (m *MockMeshSpec) ListTrafficTargets(arg0 ...TrafficTargetListOption) []*v1alpha3.TrafficTarget {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
@@ -137,7 +137,7 @@ func (m *MockMeshSpec) ListTrafficTargets(arg0 ...TrafficTargetListOption) []*v1
 	return ret0
 }
 
-// ListTrafficTargets indicates an expected call of ListTrafficTargets
+// ListTrafficTargets indicates an expected call of ListTrafficTargets.
 func (mr *MockMeshSpecMockRecorder) ListTrafficTargets(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficTargets), arg0...)

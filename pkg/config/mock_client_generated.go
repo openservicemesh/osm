@@ -11,30 +11,30 @@ import (
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 )
 
-// MockController is a mock of Controller interface
+// MockController is a mock of Controller interface.
 type MockController struct {
 	ctrl     *gomock.Controller
 	recorder *MockControllerMockRecorder
 }
 
-// MockControllerMockRecorder is the mock recorder for MockController
+// MockControllerMockRecorder is the mock recorder for MockController.
 type MockControllerMockRecorder struct {
 	mock *MockController
 }
 
-// NewMockController creates a new mock instance
+// NewMockController creates a new mock instance.
 func NewMockController(ctrl *gomock.Controller) *MockController {
 	mock := &MockController{ctrl: ctrl}
 	mock.recorder = &MockControllerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
-// GetMultiClusterService mocks base method
+// GetMultiClusterService mocks base method.
 func (m *MockController) GetMultiClusterService(arg0, arg1 string) *v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterService", arg0, arg1)
@@ -42,13 +42,13 @@ func (m *MockController) GetMultiClusterService(arg0, arg1 string) *v1alpha1.Mul
 	return ret0
 }
 
-// GetMultiClusterService indicates an expected call of GetMultiClusterService
+// GetMultiClusterService indicates an expected call of GetMultiClusterService.
 func (mr *MockControllerMockRecorder) GetMultiClusterService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultiClusterService", reflect.TypeOf((*MockController)(nil).GetMultiClusterService), arg0, arg1)
 }
 
-// GetMultiClusterServiceByServiceAccount mocks base method
+// GetMultiClusterServiceByServiceAccount mocks base method.
 func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 string) []v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterServiceByServiceAccount", arg0, arg1)
@@ -56,13 +56,13 @@ func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 strin
 	return ret0
 }
 
-// GetMultiClusterServiceByServiceAccount indicates an expected call of GetMultiClusterServiceByServiceAccount
+// GetMultiClusterServiceByServiceAccount indicates an expected call of GetMultiClusterServiceByServiceAccount.
 func (mr *MockControllerMockRecorder) GetMultiClusterServiceByServiceAccount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultiClusterServiceByServiceAccount", reflect.TypeOf((*MockController)(nil).GetMultiClusterServiceByServiceAccount), arg0, arg1)
 }
 
-// ListMultiClusterServices mocks base method
+// ListMultiClusterServices mocks base method.
 func (m *MockController) ListMultiClusterServices() []v1alpha1.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListMultiClusterServices")
@@ -70,7 +70,7 @@ func (m *MockController) ListMultiClusterServices() []v1alpha1.MultiClusterServi
 	return ret0
 }
 
-// ListMultiClusterServices indicates an expected call of ListMultiClusterServices
+// ListMultiClusterServices indicates an expected call of ListMultiClusterServices.
 func (mr *MockControllerMockRecorder) ListMultiClusterServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMultiClusterServices", reflect.TypeOf((*MockController)(nil).ListMultiClusterServices))

@@ -65,9 +65,14 @@ func TestNewHTTPServer(t *testing.T) {
 	}
 
 	for _, rt := range newHTTPServerTests {
-		mockProbe.EXPECT().Readiness().Return(rt.readyLiveCheck).Times(1)
-		mockProbe.EXPECT().Liveness().Return(rt.readyLiveCheck).Times(1)
-		mockProbe.EXPECT().GetID().Return("test").Times(1)
+		if rt.path == constants.HealthReadinessPath {
+			mockProbe.EXPECT().Readiness().Return(rt.readyLiveCheck).Times(1)
+		} else {
+			mockProbe.EXPECT().Liveness().Return(rt.readyLiveCheck).Times(1)
+		}
+		if rt.expectedStatusCode == http.StatusServiceUnavailable {
+			mockProbe.EXPECT().GetID().Return("test").Times(1)
+		}
 		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, rt.path))
 
 		assert.Equal(rt.expectedStatusCode, resp.StatusCode)
