@@ -68,8 +68,10 @@ func (b *Broker) run(stopCh <-chan struct{}) {
 // 2. Processes other internal control plane events
 // 3. Updates metrics associated with the event
 func (b *Broker) processEvent(msg events.PubSubMessage) {
+	log.Trace().Msgf("Processing msg kind: %s", msg.Kind)
 	// Update proxies if applicable
 	if shouldUpdateProxy(msg) {
+		log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
 		b.proxyUpdatePubSub.Pub(msg, announcements.ProxyUpdate.String())
 		metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 	}
