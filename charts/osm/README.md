@@ -100,12 +100,12 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
-| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"sha256:79f4f27d7b7852127391fb66d8977b0569f16da76d840710f01373be665042c8","osmCRDs":"sha256:7b44a20de1dac154e9294d313e715c1b327ef15771ffe8b1a775ed83e8e7170c","osmController":"sha256:288dd6ab3095e4bcd514e12b0ef88373a335d31c1a640130541cf5ba75144d80","osmInjector":"sha256:30e70bdf0a1d42aa0f339e1925c98bbfc89a0fdd1f03c6f6fb43c2cf6cf1ff93","osmSidecarInit":"sha256:ad7315b532825e1a6b703d6664f3fd895b64a6a3758b9f738eb669d72324619a"}` | Image digest (ignored when image.tag is set) |
-| OpenServiceMesh.image.digest.osmBootstrap | string | `"sha256:79f4f27d7b7852127391fb66d8977b0569f16da76d840710f01373be665042c8"` | osm-boostrap's image digest |
-| OpenServiceMesh.image.digest.osmCRDs | string | `"sha256:7b44a20de1dac154e9294d313e715c1b327ef15771ffe8b1a775ed83e8e7170c"` | osm-crds' image digest |
-| OpenServiceMesh.image.digest.osmController | string | `"sha256:288dd6ab3095e4bcd514e12b0ef88373a335d31c1a640130541cf5ba75144d80"` | osm-controller's image digest |
-| OpenServiceMesh.image.digest.osmInjector | string | `"sha256:30e70bdf0a1d42aa0f339e1925c98bbfc89a0fdd1f03c6f6fb43c2cf6cf1ff93"` | osm-injector's image digest |
-| OpenServiceMesh.image.digest.osmSidecarInit | string | `"sha256:ad7315b532825e1a6b703d6664f3fd895b64a6a3758b9f738eb669d72324619a"` | Sidecar init container's image digest |
+| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"sha256:dcb55db3db55e4683f7ea0c0d698850f6c9cd6a6510ad01f01688f36516b3a9d","osmCRDs":"sha256:ab36141cb3d113bc850acced3d3230a769316331a1b130be6602f1496497edbc","osmController":"sha256:2be006ef2021523c1b0e43e8367d3e1722cef0e7ba541455722dd94bd85115fb","osmInjector":"sha256:27ab5fd04c8185768e079d12b90fccbde5aed4c57bb036984cc7cb34b2e6e697","osmSidecarInit":"sha256:98400f20833c9cd23cb9530252023a988454f3ee167c9a6be757ed62973da7f7"}` | Image digest (ignored when image.tag is set) |
+| OpenServiceMesh.image.digest.osmBootstrap | string | `"sha256:dcb55db3db55e4683f7ea0c0d698850f6c9cd6a6510ad01f01688f36516b3a9d"` | osm-boostrap's image digest |
+| OpenServiceMesh.image.digest.osmCRDs | string | `"sha256:ab36141cb3d113bc850acced3d3230a769316331a1b130be6602f1496497edbc"` | osm-crds' image digest |
+| OpenServiceMesh.image.digest.osmController | string | `"sha256:2be006ef2021523c1b0e43e8367d3e1722cef0e7ba541455722dd94bd85115fb"` | osm-controller's image digest |
+| OpenServiceMesh.image.digest.osmInjector | string | `"sha256:27ab5fd04c8185768e079d12b90fccbde5aed4c57bb036984cc7cb34b2e6e697"` | osm-injector's image digest |
+| OpenServiceMesh.image.digest.osmSidecarInit | string | `"sha256:98400f20833c9cd23cb9530252023a988454f3ee167c9a6be757ed62973da7f7"` | Sidecar init container's image digest |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
 | OpenServiceMesh.image.tag | string | `""` | Container image tag for control plane images (must not be set on release branches) |
