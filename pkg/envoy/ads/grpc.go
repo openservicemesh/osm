@@ -9,17 +9,15 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
-func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}, proxyRegistry *registry.ProxyRegistry) {
-	defer close(requests)
-	defer close(quit)
+func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
 	for {
 		var request *xds_discovery.DiscoveryRequest
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
+			defer close(requests)
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
 				log.Debug().Err(recvErr).Str("proxy", proxy.String()).Msg("gRPC Connection terminated")
 				return
@@ -28,7 +26,13 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 				Str("proxy", proxy.String()).Msg("gRPC Connection error")
 			return
 		}
+		select {
+		case <-(*server).Context().Done():
+			log.Trace().Str("proxy", proxy.String()).Msgf("gRPC stream from proxy terminated")
+			close(quit)
+			return
+		case requests <- *request:
+		}
 		log.Debug().Str("proxy", proxy.String()).Msgf("Received DiscoveryRequest from proxy")
-		requests <- *request
 	}
 }
