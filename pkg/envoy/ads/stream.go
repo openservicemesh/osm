@@ -1,7 +1,6 @@
 package ads
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -61,15 +60,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
 
-	ctx, cancel := context.WithCancel(server.Context())
-	defer cancel()
-
 	quit := make(chan struct{})
 	requests := make(chan xds_discovery.DiscoveryRequest)
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
-	go receive(requests, &server, proxy, quit, s.proxyRegistry)
+	go receive(requests, &server, proxy, quit)
 
 	// Register for proxy config updates broadcasted by the message broker
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
@@ -94,10 +90,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	for {
 		select {
-		case <-ctx.Done():
-			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
-			return nil
-
 		case <-quit:
 			log.Debug().Str("proxy", proxy.String()).Msgf("gRPC stream closed")
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
