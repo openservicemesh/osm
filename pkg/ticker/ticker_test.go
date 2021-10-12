@@ -28,15 +28,12 @@ func TestResyncTicker(t *testing.T) {
 
 	// Verify that the ticker ticks at the configured interval
 	kubePubSub := msgBroker.GetKubeEventPubSub()
-	proxyUpdatePubSub := msgBroker.GetProxyUpdatePubSub()
-	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
-	defer msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
 	type test struct {
 		name                 string
 		event                events.PubSubMessage
 		waitUntil            time.Duration
-		minExpectedTicks     int
+		minExpectedTicks     uint64
 		expectedInvalidCount int
 	}
 
@@ -203,7 +200,6 @@ func TestResyncTicker(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 			done := false
-			eventsReceived := 0
 
 			kubePubSub.Pub(tc.event, announcements.MeshConfigUpdated.String())
 			timeout := time.After(tc.waitUntil)
@@ -215,17 +211,9 @@ func TestResyncTicker(t *testing.T) {
 				default:
 					// Process next select statement
 				}
-
-				select {
-				case <-proxyUpdateChan:
-					eventsReceived++
-					log.Debug().Msgf("Received event %d", eventsReceived)
-				default:
-					// Process next select statement
-				}
 			}
 
-			a.GreaterOrEqual(eventsReceived, tc.minExpectedTicks)
+			a.GreaterOrEqual(msgBroker.GetTotalQProxyEventCount(), tc.minExpectedTicks)
 			a.EqualValues(tc.expectedInvalidCount, atomic.LoadUint64(&r.invalidIntervalCounter))
 		})
 	}
