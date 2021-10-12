@@ -1,15 +1,18 @@
 package messaging
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/cskr/pubsub"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -29,7 +32,7 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 	b := &Broker{
 		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		proxyUpdatePubSub: pubsub.New(0),
-		proxyUpdateCh:     make(chan interface{}),
+		proxyUpdateCh:     make(chan proxyUpdateEvent),
 		kubeEventPubSub:   pubsub.New(0),
 		certPubSub:        pubsub.New(0),
 	}
@@ -117,21 +120,15 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 	dispatchPending := false
 	batchCount := 0 // number of proxy update events batched per dispatch
 
+	var event proxyUpdateEvent
 	for {
-		var msg events.PubSubMessage
-
 		select {
-		case event, ok := <-b.proxyUpdateCh:
+		case e, ok := <-b.proxyUpdateCh:
 			if !ok {
 				log.Warn().Msgf("Proxy update event chan closed, exiting dispatcher")
 				return
 			}
-
-			msg, ok = event.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Expected type PubSubMessage, got %T", msg)
-				continue
-			}
+			event = e
 
 			if !dispatchPending {
 				// No proxy update events are pending send on the pub-sub.
@@ -147,7 +144,7 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 				maxTimer.Reset(proxyUpdateMaxWindow)
 				dispatchPending = true
 				batchCount++
-				log.Trace().Msgf("Pending dispatch of msg kind %s", msg.Kind)
+				log.Trace().Msgf("Pending dispatch of msg kind %s", event.msg.Kind)
 			} else {
 				// A proxy update event is pending dispatch. Update the sliding window.
 				if !slidingTimer.Stop() {
@@ -155,7 +152,7 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 				}
 				slidingTimer.Reset(proxyUpdateSlidingWindow)
 				batchCount++
-				log.Trace().Msgf("Reset sliding window for msg kind %s", msg.Kind)
+				log.Trace().Msgf("Reset sliding window for msg kind %s", event.msg.Kind)
 			}
 
 		case <-slidingTimer.C:
@@ -166,10 +163,10 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 				<-maxTimer.C
 			}
 			maxTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(msg, announcements.ProxyUpdate.String())
+			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
 			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Sliding window expired, msg kind %s, batch size %d", msg.Kind, batchCount)
+			log.Trace().Msgf("Sliding window expired, msg kind %s, batch size %d", event.msg.Kind, batchCount)
 			dispatchPending = false
 			batchCount = 0
 
@@ -181,10 +178,10 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 				<-slidingTimer.C
 			}
 			slidingTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(msg, announcements.ProxyUpdate.String())
+			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
 			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
 			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Max window expired, msg kind %s, batch size %d", msg.Kind, batchCount)
+			log.Trace().Msgf("Max window expired, msg kind %s, batch size %d", event.msg.Kind, batchCount)
 			dispatchPending = false
 			batchCount = 0
 
@@ -203,10 +200,19 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 func (b *Broker) processEvent(msg events.PubSubMessage) {
 	log.Trace().Msgf("Processing msg kind: %s", msg.Kind)
 	// Update proxies if applicable
-	if shouldUpdateProxy(msg) {
+	if event := getProxyUpdateEvent(msg); event != nil {
 		log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
 		atomic.AddUint64(&b.totalQProxyEventCount, 1)
-		b.proxyUpdateCh <- msg
+		if event.topic != announcements.ProxyUpdate.String() {
+			// This is not a broadcast event, so it cannot be coalesced with
+			// other events as the event is specific to one or more proxies.
+			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
+			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
+		} else {
+			// Pass the broadcast event to the dispatcher routine, that coalesces
+			// multiple broadcasts received in close proximity.
+			b.proxyUpdateCh <- *event
+		}
 	}
 
 	// Publish event to other interested clients, e.g. log level changes, debug server on/off etc.
@@ -233,8 +239,10 @@ func (b *Broker) Unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
 	}
 }
 
-// shouldUpdateProxy returns a boolean indicating whether the given event should result in a Proxy configuration update
-func shouldUpdateProxy(msg events.PubSubMessage) bool {
+// getProxyUpdateEvent returns a proxyUpdateEvent type indicating whether the given PubSubMessage should
+// result in a Proxy configuration update on an appropriate topic. Nil is returned if the PubSubMessage
+// does not result in a proxy update event.
+func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 	switch msg.Kind {
 	case
 		//
@@ -242,10 +250,6 @@ func shouldUpdateProxy(msg events.PubSubMessage) bool {
 		//
 		// Endpoint event
 		announcements.EndpointAdded, announcements.EndpointDeleted, announcements.EndpointUpdated,
-		// Pod event
-		announcements.PodAdded, announcements.PodDeleted, announcements.PodUpdated,
-		// Service event
-		announcements.ServiceAdded, announcements.ServiceDeleted, announcements.ServiceUpdated,
 		// k8s Ingress event
 		announcements.IngressAdded, announcements.IngressDeleted, announcements.IngressUpdated,
 		//
@@ -272,14 +276,17 @@ func shouldUpdateProxy(msg events.PubSubMessage) bool {
 		// Proxy events
 		//
 		announcements.ProxyUpdate:
-		return true
+		return &proxyUpdateEvent{
+			msg:   msg,
+			topic: announcements.ProxyUpdate.String(),
+		}
 
 	case announcements.MeshConfigUpdated:
 		prevMeshConfig, okPrevCast := msg.OldObj.(*v1alpha1.MeshConfig)
 		newMeshConfig, okNewCast := msg.NewObj.(*v1alpha1.MeshConfig)
 		if !okPrevCast || !okNewCast {
 			log.Error().Msgf("Expected MeshConfig type, got previous=%T, new=%T", okPrevCast, okNewCast)
-			return false
+			return nil
 		}
 
 		prevSpec := prevMeshConfig.Spec
@@ -293,11 +300,38 @@ func shouldUpdateProxy(msg events.PubSubMessage) bool {
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
 			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) {
-			return true
+			return &proxyUpdateEvent{
+				msg:   msg,
+				topic: announcements.ProxyUpdate.String(),
+			}
 		}
-		return false
+		return nil
+
+	case announcements.PodUpdated:
+		// Only trigger a proxy update for proxies associated with this pod based on the proxy UUID
+		prevPod, okPrevCast := msg.OldObj.(*corev1.Pod)
+		newPod, okNewCast := msg.NewObj.(*corev1.Pod)
+		if !okPrevCast || !okNewCast {
+			log.Error().Msgf("Expected *Pod type, got previous=%T, new=%T", okPrevCast, okNewCast)
+			return nil
+		}
+		prevMetricAnnotation := prevPod.Annotations[constants.PrometheusScrapeAnnotation]
+		newMetricAnnotation := newPod.Annotations[constants.PrometheusScrapeAnnotation]
+		if prevMetricAnnotation != newMetricAnnotation {
+			proxyUUID := newPod.Labels[constants.EnvoyUniqueIDLabelName]
+			return &proxyUpdateEvent{
+				msg:   msg,
+				topic: GetPubSubTopicForProxyUUID(proxyUUID),
+			}
+		}
+		return nil
 
 	default:
-		return false
+		return nil
 	}
+}
+
+// GetPubSubTopicForProxyUUID returns the topic on which PubSubMessages specific to a proxy UUID are published
+func GetPubSubTopicForProxyUUID(uuid string) string {
+	return fmt.Sprintf("proxy:%s", uuid)
 }

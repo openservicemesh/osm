@@ -6,6 +6,7 @@ import (
 	"github.com/cskr/pubsub"
 	"k8s.io/client-go/util/workqueue"
 
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -17,10 +18,17 @@ var (
 type Broker struct {
 	queue                          workqueue.RateLimitingInterface
 	proxyUpdatePubSub              *pubsub.PubSub
-	proxyUpdateCh                  chan interface{}
+	proxyUpdateCh                  chan proxyUpdateEvent
 	kubeEventPubSub                *pubsub.PubSub
 	certPubSub                     *pubsub.PubSub
 	totalQEventCount               uint64
 	totalQProxyEventCount          uint64
 	totalDispatchedProxyEventCount uint64
+}
+
+// proxyUpdateEvent specifies the PubSubMessage and topic for an event that
+// results in a proxy config update
+type proxyUpdateEvent struct {
+	msg   events.PubSubMessage
+	topic string
 }

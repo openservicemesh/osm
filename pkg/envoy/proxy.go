@@ -20,6 +20,9 @@ type Proxy struct {
 	// The Subject Common Name of the certificate used for Envoy to XDS communication.
 	xDSCertificateCommonName certificate.CommonName
 
+	// UUID of the proxy
+	uuid uuid.UUID
+
 	// The Serial Number of the certificate used for Envoy to XDS communication.
 	xDSCertificateSerialNumber certificate.SerialNumber
 
@@ -225,6 +228,11 @@ func (p *Proxy) Kind() ProxyKind {
 	return p.kind
 }
 
+// GetUUID returns the proxy's UUID
+func (p *Proxy) GetUUID() uuid.UUID {
+	return p.uuid
+}
+
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
 	// Get CommonName hash for this proxy
@@ -241,6 +249,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	return &Proxy{
 		xDSCertificateCommonName:   certCommonName,
 		xDSCertificateSerialNumber: certSerialNumber,
+		uuid:                       cnMeta.ProxyUUID,
 
 		Addr: ip,
 
