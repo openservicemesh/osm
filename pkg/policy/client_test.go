@@ -147,12 +147,6 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 }
 
 func TestGetIngressBackendPolicy(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
-
 	testCases := []struct {
 		name                   string
 		allResources           []*policyV1alpha1.IngressBackend
@@ -257,13 +251,75 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "IngressBackend policy namespace does not match MeshService.Namespace",
+			allResources: []*policyV1alpha1.IngressBackend{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.IngressBackendSpec{
+						Backends: []policyV1alpha1.BackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.IngressBackendSpec{
+						Backends: []policyV1alpha1.BackendSpec{
+							{
+								Name: "backend2", // does not match the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend:                service.MeshService{Name: "backend1", Namespace: "test-1"}, // Namespace does not match IngressBackend.Namespace
+			expectedIngressBackend: nil,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
