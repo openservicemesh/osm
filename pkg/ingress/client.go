@@ -138,11 +138,6 @@ func (c client) GetIngressNetworkingV1beta1(meshService service.MeshService) ([]
 			continue
 		}
 
-		// Extra safety - make sure we do not pay attention to Ingresses outside of observed namespaces
-		if !c.kubeController.IsMonitoredNamespace(ingress.Namespace) {
-			continue
-		}
-
 		// Check if the ingress resource belongs to the same namespace as the service
 		if ingress.Namespace != meshService.Namespace {
 			// The ingress resource does not belong to the namespace of the service
@@ -179,11 +174,6 @@ func (c client) GetIngressNetworkingV1(meshService service.MeshService) ([]*netw
 		ingress, ok := ingressInterface.(*networkingV1.Ingress)
 		if !ok {
 			log.Error().Msg("Failed type assertion for Ingress in ingress cache")
-			continue
-		}
-
-		// Extra safety - make sure we do not pay attention to Ingresses outside of observed namespaces
-		if !c.kubeController.IsMonitoredNamespace(ingress.Namespace) {
 			continue
 		}
 
