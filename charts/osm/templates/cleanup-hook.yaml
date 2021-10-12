@@ -78,10 +78,8 @@ spec:
             - >
              kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
              kubectl apply -f /osm-crds;
-             {{- if .Values.OpenServiceMesh.enableReconciler }}
              kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
              kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
-             {{- end }}
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
