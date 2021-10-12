@@ -53,7 +53,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 3,
+        "w": 9,
         "x": 0,
         "y": 1
       },
@@ -73,7 +73,7 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "sum(osm_k8s_api_event_count{type=\"namespace-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"namespace-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
+          "expr": "sum(osm_resource_namespace_count{source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -83,113 +83,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Monitored Namespaces",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 3,
-        "y": 1
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "values": false
-        }
-      },
-      "pluginVersion": "7.0.1",
-      "targets": [
-        {
-          "expr": "sum(osm_k8s_api_event_count{type=\"service-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"service-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{source_pod_name}}",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Services in the Mesh",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 6,
-        "y": 1
-      },
-      "id": 8,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "values": false
-        }
-      },
-      "pluginVersion": "7.0.1",
-      "targets": [
-        {
-          "expr": "sum(osm_k8s_api_event_count{type=\"pod-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"pod-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
-          "format": "time_series",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{source_pod_name}}",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Number of Pods",
+      "title": "Monitored Namespace Count",
       "type": "stat"
     },
     {
@@ -207,7 +101,7 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 5,
+        "h": 8,
         "w": 9,
         "x": 9,
         "y": 1
@@ -308,7 +202,7 @@
                 "h": 3,
                 "w": 4.5,
                 "x": 0,
-                "y": 7
+                "y": 6
             },
             "id": 5,
             "options": {
@@ -361,7 +255,7 @@
                 "h": 3,
                 "w": 4.5,
                 "x": 4.5,
-                "y": 7
+                "y": 6
             },
             "id": 10,
             "options": {
@@ -399,7 +293,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 9
       },
       "id": 32,
       "panels": [],
@@ -424,7 +318,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 11
+        "y": 10
       },
       "hiddenSeries": false,
       "id": 14,
@@ -542,7 +436,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 11
+        "y": 10
       },
       "hiddenSeries": false,
       "id": 13,
@@ -634,7 +528,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 19
       },
       "id": 34,
       "panels": [],
@@ -681,7 +575,7 @@
         "h": 8,
         "w": 9,
         "x": 0,
-        "y": 21
+        "y": 20
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -768,7 +662,7 @@
         "h": 8,
         "w": 9,
         "x": 9,
-        "y": 21
+        "y": 20
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -855,7 +749,7 @@
         "h": 10,
         "w": 18,
         "x": 0,
-        "y": 29
+        "y": 28
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -936,7 +830,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 39
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 36,
@@ -1052,7 +946,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 39
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 37,
@@ -1143,7 +1037,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 47
       },
       "id": 41,
       "panels": [],
@@ -1168,7 +1062,7 @@
         "h": 10,
         "w": 18,
         "x": 0,
-        "y": 49
+        "y": 48
       },
       "hiddenSeries": false,
       "id": 45,
@@ -1269,7 +1163,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 57
+        "y": 58
       },
       "hiddenSeries": false,
       "id": 39,
@@ -1371,7 +1265,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 57
+        "y": 58
       },
       "hiddenSeries": false,
       "id": 43,

@@ -28,6 +28,7 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/reconciler"
+	"github.com/openservicemesh/osm/pkg/resourcemetrics"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -161,6 +162,8 @@ func main() {
 	startMetricsStore()
 
 	msgBroker := messaging.NewBroker(stop)
+
+	go resourcemetrics.StartNamespaceCounter(msgBroker, stop)
 
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
@@ -297,6 +300,7 @@ func main() {
 func startMetricsStore() {
 	metricsstore.DefaultMetricsStore.Start(
 		metricsstore.DefaultMetricsStore.K8sAPIEventCounter,
+		metricsstore.DefaultMetricsStore.MonitoredNamespaceCounter,
 		metricsstore.DefaultMetricsStore.ProxyConnectCount,
 		metricsstore.DefaultMetricsStore.ProxyReconnectCount,
 		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
