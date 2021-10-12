@@ -12,19 +12,19 @@ OpenServiceMesh:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "latest-main"
+    tag: ""
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
-      osmController: ""
+      osmController: "sha256:890ad785e345e937ca44a75c05aea0f787eb9a88d4f169faed2d854f6c86da20"
       # -- osm-injector's image digest
-      osmInjector: ""
+      osmInjector: "sha256:4d6af90114aeacb1a0ef12d9deb7450d0ea431efd45f39a2ab6671c4a1ce4680"
       # -- Sidecar init container's image digest
-      osmSidecarInit: ""
+      osmSidecarInit: "sha256:28ca34df720ae3815ca7269b1913e84042f1d8510b04b437f19a0c3345b2c11c"
       # -- osm-crds' image digest
-      osmCRDs: ""
+      osmCRDs: "sha256:a68f28cb8f95f5f2035f1bfcec2fe3adcb150366a99032aa8ef799505905a5b2"
       # -- osm-boostrap's image digest
-      osmBootstrap: ""
+      osmBootstrap: "sha256:45dbc265634f0c557855f27f4c80a23f78ced73962bf418acdf24b3440267529"
 
 
   # -- `osm-controller` image pull secret
