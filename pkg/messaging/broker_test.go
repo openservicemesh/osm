@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -53,49 +54,49 @@ func TestAllEvents(t *testing.T) {
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(podAdd)
+			c.GetQueue().Add(podAdd)
 
 			podDel := events.PubSubMessage{
 				Kind:   announcements.PodDeleted,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(podDel)
+			c.GetQueue().Add(podDel)
 
 			podUpdate := events.PubSubMessage{
 				Kind:   announcements.PodUpdated,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(podUpdate)
+			c.GetQueue().Add(podUpdate)
 
 			serviceAdd := events.PubSubMessage{
 				Kind:   announcements.ServiceAdded,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(serviceAdd)
+			c.GetQueue().Add(serviceAdd)
 
 			serviceDel := events.PubSubMessage{
 				Kind:   announcements.ServiceDeleted,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(serviceDel)
+			c.GetQueue().Add(serviceDel)
 
 			serviceUpdate := events.PubSubMessage{
 				Kind:   announcements.ServiceUpdated,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().AddRateLimited(serviceUpdate)
+			c.GetQueue().Add(serviceUpdate)
 
 			meshCfgUpdate := events.PubSubMessage{
 				Kind:   announcements.MeshConfigUpdated,
 				OldObj: &configv1alpha1.MeshConfig{},
 				NewObj: &configv1alpha1.MeshConfig{},
 			}
-			c.GetQueue().AddRateLimited(meshCfgUpdate)
+			c.GetQueue().Add(meshCfgUpdate)
 		}
 	}()
 
@@ -108,16 +109,6 @@ func TestAllEvents(t *testing.T) {
 			}
 			c.certPubSub.Pub(certRotated, announcements.CertificateRotated.String())
 		}
-	}()
-
-	doneVerifyingProxyEvents := make(chan struct{})
-	go func() {
-		// Verify expected number of proxy update events are received
-		numExpectedBroadcasts := numEventTriggers * numProxyUpdatesPerEventTrigger
-		for i := 0; i < numExpectedBroadcasts; i++ {
-			<-proxyUpdateChan
-		}
-		close(doneVerifyingProxyEvents)
 	}()
 
 	doneVerifyingPodEvents := make(chan struct{})
@@ -158,13 +149,24 @@ func TestAllEvents(t *testing.T) {
 		close(doneVerifyingCertEvents)
 	}()
 
-	<-doneVerifyingProxyEvents
+	doneVerifyingProxyEvents := make(chan struct{})
+	go func() {
+		// Verify that atleast 1 proxy update pub-sub is received. We only verify one
+		// event here because multiple events from the queue could be batched to 1 pub-sub
+		// event to reduce proxy broadcast updates.
+		<-proxyUpdateChan
+		close(doneVerifyingProxyEvents)
+	}()
+
 	<-doneVerifyingPodEvents
 	<-doneVerifyingServiceEvents
 	<-doneVerifyingMeshCfgEvents
 	<-doneVerifyingCertEvents
+	<-doneVerifyingProxyEvents
 
 	a.EqualValues(c.GetTotalQEventCount(), numEventTriggers*(numProxyUpdatesPerEventTrigger+numNonProxyUpdatesPerEventTrigger))
+	a.EqualValues(c.GetTotalQProxyEventCount(), numEventTriggers*numProxyUpdatesPerEventTrigger)
+	log.Trace().Msgf("sss batch expected `proxy event total %d", c.GetTotalQProxyEventCount())
 }
 
 func TestShouldUpdateProxy(t *testing.T) {
@@ -247,4 +249,50 @@ func TestShouldUpdateProxy(t *testing.T) {
 			a.Equal(tc.expected, actual)
 		})
 	}
+}
+
+func TestRunProxyUpdateDispatcher(t *testing.T) {
+	a := assert.New(t)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	b := NewBroker(stopCh) // this starts runProxyUpdateDispatcher() in a goroutine
+	proxyUpdateChan := b.GetProxyUpdatePubSub().Sub(announcements.ProxyUpdate.String())
+	defer b.Unsub(b.proxyUpdatePubSub, proxyUpdateChan)
+
+	// Verify sliding window expiry
+	b.proxyUpdateCh <- events.PubSubMessage{Kind: announcements.Kind("sliding-window")}
+
+	time.Sleep(proxyUpdateSlidingWindow + 10*time.Millisecond)
+	<-proxyUpdateChan
+	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 1)
+
+	// Verify max window expiry
+	proxyUpdateReceived := make(chan struct{})
+	go func() {
+		<-proxyUpdateChan
+		close(proxyUpdateReceived)
+	}()
+	numEvents := 10
+	go func() {
+		// Sleep for at least 'proxyUpdateMaxWindow' duration (10s), while
+		// ensuring sliding window does not expire. 'proxyUpdateSlidingWindow'
+		// expires at 2s intervals, so ensure updates are sent within that window
+		// via the 1s sleep.
+		for i := 0; i < numEvents; i++ {
+			log.Trace().Msg("Dispatching event")
+			b.proxyUpdateCh <- events.PubSubMessage{Kind: announcements.Kind("max-window")}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	<-proxyUpdateReceived
+	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 2) // 1 carried over from sliding window test
+
+	// Verify incorrect message type is ignored
+	b.proxyUpdateCh <- "not-PubSubMessage"
+	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 2) // No new dispatched events
+
+	// Verify channel close
+	close(b.proxyUpdateCh)
 }
