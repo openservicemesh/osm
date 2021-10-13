@@ -20,10 +20,6 @@ func (c client) ListMultiClusterServices() []v1alpha1.MultiClusterService {
 }
 
 func (c client) GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []v1alpha1.MultiClusterService {
-	if !c.kubeController.IsMonitoredNamespace(namespace) {
-		return nil
-	}
-
 	var services []v1alpha1.MultiClusterService
 
 	for _, svc := range c.ListMultiClusterServices() {
