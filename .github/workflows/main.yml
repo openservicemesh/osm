@@ -146,7 +146,9 @@ jobs:
         run: make go-test-coverage
       - name: Upload Coverage
         if: ${{ success() }}
-        run: bash <(curl -s https://codecov.io/bash) -F unittests
+        uses: codecov/codecov-action@v2
+        with:
+          flags: unittests
 
   scenarios_tests:
     name: Test various Envoy + SMI configuration scenarios
