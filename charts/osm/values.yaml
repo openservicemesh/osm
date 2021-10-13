@@ -39,11 +39,11 @@ OpenServiceMesh:
   osmController:
     # -- OSM controller's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
-    # -- OSM controller's container resource parameters
+    # -- OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details.
     resource:
       limits:
         cpu: "1.5"
-        memory: "512M"
+        memory: "1G"
       requests:
         cpu: "0.5"
         memory: "128M"
