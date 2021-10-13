@@ -136,7 +136,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | OpenServiceMesh.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | OpenServiceMesh.osmController.replicaCount | int | `1` | OSM controller's replica count (ignored when autoscale.enable is true) |
-| OpenServiceMesh.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"512M"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters |
+| OpenServiceMesh.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"1G"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details. |
 | OpenServiceMesh.osmNamespace | string | `""` | Namespace to deploy OSM in. If not specified, the Helm release namespace is used. |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | OpenServiceMesh.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
