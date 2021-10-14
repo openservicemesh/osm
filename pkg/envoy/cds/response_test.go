@@ -66,7 +66,7 @@ func TestNewResponse(t *testing.T) {
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{testMeshSvc}, nil
-	}))
+	}), nil)
 
 	expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{
 		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
@@ -404,7 +404,7 @@ func TestNewResponse(t *testing.T) {
 func TestNewResponseListServicesError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, errors.New("some error")
-	}))
+	}), nil)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
@@ -428,7 +428,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
@@ -457,7 +457,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
@@ -492,7 +492,7 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
-	}))
+	}), nil)
 	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	assert.Nil(err)

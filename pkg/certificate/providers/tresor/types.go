@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -40,6 +41,8 @@ type CertManager struct {
 
 	serviceCertValidityDuration time.Duration
 	keySize                     int
+
+	msgBroker *messaging.Broker
 }
 
 // Certificate implements certificate.Certificater

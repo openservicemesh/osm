@@ -187,11 +187,11 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	cm.cache.Store(cn, newCert)
 
-	events.Publish(events.PubSubMessage{
+	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
 		NewObj: newCert,
 		OldObj: oldCert.(certificate.Certificater),
-	})
+	}, announcements.CertificateRotated.String())
 
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 

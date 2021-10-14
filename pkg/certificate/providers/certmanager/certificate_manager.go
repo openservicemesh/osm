@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -99,11 +100,11 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cache[cn] = newCert
 	cm.cacheLock.Unlock()
 
-	events.Publish(events.PubSubMessage{
+	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
 		NewObj: newCert,
 		OldObj: oldCert,
-	})
+	}, announcements.CertificateRotated.String())
 
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
@@ -258,7 +259,7 @@ func NewCertManager(
 	cfg configurator.Configurator,
 	serviceCertValidityDuration time.Duration,
 	keySize int,
-) (*CertManager, error) {
+	msgBroker *messaging.Broker) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
 	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
 
@@ -275,6 +276,7 @@ func NewCertManager(
 		cfg:                         cfg,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		keySize:                     keySize,
+		msgBroker:                   msgBroker,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

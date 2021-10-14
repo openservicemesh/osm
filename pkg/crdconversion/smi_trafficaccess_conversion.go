@@ -13,7 +13,7 @@ func serveTrafficAccessConversion(w http.ResponseWriter, r *http.Request) {
 }
 
 // convertTrafficAccess contains the business logic to convert traffictargets.access.smi-spec.io CRD
-// Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.21/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
+// Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
 func convertTrafficAccess(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
 	convertedObject := Object.DeepCopy()
 	fromVersion := Object.GetAPIVersion()

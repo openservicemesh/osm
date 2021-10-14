@@ -6,6 +6,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("proxy-registry")
@@ -15,14 +16,15 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	connectedProxies    sync.Map
-	disconnectedProxies sync.Map
+	connectedProxies sync.Map
 
 	// Maintain a mapping of pod UID to CN of the Envoy on the given pod
 	podUIDToCN sync.Map
 
 	// Maintain a mapping of pod UID to certificate SerialNumber of the Envoy on the given pod
 	podUIDToCertificateSerialNumber sync.Map
+
+	msgBroker *messaging.Broker
 }
 
 type connectedProxy struct {
@@ -31,8 +33,4 @@ type connectedProxy struct {
 
 	// When the proxy connected to the XDS control plane
 	connectedAt time.Time
-}
-
-type disconnectedProxy struct {
-	lastSeen time.Time
 }

@@ -18,7 +18,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -127,7 +127,7 @@ func TestGetSupportedIngressVersions(t *testing.T) {
 	}
 }
 
-func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
+func TestGetIngressNetworkingV1AndV1beta1(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -335,14 +335,12 @@ func TestGetIngressNetworkingV1AndVebeta1(t *testing.T) {
 				},
 			}).Times(1)
 
-			// pub-sub is implemented as a singleton, so even though this test does not require to issue any
-			// certificates, the gorutine it spawns could be triggered by another test within the suite.
-			fakeCertProvider := tresor.NewFakeCertManager(mockConfigurator)
+			stop := make(chan struct{})
+			defer close(stop)
 
-			stopChan := make(chan struct{})
-			defer close(stopChan)
+			msgBroker := messaging.NewBroker(stop)
 
-			c, err := NewIngressClient(fakeClient, mockKubeController, stopChan, mockConfigurator, fakeCertProvider)
+			c, err := NewIngressClient(fakeClient, mockKubeController, stop, mockConfigurator, nil, msgBroker)
 			assert.Nil(err)
 
 			switch tc.version {

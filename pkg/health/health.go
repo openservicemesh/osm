@@ -48,7 +48,10 @@ func (httpProbe HTTPProbe) Probe() (int, error) {
 		// similar to how k8s api server handles HTTPS probes.
 		// #nosec G402
 		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				MinVersion:         tls.VersionTLS13,
+			},
 		}
 		client.Transport = transport
 	}

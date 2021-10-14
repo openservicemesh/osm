@@ -37,6 +37,12 @@ type MetricsStore struct {
 	// ProxyBroadcastEventCounter is the metric for the total number of ProxyBroadcast events published
 	ProxyBroadcastEventCount prometheus.Counter
 
+	// ProxyResponseSendSuccessCount is the metric for the total number of successful responses sent to the proxies
+	ProxyResponseSendSuccessCount prometheus.Counter
+
+	// ProxyResponseSendErrorCount is the metric for the total number of errors encountered while sending responses to proxies
+	ProxyResponseSendErrorCount prometheus.Counter
+
 	/*
 	 * Injector metrics
 	 */
@@ -101,6 +107,20 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "reconnect_count",
 		Help:      "Represents the number of reconnects from known proxies to OSM controller",
+	})
+
+	defaultMetricsStore.ProxyResponseSendSuccessCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "response_send_success_count",
+		Help:      "Represents the number of responses successfully sent to proxies",
+	})
+
+	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "response_send_error_count",
+		Help:      "Represents the number of responses that errored when being set to proxies",
 	})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(

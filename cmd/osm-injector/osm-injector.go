@@ -22,6 +22,7 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -149,18 +150,20 @@ func main() {
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 	)
 
+	msgBroker := messaging.NewBroker(stop)
+
 	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, k8s.Namespaces)
+	kubeController, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker, k8s.Namespaces)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
 	// Intitialize certificate manager/provider
 	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
+		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
 
 	certManager, _, err := certProviderConfig.GetCertificateManager()
 	if err != nil {
@@ -186,6 +189,9 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
+
+	// Start the global log level watcher that updates the log level dynamically
+	go k8s.WatchAndUpdateLogLevel(msgBroker, stop)
 
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for sidecar injector webhook")
