@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -142,5 +143,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders)
+		mockIngressMonitor, mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

@@ -6,12 +6,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // NewProxyRegistry initializes a new empty *ProxyRegistry.
-func NewProxyRegistry(mapper ProxyServiceMapper) *ProxyRegistry {
+func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *ProxyRegistry {
 	return &ProxyRegistry{
 		ProxyServiceMapper: mapper,
+		msgBroker:          msgBroker,
 	}
 }
 
@@ -38,11 +40,6 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
 	pr.connectedProxies.Delete(p.GetCertificateCommonName())
-
-	pr.disconnectedProxies.Store(p.GetCertificateCommonName(), disconnectedProxy{
-		lastSeen: time.Now(),
-	})
-
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 

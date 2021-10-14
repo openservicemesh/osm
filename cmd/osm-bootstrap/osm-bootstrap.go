@@ -33,6 +33,7 @@ import (
 	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -163,12 +164,14 @@ func main() {
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 	)
 
+	msgBroker := messaging.NewBroker(stop)
+
 	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
 
 	// Intitialize certificate manager/provider
 	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
+		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
 
 	certManager, _, err := certProviderConfig.GetCertificateManager()
 	if err != nil {

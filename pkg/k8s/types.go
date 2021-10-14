@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -41,7 +42,9 @@ const (
 
 const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	DefaultKubeEventResyncInterval = 5 * time.Minute
+	// This is set to 0 because we do not need resyncs from k8s client, and have our
+	// own Ticker to turn on periodic resyncs.
+	DefaultKubeEventResyncInterval = 0 * time.Second
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
@@ -69,6 +72,7 @@ type client struct {
 	kubeClient   kubernetes.Interface
 	policyClient policyv1alpha1Client.Interface
 	informers    informerCollection
+	msgBroker    *messaging.Broker
 }
 
 // Controller is the controller interface for K8s services

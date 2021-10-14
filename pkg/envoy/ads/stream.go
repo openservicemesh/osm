@@ -1,7 +1,6 @@
 package ads
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -61,21 +60,22 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
 
-	ctx, cancel := context.WithCancel(server.Context())
-	defer cancel()
-
 	quit := make(chan struct{})
 	requests := make(chan xds_discovery.DiscoveryRequest)
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
-	go receive(requests, &server, proxy, quit, s.proxyRegistry)
+	go receive(requests, &server, proxy, quit)
 
-	// Register to Envoy global broadcast updates
-	broadcastUpdate := events.Subscribe(announcements.ProxyBroadcast)
+	// Register for proxy config updates broadcasted by the message broker
+	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
+	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
+	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
 	// Register for certificate rotation updates
-	certAnnouncement := events.Subscribe(announcements.CertificateRotated)
+	certPubSub := s.msgBroker.GetCertPubSub()
+	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
+	defer s.msgBroker.Unsub(certPubSub, certRotateChan)
 
 	newJob := func(typeURIs []envoy.TypeURI, discoveryRequest *xds_discovery.DiscoveryRequest) *proxyResponseJob {
 		return &proxyResponseJob{
@@ -90,10 +90,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	for {
 		select {
-		case <-ctx.Done():
-			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
-			return nil
-
 		case <-quit:
 			log.Debug().Str("proxy", proxy.String()).Msgf("gRPC stream closed")
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
@@ -119,7 +115,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
-		case <-broadcastUpdate:
+		case <-proxyUpdateChan:
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
 
 			// Per protocol, we have to wait for the proxy to go through init phase (initial no-nonce request),
@@ -134,8 +130,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			// Do not send SDS, let envoy figure out what certs does it want.
 			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS}, nil))
 
-		case certUpdateMsg := <-certAnnouncement:
-			cert := certUpdateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+		case certRotateMsg := <-certRotateChan:
+			cert := certRotateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
 			if isCNforProxy(proxy, cert.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.

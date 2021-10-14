@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -92,6 +93,11 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			stop := make(chan struct{})
+			defer close(stop)
+
+			msgBroker := messaging.NewBroker(stop)
+
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			fakeCertProvider := tresor.NewFakeCertManager(mockConfigurator)
@@ -100,6 +106,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 				kubeClient:   fakeClient,
 				certProvider: fakeCertProvider,
 				cfg:          mockConfigurator,
+				msgBroker:    msgBroker,
 			}
 
 			mockConfigurator.EXPECT().GetMeshConfig().Return(tc.meshConfig).Times(1)
@@ -311,13 +318,19 @@ func TestHandleCertificateChange(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			stop := make(chan struct{})
+			defer close(stop)
+
+			msgBroker := messaging.NewBroker(stop)
+
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresor.NewFakeCertManager(mockConfigurator)
+			fakeCertProvider := tresor.NewFakeCertManagerForRotation(mockConfigurator, msgBroker)
 
 			c := client{
 				kubeClient:   fakeClient,
 				certProvider: fakeCertProvider,
+				msgBroker:    msgBroker,
 			}
 
 			go c.handleCertificateChange(tc.previousCertSpec, tc.stopChan)
@@ -331,11 +344,11 @@ func TestHandleCertificateChange(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
-				events.Publish(events.PubSubMessage{
+				msgBroker.GetKubeEventPubSub().Pub(events.PubSubMessage{
 					Kind:   announcements.MeshConfigUpdated,
 					NewObj: tc.updatedMeshConfig,
 					OldObj: tc.previousMeshConfig,
-				})
+				}, announcements.MeshConfigUpdated.String())
 			}
 
 			if !tc.expectSecretToExist {

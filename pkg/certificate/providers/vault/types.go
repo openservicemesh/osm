@@ -9,6 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
@@ -29,6 +30,8 @@ type CertManager struct {
 	cfg configurator.Configurator
 
 	serviceCertValidityDuration time.Duration
+
+	msgBroker *messaging.Broker
 }
 
 type vaultRole string

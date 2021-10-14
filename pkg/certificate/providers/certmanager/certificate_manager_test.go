@@ -22,6 +22,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -111,6 +112,10 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			}
 		})
 
+		stop := make(chan struct{})
+		defer close(stop)
+		msgBroker := messaging.NewBroker(stop)
+
 		cm, newCertError := NewCertManager(
 			rootCertificator,
 			fakeClient,
@@ -119,6 +124,7 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			mockConfigurator,
 			mockConfigurator.GetServiceCertValidityPeriod(),
 			mockConfigurator.GetCertKeyBitSize(),
+			msgBroker,
 		)
 		It("should get an issued certificate from the cache", func() {
 			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
@@ -223,6 +229,7 @@ func TestCertificaterFromCertificateRequest(t *testing.T) {
 		mockConfigurator,
 		mockConfigurator.GetServiceCertValidityPeriod(),
 		mockConfigurator.GetCertKeyBitSize(),
+		nil,
 	)
 	assert.Nil(err)
 

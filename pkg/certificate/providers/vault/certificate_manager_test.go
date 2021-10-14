@@ -75,6 +75,7 @@ var _ = Describe("Test client helpers", func() {
 				vaultRole,
 				mockConfigurator,
 				mockConfigurator.GetServiceCertValidityPeriod(),
+				nil,
 			)
 			Expect(err).To(HaveOccurred())
 			vaultError := err.(*url.Error)

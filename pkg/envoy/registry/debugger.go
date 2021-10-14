@@ -1,8 +1,6 @@
 package registry
 
 import (
-	"time"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
@@ -13,21 +11,7 @@ func (pr *ProxyRegistry) ListConnectedProxies() map[certificate.CommonName]*envo
 	pr.connectedProxies.Range(func(cnIface, propsIface interface{}) bool {
 		cn := cnIface.(certificate.CommonName)
 		props := propsIface.(connectedProxy)
-		if _, isDisconnected := pr.disconnectedProxies.Load(cn); !isDisconnected {
-			proxies[cn] = props.proxy
-		}
-		return true // continue the iteration
-	})
-	return proxies
-}
-
-// ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
-func (pr *ProxyRegistry) ListDisconnectedProxies() map[certificate.CommonName]time.Time {
-	proxies := make(map[certificate.CommonName]time.Time)
-	pr.disconnectedProxies.Range(func(cnInterface, disconnectedProxyInterface interface{}) bool {
-		cn := cnInterface.(certificate.CommonName)
-		props := disconnectedProxyInterface.(disconnectedProxy)
-		proxies[cn] = props.lastSeen
+		proxies[cn] = props.proxy
 		return true // continue the iteration
 	})
 	return proxies

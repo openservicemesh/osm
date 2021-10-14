@@ -5,6 +5,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -25,6 +26,13 @@ func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
 		cfg:     cfg,
 		keySize: 2048, // hardcoding this to remove depdendency on configurator mock
 	}
+}
+
+// NewFakeCertManagerForRotation creates a fake CertManager used for testing certificate rotation
+func NewFakeCertManagerForRotation(cfg configurator.Configurator, msgBroker *messaging.Broker) *CertManager {
+	cm := NewFakeCertManager(cfg)
+	cm.msgBroker = msgBroker
+	return cm
 }
 
 // NewFakeCertificate is a helper creating Certificates for unit tests.

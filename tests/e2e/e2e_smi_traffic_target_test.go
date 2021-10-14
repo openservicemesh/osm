@@ -23,11 +23,11 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 		Bucket: 8,
 	},
 	func() {
-		Context("SMI TrafficTarget", func() {
+		Context("SMI TrafficTarget is set up properly", func() {
 			var (
+				destName  = framework.RandomNameWithPrefix("server")
 				sourceOne = framework.RandomNameWithPrefix("client1")
 				sourceTwo = framework.RandomNameWithPrefix("client2")
-				destName  = framework.RandomNameWithPrefix("server")
 				ns        = []string{sourceOne, sourceTwo, destName}
 			)
 
@@ -196,6 +196,104 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 					return true
 				}, 5, 150*time.Second)
 				Expect(cond).To(BeTrue())
+			})
+		})
+		Context("SMI Traffic Target is not in the same namespace as the destination", func() {
+			var (
+				destName   = framework.RandomNameWithPrefix("server")
+				clientName = framework.RandomNameWithPrefix("client")
+				namespaces = []string{destName, clientName}
+			)
+
+			It("does not allow HTTP traffic for client pod -> server pod", func() {
+
+				// Create test namespaces
+				for _, n := range namespaces {
+					Expect(Td.CreateNs(n, nil)).To(Succeed())
+				}
+				// create a traffic target where the namespace does not match the destination namespace before installing OSM
+				anythingPath := "/anything"
+				httpRouteGroup, trafficTarget := createPolicyForRoutePath(clientName, clientName, destName, destName, anythingPath)
+				_, err := Td.CreateHTTPRouteGroup(clientName, httpRouteGroup)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = Td.CreateTrafficTarget(clientName, trafficTarget)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Install OSM
+				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+
+				// Add test namespaces to the mesh
+				for _, n := range namespaces {
+					Expect(Td.AddNsToMesh(true, n)).To(Succeed())
+				}
+
+				// Set up the destination HTTP server
+				svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
+					SimplePodAppDef{
+						PodName:            destName,
+						Namespace:          destName,
+						ServiceAccountName: destName,
+						Image:              "kennethreitz/httpbin",
+						Ports:              []int{80},
+						OS:                 Td.ClusterOS,
+					})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = Td.CreateServiceAccount(destName, &svcAccDef)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = Td.CreatePod(destName, podDef)
+				Expect(err).NotTo(HaveOccurred())
+				destService, err := Td.CreateService(destName, svcDef)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Set up the HTTP client that is trying to access to the destination
+				clientSvcAccDef, clientSrcPodDef, _, err := Td.SimplePodApp(SimplePodAppDef{
+					PodName:            clientName,
+					Namespace:          clientName,
+					ServiceAccountName: clientName,
+					ContainerName:      clientName,
+					Command:            []string{"sleep", "365d"},
+					Image:              "curlimages/curl",
+					Ports:              []int{80},
+					OS:                 Td.ClusterOS,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = Td.CreateServiceAccount(clientName, &clientSvcAccDef)
+				Expect(err).NotTo(HaveOccurred())
+				clientPod, err := Td.CreatePod(clientName, clientSrcPodDef)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(Td.WaitForPodsRunningReady(clientName, 90*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+
+				// HTTP request from 'client': http://<address>/anything
+				clientToServer := HTTPRequestDef{
+					SourceNs:        clientName,
+					SourcePod:       clientName,
+					SourceContainer: clientName,
+
+					Destination: fmt.Sprintf("%s.%s%s", destService.Name, destService.Namespace, anythingPath),
+				}
+
+				srcToDestStr := fmt.Sprintf("%s -> %s",
+					fmt.Sprintf("%s/%s", clientName, clientPod.Name),
+					clientToServer.Destination)
+
+				// Verify HTTP requests fail from denied client to destination server
+				cond := Td.WaitForRepeatedSuccess(func() bool {
+					result := Td.HTTPRequest(clientToServer)
+
+					// 0 means the request was unable to be made
+					if result.StatusCode != 0 || !strings.Contains(result.Err.Error(), "command terminated with exit code 7") {
+						Td.T.Logf("> (%s) HTTP Req did not fail correctly, incorrect expected result: %d, %s", srcToDestStr, result.StatusCode, result.Err)
+						return false
+					}
+					Td.T.Logf("> (%s) HTTP Req failed correctly with status code %d", srcToDestStr, result.StatusCode)
+					return true
+				}, 10, 90*time.Second)
+				Expect(cond).To(BeTrue())
+
 			})
 		})
 	})
