@@ -12,6 +12,9 @@ rules:
   - apiGroups: ["config.openservicemesh.io"]
     resources: ["meshconfigs"]
     verbs: ["delete"]
+  - apiGroups: [ "" ]
+    resources: [ "secrets"]
+    verbs: ["delete"]
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "create", "delete", "update", "patch"]
@@ -77,6 +80,7 @@ spec:
             - -c
             - >
              kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
+             kubectl delete --ignore-not-found secret -n '{{ include "osm.namespace" . }}' {{ .Values.OpenServiceMesh.caBundleSecretName }} mutating-webhook-cert-secret validating-webhook-cert-secret crd-converter-cert-secret;
              kubectl apply -f /osm-crds;
              kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
              kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
