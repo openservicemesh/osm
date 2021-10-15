@@ -5,10 +5,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
@@ -29,12 +32,12 @@ func TestAllEvents(t *testing.T) {
 	)
 	defer c.Unsub(c.kubeEventPubSub, podChan)
 
-	serviceChan := c.GetKubeEventPubSub().Sub(
-		announcements.ServiceAdded.String(),
-		announcements.ServiceUpdated.String(),
-		announcements.ServiceDeleted.String(),
+	endpointsChan := c.GetKubeEventPubSub().Sub(
+		announcements.EndpointAdded.String(),
+		announcements.EndpointUpdated.String(),
+		announcements.EndpointDeleted.String(),
 	)
-	defer c.Unsub(c.kubeEventPubSub, serviceChan)
+	defer c.Unsub(c.kubeEventPubSub, endpointsChan)
 
 	meshCfgChan := c.GetKubeEventPubSub().Sub(announcements.MeshConfigUpdated.String())
 	defer c.Unsub(c.kubeEventPubSub, meshCfgChan)
@@ -43,10 +46,10 @@ func TestAllEvents(t *testing.T) {
 	defer c.Unsub(c.certPubSub, certRotateChan)
 
 	numEventTriggers := 50
-	// 6 messagges pod/service add/update/delete will result in proxy update events
-	numProxyUpdatesPerEventTrigger := 6
-	// MeshConfig update events not related to proxy change does trigger proxy update events
-	numNonProxyUpdatesPerEventTrigger := 1
+	// Endpoints add/update/delete will result in proxy update events
+	numProxyUpdatesPerEventTrigger := 3
+	// MeshConfig update events not related to proxy changes and pod events do not trigger proxy update events
+	numNonProxyUpdatesPerEventTrigger := 4
 	go func() {
 		for i := 0; i < numEventTriggers; i++ {
 			podAdd := events.PubSubMessage{
@@ -70,26 +73,26 @@ func TestAllEvents(t *testing.T) {
 			}
 			c.GetQueue().Add(podUpdate)
 
-			serviceAdd := events.PubSubMessage{
-				Kind:   announcements.ServiceAdded,
+			epAdd := events.PubSubMessage{
+				Kind:   announcements.EndpointAdded,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().Add(serviceAdd)
+			c.GetQueue().Add(epAdd)
 
-			serviceDel := events.PubSubMessage{
-				Kind:   announcements.ServiceDeleted,
+			epDel := events.PubSubMessage{
+				Kind:   announcements.EndpointDeleted,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().Add(serviceDel)
+			c.GetQueue().Add(epDel)
 
-			serviceUpdate := events.PubSubMessage{
-				Kind:   announcements.ServiceUpdated,
+			epUpdate := events.PubSubMessage{
+				Kind:   announcements.EndpointUpdated,
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().Add(serviceUpdate)
+			c.GetQueue().Add(epUpdate)
 
 			meshCfgUpdate := events.PubSubMessage{
 				Kind:   announcements.MeshConfigUpdated,
@@ -121,14 +124,14 @@ func TestAllEvents(t *testing.T) {
 		close(doneVerifyingPodEvents)
 	}()
 
-	doneVerifyingServiceEvents := make(chan struct{})
+	doneVerifyingEndpointEvents := make(chan struct{})
 	go func() {
 		// Verify expected number of service events
 		numExpectedServiceEvents := numEventTriggers * 3 // 3 == 1 add, 1 delete, 1 update per trigger
 		for i := 0; i < numExpectedServiceEvents; i++ {
-			<-serviceChan
+			<-endpointsChan
 		}
-		close(doneVerifyingServiceEvents)
+		close(doneVerifyingEndpointEvents)
 	}()
 
 	doneVerifyingMeshCfgEvents := make(chan struct{})
@@ -159,28 +162,29 @@ func TestAllEvents(t *testing.T) {
 	}()
 
 	<-doneVerifyingPodEvents
-	<-doneVerifyingServiceEvents
+	<-doneVerifyingEndpointEvents
 	<-doneVerifyingMeshCfgEvents
 	<-doneVerifyingCertEvents
 	<-doneVerifyingProxyEvents
 
 	a.EqualValues(c.GetTotalQEventCount(), numEventTriggers*(numProxyUpdatesPerEventTrigger+numNonProxyUpdatesPerEventTrigger))
 	a.EqualValues(c.GetTotalQProxyEventCount(), numEventTriggers*numProxyUpdatesPerEventTrigger)
-	log.Trace().Msgf("sss batch expected `proxy event total %d", c.GetTotalQProxyEventCount())
 }
 
-func TestShouldUpdateProxy(t *testing.T) {
+func TestGetProxyUpdateEvent(t *testing.T) {
 	testCases := []struct {
-		name     string
-		msg      events.PubSubMessage
-		expected bool
+		name          string
+		msg           events.PubSubMessage
+		expectEvent   bool
+		expectedTopic string
 	}{
 		{
 			name: "egress event",
 			msg: events.PubSubMessage{
 				Kind: announcements.EgressAdded,
 			},
-			expected: true,
+			expectEvent:   true,
+			expectedTopic: announcements.ProxyUpdate.String(),
 		},
 		{
 			name: "MeshConfig updated to enable permissive mode",
@@ -201,7 +205,8 @@ func TestShouldUpdateProxy(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expectEvent:   true,
+			expectedTopic: announcements.ProxyUpdate.String(),
 		},
 		{
 			name: "MeshConfigUpdate event with unexpected object type",
@@ -209,7 +214,7 @@ func TestShouldUpdateProxy(t *testing.T) {
 				Kind:   announcements.MeshConfigUpdated,
 				OldObj: "unexpected-type",
 			},
-			expected: false,
+			expectEvent: false,
 		},
 		{
 			name: "MeshConfig updated with field that does not result in proxy update",
@@ -230,14 +235,77 @@ func TestShouldUpdateProxy(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expectEvent: false,
 		},
 		{
 			name: "Namespace event",
 			msg: events.PubSubMessage{
 				Kind: announcements.NamespaceAdded,
 			},
-			expected: false,
+			expectEvent: false,
+		},
+		{
+			name: "Pod add event",
+			msg: events.PubSubMessage{
+				Kind: announcements.PodAdded,
+			},
+			expectEvent: false,
+		},
+		{
+			name: "Pod update event not resulting in proxy update",
+			msg: events.PubSubMessage{
+				Kind: announcements.PodUpdated,
+			},
+			expectEvent: false,
+		},
+		{
+			// Metrics annotation updates should update the relevant proxy
+			name: "Pod update event resulting in proxy update",
+			msg: events.PubSubMessage{
+				OldObj: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{constants.PrometheusScrapeAnnotation: "false"},
+						Labels:      map[string]string{constants.EnvoyUniqueIDLabelName: "foo"},
+					},
+				},
+				NewObj: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{constants.PrometheusScrapeAnnotation: "true"},
+						Labels:      map[string]string{constants.EnvoyUniqueIDLabelName: "foo"},
+					},
+				},
+				Kind: announcements.PodUpdated,
+			},
+			expectEvent:   true,
+			expectedTopic: "proxy:foo",
+		},
+		{
+			name: "Pod delete event",
+			msg: events.PubSubMessage{
+				Kind: announcements.PodDeleted,
+			},
+			expectEvent: false,
+		},
+		{
+			name: "Service add event",
+			msg: events.PubSubMessage{
+				Kind: announcements.ServiceAdded,
+			},
+			expectEvent: false,
+		},
+		{
+			name: "Service update event",
+			msg: events.PubSubMessage{
+				Kind: announcements.ServiceUpdated,
+			},
+			expectEvent: false,
+		},
+		{
+			name: "Service delete event",
+			msg: events.PubSubMessage{
+				Kind: announcements.ServiceDeleted,
+			},
+			expectEvent: false,
 		},
 	}
 
@@ -245,8 +313,11 @@ func TestShouldUpdateProxy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := shouldUpdateProxy(tc.msg)
-			a.Equal(tc.expected, actual)
+			actual := getProxyUpdateEvent(tc.msg)
+			a.Equal(tc.expectEvent, actual != nil)
+			if tc.expectEvent {
+				a.Equal(tc.expectedTopic, actual.topic)
+			}
 		})
 	}
 }
@@ -261,7 +332,10 @@ func TestRunProxyUpdateDispatcher(t *testing.T) {
 	defer b.Unsub(b.proxyUpdatePubSub, proxyUpdateChan)
 
 	// Verify sliding window expiry
-	b.proxyUpdateCh <- events.PubSubMessage{Kind: announcements.Kind("sliding-window")}
+	b.proxyUpdateCh <- proxyUpdateEvent{
+		msg:   events.PubSubMessage{Kind: announcements.Kind("sliding-window")},
+		topic: announcements.ProxyUpdate.String(),
+	}
 
 	time.Sleep(proxyUpdateSlidingWindow + 10*time.Millisecond)
 	<-proxyUpdateChan
@@ -281,18 +355,23 @@ func TestRunProxyUpdateDispatcher(t *testing.T) {
 		// via the 1s sleep.
 		for i := 0; i < numEvents; i++ {
 			log.Trace().Msg("Dispatching event")
-			b.proxyUpdateCh <- events.PubSubMessage{Kind: announcements.Kind("max-window")}
+			b.proxyUpdateCh <- proxyUpdateEvent{
+				msg:   events.PubSubMessage{Kind: announcements.Kind("max-window")},
+				topic: announcements.ProxyUpdate.String(),
+			}
 			time.Sleep(1 * time.Second)
 		}
+		// Verify channel close
+		close(b.proxyUpdateCh)
 	}()
 
 	<-proxyUpdateReceived
 	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 2) // 1 carried over from sliding window test
+}
 
-	// Verify incorrect message type is ignored
-	b.proxyUpdateCh <- "not-PubSubMessage"
-	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 2) // No new dispatched events
+func TestGetPubSubTopicForProxyUUID(t *testing.T) {
+	a := assert.New(t)
 
-	// Verify channel close
-	close(b.proxyUpdateCh)
+	a.Equal("proxy:foo", GetPubSubTopicForProxyUUID("foo"))
+	a.Equal("proxy:baz", GetPubSubTopicForProxyUUID("baz"))
 }

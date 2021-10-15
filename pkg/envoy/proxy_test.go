@@ -29,7 +29,8 @@ import (
 )
 
 var _ = Describe("Test proxy methods", func() {
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), KindSidecar))
+	proxyUUID := uuid.New()
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", proxyUUID, KindSidecar))
 	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
 	proxy, err := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
@@ -109,6 +110,12 @@ var _ = Describe("Test proxy methods", func() {
 		It("returns correct values", func() {
 			actual := proxy.HasPodMetadata()
 			Expect(actual).To(BeFalse())
+		})
+	})
+
+	Context("test UUID", func() {
+		It("returns correct values", func() {
+			Expect(proxy.UUID).To(Equal(proxyUUID))
 		})
 	})
 
