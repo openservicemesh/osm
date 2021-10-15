@@ -61,7 +61,7 @@ jobs:
   imagescan:
     name: Scan images for security vulnerabilities
     runs-on: ubuntu-latest
-    needs: build
+    needs: images
     env:
       CTR_TAG: ${{ needs.version.outputs.version }}
       CTR_REGISTRY: openservicemesh
