@@ -73,7 +73,7 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "sum(osm_resource_namespace_count{source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
+          "expr": "sum(osm_resource_namespace_count{source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name)",
           "format": "time_series",
           "instant": true,
           "interval": "",

@@ -225,8 +225,10 @@ func (b *Broker) processEvent(msg events.PubSubMessage) {
 // updateMetric updates metrics related to the event
 func updateMetric(msg events.PubSubMessage) {
 	switch msg.Kind {
-	case announcements.NamespaceAdded, announcements.NamespaceDeleted:
-		updateNamespaceCounter(msg)
+	case announcements.NamespaceAdded:
+		metricsstore.DefaultMetricsStore.MonitoredNamespaceCounter.Inc()
+	case announcements.NamespaceDeleted:
+		metricsstore.DefaultMetricsStore.MonitoredNamespaceCounter.Dec()
 	}
 }
 

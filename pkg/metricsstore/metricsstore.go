@@ -26,7 +26,7 @@ type MetricsStore struct {
 	 * Resource metrics
 	 */
 	// MonitoredNamespaceCounter is the metric counter for the total number of monitored namespaces in the mesh
-	MonitoredNamespaceCounter *prometheus.GaugeVec
+	MonitoredNamespaceCounter prometheus.Gauge
 
 	/*
 	 * Proxy metrics
@@ -101,15 +101,12 @@ func init() {
 	/*
 	 * Resource metrics
 	 */
-	defaultMetricsStore.MonitoredNamespaceCounter = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: metricsRootNamespace,
-			Subsystem: "resource",
-			Name:      "namespace_count",
-			Help:      "Represents the number of monitored namespaces in the service mesh",
-		},
-		[]string{"namespace"},
-	)
+	defaultMetricsStore.MonitoredNamespaceCounter = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "resource",
+		Name:      "namespace_count",
+		Help:      "Represents the number of monitored namespaces in the service mesh",
+	})
 
 	/*
 	 * Proxy metrics
