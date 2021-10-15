@@ -113,10 +113,9 @@ var _ = Describe("Test proxy methods", func() {
 		})
 	})
 
-	Context("test GetUUID()", func() {
+	Context("test UUID", func() {
 		It("returns correct values", func() {
-			actual := proxy.GetUUID()
-			Expect(actual).To(Equal(proxyUUID))
+			Expect(proxy.UUID).To(Equal(proxyUUID))
 		})
 	})
 

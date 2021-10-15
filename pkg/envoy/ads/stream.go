@@ -70,7 +70,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// Subscribe to both broadcast and proxy UUID specific events
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
-	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String(), messaging.GetPubSubTopicForProxyUUID(proxy.GetUUID().String()))
+	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String(), messaging.GetPubSubTopicForProxyUUID(proxy.UUID.String()))
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
 	// Register for certificate rotation updates
