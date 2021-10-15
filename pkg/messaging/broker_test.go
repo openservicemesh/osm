@@ -48,7 +48,7 @@ func TestAllEvents(t *testing.T) {
 	numEventTriggers := 50
 	// Endpoints add/update/delete will result in proxy update events
 	numProxyUpdatesPerEventTrigger := 3
-	// MeshConfig update events not related to proxy changes and pod events do trigger proxy update events
+	// MeshConfig update events not related to proxy changes and pod events do not trigger proxy update events
 	numNonProxyUpdatesPerEventTrigger := 4
 	go func() {
 		for i := 0; i < numEventTriggers; i++ {
