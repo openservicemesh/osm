@@ -1,11 +1,10 @@
-package resourcemetrics
+package messaging
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -84,22 +82,9 @@ func TestNamespaceUpdateEvent(t *testing.T) {
 		},
 	}
 
-	stop := make(chan struct{})
-	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
-
-	go StartNamespaceCounter(msgBroker, stop)
-	// Subscription should happen before an event is published by the test, so
-	// add a delay before the test triggers events
-	time.Sleep(500 * time.Millisecond)
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			msgBroker.GetKubeEventPubSub().Pub(tc.event, tc.event.Kind.String())
-
-			// Add a delay before making a request to allow time for the msg
-			// to be processed and the metric updated
-			time.Sleep(500 * time.Millisecond)
+			updateNamespaceCounter(tc.event)
 
 			handler := metricsstore.DefaultMetricsStore.Handler()
 
