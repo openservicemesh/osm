@@ -242,7 +242,7 @@ jobs:
           go-version: 1.16
       - name: Build test dependencies
         run: make docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-bootstrap docker-build-init build-osm docker-build-tcp-echo-server
-      # PR Tests
+      # PR Test
       - name: Run PR tests
         id: pr_test
         if: ${{ github.event_name == 'pull_request' }}
