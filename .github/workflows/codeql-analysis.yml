@@ -37,12 +37,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
     - name: Restore Module Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-gomod2-
     - name: Restore Build Cache
       uses: actions/cache@v2
       with:
