@@ -25,7 +25,7 @@ var _ = Describe("Running the uninstall command", func() {
 
 	Context("default parameters", func() {
 		var (
-			cmd   *uninstallCmd
+			cmd   *uninstallMeshCmd
 			force bool
 		)
 
@@ -55,7 +55,7 @@ var _ = Describe("Running the uninstall command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
 			force = false
-			cmd = &uninstallCmd{
+			cmd = &uninstallMeshCmd{
 				out:       out,
 				in:        in,
 				client:    helm.NewUninstall(testConfig),
@@ -105,7 +105,7 @@ var _ = Describe("Running the uninstall command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
 			force = false
-			cmd = &uninstallCmd{
+			cmd = &uninstallMeshCmd{
 				out:       out,
 				in:        in,
 				client:    helm.NewUninstall(testConfig),
@@ -133,7 +133,7 @@ var _ = Describe("Running the uninstall command", func() {
 	})
 	Context("custom parameters", func() {
 		var (
-			cmd             *uninstallCmd
+			cmd             *uninstallMeshCmd
 			force           bool
 			deleteNamespace bool
 		)
@@ -162,7 +162,7 @@ var _ = Describe("Running the uninstall command", func() {
 			out := new(bytes.Buffer)
 			in := new(bytes.Buffer)
 			force = true
-			cmd = &uninstallCmd{
+			cmd = &uninstallMeshCmd{
 				out:       out,
 				in:        in,
 				client:    helm.NewUninstall(testConfig),
@@ -211,7 +211,7 @@ var _ = Describe("Running the uninstall command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("n\n"))
 			deleteNamespace = true
-			cmd = &uninstallCmd{
+			cmd = &uninstallMeshCmd{
 				out:             out,
 				in:              in,
 				client:          helm.NewUninstall(testConfig),
@@ -270,7 +270,7 @@ var _ = Describe("Running the uninstall command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
 			deleteNamespace = true
-			cmd = &uninstallCmd{
+			cmd = &uninstallMeshCmd{
 				out:             out,
 				in:              in,
 				client:          helm.NewUninstall(testConfig),
