@@ -32,7 +32,6 @@ var _ = OSMDescribe("Test osm-mesh-config functionalities",
 				Expect(meshConfig.Spec.Sidecar.LogLevel).Should(Equal("debug"))
 				Expect(meshConfig.Spec.Observability.EnableDebugServer).Should(BeTrue())
 				Expect(meshConfig.Spec.Observability.Tracing.Enable).Should(BeFalse())
-				Expect(meshConfig.Spec.Traffic.UseHTTPSIngress).Should(BeFalse())
 				Expect(meshConfig.Spec.Certificate.ServiceCertValidityDuration).Should(Equal("24h"))
 			})
 		})

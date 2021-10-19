@@ -108,11 +108,6 @@ func (c *client) GetTracingEndpoint() string {
 	return constants.DefaultTracingEndpoint
 }
 
-// UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
-func (c *client) UseHTTPSIngress() bool {
-	return c.getMeshConfig().Spec.Traffic.UseHTTPSIngress
-}
-
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 func (c *client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections

@@ -143,7 +143,6 @@
                 "enableFluentbit",
                 "fluentBit",
                 "meshName",
-                "useHTTPSIngress",
                 "maxDataPlaneConnections",
                 "envoyLogLevel",
                 "controllerLogLevel",
@@ -553,15 +552,6 @@
                     "description": "The name associated with the control plane being installed.",
                     "examples": [
                         "osm"
-                    ]
-                },
-                "useHTTPSIngress": {
-                    "$id": "#/properties/OpenServiceMesh/properties/useHTTPSIngress",
-                    "type": "boolean",
-                    "title": "The useHTTPSIngress schema",
-                    "description": "Indicates whether HTTPS Ingress should be enabled or not.",
-                    "examples": [
-                        false
                     ]
                 },
                 "maxDataPlaneConnections": {

@@ -150,7 +150,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
 | OpenServiceMesh.tracing.port | int | `9411` | Port of the tracing collector service |
-| OpenServiceMesh.useHTTPSIngress | bool | `false` | Enable mesh-wide HTTPS ingress capability (HTTP ingress is the default) |
 | OpenServiceMesh.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | OpenServiceMesh.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
 | OpenServiceMesh.vault.protocol | string | `"http"` | protocol to use to connect to Vault |

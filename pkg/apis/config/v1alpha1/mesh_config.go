@@ -81,9 +81,6 @@ type TrafficSpec struct {
 	// InboundPortExclusionList defines a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
 	InboundPortExclusionList []int `json:"inboundPortExclusionList,omitempty"`
 
-	// UseHTTPSIngress defines a boolean indicating if HTTPS Ingress is enabled globally in the mesh.
-	UseHTTPSIngress bool `json:"useHTTPSIngress,omitempty"`
-
 	// EnablePermissiveTrafficPolicyMode defines a boolean indicating if permissive traffic policy mode is enabled mesh-wide.
 	EnablePermissiveTrafficPolicyMode bool `json:"enablePermissiveTrafficPolicyMode,omitempty"`
 

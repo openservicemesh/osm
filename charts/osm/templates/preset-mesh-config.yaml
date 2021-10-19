@@ -17,7 +17,6 @@ data:
       },
       "traffic": {
         "enableEgress": {{.Values.OpenServiceMesh.enableEgress | mustToJson}},
-        "useHTTPSIngress": {{.Values.OpenServiceMesh.useHTTPSIngress | mustToJson}},
         "enablePermissiveTrafficPolicyMode": {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy | mustToJson}},
         "outboundPortExclusionList": {{.Values.OpenServiceMesh.outboundPortExclusionList | mustToJson}},
         "inboundPortExclusionList": {{.Values.OpenServiceMesh.inboundPortExclusionList | mustToJson}},

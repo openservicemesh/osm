@@ -169,9 +169,6 @@ OpenServiceMesh:
   # -- Identifier for the instance of a service mesh within a cluster
   meshName: osm
 
-  # -- Enable mesh-wide HTTPS ingress capability (HTTP ingress is the default)
-  useHTTPSIngress: false
-
   # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 

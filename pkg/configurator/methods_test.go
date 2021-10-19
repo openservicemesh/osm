@@ -56,7 +56,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 				Traffic: v1alpha1.TrafficSpec{
 					EnablePermissiveTrafficPolicyMode: false,
 					EnableEgress:                      true,
-					UseHTTPSIngress:                   true,
 				},
 				Observability: v1alpha1.ObservabilitySpec{
 					OSMLogLevel:       constants.DefaultOSMLogLevel,
@@ -82,7 +81,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 					Traffic: v1alpha1.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: false,
 						EnableEgress:                      true,
-						UseHTTPSIngress:                   true,
 					},
 					Observability: v1alpha1.ObservabilitySpec{
 						OSMLogLevel:       constants.DefaultOSMLogLevel,
@@ -190,25 +188,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
 				assert.False(cfg.IsTracingEnabled())
-			},
-		},
-		{
-			name: "UseHTTPSIngress",
-			initialMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					UseHTTPSIngress: true,
-				},
-			},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.True(cfg.UseHTTPSIngress())
-			},
-			updatedMeshConfigData: &v1alpha1.MeshConfigSpec{
-				Traffic: v1alpha1.TrafficSpec{
-					UseHTTPSIngress: false,
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.False(cfg.UseHTTPSIngress())
 			},
 		},
 		{
