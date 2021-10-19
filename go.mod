@@ -49,7 +49,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.1.1
 	gorm.io/gorm v1.21.12
-	helm.sh/helm/v3 v3.7.0
+	helm.sh/helm/v3 v3.7.1
 	honnef.co/go/tools v0.1.1 // indirect
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1
