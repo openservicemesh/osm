@@ -224,8 +224,12 @@ func (b *Broker) processEvent(msg events.PubSubMessage) {
 
 // updateMetric updates metrics related to the event
 func updateMetric(msg events.PubSubMessage) {
-	// Generic event metric by virtue of having no labels
-	metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues("", "").Inc()
+	switch msg.Kind {
+	case announcements.NamespaceAdded:
+		metricsstore.DefaultMetricsStore.MonitoredNamespaceCounter.Inc()
+	case announcements.NamespaceDeleted:
+		metricsstore.DefaultMetricsStore.MonitoredNamespaceCounter.Dec()
+	}
 }
 
 // Unsub unsubscribes the given channel from the PubSub instance

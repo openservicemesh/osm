@@ -23,6 +23,12 @@ type MetricsStore struct {
 	K8sAPIEventCounter *prometheus.CounterVec
 
 	/*
+	 * Resource metrics
+	 */
+	// MonitoredNamespaceCounter is the metric counter for the total number of monitored namespaces in the mesh
+	MonitoredNamespaceCounter prometheus.Gauge
+
+	/*
 	 * Proxy metrics
 	 */
 	// ProxyConnectCount is the metric for the total number of proxies connected to the controller
@@ -91,6 +97,16 @@ func init() {
 		},
 		[]string{"type", "namespace"},
 	)
+
+	/*
+	 * Resource metrics
+	 */
+	defaultMetricsStore.MonitoredNamespaceCounter = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "resource",
+		Name:      "namespace_count",
+		Help:      "Represents the number of monitored namespaces in the service mesh",
+	})
 
 	/*
 	 * Proxy metrics
