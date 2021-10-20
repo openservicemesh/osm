@@ -16,15 +16,15 @@ OpenServiceMesh:
     # -- Image digest (ignored when image.tag is set)
     digest:
       # -- osm-controller's image digest
-      osmController: "sha256:49b2231bb5cd5f3143275c3aa3c8e3c2f5e8df7c70cf4e0f10e1c98064ed1d70"
+      osmController: "sha256:1ac81700fe7a4c1dde4ca47f4fdc8797bd06615097766386c727448c060f5da3"
       # -- osm-injector's image digest
-      osmInjector: "sha256:92036f98bd5b969be93d77bd7512836c902df2cfda6cc9a287a72934047f9cdb"
+      osmInjector: "sha256:1a68b254e5acee7ffdb02cd027d460ba424fb9399a4357141d8151d5dc89cf9a"
       # -- Sidecar init container's image digest
-      osmSidecarInit: "sha256:4ba5980000e15aa3b81d9e24e008988b07a355ba741985f476e22f79ac5db62f"
+      osmSidecarInit: "sha256:b3ad2eabeb2a58aaba853ae6fa4a4b6929ee84f592554fe39d3f0cdf8c6d2e16"
       # -- osm-crds' image digest
-      osmCRDs: "sha256:bfe0525ca6f0cc352477fb32911b45a512fb750a7a85fd854b795cc5e955dd0b"
+      osmCRDs: "sha256:a211f9fb78ea058adcd73cfa7330865f8a1bc314fc1c9c2658e5f3b348dc033e"
       # -- osm-boostrap's image digest
-      osmBootstrap: "sha256:443a9f41cb662ad70c4ecf517963fb252e18c9a5f4759501db76adcf7d2ef756"
+      osmBootstrap: "sha256:7bc5844680c09fb5354d88f18562182b880b200238002e587945fb7f4edea5bc"
 
 
   # -- `osm-controller` image pull secret
