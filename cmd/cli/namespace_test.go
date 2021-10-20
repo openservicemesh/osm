@@ -503,52 +503,6 @@ var _ = Describe("Running the namespace remove command", func() {
 		})
 	})
 
-	Describe("with pre-existing ignored namespace", func() {
-		var (
-			out           *bytes.Buffer
-			fakeClientSet kubernetes.Interface
-			err           error
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			fakeClientSet = fake.NewSimpleClientset()
-
-			nsSpec := createNamespaceSpec(testNamespace, testMeshName, false, true)
-			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			namespaceRemoveCmd := &namespaceRemoveCmd{
-				out:       out,
-				meshName:  testMeshName,
-				namespace: testNamespace,
-				clientSet: fakeClientSet,
-			}
-
-			err = namespaceRemoveCmd.run()
-		})
-
-		It("should not error", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should give a message confirming the successful removal", func() {
-			Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully removed from mesh [%s]\n", testNamespace, testMeshName)))
-		})
-
-		It("should correctly remove the monitored-by label on the namespace", func() {
-			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels).ShouldNot(HaveKey(constants.OSMKubeResourceMonitorAnnotation))
-		})
-
-		It("should correctly remove the ignore label on the namespace", func() {
-			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels).ShouldNot(HaveKey(constants.IgnoreLabel))
-		})
-	})
-
 	Describe("with pre-existing ignored namespace with annotation", func() {
 		var (
 			out           *bytes.Buffer
