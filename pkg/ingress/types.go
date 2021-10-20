@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	log = logger.New("kube-ingress")
+	log = logger.New("ingress")
 )
 
 // client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.

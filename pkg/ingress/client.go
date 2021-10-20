@@ -13,7 +13,7 @@ import (
 // Initialize initializes the client and starts the ingress gateway certificate manager routine
 func Initialize(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{},
 	cfg configurator.Configurator, certProvider certificate.Manager, msgBroker *messaging.Broker) error {
-	c := client{
+	c := &client{
 		kubeClient:     kubeClient,
 		kubeController: kubeController,
 		cfg:            cfg,
