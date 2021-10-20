@@ -1,6 +1,6 @@
 # Open Service Mesh Helm Chart
 
-![Version: v0.11.1-rc.1](https://img.shields.io/badge/Version-v0.11.1--rc.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.11.1-rc.1](https://img.shields.io/badge/AppVersion-v0.11.1--rc.1-informational?style=flat-square)
+![Version: v0.11.1](https://img.shields.io/badge/Version-v0.11.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.11.1](https://img.shields.io/badge/AppVersion-v0.11.1-informational?style=flat-square)
 
 A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
 
@@ -100,12 +100,12 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
-| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"sha256:443a9f41cb662ad70c4ecf517963fb252e18c9a5f4759501db76adcf7d2ef756","osmCRDs":"sha256:bfe0525ca6f0cc352477fb32911b45a512fb750a7a85fd854b795cc5e955dd0b","osmController":"sha256:49b2231bb5cd5f3143275c3aa3c8e3c2f5e8df7c70cf4e0f10e1c98064ed1d70","osmInjector":"sha256:92036f98bd5b969be93d77bd7512836c902df2cfda6cc9a287a72934047f9cdb","osmSidecarInit":"sha256:4ba5980000e15aa3b81d9e24e008988b07a355ba741985f476e22f79ac5db62f"}` | Image digest (ignored when image.tag is set) |
-| OpenServiceMesh.image.digest.osmBootstrap | string | `"sha256:443a9f41cb662ad70c4ecf517963fb252e18c9a5f4759501db76adcf7d2ef756"` | osm-boostrap's image digest |
-| OpenServiceMesh.image.digest.osmCRDs | string | `"sha256:bfe0525ca6f0cc352477fb32911b45a512fb750a7a85fd854b795cc5e955dd0b"` | osm-crds' image digest |
-| OpenServiceMesh.image.digest.osmController | string | `"sha256:49b2231bb5cd5f3143275c3aa3c8e3c2f5e8df7c70cf4e0f10e1c98064ed1d70"` | osm-controller's image digest |
-| OpenServiceMesh.image.digest.osmInjector | string | `"sha256:92036f98bd5b969be93d77bd7512836c902df2cfda6cc9a287a72934047f9cdb"` | osm-injector's image digest |
-| OpenServiceMesh.image.digest.osmSidecarInit | string | `"sha256:4ba5980000e15aa3b81d9e24e008988b07a355ba741985f476e22f79ac5db62f"` | Sidecar init container's image digest |
+| OpenServiceMesh.image.digest | object | `{"osmBootstrap":"sha256:7bc5844680c09fb5354d88f18562182b880b200238002e587945fb7f4edea5bc","osmCRDs":"sha256:a211f9fb78ea058adcd73cfa7330865f8a1bc314fc1c9c2658e5f3b348dc033e","osmController":"sha256:1ac81700fe7a4c1dde4ca47f4fdc8797bd06615097766386c727448c060f5da3","osmInjector":"sha256:1a68b254e5acee7ffdb02cd027d460ba424fb9399a4357141d8151d5dc89cf9a","osmSidecarInit":"sha256:b3ad2eabeb2a58aaba853ae6fa4a4b6929ee84f592554fe39d3f0cdf8c6d2e16"}` | Image digest (ignored when image.tag is set) |
+| OpenServiceMesh.image.digest.osmBootstrap | string | `"sha256:7bc5844680c09fb5354d88f18562182b880b200238002e587945fb7f4edea5bc"` | osm-boostrap's image digest |
+| OpenServiceMesh.image.digest.osmCRDs | string | `"sha256:a211f9fb78ea058adcd73cfa7330865f8a1bc314fc1c9c2658e5f3b348dc033e"` | osm-crds' image digest |
+| OpenServiceMesh.image.digest.osmController | string | `"sha256:1ac81700fe7a4c1dde4ca47f4fdc8797bd06615097766386c727448c060f5da3"` | osm-controller's image digest |
+| OpenServiceMesh.image.digest.osmInjector | string | `"sha256:1a68b254e5acee7ffdb02cd027d460ba424fb9399a4357141d8151d5dc89cf9a"` | osm-injector's image digest |
+| OpenServiceMesh.image.digest.osmSidecarInit | string | `"sha256:b3ad2eabeb2a58aaba853ae6fa4a4b6929ee84f592554fe39d3f0cdf8c6d2e16"` | Sidecar init container's image digest |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
 | OpenServiceMesh.image.tag | string | `""` | Container image tag for control plane images (must not be set on release branches) |
