@@ -43,7 +43,7 @@ type MeshConfigSpec struct {
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.
 type SidecarSpec struct {
 	// EnablePrivilegedInitContainer defines a boolean indicating whether the init container for a meshed pod should run as privileged.
-	EnablePrivilegedInitContainer bool `json:"enablePrivilegedInitContainer,omitempty"`
+	EnablePrivilegedInitContainer bool `json:"enablePrivilegedInitContainer"`
 
 	// LogLevel defines the logging level for the sidecar's logs. Non developers should generally never set this value. In production environments the LogLevel should be set to error.
 	LogLevel string `json:"logLevel,omitempty"`
@@ -70,19 +70,19 @@ type SidecarSpec struct {
 // TrafficSpec is the type used to represent OSM's traffic management configuration.
 type TrafficSpec struct {
 	// EnableEgress defines a boolean indicating if mesh-wide Egress is enabled.
-	EnableEgress bool `json:"enableEgress,omitempty"`
+	EnableEgress bool `json:"enableEgress"`
 
 	// OutboundIPRangeExclusionList defines a global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
-	OutboundIPRangeExclusionList []string `json:"outboundIPRangeExclusionList,omitempty"`
+	OutboundIPRangeExclusionList []string `json:"outboundIPRangeExclusionList"`
 
 	// OutboundPortExclusionList defines a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
-	OutboundPortExclusionList []int `json:"outboundPortExclusionList,omitempty"`
+	OutboundPortExclusionList []int `json:"outboundPortExclusionList"`
 
 	// InboundPortExclusionList defines a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
-	InboundPortExclusionList []int `json:"inboundPortExclusionList,omitempty"`
+	InboundPortExclusionList []int `json:"inboundPortExclusionList"`
 
 	// EnablePermissiveTrafficPolicyMode defines a boolean indicating if permissive traffic policy mode is enabled mesh-wide.
-	EnablePermissiveTrafficPolicyMode bool `json:"enablePermissiveTrafficPolicyMode,omitempty"`
+	EnablePermissiveTrafficPolicyMode bool `json:"enablePermissiveTrafficPolicyMode"`
 
 	// InboundExternalAuthorization defines a ruleset that, if enabled, will configure a remote external authorization endpoint
 	// for all inbound and ingress traffic in the mesh.
@@ -95,7 +95,7 @@ type ObservabilitySpec struct {
 	OSMLogLevel string `json:"osmLogLevel,omitempty"`
 
 	// EnableDebugServer defines if the debug endpoint on the OSM controller pod is enabled.
-	EnableDebugServer bool `json:"enableDebugServer,omitempty"`
+	EnableDebugServer bool `json:"enableDebugServer"`
 
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
@@ -104,7 +104,7 @@ type ObservabilitySpec struct {
 // TracingSpec is the type to represent OSM's tracing configuration.
 type TracingSpec struct {
 	// Enable defines a boolean indicating if the sidecars are enabled for tracing.
-	Enable bool `json:"enable,omitempty"`
+	Enable bool `json:"enable"`
 
 	// Port defines the tracing collector's port.
 	Port int16 `json:"port,omitempty"`
@@ -119,7 +119,7 @@ type TracingSpec struct {
 // ExternalAuthzSpec is a type to represent external authorization configuration.
 type ExternalAuthzSpec struct {
 	// Enable defines a boolean indicating if the external authorization policy is to be enabled.
-	Enable bool `json:"enable,omitempty"`
+	Enable bool `json:"enable"`
 
 	// Address defines the remote address of the external authorization endpoint.
 	Address string `json:"address,omitempty"`
@@ -136,7 +136,7 @@ type ExternalAuthzSpec struct {
 
 	// FailureModeAllow defines a boolean indicating if traffic should be allowed on a failure to get a
 	// response against the external authorization endpoint.
-	FailureModeAllow bool `json:"failureModeAllow,omitempty"`
+	FailureModeAllow bool `json:"failureModeAllow"`
 }
 
 // CertificateSpec is the type to reperesent OSM's certificate management configuration.
@@ -176,28 +176,28 @@ type MeshConfigList struct {
 // FeatureFlags is a type to represent OSM's feature flags.
 type FeatureFlags struct {
 	// EnableWASMStats defines if WASM Stats are enabled.
-	EnableWASMStats bool `json:"enableWASMStats,omitempty"`
+	EnableWASMStats bool `json:"enableWASMStats"`
 
 	// EnableEgressPolicy defines if OSM's Egress policy is enabled.
-	EnableEgressPolicy bool `json:"enableEgressPolicy,omitempty"`
+	EnableEgressPolicy bool `json:"enableEgressPolicy"`
 
 	// EnableMulticlusterMode defines if Multicluster mode is enabled.
-	EnableMulticlusterMode bool `json:"enableMulticlusterMode,omitempty"`
+	EnableMulticlusterMode bool `json:"enableMulticlusterMode"`
 
 	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache.
-	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode,omitempty"`
+	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode"`
 
 	//EnableAsyncProxyServiceMapping defines if OSM will map proxies to services asynchronously.
-	EnableAsyncProxyServiceMapping bool `json:"enableAsyncProxyServiceMapping,omitempty"`
+	EnableAsyncProxyServiceMapping bool `json:"enableAsyncProxyServiceMapping"`
 
 	// EnableIngressBackendPolicy defines if OSM will use the IngressBackend API to allow ingress traffic to
 	// service mesh backends.
-	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy,omitempty"`
+	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy"`
 
 	// EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health
 	// checks between services allowed to communicate.
-	EnableEnvoyActiveHealthChecks bool `json:"enableEnvoyActiveHealthChecks,omitempty"`
+	EnableEnvoyActiveHealthChecks bool `json:"enableEnvoyActiveHealthChecks"`
 
 	// EnableRetryPolicy defines if retry policy is enabled.
-	EnableRetryPolicy bool `json:"enableRetryPolicy,omitempty"`
+	EnableRetryPolicy bool `json:"enableRetryPolicy"`
 }
