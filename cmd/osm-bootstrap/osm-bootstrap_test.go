@@ -89,7 +89,6 @@ func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert.True(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode)
 	assert.True(meshConfig.Spec.Traffic.EnableEgress)
 	assert.False(meshConfig.Spec.FeatureFlags.EnableWASMStats)
-	assert.False(meshConfig.Spec.Traffic.UseHTTPSIngress)
 	assert.False(meshConfig.Spec.Observability.EnableDebugServer)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "23h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)

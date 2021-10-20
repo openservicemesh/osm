@@ -22,7 +22,7 @@ import (
 //    for it and stores it in the referenced secret.
 // 2. Starts a goroutine to watch for changes to the MeshConfig resource and certificate rotation, and
 //    updates/removes the certificate and secret as necessary.
-func (c client) provisionIngressGatewayCert(stop <-chan struct{}) error {
+func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 	meshConfig := c.cfg.GetMeshConfig()
 	if meshConfig == nil {
 		return errors.New("MeshConfig cannot be nil")
@@ -44,7 +44,7 @@ func (c client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 
 // createAndStoreGatewayCert creates a certificate for the given certificate spec and stores
 // it in the referenced k8s secret is the spec is valid.
-func (c client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCertSpec) error {
+func (c *client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCertSpec) error {
 	if len(spec.SubjectAltNames) == 0 {
 		return errors.New("Ingress gateway certificate spec must specify at least 1 SAN")
 	}
@@ -64,6 +64,8 @@ func (c client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCert
 	// OSM only support configuring a single SAN per cert, so pick the first one
 	certCN := certificate.CommonName(spec.SubjectAltNames[0])
 
+	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
+	c.certProvider.ReleaseCertificate(certCN)
 	issuedCert, err := c.certProvider.IssueCertificate(certCN, certValidityDuration)
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
@@ -78,7 +80,7 @@ func (c client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCert
 }
 
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
-func (c client) storeCertInSecret(cert certificate.Certificater, secret corev1.SecretReference) error {
+func (c *client) storeCertInSecret(cert certificate.Certificater, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
 		"ca.crt":  cert.GetIssuingCA(),
 		"tls.crt": cert.GetCertificateChain(),
@@ -103,7 +105,7 @@ func (c client) storeCertInSecret(cert certificate.Certificater, secret corev1.S
 
 // handleCertificateChange updates the gateway certificate and secret when the MeshConfig resource changes or
 // when the corresponding gateway certificate is rotated.
-func (c client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressGatewayCertSpec, stop <-chan struct{}) {
+func (c *client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressGatewayCertSpec, stop <-chan struct{}) {
 	kubePubSub := c.msgBroker.GetKubeEventPubSub()
 	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
@@ -194,7 +196,7 @@ func (c client) handleCertificateChange(currentCertSpec *configv1alpha1.IngressG
 }
 
 // removeGatewayCertAndSecret removes the secret and certificate corresponding to the existing cert spec
-func (c client) removeGatewayCertAndSecret(storedCertSpec configv1alpha1.IngressGatewayCertSpec) error {
+func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha1.IngressGatewayCertSpec) error {
 	err := c.kubeClient.CoreV1().Secrets(storedCertSpec.Secret.Namespace).Delete(context.Background(), storedCertSpec.Secret.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return err

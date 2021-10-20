@@ -401,17 +401,3 @@ func (mr *MockConfiguratorMockRecorder) IsTracingEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTracingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsTracingEnabled))
 }
-
-// UseHTTPSIngress mocks base method.
-func (m *MockConfigurator) UseHTTPSIngress() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UseHTTPSIngress")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// UseHTTPSIngress indicates an expected call of UseHTTPSIngress.
-func (mr *MockConfiguratorMockRecorder) UseHTTPSIngress() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UseHTTPSIngress", reflect.TypeOf((*MockConfigurator)(nil).UseHTTPSIngress))
-}
