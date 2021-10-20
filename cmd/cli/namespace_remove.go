@@ -69,13 +69,32 @@ func (r *namespaceRemoveCmd) run() error {
 		return errors.Errorf("Could not get namespace [%s]: %v", r.namespace, err)
 	}
 
-	val, exists := namespace.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
-	if exists {
+	val, monitoredByExists := namespace.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
+	_, ignoreExists := namespace.ObjectMeta.Labels[constants.IgnoreLabel]
+
+	if monitoredByExists {
 		if val == r.meshName {
+
+			var patch string
+
 			// Setting null for a key in a map removes only that specific key, which is the desired behavior.
 			// Even if the key does not exist, there will be no side effects with setting the key to null, which
 			// will result in the same behavior as if the key were present - the key being removed.
-			patch := fmt.Sprintf(`
+			if ignoreExists {
+				patch = fmt.Sprintf(`
+{
+	"metadata": {
+		"labels": {
+			"%s": null,
+			"%s": null
+		},
+		"annotations": {
+			"%s": null
+		}
+	}
+}`, constants.OSMKubeResourceMonitorAnnotation, constants.IgnoreLabel, constants.SidecarInjectionAnnotation)
+			} else {
+				patch = fmt.Sprintf(`
 {
 	"metadata": {
 		"labels": {
@@ -86,6 +105,7 @@ func (r *namespaceRemoveCmd) run() error {
 		}
 	}
 }`, constants.OSMKubeResourceMonitorAnnotation, constants.SidecarInjectionAnnotation)
+			}
 
 			_, err = r.clientSet.CoreV1().Namespaces().Patch(ctx, r.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 
