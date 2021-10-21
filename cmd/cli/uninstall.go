@@ -12,6 +12,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const meshUninstallDescription = `
@@ -30,6 +32,7 @@ type uninstallCmd struct {
 	deleteNamespace bool
 	client          *action.Uninstall
 	clientSet       kubernetes.Interface
+	localPort       uint16
 }
 
 func newUninstallCmd(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
@@ -64,12 +67,10 @@ func newUninstallCmd(config *action.Configuration, in io.Reader, out io.Writer) 
 	}
 
 	f := cmd.Flags()
-	//add mesh name flag
 	f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
-	//add force uninstall flag
 	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
-	//add uninstall namespace flag
 	f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
+	f.Uint16VarP(&uninstall.localPort, "local-port", "p", constants.OSMHTTPServerPort, "Local port to use for port forwarding")
 
 	return cmd
 }
@@ -88,6 +89,7 @@ func (d *uninstallCmd) run() error {
 			out:       d.out,
 			config:    d.config,
 			clientSet: d.clientSet,
+			localPort: d.localPort,
 		}
 
 		_ = listCmd.run()
