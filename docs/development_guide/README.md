@@ -300,3 +300,10 @@ The different chart templates are used as follows:
 
 The [`charts/osm/crds/`](/charts/osm/crds/) folder contains the charts corresponding to the SMI CRDs.
 Experimental CRDs can be found under [`charts/osm/crds/experimental/`](/charts/osm/crds/experimental).
+
+### Updating Dependencies
+
+Dependencies for the OSM chart are listed in Chart.yaml. To update a dependency,
+modify its version as needed in Chart.yaml, run `helm dependency update`, then
+commit all changes to Chart.yaml, Chart.lock, and the charts/osm/charts
+directory which stores the source for the updated dependency chart.
