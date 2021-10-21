@@ -152,6 +152,8 @@ In the docs site's main branch, edit the file [https://github.com/openservicemes
 1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
 
+### 5. Update uninstall documentation
+If any changes were made to the [OSM cleanup hook](https://github.com/openservicemesh/osm/blob/main/charts/osm/templates/cleanup-hook.yaml), make a PR in the OSM docs repository updating the list of resources deleted during uninstall in the [uninstall guide](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the commands in the [uninstall troubleshooting](#TODO) manual deletion instructions.
 
 ## Announce the new release
 
