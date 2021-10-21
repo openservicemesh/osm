@@ -16,6 +16,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
+const trueValue = "true"
+
 var (
 	testNamespace     = "namespace"
 	testMeshName      = "mesh"
@@ -755,7 +757,7 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespace", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal(trueValue))
 		})
 	})
 
@@ -790,11 +792,11 @@ var _ = Describe("Running the namespace ignore command", func() {
 		It("should correctly add an ignore label to the namespaces", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal("true"))
+			Expect(ns.Labels[constants.IgnoreLabel]).To(Equal(trueValue))
 
 			ns2, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace2, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ns2.Labels[constants.IgnoreLabel]).To(Equal("true"))
+			Expect(ns2.Labels[constants.IgnoreLabel]).To(Equal(trueValue))
 		})
 	})
 })
@@ -816,7 +818,7 @@ func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool
 	}
 
 	if ignoreNamespace {
-		labelMap[constants.IgnoreLabel] = "true"
+		labelMap[constants.IgnoreLabel] = trueValue
 	}
 
 	return ns
