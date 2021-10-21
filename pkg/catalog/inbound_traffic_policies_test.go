@@ -632,7 +632,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											},
 										},
 										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
+											ClusterName: "ns1/s1-apex|80|local",
 											Weight:      100,
 										}),
 									},
@@ -688,6 +688,12 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					{
 						Name:    "ns1/s1|80|local",
 						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
+					},
+					{
+						Name:    "ns1/s1-apex|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    80,
 					},
@@ -809,7 +815,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									Route: trafficpolicy.RouteWeightedClusters{
 										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
 										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
+											ClusterName: "ns1/s1-apex|80|local",
 											Weight:      100,
 										}),
 									},
@@ -852,6 +858,12 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					{
 						Name:    "ns1/s1|80|local",
 						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
+					},
+					{
+						Name:    "ns1/s1-apex|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    80,
 					},
@@ -1416,6 +1428,141 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    90,
+					},
+				},
+			},
+		},
+		{
+			name:             "multiple services, permissive mode, 1 TrafficSplit, MeshService is apex for another MeshService",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "s1",
+					Namespace:  "ns1",
+					Port:       80,
+					TargetPort: 80,
+					Protocol:   "http",
+				},
+				{
+					Name:       "s2-apex", // Also an apex service for ns1/s1
+					Namespace:  "ns1",
+					Port:       80,
+					TargetPort: 80,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode:  true,
+			trafficTargets:  nil,
+			httpRouteGroups: nil,
+			trafficSplits: []*split.TrafficSplit{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "split1",
+					},
+					Spec: split.TrafficSplitSpec{
+						Service: "s2-apex.ns1.svc.cluster.local",
+						Backends: []split.TrafficSplitBackend{
+							{
+								Service: "s1",
+								Weight:  10,
+							},
+							{
+								Service: "s-unused",
+								Weight:  90,
+							},
+						},
+					},
+				},
+			},
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				// Only return traffic split for service ns1/s1. This is required to verify
+				// that service ns1/s2 which doesn't have an associated traffic split does
+				// not createi inbound routes corresponding to the apex service.
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
+					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
+						o := &smi.TrafficSplitListOpt{}
+						for _, opt := range options {
+							opt(o)
+						}
+						// In this test, only service ns1/s1 has a split configured
+						if o.BackendService.String() == "ns1/s1" {
+							return trafficSplits
+						}
+						return nil
+					}).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name: "s1.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s1",
+								"s1:80",
+								"s1.ns1",
+								"s1.ns1:80",
+								"s1.ns1.svc",
+								"s1.ns1.svc:80",
+								"s1.ns1.svc.cluster",
+								"s1.ns1.svc.cluster:80",
+								"s1.ns1.svc.cluster.local",
+								"s1.ns1.svc.cluster.local:80",
+							},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s1|80|local",
+											Weight:      100,
+										}),
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+							},
+						},
+						{
+							Name: "s2-apex.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s2-apex",
+								"s2-apex:80",
+								"s2-apex.ns1",
+								"s2-apex.ns1:80",
+								"s2-apex.ns1.svc",
+								"s2-apex.ns1.svc:80",
+								"s2-apex.ns1.svc.cluster",
+								"s2-apex.ns1.svc.cluster:80",
+								"s2-apex.ns1.svc.cluster.local",
+								"s2-apex.ns1.svc.cluster.local:80",
+							},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s2-apex|80|local",
+											Weight:      100,
+										}),
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+							},
+						},
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/s1|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
+					},
+					{
+						Name:    "ns1/s2-apex|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2-apex", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
 					},
 				},
 			},
