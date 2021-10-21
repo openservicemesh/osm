@@ -19,8 +19,8 @@ var _ = OSMDescribe("Test reinstalling OSM in the same namespace with the same m
 			opts := Td.GetOSMInstallOpts()
 			Expect(Td.InstallOSM(opts)).To(Succeed())
 
-			By("Deleting OSM")
-			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "delete", "-f", "--osm-namespace", opts.ControlPlaneNS)
+			By("Uninstalling OSM")
+			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "uninstall", "mesh", "-f", "--osm-namespace", opts.ControlPlaneNS)
 			Td.T.Log(stdout)
 			if err != nil {
 				Td.T.Logf("stderr:\n%s", stderr)
