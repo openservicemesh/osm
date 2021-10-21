@@ -261,7 +261,7 @@ var _ = Describe("Running the uninstall command", func() {
 			// create namespace so that it can be deleted
 			fakeClientSet := fake.NewSimpleClientset()
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), createNamespaceSpec(settings.Namespace(),
-				meshName, true), v1.CreateOptions{})
+				meshName, true, false), v1.CreateOptions{})
 			Expect(err).To(BeNil())
 			_, err = addDeployment(fakeClientSet, "osm-controller-1", "testing", "osm-system", "testVersion0.1.2", true)
 			Expect(err).NotTo(HaveOccurred())
