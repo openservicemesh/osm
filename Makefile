@@ -87,7 +87,6 @@ build-osm: cmd/cli/chart.tgz
 	CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 cmd/cli/chart.tgz: scripts/generate_chart/generate_chart.go $(shell find charts/osm)
-	helm dependency update charts/osm
 	go run $< > $@
 
 .PHONY: clean-osm
