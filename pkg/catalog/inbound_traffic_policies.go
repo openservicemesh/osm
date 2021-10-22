@@ -38,8 +38,12 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		trafficTargets = mc.meshSpec.ListTrafficTargets(destinationFilter)
 	}
 
+	// A policy (traffic match, route, cluster) must be built for each upstream service. This
+	// includes apex/root services associated with the given upstream service.
+	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
+
 	// Build configurations per upstream service
-	for _, upstreamSvc := range upstreamServices {
+	for _, upstreamSvc := range allUpstreamServices {
 		// ---
 		// Create local cluster configs for this upstram service
 		clusterConfigForSvc := &trafficpolicy.MeshClusterConfig{
@@ -74,7 +78,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		// and are wildcarded in permissive mode. The downstreams that can access this upstream
 		// on the configured routes is also determined based on the traffic policy mode.
 		inboundTrafficPolicies := mc.getInboundTrafficPoliciesForUpstream(upstreamIdentity, upstreamSvc, permissiveMode, trafficTargets)
-		routeConfigPerPort[int(upstreamSvc.TargetPort)] = append(routeConfigPerPort[int(upstreamSvc.TargetPort)], inboundTrafficPolicies...)
+		routeConfigPerPort[int(upstreamSvc.TargetPort)] = append(routeConfigPerPort[int(upstreamSvc.TargetPort)], inboundTrafficPolicies)
 	}
 
 	return &trafficpolicy.InboundMeshTrafficPolicy{
@@ -84,8 +88,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	}
 }
 
-func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, permissiveMode bool, trafficTargets []*access.TrafficTarget) []*trafficpolicy.InboundTrafficPolicy {
-	var inboundTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
+func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, permissiveMode bool, trafficTargets []*access.TrafficTarget) *trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicyForUpstreamSvc *trafficpolicy.InboundTrafficPolicy
 
 	if permissiveMode {
@@ -101,16 +104,8 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamIdentity ide
 		// Build the HTTP routes from SMI TrafficTarget and HTTPRouteGroup configurations
 		inboundPolicyForUpstreamSvc = mc.buildInboundHTTPPolicyFromTrafficTarget(upstreamIdentity, upstreamSvc, trafficTargets)
 	}
-	inboundTrafficPolicies = append(inboundTrafficPolicies, inboundPolicyForUpstreamSvc)
 
-	// If this upstream service is a backend for an apex service specified in a TrafficSplit configuration,
-	// downstream clients are allowed to access this upstream using the hostnames of the corresponding upstream
-	// apex service. To allow this, add additional routes corresponding to the apex services for this upstream backend.
-	// The routes corresponding to the apex service hostnames must enforce the same rules as the the
-	// route built for this `upstreamSvc`.
-	inboundTrafficPolicies = append(inboundTrafficPolicies, mc.getInboundTrafficPoliciesFromSplit(upstreamSvc, inboundPolicyForUpstreamSvc.Rules)...)
-
-	return inboundTrafficPolicies
+	return inboundPolicyForUpstreamSvc
 }
 
 func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, trafficTargets []*access.TrafficTarget) *trafficpolicy.InboundTrafficPolicy {
@@ -161,42 +156,6 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 	}
 
 	return routingRules
-}
-
-func (mc *MeshCatalog) getInboundTrafficPoliciesFromSplit(upstreamSvc service.MeshService, routingRules []*trafficpolicy.Rule) []*trafficpolicy.InboundTrafficPolicy {
-	// Retrieve all the traffic splits for which this service (upstreamSvc) is a backend.
-	// HTTP routes to be able to access the apex services corresponding to this backend
-	// will be built, matching the same routing rules enforced on the backend.
-	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
-	apexServiceSet := mapset.NewSet()
-	trafficSplits := mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitBackendService(upstreamSvc))
-
-	for _, split := range trafficSplits {
-		apexMeshService := service.MeshService{
-			Namespace:  upstreamSvc.Namespace,
-			Name:       k8s.GetServiceFromHostname(split.Spec.Service),
-			Port:       upstreamSvc.Port,
-			TargetPort: upstreamSvc.TargetPort,
-			Protocol:   upstreamSvc.Protocol,
-		}
-		// If apex service is same as the upstream service, ignore it because
-		// a route for the service already exists. This can happen if the upstream
-		// service is listed as a backend for itself in a traffic split policy.
-		if apexMeshService == upstreamSvc {
-			continue
-		}
-		apexServiceSet.Add(apexMeshService)
-	}
-
-	for svc := range apexServiceSet.Iter() {
-		apexSvc := svc.(service.MeshService)
-		hostnames := k8s.GetHostnamesForService(apexSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
-		inboundPolicyForApexSvc := trafficpolicy.NewInboundTrafficPolicy(apexSvc.FQDN(), hostnames)
-		inboundPolicyForApexSvc.Rules = routingRules
-		inboundPolicies = append(inboundPolicies, inboundPolicyForApexSvc)
-	}
-
-	return inboundPolicies
 }
 
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
@@ -267,4 +226,36 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return trafficpolicy.TrafficSpecName(specKey)
+}
+
+// getUpstreamServicesIncludeApex returns a list of all upstream services associated with the given list
+// of services. An upstream service is associated with another service if it is a backend for an apex/root service
+// in a TrafficSplit config. This function returns a list consisting of the given upstream services and all apex
+// services associated with each of those services.
+func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service.MeshService) []service.MeshService {
+	svcSet := mapset.NewSet()
+	var allServices []service.MeshService
+
+	// Each service could be a backend in a traffic split config. Construct a list
+	// of all possible services the given list of services is associated with.
+	for _, svc := range upstreamServices {
+		if newlyAdded := svcSet.Add(svc); newlyAdded {
+			allServices = append(allServices, svc)
+		}
+
+		for _, split := range mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitBackendService(svc)) {
+			apexMeshService := service.MeshService{
+				Namespace:  svc.Namespace,
+				Name:       k8s.GetServiceFromHostname(split.Spec.Service),
+				Port:       svc.Port,
+				TargetPort: svc.TargetPort,
+				Protocol:   svc.Protocol,
+			}
+			if newlyAdded := svcSet.Add(apexMeshService); newlyAdded {
+				allServices = append(allServices, apexMeshService)
+			}
+		}
+	}
+
+	return allServices
 }
