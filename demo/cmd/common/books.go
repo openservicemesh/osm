@@ -58,8 +58,8 @@ var (
 	maxIterationsStr                       = utils.GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = utils.GetEnv("BOOKSTORE_SVC", "bookstore")
 	warehouseServiceName                   = utils.GetEnv("WAREHOUSE_SVC", "bookwarehouse")
-	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
-	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+	bookstoreNamespace                     = utils.GetEnv(BookstoreNamespaceEnvVar, "bookstore")
+	bookwarehouseNamespace                 = utils.GetEnv(BookwarehouseNamespaceEnvVar, "bookwarehouse")
 
 	// Due to a limitation on kubernetes on Windows we need to use the FQDN
 	// otherwise DNS will not be able to resolve it.
