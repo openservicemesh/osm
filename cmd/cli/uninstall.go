@@ -25,5 +25,8 @@ func newUninstallCmd(config *action.Configuration, in io.Reader, out io.Writer) 
 		cmd.AddCommand(newUninstallMeshCmd(config, in, out))
 	}
 
+	// The command to uninstall osm cluster-wide resources should be available in both managed and unmanaged environments.
+	cmd.AddCommand(newUninstallClusterWideResourcesCmd(in, out))
+
 	return cmd
 }
