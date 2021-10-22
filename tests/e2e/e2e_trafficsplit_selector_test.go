@@ -35,7 +35,7 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 			// Split configuration:
 			// root: httpbin-root labels(app: httpbin)
 			// backends:
-			//   - httpbin-v1 (weight: 50) labels(app: htpbin, version: v1)
+			//   - httpbin-v1 (weight: 50) labels(app: httpbin, version: v1)
 			//   - httpbin-v2 (weight: 50) labels(app: httpbin, version: v2)
 			//
 			// Pods:
