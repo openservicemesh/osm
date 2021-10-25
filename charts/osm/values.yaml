@@ -2,7 +2,14 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-OpenServiceMesh:
+
+
+controlPlane:
+  # -- Namespace to deploy OSM control plane in. If not specified, the Helm release namespace is used.
+  namespace: ""
+
+  # -- Identifier for the instance of a service mesh within a cluster
+  meshName: osm
 
   #
   # -- OSM control plane image parameters
@@ -13,6 +20,8 @@ OpenServiceMesh:
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
     tag: "latest-main"
+    # -- control plane image pull secret
+    imagePullSecrets: []
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
@@ -26,112 +35,8 @@ OpenServiceMesh:
       # -- osm-boostrap's image digest
       osmBootstrap: ""
 
-
-  # -- `osm-controller` image pull secret
-  imagePullSecrets: []
-  # -- Envoy sidecar image for Linux workloads (v1.19.1)
-  sidecarImage: envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd
-  # -- Envoy sidecar image for Windows workloads (v1.19.1)
-  sidecarWindowsImage: envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85
-
-  #
-  # -- OSM controller parameters
-  osmController:
-    # -- OSM controller's replica count (ignored when autoscale.enable is true)
-    replicaCount: 1
-    # -- OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details.
-    resource:
-      limits:
-        cpu: "1.5"
-        memory: "1G"
-      requests:
-        cpu: "0.5"
-        memory: "128M"
-    # -- OSM controller's pod labels
-    podLabels: {}
-    # -- Enable Pod Disruption Budget
-    enablePodDisruptionBudget: false
-    # -- Auto scale configuration
-    autoScale:
-      # -- Enable Autoscale
-      enable: false
-      # -- Minimum replicas for autoscale
-      minReplicas: 1
-      # -- Maximum replicas for autoscale
-      maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
-
-  #
-  # -- Prometheus parameters
-  prometheus:
-    # -- Prometheus's container resource parameters
-    resources:
-      limits:
-        cpu: "1"
-        memory: "2G"
-      requests:
-        cpu: "0.5"
-        memory: "512M"
-    # -- Prometheus service's port
-    port: 7070
-    # -- Prometheus data rentention configuration
-    retention:
-      # -- Prometheus data retention time
-      time: 15d
-
-  certificateProvider:
-    # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
-    kind: tresor
-    # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
-    serviceCertValidityDuration: 24h
-    # -- Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS
-    certKeyBitSize: 2048
-
-  #
-  # -- Hashicorp Vault configuration
-  vault:
-    # --  Hashicorp Vault host/service - where Vault is installed
-    host: ""
-    # -- protocol to use to connect to Vault
-    protocol: http
-    # -- token that should be used to connect to Vault
-    token: ""
-    # -- Vault role to be used by Open Service Mesh
-    role: openservicemesh
-
-  #
-  # -- cert-manager.io configuration
-  certmanager:
-    # --  cert-manager issuer namecert-manager issuer name
-    issuerName: osm-ca
-    # -- cert-manager issuer kind
-    issuerKind: Issuer
-    # -- cert-manager issuer group
-    issuerGroup: cert-manager.io
-
-  # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
-  caBundleSecretName: osm-ca-bundle
-
-  #
-  # -- Grafana parameters
-  grafana:
-    # -- Grafana service's port
-    port: 3000
-    # -- Enable Remote Rendering in Grafana
-    enableRemoteRendering: false
-
-  # -- Enable the debug HTTP server on OSM controller
-  enableDebugServer: false
-
-  # -- Enable permissive traffic policy mode
-  enablePermissiveTrafficPolicy: false
-
-  # -- Enable egress in the mesh
-  enableEgress: false
-
-  # -- Enable reconciler for OSM's CRDs and mutating webhook
-  enableReconciler: false
+  # -- Enforce only deploying one mesh in the cluster
+  enforceSingleMesh: true
 
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
@@ -139,120 +44,20 @@ OpenServiceMesh:
   # -- Deploy Grafana with OSM installation
   deployGrafana: false
 
-  # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
-  enableFluentbit: false
-
-  #
-  # -- FluentBit parameters
-  fluentBit:
-    # -- Fluent Bit sidecar container name
-    name: fluentbit-logger
-    # -- Registry for Fluent Bit sidecar container
-    registry: fluent
-    # -- Fluent Bit sidecar image tag
-    tag: 1.6.4
-    # -- PullPolicy for Fluent Bit sidecar container
-    pullPolicy: IfNotPresent
-    # -- Fluent Bit output plugin
-    outputPlugin: stdout
-    # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
-    workspaceId: ""
-    # -- Primary Key for Fluent Bit output plugin to Log Analytics
-    primaryKey: ""
-    # -- Enable proxy support toggle for Fluent Bit
-    enableProxySupport: false
-    # -- Optional HTTP proxy endpoint for Fluent Bit
-    httpProxy: ""
-    # -- Optional HTTPS proxy endpoint for Fluent Bit
-    httpsProxy: ""
-
-  # -- Identifier for the instance of a service mesh within a cluster
-  meshName: osm
-
-  # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
-  envoyLogLevel: error
-
-  # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
-  maxDataPlaneConnections: 0
-
-   # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
-  configResyncInterval: "0s"
-
-  # -- Controller log verbosity
-  controllerLogLevel: info
-
-  # -- Enforce only deploying one mesh in the cluster
-  enforceSingleMesh: true
-
-  # -- Prefix used in name of the webhook configuration resources
-  webhookConfigNamePrefix: osm-webhook
-
-  # -- Namespace to deploy OSM in. If not specified, the Helm release namespace is used.
-  osmNamespace: ""
-
   # -- Deploy Jaeger during OSM installation
   deployJaeger: false
 
-  #
-  # -- Tracing parameters
-  #
-  # The following section configures a destination collector where tracing
-  # data is sent to. Current implementation supports only Zipkin format
-  # backends (https://github.com/openservicemesh/osm/issues/1596)
-  tracing:
-    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh
-    enable: false
-    # -- Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
-    address: ""
-    # -- Port of the tracing collector service
-    port: 9411
-    # -- Tracing collector's API path where the spans will be sent to
-    endpoint: "/api/v2/spans"
+  # -- Enable reconciler for OSM's CRDs and mutating webhook
+  enableReconciler: false
 
-  # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
-  # If specified, must be a list of IP ranges of the form a.b.c.d/x.
-  outboundIPRangeExclusionList: []
+  # -- Enable permissive traffic policy mode
+  enablePermissiveTrafficPolicy: false
 
-  # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
-  # If specified, must be a list of positive integers.
-  outboundPortExclusionList: []
+  # -- Enable egress in the mesh
+  enableEgress: false
 
-  # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
-  # If specified, must be a list of positive integers.
-  inboundPortExclusionList: []
-
-  #
-  # -- OSM's sidecar injector parameters
-  injector:
-    # -- Sidecar injector's replica count (ignored when autoscale.enable is true)
-    replicaCount: 1
-    # -- Sidecar injector's container resource parameters
-    resource:
-      limits:
-        cpu: "0.5"
-        memory: "64M"
-      requests:
-        cpu: "0.3"
-        memory: "64M"
-    # -- Sidecar injector's pod labels
-    podLabels: {}
-    # -- Enable Pod Disruption Budget
-    enablePodDisruptionBudget: false
-    # -- Auto scale configuration
-    autoScale:
-      # -- Enable Autoscale
-      enable: false
-      # -- Minimum replicas for autoscale
-      minReplicas: 1
-      # -- Maximum replicas for autoscale
-      maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
-    # -- Mutating webhook timeout
-    webhookTimeoutSeconds: 20
-
-  # -- Run init container in privileged mode
-  enablePrivilegedInitContainer: false
+  # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
+  caBundleSecretName: osm-ca-bundle
 
   #
   # -- Feature flags for experimental features
@@ -287,26 +92,220 @@ OpenServiceMesh:
   controlPlaneTolerations: []
 
   #
-  # -- OSM bootstrap parameters
-  osmBootstrap:
-    # -- OSM bootstrap's replica count
-    replicaCount: 1
-    # -- OSM bootstrap's container resource parameters
-    resource:
-      limits:
-        cpu: "0.5"
-        memory: "128M"
-      requests:
-        cpu: "0.3"
-        memory: "128M"
-    # -- OSM bootstrap's pod labels
-    podLabels: {}
-
-  #
   # -- OSM resource validator webhook configuration
   validatorWebhook:
     # -- Name of the ValidatingWebhookConfiguration
     webhookConfigurationName: ""
+
+dataPlane:
+  # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
+  envoylogLevel: error
+
+  # -- Envoy sidecar image for Linux workloads (v1.19.1)
+  sidecarImage: envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd
+
+  # -- Envoy sidecar image for Windows workloads (v1.19.1)
+  sidecarWindowsImage: envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85
+
+  # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
+  configResyncInterval: "0s"
+
+  # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of IP ranges of the form a.b.c.d/x.
+  outboundIPRangeExclusionList: []
+
+  # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  outboundPortExclusionList: []
+
+  # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  inboundPortExclusionList: []
+
+  # -- Run init container in privileged mode
+  enablePrivilegedInitContainer: false
+
+osmController: 
+  # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
+  maxDataPlaneConnections: 0
+
+  # -- Controller log verbosity
+  controllerLogLevel: info
+
+  # -- OSM controller's replica count (ignored when autoscale.enable is true)
+  replicaCount: 1
+  # -- OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details.
+  resource:
+    limits:
+      cpu: "1.5"
+      memory: "1G"
+    requests:
+      cpu: "0.5"
+      memory: "128M"
+  # -- OSM controller's pod labels
+  podLabels: {}
+  # -- Enable Pod Disruption Budget
+  enablePodDisruptionBudget: false
+  # -- Auto scale configuration
+  autoScale:
+    # -- Enable Autoscale
+    enable: false
+    # -- Minimum replicas for autoscale
+    minReplicas: 1
+    # -- Maximum replicas for autoscale
+    maxReplicas: 5
+    # -- Average target CPU utilization (%)
+    targetAverageUtilization: 80
+
+    # -- Enable the debug HTTP server on OSM controller
+    enableDebugServer: false
+
+    # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
+    enableFluentbit: false
+
+#
+# -- OSM's sidecar injector parameters
+osmInjector:
+  # -- Sidecar injector's replica count (ignored when autoscale.enable is true)
+  replicaCount: 1
+  # -- Sidecar injector's container resource parameters
+  resource:
+    limits:
+      cpu: "0.5"
+      memory: "64M"
+    requests:
+      cpu: "0.3"
+      memory: "64M"
+  # -- Sidecar injector's pod labels
+  podLabels: {}
+  # -- Enable Pod Disruption Budget
+  enablePodDisruptionBudget: false
+  # -- Auto scale configuration
+  autoScale:
+    # -- Enable Autoscale
+    enable: false
+    # -- Minimum replicas for autoscale
+    minReplicas: 1
+    # -- Maximum replicas for autoscale
+    maxReplicas: 5
+    # -- Average target CPU utilization (%)
+    targetAverageUtilization: 80
+  # -- Mutating webhook timeout
+  webhookTimeoutSeconds: 20
+  # -- Prefix used in name of the webhook configuration resources
+  webhookConfigNamePrefix: osm-webhook
+
+#
+# -- OSM bootstrap parameters
+osmBootstrap:
+  # -- OSM bootstrap's replica count
+  replicaCount: 1
+  # -- OSM bootstrap's container resource parameters
+  resource:
+    limits:
+      cpu: "0.5"
+      memory: "128M"
+    requests:
+      cpu: "0.3"
+      memory: "128M"
+  # -- OSM bootstrap's pod labels
+  podLabels: {}
+
+#
+# -- FluentBit parameters
+fluentBit:
+  # -- Fluent Bit sidecar container name
+  name: fluentbit-logger
+  # -- Registry for Fluent Bit sidecar container
+  registry: fluent
+  # -- Fluent Bit sidecar image tag
+  tag: 1.6.4
+  # -- PullPolicy for Fluent Bit sidecar container
+  pullPolicy: IfNotPresent
+  # -- Fluent Bit output plugin
+  outputPlugin: stdout
+  # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
+  workspaceId: ""
+  # -- Primary Key for Fluent Bit output plugin to Log Analytics
+  primaryKey: ""
+  # -- Enable proxy support toggle for Fluent Bit
+  enableProxySupport: false
+  # -- Optional HTTP proxy endpoint for Fluent Bit
+  httpProxy: ""
+  # -- Optional HTTPS proxy endpoint for Fluent Bit
+  httpsProxy: ""
+
+#
+# -- Prometheus parameters
+prometheus:
+  # -- Prometheus's container resource parameters
+  resources:
+    limits:
+      cpu: "1"
+      memory: "2G"
+    requests:
+      cpu: "0.5"
+      memory: "512M"
+  # -- Prometheus service's port
+  port: 7070
+  # -- Prometheus data rentention configuration
+  retention:
+    # -- Prometheus data retention time
+    time: 15d
+
+certificateProvider:
+  # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
+  kind: tresor
+  # -- Service certificate validity duration for certificate issued to workloads to communicate over mTLS
+  serviceCertValidityDuration: 24h
+  # -- Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS
+  certKeyBitSize: 2048
+
+#
+# -- Hashicorp Vault configuration
+vault:
+  # --  Hashicorp Vault host/service - where Vault is installed
+  host: ""
+  # -- protocol to use to connect to Vault
+  protocol: http
+  # -- token that should be used to connect to Vault
+  token: ""
+  # -- Vault role to be used by Open Service Mesh
+  role: openservicemesh
+
+#
+# -- cert-manager.io configuration
+certmanager:
+  # --  cert-manager issuer namecert-manager issuer name
+  issuerName: osm-ca
+  # -- cert-manager issuer kind
+  issuerKind: Issuer
+  # -- cert-manager issuer group
+  issuerGroup: cert-manager.io
+
+#
+# -- Grafana parameters
+grafana:
+  # -- Grafana service's port
+  port: 3000
+  # -- Enable Remote Rendering in Grafana
+  enableRemoteRendering: false
+
+#
+# -- Tracing parameters
+#
+# The following section configures a destination collector where tracing
+# data is sent to. Current implementation supports only Zipkin format
+# backends (https://github.com/openservicemesh/osm/issues/1596)
+tracing:
+  # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh
+  enable: false
+  # -- Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
+  address: ""
+  # -- Port of the tracing collector service
+  port: 9411
+  # -- Tracing collector's API path where the spans will be sent to
+  endpoint: "/api/v2/spans"
 
 #
 # -- Contour configuration

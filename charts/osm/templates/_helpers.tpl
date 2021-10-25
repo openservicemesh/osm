@@ -1,6 +1,6 @@
 {{/* Determine osm namespace */}}
 {{- define "osm.namespace" -}}
-{{ default .Release.Namespace .Values.OpenServiceMesh.osmNamespace}}
+{{ default .Release.Namespace .Values.controlPlane.namespace}}
 {{- end -}}
 
 {{/* Default tracing address */}}
