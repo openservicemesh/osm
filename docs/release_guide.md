@@ -108,8 +108,7 @@ upload the packaged binaries and checksums as release assets, build and push Doc
 
 ## Add release notes
 
-In the description section of the new release, add information about feature additions, bug fixes,
-and any other administrative tasks completed on the repository.
+The release job runs the `scripts/release-notes.sh` script to generate release notes for the specific release tag. Update the `Notable Changes` and `Deprecation Notes` section based on notable feature additions, critical bug fixes, and deprecated functionality.
 
 ## Update documentation and docs.openservicemesh.io website
 
