@@ -113,12 +113,12 @@ func (cmd *bugReportCmd) run() error {
 
 	if cmd.all {
 		ctx := context.Background()
-		cmd.appNamespaces = []string{}
+		cmd.appNamespaces = nil
 		namespaces, err := cmd.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 			LabelSelector: constants.OSMKubeResourceMonitorAnnotation,
 		})
 		if err != nil {
-			fmt.Fprintf(cmd.stderr, "Unable to get mesh namespaces")
+			fmt.Fprintf(cmd.stderr, "Unable to list mesh namespaces")
 		}
 		for _, namespace := range namespaces.Items {
 			namespaceName := namespace.ObjectMeta.Name
