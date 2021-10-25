@@ -28,6 +28,10 @@ if [[ -z "$crd_changes" ]]; then
 fi
 
 cat <<EOF
+## Notable Changes
+
+## Deprecation Notes
+
 ## CRD Updates
 
 $crd_changes
