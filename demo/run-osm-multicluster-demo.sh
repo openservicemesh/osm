@@ -96,7 +96,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
     kubectl label namespace "$K8S_NAMESPACE" name="$K8S_NAMESPACE"
 
     if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
-        optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
+        optionalInstallArgs+=" --set=osm.enablePrivilegedInitContainer=true"
     fi
 
     # Registry credentials
@@ -114,21 +114,21 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
         --osm-namespace "$K8S_NAMESPACE" \
         --verbose \
         --mesh-name "$MESH_NAME" \
-        --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-        --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-        --set=OpenServiceMesh.image.tag="$CTR_TAG" \
-        --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
-        --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-        --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
-        --set=OpenServiceMesh.enableReconciler="$ENABLE_RECONCILER" \
-        --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-        --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
-        --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-        --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-        --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-        --set=OpenServiceMesh.controllerLogLevel="trace" \
-        --set=OpenServiceMesh.featureFlags.enableMulticlusterMode="true" \
-        --set=OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks="true" \
+        --set=osm.image.registry="$CTR_REGISTRY" \
+        --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+        --set=osm.image.tag="$CTR_TAG" \
+        --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
+        --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+        --set=osm.enableEgress="$ENABLE_EGRESS" \
+        --set=osm.enableReconciler="$ENABLE_RECONCILER" \
+        --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
+        --set=osm.deployJaeger="$DEPLOY_JAEGER" \
+        --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+        --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
+        --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+        --set=osm.controllerLogLevel="trace" \
+        --set=osm.featureFlags.enableMulticlusterMode="true" \
+        --set=osm.featureFlags.enableEnvoyActiveHealthChecks="true" \
         --timeout="$TIMEOUT" \
         $optionalInstallArgs
 

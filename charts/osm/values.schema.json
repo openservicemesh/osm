@@ -3,7 +3,7 @@
     "type": "object",
     "title": "The OSM Helm chart values schema",
     "required": [
-        "OpenServiceMesh",
+        "osm",
         "contour",
         "smi"
     ],
@@ -125,8 +125,8 @@
         }
     },
     "properties": {
-        "OpenServiceMesh": {
-            "$id": "#/properties/OpenServiceMesh",
+        "osm": {
+            "$id": "#/properties/osm",
             "type": "object",
             "title": "The OpenServiceMesh schema",
             "description": "The top level required key in the values file.",
@@ -159,7 +159,7 @@
             ],
             "properties": {
                 "osmController": {
-                    "$id": "#/properties/OpenServiceMesh/properties/osmController",
+                    "$id": "#/properties/osm/properties/osmController",
                     "type": "object",
                     "title": "The osmController schema",
                     "description": "The details of the osmController.",
@@ -168,7 +168,7 @@
                     ],
                     "properties": {
                         "replicaCount": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/replicaCount",
+                            "$id": "#/properties/osm/properties/osmController/properties/replicaCount",
                             "type": "integer",
                             "title": "The replicaCount schema",
                             "description": "The number of replicas of the osm-controller pod",
@@ -180,14 +180,14 @@
                             "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/podLabels",
+                            "$id": "#/properties/osm/properties/osmController/properties/podLabels",
                             "type": "object",
                             "title": "The podLabels schema",
                             "description": "Labels for the osmController pod.",
                             "default": {}
                         },
                         "enablePodDisruptionBudget": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmController/properties/enablePodDisruptionBudget",
+                            "$id": "#/properties/osm/properties/osmController/properties/enablePodDisruptionBudget",
                             "type": "boolean",
                             "title": "The enablePodDisruptionBudget schema",
                             "description": "Indicates whether Pod Disruption Budget should be enabled or not.",
@@ -202,7 +202,7 @@
                     "additionalProperties": false
                 },
                 "image": {
-                    "$id": "#/properties/OpenServiceMesh/properties/image",
+                    "$id": "#/properties/osm/properties/image",
                     "type": "object",
                     "title": "The image schema",
                     "description": "The details of the images to run.",
@@ -221,7 +221,7 @@
                     ],
                     "properties": {
                         "registry": {
-                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/registry",
+                            "$id": "#/properties/osm/properties/image/properties/registry",
                             "type": "string",
                             "title": "The registry schema",
                             "description": "The registry of the images to run.",
@@ -230,7 +230,7 @@
                             ]
                         },
                         "pullPolicy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/pullPolicy",
+                            "$id": "#/properties/osm/properties/image/properties/pullPolicy",
                             "type": "string",
                             "title": "The pullPolicy schema",
                             "description": "The image pull policy.",
@@ -240,7 +240,7 @@
                             ]
                         },
                         "tag": {
-                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/tag",
+                            "$id": "#/properties/osm/properties/image/properties/tag",
                             "type": "string",
                             "title": "The tag schema",
                             "description": "The image tag to run.",
@@ -249,7 +249,7 @@
                             ]
                         },
                         "digest": {
-                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest",
+                            "$id": "#/properties/osm/properties/image/properties/digest",
                             "type": "object",
                             "title": "Default image digests",
                             "description": "Default image digests for control plane.",
@@ -262,31 +262,31 @@
                             ],
                             "properties": {
                                 "osmController": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmController",
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmController",
                                     "type": "string",
                                     "title": "osm-controller's image digest",
                                     "description": "osm-controller container's image digest."
                                 },
                                 "osmInjector": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmInjector",
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmInjector",
                                     "type": "string",
                                     "title": "osm-injector's image digest",
                                     "description": "osm-injector container's image digest."
                                 },
                                 "osmSidecarInit": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmSidecarInit",
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmSidecarInit",
                                     "type": "string",
                                     "title": "osm-osmSidecarInit's image digest",
                                     "description": "osm-osmSidecarInit container's image digest."
                                 },
                                 "osmCRDs": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmCRDs",
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmCRDs",
                                     "type": "string",
                                     "title": "osm-crds' image digest",
                                     "description": "osm-crds container's image digest."
                                 },
                                 "osmBootstrap": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/image/properties/digest/properties/osmBootstrap",
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmBootstrap",
                                     "type": "string",
                                     "title": "osm-boostrap's image digest",
                                     "description": "osm-bootstrap container's image digest."
@@ -297,7 +297,7 @@
                     "additionalProperties": false
                 },
                 "sidecarImage": {
-                    "$id": "#/properties/OpenServiceMesh/properties/sidecarImage",
+                    "$id": "#/properties/osm/properties/sidecarImage",
                     "type": "string",
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
@@ -306,7 +306,7 @@
                     ]
                 },
                 "curlImage": {
-                    "$id": "#/properties/OpenServiceMesh/properties/curlImage",
+                    "$id": "#/properties/osm/properties/curlImage",
                     "type": "string",
                     "title": "The curlImage schema",
                     "description": "The curl image for control plane init containers.",
@@ -315,7 +315,7 @@
                     ]
                 },
                 "sidecarWindowsImage": {
-                    "$id": "#/properties/OpenServiceMesh/properties/sidecarWindowsImage",
+                    "$id": "#/properties/osm/properties/sidecarWindowsImage",
                     "type": "string",
                     "title": "The sidecarWindowsImage schema",
                     "description": "The proxy side car image to run on Windows payloads.",
@@ -324,7 +324,7 @@
                     ]
                 },
                 "certificateProvider": {
-                    "$id": "#/properties/OpenServiceMesh/properties/certificateProvider",
+                    "$id": "#/properties/osm/properties/certificateProvider",
                     "type": "object",
                     "title": "The certificate provider schema",
                     "description": "Certificate provider configuration parameters",
@@ -336,7 +336,7 @@
                     "additionalProperties": false,
                     "properties": {
                         "kind": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/kind",
+                            "$id": "#/properties/osm/properties/certificateProvider/properties/kind",
                             "type": "string",
                             "title": "The certificate provider kind schema",
                             "description": "The certificate manager osm-controller should use.",
@@ -346,7 +346,7 @@
                             ]
                         },
                         "serviceCertValidityDuration": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/serviceCertValidityDuration",
+                            "$id": "#/properties/osm/properties/certificateProvider/properties/serviceCertValidityDuration",
                             "type": "string",
                             "title": "The serviceCertValidityDuration schema",
                             "description": "The service certificate validity duration.",
@@ -355,7 +355,7 @@
                             ]
                         },
                         "certKeyBitSize": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certificateProvider/properties/certKeyBitSize",
+                            "$id": "#/properties/osm/properties/certificateProvider/properties/certKeyBitSize",
                             "type": "integer",
                             "title": "The certKeyBitSize schema",
                             "description": "The key size for data plane certificates.",
@@ -366,7 +366,7 @@
                     }
                 },
                 "caBundleSecretName": {
-                    "$id": "#/properties/OpenServiceMesh/properties/caBundleSecretName",
+                    "$id": "#/properties/osm/properties/caBundleSecretName",
                     "type": "string",
                     "title": "The caBundleSecretName schema",
                     "description": "An explanation about the purpose of this instance.",
@@ -375,7 +375,7 @@
                     ]
                 },
                 "enableDebugServer": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableDebugServer",
+                    "$id": "#/properties/osm/properties/enableDebugServer",
                     "type": "boolean",
                     "title": "The enableDebugServer schema",
                     "description": "Indicates whether the Debug Server should be enabled or not.",
@@ -384,7 +384,7 @@
                     ]
                 },
                 "enablePermissiveTrafficPolicy": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enablePermissiveTrafficPolicy",
+                    "$id": "#/properties/osm/properties/enablePermissiveTrafficPolicy",
                     "type": "boolean",
                     "title": "The enablePermissiveTrafficPolicy schema",
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
@@ -393,7 +393,7 @@
                     ]
                 },
                 "enableEgress": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableEgress",
+                    "$id": "#/properties/osm/properties/enableEgress",
                     "type": "boolean",
                     "title": "The enableEgress schema",
                     "description": "Indicates whether egress should be enabled or not.",
@@ -402,7 +402,7 @@
                     ]
                 },
                 "enableReconciler": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableReconciler",
+                    "$id": "#/properties/osm/properties/enableReconciler",
                     "type": "boolean",
                     "title": "The enableReconciler schema",
                     "description": "Indicates whether OSM's reconciler should be enabled or not.",
@@ -411,7 +411,7 @@
                     ]
                 },
                 "deployPrometheus": {
-                    "$id": "#/properties/OpenServiceMesh/properties/deployPrometheus",
+                    "$id": "#/properties/osm/properties/deployPrometheus",
                     "type": "boolean",
                     "title": "The deployPrometheus schema",
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
@@ -420,7 +420,7 @@
                     ]
                 },
                 "deployGrafana": {
-                    "$id": "#/properties/OpenServiceMesh/properties/deployGrafana",
+                    "$id": "#/properties/osm/properties/deployGrafana",
                     "type": "boolean",
                     "title": "The deployGrafana schema",
                     "description": "Indicates whether Grafana should be installed and configured as part of the osm control plane.",
@@ -429,7 +429,7 @@
                     ]
                 },
                 "enableFluentbit": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableFluentbit",
+                    "$id": "#/properties/osm/properties/enableFluentbit",
                     "type": "boolean",
                     "title": "The enableFluentbit schema",
                     "description": "Indicates whether Fluent Bit log forwarding should be enabled",
@@ -438,7 +438,7 @@
                     ]
                 },
                 "fluentBit": {
-                    "$id": "#/properties/OpenServiceMesh/properties/fluentBit",
+                    "$id": "#/properties/osm/properties/fluentBit",
                     "type": "object",
                     "title": "The Fluent Bit schema",
                     "description": "The default details of the Fluent Bit sidecar if enabled.",
@@ -468,7 +468,7 @@
                     ],
                     "properties": {
                         "name": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/name",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/name",
                             "type": "string",
                             "title": "The name schema",
                             "description": "The name of the Fluent Bit container",
@@ -477,7 +477,7 @@
                             ]
                         },
                         "registry": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/registry",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/registry",
                             "type": "string",
                             "title": "The registry schema",
                             "description": "The registry of the image to run.",
@@ -486,7 +486,7 @@
                             ]
                         },
                         "tag": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/tag",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/tag",
                             "type": "string",
                             "title": "The tag schema",
                             "description": "The image tag to run.",
@@ -495,7 +495,7 @@
                             ]
                         },
                         "pullPolicy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/pullPolicy",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/pullPolicy",
                             "type": "string",
                             "title": "The pullPolicy schema",
                             "description": "The image pull policy.",
@@ -505,7 +505,7 @@
                             ]
                         },
                         "outputPlugin": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/outputPlugin",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/outputPlugin",
                             "type": "string",
                             "title": "The output plugin for Fluent Bit",
                             "description": "The log forwarding destination plugin for Fluent Bit",
@@ -514,19 +514,19 @@
                             ]
                         },
                         "workspaceId": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/workspaceId",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/workspaceId",
                             "type": "string",
                             "title": "The Fluent Bit workspaceId schema",
                             "description": "The workspace ID for Fluent Bit output plugin to Log Analytics"
                         },
                         "primaryKey": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/primaryKey",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/primaryKey",
                             "type": "string",
                             "title": "The Fluent Bit primaryKey schema",
                             "description": "The primary key for Fluent Bit output plugin to Log Analytics"
                         },
                         "enableProxySupport": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/enableProxySupport",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/enableProxySupport",
                             "type": "boolean",
                             "title": "The enableProxySupport output schema",
                             "description": "Indicates whether outbound proxy support should be configured for Fluent Bit",
@@ -535,7 +535,7 @@
                             ]
                         },
                         "httpProxy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpProxy",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/httpProxy",
                             "type": "string",
                             "title": "The httpProxy schema",
                             "description": "http proxy endpoint",
@@ -544,7 +544,7 @@
                             ]
                         },
                         "httpsProxy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpsProxy",
+                            "$id": "#/properties/osm/properties/fluentBit/properties/httpsProxy",
                             "type": "string",
                             "title": "The httpsProxy schema",
                             "description": "https proxy endpoint",
@@ -556,7 +556,7 @@
                     "additionalProperties": false
                 },
                 "meshName": {
-                    "$id": "#/properties/OpenServiceMesh/properties/meshName",
+                    "$id": "#/properties/osm/properties/meshName",
                     "type": "string",
                     "title": "The meshName schema",
                     "description": "The name associated with the control plane being installed.",
@@ -565,7 +565,7 @@
                     ]
                 },
                 "maxDataPlaneConnections": {
-                    "$id": "#/properties/OpenServiceMesh/properties/maxDataPlaneConnections",
+                    "$id": "#/properties/osm/properties/maxDataPlaneConnections",
                     "type": "integer",
                     "title": "The maxDataPlaneConnections schema",
                     "description": "Sets the Max Data Plane Connections",
@@ -574,7 +574,7 @@
                     ]
                 },
                 "configResyncInterval": {
-                    "$id": "#/properties/OpenServiceMesh/properties/configResyncInterval",
+                    "$id": "#/properties/osm/properties/configResyncInterval",
                     "type": "string",
                     "title": "The configResyncInterval schema",
                     "description": "Sets the resync interval for regular proxy broadcast updates",
@@ -583,7 +583,7 @@
                     ]
                 },
                 "envoyLogLevel": {
-                    "$id": "#/properties/OpenServiceMesh/properties/envoyLogLevel",
+                    "$id": "#/properties/osm/properties/envoyLogLevel",
                     "type": "string",
                     "title": "The envoyLogLevel schema",
                     "description": "Envoy log level.",
@@ -593,7 +593,7 @@
                     ]
                 },
                 "controllerLogLevel": {
-                    "$id": "#/properties/OpenServiceMesh/properties/controllerLogLevel",
+                    "$id": "#/properties/osm/properties/controllerLogLevel",
                     "type": "string",
                     "title": "The controllerLogLevel schema",
                     "description": "OSM Controller log level.",
@@ -603,7 +603,7 @@
                     ]
                 },
                 "enforceSingleMesh": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enforceSingleMesh",
+                    "$id": "#/properties/osm/properties/enforceSingleMesh",
                     "type": "boolean",
                     "title": "The enforceSingleMesh schema",
                     "description": "Enforce only running a single control plane within a cluster.",
@@ -612,7 +612,7 @@
                     ]
                 },
                 "deployJaeger": {
-                    "$id": "#/properties/OpenServiceMesh/properties/deployJaeger",
+                    "$id": "#/properties/osm/properties/deployJaeger",
                     "type": "boolean",
                     "title": "The deployJaeger schema",
                     "description": "Indicates whether Jaeger should be installed and configured as part of the control plane.",
@@ -621,7 +621,7 @@
                     ]
                 },
                 "tracing": {
-                    "$id": "#/properties/OpenServiceMesh/properties/tracing",
+                    "$id": "#/properties/osm/properties/tracing",
                     "type": "object",
                     "title": "The tracing schema",
                     "description": "An explanation about the purpose of this instance.",
@@ -639,7 +639,7 @@
                     ],
                     "properties": {
                         "enable": {
-                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/enable",
+                            "$id": "#/properties/osm/properties/tracing/properties/enable",
                             "type": "boolean",
                             "title": "The enable schema for tracing",
                             "description": "Indicates whether tracing is enabled or not",
@@ -648,7 +648,7 @@
                             ]
                         },
                         "address": {
-                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/address",
+                            "$id": "#/properties/osm/properties/tracing/properties/address",
                             "type": "string",
                             "title": "The address schema for tracing",
                             "description": "Address of the tracing collector",
@@ -657,7 +657,7 @@
                             ]
                         },
                         "port": {
-                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/port",
+                            "$id": "#/properties/osm/properties/tracing/properties/port",
                             "type": "integer",
                             "title": "The port schema for tracing",
                             "description": "Port of the tracing collector",
@@ -668,7 +668,7 @@
                             ]
                         },
                         "endpoint": {
-                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/endpoint",
+                            "$id": "#/properties/osm/properties/tracing/properties/endpoint",
                             "type": "string",
                             "title": "The endpoint schema for tracing",
                             "description": "API path of the collector",
@@ -677,7 +677,7 @@
                             ]
                         },
                         "image": {
-                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/image",
+                            "$id": "#/properties/osm/properties/tracing/properties/image",
                             "type": "string",
                             "title": "Jaeger's image schema",
                             "description": "Image used for jaeger",
@@ -689,7 +689,7 @@
                     "additionalProperties": false
                 },
                 "webhookConfigNamePrefix": {
-                    "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
+                    "$id": "#/properties/osm/properties/webhookConfigNamePrefix",
                     "type": "string",
                     "title": "Webhook Config Name Prefix",
                     "description": "Prefix for the webhook name, which uses the format <webhook-prefix>-<mesh-name>",
@@ -698,7 +698,7 @@
                     ]
                 },
                 "osmNamespace": {
-                    "$id": "#/properties/OpenServiceMesh/properties/osmNamespace",
+                    "$id": "#/properties/osm/properties/osmNamespace",
                     "type": "string",
                     "title": "The namespace of the OSM control plane components",
                     "description": "Indicates the namespace in which the OSM control plane components will be installed",
@@ -707,7 +707,7 @@
                     ]
                 },
                 "enablePrivilegedInitContainer": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enablePrivilegedInitContainer",
+                    "$id": "#/properties/osm/properties/enablePrivilegedInitContainer",
                     "type": "boolean",
                     "title": "The enablePrivilegedInitContainer schema",
                     "description": "Indicates whether the init container for pods in the mesh should be privileged",
@@ -716,7 +716,7 @@
                     ]
                 },
                 "injector": {
-                    "$id": "#/properties/OpenServiceMesh/properties/injector",
+                    "$id": "#/properties/osm/properties/injector",
                     "type": "object",
                     "title": "The sidecar injector schema",
                     "description": "Sidecar injector configurations",
@@ -726,7 +726,7 @@
                     ],
                     "properties": {
                         "replicaCount": {
-                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/replicaCount",
+                            "$id": "#/properties/osm/properties/injector/properties/replicaCount",
                             "type": "integer",
                             "title": "The replicaCount schema",
                             "description": "The number of replicas of the osm-injector pod.",
@@ -738,14 +738,14 @@
                             "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
-                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/podLabels",
+                            "$id": "#/properties/osm/properties/injector/properties/podLabels",
                             "type": "object",
                             "title": "The podLabels schema",
                             "description": "Labels for the osm-injector pod.",
                             "default": {}
                         },
                         "enablePodDisruptionBudget": {
-                            "$id": "#/properties/OpenServiceMesh/properties/injector/properties/enablePodDisruptionBudget",
+                            "$id": "#/properties/osm/properties/injector/properties/enablePodDisruptionBudget",
                             "type": "boolean",
                             "title": "The enablePodDisruptionBudget schema",
                             "description": "Indicates whether Pod Disruption Budget should be enabled or not.",
@@ -757,7 +757,7 @@
                             "$ref": "#/definitions/autoScale"
                         },
                         "webhookTimeoutSeconds": {
-                            "$id": "#/properties/OpenServiceMesh/properties/webhookTimeout",
+                            "$id": "#/properties/osm/properties/webhookTimeout",
                             "type": "integer",
                             "title": "Webhook Timeout Seconds",
                             "description": "Timeout for the mutating webhook in seconds",
@@ -769,7 +769,7 @@
                     "additionalProperties": false
                 },
                 "osmBootstrap": {
-                    "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap",
+                    "$id": "#/properties/osm/properties/osmBootstrap",
                     "type": "object",
                     "title": "The OSM bootstrap schema",
                     "description": "OSM bootstrap's configurations",
@@ -779,7 +779,7 @@
                     ],
                     "properties": {
                         "replicaCount": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap/properties/replicaCount",
+                            "$id": "#/properties/osm/properties/osmBootstrap/properties/replicaCount",
                             "type": "integer",
                             "title": "The replicaCount schema",
                             "description": "The number of replicas of the OSM bootstrap pod.",
@@ -791,7 +791,7 @@
                             "$ref": "#/definitions/containerResources"
                         },
                         "podLabels": {
-                            "$id": "#/properties/OpenServiceMesh/properties/osmBootstrap/properties/podLabels",
+                            "$id": "#/properties/osm/properties/osmBootstrap/properties/podLabels",
                             "type": "object",
                             "title": "The podLabels schema",
                             "description": "Labels for the OSM bootstrap pod.",
@@ -801,7 +801,7 @@
                     "additionalProperties": false
                 },
                 "multicluster": {
-                    "$id": "#/properties/OpenServiceMesh/properties/multicluster",
+                    "$id": "#/properties/osm/properties/multicluster",
                     "type": "object",
                     "title": "Multicluster",
                     "description": "Configuration for multicluster features",
@@ -810,7 +810,7 @@
                     ],
                     "properties": {
                         "gatewayLogLevel": {
-                            "$id": "#/properties/OpenServiceMesh/properties/multicluster/properties/gatewayLogLevel",
+                            "$id": "#/properties/osm/properties/multicluster/properties/gatewayLogLevel",
                             "type": "string",
                             "title": "the gatewayLogLevel port",
                             "description": "Log level for the multicluster gateway",
@@ -822,7 +822,7 @@
                     }
                 },
                 "featureFlags": {
-                    "$id": "#/properties/OpenServiceMesh/properties/featureFlags",
+                    "$id": "#/properties/osm/properties/featureFlags",
                     "type": "object",
                     "title": "Feature flags",
                     "description": "Feature flags",
@@ -844,7 +844,7 @@
                     ],
                     "properties": {
                         "enableWASMStats": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableWASMStats",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableWASMStats",
                             "type": "boolean",
                             "title": "Enable WASM stats",
                             "description": "Enable extra Envoy statistics generated by a custom WASM extension",
@@ -853,7 +853,7 @@
                             ]
                         },
                         "enableEgressPolicy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableEgressPolicy",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableEgressPolicy",
                             "type": "boolean",
                             "title": "Enable OSM's Egress policy",
                             "description": "Enable OSM's Egress policy for fine grained control over egress (external) traffic",
@@ -862,7 +862,7 @@
                             ]
                         },
                         "enableMulticlusterMode": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableMulticluster",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableMulticluster",
                             "type": "boolean",
                             "title": "Enable Multicluster mode",
                             "description": "Enable multicluster mode in OSM",
@@ -871,7 +871,7 @@
                             ]
                         },
                         "enableAsyncProxyServiceMapping": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableAsyncProxyServiceMapping",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableAsyncProxyServiceMapping",
                             "type": "boolean",
                             "title": "Enable async proxy-service mapping",
                             "description": "Enable async proxy-service mapping",
@@ -880,7 +880,7 @@
                             ]
                         },
                         "enableIngressBackendPolicy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableIngressBackendPolicy",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableIngressBackendPolicy",
                             "type": "boolean",
                             "title": "Enable OSM to use the IngressBackend API",
                             "description": "Enable OSM to use the IngressBackend API for allowing ingress to mesh backends",
@@ -889,7 +889,7 @@
                             ]
                         },
                         "enableEnvoyActiveHealthChecks": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableEnvoyActiveHealthChecks",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableEnvoyActiveHealthChecks",
                             "type": "boolean",
                             "title": "Enable Envoy active health checks",
                             "description": "EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health checks between services allowed to communicate",
@@ -898,7 +898,7 @@
                             ]
                         },
                         "enableSnapshotCacheMode": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableSnapshotCacheMode",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableSnapshotCacheMode",
                             "type": "boolean",
                             "title": "Enable SnapshotCache feature for Envoy xDS server",
                             "description": "Enable SnapshotCache feature in OSM controller to cache snapshots for Envoy xDS configurations.",
@@ -907,7 +907,7 @@
                             ]
                         },
                         "enableRetryPolicy": {
-                            "$id": "#/properties/OpenServiceMesh/properties/featureFlags/properties/enableRetryPolicy",
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableRetryPolicy",
                             "type": "boolean",
                             "title": "Enable Retry Policy",
                             "description": "Enable automatic request retries.",
@@ -919,7 +919,7 @@
                     "additionalProperties": false
                 },
                 "pspEnabled": {
-                    "$id": "#/properties/OpenServiceMesh/properties/pspEnabled",
+                    "$id": "#/properties/osm/properties/pspEnabled",
                     "type": "boolean",
                     "title": "The pspEnabled schema",
                     "description": "Indicates whether OSM should run with PodSecurityPolicies",
@@ -928,7 +928,7 @@
                     ]
                 },
                 "controlPlaneTolerations": {
-                    "$id": "#/properties/OpenServiceMesh/properties/controlPlaneTolerations",
+                    "$id": "#/properties/osm/properties/controlPlaneTolerations",
                     "type": "array",
                     "title": "The controlPlaneTolerations schema",
                     "description": "Node tolerations applied to control plane pods to schedule onto nodes with matching taints",
@@ -947,7 +947,7 @@
                     ]
                 },
                 "outboundIPRangeExclusionList": {
-                    "$id": "#/properties/OpenServiceMesh/properties/outboundIPRangeExclusionList",
+                    "$id": "#/properties/osm/properties/outboundIPRangeExclusionList",
                     "type": "array",
                     "title": "The outboundIPRangeExclusionList schema",
                     "description": "Outbound IP range exluclusion list for sidecar traffic interception",
@@ -963,7 +963,7 @@
                     ]
                 },
                 "outboundPortExclusionList": {
-                    "$id": "#/properties/OpenServiceMesh/properties/outboundPortExclusionList",
+                    "$id": "#/properties/osm/properties/outboundPortExclusionList",
                     "type": "array",
                     "title": "The outboundPortExclusionList schema",
                     "description": "Outbound port exluclusion list for sidecar traffic interception",
@@ -980,7 +980,7 @@
                     ]
                 },
                 "inboundPortExclusionList": {
-                    "$id": "#/properties/OpenServiceMesh/properties/inboundPortExclusionList",
+                    "$id": "#/properties/osm/properties/inboundPortExclusionList",
                     "type": "array",
                     "title": "The inboundPortExclusionList schema",
                     "description": "Inbound port exluclusion list for sidecar traffic interception",
@@ -997,7 +997,7 @@
                     ]
                 },
                 "grafana": {
-                    "$id": "#/properties/OpenServiceMesh/properties/grafana",
+                    "$id": "#/properties/osm/properties/grafana",
                     "type": "object",
                     "title": "The grafana schema",
                     "description": "Grafana configuration parameters",
@@ -1009,7 +1009,7 @@
                     ],
                     "properties": {
                         "port": {
-                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/port",
+                            "$id": "#/properties/osm/properties/grafana/properties/port",
                             "title": "Grafana's port schema",
                             "description": "Grafana's port number",
                             "type": "integer",
@@ -1020,7 +1020,7 @@
                             ]
                         },
                         "enableRemoteRendering": {
-                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/enableRemoteRendering",
+                            "$id": "#/properties/osm/properties/grafana/properties/enableRemoteRendering",
                             "type": "boolean",
                             "title": "Grafana's enableRemoteRendering schema",
                             "description": "Enable remote rendering of Grafana's dashboards",
@@ -1029,7 +1029,7 @@
                             ]
                         },
                         "image": {
-                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/image",
+                            "$id": "#/properties/osm/properties/grafana/properties/image",
                             "type": "string",
                             "title": "Grafana's image schema",
                             "description": "Image used for Grafana",
@@ -1038,7 +1038,7 @@
                             ]
                         },
                         "rendererImage": {
-                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/rendererImage",
+                            "$id": "#/properties/osm/properties/grafana/properties/rendererImage",
                             "type": "string",
                             "title": "Grafana's rendererImage schema",
                             "description": "Renderer image used for Grafana",
@@ -1058,7 +1058,7 @@
                     "additionalProperties": false
                 },
                 "certmanager": {
-                    "$id": "#/properties/OpenServiceMesh/properties/certmanager",
+                    "$id": "#/properties/osm/properties/certmanager",
                     "type": "object",
                     "title": "The certmanager schema",
                     "description": "cert-manager.io configuration parameters",
@@ -1069,7 +1069,7 @@
                     ],
                     "properties": {
                         "issuerName": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerName",
+                            "$id": "#/properties/osm/properties/certmanager/properties/issuerName",
                             "title": "Cert-manager's issuerName schema",
                             "description": "Cert-manager's certificate issuer name",
                             "type": "string",
@@ -1078,7 +1078,7 @@
                             ]
                         },
                         "issuerKind": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerKind",
+                            "$id": "#/properties/osm/properties/certmanager/properties/issuerKind",
                             "title": "Cert-manager's issuerKind schema",
                             "description": "Cert-manager's certificate issuer kind",
                             "type": "string",
@@ -1087,7 +1087,7 @@
                             ]
                         },
                         "issuerGroup": {
-                            "$id": "#/properties/OpenServiceMesh/properties/certmanager/properties/issuerGroup",
+                            "$id": "#/properties/osm/properties/certmanager/properties/issuerGroup",
                             "title": "Cert-manager's issuerGroup schema",
                             "description": "Cert-manager's certificate issuer group",
                             "type": "string",
@@ -1106,31 +1106,31 @@
                     "additionalProperties": false
                 },
                 "vault": {
-                    "$id": "#/properties/OpenServiceMesh/properties/vault",
+                    "$id": "#/properties/osm/properties/vault",
                     "type": "object",
                     "title": "The Hashicorp Vault schema",
                     "description": "Hashicorp Vault configuration parameters",
                     "properties": {
                         "host": {
-                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/host",
+                            "$id": "#/properties/osm/properties/vault/properties/host",
                             "title": "Hashicorp Vault's host schema",
                             "description": "Hashicorp Vault host/service - where Vault is installed",
                             "type": "string"
                         },
                         "protocol": {
-                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/protocol",
+                            "$id": "#/properties/osm/properties/vault/properties/protocol",
                             "title": "Hashicorp Vault's protocol schema",
                             "description": "Protocol to use to connect to Vault",
                             "type": "string"
                         },
                         "token": {
-                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/token",
+                            "$id": "#/properties/osm/properties/vault/properties/token",
                             "title": "Hashicorp Vault's token schema",
                             "description": "Token to use to connect to Vault",
                             "type": "string"
                         },
                         "role": {
-                            "$id": "#/properties/OpenServiceMesh/properties/vault/properties/role",
+                            "$id": "#/properties/osm/properties/vault/properties/role",
                             "title": "Hashicorp Vault's role schema",
                             "description": "Role to use with Vault",
                             "type": "string"
@@ -1147,7 +1147,7 @@
                     "additionalProperties": false
                 },
                 "prometheus": {
-                    "$id": "#/properties/OpenServiceMesh/properties/prometheus",
+                    "$id": "#/properties/osm/properties/prometheus",
                     "type": "object",
                     "title": "The prometheus schema",
                     "description": "Prometheus configurations",
@@ -1162,7 +1162,7 @@
                             "$ref": "#/definitions/containerResources"
                         },
                         "port": {
-                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/port",
+                            "$id": "#/properties/osm/properties/prometheus/properties/port",
                             "title": "Prometheus' port schema",
                             "description": "Prometheus' port number",
                             "type": "integer",
@@ -1173,7 +1173,7 @@
                             ]
                         },
                         "retention": {
-                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/rentention",
+                            "$id": "#/properties/osm/properties/prometheus/properties/rentention",
                             "type": "object",
                             "title": "The Prometheus retention schema",
                             "description": "Prometheus data retention configurations",
@@ -1182,7 +1182,7 @@
                             ],
                             "properties": {
                                 "time": {
-                                    "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/retention/properties/time",
+                                    "$id": "#/properties/osm/properties/prometheus/properties/retention/properties/time",
                                     "title": "Prometheus' data retention time schema",
                                     "description": "Prometheus' data retention time",
                                     "type": "string",
@@ -1193,7 +1193,7 @@
                             }
                         },
                         "image": {
-                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/image",
+                            "$id": "#/properties/osm/properties/prometheus/properties/image",
                             "type": "string",
                             "title": "Prometheus's image schema",
                             "description": "Image used for Prometheus",
@@ -1205,7 +1205,7 @@
                     "additionalProperties": false
                 },
                 "imagePullSecrets": {
-                    "$id": "#/properties/OpenServiceMesh/properties/imagePullSecrets",
+                    "$id": "#/properties/osm/properties/imagePullSecrets",
                     "type": "array",
                     "title": "The imagePullSecrets schema",
                     "description": "ImagePullSecrets for the control plane pod",
@@ -1221,13 +1221,13 @@
                     ]
                 },
                 "validatorWebhook": {
-                    "$id": "#/properties/OpenServiceMesh/properties/validatorWebhook",
+                    "$id": "#/properties/osm/properties/validatorWebhook",
                     "type": "object",
                     "title": "The validatorWebhook schema",
                     "description": "Resource validator webhook configuration",
                     "properties": {
                         "webhookConfigurationName": {
-                            "$id": "#/properties/OpenServiceMesh/properties/validatorWebhook/properties/webhookConfigurationName",
+                            "$id": "#/properties/osm/properties/validatorWebhook/properties/webhookConfigurationName",
                             "title": "Validator webhook configuration schema",
                             "description": "Validator's ValidatingWebhookConfigurationName",
                             "type": "string"

@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployGrafana}}
+{{- if .Values.osm.deployGrafana}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -53,7 +53,7 @@ data:
         # <int> org id. will default to orgId 1 if not specified
         orgId: 1
         # <string> url
-        url: http://osm-prometheus.{{ include "osm.namespace" . }}.svc:{{.Values.OpenServiceMesh.prometheus.port}}
+        url: http://osm-prometheus.{{ include "osm.namespace" . }}.svc:{{.Values.osm.prometheus.port}}
         version: 1
         # <bool> allow users to edit datasources from the UI.
         editable: true

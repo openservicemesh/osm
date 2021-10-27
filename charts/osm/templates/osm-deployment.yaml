@@ -6,11 +6,11 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
     app: osm-controller
-    meshName: {{ .Values.OpenServiceMesh.meshName }}
-    {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
+    meshName: {{ .Values.osm.meshName }}
+    {{ if .Values.osm.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
-  {{- if not .Values.OpenServiceMesh.osmController.autoScale.enable }}
-  replicas: {{ .Values.OpenServiceMesh.osmController.replicaCount }}
+  {{- if not .Values.osm.osmController.autoScale.enable }}
+  replicas: {{ .Values.osm.osmController.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -20,8 +20,8 @@ spec:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-controller
-  {{- if .Values.OpenServiceMesh.osmController.podLabels }}
-  {{- toYaml .Values.OpenServiceMesh.osmController.podLabels | nindent 8 }}
+  {{- if .Values.osm.osmController.podLabels }}
+  {{- toYaml .Values.osm.osmController.podLabels | nindent 8 }}
   {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
@@ -37,7 +37,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: init-osm-controller
-          image: {{ .Values.OpenServiceMesh.curlImage }}
+          image: {{ .Values.osm.curlImage }}
           args:
           - /bin/sh
           - -c
@@ -49,7 +49,7 @@ spec:
       containers:
         - name: osm-controller
           image: "{{ include "osmController.image" . }}"
-          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
           ports:
             - name: "admin-port"
               containerPort: 15000
@@ -59,32 +59,32 @@ spec:
               containerPort: 9091
           command: ['/osm-controller']
           args: [
-            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
             "--osm-version", "{{ .Chart.AppVersion }}",
             "--osm-service-account", "{{ .Release.Name }}",
-            "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
+            "--mesh-name", "{{.Values.osm.meshName}}",
             "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
-            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
-            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateProvider.kind}}",
-            {{ if eq .Values.OpenServiceMesh.certificateProvider.kind "vault" }}
-            "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
-            "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
-            "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            {{ if eq .Values.osm.certificateProvider.kind "vault" }}
+            "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-protocol", "{{.Values.osm.vault.protocol}}",
+            "--vault-token", "{{.Values.osm.vault.token}}",
             {{- end }}
-            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
-            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
-            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
-            "--enable-reconciler={{.Values.OpenServiceMesh.enableReconciler}}",
+            "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
             "--validate-traffic-target={{.Values.smi.validateTrafficTarget}}",
           ]
           resources:
             limits:
-              cpu: "{{.Values.OpenServiceMesh.osmController.resource.limits.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.osmController.resource.limits.memory}}"
+              cpu: "{{.Values.osm.osmController.resource.limits.cpu}}"
+              memory: "{{.Values.osm.osmController.resource.limits.memory}}"
             requests:
-              cpu: "{{.Values.OpenServiceMesh.osmController.resource.requests.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.osmController.resource.requests.memory}}"
+              cpu: "{{.Values.osm.osmController.resource.requests.cpu}}"
+              memory: "{{.Values.osm.osmController.resource.requests.memory}}"
           readinessProbe:
             initialDelaySeconds: 1
             timeoutSeconds: 5
@@ -105,12 +105,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-      {{- if .Values.OpenServiceMesh.enableFluentbit }}
-        - name: {{ .Values.OpenServiceMesh.fluentBit.name }}
-          image: {{ .Values.OpenServiceMesh.fluentBit.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBit.tag }}
-          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBit.pullPolicy }}
+      {{- if .Values.osm.enableFluentbit }}
+        - name: {{ .Values.osm.fluentBit.name }}
+          image: {{ .Values.osm.fluentBit.registry }}/fluent-bit:{{ .Values.osm.fluentBit.tag }}
+          imagePullPolicy: {{ .Values.osm.fluentBit.pullPolicy }}
           env:
-          {{- if .Values.OpenServiceMesh.fluentBit.enableProxySupport }}
+          {{- if .Values.osm.fluentBit.enableProxySupport }}
           - name: HTTP_PROXY
             valueFrom:
               secretKeyRef:
@@ -144,7 +144,7 @@ spec:
             mountPath: /var/lib/docker/containers
             readOnly: true
        {{- end }}
-    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+    {{- if .Values.osm.enableFluentbit }}
       volumes:
       - name: config
         configMap:
@@ -159,11 +159,11 @@ spec:
         hostPath:
           path: /var/lib/docker/containers
     {{- end }}
-    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
+    {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.OpenServiceMesh.controlPlaneTolerations }}
+    {{- if .Values.osm.controlPlaneTolerations }}
       tolerations:
-{{ toYaml .Values.OpenServiceMesh.controlPlaneTolerations | indent 8 }}
+{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
     {{- end }}

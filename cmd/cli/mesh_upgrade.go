@@ -27,8 +27,8 @@ overridden from the default for the "osm install" command, the --mesh-name and
 --osm-namespace flags need to be specified.
 
 Values from the current Helm release will be carried over to the new release
-with the exception of OpenServiceMesh.image.registry (--container-registry) and
-OpenServiceMesh.image.tag (--osm-image-tag), which will be overridden from the
+with the exception of osm.image.registry (--container-registry) and
+osm.image.tag (--osm-image-tag), which will be overridden from the
 old release by default.
 
 Note: edits to resources NOT made by Helm or the OSM CLI may not persist after
@@ -132,7 +132,7 @@ func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]i
 	}
 
 	vals = map[string]interface{}{
-		"OpenServiceMesh": vals,
+		"osm": vals,
 	}
 
 	oldRelease, err := config.Releases.Deployed(u.meshName)

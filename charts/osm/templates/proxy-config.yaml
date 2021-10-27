@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.fluentBit.enableProxySupport }}
+{{- if .Values.osm.fluentBit.enableProxySupport }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -7,6 +7,6 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
 stringData:
-  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy | quote }}
-  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy | quote }}
+  HTTP_PROXY: {{ .Values.osm.fluentBit.httpProxy | quote }}
+  HTTPS_PROXY: {{ .Values.osm.fluentBit.httpsProxy | quote }}
 {{- end }}

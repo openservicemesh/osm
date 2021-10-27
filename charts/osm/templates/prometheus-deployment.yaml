@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployPrometheus }}
+{{- if .Values.osm.deployPrometheus }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,21 +28,21 @@ spec:
       containers:
       - name: prometheus
         ports:
-        - containerPort: {{.Values.OpenServiceMesh.prometheus.port}}
+        - containerPort: {{.Values.osm.prometheus.port}}
         args:
         - --config.file=/etc/prometheus/prometheus.yml
         - --storage.tsdb.path=/prometheus/
-        - --storage.tsdb.retention.time={{.Values.OpenServiceMesh.prometheus.retention.time}}
-        - --web.listen-address=:{{.Values.OpenServiceMesh.prometheus.port}}
-        image: {{.Values.OpenServiceMesh.prometheus.image}}
+        - --storage.tsdb.retention.time={{.Values.osm.prometheus.retention.time}}
+        - --web.listen-address=:{{.Values.osm.prometheus.port}}
+        image: {{.Values.osm.prometheus.image}}
         imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: "{{.Values.OpenServiceMesh.prometheus.resources.limits.cpu}}"
-            memory: "{{.Values.OpenServiceMesh.prometheus.resources.limits.memory}}"
+            cpu: "{{.Values.osm.prometheus.resources.limits.cpu}}"
+            memory: "{{.Values.osm.prometheus.resources.limits.memory}}"
           requests:
-            cpu: "{{.Values.OpenServiceMesh.prometheus.resources.requests.cpu}}"
-            memory: "{{.Values.OpenServiceMesh.prometheus.resources.requests.memory}}"
+            cpu: "{{.Values.osm.prometheus.resources.requests.cpu}}"
+            memory: "{{.Values.osm.prometheus.resources.requests.memory}}"
         volumeMounts:
         - mountPath: /etc/prometheus/
           name: prometheus-config-volume

@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.featureFlags.enableMulticlusterMode }}
+{{- if .Values.osm.featureFlags.enableMulticlusterMode }}
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -23,7 +23,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: osm-multicluster-gateway-init
-          image: {{ .Values.OpenServiceMesh.curlImage }}
+          image: {{ .Values.osm.curlImage }}
           args:
           - /bin/sh
           - -c
@@ -34,7 +34,7 @@ spec:
             done
       containers:
         - name: envoy
-          image: {{ .Values.OpenServiceMesh.sidecarImage }}
+          image: {{ .Values.osm.sidecarImage }}
           command:
             - "envoy"
           args: [
@@ -42,7 +42,7 @@ spec:
             "--bootstrap-version", "3",
             "--service-node", "osm-multicluster-gateway",
             "--service-cluster", "osm-multicluster-gateway",
-            "--log-level", {{ .Values.OpenServiceMesh.multicluster.gatewayLogLevel }},
+            "--log-level", {{ .Values.osm.multicluster.gatewayLogLevel }},
           ]
           ports:
             - name: "multicluster"

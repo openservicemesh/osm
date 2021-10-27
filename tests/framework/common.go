@@ -475,20 +475,20 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	)
 
 	instOpts.SetOverrides = append(instOpts.SetOverrides,
-		fmt.Sprintf("OpenServiceMesh.image.registry=%s", instOpts.ContainerRegistryLoc),
-		fmt.Sprintf("OpenServiceMesh.image.tag=%s", instOpts.OsmImagetag),
-		fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", instOpts.CertManager),
-		fmt.Sprintf("OpenServiceMesh.enableEgress=%v", instOpts.EgressEnabled),
-		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
-		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%v", instOpts.EnableDebugServer),
-		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", instOpts.EnvoyLogLevel),
-		fmt.Sprintf("OpenServiceMesh.deployGrafana=%v", instOpts.DeployGrafana),
-		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%v", instOpts.DeployPrometheus),
-		fmt.Sprintf("OpenServiceMesh.deployJaeger=%v", instOpts.DeployJaeger),
-		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%v", instOpts.DeployFluentbit),
-		fmt.Sprintf("OpenServiceMesh.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
-		fmt.Sprintf("OpenServiceMesh.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
-		fmt.Sprintf("OpenServiceMesh.enableReconciler=%v", instOpts.EnableReconciler),
+		fmt.Sprintf("osm.image.registry=%s", instOpts.ContainerRegistryLoc),
+		fmt.Sprintf("osm.image.tag=%s", instOpts.OsmImagetag),
+		fmt.Sprintf("osm.certificateProvider.kind=%s", instOpts.CertManager),
+		fmt.Sprintf("osm.enableEgress=%v", instOpts.EgressEnabled),
+		fmt.Sprintf("osm.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
+		fmt.Sprintf("osm.enableDebugServer=%v", instOpts.EnableDebugServer),
+		fmt.Sprintf("osm.envoyLogLevel=%s", instOpts.EnvoyLogLevel),
+		fmt.Sprintf("osm.deployGrafana=%v", instOpts.DeployGrafana),
+		fmt.Sprintf("osm.deployPrometheus=%v", instOpts.DeployPrometheus),
+		fmt.Sprintf("osm.deployJaeger=%v", instOpts.DeployJaeger),
+		fmt.Sprintf("osm.enableFluentbit=%v", instOpts.DeployFluentbit),
+		fmt.Sprintf("osm.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
+		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
+		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
 	)
 
 	switch instOpts.CertManager {
@@ -497,10 +497,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			return err
 		}
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
-			fmt.Sprintf("OpenServiceMesh.vault.host=%s", instOpts.VaultHost),
-			fmt.Sprintf("OpenServiceMesh.vault.role=%s", instOpts.VaultRole),
-			fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", instOpts.VaultProtocol),
-			fmt.Sprintf("OpenServiceMesh.vault.token=%s", instOpts.VaultToken))
+			fmt.Sprintf("osm.vault.host=%s", instOpts.VaultHost),
+			fmt.Sprintf("osm.vault.role=%s", instOpts.VaultRole),
+			fmt.Sprintf("osm.vault.protocol=%s", instOpts.VaultProtocol),
+			fmt.Sprintf("osm.vault.token=%s", instOpts.VaultToken))
 		// Wait for the vault pod
 		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
 			return errors.Wrap(err, "failed waiting for vault pod to become ready")
@@ -510,26 +510,26 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			return err
 		}
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
-			fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", instOpts.CertmanagerIssuerName),
-			fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", instOpts.CertmanagerIssuerKind),
-			fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", instOpts.CertmanagerIssuerGroup))
+			fmt.Sprintf("osm.certmanager.issuerName=%s", instOpts.CertmanagerIssuerName),
+			fmt.Sprintf("osm.certmanager.issuerKind=%s", instOpts.CertmanagerIssuerKind),
+			fmt.Sprintf("osm.certmanager.issuerGroup=%s", instOpts.CertmanagerIssuerGroup))
 	}
 
 	if !(td.InstType == KindCluster) {
 		// Making sure the image is always pulled in registry-based testing
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
-			"OpenServiceMesh.image.pullPolicy=Always")
+			"osm.image.pullPolicy=Always")
 	}
 
 	if len(instOpts.ContainerRegistrySecret) != 0 {
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
-			fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", RegistrySecretName),
+			fmt.Sprintf("osm.imagePullSecrets[0].name=%s", RegistrySecretName),
 		)
 	}
 
 	td.T.Logf("Setting log OSM's log level through overrides to %s", instOpts.OSMLogLevel)
 	instOpts.SetOverrides = append(instOpts.SetOverrides,
-		fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", instOpts.OSMLogLevel))
+		fmt.Sprintf("osm.controllerLogLevel=%s", instOpts.OSMLogLevel))
 
 	if len(instOpts.SetOverrides) > 0 {
 		separator := "="

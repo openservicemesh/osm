@@ -7,35 +7,35 @@ data:
   preset-mesh-config.json: |
     {
       "sidecar": {
-        "enablePrivilegedInitContainer": {{.Values.OpenServiceMesh.enablePrivilegedInitContainer | mustToJson}},
-        "logLevel": {{.Values.OpenServiceMesh.envoyLogLevel | mustToJson}},
-        "maxDataPlaneConnections": {{.Values.OpenServiceMesh.maxDataPlaneConnections | mustToJson}},
-        "envoyImage": {{.Values.OpenServiceMesh.sidecarImage | mustToJson}},
-        "envoyWindowsImage": {{.Values.OpenServiceMesh.sidecarWindowsImage | mustToJson}},
+        "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
+        "logLevel": {{.Values.osm.envoyLogLevel | mustToJson}},
+        "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
+        "envoyImage": {{.Values.osm.sidecarImage | mustToJson}},
+        "envoyWindowsImage": {{.Values.osm.sidecarWindowsImage | mustToJson}},
         "initContainerImage": "{{ include "osmSidecarInit.image" . }}",
-        "configResyncInterval": {{.Values.OpenServiceMesh.configResyncInterval | mustToJson}}
+        "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}}
       },
       "traffic": {
-        "enableEgress": {{.Values.OpenServiceMesh.enableEgress | mustToJson}},
-        "enablePermissiveTrafficPolicyMode": {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy | mustToJson}},
-        "outboundPortExclusionList": {{.Values.OpenServiceMesh.outboundPortExclusionList | mustToJson}},
-        "inboundPortExclusionList": {{.Values.OpenServiceMesh.inboundPortExclusionList | mustToJson}},
-        "outboundIPRangeExclusionList": {{.Values.OpenServiceMesh.outboundIPRangeExclusionList | mustToJson}}
+        "enableEgress": {{.Values.osm.enableEgress | mustToJson}},
+        "enablePermissiveTrafficPolicyMode": {{.Values.osm.enablePermissiveTrafficPolicy | mustToJson}},
+        "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},
+        "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
+        "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}}
       },
       "observability": {
-        "enableDebugServer": {{.Values.OpenServiceMesh.enableDebugServer | mustToJson}},
-        "osmLogLevel": {{.Values.OpenServiceMesh.controllerLogLevel | mustToJson}},
+        "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
+        "osmLogLevel": {{.Values.osm.controllerLogLevel | mustToJson}},
         "tracing": {
-          "enable": {{.Values.OpenServiceMesh.tracing.enable | mustToJson}}{{- if .Values.OpenServiceMesh.tracing.enable }},{{- end }}
-          {{- if .Values.OpenServiceMesh.tracing.enable }}
-          "port": {{.Values.OpenServiceMesh.tracing.port | mustToJson}},
+          "enable": {{.Values.osm.tracing.enable | mustToJson}}{{- if .Values.osm.tracing.enable }},{{- end }}
+          {{- if .Values.osm.tracing.enable }}
+          "port": {{.Values.osm.tracing.port | mustToJson}},
           "address": {{include "osm.tracingAddress" . | mustToJson}},
-          "endpoint": {{.Values.OpenServiceMesh.tracing.endpoint | mustToJson}}
+          "endpoint": {{.Values.osm.tracing.endpoint | mustToJson}}
           {{- end }}
         }
       },
       "certificate": {
-        "serviceCertValidityDuration": {{.Values.OpenServiceMesh.certificateProvider.serviceCertValidityDuration | mustToJson}},
+        "serviceCertValidityDuration": {{.Values.osm.certificateProvider.serviceCertValidityDuration | mustToJson}},
         {{- if .Values.contour.enabled }}
         "ingressGateway": {
           "subjectAltNames": ["osm-contour-envoy.{{include "osm.namespace" .}}.cluster.local"],
@@ -46,16 +46,16 @@ data:
           }
         },
         {{- end }}
-        "certKeyBitSize": {{.Values.OpenServiceMesh.certificateProvider.certKeyBitSize | mustToJson}}
+        "certKeyBitSize": {{.Values.osm.certificateProvider.certKeyBitSize | mustToJson}}
       },
       "featureFlags": {
-        "enableWASMStats": {{.Values.OpenServiceMesh.featureFlags.enableWASMStats | mustToJson}},
-        "enableEgressPolicy": {{.Values.OpenServiceMesh.featureFlags.enableEgressPolicy | mustToJson}},
-        "enableMulticlusterMode": {{.Values.OpenServiceMesh.featureFlags.enableMulticlusterMode | mustToJson}},
-        "enableSnapshotCacheMode": {{.Values.OpenServiceMesh.featureFlags.enableSnapshotCacheMode | mustToJson}},
-        "enableAsyncProxyServiceMapping": {{.Values.OpenServiceMesh.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
-        "enableIngressBackendPolicy": {{.Values.OpenServiceMesh.featureFlags.enableIngressBackendPolicy | mustToJson}},
-        "enableEnvoyActiveHealthChecks": {{.Values.OpenServiceMesh.featureFlags.enableEnvoyActiveHealthChecks | mustToJson}},
-        "enableRetryPolicy": {{.Values.OpenServiceMesh.featureFlags.enableRetryPolicy | mustToJson}}
+        "enableWASMStats": {{.Values.osm.featureFlags.enableWASMStats | mustToJson}},
+        "enableEgressPolicy": {{.Values.osm.featureFlags.enableEgressPolicy | mustToJson}},
+        "enableMulticlusterMode": {{.Values.osm.featureFlags.enableMulticlusterMode | mustToJson}},
+        "enableSnapshotCacheMode": {{.Values.osm.featureFlags.enableSnapshotCacheMode | mustToJson}},
+        "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
+        "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},
+        "enableEnvoyActiveHealthChecks": {{.Values.osm.featureFlags.enableEnvoyActiveHealthChecks | mustToJson}},
+        "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
       }
     }

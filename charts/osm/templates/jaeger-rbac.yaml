@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployJaeger }}
+{{- if .Values.osm.deployJaeger }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
