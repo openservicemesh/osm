@@ -103,9 +103,9 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.fluentBit.tag | string | `"1.6.4"` | Fluent Bit sidecar image tag |
 | osm.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | osm.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
-| osm.grafana.image | string | `"grafana/grafana:7.0.1"` | Image used for Grafana |
+| osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
 | osm.grafana.port | int | `3000` | Grafana service's port |
-| osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:2.0.0-beta1"` | Image used for Grafana Renderer |
+| osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmInjector":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
 | osm.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
 | osm.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
