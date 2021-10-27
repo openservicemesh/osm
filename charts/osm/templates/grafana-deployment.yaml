@@ -29,7 +29,7 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: grafana
-          image: "grafana/grafana:7.0.1"
+          image: {{.Values.OpenServiceMesh.grafana.image}}
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -67,7 +67,7 @@ spec:
           - name: GF_LOG_FILTERS
             value: "rendering:debug"
         - name: renderer
-          image: grafana/grafana-image-renderer:2.0.0-beta1
+          image: {{.Values.OpenServiceMesh.grafana.rendererImage}}
           imagePullPolicy: IfNotPresent
           resources:
             limits:

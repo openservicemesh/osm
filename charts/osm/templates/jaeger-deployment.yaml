@@ -27,7 +27,7 @@ spec:
         kubernetes.io/os: linux
       containers:
       - name: jaeger
-        image: jaegertracing/all-in-one
+        image: {{ .Values.OpenServiceMesh.tracing.image }}
         args:
           - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.tracing.port }}
         imagePullPolicy: IfNotPresent

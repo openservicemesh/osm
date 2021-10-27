@@ -36,7 +36,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: init-osm-injector
-          image: curlimages/curl
+          image: {{ .Values.OpenServiceMesh.curlImage }}
           args:
           - /bin/sh
           - -c

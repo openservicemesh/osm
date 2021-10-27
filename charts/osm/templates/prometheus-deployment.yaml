@@ -34,7 +34,7 @@ spec:
         - --storage.tsdb.path=/prometheus/
         - --storage.tsdb.retention.time={{.Values.OpenServiceMesh.prometheus.retention.time}}
         - --web.listen-address=:{{.Values.OpenServiceMesh.prometheus.port}}
-        image: prom/prometheus:v2.18.1
+        image: {{.Values.OpenServiceMesh.prometheus.image}}
         imagePullPolicy: IfNotPresent
         resources:
           limits:

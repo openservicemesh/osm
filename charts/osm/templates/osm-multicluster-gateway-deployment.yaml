@@ -23,7 +23,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: osm-multicluster-gateway-init
-          image: curlimages/curl
+          image: {{ .Values.OpenServiceMesh.curlImage }}
           args:
           - /bin/sh
           - -c
