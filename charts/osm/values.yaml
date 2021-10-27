@@ -33,6 +33,8 @@ OpenServiceMesh:
   sidecarImage: envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd
   # -- Envoy sidecar image for Windows workloads (v1.19.1)
   sidecarWindowsImage: envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85
+  # -- Curl image for control plane init container
+  curlImage: curlimages/curl
 
   #
   # -- OSM controller parameters
@@ -79,6 +81,8 @@ OpenServiceMesh:
     retention:
       # -- Prometheus data retention time
       time: 15d
+    # -- Image used for Prometheus
+    image: prom/prometheus:v2.18.1
 
   certificateProvider:
     # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
@@ -120,6 +124,10 @@ OpenServiceMesh:
     port: 3000
     # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
+    # -- Image used for Grafana
+    image: grafana/grafana:7.0.1
+    # -- Image used for Grafana Renderer
+    rendererImage: grafana/grafana-image-renderer:2.0.0-beta1
 
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
@@ -208,6 +216,8 @@ OpenServiceMesh:
     port: 9411
     # -- Tracing collector's API path where the spans will be sent to
     endpoint: "/api/v2/spans"
+    # -- Image used for tracing
+    image: jaegertracing/all-in-one
 
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.

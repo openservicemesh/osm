@@ -133,6 +133,7 @@
             "required": [
                 "image",
                 "sidecarImage",
+                "curlImage",
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
@@ -302,6 +303,15 @@
                     "description": "The proxy side car image to run.",
                     "examples": [
                         "envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd"
+                    ]
+                },
+                "curlImage": {
+                    "$id": "#/properties/OpenServiceMesh/properties/curlImage",
+                    "type": "string",
+                    "title": "The curlImage schema",
+                    "description": "The curl image for control plane init containers.",
+                    "examples": [
+                        "curlimages/curl"
                     ]
                 },
                 "sidecarWindowsImage": {
@@ -624,7 +634,8 @@
                         "enable",
                         "address",
                         "port",
-                        "endpoint"
+                        "endpoint",
+                        "image"
                     ],
                     "properties": {
                         "enable": {
@@ -663,6 +674,15 @@
                             "description": "API path of the collector",
                             "examples": [
                                 "/api/v2/spans"
+                            ]
+                        },
+                        "image": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/image",
+                            "type": "string",
+                            "title": "Jaeger's image schema",
+                            "description": "Image used for jaeger",
+                            "examples": [
+                                "jaegertracing/all-in-one"
                             ]
                         }
                     },
@@ -983,7 +1003,9 @@
                     "description": "Grafana configuration parameters",
                     "required": [
                         "port",
-                        "enableRemoteRendering"
+                        "enableRemoteRendering",
+                        "image",
+                        "rendererImage"
                     ],
                     "properties": {
                         "port": {
@@ -1005,12 +1027,32 @@
                             "examples": [
                                 true
                             ]
+                        },
+                        "image": {
+                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/image",
+                            "type": "string",
+                            "title": "Grafana's image schema",
+                            "description": "Image used for Grafana",
+                            "examples": [
+                                "grafana/grafana:7.0.1"
+                            ]
+                        },
+                        "rendererImage": {
+                            "$id": "#/properties/OpenServiceMesh/properties/grafana/properties/rendererImage",
+                            "type": "string",
+                            "title": "Grafana's rendererImage schema",
+                            "description": "Renderer image used for Grafana",
+                            "examples": [
+                                "grafana/grafana-image-renderer:2.0.0-beta1"
+                            ]
                         }
                     },
                     "examples": [
                         {
                             "port": 3000,
-                            "enableRemoteRendering": true
+                            "enableRemoteRendering": true,
+                            "image": "grafana/grafana:7.0.1",
+                            "rendererImage": "grafana/grafana-image-renderer:2.0.0-beta1"
                         }
                     ],
                     "additionalProperties": false
@@ -1112,7 +1154,8 @@
                     "required": [
                         "resources",
                         "port",
-                        "retention"
+                        "retention",
+                        "image"
                     ],
                     "properties": {
                         "resources": {
@@ -1148,6 +1191,15 @@
                                     ]
                                 }
                             }
+                        },
+                        "image": {
+                            "$id": "#/properties/OpenServiceMesh/properties/prometheus/properties/image",
+                            "type": "string",
+                            "title": "Prometheus's image schema",
+                            "description": "Image used for Prometheus",
+                            "examples": [
+                                "prom/prometheus:v2.18.1"
+                            ]
                         }
                     },
                     "additionalProperties": false

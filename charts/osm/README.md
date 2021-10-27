@@ -69,6 +69,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | OpenServiceMesh.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
+| OpenServiceMesh.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
@@ -99,7 +100,9 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.fluentBit.tag | string | `"1.6.4"` | Fluent Bit sidecar image tag |
 | OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
+| OpenServiceMesh.grafana.image | string | `"grafana/grafana:7.0.1"` | Image used for Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana service's port |
+| OpenServiceMesh.grafana.rendererImage | string | `"grafana/grafana-image-renderer:2.0.0-beta1"` | Image used for Grafana Renderer |
 | OpenServiceMesh.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmInjector":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
 | OpenServiceMesh.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
 | OpenServiceMesh.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
@@ -140,6 +143,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.osmNamespace | string | `""` | Namespace to deploy OSM in. If not specified, the Helm release namespace is used. |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | OpenServiceMesh.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| OpenServiceMesh.prometheus.image | string | `"prom/prometheus:v2.18.1"` | Image used for Prometheus |
 | OpenServiceMesh.prometheus.port | int | `7070` | Prometheus service's port |
 | OpenServiceMesh.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | OpenServiceMesh.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
@@ -149,6 +153,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
+| OpenServiceMesh.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
 | OpenServiceMesh.tracing.port | int | `9411` | Port of the tracing collector service |
 | OpenServiceMesh.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | OpenServiceMesh.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |

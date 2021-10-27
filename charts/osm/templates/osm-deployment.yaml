@@ -37,7 +37,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: init-osm-controller
-          image: curlimages/curl
+          image: {{ .Values.OpenServiceMesh.curlImage }}
           args:
           - /bin/sh
           - -c
