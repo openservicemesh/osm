@@ -43,7 +43,7 @@ func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 }
 
 // createAndStoreGatewayCert creates a certificate for the given certificate spec and stores
-// it in the referenced k8s secret is the spec is valid.
+// it in the referenced k8s secret if the spec is valid.
 func (c *client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCertSpec) error {
 	if len(spec.SubjectAltNames) == 0 {
 		return errors.New("Ingress gateway certificate spec must specify at least 1 SAN")
@@ -57,7 +57,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha1.IngressGatewayCer
 
 	// Validate the secret ref
 	if spec.Secret.Name == "" || spec.Secret.Namespace == "" {
-		return errors.Errorf("Ingreaa gateway cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
+		return errors.Errorf("Ingress gateway cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
 	}
 
 	// Issue a certificate
