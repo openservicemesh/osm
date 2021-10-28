@@ -48,6 +48,10 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 
 func testTrafficSplitSelector() {
 	It("Tests HTTP traffic split when root service selector matches backends", func() {
+		if Td.DeployOnOpenShift {
+			Skip("Skipping test: TrafficSplit selector test not supported on OpenShift")
+		}
+
 		clientNs := "client"
 		clientName := "client"
 		serviceNs := "server"
