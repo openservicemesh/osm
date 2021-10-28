@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployJaeger }}
+{{- if .Values.osm.deployJaeger }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,12 +27,12 @@ spec:
         kubernetes.io/os: linux
       containers:
       - name: jaeger
-        image: {{ .Values.OpenServiceMesh.tracing.image }}
+        image: {{ .Values.osm.tracing.image }}
         args:
-          - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.tracing.port }}
+          - --collector.zipkin.host-port={{ .Values.osm.tracing.port }}
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: {{ .Values.OpenServiceMesh.tracing.port }}
+        - containerPort: {{ .Values.osm.tracing.port }}
         resources:
           limits:
             cpu: 500m

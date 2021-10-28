@@ -69,7 +69,7 @@ rules:
     resources: ["certificaterequests"]
     verbs: ["list", "get", "watch", "create", "delete"]
 
-  {{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") .Values.OpenServiceMesh.enableFluentbit }}
+  {{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") .Values.osm.enableFluentbit }}
   - apiGroups: ["security.openshift.io"]
     resourceNames: ["hostaccess"]
     resources: ["securitycontextconstraints"]

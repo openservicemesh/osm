@@ -74,21 +74,21 @@ spec:
       containers:
         - name: garbage-collector
           image: "{{ include "osmCRDs.image" . }}"
-          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
           command:
             - sh
             - -c
             - >
              kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
-             kubectl delete --ignore-not-found secret -n '{{ include "osm.namespace" . }}' {{ .Values.OpenServiceMesh.caBundleSecretName }} mutating-webhook-cert-secret validating-webhook-cert-secret crd-converter-cert-secret;
+             kubectl delete --ignore-not-found secret -n '{{ include "osm.namespace" . }}' {{ .Values.osm.caBundleSecretName }} mutating-webhook-cert-secret validating-webhook-cert-secret crd-converter-cert-secret;
              kubectl apply -f /osm-crds;
-             kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
-             kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.OpenServiceMesh.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
+             kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
+             kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
-{{- if .Values.OpenServiceMesh.imagePullSecrets }}
+{{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
 {{- end }}
 

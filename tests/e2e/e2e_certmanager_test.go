@@ -32,7 +32,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				installOpts.SetOverrides = []string{
 					// increase timeout when using an external certificate provider due to
 					// potential slowness issuing certs
-					"OpenServiceMesh.injector.webhookTimeoutSeconds=30",
+					"osm.injector.webhookTimeoutSeconds=30",
 				}
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 5 /* 3 cert-manager pods, 1 controller, 1 injector */, nil)).To(Succeed())

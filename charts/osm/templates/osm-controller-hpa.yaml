@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.osmController.autoScale.enable }}
+{{- if .Values.osm.osmController.autoScale.enable }}
 apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -9,13 +9,13 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: osm-controller
-  minReplicas: {{.Values.OpenServiceMesh.osmController.autoScale.minReplicas}}
-  maxReplicas: {{.Values.OpenServiceMesh.osmController.autoScale.maxReplicas}}
+  minReplicas: {{.Values.osm.osmController.autoScale.minReplicas}}
+  maxReplicas: {{.Values.osm.osmController.autoScale.maxReplicas}}
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: {{.Values.OpenServiceMesh.osmController.autoScale.targetAverageUtilization}}
+        averageUtilization: {{.Values.osm.osmController.autoScale.targetAverageUtilization}}
 {{- end }}

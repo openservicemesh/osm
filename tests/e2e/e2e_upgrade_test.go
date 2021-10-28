@@ -57,7 +57,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			i.ReleaseName = releaseName
 			i.Timeout = 120 * time.Second
 			vals := map[string]interface{}{
-				"OpenServiceMesh": map[string]interface{}{
+				"osm": map[string]interface{}{
 					"deployPrometheus": true,
 					"deployJaeger":     false,
 					// Init container must be privileged if an OpenShift cluster is being used

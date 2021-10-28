@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployGrafana}}
+{{- if .Values.osm.deployGrafana}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,7 +29,7 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: grafana
-          image: {{.Values.OpenServiceMesh.grafana.image}}
+          image: {{.Values.osm.grafana.image}}
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -57,8 +57,8 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards/dataplane
               readOnly: true
           ports:
-            - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
-{{- if .Values.OpenServiceMesh.grafana.enableRemoteRendering}}
+            - containerPort: {{.Values.osm.grafana.port}}
+{{- if .Values.osm.grafana.enableRemoteRendering}}
           env:
           - name: GF_RENDERING_SERVER_URL
             value: "http://osm-grafana:8081/render"
@@ -67,7 +67,7 @@ spec:
           - name: GF_LOG_FILTERS
             value: "rendering:debug"
         - name: renderer
-          image: {{.Values.OpenServiceMesh.grafana.rendererImage}}
+          image: {{.Values.osm.grafana.rendererImage}}
           imagePullPolicy: IfNotPresent
           resources:
             limits:

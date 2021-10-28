@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.featureFlags.enableMulticlusterMode }}
+{{- if .Values.osm.featureFlags.enableMulticlusterMode }}
 ---
 apiVersion: v1
 kind: Service

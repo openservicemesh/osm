@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.enableFluentbit }}
+{{- if .Values.osm.enableFluentbit }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -25,11 +25,11 @@ data:
       Match          kube.*
       Add            controller_pod_name ${CONTROLLER_POD_NAME}
     [OUTPUT]
-      Name    {{ .Values.OpenServiceMesh.fluentBit.outputPlugin }}
+      Name    {{ .Values.osm.fluentBit.outputPlugin }}
       Match   *
-      {{- if eq (.Values.OpenServiceMesh.fluentBit.outputPlugin | lower) "azure" }}
-      Customer_ID {{ .Values.OpenServiceMesh.fluentBit.workspaceId }}
-      Shared_Key {{ .Values.OpenServiceMesh.fluentBit.primaryKey }}
+      {{- if eq (.Values.osm.fluentBit.outputPlugin | lower) "azure" }}
+      Customer_ID {{ .Values.osm.fluentBit.workspaceId }}
+      Shared_Key {{ .Values.osm.fluentBit.primaryKey }}
       {{- end }}
 
   parser.conf: |-

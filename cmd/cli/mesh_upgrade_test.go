@@ -59,7 +59,7 @@ func TestMeshUpgradeDefault(t *testing.T) {
 	upgraded, err := action.NewGet(config).Run(u.meshName)
 	a.Nil(err)
 
-	meshName, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.meshName")
+	meshName, err := chartutil.Values(upgraded.Config).PathValue("osm.meshName")
 	a.Nil(err)
 	a.Equal(defaultMeshName, meshName)
 	err = u.run(config)
@@ -86,7 +86,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	upgraded, err := action.NewGet(config).Run(u.meshName)
 	a.Nil(err)
 
-	osmImageTag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	osmImageTag, err := chartutil.Values(upgraded.Config).PathValue("osm.image.tag")
 	a.Nil(err)
 	a.Equal("upgraded", osmImageTag)
 
@@ -98,7 +98,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	upgraded, err = action.NewGet(config).Run(u.meshName)
 	a.Nil(err)
 
-	osmImageTag, err = chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	osmImageTag, err = chartutil.Values(upgraded.Config).PathValue("osm.image.tag")
 	a.Nil(err)
 	a.Equal(defaultOsmImageTag, osmImageTag)
 }
@@ -111,9 +111,9 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
 	i.setOptions = []string{
-		"OpenServiceMesh.enableEgress=true",
-		"OpenServiceMesh.osmImageTag=installed",
-		"OpenServiceMesh.envoyLogLevel=trace",
+		"osm.enableEgress=true",
+		"osm.osmImageTag=installed",
+		"osm.envoyLogLevel=trace",
 	}
 
 	err := i.run(config)
@@ -128,17 +128,17 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	a.Nil(err)
 
 	// enableEgress should be unchanged by default
-	egressEnabled, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enableEgress")
+	egressEnabled, err := chartutil.Values(upgraded.Config).PathValue("osm.enableEgress")
 	a.Nil(err)
 	a.Equal(true, egressEnabled)
 
 	// envoyLogLevel should be unchanged by default
-	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.envoyLogLevel")
+	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("osm.envoyLogLevel")
 	a.Nil(err)
 	a.Equal("trace", envoyLogLevel)
 
 	// image tag should be updated by default
-	tag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	tag, err := chartutil.Values(upgraded.Config).PathValue("osm.image.tag")
 	a.Nil(err)
 	a.Equal(defaultOsmImageTag, tag)
 }
@@ -164,10 +164,10 @@ func TestMeshUpgradeToModifiedChart(t *testing.T) {
 	u.chart.Schema = []byte(`{"required": ["newRequired"]}`)
 
 	// A value NOT set explicitly by `osm install` that exists in the old chart
-	oldNamespace, err := chartutil.Values(u.chart.Values).PathValue("OpenServiceMesh.namespace")
+	oldNamespace, err := chartutil.Values(u.chart.Values).PathValue("osm.namespace")
 	a.Nil(err)
 	newNamespace := fmt.Sprintf("new-%s", oldNamespace)
-	u.chart.Values["OpenServiceMesh"].(map[string]interface{})["namespace"] = newNamespace
+	u.chart.Values["osm"].(map[string]interface{})["namespace"] = newNamespace
 
 	err = u.run(config)
 	a.Nil(err)
@@ -176,7 +176,7 @@ func TestMeshUpgradeToModifiedChart(t *testing.T) {
 	a.Nil(err)
 
 	// When a default is changed in values.yaml, keep the old one
-	namespace, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.namespace")
+	namespace, err := chartutil.Values(upgraded.Config).PathValue("osm.namespace")
 	a.Nil(err)
 	a.Equal(oldNamespace, namespace)
 }

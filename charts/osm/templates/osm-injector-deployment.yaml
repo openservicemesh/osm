@@ -6,10 +6,10 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
     app: osm-injector
-    meshName: {{ .Values.OpenServiceMesh.meshName }}
+    meshName: {{ .Values.osm.meshName }}
 spec:
-  {{- if not .Values.OpenServiceMesh.injector.autoScale.enable }}
-  replicas: {{ .Values.OpenServiceMesh.injector.replicaCount }}
+  {{- if not .Values.osm.injector.autoScale.enable }}
+  replicas: {{ .Values.osm.injector.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -19,8 +19,8 @@ spec:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-injector
-  {{- if .Values.OpenServiceMesh.injector.podLabels }}
-  {{- toYaml .Values.OpenServiceMesh.injector.podLabels | nindent 8 }}
+  {{- if .Values.osm.injector.podLabels }}
+  {{- toYaml .Values.osm.injector.podLabels | nindent 8 }}
   {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
@@ -36,7 +36,7 @@ spec:
         kubernetes.io/os: linux
       initContainers:
         - name: init-osm-injector
-          image: {{ .Values.OpenServiceMesh.curlImage }}
+          image: {{ .Values.osm.curlImage }}
           args:
           - /bin/sh
           - -c
@@ -48,7 +48,7 @@ spec:
       containers:
         - name: osm-injector
           image: "{{ include "osmInjector.image" . }}"
-          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
           ports:
             - name: "sidecar-inject"
               containerPort: 9090
@@ -56,31 +56,31 @@ spec:
               containerPort: 9091
           command: ['/osm-injector']
           args: [
-            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
             "--osm-namespace", "{{ include "osm.namespace" . }}",
             "--osm-version", "{{ .Chart.AppVersion }}",
-            "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
-            "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
-            "--webhook-timeout", "{{.Values.OpenServiceMesh.injector.webhookTimeoutSeconds}}",
-            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
-            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateProvider.kind}}",
-            {{ if eq .Values.OpenServiceMesh.certificateProvider.kind "vault" }}
-            "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
-            "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
-            "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            "--mesh-name", "{{.Values.osm.meshName}}",
+            "--webhook-config-name", "{{.Values.osm.webhookConfigNamePrefix}}-{{.Values.osm.meshName}}",
+            "--webhook-timeout", "{{.Values.osm.injector.webhookTimeoutSeconds}}",
+            "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            {{ if eq .Values.osm.certificateProvider.kind "vault" }}
+            "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-protocol", "{{.Values.osm.vault.protocol}}",
+            "--vault-token", "{{.Values.osm.vault.token}}",
             {{- end }}
-            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
-            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
-            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
-            "--enable-reconciler={{.Values.OpenServiceMesh.enableReconciler}}",
+            "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
           ]
           resources:
             limits:
-              cpu: "{{.Values.OpenServiceMesh.injector.resource.limits.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.injector.resource.limits.memory}}"
+              cpu: "{{.Values.osm.injector.resource.limits.cpu}}"
+              memory: "{{.Values.osm.injector.resource.limits.memory}}"
             requests:
-              cpu: "{{.Values.OpenServiceMesh.injector.resource.requests.cpu}}"
-              memory: "{{.Values.OpenServiceMesh.injector.resource.requests.memory}}"
+              cpu: "{{.Values.osm.injector.resource.requests.cpu}}"
+              memory: "{{.Values.osm.injector.resource.requests.memory}}"
           readinessProbe:
             initialDelaySeconds: 5
             timeoutSeconds: 5
@@ -101,11 +101,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
+    {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.OpenServiceMesh.controlPlaneTolerations }}
+    {{- if .Values.osm.controlPlaneTolerations }}
       tolerations:
-{{ toYaml .Values.OpenServiceMesh.controlPlaneTolerations | indent 8 }}
+{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
     {{- end }}

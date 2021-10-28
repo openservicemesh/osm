@@ -78,7 +78,7 @@ If there are other commits on the `main` branch to be included in the release (s
 
 Create a new commit on the patch branch to update the hardcoded version information in the following locations:
 
-* The control plane image digests  defined by `OpenServiceMesh.image.digest` for images in [charts/osm/values.yaml](/charts/osm/values.yaml) from the image digests obtained from the Pre-release workflow. For example, if the osm-controller image digest is `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`, update the value of `OpenServiceMesh.image.digest.osmController` to `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`.
+* The control plane image digests  defined by `osm.image.digest` for images in [charts/osm/values.yaml](/charts/osm/values.yaml) from the image digests obtained from the Pre-release workflow. For example, if the osm-controller image digest is `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`, update the value of `osm.image.digest.osmController` to `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`.
 * Replace the `latest-main` tag with the release version tag for all images throughout the repo, e.g. `v0.4.0`. This includes updating the image references in `charts/osm` and `docs/example/manifests` folders.
 * The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to the release version.
 * The Helm chart [README.md](/charts/osm/README.md)
