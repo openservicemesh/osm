@@ -136,7 +136,7 @@ Connect with the Open Service Mesh community:
 
 ## Development Guide
 
-If you would like to contribute to OSM, check out the [development guide](docs/dev_guide/README.md).
+If you would like to contribute to OSM, check out the [development guide](docs/development_guide/README.md).
 
 ## Code of Conduct
 
