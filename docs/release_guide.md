@@ -21,15 +21,17 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
 - [Release Guide](#release-guide)
   - [Release Candidates](#release-candidates)
   - [Create a release branch](#create-a-release-branch)
+  - [Create and push the pre-release Git tag](#create-and-push-the-pre-release-git-tag)
   - [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
-  - [Create and push a Git tag](#create-and-push-a-git-tag)
+  - [Create and push the release Git tag](#create-and-push-the-release-git-tag)
   - [Add release notes](#add-release-notes)
-  - [Update docs site](#update-docs-site)
-    - [Update API reference documentation](#update-api-reference-documentation)
-    - [Update error code documentation](#update-error-code-documentation)
+  - [Update documentation and docs.openservicemesh.io website](#update-documentation-and-docsopenservicemeshio-website)
+    - [1. Create the release specific branch in osm-docs repo](#1-create-the-release-specific-branch-in-osm-docs-repo)
+    - [2. Update version references to the latest version for the given Major.Minor version](#2-update-version-references-to-the-latest-version-for-the-given-majorminor-version)
+    - [3. Update API reference documentation](#3-update-api-reference-documentation)
+    - [4. Update error code documentation](#4-update-error-code-documentation)
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
-  - [Make version changes on docs.openservicemesh.io](#make-version-changes-on-docsopenservicemeshio)
   - [Workflow Diagram](#workflow-diagram)
 
 ## Create a release branch
@@ -122,17 +124,15 @@ If a branch corresponding to the Major.Minor version is not available in the [os
 
 ### 2. Update version references to the latest version for the given Major.Minor version
 
-For example, when v0.10.1 is being released, update all the version references from v0.10.0 to v0.10.1 to reflect the latest documentation for the Major.Minor version. The suggested way is to search for hard coded instances of the current version number and release branch name in the osm-docs repo, then update the ones that may break users' experiences if they follow the documentation, such as demonstration commands, reference links and anything that is strongly related to the next release.
-
-See https://github.com/openservicemesh/osm-docs/pull/109 for an example of the update from v0.8.4 to v0.9.0.
+For example, when v0.10.1 is being released, update all of the version references from v0.10.0 to v0.10.1 to reflect the latest documentation for the Major.Minor version. Instructions for updating the release version references can be found at [https://github.com/openservicemesh/osm-docs/blob/main/README.md/#update-the-release-references](https://github.com/openservicemesh/osm-docs/blob/main/README.md/#update-the-release-references).
 
 ### 3. Update API reference documentation
 
-Follow the [Generating API Reference Documentation](/docs/api_reference/README) guide to update the API references on the docs site.
+Follow the [Generating API Reference Documentation](/docs/api_reference/README.md) guide to update the API references on the docs site.
 
 ### 4. Update error code documentation
 
-In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
+On the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
 
 1. Build OSM on the release branch.
 1. Generate the mapping of OSM error codes and their descriptions using the `osm support` cli tool.
@@ -148,7 +148,7 @@ In the docs site's main branch, edit the file [https://github.com/openservicemes
     | E1001      | The specified log level could not be set in the system.                          |
    ```
 
-1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
+1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
 
 
