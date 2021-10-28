@@ -10,9 +10,14 @@ set -euo pipefail
 
 # This script will break or produce weird output if:
 # - Tags are not formatted in a way that can be interpreted by git tag's --sort=version:refname
-# - Pre-release tags other than "alpha", "beta", and "rc" are used.
+# - Pre-release tags other than "nightly", "alpha", "beta", and "rc" are used.
 
 tag=$1
+
+# No release notes for nightlies
+if [[ "$tag" =~ "nightly" ]]; then
+  exit 0
+fi
 
 tags=$(git tag | tr - \~ | sort -V | tr \~ - | sed "/^$tag$/q" )
 ! [[ "$tag" =~ -(alpha|beta|rc) ]] && tags=$(grep -Eve '-(alpha|beta|rc)' <<< "$tags")

@@ -3,6 +3,10 @@ on:
   push:
     tags:
       - "pre-rel-v*"
+      - "v0.0.0-nightly*"
+
+env:
+  CTR_REGISTRY: ${{ github.repository_owner }}
 
 jobs:
   version:
@@ -12,7 +16,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - id: version
-        run: echo "::set-output name=version::$(sed 's#^refs/tags/pre-rel-\(.*\)#\1#' <<< '${{ github.ref }}')"
+        run: echo "::set-output name=version::$(sed 's#^refs/tags/.*\(v[[:digit:]].*\)#\1#' <<< '${{ github.ref }}')"
 
   images:
     name: Docker Images
@@ -49,6 +53,8 @@ jobs:
           CTR_TAG: ${{ needs.version.outputs.version }}
         run: make docker-push VERIFY_TAGS=true
       - name: Push images with latest tag
+        # Only for non-pre-releases
+        if: ${{ !(contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.')) }}
         env:
           CTR_TAG: latest
         run: make docker-push
@@ -64,7 +70,6 @@ jobs:
     needs: images
     env:
       CTR_TAG: ${{ needs.version.outputs.version }}
-      CTR_REGISTRY: openservicemesh
     steps:
       - name: Checkout
         uses: actions/checkout@v1
