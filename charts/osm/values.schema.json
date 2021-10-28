@@ -1034,7 +1034,7 @@
                             "title": "Grafana's image schema",
                             "description": "Image used for Grafana",
                             "examples": [
-                                "grafana/grafana:7.0.1"
+                                "grafana/grafana:8.2.2"
                             ]
                         },
                         "rendererImage": {
@@ -1043,7 +1043,7 @@
                             "title": "Grafana's rendererImage schema",
                             "description": "Renderer image used for Grafana",
                             "examples": [
-                                "grafana/grafana-image-renderer:2.0.0-beta1"
+                                "grafana/grafana-image-renderer:3.2.1"
                             ]
                         }
                     },
@@ -1051,8 +1051,8 @@
                         {
                             "port": 3000,
                             "enableRemoteRendering": true,
-                            "image": "grafana/grafana:7.0.1",
-                            "rendererImage": "grafana/grafana-image-renderer:2.0.0-beta1"
+                            "image": "grafana/grafana:8.2.2",
+                            "rendererImage": "grafana/grafana-image-renderer:3.2.1"
                         }
                     ],
                     "additionalProperties": false

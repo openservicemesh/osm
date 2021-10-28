@@ -157,7 +157,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -264,7 +264,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -372,7 +372,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -466,7 +466,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -560,7 +560,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -645,7 +645,7 @@
           }
         ],
         "title": "Active Connections between services",
-        "type": "graph",
+        "type": "timeseries",
         "timeFrom": null,
         "timeShift": null,
         "renderer": "flot",
@@ -780,7 +780,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -912,7 +912,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",

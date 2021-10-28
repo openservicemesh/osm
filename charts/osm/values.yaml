@@ -125,9 +125,9 @@ osm:
     # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
     # -- Image used for Grafana
-    image: grafana/grafana:7.0.1
+    image: grafana/grafana:8.2.2
     # -- Image used for Grafana Renderer
-    rendererImage: grafana/grafana-image-renderer:2.0.0-beta1
+    rendererImage: grafana/grafana-image-renderer:3.2.1
 
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
