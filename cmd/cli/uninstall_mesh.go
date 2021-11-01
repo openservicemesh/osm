@@ -21,6 +21,23 @@ This command will uninstall an instance of the osm control plane
 given the mesh name and namespace. It will not delete the namespace
 the mesh was installed in unless specified via the --delete-namespace
 flag.
+
+Uninstalling OSM (through 'osm uninstall mesh' or through Helm) will only:
+(1) remove osm control plane components (including control plane pods and secrets),
+(2) remove/un-patch the conversion webhook fields from all the CRDs
+(which OSM adds to support multiple CR versions) and will not delete
+CRDs for primarily two reasons:
+	1. CRDs are cluster-wide resources and may be used by other service meshes
+	or resources running in the same cluster,
+	2. deletion of a CRD will cause all custom resources corresponding to
+	that CRD to also be deleted.
+
+CRDs, mutating and validating webhooks, secrets, and the osm control
+plane namespace are left over when this command is run.
+
+Use 'osm uninstall cluster-wide-resources' to fully uninstall
+leftover osm resources from the cluster.
+
 Be careful when using this command as it is destructive and will
 disrupt traffic to applications left running with sidecar proxies.
 `
@@ -90,6 +107,7 @@ func (d *uninstallMeshCmd) run() error {
 			out:       d.out,
 			config:    d.config,
 			clientSet: d.clientSet,
+			localPort: d.localPort,
 		}
 
 		_ = listCmd.run()

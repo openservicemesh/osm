@@ -72,6 +72,7 @@ spec:
       serviceAccountName: {{ .Release.Name }}-cleanup
       restartPolicy: Never
       containers:
+        # NOTE: The Helm post-delete hook's garbage-collector should always match the deletion logic in the osm cli command `osm uninstall cluster-wide-resources`.
         - name: garbage-collector
           image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
