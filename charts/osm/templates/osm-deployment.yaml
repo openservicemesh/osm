@@ -38,14 +38,7 @@ spec:
       initContainers:
         - name: init-osm-controller
           image: {{ .Values.osm.curlImage }}
-          args:
-          - /bin/sh
-          - -c
-          - >
-            set -x;
-            while [ $(curl --connect-timeout 2 -sw '%{http_code}' "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz" -o /dev/null) -ne 200 ]; do
-              sleep 10;
-            done
+          command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
       containers:
         - name: osm-controller
           image: "{{ include "osmController.image" . }}"
