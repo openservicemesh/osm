@@ -132,7 +132,7 @@ Follow the [Generating API Reference Documentation](/docs/api_reference/README) 
 
 ### 4. Update error code documentation
 
-In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/install/manual_demo.md) to update the OSM error code table.
+In the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blame/main/content/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
 
 1. Build OSM on the release branch.
 1. Generate the mapping of OSM error codes and their descriptions using the `osm support` cli tool.

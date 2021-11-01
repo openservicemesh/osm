@@ -101,11 +101,11 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.9.2.gif "OSM Install Demo")
 
-See the [installation guide](https://docs.openservicemesh.io/docs/getting_started/install/) for more detailed options.
+See the [installation guide](https://docs.openservicemesh.io/docs/guides/install/) for more detailed options.
 
 ## Demonstration
 
-The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/getting_started/quickstart/manual_demo/) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
+The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/getting_started/) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
 
 ## Using OSM
 
