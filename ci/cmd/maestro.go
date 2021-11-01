@@ -30,6 +30,7 @@ const (
 	bookstoreV1Label   = "bookstore-v1"
 	bookstoreV2Label   = "bookstore-v2"
 	bookWarehouseLabel = "bookwarehouse"
+	mySQLLabel         = "mysql"
 )
 
 var (
@@ -39,6 +40,7 @@ var (
 	bookstoreV1Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV1Label)
 	bookstoreV2Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV2Label)
 	bookWarehouseSelector    = fmt.Sprintf("%s=%s", constants.AppLabel, bookWarehouseLabel)
+	mySQLSelector            = fmt.Sprintf("%s=%s", constants.AppLabel, mySQLLabel)
 
 	osmNamespace    = utils.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
 	bookbuyerNS     = utils.GetEnv(maestro.BookbuyerNamespaceEnvVar, "bookbuyer")
@@ -59,7 +61,7 @@ var (
 )
 
 func main() {
-	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
+	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS, mySQLLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()
 
@@ -158,6 +160,9 @@ func getPodNames(kubeClient kubernetes.Interface) (string, string, string, strin
 
 	wg.Add(1)
 	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookWarehouseNS, bookWarehouseSelector, &wg)
+
+	wg.Add(1)
+	go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookWarehouseNS, mySQLSelector, &wg)
 
 	wg.Wait()
 
