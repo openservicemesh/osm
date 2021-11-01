@@ -2,14 +2,14 @@
 
 Hello! We are excited to have you contribute to Open Service Mesh (OSM)! This contributor ladder outlines the different contributor roles within the project, along with the responsibilites and privileges that come with them. Community members generally start at the first levels of the "ladder" and advance up it as their involvement in the project grows. Our project members are happy to help you advance along the contributor ladder.
 
-Each of the contributor roles below is organized into lists of three types of things. 
+Each of the contributor roles below is organized into lists of three types of things.
 * "Responsibilities" are things that a contributor is expected to do
 * "Requirements" are qualifications a contributor needs to meet to be in that role
 * "Privileges" are things a contributor on that level is entitled to
 
 
 ## Community Participant
-Description: A Community Participant participates in the community and contributes their time, thoughts, etc. 
+Description: A Community Participant participates in the community and contributes their time, thoughts, etc.
 
 * Responsibilities:
     * Must follow the [CNCF CoC](https://github.com/cncf/foundation/blob/master/code-of-conduct.md)
@@ -68,7 +68,7 @@ A Maintainer must meet the rights, responsiblities, and requirements of a Contri
 * Additional privileges:
     * Represent the project in public as a Maintainer
     * Communicate with the CNCF on behalf of the project
-    * Have a vote in Maintainer decisions 
+    * Have a vote in Maintainer decisions
 
 Process of becoming a maintainer:
 
@@ -76,6 +76,11 @@ Process of becoming a maintainer:
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
+## Approvers
+
+All pull requests must be reviewed and approved by at least 2 members in the [approvers list](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS).
+
+An approver may nominate a current contributor who has shown significant understanding in one or more areas of the project by adding the nominee to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS) by opening a PR. The nominee must add a comment to the PR testifying they agree to become a code approver. A majority of the current approvers must then approve the PR for the nomination to succeed.
 
 ## Inactivity
 
