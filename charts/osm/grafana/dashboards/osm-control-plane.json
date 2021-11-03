@@ -60,7 +60,7 @@
         }
       ]
     },
-    "description": "Metrics from service to control plane in Open Service Mesh",
+    "description": "OSM Control Plane Metrics latest",
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,

@@ -60,7 +60,7 @@
         }
       ]
     },
-    "description": "Metrics from a Pod in Open Service Mesh",
+    "description": "OSM Pod to Services Metrics latest",
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,

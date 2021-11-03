@@ -60,6 +60,7 @@
         }
       ]
     },
+    "description": "OSM Data Plane Performance Metrics latest",
     "editable": true,
     "gnetId": null,
     "graphTooltip": 0,

@@ -60,7 +60,7 @@
         }
       ]
     },
-    "description": "Metrics from Workloads to Workloads in Open Service Mesh",
+    "description": "OSM Workload to Workload Metrics latest",
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
