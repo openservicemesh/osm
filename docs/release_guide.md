@@ -30,6 +30,9 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
     - [2. Update version references to the latest version for the given Major.Minor version](#2-update-version-references-to-the-latest-version-for-the-given-majorminor-version)
     - [3. Update API reference documentation](#3-update-api-reference-documentation)
     - [4. Update error code documentation](#4-update-error-code-documentation)
+    - [5. Update Grafana Dashboards](#5-update-grafana-dashboards)
+      - [Grafana Dashboard Library](#grafana-dashboard-library)
+      - [Documentation](#documentation)
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Workflow Diagram](#workflow-diagram)
@@ -85,7 +88,8 @@ Create a new commit on the patch branch to update the hardcoded version informat
 * The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to the release version.
 * The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
-* If this the first release on a new release branch, update the [upgrade e2e test](/tests/e2e/e2e_upgrade_test.go) install version from `i.Version = ">0.0.0-0"` to the previous minor release. e.g. When cutting the release-v1.1 branch, this should be updated to `"1.0"`.
+* If this is the first release on a new release branch, update the [upgrade e2e test](/tests/e2e/e2e_upgrade_test.go) install version from `i.Version = ">0.0.0-0"` to the previous minor release. e.g. When cutting the release-v1.1 branch, this should be updated to `"1.0"`.
+* The descriptions of all Grafana dashboards in `charts/osm/grafana`. For example, update the description of the OSM control plane dashboard from `OSM Control Plane Metrics v0.3.1` to `OSM Control Plane Metrics v0.4.0`.
 
 Once patches and version information have been updated on the patch branch off of the release branch, create a pull request from the patch branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
@@ -151,6 +155,25 @@ On the docs site's main branch, edit the file [https://github.com/openservicemes
 
 1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
+
+### 5. Update Grafana Dashboards
+
+#### Grafana Dashboard Library
+
+1. Navigate to [Grafana.com]https://grafana.com/orgs/openservicemesh) and log in.
+1. Repeat the following steps for each OSM dashboard.
+   1. Select the dashboard to update.
+   1. Navigate to the `Revisions` tab and select `Upload Revision`.
+   1. Upload the JSON dashboard file from the release branch.
+   1. Verify the new revision description includes the release version.
+
+#### Documentation
+
+If a new dashboard has been added or an existing dashboard has been modified, update the dashboard images and documentation in the [Metrics Guide](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/observability/metrics.md) and the [Prometheus and Grafana Demo](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/demos/prometheus_grafana.md).
+
+1. Capture full page screen shots of the new or modified dashboards.
+1. For new dashboards, add the dashboard and its description to the [OSM Grafana Dashboards](https://docs.openservicemesh.io/docs/guides/observability/metrics/#osm-grafana-dashboards) section in the OSM docs.
+1. Update the dashboard images in the [Metrics Guide](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/observability/metrics.md) and the [Prometheus and Grafana Demo](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/demos/prometheus_grafana.md).
 
 
 ## Announce the new release
