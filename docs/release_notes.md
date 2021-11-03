@@ -15,6 +15,7 @@
 The following changes are not backward compatible with the previous release.
 
 - Top level Helm chart keys are renamed from `OpenServiceMesh` to `osm`
+- `osm mesh upgrade` no longer carries over values from previous releases. Use the `--set` flag on `osm mesh upgrade` to pass values as needed. The `--container-registry` and `--osm-image-tag` flags have also been removed in favor of `--set`.
 
 ### Deprecation notes
 
