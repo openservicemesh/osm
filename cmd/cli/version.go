@@ -15,7 +15,7 @@ This command prints out all the version information used by OSM
 
 // PrintCliVersion prints the version
 func PrintCliVersion(out io.Writer) {
-	_, _ = fmt.Fprintf(out, "Version: %s; Commit: %s; Date: %s\n", version.Version, version.GitCommit, version.BuildDate)
+	_, _ = fmt.Fprintf(out, "Version: %s\nCommit: %s\nDate: %s\n", version.Version, version.GitCommit[0:7], version.BuildDate)
 }
 
 func newVersionCmd(out io.Writer) *cobra.Command {
