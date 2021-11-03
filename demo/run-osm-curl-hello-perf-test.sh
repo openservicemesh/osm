@@ -42,6 +42,9 @@ TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
 CA_BUNDLE_SECRET_NAME="${CA_BUNDLE_SECRET_NAME:-osm-ca-bundle}"
+CURL_NAMESPACE="${CURL_NAMESPACE:-curl}"
+HELLO_NAMESPACE="${HELLO_NAMESPACE:-hello}"
+SHOULD_INSTALL_OSM_FOR_CURL_HELLO_DEMO="${SHOULD_INSTALL_OSM_FOR_CURL_HELLO_DEMO:-true}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -90,84 +93,79 @@ fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
     make docker-linux-push
-fi 
+fi
 
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
-# Deploys Xds and Prometheus
-echo "Certificate Manager in use: $CERT_MANAGER"
-if [ "$CERT_MANAGER" = "vault" ]; then
-  # shellcheck disable=SC2086
-  bin/osm install \
-      --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
-      --mesh-name "$MESH_NAME" \
-      --set=osm.certificateProvider.kind="$CERT_MANAGER" \
-      --set=osm.caBundleSecretName="$CA_BUNDLE_SECRET_NAME" \
-      --set=osm.vault.host="$VAULT_HOST" \
-      --set=osm.vault.token="$VAULT_TOKEN" \
-      --set=osm.vault.protocol="$VAULT_PROTOCOL" \
-      --set=osm.image.registry="$CTR_REGISTRY" \
-      --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-      --set=osm.image.tag="$CTR_TAG" \
-      --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
-      --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-      --set=osm.enableEgress="$ENABLE_EGRESS" \
-      --set=osm.enableReconciler="$ENABLE_RECONCILER" \
-      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
-      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
-      --set=osm.tracing.address="$TRACING_ADDRESS" \
-      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
-      --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-      --set=osm.controllerLogLevel="trace" \
-      --timeout="$TIMEOUT" \
-      $optionalInstallArgs
-else
-  # shellcheck disable=SC2086
-  bin/osm install \
-      --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
-      --mesh-name "$MESH_NAME" \
-      --set=osm.certificateProvider.kind="$CERT_MANAGER" \
-      --set=osm.caBundleSecretName="$CA_BUNDLE_SECRET_NAME" \
-      --set=osm.image.registry="$CTR_REGISTRY" \
-      --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-      --set=osm.image.tag="$CTR_TAG" \
-      --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
-      --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-      --set=osm.enableEgress="$ENABLE_EGRESS" \
-      --set=osm.enableReconciler="$ENABLE_RECONCILER" \
-      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
-      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
-      --set=osm.tracing.address="$TRACING_ADDRESS" \
-      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
-      --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-      --set=osm.controllerLogLevel="trace" \
-      --timeout="$TIMEOUT" \
-      $optionalInstallArgs
+if [ "$SHOULD_INSTALL_OSM_FOR_CURL_HELLO_DEMO" = true ] ; then
+  # Deploys Xds and Prometheus
+  echo "Certificate Manager in use: $CERT_MANAGER"
+  if [ "$CERT_MANAGER" = "vault" ]; then
+    # shellcheck disable=SC2086
+    bin/osm install \
+        --osm-namespace "$K8S_NAMESPACE" \
+        --verbose \
+        --mesh-name "$MESH_NAME" \
+        --set=osm.certificateProvider.kind="$CERT_MANAGER" \
+        --set=osm.caBundleSecretName="$CA_BUNDLE_SECRET_NAME" \
+        --set=osm.vault.host="$VAULT_HOST" \
+        --set=osm.vault.token="$VAULT_TOKEN" \
+        --set=osm.vault.protocol="$VAULT_PROTOCOL" \
+        --set=osm.image.registry="$CTR_REGISTRY" \
+        --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+        --set=osm.image.tag="$CTR_TAG" \
+        --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
+        --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+        --set=osm.enableEgress="$ENABLE_EGRESS" \
+        --set=osm.enableReconciler="$ENABLE_RECONCILER" \
+        --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
+        --set=osm.deployJaeger="$DEPLOY_JAEGER" \
+        --set=osm.tracing.enable="$DEPLOY_JAEGER" \
+        --set=osm.tracing.address="$TRACING_ADDRESS" \
+        --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+        --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
+        --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+        --set=osm.controllerLogLevel="trace" \
+        --timeout="$TIMEOUT" \
+        $optionalInstallArgs
+  else
+    # shellcheck disable=SC2086
+    bin/osm install \
+        --osm-namespace "$K8S_NAMESPACE" \
+        --verbose \
+        --mesh-name "$MESH_NAME" \
+        --set=osm.certificateProvider.kind="$CERT_MANAGER" \
+        --set=osm.caBundleSecretName="$CA_BUNDLE_SECRET_NAME" \
+        --set=osm.image.registry="$CTR_REGISTRY" \
+        --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+        --set=osm.image.tag="$CTR_TAG" \
+        --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
+        --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+        --set=osm.enableEgress="$ENABLE_EGRESS" \
+        --set=osm.enableReconciler="$ENABLE_RECONCILER" \
+        --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
+        --set=osm.deployJaeger="$DEPLOY_JAEGER" \
+        --set=osm.tracing.enable="$DEPLOY_JAEGER" \
+        --set=osm.tracing.address="$TRACING_ADDRESS" \
+        --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+        --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
+        --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+        --set=osm.controllerLogLevel="trace" \
+        --timeout="$TIMEOUT" \
+        $optionalInstallArgs
+  fi
 fi
 
-./demo/configure-app-namespaces.sh
+./demo/configure-curl-hello-app-namespaces.sh
 
-./demo/deploy-apps.sh
+./demo/deploy-curl-hello-apps.sh
 
-# Apply SMI policies
-if [ "$DEPLOY_TRAFFIC_SPLIT" = "true" ]; then
-    ./demo/deploy-traffic-split.sh
+if [ "$SHOULD_INSTALL_OSM_FOR_CURL_HELLO_DEMO" = true ] ; then
+  ./demo/deploy-curl-hello-traffic-specs.sh
+  ./demo/deploy-curl-hello-traffic-target.sh
 fi
 
-./demo/deploy-traffic-specs.sh
+echo "Measuring curl hello performance. Is OSM installed in setup? $SHOULD_INSTALL_OSM_FOR_CURL_HELLO_DEMO."
 
-if [ "$DEPLOY_WITH_SAME_SA" = "true" ]; then
-    ./demo/deploy-traffic-target-with-same-sa.sh
-else
-    ./demo/deploy-traffic-target.sh
-fi
-
-if [[ "$CI" != "true" ]]; then
-    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"
-fi
+sleep 10 # sleep for a few seconds to prevent timing issues
+./demo/measure-curl-hello-performance.sh
