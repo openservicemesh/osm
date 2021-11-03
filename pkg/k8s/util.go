@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -47,25 +46,6 @@ func GetServiceFromHostname(host string) string {
 	// For services that are not namespaced the service name contains the port as well
 	// Ex. service:port
 	return strings.Split(service, ":")[0]
-}
-
-// GetAppProtocolFromPortName returns the port's application protocol from its name, defaults to 'http' if not specified.
-func GetAppProtocolFromPortName(portName string) string {
-	portName = strings.ToLower(portName)
-
-	switch {
-	case strings.HasPrefix(portName, "http-"):
-		return "http"
-
-	case strings.HasPrefix(portName, "tcp-"):
-		return "tcp"
-
-	case strings.HasPrefix(portName, "grpc-"):
-		return "grpc"
-
-	default:
-		return constants.ProtocolHTTP
-	}
 }
 
 // GetKubernetesServerVersionNumber returns the Kubernetes server version number in chunks, ex. v1.19.3 => [1, 19, 3]

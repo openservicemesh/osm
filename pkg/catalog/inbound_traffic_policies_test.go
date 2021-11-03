@@ -878,7 +878,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name: "multiple services with different protocol, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit",
-			// Port ns1/s2:90 uses TCP, so HTTP route configs for it should not be built
+			// Ports ns1/s2:90 and ns1/s3:91 use TCP, so HTTP route configs for them should not be built
 			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{
 				{
@@ -894,6 +894,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					Port:       90,
 					TargetPort: 90,
 					Protocol:   "tcp",
+				},
+				{
+					Name:       "s3",
+					Namespace:  "ns1",
+					Port:       91,
+					TargetPort: 91,
+					Protocol:   "tcp-server-first",
 				},
 			},
 			permissiveMode: false,
@@ -1008,6 +1015,12 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "tcp"},
 						Address: "127.0.0.1",
 						Port:    90,
+					},
+					{
+						Name:    "ns1/s3|91|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s3", Port: 91, TargetPort: 91, Protocol: "tcp-server-first"},
+						Address: "127.0.0.1",
+						Port:    91,
 					},
 				},
 			},

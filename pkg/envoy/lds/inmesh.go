@@ -43,7 +43,7 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 		}
 		filterChains = append(filterChains, filterChainForPort)
 
-	case constants.ProtocolTCP:
+	case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
 		filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService, uint32(proxyService.TargetPort))
 		if err != nil {
 			log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
@@ -407,7 +407,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 				filterChains = append(filterChains, httpFilterChain)
 			}
 
-		case constants.ProtocolTCP:
+		case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
 			// Construct TCP filter chain
 			if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(*trafficMatch); err != nil {
 				log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for traffic match %s on proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)

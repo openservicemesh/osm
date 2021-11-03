@@ -24,7 +24,7 @@ spec:
   - port: 3306
     targetPort: 3306
     name: client
-    appProtocol: tcp
+    appProtocol: tcp-server-first
   selector:
     app: mysql
   clusterIP: None
