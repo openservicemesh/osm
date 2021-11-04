@@ -20,7 +20,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "7.0.1"
+      "version": "8.2.2"
     },
     {
       "type": "panel",

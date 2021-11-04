@@ -70,7 +70,7 @@
           "values": false
         }
       },
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "targets": [
         {
           "expr": "sum(osm_resource_namespace_count{source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name)",
@@ -217,7 +217,7 @@
                     "values": false
                 }
             },
-            "pluginVersion": "7.0.1",
+            "pluginVersion": "8.2.2",
             "targets": [
                 {
                     "expr": "avg_over_time(osm_proxy_config_update_time_sum{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1y:1s])",
@@ -270,7 +270,7 @@
                     "values": false
                 }
             },
-            "pluginVersion": "7.0.1",
+            "pluginVersion": "8.2.2",
             "targets": [
                 {
                     "expr": "max_over_time(osm_proxy_config_update_time_sum{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1y:1s])",
@@ -458,7 +458,7 @@
         "dataLinks": []
       },
       "percentage": false,
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -585,7 +585,7 @@
       "legend": {
         "show": false
       },
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "reverseYBuckets": false,
       "targets": [
         {
@@ -672,7 +672,7 @@
       "legend": {
         "show": false
       },
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "reverseYBuckets": false,
       "targets": [
         {
@@ -759,7 +759,7 @@
       "legend": {
         "show": false
       },
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "reverseYBuckets": false,
       "targets": [
         {
@@ -851,7 +851,7 @@
         "dataLinks": []
       },
       "percentage": false,
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -967,7 +967,7 @@
         "dataLinks": []
       },
       "percentage": false,
-      "pluginVersion": "7.0.1",
+      "pluginVersion": "8.2.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
