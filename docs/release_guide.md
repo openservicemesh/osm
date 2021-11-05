@@ -85,6 +85,7 @@ Create a new commit on the patch branch to update the hardcoded version informat
 * The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to the release version.
 * The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
+* If this the first release on a new release branch, update the [upgrade e2e test](/tests/e2e/e2e_upgrade_test.go) install version from `i.Version = ">0.0.0-0"` to the previous minor release. e.g. When cutting the release-v1.1 branch, this should be updated to `"1.0"`.
 
 Once patches and version information have been updated on the patch branch off of the release branch, create a pull request from the patch branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
