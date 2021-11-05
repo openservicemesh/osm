@@ -60,7 +60,7 @@
         }
       ]
     },
-    "description": "Metrics between services in Open Service Mesh",
+    "description": "OSM Service to Service Metrics latest",
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
