@@ -38,7 +38,7 @@
                             "$id": "#/properties/definitions/properties/containerResources/properties/limits/properties/memory",
                             "type": "string",
                             "title": "The containerResources' memory limit schema",
-                            "description": "The constainer's memory limit"
+                            "description": "The container's memory limit"
                         }
                     },
                     "additionalProperties": false
@@ -110,16 +110,51 @@
                         5
                     ]
                 },
-                "targetAverageUtilization": {
-                    "$id": "#/properties/definitions/properties/autoScale/properties/targetAverageUtilization",
-                    "type": "integer",
-                    "title": "Autoscale targetAverageUtilization",
-                    "description": "Indicates average target CPU utilization (percentage) for autoscale.",
-                    "minimum": 0,
-                    "maximum": 100,
-                    "examples": [
-                        80
-                    ]
+                "cpu": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/cpu",
+                    "type": "object",
+                    "title": "Autoscale CPU resource schema",
+                    "description": "Autoscale CPU configuration",
+                    "required": [
+                        "targetAverageUtilization"
+                    ],
+                    "properties": {
+                        "targetAverageUtilization": {
+                            "$id": "#/properties/definitions/properties/autoScale/properties/cpu/properties/targetAverageUtilization",
+                            "type": "integer",
+                            "title": "Autoscale cpu targetAverageUtilization",
+                            "description": "Indicates average target cpu utilization (percentage) for autoscale.",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "examples": [
+                                80
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "memory": {
+                    "$id": "#/properties/definitions/properties/autoScale/properties/memory",
+                    "type": "object",
+                    "title": "Autoscale memory resource schema",
+                    "description": "Autoscale memory configuration",
+                    "required": [
+                        "targetAverageUtilization"
+                    ],
+                    "properties": {
+                        "targetAverageUtilization": {
+                            "$id": "#/properties/definitions/properties/autoScale/properties/memory/properties/targetAverageUtilization",
+                            "type": "integer",
+                            "title": "Autoscale memory targetAverageUtilization",
+                            "description": "Indicates average target memory utilization (percentage) for autoscale.",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "examples": [
+                                80
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             }
         }

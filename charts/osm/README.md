@@ -117,11 +117,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.tag | string | `"latest-main"` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
-| osm.injector.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
+| osm.injector.autoScale | object | `{"cpu":{"targetAverageUtilization":80},"enable":false,"maxReplicas":5,"memory":{"targetAverageUtilization":80},"minReplicas":1}` | Auto scale configuration |
+| osm.injector.autoScale.cpu.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | osm.injector.autoScale.enable | bool | `false` | Enable Autoscale |
 | osm.injector.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |
+| osm.injector.autoScale.memory.targetAverageUtilization | int | `80` | Average target memory utilization (%) |
 | osm.injector.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
-| osm.injector.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | osm.injector.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | osm.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
 | osm.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
@@ -134,11 +135,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
 | osm.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
 | osm.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"128M"},"requests":{"cpu":"0.3","memory":"128M"}}` | OSM bootstrap's container resource parameters |
-| osm.osmController.autoScale | object | `{"enable":false,"maxReplicas":5,"minReplicas":1,"targetAverageUtilization":80}` | Auto scale configuration |
+| osm.osmController.autoScale | object | `{"cpu":{"targetAverageUtilization":80},"enable":false,"maxReplicas":5,"memory":{"targetAverageUtilization":80},"minReplicas":1}` | Auto scale configuration |
+| osm.osmController.autoScale.cpu.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | osm.osmController.autoScale.enable | bool | `false` | Enable Autoscale |
 | osm.osmController.autoScale.maxReplicas | int | `5` | Maximum replicas for autoscale |
+| osm.osmController.autoScale.memory.targetAverageUtilization | int | `80` | Average target memory utilization (%) |
 | osm.osmController.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
-| osm.osmController.autoScale.targetAverageUtilization | int | `80` | Average target CPU utilization (%) |
 | osm.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
 | osm.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | osm.osmController.replicaCount | int | `1` | OSM controller's replica count (ignored when autoscale.enable is true) |
