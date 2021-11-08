@@ -6,16 +6,12 @@ import (
 	"io"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/chartutil"
-)
-
-const (
-	defaultContainerRegistry = "openservicemesh"
-	defaultOsmImageTag       = "latest-main"
+	"helm.sh/helm/v3/pkg/strvals"
 )
 
 const upgradeDesc = `
@@ -26,10 +22,9 @@ The mesh to upgrade is identified by its mesh name and namespace. If either were
 overridden from the default for the "osm install" command, the --mesh-name and
 --osm-namespace flags need to be specified.
 
-Values from the current Helm release will be carried over to the new release
-with the exception of osm.image.registry (--container-registry) and
-osm.image.tag (--osm-image-tag), which will be overridden from the
-old release by default.
+Values from the current Helm release will NOT be carried over to the new
+release. Use --set to pass any overridden values from the old release to the new
+release.
 
 Note: edits to resources NOT made by Helm or the OSM CLI may not persist after
 "osm mesh upgrade" is run.
@@ -58,8 +53,7 @@ type meshUpgradeCmd struct {
 	meshName string
 	chart    *chart.Chart
 
-	containerRegistry string
-	osmImageTag       string
+	setOptions []string
 }
 
 func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -73,7 +67,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 		Short:   "upgrade osm control plane",
 		Long:    upgradeDesc,
 		Example: meshUpgradeExample,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if chartPath != "" {
 				var err error
 				upg.chart, err = loader.Load(chartPath)
@@ -90,8 +84,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 
 	f.StringVar(&upg.meshName, "mesh-name", defaultMeshName, "Name of the mesh to upgrade")
 	f.StringVar(&chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&upg.containerRegistry, "container-registry", defaultContainerRegistry, "container registry that hosts control plane component images")
-	f.StringVar(&upg.osmImageTag, "osm-image-tag", defaultOsmImageTag, "osm image tag")
+	f.StringArrayVar(&upg.setOptions, "set", nil, "Set arbitrary chart values (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
 	return cmd
 }
@@ -106,7 +99,7 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	}
 
 	// Add the overlay values to be updated to the current release's values map
-	values, err := u.resolveValues(config)
+	values, err := u.resolveValues()
 	if err != nil {
 		return err
 	}
@@ -123,27 +116,12 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	return nil
 }
 
-func (u *meshUpgradeCmd) resolveValues(config *helm.Configuration) (map[string]interface{}, error) {
-	vals := map[string]interface{}{
-		"image": map[string]interface{}{
-			"tag":      u.osmImageTag,
-			"registry": u.containerRegistry,
-		},
+func (u *meshUpgradeCmd) resolveValues() (map[string]interface{}, error) {
+	vals := make(map[string]interface{})
+	for _, val := range u.setOptions {
+		if err := strvals.ParseInto(val, vals); err != nil {
+			return nil, errors.Wrap(err, "invalid format for --set")
+		}
 	}
-
-	vals = map[string]interface{}{
-		"osm": vals,
-	}
-
-	oldRelease, err := config.Releases.Deployed(u.meshName)
-	if err != nil {
-		return nil, err
-	}
-
-	// The final merged values from the previous release
-	oldVals := chartutil.CoalesceTables(oldRelease.Config, oldRelease.Chart.Values)
-
-	vals = chartutil.CoalesceTables(vals, oldVals)
-
 	return vals, nil
 }

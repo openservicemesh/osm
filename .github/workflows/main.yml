@@ -248,7 +248,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
         continue-on-error: true
       - name: Upload PR test logs
         if: ${{ steps.pr_test.conclusion != 'skipped' }}
@@ -269,7 +269,7 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]' -ginkgo.skip='Upgrade'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
         continue-on-error: true
       - name: Upload Push test logs
         if: ${{ steps.push_test.conclusion != 'skipped' }}
@@ -282,25 +282,6 @@ jobs:
         run: exit 1
       - name: Clean Push tests logs
         if: ${{ steps.push_test.conclusion != 'skipped' }}
-        run: rm -rf /tmp/test*
-
-      # Upgrade tests
-      - name: Run Upgrade tests
-        id: upgrade_tests
-        env:
-          K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\].*Upgrade'
-        continue-on-error: true
-      - name: Upload Upgrade test logs
-        uses: actions/upload-artifact@v2
-        with:
-          name: upgrade_test_logs_bucket_${{ matrix.bucket }}
-          path: /tmp/test**/*
-      - name: Check continue Upgrade tests
-        # Only fail CI when upgrade fails if we're running on a release branch. The main branch may introduce breaking changes at any time.
-        if: ${{ steps.upgrade_tests.outcome == 'failure' && !(!(github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release-') || github.event_name == 'pull_request' && startsWith(github.base_ref, 'refs/heads/release-'))) }}
-        run: exit 1
-      - name: Clean Upgrade test logs
         run: rm -rf /tmp/test*
 
   integration-tresor:

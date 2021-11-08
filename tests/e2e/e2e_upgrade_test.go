@@ -1,10 +1,10 @@
 package e2e
 
 import (
-	"context"
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -12,8 +12,6 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -45,21 +43,19 @@ var _ = OSMDescribe("Upgrade from latest",
 			const releaseName = "osm"
 			i := action.NewInstall(helmCfg)
 
-			// Latest version excluding pre-releases used by default. Using the
-			// latest assumes we aren't maintaining multiple release branches
-			// at once. e.g. if a patch is cut for both v0.5.0 and v0.6.0, we
-			// wouldn't want to test "upgrading" backwards from v0.6.0 to
-			// v0.5.1.
 			i.ChartPathOptions.RepoURL = "https://openservicemesh.github.io/osm"
-			i.Version = ">0.0.0-0" // Include pre-releases
+			// On the main branch, this should refer to the latest release. On
+			// release branches, it should specify the most recent patch of the
+			// previous minor release. e.g. on the release-v1.0 branch, this
+			// should be "0.11".
+			i.Version = ">0.0.0-0"
 			i.Namespace = Td.OsmNamespace
 			i.Wait = true
 			i.ReleaseName = releaseName
 			i.Timeout = 120 * time.Second
 			vals := map[string]interface{}{
-				"osm": map[string]interface{}{
+				"OpenServiceMesh": map[string]interface{}{
 					"deployPrometheus": true,
-					"deployJaeger":     false,
 					// Init container must be privileged if an OpenShift cluster is being used
 					"enablePrivilegedInitContainer": Td.DeployOnOpenShift,
 
@@ -208,7 +204,8 @@ var _ = OSMDescribe("Upgrade from latest",
 				Expect(Td.LoadOSMImagesIntoKind()).To(Succeed())
 			}
 
-			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, "--container-registry="+Td.CtrRegistryServer, "--osm-image-tag="+Td.OsmImageTag)
+			setArgs := "--set=osm.image.tag=" + Td.OsmImageTag + ",osm.image.registry=" + Td.CtrRegistryServer + ",osm.deployPrometheus=true,osm.enablePrivilegedInitContainer=" + strconv.FormatBool(Td.DeployOnOpenShift) + ",osm.osmController.resource.requests.cpu=0.3,osm.injector.resource.requests.cpu=0.1,osm.prometheus.resources.requests.cpu=0.1,osm.prometheus.resources.requests.memory=256M"
+			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, setArgs)
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())
@@ -224,15 +221,6 @@ var _ = OSMDescribe("Upgrade from latest",
 				Td.T.Log("stderr:\n" + stderr.String())
 			}
 			Expect(err).NotTo(HaveOccurred())
-
-			By("Recreating client and server pods")
-			for _, pod := range []corev1.Pod{srcPodDef, serverPodDef} {
-				err = Td.Client.CoreV1().Pods(ns).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreatePod(ns, pod)
-				Expect(err).NotTo(HaveOccurred())
-			}
-			Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 2, nil)).To(Succeed())
 
 			checkClientToServerOK()
 			checkProxiesConnected()
