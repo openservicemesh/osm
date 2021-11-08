@@ -302,7 +302,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 			prevSpec.Observability.Tracing != newSpec.Observability.Tracing ||
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
-			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) {
+			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
+			prevSpec.FeatureFlags != newSpec.FeatureFlags {
 			return &proxyUpdateEvent{
 				msg:   msg,
 				topic: announcements.ProxyUpdate.String(),
