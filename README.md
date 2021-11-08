@@ -105,7 +105,7 @@ See the [installation guide](https://docs.openservicemesh.io/docs/guides/install
 
 ## Demonstration
 
-The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/getting_started/) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
+The OSM [Bookstore demo](https://docs.openservicemesh.io/docs/getting_started/quickstart/manual_demo/#deploy-applications) is a step-by-step walkthrough of how to install a bookbuyer and bookstore apps, and configure connectivity between these using SMI.
 
 ## Using OSM
 
