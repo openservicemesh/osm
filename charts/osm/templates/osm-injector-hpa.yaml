@@ -17,5 +17,11 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: {{.Values.osm.injector.autoScale.targetAverageUtilization}}
+        averageUtilization: {{.Values.osm.injector.autoScale.cpu.targetAverageUtilization}}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: {{.Values.osm.injector.autoScale.memory.targetAverageUtilization}}
 {{- end }}

@@ -241,6 +241,28 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			expectEvent: false,
 		},
 		{
+			name: "MeshConfig update with feature flags results in proxy update",
+			msg: events.PubSubMessage{
+				Kind: announcements.MeshConfigUpdated,
+				OldObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						FeatureFlags: configv1alpha1.FeatureFlags{
+							EnableEgressPolicy: true,
+						},
+					},
+				},
+				NewObj: &configv1alpha1.MeshConfig{
+					Spec: configv1alpha1.MeshConfigSpec{
+						FeatureFlags: configv1alpha1.FeatureFlags{
+							EnableEgressPolicy: false,
+						},
+					},
+				},
+			},
+			expectEvent:   true,
+			expectedTopic: announcements.ProxyUpdate.String(),
+		},
+		{
 			name: "Namespace event",
 			msg: events.PubSubMessage{
 				Kind: announcements.NamespaceAdded,

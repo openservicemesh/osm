@@ -61,8 +61,12 @@ osm:
       minReplicas: 1
       # -- Maximum replicas for autoscale
       maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
+      cpu:
+        # -- Average target CPU utilization (%)
+        targetAverageUtilization: 80
+      memory:
+        # -- Average target memory utilization (%)
+        targetAverageUtilization: 80
 
   #
   # -- Prometheus parameters
@@ -256,8 +260,12 @@ osm:
       minReplicas: 1
       # -- Maximum replicas for autoscale
       maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
+      cpu:
+        # -- Average target CPU utilization (%)
+        targetAverageUtilization: 80
+      memory:
+      # -- Average target memory utilization (%)
+        targetAverageUtilization: 80
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
 
