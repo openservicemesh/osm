@@ -396,8 +396,8 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
-	failuerPolicy := admissionregv1.Fail
-	matchPolict := admissionregv1.Exact
+	failurePolicy := admissionregv1.Fail
+	matchPolicy := admissionregv1.Exact
 
 	mwhcLabels := map[string]string{
 		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
@@ -430,8 +430,8 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certific
 						Port:      &webhookPort,
 					},
 					CABundle: cert.GetCertificateChain()},
-				FailurePolicy: &failuerPolicy,
-				MatchPolicy:   &matchPolict,
+				FailurePolicy: &failurePolicy,
+				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						constants.OSMKubeResourceMonitorAnnotation: meshName,
