@@ -193,9 +193,9 @@ var _ = Describe("Running the install command", func() {
 			installCmd := getDefaultInstallCmd(out)
 
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateProvider.kind=vault",
-				fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
-				fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
+				"osm.certificateProvider.kind=vault",
+				fmt.Sprintf("osm.vault.host=%s", testVaultHost),
+				fmt.Sprintf("osm.vault.token=%s", testVaultToken),
 			}
 			err = installCmd.run(config)
 		})
@@ -225,9 +225,9 @@ var _ = Describe("Running the install command", func() {
 			It("should have the correct values", func() {
 				expectedValues := getDefaultValues()
 				valuesConfig := []string{
-					fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", "vault"),
-					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
-					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
+					fmt.Sprintf("osm.certificateProvider.kind=%s", "vault"),
+					fmt.Sprintf("osm.vault.host=%s", testVaultHost),
+					fmt.Sprintf("osm.vault.token=%s", testVaultToken),
 				}
 				for _, val := range valuesConfig {
 					// parses Helm strvals line and merges into a map
@@ -269,13 +269,13 @@ var _ = Describe("Running the install command", func() {
 
 			installCmd := getDefaultInstallCmd(out)
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateProvider.kind=vault",
+				"osm.certificateProvider.kind=vault",
 			}
 			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
-			Expect(err).To(MatchError("Missing arguments for certificate-manager vault: [OpenServiceMesh.vault.host OpenServiceMesh.vault.token]"))
+			Expect(err).To(MatchError("Missing arguments for certificate-manager vault: [osm.vault.host osm.vault.token]"))
 		})
 	})
 
@@ -304,7 +304,7 @@ var _ = Describe("Running the install command", func() {
 
 			installCmd := getDefaultInstallCmd(out)
 			installCmd.setOptions = []string{
-				"OpenServiceMesh.certificateProvider.kind=cert-manager",
+				"osm.certificateProvider.kind=cert-manager",
 			}
 			err = installCmd.run(config)
 		})
@@ -334,7 +334,7 @@ var _ = Describe("Running the install command", func() {
 			It("should have the correct values", func() {
 				expectedValues := getDefaultValues()
 				valuesConfig := []string{
-					fmt.Sprintf("OpenServiceMesh.certificateProvider.kind=%s", "cert-manager"),
+					fmt.Sprintf("osm.certificateProvider.kind=%s", "cert-manager"),
 				}
 				for _, val := range valuesConfig {
 					// parses Helm strvals line and merges into a map
@@ -389,7 +389,7 @@ var _ = Describe("Running the install command", func() {
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
+					"osm": map[string]interface{}{
 						"meshName": installCmd.meshName,
 					},
 				},
@@ -450,7 +450,7 @@ var _ = Describe("Running the install command", func() {
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
+					"osm": map[string]interface{}{
 						"meshName": defaultMeshName,
 					},
 				},
@@ -533,7 +533,7 @@ var _ = Describe("deployPrometheus is true", func() {
 
 		installCmd := getDefaultInstallCmd(out)
 		installCmd.setOptions = []string{
-			"OpenServiceMesh.deployPrometheus=true",
+			"osm.deployPrometheus=true",
 		}
 
 		err = installCmd.run(config)
@@ -558,9 +558,9 @@ func TestResolveValues(t *testing.T) {
 
 				// Fill out fields which are empty by default
 				installCmd.setOptions = []string{
-					fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", testRegistrySecret),
-					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
-					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
+					fmt.Sprintf("osm.imagePullSecrets[0].name=%s", testRegistrySecret),
+					fmt.Sprintf("osm.vault.token=%s", testVaultToken),
+					fmt.Sprintf("osm.vault.host=%s", testVaultHost),
 				}
 				return installCmd
 			}(),
@@ -569,9 +569,9 @@ func TestResolveValues(t *testing.T) {
 
 				// Fill out fields which are empty by default
 				valuesConfig := []string{
-					fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", testRegistrySecret),
-					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
-					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
+					fmt.Sprintf("osm.imagePullSecrets[0].name=%s", testRegistrySecret),
+					fmt.Sprintf("osm.vault.host=%s", testVaultHost),
+					fmt.Sprintf("osm.vault.token=%s", testVaultToken),
 				}
 				for _, val := range valuesConfig {
 					// parses Helm strvals line and merges into a map
@@ -600,7 +600,7 @@ func TestResolveValues(t *testing.T) {
 			name: "--set for an existing parameter as no effect",
 			installCmd: func() installCmd {
 				installCmd := getDefaultInstallCmd(ioutil.Discard)
-				installCmd.setOptions = []string{"OpenServiceMesh.meshName=set"}
+				installCmd.setOptions = []string{"osm.meshName=set"}
 				return installCmd
 			}(),
 			expected: getDefaultValues(),
@@ -657,16 +657,16 @@ func TestEnforceSingleMesh(t *testing.T) {
 		clientSet:         fakeClientSet,
 		enforceSingleMesh: true,
 		setOptions: []string{
-			fmt.Sprintf("OpenServiceMesh.image.registry=%s", testRegistry),
-			fmt.Sprintf("OpenServiceMesh.image.tag=%s", testOsmImageTag),
-			"OpenServiceMesh.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
-			"OpenServiceMesh.deployGrafana=false",
-			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateProvider.kind=tresor",
+			fmt.Sprintf("osm.image.registry=%s", testRegistry),
+			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
+			"osm.image.pullPolicy=IfNotPresent",
+			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
+			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
+			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
+			"osm.certificateProvider.serviceCertValidityDuration=24h",
+			"osm.deployGrafana=false",
+			"osm.enableIngress=true",
+			"osm.certificateProvider.kind=tresor",
 		},
 	}
 
@@ -716,17 +716,17 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 		meshName:  defaultMeshName + "-2",
 		clientSet: fakeClientSet,
 		setOptions: []string{
-			fmt.Sprintf("OpenServiceMesh.image.registry=%s", testRegistry),
-			fmt.Sprintf("OpenServiceMesh.image.tag=%s", testOsmImageTag),
-			"OpenServiceMesh.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
-			"OpenServiceMesh.deployGrafana=false",
-			"OpenServiceMesh.deployPrometheus=false",
-			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateProvider.kind=tresor",
+			fmt.Sprintf("osm.image.registry=%s", testRegistry),
+			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
+			"osm.image.pullPolicy=IfNotPresent",
+			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
+			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
+			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
+			"osm.certificateProvider.serviceCertValidityDuration=24h",
+			"osm.deployGrafana=false",
+			"osm.deployPrometheus=false",
+			"osm.enableIngress=true",
+			"osm.certificateProvider.kind=tresor",
 		},
 	}
 
@@ -766,17 +766,17 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 		clientSet:         fakeClientSet,
 		enforceSingleMesh: true,
 		setOptions: []string{
-			fmt.Sprintf("OpenServiceMesh.image.registry=%s", testRegistry),
-			fmt.Sprintf("OpenServiceMesh.image.tag=%s", testOsmImageTag),
-			"OpenServiceMesh.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("OpenServiceMesh.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", testRetentionTime),
-			"OpenServiceMesh.certificateProvider.serviceCertValidityDuration=24h",
-			"OpenServiceMesh.deployPrometheus=true",
-			"OpenServiceMesh.deployGrafana=false",
-			"OpenServiceMesh.enableIngress=true",
-			"OpenServiceMesh.certificateProvider.kind=tresor",
+			fmt.Sprintf("osm.image.registry=%s", testRegistry),
+			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
+			"osm.image.pullPolicy=IfNotPresent",
+			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
+			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
+			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
+			"osm.certificateProvider.serviceCertValidityDuration=24h",
+			"osm.deployPrometheus=true",
+			"osm.deployGrafana=false",
+			"osm.enableIngress=true",
+			"osm.certificateProvider.kind=tresor",
 		},
 	}
 
@@ -814,7 +814,7 @@ func getDefaultInstallCmd(writer io.Writer) installCmd {
 
 func getDefaultValues() map[string]interface{} {
 	return map[string]interface{}{
-		"OpenServiceMesh": map[string]interface{}{
+		"osm": map[string]interface{}{
 			"meshName":          defaultMeshName,
 			"enforceSingleMesh": defaultEnforceSingleMesh,
 		}}

@@ -55,7 +55,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           body_path: release-notes.md
-          prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') }}
+          prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.') }}
       - name: Upload macOS .zip
         uses: actions/upload-release-asset@v1
         with:

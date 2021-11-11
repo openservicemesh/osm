@@ -12,7 +12,6 @@ spec:
     configResyncInterval: "0s"
   traffic:
     enableEgress: false
-    useHTTPSIngress: false
     enablePermissiveTrafficPolicyMode: true
   observability:
     enableDebugServer: true

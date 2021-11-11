@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
@@ -23,6 +24,9 @@ func getInitContainerSpec(containerName string, cfg configurator.Configurator, o
 					"NET_ADMIN",
 				},
 			},
+			RunAsNonRoot: pointer.BoolPtr(false),
+			// User ID 0 corresponds to root
+			RunAsUser: pointer.Int64Ptr(0),
 		},
 		Command: []string{"/bin/sh"},
 		Args: []string{

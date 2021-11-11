@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployJaeger }}
+{{- if .Values.osm.deployJaeger }}
 kind: Service
 apiVersion: v1
 metadata:
@@ -13,6 +13,6 @@ spec:
   ports:
   - protocol: TCP
     # Service port and target port are the same
-    port: {{ .Values.OpenServiceMesh.tracing.port }}
+    port: {{ .Values.osm.tracing.port }}
   type: ClusterIP
 {{- end }}

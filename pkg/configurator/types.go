@@ -57,9 +57,6 @@ type Configurator interface {
 	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
-	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
-	UseHTTPSIngress() bool
-
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
 

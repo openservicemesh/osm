@@ -103,44 +103,6 @@ func TestGetServiceFromHostname(t *testing.T) {
 	}
 }
 
-func TestGetAppProtocolFromPortName(t *testing.T) {
-	testCases := []struct {
-		name             string
-		portName         string
-		expectedProtocal string
-	}{
-		{
-			name:             "tcp protocol",
-			portName:         "tcp-port-test",
-			expectedProtocal: "tcp",
-		},
-		{
-			name:             "http protocol",
-			portName:         "http-port-test",
-			expectedProtocal: "http",
-		},
-		{
-			name:             "grpc protocol",
-			portName:         "grpc-port-test",
-			expectedProtocal: "grpc",
-		},
-		{
-			name:             "default protocol",
-			portName:         "port-test",
-			expectedProtocal: "http",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := GetAppProtocolFromPortName(tc.portName)
-			assert.Equal(tc.expectedProtocal, actual)
-		})
-	}
-}
-
 func TestGetKubernetesServerVersionNumber(t *testing.T) {
 	testCases := []struct {
 		name            string

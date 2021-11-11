@@ -1,2 +1,5 @@
-FROM bitnami/kubectl
+FROM busybox:1.33
+RUN wget https://storage.googleapis.com/kubernetes-release/release/v1.22.2/bin/linux/amd64/kubectl -O /bin/kubectl && \
+    chmod +x /bin/kubectl
 COPY * /osm-crds/
+ENTRYPOINT ["/bin/kubectl"]

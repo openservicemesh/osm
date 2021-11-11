@@ -1,7 +1,7 @@
 # Default values for test-chart.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-OpenServiceMesh:
+osm:
   namespace: test-namespace
   image:
     registry: test-registry-default

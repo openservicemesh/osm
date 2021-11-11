@@ -18,6 +18,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	privilegedFalse := false
 	privilegedTrue := true
+	runAsNonRootFalse := false
+	runAsUserID := int64(0)
 
 	mockCtrl := gomock.NewController(GinkgoT())
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
@@ -44,7 +46,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 							"NET_ADMIN",
 						},
 					},
-					Privileged: &privilegedFalse,
+					Privileged:   &privilegedFalse,
+					RunAsNonRoot: &runAsNonRootFalse,
+					RunAsUser:    &runAsUserID,
 				},
 				Stdin:     false,
 				StdinOnce: false,
@@ -76,7 +80,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 							"NET_ADMIN",
 						},
 					},
-					Privileged: &privilegedFalse,
+					Privileged:   &privilegedFalse,
+					RunAsNonRoot: &runAsNonRootFalse,
+					RunAsUser:    &runAsUserID,
 				},
 				Stdin:     false,
 				StdinOnce: false,
@@ -107,7 +113,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 							"NET_ADMIN",
 						},
 					},
-					Privileged: &privilegedTrue,
+					Privileged:   &privilegedTrue,
+					RunAsNonRoot: &runAsNonRootFalse,
+					RunAsUser:    &runAsUserID,
 				},
 				Stdin:     false,
 				StdinOnce: false,
@@ -138,7 +146,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 							"NET_ADMIN",
 						},
 					},
-					Privileged: &privilegedFalse,
+					Privileged:   &privilegedFalse,
+					RunAsNonRoot: &runAsNonRootFalse,
+					RunAsUser:    &runAsUserID,
 				},
 				Stdin:     false,
 				StdinOnce: false,
@@ -170,7 +180,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 							"NET_ADMIN",
 						},
 					},
-					Privileged: &privilegedFalse,
+					Privileged:   &privilegedFalse,
+					RunAsNonRoot: &runAsNonRootFalse,
+					RunAsUser:    &runAsUserID,
 				},
 				Stdin:     false,
 				StdinOnce: false,

@@ -58,8 +58,8 @@ jobs:
         run: |
           make build-osm
           ./bin/osm install --verbose \
-            --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-            --set=OpenServiceMesh.image.tag="$CTR_TAG"
+            --set=osm.image.registry="$CTR_REGISTRY" \
+            --set=osm.image.tag="$CTR_TAG"
       - name: Run e2es
         run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 60m -installType=NoInstall
       - name: Kind cleanup

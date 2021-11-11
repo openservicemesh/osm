@@ -87,7 +87,6 @@ build-osm: cmd/cli/chart.tgz
 	CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 cmd/cli/chart.tgz: scripts/generate_chart/generate_chart.go $(shell find charts/osm)
-	helm dependency update charts/osm
 	go run $< > $@
 
 .PHONY: clean-osm
@@ -247,6 +246,24 @@ build-ci: embed-files
 .PHONY: clean-image-digest
 clean-image-digest:
 	@rm -f "$(CTR_DIGEST_FILE)"
+
+trivy-scan-images:
+	wget https://github.com/aquasecurity/trivy/releases/download/v0.18.0/trivy_0.18.0_Linux-64bit.tar.gz
+	tar zxvf trivy_0.18.0_Linux-64bit.tar.gz
+
+	# Show all vulnerabilities in logs
+	./trivy $(CTR_REGISTRY)/osm-controller:$(CTR_TAG)
+	./trivy $(CTR_REGISTRY)/osm-injector:$(CTR_TAG)
+	./trivy $(CTR_REGISTRY)/init:$(CTR_TAG)
+	./trivy $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG)
+	./trivy $(CTR_REGISTRY)/osm-crds:$(CTR_TAG)
+
+	# Exit if vulnerability exists
+	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-controller:$(CTR_TAG)" || exit 1
+	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-injector:$(CTR_TAG)" || exit 1
+	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/init:$(CTR_TAG)" || exit 1
+	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG)" || exit 1
+	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-crds:$(CTR_TAG)" || exit 1
 
 # OSM control plane components
 DOCKER_PUSH_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init osm-controller osm-injector osm-crds osm-bootstrap)

@@ -88,7 +88,9 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 	var updatedBooksSold int64
 	err := json.NewDecoder(r.Body).Decode(&updatedBooksSold)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not decode request body")
+		log.Error().Err(err).Msg("Could not decode request body")
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	atomic.StoreInt64(&books.BooksSold, updatedBooksSold)
 	setHeaders(w, r)

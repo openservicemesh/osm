@@ -9,7 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -28,7 +27,6 @@ type MeshCatalog struct {
 	serviceProviders   []service.Provider
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
-	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous

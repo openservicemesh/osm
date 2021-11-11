@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployGrafana}}
+{{- if .Values.osm.deployGrafana}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:

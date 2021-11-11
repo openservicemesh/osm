@@ -39,8 +39,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	meshSvc3V2 := service.MeshService{Name: "s3-v2", Namespace: "ns3", Port: 8080, TargetPort: 80, Protocol: "http"}
 	// MeshService for  k8s service ns3/s4 with 1 port
 	meshSvc4 := service.MeshService{Name: "s4", Namespace: "ns3", Port: 9090, TargetPort: 90, Protocol: "tcp"}
+	// MeshService for k8s service ns3/s5 with 1 port
+	meshSvc5 := service.MeshService{Name: "s5", Namespace: "ns3", Port: 9091, TargetPort: 91, Protocol: "tcp-server-first"}
 
-	allMeshServices := []service.MeshService{meshSvc1P1, meshSvc1P2, meshSvc2, meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4}
+	allMeshServices := []service.MeshService{meshSvc1P1, meshSvc1P2, meshSvc2, meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5}
 
 	svcToEndpointsMap := map[string][]endpoint.Endpoint{
 		meshSvc1P1.String(): {
@@ -66,12 +68,15 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 		meshSvc4.String(): {
 			{IP: net.ParseIP("10.0.4.1")},
 		},
+		meshSvc5.String(): {
+			{IP: net.ParseIP("10.0.5.1")},
+		},
 	}
 
 	svcIdentityToSvcMapping := map[string][]service.MeshService{
 		"sa1.ns1.cluster.local": {meshSvc1P1, meshSvc1P2},
 		"sa2.ns2.cluster.local": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
-		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4},
+		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
 	}
 
 	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1.cluster.local")
@@ -241,6 +246,19 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 							},
 						},
 					},
+					{
+						// To match ns3/s5 on port 9091
+						Name:                "ns3/s5_9091_tcp-server-first",
+						DestinationPort:     9091,
+						DestinationProtocol: "tcp-server-first",
+						DestinationIPRanges: []string{"10.0.5.1/32"},
+						WeightedClusters: []service.WeightedCluster{
+							{
+								ClusterName: "ns3/s5|91",
+								Weight:      100,
+							},
+						},
+					},
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 					{
@@ -266,6 +284,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					{
 						Name:    "ns3/s4|90",
 						Service: meshSvc4,
+					},
+					{
+						Name:    "ns3/s5|91",
+						Service: meshSvc5,
 					},
 				},
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.OutboundTrafficPolicy{
@@ -522,6 +544,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					{
 						Name:    "ns3/s4|90",
 						Service: meshSvc4,
+					},
+					{
+						Name:    "ns3/s5|91",
+						Service: meshSvc5,
 					},
 				},
 			},

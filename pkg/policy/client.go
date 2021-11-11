@@ -134,7 +134,7 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 	for _, ingressBackendIface := range c.caches.ingressBackend.List() {
 		ingressBackend := ingressBackendIface.(*policyV1alpha1.IngressBackend)
 
-		if !c.kubeController.IsMonitoredNamespace(ingressBackend.Namespace) {
+		if ingressBackend.Namespace != svc.Namespace {
 			continue
 		}
 
@@ -142,7 +142,7 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 		// Multiple IngressBackend policies for the same backend will be prevented
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
-			if ingressBackend.Namespace == svc.Namespace && backend.Name == svc.Name {
+			if backend.Name == svc.Name {
 				return ingressBackend
 			}
 		}

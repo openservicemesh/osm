@@ -49,7 +49,7 @@ func (c *Config) Run() error {
 
 	// Generate report for each app pod
 	c.AppPods = c.getUniquePods()
-	fmt.Fprintf(c.Stdout, "[+] Collecting information from individual app namespaces\n")
+	fmt.Fprintf(c.Stdout, "[+] Collecting information from individual app pods\n")
 	c.collectPerPodReport()
 	c.completionSuccess("Finished generating report for individual app pods")
 	c.endSection()

@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/bugreport"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -63,6 +66,7 @@ type bugReportCmd struct {
 	stdout         io.Writer
 	stderr         io.Writer
 	kubeClient     kubernetes.Interface
+	all            bool
 	appNamespaces  []string
 	appDeployments []string
 	appPods        []string
@@ -95,6 +99,7 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 	}
 
 	f := cmd.Flags()
+	f.BoolVar(&bugReportCmd.all, "all", false, "All pods in the mesh")
 	f.StringSliceVar(&bugReportCmd.appNamespaces, "app-namespaces", nil, "Application namespaces")
 	f.StringSliceVar(&bugReportCmd.appDeployments, "app-deployments", nil, "Application deployments: <namespace>/<deployment>")
 	f.StringSliceVar(&bugReportCmd.appPods, "app-pods", nil, "Application pods: <namespace>/<pod>")
@@ -106,22 +111,48 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 func (cmd *bugReportCmd) run() error {
 	var appPods, appDeployments []types.NamespacedName
 
-	for _, pod := range cmd.appPods {
-		p, err := k8s.NamespacedNameFrom(pod)
+	if cmd.all {
+		ctx := context.Background()
+		cmd.appNamespaces = nil
+		namespaces, err := cmd.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
+			LabelSelector: constants.OSMKubeResourceMonitorAnnotation,
+		})
 		if err != nil {
-			fmt.Fprintf(cmd.stderr, "Pod name %s is not namespaced, skipping it", pod)
-			continue
+			fmt.Fprintf(cmd.stderr, "Unable to list mesh namespaces")
 		}
-		appPods = append(appPods, p)
-	}
+		for _, namespace := range namespaces.Items {
+			namespaceName := namespace.ObjectMeta.Name
+			cmd.appNamespaces = append(cmd.appNamespaces, namespaceName)
+			pods, err := cmd.kubeClient.CoreV1().Pods(namespaceName).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				fmt.Fprintf(cmd.stderr, "Unable to get pods from namespace %s", namespaceName)
+			}
+			for _, pod := range pods.Items {
+				nsName := types.NamespacedName{
+					Namespace: pod.Namespace,
+					Name:      pod.Name,
+				}
+				appPods = append(appPods, nsName)
+			}
+		}
+	} else {
+		for _, pod := range cmd.appPods {
+			p, err := k8s.NamespacedNameFrom(pod)
+			if err != nil {
+				fmt.Fprintf(cmd.stderr, "Pod name %s is not namespaced, skipping it", pod)
+				continue
+			}
+			appPods = append(appPods, p)
+		}
 
-	for _, deployment := range cmd.appDeployments {
-		d, err := k8s.NamespacedNameFrom(deployment)
-		if err != nil {
-			fmt.Fprintf(cmd.stderr, "Deployment name %s is not namespaced, skipping it", deployment)
-			continue
+		for _, deployment := range cmd.appDeployments {
+			d, err := k8s.NamespacedNameFrom(deployment)
+			if err != nil {
+				fmt.Fprintf(cmd.stderr, "Deployment name %s is not namespaced, skipping it", deployment)
+				continue
+			}
+			appDeployments = append(appDeployments, d)
 		}
-		appDeployments = append(appDeployments, d)
 	}
 
 	bugReportCfg := &bugreport.Config{

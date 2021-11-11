@@ -24,7 +24,7 @@ spec:
   - port: 3306
     targetPort: 3306
     name: client
-    appProtocol: tcp
+    appProtocol: tcp-server-first
   selector:
     app: mysql
   clusterIP: None
@@ -93,7 +93,7 @@ spec:
     namespace: $BOOKWAREHOUSE_NAMESPACE
   rules:
   - kind: TCPRoute
-    name: tcp-route
+    name: mysql
   sources:
   - kind: ServiceAccount
     name: bookwarehouse
@@ -102,7 +102,7 @@ spec:
 apiVersion: specs.smi-spec.io/v1alpha4
 kind: TCPRoute
 metadata:
-  name: tcp-route
+  name: mysql
   namespace: $BOOKWAREHOUSE_NAMESPACE
 spec:
   matches:

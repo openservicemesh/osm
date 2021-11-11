@@ -97,6 +97,9 @@ const (
 	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
 	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
 
+	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
+	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
+
 	// MutatingWebhookCertificateSecretName is the default value for mutating webhook secret name
 	MutatingWebhookCertificateSecretName = "mutating-webhook-cert-secret"
 

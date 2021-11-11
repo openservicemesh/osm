@@ -12,9 +12,13 @@ import (
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -165,4 +169,47 @@ func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
 			assert.Equal(tc.expectedMatch, actual)
 		})
 	}
+}
+
+func TestNewOutboundListener(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	identity := identity.K8sServiceAccount{}.ToServiceIdentity()
+	meshCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	meshCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).Times(1)
+	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(identity).Return(&trafficpolicy.OutboundMeshTrafficPolicy{
+		TrafficMatches: []*trafficpolicy.TrafficMatch{
+			{
+				WeightedClusters: []service.WeightedCluster{{}},
+				DestinationIPRanges: []string{
+					"0.0.0.0/0",
+				},
+				DestinationPort:     1,
+				DestinationProtocol: constants.ProtocolTCPServerFirst,
+			},
+		},
+	}).Times(2)
+	cfg := configurator.NewMockConfigurator(mockCtrl)
+	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha1.FeatureFlags{
+		EnableEgressPolicy: true,
+	}).Times(1)
+
+	lb := newListenerBuilder(meshCatalog, identity, cfg, nil)
+
+	assert := tassert.New(t)
+	listener, err := lb.newOutboundListener()
+	assert.NoError(err)
+
+	assert.Len(listener.ListenerFilters, 3) // OriginalDst, TlsInspector, HttpInspector
+	assert.Equal(wellknown.TlsInspector, listener.ListenerFilters[1].Name)
+	assert.Equal(&xds_listener.ListenerFilterChainMatchPredicate{
+		Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
+			DestinationPortRange: &xds_type.Int32Range{
+				Start: 1,
+				End:   2,
+			},
+		},
+	}, listener.ListenerFilters[1].FilterDisabled)
+	assert.Equal(wellknown.HttpInspector, listener.ListenerFilters[2].Name)
+	assert.Equal(listener.ListenerFilters[1].FilterDisabled, listener.ListenerFilters[2].FilterDisabled)
 }

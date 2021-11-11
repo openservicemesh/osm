@@ -14,8 +14,8 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-true}"
 
 
 helm template "$MESH_NAME" ./charts/osm \
-    --set OpenServiceMesh.osmNamespace="$K8S_NAMESPACE" \
-    --set OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-    --set OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-    --set OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
+    --set osm.osmNamespace="$K8S_NAMESPACE" \
+    --set osm.deployGrafana="$DEPLOY_GRAFANA" \
+    --set osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+    --set osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
     | kubectl delete --ignore-not-found -f -

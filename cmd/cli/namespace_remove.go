@@ -70,6 +70,7 @@ func (r *namespaceRemoveCmd) run() error {
 	}
 
 	val, exists := namespace.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
+
 	if exists {
 		if val == r.meshName {
 			// Setting null for a key in a map removes only that specific key, which is the desired behavior.
@@ -79,13 +80,14 @@ func (r *namespaceRemoveCmd) run() error {
 {
 	"metadata": {
 		"labels": {
+			"%s": null,
 			"%s": null
 		},
 		"annotations": {
 			"%s": null
 		}
 	}
-}`, constants.OSMKubeResourceMonitorAnnotation, constants.SidecarInjectionAnnotation)
+}`, constants.OSMKubeResourceMonitorAnnotation, constants.IgnoreLabel, constants.SidecarInjectionAnnotation)
 
 			_, err = r.clientSet.CoreV1().Namespaces().Patch(ctx, r.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 

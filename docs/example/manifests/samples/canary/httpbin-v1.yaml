@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-v1
+  namespace: httpbin
+  labels:
+    app: httpbin
+    version: v1
+spec:
+  ports:
+  - name: http
+    port: 14001
+  selector:
+    app: httpbin
+    version: v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin-v1
+  namespace: httpbin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v1
+    spec:
+      serviceAccountName: httpbin
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+      - image: simonkowallik/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        command: ["gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"]
+        ports:
+        - containerPort: 14001
+        env:
+        - name: XHTTPBIN_POD
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
