@@ -25,8 +25,8 @@ const (
 func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool, enableReconciler bool) error {
 	webhookPath := validationAPIPath
 	webhookPort := int32(constants.ValidatorWebhookPort)
-	failuerPolicy := admissionregv1.Fail
-	matchPolict := admissionregv1.Exact
+	failurePolicy := admissionregv1.Fail
+	matchPolicy := admissionregv1.Exact
 
 	rules := []admissionregv1.RuleWithOperations{
 		{
@@ -77,8 +77,8 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert certif
 						Port:      &webhookPort,
 					},
 					CABundle: cert.GetCertificateChain()},
-				FailurePolicy: &failuerPolicy,
-				MatchPolicy:   &matchPolict,
+				FailurePolicy: &failurePolicy,
+				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						constants.OSMKubeResourceMonitorAnnotation: meshName,
