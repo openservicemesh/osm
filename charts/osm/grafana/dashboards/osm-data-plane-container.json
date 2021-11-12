@@ -20,7 +20,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "7.0.1"
+      "version": "8.2.2"
     },
     {
       "type": "panel",
@@ -60,6 +60,7 @@
         }
       ]
     },
+    "description": "OSM Data Plane Performance Metrics latest",
     "editable": true,
     "gnetId": null,
     "graphTooltip": 0,
@@ -144,7 +145,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -238,7 +239,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -346,7 +347,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",
@@ -440,7 +441,7 @@
           "sort": 0,
           "value_type": "individual"
         },
-        "type": "graph",
+        "type": "timeseries",
         "xaxis": {
           "buckets": null,
           "mode": "time",

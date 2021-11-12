@@ -36,7 +36,7 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 
 ## OSM Components & Interactions
-![OSM Components & Interactions](/docs/dev_guide/osm-components-and-interactions.png)
+![OSM Components & Interactions](/docs/development_guide/osm-components-and-interactions.png)
 
 ### Containers
 When a new Pod creation is initiated, OSM's

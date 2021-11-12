@@ -36,11 +36,9 @@ func defaultMeshUpgradeCmd() *meshUpgradeCmd {
 	}
 
 	return &meshUpgradeCmd{
-		out:               ioutil.Discard,
-		meshName:          defaultMeshName,
-		chart:             chart,
-		containerRegistry: defaultContainerRegistry,
-		osmImageTag:       defaultOsmImageTag,
+		out:      ioutil.Discard,
+		meshName: defaultMeshName,
+		chart:    chart,
 	}
 }
 
@@ -56,10 +54,12 @@ func TestMeshUpgradeDefault(t *testing.T) {
 
 	u := defaultMeshUpgradeCmd()
 
-	upgraded, err := action.NewGet(config).Run(u.meshName)
+	getVals := action.NewGetValues(config)
+	getVals.AllValues = true
+	upgraded, err := getVals.Run(u.meshName)
 	a.Nil(err)
 
-	meshName, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.meshName")
+	meshName, err := chartutil.Values(upgraded).PathValue("osm.meshName")
 	a.Nil(err)
 	a.Equal(defaultMeshName, meshName)
 	err = u.run(config)
@@ -78,32 +78,38 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 	a.Nil(err)
 
 	u := defaultMeshUpgradeCmd()
-	u.osmImageTag = "upgraded"
+	defaultImageRegVal, err := chartutil.Values(u.chart.Values).PathValue("osm.image.registry")
+	a.NoError(err)
+	defaultImageReg := defaultImageRegVal.(string)
+	upgradedImageReg := "upgraded-" + defaultImageReg
+	u.setOptions = []string{"osm.image.registry=" + upgradedImageReg}
 
 	err = u.run(config)
 	a.Nil(err)
 
-	upgraded, err := action.NewGet(config).Run(u.meshName)
+	getVals := action.NewGetValues(config)
+	getVals.AllValues = true
+	upgraded, err := getVals.Run(u.meshName)
 	a.Nil(err)
 
-	osmImageTag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	osmImageReg, err := chartutil.Values(upgraded).PathValue("osm.image.registry")
 	a.Nil(err)
-	a.Equal("upgraded", osmImageTag)
+	a.Equal(upgradedImageReg, osmImageReg)
 
 	// Successive upgrades overriddes image-tag values from the previous upgrade
 	u = defaultMeshUpgradeCmd()
 	err = u.run(config)
 	a.Nil(err)
 
-	upgraded, err = action.NewGet(config).Run(u.meshName)
+	upgraded, err = getVals.Run(u.meshName)
 	a.Nil(err)
 
-	osmImageTag, err = chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
+	osmImageReg, err = chartutil.Values(upgraded).PathValue("osm.image.registry")
 	a.Nil(err)
-	a.Equal(defaultOsmImageTag, osmImageTag)
+	a.Equal(defaultImageReg, osmImageReg)
 }
 
-func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
+func TestMeshUpgradeDropsInstallOverrides(t *testing.T) {
 	a := assert.New(t)
 
 	config := meshUpgradeConfig()
@@ -111,9 +117,9 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
 	i.setOptions = []string{
-		"OpenServiceMesh.enableEgress=true",
-		"OpenServiceMesh.osmImageTag=installed",
-		"OpenServiceMesh.envoyLogLevel=trace",
+		"osm.enableEgress=true",
+		"osm.image.registry=installed",
+		"osm.envoyLogLevel=trace",
 	}
 
 	err := i.run(config)
@@ -124,23 +130,19 @@ func TestMeshUpgradeKeepsInstallOverrides(t *testing.T) {
 	err = u.run(config)
 	a.Nil(err)
 
-	upgraded, err := action.NewGet(config).Run(u.meshName)
+	getVals := action.NewGetValues(config)
+	getVals.AllValues = true
+	upgraded, err := getVals.Run(u.meshName)
 	a.Nil(err)
 
-	// enableEgress should be unchanged by default
-	egressEnabled, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.enableEgress")
-	a.Nil(err)
-	a.Equal(true, egressEnabled)
-
-	// envoyLogLevel should be unchanged by default
-	envoyLogLevel, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.envoyLogLevel")
-	a.Nil(err)
-	a.Equal("trace", envoyLogLevel)
-
-	// image tag should be updated by default
-	tag, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.image.tag")
-	a.Nil(err)
-	a.Equal(defaultOsmImageTag, tag)
+	// Values overridden at install should be the same as their defaults in the
+	// chart after an upgrade that sets no values
+	for _, valKey := range []string{"osm.enableEgress", "osm.image.registry", "osm.envoyLogLevel"} {
+		def, defErr := chartutil.Values(u.chart.Values).PathValue(valKey)
+		upgradedVal, upgErr := chartutil.Values(upgraded).PathValue(valKey)
+		a.Equal(def, upgradedVal)
+		a.Equal(defErr, upgErr)
+	}
 }
 
 func TestMeshUpgradeToModifiedChart(t *testing.T) {
@@ -164,19 +166,44 @@ func TestMeshUpgradeToModifiedChart(t *testing.T) {
 	u.chart.Schema = []byte(`{"required": ["newRequired"]}`)
 
 	// A value NOT set explicitly by `osm install` that exists in the old chart
-	oldNamespace, err := chartutil.Values(u.chart.Values).PathValue("OpenServiceMesh.namespace")
+	oldNamespace, err := chartutil.Values(u.chart.Values).PathValue("osm.namespace")
 	a.Nil(err)
 	newNamespace := fmt.Sprintf("new-%s", oldNamespace)
-	u.chart.Values["OpenServiceMesh"].(map[string]interface{})["namespace"] = newNamespace
+	u.chart.Values["osm"].(map[string]interface{})["namespace"] = newNamespace
 
 	err = u.run(config)
 	a.Nil(err)
 
-	upgraded, err := action.NewGet(config).Run(u.meshName)
+	getVals := action.NewGetValues(config)
+	getVals.AllValues = true
+	upgraded, err := getVals.Run(u.meshName)
 	a.Nil(err)
 
-	// When a default is changed in values.yaml, keep the old one
-	namespace, err := chartutil.Values(upgraded.Config).PathValue("OpenServiceMesh.namespace")
+	// When a default is changed in values.yaml, use the new one
+	namespace, err := chartutil.Values(upgraded).PathValue("osm.namespace")
 	a.Nil(err)
-	a.Equal(oldNamespace, namespace)
+	a.Equal(newNamespace, namespace)
+}
+
+func TestMeshUpgradeRemovedValue(t *testing.T) {
+	a := assert.New(t)
+
+	config := meshUpgradeConfig()
+
+	i := getDefaultInstallCmd(ioutil.Discard)
+	i.chartPath = testChartPath
+	err := i.run(config)
+	a.NoError(err)
+
+	u := defaultMeshUpgradeCmd()
+
+	// Upgrade to a "new version" of the chart with a deleted value.
+	_, err = chartutil.Values(u.chart.Values).PathValue("osm.namespace")
+	a.NoError(err)
+	delete(u.chart.Values["osm"].(map[string]interface{}), "namespace")
+	// Schema only accepting the remaining values
+	u.chart.Schema = []byte(`{"properties": {"osm": {"properties": {"image": {}, "imagePullSecrets": {}}, "additionalProperties": false}}}`)
+
+	err = u.run(config)
+	a.NoError(err)
 }

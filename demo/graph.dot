@@ -1,4 +1,4 @@
-// dot -o graph.svg -T svg graph.svg
+// dot -o graph.svg -T svg graph.dot
 digraph G {
     compound=true;
     ranksep="0";
@@ -16,4 +16,5 @@ digraph G {
     }
 
     b2 -> bookwarehouse [ltail=cluster0];
+    bookwarehouse -> MySQL
 }

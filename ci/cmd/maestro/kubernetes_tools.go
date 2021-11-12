@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	mapset "github.com/deckarep/golang-set"
 	"helm.sh/helm/v3/pkg/action"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,10 +21,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli"
 )
-
-// We are going to wait for the Pod certain amount of time if it is in one of these statuses
-// See: https://github.com/kubernetes/kubernetes/blob/d0183703cbe715c879cb42db375c7373b7f2b6a1/pkg/kubelet/kubelet_test.go#L1453-L1454
-var statusWorthWaitingFor = mapset.NewSet("ContainerCreating", "PodInitializing")
 
 // GetPodLogs returns pod logs.
 func GetPodLogs(kubeClient kubernetes.Interface, namespace string, podName string, containerName string, timeSince time.Duration) string {
@@ -252,16 +247,17 @@ func WaitForPodToBeReady(kubeClient kubernetes.Interface, totalWait time.Duratio
 			os.Exit(1)
 		}
 
-		for _, container := range pod.Status.ContainerStatuses {
-			if container.State.Waiting != nil && statusWorthWaitingFor.Contains(container.State.Waiting.Reason) {
-				fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, podName, WaitForPod, time.Since(startedWaiting), totalWait)
-				time.Sleep(WaitForPod)
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type != corev1.PodReady {
 				continue
 			}
-
-			log.Info().Msgf("Pod %q is ready!", podName)
-			wg.Done()
-			return
+			if condition.Status == corev1.ConditionTrue {
+				log.Info().Msgf("Pod %q is ready!", podName)
+				wg.Done()
+				return
+			}
+			fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, podName, WaitForPod, time.Since(startedWaiting), totalWait)
+			time.Sleep(WaitForPod)
 		}
 	}
 }

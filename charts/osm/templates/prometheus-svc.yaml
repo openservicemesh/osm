@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.deployPrometheus }}
+{{- if .Values.osm.deployPrometheus }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,13 +7,13 @@ metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
   annotations:
-    prometheus.io/port: "{{.Values.OpenServiceMesh.prometheus.port}}"
+    prometheus.io/port: "{{.Values.osm.prometheus.port}}"
     prometheus.io/scrape: "true"
 spec:
   ports:
-  - port: {{.Values.OpenServiceMesh.prometheus.port}}
+  - port: {{.Values.osm.prometheus.port}}
     protocol: TCP
-    targetPort: {{.Values.OpenServiceMesh.prometheus.port}}
+    targetPort: {{.Values.osm.prometheus.port}}
   selector:
     app: osm-prometheus
 {{- end }}

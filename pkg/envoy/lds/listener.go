@@ -58,6 +58,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 	}
 
 	if featureflags := lb.cfg.GetFeatureFlags(); featureflags.EnableEgressPolicy {
+		var trafficMatches []*trafficpolicy.TrafficMatch
 		var filterDisableMatchPredicate *xds_listener.ListenerFilterChainMatchPredicate
 		// Create filter chains for egress based on policies
 		if egressTrafficPolicy, err := lb.meshCatalog.GetEgressTrafficPolicy(lb.serviceIdentity); err != nil {
@@ -65,8 +66,10 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 		} else if egressTrafficPolicy != nil {
 			egressFilterChains := lb.getEgressFilterChainsForMatches(egressTrafficPolicy.TrafficMatches)
 			listener.FilterChains = append(listener.FilterChains, egressFilterChains...)
-			filterDisableMatchPredicate = getFilterMatchPredicateForTrafficMatches(egressTrafficPolicy.TrafficMatches)
+			trafficMatches = append(trafficMatches, egressTrafficPolicy.TrafficMatches...)
 		}
+		trafficMatches = append(trafficMatches, lb.meshCatalog.GetOutboundMeshTrafficPolicy(lb.serviceIdentity).TrafficMatches...)
+		filterDisableMatchPredicate = getFilterMatchPredicateForTrafficMatches(trafficMatches)
 		additionalListenerFilters := []*xds_listener.ListenerFilter{
 			// Configure match predicate for ports serving server-first protocols (ex. mySQL, postgreSQL etc.).
 			// Ports corresponding to server-first protocols, where the server initiates the first byte of a connection, will

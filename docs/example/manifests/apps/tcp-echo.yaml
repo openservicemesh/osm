@@ -1,0 +1,55 @@
+# Note: create and add the `tcp-demo` namespace to the mesh prior to deploying this app
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcp-echo
+  namespace: tcp-demo
+  labels:
+    app: tcp-echo
+spec:
+  ports:
+  - name: tcp
+    port: 9000
+    appProtocol: tcp # required for TCP based routing
+  selector:
+    app: tcp-echo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tcp-echo
+  namespace: tcp-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tcp-echo
+  namespace: tcp-demo
+  labels:
+    app: tcp-echo
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tcp-echo
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: tcp-echo
+        version: v1
+    spec:
+      serviceAccountName: tcp-echo
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+      - name: tcp-echo-server
+        image: "openservicemesh/tcp-echo-server:latest"
+        imagePullPolicy: Always
+        command: ["/tcp-echo-server"]
+        args: [ "--port", "9000" ]
+        ports:
+        - containerPort: 9000
+          name: tcp-echo-server

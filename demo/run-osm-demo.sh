@@ -84,7 +84,7 @@ if [ "$CERT_MANAGER" = "cert-manager" ]; then
 fi
 
 if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
-    optionalInstallArgs+=" --set=OpenServiceMesh.enablePrivilegedInitContainer=true"
+    optionalInstallArgs+=" --set=osm.enablePrivilegedInitContainer=true"
 fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
@@ -101,25 +101,25 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
-      --set=OpenServiceMesh.certificateProvider.kind="$CERT_MANAGER" \
-      --set=OpenServiceMesh.vault.host="$VAULT_HOST" \
-      --set=OpenServiceMesh.vault.token="$VAULT_TOKEN" \
-      --set=OpenServiceMesh.vault.protocol="$VAULT_PROTOCOL" \
-      --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-      --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-      --set=OpenServiceMesh.image.tag="$CTR_TAG" \
-      --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
-      --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-      --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
-      --set=OpenServiceMesh.enableReconciler="$ENABLE_RECONCILER" \
-      --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
-      --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
-      --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
-      --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-      --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-      --set=OpenServiceMesh.controllerLogLevel="trace" \
+      --set=osm.certificateProvider.kind="$CERT_MANAGER" \
+      --set=osm.vault.host="$VAULT_HOST" \
+      --set=osm.vault.token="$VAULT_TOKEN" \
+      --set=osm.vault.protocol="$VAULT_PROTOCOL" \
+      --set=osm.image.registry="$CTR_REGISTRY" \
+      --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+      --set=osm.image.tag="$CTR_TAG" \
+      --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
+      --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+      --set=osm.enableEgress="$ENABLE_EGRESS" \
+      --set=osm.enableReconciler="$ENABLE_RECONCILER" \
+      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
+      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
+      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
+      --set=osm.tracing.address="$TRACING_ADDRESS" \
+      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=osm.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -128,22 +128,22 @@ else
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
-      --set=OpenServiceMesh.certificateProvider.kind="$CERT_MANAGER" \
-      --set=OpenServiceMesh.image.registry="$CTR_REGISTRY" \
-      --set=OpenServiceMesh.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
-      --set=OpenServiceMesh.image.tag="$CTR_TAG" \
-      --set=OpenServiceMesh.image.pullPolicy="$IMAGE_PULL_POLICY" \
-      --set=OpenServiceMesh.enableDebugServer="$ENABLE_DEBUG_SERVER" \
-      --set=OpenServiceMesh.enableEgress="$ENABLE_EGRESS" \
-      --set=OpenServiceMesh.enableReconciler="$ENABLE_RECONCILER" \
-      --set=OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=OpenServiceMesh.deployJaeger="$DEPLOY_JAEGER" \
-      --set=OpenServiceMesh.tracing.enable="$DEPLOY_JAEGER" \
-      --set=OpenServiceMesh.tracing.address="$TRACING_ADDRESS" \
-      --set=OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
-      --set=OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=OpenServiceMesh.envoyLogLevel="$ENVOY_LOG_LEVEL" \
-      --set=OpenServiceMesh.controllerLogLevel="trace" \
+      --set=osm.certificateProvider.kind="$CERT_MANAGER" \
+      --set=osm.image.registry="$CTR_REGISTRY" \
+      --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
+      --set=osm.image.tag="$CTR_TAG" \
+      --set=osm.image.pullPolicy="$IMAGE_PULL_POLICY" \
+      --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
+      --set=osm.enableEgress="$ENABLE_EGRESS" \
+      --set=osm.enableReconciler="$ENABLE_RECONCILER" \
+      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
+      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
+      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
+      --set=osm.tracing.address="$TRACING_ADDRESS" \
+      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
+      --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
+      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=osm.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

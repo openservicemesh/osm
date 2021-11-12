@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-OpenServiceMesh:
+osm:
 
   #
   # -- OSM control plane image parameters
@@ -33,17 +33,19 @@ OpenServiceMesh:
   sidecarImage: envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd
   # -- Envoy sidecar image for Windows workloads (v1.19.1)
   sidecarWindowsImage: envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85
+  # -- Curl image for control plane init container
+  curlImage: curlimages/curl
 
   #
   # -- OSM controller parameters
   osmController:
     # -- OSM controller's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
-    # -- OSM controller's container resource parameters
+    # -- OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details.
     resource:
       limits:
         cpu: "1.5"
-        memory: "512M"
+        memory: "1G"
       requests:
         cpu: "0.5"
         memory: "128M"
@@ -59,8 +61,12 @@ OpenServiceMesh:
       minReplicas: 1
       # -- Maximum replicas for autoscale
       maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
+      cpu:
+        # -- Average target CPU utilization (%)
+        targetAverageUtilization: 80
+      memory:
+        # -- Average target memory utilization (%)
+        targetAverageUtilization: 80
 
   #
   # -- Prometheus parameters
@@ -79,6 +85,8 @@ OpenServiceMesh:
     retention:
       # -- Prometheus data retention time
       time: 15d
+    # -- Image used for Prometheus
+    image: prom/prometheus:v2.18.1
 
   certificateProvider:
     # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
@@ -120,6 +128,10 @@ OpenServiceMesh:
     port: 3000
     # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
+    # -- Image used for Grafana
+    image: grafana/grafana:8.2.2
+    # -- Image used for Grafana Renderer
+    rendererImage: grafana/grafana-image-renderer:3.2.1
 
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
@@ -169,9 +181,6 @@ OpenServiceMesh:
   # -- Identifier for the instance of a service mesh within a cluster
   meshName: osm
 
-  # -- Enable mesh-wide HTTPS ingress capability (HTTP ingress is the default)
-  useHTTPSIngress: false
-
   # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 
@@ -211,6 +220,8 @@ OpenServiceMesh:
     port: 9411
     # -- Tracing collector's API path where the spans will be sent to
     endpoint: "/api/v2/spans"
+    # -- Image used for tracing
+    image: jaegertracing/all-in-one
 
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
@@ -249,8 +260,12 @@ OpenServiceMesh:
       minReplicas: 1
       # -- Maximum replicas for autoscale
       maxReplicas: 5
-      # -- Average target CPU utilization (%)
-      targetAverageUtilization: 80
+      cpu:
+        # -- Average target CPU utilization (%)
+        targetAverageUtilization: 80
+      memory:
+      # -- Average target memory utilization (%)
+        targetAverageUtilization: 80
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
 

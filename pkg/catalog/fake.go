@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -32,13 +31,11 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	var (
 		mockCtrl             *gomock.Controller
 		mockKubeController   *k8s.MockController
-		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
@@ -59,9 +56,6 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	cfg := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
 
 	certManager := tresor.NewFakeCertManager(cfg)
-
-	mockIngressMonitor.EXPECT().GetIngressNetworkingV1beta1(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockIngressMonitor.EXPECT().GetIngressNetworkingV1(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
@@ -120,22 +114,21 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	mockKubeController.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true).AnyTimes()
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	mockPolicyController.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
 
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
 		mockCtrl             *gomock.Controller
 		mockKubeController   *k8s.MockController
-		mockIngressMonitor   *ingress.MockMonitor
 		mockPolicyController *policy.MockController
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 	mockPolicyController = policy.NewMockController(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
@@ -239,5 +232,5 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockIngressMonitor, mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

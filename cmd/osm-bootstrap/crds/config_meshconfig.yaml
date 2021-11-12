@@ -115,9 +115,6 @@ spec:
                         type: integer
                         minimum: 1
                         maximum: 65535
-                    useHTTPSIngress:
-                      description: Enable HTTPS ingress on the mesh
-                      type: boolean
                     enablePermissiveTrafficPolicyMode:
                       description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
                       type: boolean

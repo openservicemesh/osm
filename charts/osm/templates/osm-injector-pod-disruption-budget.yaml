@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.injector.enablePodDisruptionBudget }}
+{{- if .Values.osm.injector.enablePodDisruptionBudget }}
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:

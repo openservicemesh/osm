@@ -45,13 +45,13 @@ func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer,
 		newProxyCmd(config, stdout),
 		newPolicyCmd(stdout, stderr),
 		newSupportCmd(config, stdout, stderr),
+		newUninstallCmd(config, stdin, stdout),
 	)
 
 	// Add subcommands related to unmanaged environments
 	if !settings.IsManaged() {
 		cmd.AddCommand(
 			newInstallCmd(config, stdout),
-			newUninstallCmd(config, stdin, stdout),
 			newDashboardCmd(config, stdout),
 		)
 	}

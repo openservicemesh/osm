@@ -173,8 +173,8 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	}
 
 	valuesConfig := []string{
-		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
-		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
+		fmt.Sprintf("osm.meshName=%s", i.meshName),
+		fmt.Sprintf("osm.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
 
 	if err := parseVal(valuesConfig, finalValues); err != nil {
@@ -249,19 +249,19 @@ func (i *installCmd) validateOptions() error {
 		return errors.Wrap(err, "invalid format for --set")
 	}
 
-	if setOptions, ok := s["OpenServiceMesh"].(map[string]interface{}); ok {
+	if setOptions, ok := s["osm"].(map[string]interface{}); ok {
 		// if the certificate provider kind is vault, ensure all relevant information (vault-host, vault-token) is available
 		if certProvider, ok := setOptions["certificateProvider"].(map[string]interface{}); ok && certProvider["kind"] == "vault" {
 			var missingFields []string
 			vaultOptions, ok := setOptions["vault"].(map[string]interface{})
 			if !ok {
-				missingFields = append(missingFields, "OpenServiceMesh.vault.host", "OpenServiceMesh.vault.token")
+				missingFields = append(missingFields, "osm.vault.host", "osm.vault.token")
 			} else {
 				if vaultOptions["host"] == nil || vaultOptions["host"] == "" {
-					missingFields = append(missingFields, "OpenServiceMesh.vault.host")
+					missingFields = append(missingFields, "osm.vault.host")
 				}
 				if vaultOptions["token"] == nil || vaultOptions["token"] == "" {
-					missingFields = append(missingFields, "OpenServiceMesh.vault.token")
+					missingFields = append(missingFields, "osm.vault.token")
 				}
 			}
 
