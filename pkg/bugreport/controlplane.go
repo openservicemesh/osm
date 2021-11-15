@@ -6,13 +6,18 @@ import (
 	"path"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (c *Config) collectControlPlaneLogs() error {
 	pods, err := c.KubeClient.CoreV1().Pods(c.ControlPlaneNamepace).
 		List(context.Background(), v1.ListOptions{
-			LabelSelector: "app.kubernetes.io/name=openservicemesh.io",
+			LabelSelector: fmt.Sprintf(
+				"%s=%s",
+				constants.OSMAppNameLabelKey,
+				constants.OSMAppNameLabelValue,
+			),
 		})
 	if err != nil {
 		return fmt.Errorf("error getting control plane pods: %w", err)
