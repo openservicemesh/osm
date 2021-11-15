@@ -248,6 +248,19 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 		Expect(inject).To(BeTrue())
 	})
 
+	It("should return false when the pod belongs to the host network", func() {
+		p := &corev1.Pod{
+			Spec: corev1.PodSpec{
+				HostNetwork: true,
+			},
+		}
+
+		inject, err := wh.mustInject(p, "")
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inject).To(BeFalse())
+	})
+
 	It("should return false when the pod is disabled for sidecar injection", func() {
 		testNamespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
