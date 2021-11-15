@@ -63,14 +63,15 @@ osm support bug-report --app-namespaces bookbuyer,bookstore \
 `
 
 type bugReportCmd struct {
-	stdout         io.Writer
-	stderr         io.Writer
-	kubeClient     kubernetes.Interface
-	all            bool
-	appNamespaces  []string
-	appDeployments []string
-	appPods        []string
-	outFile        string
+	stdout                  io.Writer
+	stderr                  io.Writer
+	kubeClient              kubernetes.Interface
+	all                     bool
+	appNamespaces           []string
+	appDeployments          []string
+	appPods                 []string
+	outFile                 string
+	collectControlPlaneLogs bool
 }
 
 func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stderr io.Writer) *cobra.Command {
@@ -103,6 +104,7 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 	f.StringSliceVar(&bugReportCmd.appNamespaces, "app-namespaces", nil, "Application namespaces")
 	f.StringSliceVar(&bugReportCmd.appDeployments, "app-deployments", nil, "Application deployments: <namespace>/<deployment>")
 	f.StringSliceVar(&bugReportCmd.appPods, "app-pods", nil, "Application pods: <namespace>/<pod>")
+	f.BoolVar(&bugReportCmd.collectControlPlaneLogs, "control-plane", false, "Control plane logs")
 	f.StringVarP(&bugReportCmd.outFile, "out-file", "o", "", "Output file with archive format extension")
 
 	return cmd
@@ -112,6 +114,10 @@ func (cmd *bugReportCmd) run() error {
 	var appPods, appDeployments []types.NamespacedName
 
 	if cmd.all {
+		// If the user specifies --all then this should override a false for
+		// collecting control plane logs so that all includes control plane logs.
+		cmd.collectControlPlaneLogs = true
+
 		ctx := context.Background()
 		cmd.appNamespaces = nil
 		namespaces, err := cmd.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
@@ -156,14 +162,15 @@ func (cmd *bugReportCmd) run() error {
 	}
 
 	bugReportCfg := &bugreport.Config{
-		Stdout:               cmd.stdout,
-		Stderr:               cmd.stderr,
-		KubeClient:           cmd.kubeClient,
-		ControlPlaneNamepace: settings.Namespace(),
-		AppNamespaces:        cmd.appNamespaces,
-		AppDeployments:       appDeployments,
-		AppPods:              appPods,
-		OutFile:              cmd.outFile,
+		Stdout:                  cmd.stdout,
+		Stderr:                  cmd.stderr,
+		KubeClient:              cmd.kubeClient,
+		ControlPlaneNamepace:    settings.Namespace(),
+		AppNamespaces:           cmd.appNamespaces,
+		AppDeployments:          appDeployments,
+		AppPods:                 appPods,
+		OutFile:                 cmd.outFile,
+		CollectControlPlaneLogs: cmd.collectControlPlaneLogs,
 	}
 
 	return bugReportCfg.Run()

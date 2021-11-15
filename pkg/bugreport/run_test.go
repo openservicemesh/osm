@@ -48,12 +48,13 @@ func TestRun(t *testing.T) {
 	r.Nil(err)
 
 	c := &Config{
-		Stdout:        new(bytes.Buffer),
-		Stderr:        new(bytes.Buffer),
-		KubeClient:    fakeClient,
-		AppNamespaces: []string{ns1.Name},
-		AppPods:       []types.NamespacedName{{Name: pod1.Name, Namespace: pod1.Namespace}},
-		OutFile:       outFile.Name(),
+		Stdout:                  new(bytes.Buffer),
+		Stderr:                  new(bytes.Buffer),
+		KubeClient:              fakeClient,
+		AppNamespaces:           []string{ns1.Name},
+		AppPods:                 []types.NamespacedName{{Name: pod1.Name, Namespace: pod1.Namespace}},
+		OutFile:                 outFile.Name(),
+		CollectControlPlaneLogs: true,
 	}
 
 	err = c.Run()
