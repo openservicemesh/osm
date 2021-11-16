@@ -6,8 +6,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func (c *Config) collectControlPlaneLogs() error {
