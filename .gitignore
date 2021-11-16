@@ -45,6 +45,7 @@ creds.json
 screenlog.*
 demo/bin/
 *.tgz
+!**/charts/*.tgz # dependency charts pulled by Helm
 *.wasm
 
 ## Ignore test coverage files
