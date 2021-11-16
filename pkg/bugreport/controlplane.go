@@ -30,6 +30,7 @@ func (c *Config) collectControlPlaneLogs() error {
 		if err := runCmdAndWriteToFile(cmd, outPath); err != nil {
 			return fmt.Errorf("error writing control pod logs: %w", err)
 		}
+		c.completionSuccess("Collected report for Pod %s/%s", pod.Namespace, pod.Name)
 	}
 
 	return nil
