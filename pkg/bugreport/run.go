@@ -55,15 +55,13 @@ func (c *Config) Run() error {
 	c.endSection()
 
 	// Generate report for control plane pods
-	if c.CollectControlPlaneLogs {
-		fmt.Fprintf(c.Stdout, "[+] Collecting information from control plane pods\n")
-		if err := c.collectControlPlaneLogs(); err != nil {
-			c.completionFailure("Error getting control plane logs")
-			return errors.Wrap(err, "Error getting control plane pods")
-		}
-		c.completionSuccess("Finished generating report for control plane pods")
-		c.endSection()
+	fmt.Fprintf(c.Stdout, "[+] Collecting information from control plane pods\n")
+	if err := c.collectControlPlaneLogs(); err != nil {
+		c.completionFailure("Error getting control plane logs")
+		return errors.Wrap(err, "Error getting control plane pods")
 	}
+	c.completionSuccess("Finished generating report for control plane pods")
+	c.endSection()
 
 	// Generate output file if not provided
 	if c.OutFile == "" {
