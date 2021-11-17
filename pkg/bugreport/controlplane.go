@@ -31,6 +31,15 @@ func (c *Config) collectControlPlaneLogs() error {
 			return fmt.Errorf("error writing control pod logs: %w", err)
 		}
 		c.completionSuccess("Collected report for Pod %s/%s", pod.Namespace, pod.Name)
+
+		if pod.Status.ContainerStatuses[0].RestartCount > 0 {
+			cmd = append(cmd, "--previous")
+			outPath = path.Join(c.rootNamespaceDirPath(), pod.Namespace, rootPodDirName, pod.Name, commandsDirName, strings.Join(cmd, "_"))
+			if err := runCmdAndWriteToFile(cmd, outPath); err != nil {
+				return fmt.Errorf("error writing previous control pod logs: %w", err)
+			}
+			c.completionSuccess("Collected previous report for Pod %s/%s", pod.Namespace, pod.Name)
+		}
 	}
 
 	return nil
