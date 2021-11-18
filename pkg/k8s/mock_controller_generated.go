@@ -108,20 +108,6 @@ func (mr *MockControllerMockRecorder) IsMonitoredNamespace(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockController)(nil).IsMonitoredNamespace), arg0)
 }
 
-// K8sServiceToMeshServices mocks base method.
-func (m *MockController) K8sServiceToMeshServices(arg0 v1.Service) []service.MeshService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "K8sServiceToMeshServices", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	return ret0
-}
-
-// K8sServiceToMeshServices indicates an expected call of K8sServiceToMeshServices.
-func (mr *MockControllerMockRecorder) K8sServiceToMeshServices(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "K8sServiceToMeshServices", reflect.TypeOf((*MockController)(nil).K8sServiceToMeshServices), arg0)
-}
-
 // ListMonitoredNamespaces mocks base method.
 func (m *MockController) ListMonitoredNamespaces() ([]string, error) {
 	m.ctrl.T.Helper()

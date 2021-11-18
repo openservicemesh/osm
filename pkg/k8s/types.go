@@ -111,8 +111,4 @@ type Controller interface {
 	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 	// The object within the 'interface{}' must be a pointer to the underlying resource
 	UpdateStatus(interface{}) (metav1.Object, error)
-
-	// K8sServiceToMeshServices translates a k8s service with one or more ports to one or more
-	// MeshService objects per port.
-	K8sServiceToMeshServices(corev1.Service) []service.MeshService
 }
