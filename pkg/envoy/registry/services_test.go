@@ -69,8 +69,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			}
 			expectedList := []service.MeshService{expectedSvc1, expectedSvc2}
 
-			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc1).Return([]service.MeshService{expectedSvc1})
-			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc2).Return([]service.MeshService{expectedSvc2})
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil).Times(2)
 
 			certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
 			certSerialNumber := certificate.SerialNumber("123456")
@@ -113,7 +112,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 				Protocol:  "http",
 			}
 			expectedList := []service.MeshService{expected}
-			mockKubeController.EXPECT().K8sServiceToMeshServices(*svc).Return(expectedList)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
@@ -529,9 +528,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
-			for i, svc := range tc.k8sServices {
-				mockKubeController.EXPECT().K8sServiceToMeshServices(svc).Return([]service.MeshService{tc.expectedMeshServices[i]})
-			}
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{}, nil).Times(len(tc.k8sServices))
 
 			actual := kubernetesServicesToMeshServices(mockKubeController, tc.k8sServices)
 			assert.ElementsMatch(tc.expectedMeshServices, actual)

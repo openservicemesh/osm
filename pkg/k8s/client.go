@@ -338,7 +338,9 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	}
 }
 
-func (c client) K8sServiceToMeshServices(svc corev1.Service) []service.MeshService {
+// ServiceToMeshServices translates a k8s service with one or more ports to one or more
+// MeshService objects per port.
+func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {
