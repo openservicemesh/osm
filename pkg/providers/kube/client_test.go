@@ -312,6 +312,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 						Selector: map[string]string{
 							"k1": "v1", // matches labels on pod ns1/p1
 						},
+						Ports: []corev1.ServicePort{{}},
 					},
 				},
 				{
@@ -327,7 +328,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 				},
 			},
 			expected: []service.MeshService{
-				{Namespace: "ns1", Name: "s1"}, // ns1/s1 matches pod ns1/p1 with service account ns1/sa1
+				{Namespace: "ns1", Name: "s1", Protocol: "http"}, // ns1/s1 matches pod ns1/p1 with service account ns1/sa1
 			},
 		},
 	}
@@ -345,11 +346,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 
 			mockKubeController.EXPECT().ListPods().Return(tc.pods)
 			mockKubeController.EXPECT().ListServices().Return(tc.services)
-			mockKubeController.EXPECT().K8sServiceToMeshServices(gomock.Any()).DoAndReturn(func(svc corev1.Service) []service.MeshService {
-				return []service.MeshService{
-					{Name: svc.Name, Namespace: svc.Namespace},
-				}
-			}).AnyTimes()
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
 			assert.ElementsMatch(tc.expected, actual)
