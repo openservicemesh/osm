@@ -17,7 +17,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	)
 
 	privilegedFalse := false
-	privilegedTrue := true
 	runAsNonRootFalse := false
 	runAsUserID := int64(0)
 
@@ -36,141 +35,29 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				Command: []string{"/bin/sh"},
 				Args: []string{
 					"-c",
-					"iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT",
-				},
-				WorkingDir: "",
-				Resources:  corev1.ResourceRequirements{},
-				SecurityContext: &corev1.SecurityContext{
-					Capabilities: &corev1.Capabilities{
-						Add: []corev1.Capability{
-							"NET_ADMIN",
-						},
-					},
-					Privileged:   &privilegedFalse,
-					RunAsNonRoot: &runAsNonRootFalse,
-					RunAsUser:    &runAsUserID,
-				},
-				Stdin:     false,
-				StdinOnce: false,
-				TTY:       false,
-			}
-
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("Creates init container with outbound exclusion list", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			outboundIPRangeExclusionList := []string{"1.1.1.1/32", "10.0.0.10/24"}
-			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, outboundIPRangeExclusionList, nil, nil, privileged)
-
-			expected := corev1.Container{
-				Name:    "-container-name-",
-				Image:   "-init-container-image-",
-				Command: []string{"/bin/sh"},
-				Args: []string{
-					"-c",
-					"iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT && iptables -t nat -I PROXY_OUTPUT -d 1.1.1.1/32 -j RETURN && iptables -t nat -I PROXY_OUTPUT -d 10.0.0.10/24 -j RETURN",
-				},
-				WorkingDir: "",
-				Resources:  corev1.ResourceRequirements{},
-				SecurityContext: &corev1.SecurityContext{
-					Capabilities: &corev1.Capabilities{
-						Add: []corev1.Capability{
-							"NET_ADMIN",
-						},
-					},
-					Privileged:   &privilegedFalse,
-					RunAsNonRoot: &runAsNonRootFalse,
-					RunAsUser:    &runAsUserID,
-				},
-				Stdin:     false,
-				StdinOnce: false,
-				TTY:       false,
-			}
-
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("Creates init container with privileged true", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			privileged := privilegedTrue
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, privileged)
-
-			expected := corev1.Container{
-				Name:    "-container-name-",
-				Image:   "-init-container-image-",
-				Command: []string{"/bin/sh"},
-				Args: []string{
-					"-c",
-					"iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT",
-				},
-				WorkingDir: "",
-				Resources:  corev1.ResourceRequirements{},
-				SecurityContext: &corev1.SecurityContext{
-					Capabilities: &corev1.Capabilities{
-						Add: []corev1.Capability{
-							"NET_ADMIN",
-						},
-					},
-					Privileged:   &privilegedTrue,
-					RunAsNonRoot: &runAsNonRootFalse,
-					RunAsUser:    &runAsUserID,
-				},
-				Stdin:     false,
-				StdinOnce: false,
-				TTY:       false,
-			}
-
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("Creates init container without outbound port exclusion list", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, privileged)
-
-			expected := corev1.Container{
-				Name:    "-container-name-",
-				Image:   "-init-container-image-",
-				Command: []string{"/bin/sh"},
-				Args: []string{
-					"-c",
-					"iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT",
-				},
-				WorkingDir: "",
-				Resources:  corev1.ResourceRequirements{},
-				SecurityContext: &corev1.SecurityContext{
-					Capabilities: &corev1.Capabilities{
-						Add: []corev1.Capability{
-							"NET_ADMIN",
-						},
-					},
-					Privileged:   &privilegedFalse,
-					RunAsNonRoot: &runAsNonRootFalse,
-					RunAsUser:    &runAsUserID,
-				},
-				Stdin:     false,
-				StdinOnce: false,
-				TTY:       false,
-			}
-
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("init container with outbound port exclusion list", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			outboundPortExclusionList := []int{6060, 7070}
-			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, outboundPortExclusionList, nil, privileged)
-
-			expected := corev1.Container{
-				Name:    "-container-name-",
-				Image:   "-init-container-image-",
-				Command: []string{"/bin/sh"},
-				Args: []string{
-					"-c",
-					"iptables -t nat -N PROXY_INBOUND && iptables -t nat -N PROXY_IN_REDIRECT && iptables -t nat -N PROXY_OUTPUT && iptables -t nat -N PROXY_REDIRECT && iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001 && iptables -t nat -A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT && iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT && iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN && iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN && iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT && iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003 && iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15010 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15901 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15902 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp --dport 15903 -j RETURN && iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT && iptables -t nat -I PROXY_OUTPUT -p tcp --match multiport --dports 6060,7070 -j RETURN",
+					`iptables-restore --noflush <<EOF
+# OSM sidecar interception rules
+*nat
+:PROXY_INBOUND - [0:0]
+:PROXY_IN_REDIRECT - [0:0]
+:PROXY_OUTPUT - [0:0]
+:PROXY_REDIRECT - [0:0]
+-A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003
+-A PREROUTING -p tcp -j PROXY_INBOUND
+-A PROXY_INBOUND -p tcp --dport 15010 -j RETURN
+-A PROXY_INBOUND -p tcp --dport 15901 -j RETURN
+-A PROXY_INBOUND -p tcp --dport 15902 -j RETURN
+-A PROXY_INBOUND -p tcp --dport 15903 -j RETURN
+-A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT
+-A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001
+-A PROXY_REDIRECT -p tcp --dport 15000 -j ACCEPT
+-A OUTPUT -p tcp -j PROXY_OUTPUT
+-A PROXY_OUTPUT -m owner --uid-owner 1500 -j RETURN
+-A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A PROXY_OUTPUT -j PROXY_REDIRECT
+COMMIT
+EOF
+`,
 				},
 				WorkingDir: "",
 				Resources:  corev1.ResourceRequirements{},

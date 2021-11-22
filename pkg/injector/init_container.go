@@ -1,8 +1,6 @@
 package injector
 
 import (
-	"strings"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
@@ -11,8 +9,7 @@ import (
 
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []int,
 	inboundPortExclusionList []int, enablePrivilegedInitContainer bool) corev1.Container {
-	iptablesInitCommandsList := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList)
-	iptablesInitCommand := strings.Join(iptablesInitCommandsList, " && ")
+	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList)
 
 	return corev1.Container{
 		Name:  containerName,
