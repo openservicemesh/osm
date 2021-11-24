@@ -1,12 +1,9 @@
 package k8s
 
 import (
-	"context"
-	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
@@ -532,75 +528,57 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 func TestIsMetricsEnabled(t *testing.T) {
 	testCases := []struct {
 		name                    string
-		addPrometheusAnnotation bool
+		pod                     *corev1.Pod
 		expectedMetricsScraping bool
-		scrapingAnnotation      string
 	}{
 		{
-			name:                    "pod without prometheus scraping annotation",
-			scrapingAnnotation:      "false",
-			addPrometheusAnnotation: false,
+			name: "pod without prometheus scraping annotation",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: nil,
+				},
+			},
 			expectedMetricsScraping: false,
 		},
 		{
-			name:                    "pod with prometheus scraping annotation set to true",
-			scrapingAnnotation:      "true",
-			addPrometheusAnnotation: true,
+			name: "pod with prometheus scraping annotation set to true",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "true",
+					},
+				},
+			},
 			expectedMetricsScraping: true,
 		},
 		{
-			name:                    "pod with prometheus scraping annotation set to false",
-			scrapingAnnotation:      "false",
-			addPrometheusAnnotation: true,
+			name: "pod with prometheus scraping annotation set to false",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "false",
+					},
+				},
+			},
 			expectedMetricsScraping: false,
 		},
 		{
-			name:                    "pod with incorrect prometheus scraping annotation",
-			scrapingAnnotation:      "no",
-			addPrometheusAnnotation: true,
+			name: "pod with incorrect prometheus scraping annotation",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "no",
+					},
+				},
+			},
 			expectedMetricsScraping: false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			kubeClient := testclient.NewSimpleClientset()
-			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, nil)
-			assert.Nil(err)
-			assert.NotNil(kubeController)
-
-			proxyUUID := uuid.New()
-			namespace := uuid.New().String()
-			podlabels := map[string]string{
-				constants.AppLabel:               tests.SelectorValue,
-				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
-			}
-
-			// Ensure correct presetup
-			pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-			assert.Nil(err)
-			assert.Len(pods.Items, 0)
-
-			newPod1 := tests.NewPodFixture(namespace, fmt.Sprintf("pod-1-%s", proxyUUID), tests.BookstoreServiceAccountName, podlabels)
-
-			if tc.addPrometheusAnnotation {
-				newPod1.Annotations = map[string]string{
-					constants.PrometheusScrapeAnnotation: tc.scrapingAnnotation,
-				}
-			}
-			_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
-			assert.Nil(err)
-
-			// Ensure correct setup
-			pods, err = kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-			assert.Nil(err)
-			assert.Len(pods.Items, 1)
-
-			actual := kubeController.IsMetricsEnabled(&newPod1)
-			assert.Equal(actual, tc.expectedMetricsScraping)
+			actual := IsMetricsEnabled(tc.pod)
+			tassert.Equal(t, actual, tc.expectedMetricsScraping)
 		})
 	}
 }

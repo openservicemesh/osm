@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 // NewResponse creates a new Listener Discovery Response.
@@ -88,7 +89,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
 		log.Warn().Str("proxy", proxy.String()).Msgf("Could not find pod for connecting proxy, no metadata was recorded")
-	} else if meshCatalog.GetKubeController().IsMetricsEnabled(pod) {
+	} else if k8s.IsMetricsEnabled(pod) {
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
