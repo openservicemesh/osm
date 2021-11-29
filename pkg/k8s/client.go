@@ -314,7 +314,7 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 }
 
 // IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
-func (c client) IsMetricsEnabled(pod *corev1.Pod) bool {
+func IsMetricsEnabled(pod *corev1.Pod) bool {
 	isScrapingEnabled := false
 	prometheusScrapeAnnotation, ok := pod.Annotations[constants.PrometheusScrapeAnnotation]
 	if !ok {

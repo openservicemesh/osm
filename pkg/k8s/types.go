@@ -105,9 +105,6 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
 
-	// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
-	IsMetricsEnabled(*corev1.Pod) bool
-
 	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 	// The object within the 'interface{}' must be a pointer to the underlying resource
 	UpdateStatus(interface{}) (metav1.Object, error)
