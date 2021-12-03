@@ -62,6 +62,38 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 		})
 
+		Context("adding namespace to the mesh that is already a part of the mesh", func() {
+
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
+				nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, false)
+				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message that the namespace is already monitored by the mesh", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] has already been added to mesh [%s]\n", testNamespace, testMeshName)))
+			})
+		})
+
 		Context("given one namespace as an arg without sidecar injection enabled", func() {
 
 			BeforeEach(func() {
@@ -188,10 +220,10 @@ var _ = Describe("Running the namespace add command", func() {
 				Expect(ns.Labels[constants.OSMKubeResourceMonitorAnnotation]).To(Equal(testMeshName))
 			})
 
-			It("should not add an inject label to the namespace", func() {
+			It("should correctly add an inject annotation set to disabled to the namespace", func() {
 				ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ns.Annotations[constants.SidecarInjectionAnnotation]).To(Equal(""))
+				Expect(ns.Annotations[constants.SidecarInjectionAnnotation]).To(Equal("disabled"))
 			})
 		})
 
