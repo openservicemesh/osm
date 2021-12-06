@@ -101,7 +101,7 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.9.2.gif "OSM Install Demo")
 
-See the [installation guide](https://docs.openservicemesh.io/docs/guides/install/) for more detailed options.
+See the [installation guide](https://docs.openservicemesh.io/docs/getting_started/install/) for more detailed options.
 
 ## Demonstration
 
