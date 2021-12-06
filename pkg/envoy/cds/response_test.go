@@ -114,7 +114,6 @@ func TestNewResponse(t *testing.T) {
 	assert.Nil(err)
 
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod1})
-	mockKubeController.EXPECT().IsMetricsEnabled(&newPod1).Return(true)
 
 	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)

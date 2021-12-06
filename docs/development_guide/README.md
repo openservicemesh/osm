@@ -166,7 +166,7 @@ and each change would be accompanied by a unit test.
 To run all unit tests you can use the following `Makefile` target:
 
 ```bash
-make go-tests
+make go-test-coverage
 ```
 
 You can run the tests exclusively for the package you are working on. For example the following command will

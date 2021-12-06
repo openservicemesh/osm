@@ -284,6 +284,15 @@ func (wh *mutatingWebhook) isNamespaceInjectable(namespace string) bool {
 //
 // The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
+	// Sidecar injection is not permitted for pods on the host network.
+	// Since iptables rules are created to intercept and redirect traffic via the proxy sidecar,
+	// pods on the host network cannot be injected with the sidecar as the required iptables rules
+	// will result in routing failures on the host's network.
+	if pod.Spec.HostNetwork {
+		log.Debug().Msgf("Pod with UID %s has HostNetwork enabled, cannot inject a sidecar", pod.ObjectMeta.UID)
+		return false, nil
+	}
+
 	if !wh.isNamespaceInjectable(namespace) {
 		log.Warn().Msgf("Mutation request is for pod with UID %s; Injection in Namespace %s is not permitted", pod.ObjectMeta.UID, namespace)
 		return false, nil
@@ -396,8 +405,8 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
-	failuerPolicy := admissionregv1.Fail
-	matchPolict := admissionregv1.Exact
+	failurePolicy := admissionregv1.Fail
+	matchPolicy := admissionregv1.Exact
 
 	mwhcLabels := map[string]string{
 		constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
@@ -430,8 +439,8 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certific
 						Port:      &webhookPort,
 					},
 					CABundle: cert.GetCertificateChain()},
-				FailurePolicy: &failuerPolicy,
-				MatchPolicy:   &matchPolict,
+				FailurePolicy: &failurePolicy,
+				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						constants.OSMKubeResourceMonitorAnnotation: meshName,
