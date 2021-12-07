@@ -110,9 +110,21 @@ func (a *namespaceAddCmd) run() error {
 			continue
 		}
 
+		// if the namespace is already a part of the mesh then don't add it again
+		namespace, err := a.clientSet.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
+		if err != nil {
+			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
+		}
+		meshName := namespace.Labels[constants.OSMKubeResourceMonitorAnnotation]
+		if a.meshName == meshName {
+			_, _ = fmt.Fprintf(a.out, "Namespace [%s] has already been added to mesh [%s]\n", ns, a.meshName)
+			continue
+		}
+
 		var patch string
 		if a.disableSidecarInjection {
-			// Patch the namespace with monitoring label and disable sidecar injection if previously enabled.
+			// Patch the namespace with monitoring label.
+			// Disable sidecar injection.
 			patch = fmt.Sprintf(`
 {
 	"metadata": {
@@ -120,7 +132,7 @@ func (a *namespaceAddCmd) run() error {
 			"%s": "%s"
 		},
 		"annotations": {
-			"%s": null
+			"%s": "disabled"
 		}
 	}
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
