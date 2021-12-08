@@ -127,7 +127,7 @@ func (c *client) GetEnvoyLogLevel() string {
 func (c *client) GetEnvoyImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.EnvoyImage
 	if image == "" {
-		image = os.Getenv("OSM_ENVOY_IMAGE")
+		image = os.Getenv("OSM_DEFAULT_ENVOY_IMAGE")
 	}
 	return image
 }
@@ -136,7 +136,7 @@ func (c *client) GetEnvoyImage() string {
 func (c *client) GetEnvoyWindowsImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
 	if image == "" {
-		image = os.Getenv("OSM_ENVOY_WINDOWS_IMAGE")
+		image = os.Getenv("OSM_DEFAULT_ENVOY_WINDOWS_IMAGE")
 	}
 	return image
 }
@@ -145,7 +145,7 @@ func (c *client) GetEnvoyWindowsImage() string {
 func (c *client) GetInitContainerImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.InitContainerImage
 	if image == "" {
-		image = os.Getenv("OSM_INIT_CONTAINER_IMAGE")
+		image = os.Getenv("OSM_DEFAULT_INIT_CONTAINER_IMAGE")
 	}
 	return image
 }
