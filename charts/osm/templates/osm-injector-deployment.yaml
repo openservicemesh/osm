@@ -94,11 +94,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: OSM_ENVOY_IMAGE
+            - name: OSM_DEFAULT_ENVOY_IMAGE
               value: "{{ .Values.osm.sidecarImage }}"
-            - name: OSM_ENVOY_WINDOWS_IMAGE
+            - name: OSM_DEFAULT_ENVOY_WINDOWS_IMAGE
               value: "{{ .Values.osm.sidecarWindowsImage }}"
-            - name: OSM_INIT_CONTAINER_IMAGE
+            - name: OSM_DEFAULT_INIT_CONTAINER_IMAGE
               value: '{{ include "osmSidecarInit.image" . }}'
     {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
