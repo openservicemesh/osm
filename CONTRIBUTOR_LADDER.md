@@ -63,7 +63,7 @@ A Maintainer must meet the rights, responsiblities, and requirements of a Contri
 * Requirements
     * Experience as a Contributor for at least 6 months
     * Demonstrates a broad knowledge of the project across multiple areas
-    * Is able to exercise judgement for the good of the project, independant of their employer, social circles, or teams
+    * Is able to exercise judgement for the good of the project, independent of their employer, social circles, or teams
     * Mentors other Contributors
 * Additional privileges:
     * Represent the project in public as a Maintainer
