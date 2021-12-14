@@ -80,7 +80,7 @@ Also the project requires Docker. See how to [install Docker](https://docs.docke
 Many of the operations within the OSM repo have GNU Makefile targets.
 More notable:
 
-- `make build` builds the project
+- `make docker-build` builds and pushes all Docker images
 - `make go-test` to run unit tests
 - `make go-test-coverage` - run unit tests and output unit test coverage
 - `make go-lint` runs golangci-lint
@@ -122,11 +122,38 @@ $ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 ## Build and push OSM images
 
-For development and/or testing locally compiled builds, pushing the local image to a container registry is still required. The following build targets will do so automatically against the configured container registry.
+For development and/or testing locally compiled builds, pushing the local image to a container registry is still required. Several Makefile targets are available.
+
+### Examples
+
+Build and push all images:
 
 ```console
-make docker-push-osm-controller
-make docker-push-init
+make docker-build
+```
+
+Build and push all images to a specific registry with a specific tag:
+
+```console
+make docker-build CTR_REGISTRY=myregistry CTR_TAG=mytag
+```
+
+Build all images and load them into the current docker instance, but do not push:
+
+```console
+make docker-build DOCKER_BUILDX_OUTPUT=type=docker
+```
+
+Build and push only the osm-controller image. Similar targets exist for all OSM and demo images:
+
+```console
+make docker-build-osm-controller
+```
+
+Build and push a particular image for multiple architectures:
+
+```console
+make docker-build-osm-bootstrap DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
 ```
 
 ## Code Formatting

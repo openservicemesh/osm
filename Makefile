@@ -11,6 +11,10 @@ VERIFY_TAGS     ?= false
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 GOX    = go run github.com/mitchellh/gox
+SHA256 = sha256sum
+ifeq ($(shell uname),Darwin)
+	SHA256 = shasum -a 256
+endif
 
 VERSION ?= dev
 BUILD_DATE ?=
@@ -18,6 +22,11 @@ GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
+DOCKER_GO_VERSION = 1.16
+DOCKER_BUILDX_PLATFORM ?= linux/amd64
+# Value for the --output flag on docker buildx build.
+# https://docs.docker.com/engine/reference/commandline/buildx_build/#output
+DOCKER_BUILDX_OUTPUT ?= type=registry
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w"
 
@@ -43,48 +52,9 @@ ifndef CTR_TAG
 	$(error CTR_TAG environment variable is not defined; see the .env.example file for more information; then source .env)
 endif
 
-.PHONY: clean-cert
-clean-cert:
-	@rm -rf bin/cert
-
-.PHONY: clean-osm-controller
-clean-osm-controller:
-	@rm -rf bin/osm-controller
-
-.PHONY: clean-osm-injector
-clean-osm-injector:
-	@rm -rf bin/osm-injector
-
-.PHONY: clean-osm-crds
-clean-osm-crds:
-	@rm -rf bin/osm-crds
-
-.PHONY: clean-osm-bootstrap
-clean-osm-bootstrap:
-	@rm -rf bin/osm-bootstrap
-
-.PHONY: build
-build: build-osm-controller build-osm-injector build-osm-crds build-osm-bootstrap
-
-.PHONY: build-osm-controller
-build-osm-controller: clean-osm-controller pkg/envoy/lds/stats.wasm
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags ${LDFLAGS} ./cmd/osm-controller
-
-.PHONY: build-osm-injector
-build-osm-injector: clean-osm-injector
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
-
-.PHONY: build-osm-crds
-build-osm-crds: clean-osm-crds
-	cp -R ./cmd/osm-bootstrap/crds ./bin/osm-crds
-
-.PHONY: build-osm-bootstrap
-build-osm-bootstrap: clean-osm-bootstrap
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-bootstrap/osm-bootstrap -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-bootstrap
-
 .PHONY: build-osm
 build-osm: cmd/cli/chart.tgz
-	CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
+	CGO_ENABLED=0 go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 cmd/cli/chart.tgz: scripts/generate_chart/generate_chart.go $(shell find charts/osm)
 	go run $< > $@
@@ -130,7 +100,7 @@ go-vet:
 	go vet ./...
 
 .PHONY: go-lint
-go-lint: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
+go-lint: embed-files-test
 	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.41.1 golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
@@ -158,7 +128,8 @@ kind-reset:
 	kind delete cluster --name osm
 
 .PHONY: test-e2e
-test-e2e: docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-bootstrap docker-build-init build-osm docker-build-tcp-echo-server
+test-e2e: DOCKER_BUILDX_OUTPUT=type=docker
+test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -169,71 +140,76 @@ kind-demo: export CTR_REGISTRY=localhost:5000
 kind-demo: .env kind-up clean-osm
 	./demo/run-osm-demo.sh
 
-# build-bookbuyer, etc
-DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
-DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
-.PHONY: $(DEMO_BUILD_TARGETS)
-$(DEMO_BUILD_TARGETS): NAME=$(@:build-%=%)
-ifeq ($(OS), windows)
-	EXT=.exe
-endif
-$(DEMO_BUILD_TARGETS):
-	GOOS=$(OS) GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME)/$(NAME)$(EXT) ./demo/cmd/$(NAME)
-	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
-
 .PHONE: build-bookwatcher
 build-bookwatcher:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
 
-.PHONY: demo-build
-demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller build-osm-injector build-osm-crds build-osm-bootstrap
-
+DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_DEMO_TARGETS)
 $(DOCKER_DEMO_TARGETS): NAME=$(@:docker-build-%=%)
 $(DOCKER_DEMO_TARGETS):
-	make OS=linux build-$(NAME)
-	docker build -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.$(NAME) demo/bin/$(NAME)
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.demo --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg BINARY=$(NAME) .
 
+.PHONY: docker-build-demo
+docker-build-demo: $(DOCKER_DEMO_TARGETS)
 
-# docker-build-windows-bookbuyer, etc
-# This command can be used to push the images as well if the ARGS is set to --push
-# see https://docs.docker.com/engine/reference/commandline/buildx_build/#push
-# The reason for that is that on linux we can't load a Windows image so we need to build and push with one command.
-DOCKER_WINDOWS_DEMO_TARGETS = $(addprefix docker-build-windows-, $(DEMO_TARGETS))
-.PHONY: $(DOCKER_WINDOWS_DEMO_TARGETS)
-$(DOCKER_WINDOWS_DEMO_TARGETS): OS = windows
-$(DOCKER_WINDOWS_DEMO_TARGETS): NAME=$(@:docker-build-windows-%=%)
-$(DOCKER_WINDOWS_DEMO_TARGETS):
-	make OS=windows build-$(NAME)
-	@if ! docker buildx ls | grep -q "img-builder "; then  echo "Creating buildx img-builder"; docker buildx create --name img-builder; fi
-	docker buildx build --builder img-builder --platform "windows/amd64" -t $(CTR_REGISTRY)/$(NAME)-windows:$(CTR_TAG) $(ARGS) -f dockerfiles/Dockerfile.$(NAME).windows demo/bin/$(NAME)
-
+.PHONY: docker-build-init
 docker-build-init:
-	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
 
-docker-build-osm-controller: build-osm-controller
-	docker build -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller bin/osm-controller
+.PHONY: docker-build-osm-controller
+docker-build-osm-controller:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-docker-build-osm-injector: build-osm-injector
-	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
+.PHONY: docker-build-osm-injector
+docker-build-osm-injector:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-docker-build-osm-crds: build-osm-crds
-	docker build -t $(CTR_REGISTRY)/osm-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds bin/osm-crds
+.PHONY: docker-build-osm-crds
+docker-build-osm-crds:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds ./cmd/osm-bootstrap/crds
 
-docker-build-osm-bootstrap: build-osm-bootstrap
-	docker build -t $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap bin/osm-bootstrap
+.PHONY: docker-build-osm-bootstrap
+docker-build-osm-bootstrap:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-pkg/envoy/lds/stats.wasm: wasm/stats.cc wasm/Makefile
-	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
-	@mv -f wasm/stats.wasm $@
+OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap
+DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
+
+.PHONY: docker-build-osm
+docker-build-osm: $(DOCKER_OSM_TARGETS)
+
+.PHONY: buildx-context
+buildx-context:
+	@if ! docker buildx ls | grep -q "^osm "; then docker buildx create --name osm --driver-opt network=host; fi
+
+check-image-exists-%: NAME=$(@:check-image-exists-%=%)
+check-image-exists-%:
+	@if [ "$(VERIFY_TAGS)" = "true" ]; then scripts/image-exists.sh $(CTR_REGISTRY)/$(NAME):$(CTR_TAG); fi
+
+$(foreach target,$(OSM_TARGETS) $(DEMO_TARGETS),$(eval docker-build-$(target): check-image-exists-$(target) buildx-context))
+
+docker-digest-%: NAME=$(@:docker-digest-%=%)
+docker-digest-%:
+	@docker buildx imagetools inspect $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) --raw | $(SHA256) | awk '{print "$(NAME): sha256:"$$1}'
+
+.PHONY: docker-digests-osm
+docker-digests-osm: $(addprefix docker-digest-, $(OSM_TARGETS))
 
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector docker-build-osm-crds docker-build-osm-bootstrap
+docker-build: docker-build-osm docker-build-demo
+
+.PHONY: docker-build-cross-osm docker-build-cross-demo docker-build-cross
+docker-build-cross-osm: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross-osm: docker-build-osm
+docker-build-cross-demo: DOCKER_BUILDX_PLATFORM=linux/amd64,windows/amd64
+docker-build-cross-demo: docker-build-demo
+docker-build-cross: docker-build-cross-osm docker-build-cross-demo
 
 .PHONY: embed-files
-embed-files: cmd/cli/chart.tgz pkg/envoy/lds/stats.wasm
+embed-files: cmd/cli/chart.tgz
 
 .PHONY: embed-files-test
 embed-files-test:
@@ -265,43 +241,6 @@ trivy-scan-images:
 	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG)" || exit 1
 	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-crds:$(CTR_TAG)" || exit 1
 
-# OSM control plane components
-DOCKER_PUSH_CONTROL_PLANE_TARGETS = $(addprefix docker-push-, init osm-controller osm-injector osm-crds osm-bootstrap)
-.PHONY: $(DOCKER_PUSH_CONTROL_PLANE_TARGETS)
-$(DOCKER_PUSH_CONTROL_PLANE_TARGETS): NAME=$(@:docker-push-%=%)
-$(DOCKER_PUSH_CONTROL_PLANE_TARGETS):
-	scripts/publish-image.sh "$(NAME)" "linux" "$(CTR_REGISTRY)" "$(CTR_TAG)"
-	@docker images --digests | grep "$(CTR_REGISTRY)/$(NAME)\s*$(CTR_TAG)" >> "$(CTR_DIGEST_FILE)"
-
-
-# Linux demo applications
-DOCKER_PUSH_LINUX_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS))
-.PHONY: $(DOCKER_PUSH_LINUX_TARGETS)
-$(DOCKER_PUSH_LINUX_TARGETS): NAME=$(@:docker-push-%=%)
-$(DOCKER_PUSH_LINUX_TARGETS):
-	scripts/publish-image.sh "$(NAME)" "linux" "$(CTR_REGISTRY)" "$(CTR_TAG)"
-
-
-# Windows demo applications
-DOCKER_PUSH_WINDOWS_TARGETS = $(addprefix docker-push-windows-, $(DEMO_TARGETS))
-.PHONY: $(DOCKER_PUSH_WINDOWS_TARGETS)
-$(DOCKER_PUSH_WINDOWS_TARGETS): NAME=$(@:docker-push-windows-%=%)
-$(DOCKER_PUSH_WINDOWS_TARGETS):
-	scripts/publish-image.sh "$(NAME)" "windows" "$(CTR_REGISTRY)" "$(CTR_TAG)"
-
-
-.PHONY: docker-control-plane-push
-docker-control-plane-push: clean-image-digest $(DOCKER_PUSH_CONTROL_PLANE_TARGETS)
-
-.PHONY: docker-linux-push
-docker-linux-push: docker-control-plane-push $(DOCKER_PUSH_LINUX_TARGETS)
-
-.PHONY: docker-windows-push
-docker-windows-push: docker-control-plane-push $(DOCKER_PUSH_WINDOWS_TARGETS)
-
-.PHONY: docker-push
-docker-push: docker-linux-push docker-windows-push
-
 .PHONY: shellcheck
 shellcheck:
 	shellcheck -x $(shell find . -name '*.sh')
@@ -326,7 +265,7 @@ dist:
 		$(DIST_DIRS) cp ../README.md {} \; && \
 		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
 		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; && \
-		sha256sum osm-* > sha256sums.txt \
+		$(SHA256) osm-* > sha256sums.txt \
 	)
 
 .PHONY: release-artifacts

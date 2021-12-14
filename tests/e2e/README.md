@@ -48,7 +48,7 @@ The following code uses `latest` tag by default. Non-Kind deployments do not pus
 ```
 export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD
 make build-osm
-make docker-push
+make docker-build
 go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 ```
 
@@ -85,7 +85,7 @@ Make sure you have compiled the images and pushed them on your registry first if
 ```
 export CTR_REGISTRY=myacr.dockerhub.io
 export CTR_TAG=mytag               # Optional, 'latest' used by default
-make docker-push-init docker-push-osm-controller.    # Use docker-build-* targets instead when using kind
+make docker-build-osm    # Add DOCKER_BUILDX_OUTPUT=type=docker when using kind
 ```
 
 #### Test specific flags
