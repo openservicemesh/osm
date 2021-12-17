@@ -33,14 +33,19 @@ type Info struct {
 	BuildDate string `json:"build_date,omitempty"`
 }
 
+// GetInfo returns the version info
+func GetInfo() Info {
+	return Info{
+		Version:   Version,
+		BuildDate: BuildDate,
+		GitCommit: GitCommit,
+	}
+}
+
 // GetVersionHandler returns an HTTP handler that returns the version info
 func GetVersionHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		versionInfo := Info{
-			Version:   Version,
-			BuildDate: BuildDate,
-			GitCommit: GitCommit,
-		}
+		versionInfo := GetInfo()
 
 		if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
 			log.Error().Err(err).Msgf("Error marshaling version info struct: %+v", versionInfo)

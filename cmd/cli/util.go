@@ -13,6 +13,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -122,6 +123,16 @@ func getControllerDeployments(clientSet kubernetes.Interface) (*appsv1.Deploymen
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 	return deploymentsClient.List(context.TODO(), listOptions)
+}
+
+// getControllerPods returns a list of osm-controller Pods in a specified namespace
+func getControllerPods(clientSet kubernetes.Interface, namespace string) (*corev1.PodList, error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
+	podClient := clientSet.CoreV1().Pods(namespace)
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	return podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: listOptions.LabelSelector})
 }
 
 // getMeshNames returns a set of mesh names corresponding to meshes within the cluster
