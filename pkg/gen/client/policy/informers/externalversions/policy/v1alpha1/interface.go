@@ -25,6 +25,8 @@ type Interface interface {
 	Egresses() EgressInformer
 	// IngressBackends returns a IngressBackendInformer.
 	IngressBackends() IngressBackendInformer
+	// Retries returns a RetryInformer.
+	Retries() RetryInformer
 }
 
 type version struct {
@@ -46,4 +48,9 @@ func (v *version) Egresses() EgressInformer {
 // IngressBackends returns a IngressBackendInformer.
 func (v *version) IngressBackends() IngressBackendInformer {
 	return &ingressBackendInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Retries returns a RetryInformer.
+func (v *version) Retries() RetryInformer {
+	return &retryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

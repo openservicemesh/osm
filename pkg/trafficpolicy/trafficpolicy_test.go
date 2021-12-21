@@ -6,6 +6,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -133,6 +134,7 @@ func TestAddRoute(t *testing.T) {
 		expectedRoutes        []*RouteWeightedClusters
 		givenRouteMatch       HTTPRouteMatch
 		givenWeightedClusters []service.WeightedCluster
+		givenRetryPolicy      *v1alpha1.RetryPolicySpec
 		expectedErr           bool
 	}{
 		{
@@ -140,10 +142,12 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes:        []*RouteWeightedClusters{},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
+			givenRetryPolicy:      &v1alpha1.RetryPolicySpec{},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
+					RetryPolicy:      &v1alpha1.RetryPolicySpec{},
 				},
 			},
 			expectedErr: false,
@@ -158,6 +162,9 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
+			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+				RetryOn: "5xx",
+			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
@@ -166,6 +173,9 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster2),
+					RetryPolicy: &v1alpha1.RetryPolicySpec{
+						RetryOn: "5xx",
+					},
 				},
 			},
 			expectedErr: false,
@@ -180,6 +190,10 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster, testWeightedCluster2},
+			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+				RetryOn:       "5xx",
+				PerTryTimeout: "5s",
+			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
@@ -188,6 +202,10 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
+					RetryPolicy: &v1alpha1.RetryPolicySpec{
+						RetryOn:       "5xx",
+						PerTryTimeout: "5s",
+					},
 				},
 			},
 			expectedErr: false,
@@ -202,10 +220,20 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
+			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+				RetryOn:       "5xx",
+				NumRetries:    3,
+				PerTryTimeout: "5s",
+			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
+					RetryPolicy: &v1alpha1.RetryPolicySpec{
+						RetryOn:       "5xx",
+						NumRetries:    3,
+						PerTryTimeout: "5s",
+					},
 				},
 			},
 			expectedErr: false,
@@ -220,6 +248,10 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
+			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+				RetryOn:                  "5xx",
+				RetryBackoffBaseInterval: "4s",
+			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
@@ -235,7 +267,7 @@ func TestAddRoute(t *testing.T) {
 			assert := tassert.New(t)
 
 			outboundPolicy := newTestOutboundPolicy(tc.name, tc.existingRoutes)
-			err := outboundPolicy.AddRoute(tc.givenRouteMatch, tc.givenWeightedClusters...)
+			err := outboundPolicy.AddRoute(tc.givenRouteMatch, tc.givenRetryPolicy, tc.givenWeightedClusters...)
 			if tc.expectedErr {
 				assert.NotNil(err)
 			} else {

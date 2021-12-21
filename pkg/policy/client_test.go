@@ -333,3 +333,146 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestListRetryPolicy(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	testCases := []struct {
+		name            string
+		allRetries      []*policyV1alpha1.Retry
+		source          identity.K8sServiceAccount
+		expectedRetries []*policyV1alpha1.Retry
+	}{
+		{
+			name: "matching retry policy not found for source identity test/sa-3",
+			allRetries: []*policyV1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.RetrySpec{
+						Source: policyV1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyV1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyV1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               1,
+							PerTryTimeout:            "2s",
+							RetryBackoffBaseInterval: "3ms",
+						},
+					},
+				},
+			},
+			source:          identity.K8sServiceAccount{Name: "sa-3", Namespace: "test"},
+			expectedRetries: nil,
+		},
+		{
+			name: "matching retry policy found for source identity test/sa-1",
+			allRetries: []*policyV1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.RetrySpec{
+						Source: policyV1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyV1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyV1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               1,
+							PerTryTimeout:            "2s",
+							RetryBackoffBaseInterval: "3ms",
+						},
+					},
+				},
+			},
+			source: identity.K8sServiceAccount{Name: "sa-1", Namespace: "test"},
+			expectedRetries: []*policyV1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.RetrySpec{
+						Source: policyV1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyV1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyV1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               1,
+							PerTryTimeout:            "2s",
+							RetryBackoffBaseInterval: "3ms",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake retry policies
+			for _, retryPolicy := range tc.allRetries {
+				err := c.caches.retry.Add(retryPolicy)
+				a.Nil(err)
+			}
+
+			actual := c.ListRetryPolicies(tc.source)
+			a.ElementsMatch(tc.expectedRetries, actual)
+		})
+	}
+}

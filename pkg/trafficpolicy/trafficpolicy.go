@@ -8,6 +8,7 @@ import (
 	hashstructure "github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -82,7 +83,7 @@ func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServ
 // AddRoute adds a route to an OutboundTrafficPolicy given an HTTP route match and weighted cluster. If a Route with the given HTTP route match
 //	already exists, an error will be returned. If a Route with the given HTTP route match does not exist,
 //	a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
-func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weightedClusters ...service.WeightedCluster) error {
+func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, retryPolicy *v1alpha1.RetryPolicySpec, weightedClusters ...service.WeightedCluster) error {
 	wc := mapset.NewSet()
 	for _, c := range weightedClusters {
 		wc.Add(c)
@@ -91,6 +92,7 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weight
 	for _, existingRoute := range out.Routes {
 		if reflect.DeepEqual(existingRoute.HTTPRouteMatch, httpRouteMatch) {
 			if existingRoute.WeightedClusters.Equal(wc) {
+				existingRoute.RetryPolicy = retryPolicy
 				return nil
 			}
 			return errors.Errorf("Route for HTTP Route Match: %v already exists: %v for outbound traffic policy: %s", existingRoute.HTTPRouteMatch, existingRoute, out.Name)
@@ -100,7 +102,9 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weight
 	out.Routes = append(out.Routes, &RouteWeightedClusters{
 		HTTPRouteMatch:   httpRouteMatch,
 		WeightedClusters: wc,
+		RetryPolicy:      retryPolicy,
 	})
+
 	return nil
 }
 
@@ -175,14 +179,6 @@ func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedCl
 		}
 	}
 	return originalRoutes
-}
-
-// MergeRoutesRetryPolicy adds the retry policy to the Route
-func MergeRoutesRetryPolicy(routes []*RouteWeightedClusters, retryPolicy RetryPolicy) []*RouteWeightedClusters {
-	for _, route := range routes {
-		route.RetryPolicy = retryPolicy
-	}
-	return routes
 }
 
 // slicesUnionIfSubset returns the union of the two slices if either slices is a subset of the other

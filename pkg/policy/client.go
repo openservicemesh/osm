@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// egressSourceKindSvcAccount is the ServiceAccount kind for a source defined in Egress policy
-	egressSourceKindSvcAccount = "ServiceAccount"
+	// kindSvcAccount is the ServiceAccount kind
+	kindSvcAccount = "ServiceAccount"
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
@@ -32,11 +32,13 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 	informerCollection := informerCollection{
 		egress:         informerFactory.Policy().V1alpha1().Egresses().Informer(),
 		ingressBackend: informerFactory.Policy().V1alpha1().IngressBackends().Informer(),
+		retry:          informerFactory.Policy().V1alpha1().Retries().Informer(),
 	}
 
 	cacheCollection := cacheCollection{
 		egress:         informerCollection.egress.GetStore(),
 		ingressBackend: informerCollection.ingressBackend.GetStore(),
+		retry:          informerCollection.retry.GetStore(),
 	}
 
 	client := client{
@@ -65,6 +67,13 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 		Delete: announcements.IngressBackendDeleted,
 	}
 	informerCollection.ingressBackend.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
+
+	RetryEventTypes := k8s.EventTypes{
+		Add:    announcements.RetryPolicyAdded,
+		Update: announcements.RetryPolicyUpdated,
+		Delete: announcements.RetryPolicyDeleted,
+	}
+	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, RetryEventTypes, msgBroker))
 
 	err := client.run(stop)
 	if err != nil {
@@ -120,7 +129,7 @@ func (c client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAc
 		}
 
 		for _, sourceSpec := range egressPolicy.Spec.Sources {
-			if sourceSpec.Kind == egressSourceKindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
+			if sourceSpec.Kind == kindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
 				policies = append(policies, egressPolicy)
 			}
 		}
@@ -149,4 +158,21 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 	}
 
 	return nil
+}
+
+// ListRetryPolicies returns the retry policies for the given source identity based on service accounts.
+func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1alpha1.Retry {
+	var retries []*policyV1alpha1.Retry
+
+	for _, retryInterface := range c.caches.retry.List() {
+		retry := retryInterface.(*policyV1alpha1.Retry)
+		if !c.kubeController.IsMonitoredNamespace(retry.Namespace) {
+			continue
+		}
+		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
+			retries = append(retries, retry)
+		}
+	}
+
+	return retries
 }

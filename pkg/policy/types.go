@@ -20,12 +20,14 @@ var (
 type informerCollection struct {
 	egress         cache.SharedIndexInformer
 	ingressBackend cache.SharedIndexInformer
+	retry          cache.SharedIndexInformer
 }
 
 // cacheCollection is the type used to represent the collection of caches for the policy.openservicemesh.io API group
 type cacheCollection struct {
 	egress         cache.Store
 	ingressBackend cache.Store
+	retry          cache.Store
 }
 
 // client is the type used to represent the Kubernetes client for the policy.openservicemesh.io API group
@@ -42,4 +44,7 @@ type Controller interface {
 
 	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
 	GetIngressBackendPolicy(service.MeshService) *policyV1alpha1.IngressBackend
+
+	// ListRetryPolicies returns the Retry policies for the given source identity
+	ListRetryPolicies(identity.K8sServiceAccount) []*policyV1alpha1.Retry
 }

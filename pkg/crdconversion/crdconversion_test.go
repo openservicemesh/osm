@@ -29,7 +29,7 @@ func (mc mockCertificate) GetIssuingCA() []byte                      { return []
 func (mc mockCertificate) GetExpiration() time.Time                  { return time.Now() }
 func (mc mockCertificate) GetSerialNumber() certificate.SerialNumber { return "serial_number" }
 
-func TestUpdateCrdConversionWebhookConfiguration(t *testing.T) {
+func TestUpdateCrdConfiguration(t *testing.T) {
 	testCases := []struct {
 		name             string
 		enableReconciler bool

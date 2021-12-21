@@ -58,7 +58,7 @@ rules:
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["egresses", "ingressbackends"]
+    resources: ["egresses", "ingressbackends", "retries"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["policy.openservicemesh.io"]
     resources: ["ingressbackends/status"]

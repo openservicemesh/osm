@@ -35,6 +35,7 @@ const (
 	trafficSplitConverterPath          = "/convert/trafficsplit"
 	tcpRoutesConverterPath             = "/convert/tcproutes"
 	ingressBackendsPolicyConverterPath = "/convert/ingressbackendspolicy"
+	retryPolicyConverterPath           = "/convert/retrypolicy"
 )
 
 var crdConversionWebhookConfiguration = map[string]string{
@@ -46,6 +47,7 @@ var crdConversionWebhookConfiguration = map[string]string{
 	"trafficsplits.split.smi-spec.io":                trafficSplitConverterPath,
 	"tcproutes.specs.smi-spec.io":                    tcpRoutesConverterPath,
 	"ingressbackends.policy.openservicemesh.io":      ingressBackendsPolicyConverterPath,
+	"retries.policy.openservicemesh.io":              retryPolicyConverterPath,
 }
 
 var conversionReviewVersions = []string{"v1beta1", "v1"}
@@ -97,6 +99,7 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	webhookMux.HandleFunc(trafficSplitConverterPath, serveTrafficSplitConversion)
 	webhookMux.HandleFunc(tcpRoutesConverterPath, serveTCPRouteConversion)
 	webhookMux.HandleFunc(ingressBackendsPolicyConverterPath, serveIngressBackendsPolicyConversion)
+	webhookMux.HandleFunc(retryPolicyConverterPath, serveRetryPolicyConversion)
 
 	webhookServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),

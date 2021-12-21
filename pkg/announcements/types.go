@@ -157,6 +157,15 @@ const (
 	// IngressBackendUpdated is the type of announcement emitted when we observe an update to ingressbackends.policy.openservicemesh.io
 	IngressBackendUpdated Kind = "ingressbackend-updated"
 
+	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
+	RetryPolicyAdded Kind = "retry-added"
+
+	// RetryPolicyDeleted the type of announcement emitted when we observe a deletion of retries.policy.openservicemesh.io
+	RetryPolicyDeleted Kind = "retry-deleted"
+
+	// RetryPolicyUpdated is the type of announcement emitted when we observe an update to retries.policy.openservicemesh.io
+	RetryPolicyUpdated Kind = "retry-updated"
+
 	// ---
 
 	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io

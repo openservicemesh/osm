@@ -4,9 +4,8 @@ package trafficpolicy
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"github.com/golang/protobuf/ptypes/duration"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -46,16 +45,9 @@ type TCPRouteMatch struct {
 
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
-	HTTPRouteMatch   HTTPRouteMatch `json:"http_route_match:omitempty"`
-	WeightedClusters mapset.Set     `json:"weighted_clusters:omitempty"`
-	RetryPolicy      RetryPolicy
-}
-
-// RetryPolicy is a struct of the RetryPolicy
-type RetryPolicy struct {
-	RetryOn       string                  `json:"retry_on,omitempty"`
-	NumRetries    *wrapperspb.UInt32Value `json:"num_retries,omitempty"`
-	PerTryTimeout *duration.Duration      `json:"per_try_timeout,omitempty"`
+	HTTPRouteMatch   HTTPRouteMatch            `json:"http_route_match:omitempty"`
+	WeightedClusters mapset.Set                `json:"weighted_clusters:omitempty"`
+	RetryPolicy      *v1alpha1.RetryPolicySpec `json:"retry_policy:omitempty"`
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
@@ -123,7 +115,7 @@ type InboundMeshTrafficPolicy struct {
 	ClustersConfigs []*MeshClusterConfig
 }
 
-// MeshClusterConfig is the type used to represent a cluster configuration for that is programmed
+// MeshClusterConfig is the type used to represent a cluster configuration that is programmed
 // for either:
 // 1. A downstream to connect to an upstream cluster, OR
 // 2. An upstream cluster to accept traffic from a downstream
