@@ -52,6 +52,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 -A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port 15001
 -A OSM_PROXY_OUT_REDIRECT -p tcp --dport 15000 -j ACCEPT
 -A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND
+-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner 1500 -j OSM_PROXY_IN_REDIRECT
+-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner 1500 -j RETURN
 -A OSM_PROXY_OUTBOUND -m owner --uid-owner 1500 -j RETURN
 -A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN
 -A OSM_PROXY_OUTBOUND -j OSM_PROXY_OUT_REDIRECT
