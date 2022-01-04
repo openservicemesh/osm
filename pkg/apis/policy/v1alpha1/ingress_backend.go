@@ -68,6 +68,7 @@ const (
 // IngressBackend policy specification.
 type IngressSourceSpec struct {
 	// Kind defines the kind for the source in the IngressBackend policy.
+	// Must be one of: Service, AuthenticatedPrincipal, IPRange
 	Kind string `json:"kind"`
 
 	// Name defines the name of the source for the given Kind.
