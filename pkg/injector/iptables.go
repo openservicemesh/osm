@@ -19,6 +19,15 @@ var iptablesOutboundStaticRules = []string{
 	// For outbound TCP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
 	"-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
 
+	// Outbound traffic from Envoy to the local app over the loopback interface should jump to the inbound proxy redirect chain.
+	// So when an app directs traffic to itself via the k8s service, traffic flows as follows:
+	// app -> local envoy's outbound listener -> iptables -> local envoy's inbound listener -> app
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner %d -j OSM_PROXY_IN_REDIRECT", constants.EnvoyUID),
+
+	// Outbound traffic from the app to itself over the loopback interface is not be redirected via the proxy.
+	// E.g. when app sends traffic to itself via the pod IP.
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner %d -j RETURN", constants.EnvoyUID),
+
 	// Don't redirect Envoy traffic back to itself, return it to the next chain for processing
 	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -m owner --uid-owner %d -j RETURN", constants.EnvoyUID),
 
