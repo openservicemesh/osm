@@ -14,7 +14,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = Describe("Scales a setup with client-servers and traffic splits til failure", func() {
+var _ = Describe("Scales a setup with client-servers and traffic splits till failure", func() {
 	Context("ScaleClientServerTrafficSplit", func() {
 		// Framework data handle and hook to compute results
 		// We wait to initialize it till prom/grafana instances are available in OSM's case.
