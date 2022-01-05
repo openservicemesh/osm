@@ -181,7 +181,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, rule.Route.RetryPolicy)
+			route := buildRoute(rule.Route, method)
 			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
@@ -192,8 +192,12 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
-		emptyHeaders := map[string]string{}
-		routes = append(routes, buildRoute(trafficpolicy.PathMatchRegex, constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.RetryPolicy))
+		// Create temp variable to avoid potentially overwriting the loop variable
+		tempOutbound := *outRoute
+		tempOutbound.HTTPRouteMatch.PathMatchType = trafficpolicy.PathMatchRegex
+		tempOutbound.HTTPRouteMatch.Path = constants.RegexMatchAll
+		tempOutbound.HTTPRouteMatch.Headers = map[string]string{}
+		routes = append(routes, buildRoute(tempOutbound, constants.WildcardHTTPMethod))
 	}
 
 	return routes
@@ -209,52 +213,52 @@ func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*x
 		// Build the route for the given egress routing rule and method
 		// Each HTTP method corresponds to a separate route
 		for _, httpMethod := range allowedHTTPMethods {
-			route := buildRoute(rule.Route.HTTPRouteMatch.PathMatchType, rule.Route.HTTPRouteMatch.Path, httpMethod, nil, rule.Route.WeightedClusters, rule.Route.RetryPolicy)
+			route := buildRoute(rule.Route, httpMethod)
 			routes = append(routes, route)
 		}
 	}
 	return routes
 }
 
-func buildRoute(pathMatchTypeType trafficpolicy.PathMatchType, path string, method string, headersMap map[string]string, weightedClusters mapset.Set, retryPolicy trafficpolicy.RetryPolicy) *xds_route.Route {
+func buildRoute(weightedClusters trafficpolicy.RouteWeightedClusters, method string) *xds_route.Route {
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
-			Headers: getHeadersForRoute(method, headersMap),
+			Headers: getHeadersForRoute(method, weightedClusters.HTTPRouteMatch.Headers),
 		},
 		Action: &xds_route.Route_Route{
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
-					WeightedClusters: buildWeightedCluster(weightedClusters),
+					WeightedClusters: buildWeightedCluster(weightedClusters.WeightedClusters),
 				},
 				// Disable default 15s timeout. This otherwise results in requests that take
 				// longer than 15s to timeout, e.g. large file transfers.
 				Timeout: &duration.Duration{Seconds: 0},
 				RetryPolicy: &xds_route.RetryPolicy{
-					RetryOn:       retryPolicy.RetryOn,
-					NumRetries:    retryPolicy.NumRetries,
-					PerTryTimeout: retryPolicy.PerTryTimeout,
+					RetryOn:       weightedClusters.RetryPolicy.RetryOn,
+					NumRetries:    weightedClusters.RetryPolicy.NumRetries,
+					PerTryTimeout: weightedClusters.RetryPolicy.PerTryTimeout,
 				},
 			},
 		},
 	}
 
-	switch pathMatchTypeType {
+	switch weightedClusters.HTTPRouteMatch.PathMatchType {
 	case trafficpolicy.PathMatchRegex:
 		route.Match.PathSpecifier = &xds_route.RouteMatch_SafeRegex{
 			SafeRegex: &xds_matcher.RegexMatcher{
 				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
-				Regex:      path,
+				Regex:      weightedClusters.HTTPRouteMatch.Path,
 			},
 		}
 
 	case trafficpolicy.PathMatchExact:
 		route.Match.PathSpecifier = &xds_route.RouteMatch_Path{
-			Path: path,
+			Path: weightedClusters.HTTPRouteMatch.Path,
 		}
 
 	case trafficpolicy.PathMatchPrefix:
 		route.Match.PathSpecifier = &xds_route.RouteMatch_Prefix{
-			Prefix: path,
+			Prefix: weightedClusters.HTTPRouteMatch.Path,
 		}
 	}
 

@@ -258,7 +258,192 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid 'source.Name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
+			expErrStr: "Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
+		},
+		{
+			name: "IngressBackend with valid source kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"name": "foo",
+									"namespace": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "IngressBackend with invalid source name for kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"namespace": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.name' not specified for source kind Service",
+		},
+		{
+			name: "IngressBackend with invalid source namespace for kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"name": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.namespace' not specified for source kind Service",
+		},
+		{
+			name: "IngressBackend with invalid source name for kind AuthenticatedPrincipal",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "AuthenticatedPrincipal",
+									"name": ""
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.name' not specified for source kind AuthenticatedPrincipal",
+		},
+		{
+			name: "IngressBackend with invalid source kind",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
 		},
 	}
 
