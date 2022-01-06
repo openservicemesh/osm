@@ -61,7 +61,7 @@ A Maintainer must meet the rights, responsiblities, and requirements of a Contri
     * Participating in, and leading, community meetings
     * Helps run the project infrastructure
 * Requirements
-    * Experience as a Contributor for at least 6 months
+    * Experience as a Contributor for at least 3 months
     * Demonstrates a broad knowledge of the project across multiple areas
     * Is able to exercise judgement for the good of the project, independent of their employer, social circles, or teams
     * Mentors other Contributors
@@ -87,8 +87,8 @@ An approver may nominate a current contributor who has shown significant underst
 It is important for contributors to be and stay active to set an example and show commitment to the project. Inactivity is harmful to the project as it may lead to unexpected delays, contributor attrition, and a lost of trust in the project.
 
 * Inactivity is measured by:
-    * Periods of no contributions for longer than 6 months
-    * Periods of no communication for longer than 6 months
+    * Periods of no contributions for longer than 3 months
+    * Periods of no communication for longer than 3 months
 
 * Consequences of being inactive include:
     * Involuntary removal or demotion
