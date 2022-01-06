@@ -30,39 +30,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with version tag
         env:
           CTR_TAG: ${{ needs.version.outputs.version }}
-        run: make docker-push VERIFY_TAGS=true
+          VERIFY_TAGS: "true"
+        run: make docker-build-cross
       - name: Push images with latest tag
         # Only for non-pre-releases
         if: ${{ !(contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.')) }}
         env:
           CTR_TAG: latest
-        run: make docker-push
-      - name: Upload image digest
-        uses: actions/upload-artifact@v2
-        with:
-          name: osm_image_digests
-          path: /tmp/osm_image_digest_*
+        run: make docker-build-cross
+      - name: Image digests
+        env:
+          CTR_TAG: ${{ needs.version.outputs.version }}
+        run: make docker-digests-osm
 
   imagescan:
     name: Scan images for security vulnerabilities

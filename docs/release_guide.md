@@ -61,15 +61,15 @@ $ git tag "$PRE_RELEASE_VERSION"
 $ git push upstream "$PRE_RELEASE_VERSION"
 ```
 
-Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are uploaded as a part of the Pre-release workflow. Note that multiple image digest files will be present in the uploaded artifact, one per image tag, e.g. v0.4.0 and latest. Use the release version specific image digest file to extract the image digests to be used as the default for the control plane images, i.e. osm_image_digest_v0.4.0.txt instead of osm_image_digest_latest.txt if the release version if v0.4.0.
+Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
 
-The image digest file contains the sha256 image digest for each control plane image as follows:
-```console
-openservicemesh/init   v0.4.0    sha256:a9f3b6b53132266d9090d1fe9e1cbbcf9caa5ca6b8ed247797ce7af6df22bf0e   67349d2e350f   4 seconds ago   7.77MB
-openservicemesh/osm-controller           v0.4.0                                   sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee   e61b990a7926   6 seconds ago   54.1MB
-openservicemesh/osm-injector             v0.4.0                                   sha256:311d87892778d976baf2560622a258ac011a5a3f755d05566ce17458d04fdda1   2ff0e76bccdc   6 seconds ago    52.1MB
-openservicemesh/osm-crds                 v0.4.0                                   sha256:542d6dd31d9ceae8f0d4bc4020d6df19791c7207e8a76047193968bb51799d7e   1c7eb6b2a25c   2 seconds ago    133MB
-openservicemesh/osm-bootstrap            v0.4.0                                   sha256:9aad07e55e7d1e650b9398f1487695ac016a1b74d60a9879ddcf6455f84cd8f0   f40ca40df626   6 seconds ago    51MB
+The image digest logs contain the sha256 image digest for each control plane image as follows:
+```
+init: sha256:96bdf7c283ac679344ab1bc5badc406ff486ad2fecb46b209e11e19d2a0a4d3c
+osm-controller: sha256:069f20906035d9b8c4c59792ee1f2b90586a6134a5e286bf015af8ee83041510
+osm-injector: sha256:d2e96d99a311b120c4afd7bd3248f75d0766c98bd121a979a343e438e9cd2c35
+osm-crds: sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694efd
+osm-bootstrap: sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8
 ```
 
 ## Update release branch with patches and versioning changes

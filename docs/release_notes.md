@@ -9,6 +9,7 @@
 - Control plane memory utilization improvements
 - Support for TCP server-first protocols for in-mesh traffic
 - Updates to Grafana dashboards to reflect accurate metrics
+- OSM control plane images are now multi-architecture, built for linux/amd64 and linux/arm64
 
 ### Breaking changes
 

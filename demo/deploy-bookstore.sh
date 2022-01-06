@@ -99,7 +99,7 @@ spec:
             - containerPort: 14001
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "14001"]
+          args: ["--port", "14001"]
           env:
             - name: IDENTITY
               value: ${SVC}.${KUBE_CONTEXT}
