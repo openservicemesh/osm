@@ -1,5 +1,0 @@
-ARG BUILD_OS=mcr.microsoft.com/windows/nanoserver
-ARG BUILD_TAG=ltsc2022
-
-FROM $BUILD_OS:$BUILD_TAG
-COPY bookwarehouse.exe /
