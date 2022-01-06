@@ -48,7 +48,7 @@ var _ = Describe("Test tools", func() {
 		It("should have decoded the PEM into x509 certificate", func() {
 			x509Cert, err := DecodePEMCertificate([]byte(certificates.SampleCertificatePEM))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(x509Cert.Subject.CommonName).To(Equal("bookbuyer.azure.mesh"))
+			Expect(x509Cert.Subject.CommonName).To(Equal("63d044c9-77c7-42ae-afdc-636a1b6ab4e2.azure.mesh"))
 		})
 	})
 })

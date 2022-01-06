@@ -1,5 +1,5 @@
 name: Nightly Images
-on: 
+on:
   schedule:
     - cron: "0 0 * * *"
 

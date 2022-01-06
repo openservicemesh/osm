@@ -26,7 +26,7 @@ jobs:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
       VERSION: ${{ needs.version.outputs.version }}
-      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
+      BUILD_DATE: "$$(date +%Y-%m-%d-%H:%M)"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
