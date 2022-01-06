@@ -29,7 +29,7 @@ import (
 var (
 	mockCtrl         = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	cn               = certificate.CommonName("bookbuyer.azure.mesh")
+	cn               = certificate.CommonName("63d044c9-77c7-42ae-afdc-636a1b6ab4e2.azure.mesh")
 	crNotReady       = &cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "osm-123",
