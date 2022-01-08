@@ -56,4 +56,10 @@ type envoyBootstrapConfigMeta struct {
 	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
 	// the pod this Envoy is fronting.
 	OriginalHealthProbes healthProbes
+
+	// Sidecar TLS configuration
+	TLSMinProtocolVersion string
+	TLSMaxProtocolVersion string
+	CipherSuites          []string
+	ECDHCurves            []string
 }

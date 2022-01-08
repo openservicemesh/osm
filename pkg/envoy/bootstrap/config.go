@@ -41,6 +41,11 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		return nil, err
 	}
 
+	minVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[config.TLSMinProtocolVersion]
+	maxVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[config.TLSMaxProtocolVersion]
+	tlsMinVersion := xds_transport_sockets.TlsParameters_TlsProtocol(minVersionInt)
+	tlsMaxVersion := xds_transport_sockets.TlsParameters_TlsProtocol(maxVersionInt)
+
 	upstreamTLSContext := &xds_transport_sockets.UpstreamTlsContext{
 		CommonTlsContext: &xds_transport_sockets.CommonTlsContext{
 			AlpnProtocols: []string{
@@ -56,8 +61,10 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 				},
 			},
 			TlsParams: &xds_transport_sockets.TlsParameters{
-				TlsMinimumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_2,
-				TlsMaximumProtocolVersion: xds_transport_sockets.TlsParameters_TLSv1_3,
+				TlsMinimumProtocolVersion: tlsMinVersion,
+				TlsMaximumProtocolVersion: tlsMaxVersion,
+				CipherSuites:              config.CipherSuites,
+				EcdhCurves:                config.ECDHCurves,
 			},
 			TlsCertificates: []*xds_transport_sockets.TlsCertificate{
 				{

@@ -21,14 +21,18 @@ import (
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
-		NodeID:           config.NodeID,
-		AdminPort:        constants.EnvoyAdminPort,
-		XDSClusterName:   constants.OSMControllerName,
-		TrustedCA:        config.RootCert,
-		CertificateChain: config.Cert,
-		PrivateKey:       config.Key,
-		XDSHost:          config.XDSHost,
-		XDSPort:          config.XDSPort,
+		NodeID:                config.NodeID,
+		AdminPort:             constants.EnvoyAdminPort,
+		XDSClusterName:        constants.OSMControllerName,
+		TrustedCA:             config.RootCert,
+		CertificateChain:      config.Cert,
+		PrivateKey:            config.Key,
+		XDSHost:               config.XDSHost,
+		XDSPort:               config.XDSPort,
+		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: config.TLSMaxProtocolVersion,
+		CipherSuites:          config.CipherSuites,
+		ECDHCurves:            config.ECDHCurves,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
@@ -113,6 +117,11 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.
 		OriginalHealthProbes: originalHealthProbes,
+
+		TLSMinProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
+		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
 	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {
