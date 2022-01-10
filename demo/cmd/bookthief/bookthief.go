@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"html"
@@ -21,18 +22,16 @@ const (
 )
 
 var (
-	books common.BookThiefThievery
-	log   = logger.NewPretty(participantName)
-	port  = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
-	path  = flag.String("path", ".", "path to the HTML template")
+	//go:embed bookthief.html.template
+	htmlTpl string
+	tmpl    *template.Template
+	books   common.BookThiefThievery
+	log     = logger.NewPretty(participantName)
+	port    = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
 )
 
 func renderTemplate(w http.ResponseWriter) {
-	tmpl, err := template.ParseFiles(fmt.Sprintf("%s/bookthief.html.template", *path))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
-	}
-	err = tmpl.Execute(w, map[string]string{
+	err := tmpl.Execute(w, map[string]string{
 		"Identity":      getIdentity(),
 		"BooksStolenV1": fmt.Sprintf("%d", books.BooksStolenV1),
 		"BooksStolenV2": fmt.Sprintf("%d", books.BooksStolenV2),
@@ -75,13 +74,19 @@ func reset(w http.ResponseWriter, _ *http.Request) {
 func debugServer() {
 	flag.Parse()
 
+	var err error
+	tmpl, err = template.New("").Parse(htmlTpl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
+	}
+
 	router := mux.NewRouter()
 	for _, h := range getHandlers() {
 		router.HandleFunc(h.path, h.fn).Methods(h.method)
 	}
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	log.Info().Msgf("Bookthief running on port %d", *port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)
 }
 

@@ -1,5 +1,5 @@
 name: OSM NoInstall Nightly Job
-on: 
+on:
   workflow_run:
     workflows: ["Nightly Images"]
     types: [completed]
@@ -38,7 +38,7 @@ jobs:
             extraPortMappings:
             - containerPort: 80
               hostPort: 80
-              protocol: TCP          
+              protocol: TCP
           - role: worker
           EOF
 
@@ -50,10 +50,10 @@ jobs:
         run: |
           kubectl version
           kubectl get nodes
-      - name: Setup Go 1.16
-        uses: actions/setup-go@v1
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
       - name: Install OSM via OSM CLI
         run: |
           make build-osm

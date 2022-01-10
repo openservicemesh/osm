@@ -52,7 +52,7 @@ spec:
             - containerPort: 14001
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "14001"]
+          args: ["--port", "14001"]
           env:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse

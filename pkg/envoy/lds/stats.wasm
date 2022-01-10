@@ -1,0 +1,3 @@
+This is only a placeholder because //go:embed requires this file to exist. The
+actual WASM is only required at runtime and overwrites this file in container
+images.

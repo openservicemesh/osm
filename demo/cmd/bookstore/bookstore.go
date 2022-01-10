@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -20,11 +21,13 @@ import (
 )
 
 var (
+	//go:embed bookstore.html.template
+	htmlTpl  string
+	tmpl     *template.Template
 	books    common.BookStorePurchases
 	log      = logger.NewPretty("bookstore")
 	identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
 	port     = flag.Int("port", 14001, "port on which this app is listening for incoming HTTP")
-	path     = flag.String("path", ".", "path to the HTML template")
 )
 
 type handler struct {
@@ -57,11 +60,7 @@ func setHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderTemplate(w http.ResponseWriter) {
-	tmpl, err := template.ParseFiles(fmt.Sprintf("%s/bookstore.html.template", *path))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
-	}
-	err = tmpl.Execute(w, map[string]string{
+	err := tmpl.Execute(w, map[string]string{
 		"Identity":  getIdentity(),
 		"BooksSold": fmt.Sprintf("%d", books.BooksSold),
 		"Time":      time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"),
@@ -150,6 +149,12 @@ func ok(w http.ResponseWriter, _ *http.Request) {
 func main() {
 	flag.Parse()
 
+	var err error
+	tmpl, err = template.New("").Parse(htmlTpl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
+	}
+
 	router := mux.NewRouter()
 
 	for _, h := range getHandlers() {
@@ -158,6 +163,6 @@ func main() {
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
 	log.Info().Msgf("Bookstore running on port %d", *port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)
 }

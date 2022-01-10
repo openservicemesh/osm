@@ -3,6 +3,7 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -124,17 +125,29 @@ func (c *client) GetEnvoyLogLevel() string {
 
 // GetEnvoyImage returns the envoy image
 func (c *client) GetEnvoyImage() string {
-	return c.getMeshConfig().Spec.Sidecar.EnvoyImage
+	image := c.getMeshConfig().Spec.Sidecar.EnvoyImage
+	if image == "" {
+		image = os.Getenv("OSM_DEFAULT_ENVOY_IMAGE")
+	}
+	return image
 }
 
 // GetEnvoyWindowsImage returns the envoy windows image
 func (c *client) GetEnvoyWindowsImage() string {
-	return c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
+	image := c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
+	if image == "" {
+		image = os.Getenv("OSM_DEFAULT_ENVOY_WINDOWS_IMAGE")
+	}
+	return image
 }
 
 // GetInitContainerImage returns the init container image
 func (c *client) GetInitContainerImage() string {
-	return c.getMeshConfig().Spec.Sidecar.InitContainerImage
+	image := c.getMeshConfig().Spec.Sidecar.InitContainerImage
+	if image == "" {
+		image = os.Getenv("OSM_DEFAULT_INIT_CONTAINER_IMAGE")
+	}
+	return image
 }
 
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration

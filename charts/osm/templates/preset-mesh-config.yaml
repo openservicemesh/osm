@@ -10,9 +10,6 @@ data:
         "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
         "logLevel": {{.Values.osm.envoyLogLevel | mustToJson}},
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
-        "envoyImage": {{.Values.osm.sidecarImage | mustToJson}},
-        "envoyWindowsImage": {{.Values.osm.sidecarWindowsImage | mustToJson}},
-        "initContainerImage": "{{ include "osmSidecarInit.image" . }}",
         "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}}
       },
       "traffic": {

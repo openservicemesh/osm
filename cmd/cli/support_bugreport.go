@@ -14,6 +14,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/bugreport"
 	"github.com/openservicemesh/osm/pkg/constants"
+
+	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -66,11 +68,13 @@ type bugReportCmd struct {
 	stdout         io.Writer
 	stderr         io.Writer
 	kubeClient     kubernetes.Interface
+	policyClient   policyClientset.Interface
 	all            bool
 	appNamespaces  []string
 	appDeployments []string
 	appPods        []string
 	outFile        string
+	collectIngress bool
 }
 
 func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stderr io.Writer) *cobra.Command {
@@ -93,6 +97,10 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 			if err != nil {
 				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
+			bugReportCmd.policyClient, err = policyClientset.NewForConfig(config)
+			if err != nil {
+				return errors.Errorf("Could not access OSM, check configuration: %s", err)
+			}
 			return bugReportCmd.run()
 		},
 		Example: bugReportExample,
@@ -103,6 +111,7 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 	f.StringSliceVar(&bugReportCmd.appNamespaces, "app-namespaces", nil, "Application namespaces")
 	f.StringSliceVar(&bugReportCmd.appDeployments, "app-deployments", nil, "Application deployments: <namespace>/<deployment>")
 	f.StringSliceVar(&bugReportCmd.appPods, "app-pods", nil, "Application pods: <namespace>/<pod>")
+	f.BoolVar(&bugReportCmd.collectIngress, "ingress", false, "Collect ingress")
 	f.StringVarP(&bugReportCmd.outFile, "out-file", "o", "", "Output file with archive format extension")
 
 	return cmd
@@ -112,6 +121,7 @@ func (cmd *bugReportCmd) run() error {
 	var appPods, appDeployments []types.NamespacedName
 
 	if cmd.all {
+		cmd.collectIngress = true
 		ctx := context.Background()
 		cmd.appNamespaces = nil
 		namespaces, err := cmd.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
@@ -159,11 +169,13 @@ func (cmd *bugReportCmd) run() error {
 		Stdout:               cmd.stdout,
 		Stderr:               cmd.stderr,
 		KubeClient:           cmd.kubeClient,
+		PolicyClient:         cmd.policyClient,
 		ControlPlaneNamepace: settings.Namespace(),
 		AppNamespaces:        cmd.appNamespaces,
 		AppDeployments:       appDeployments,
 		AppPods:              appPods,
 		OutFile:              cmd.outFile,
+		CollectIngress:       cmd.collectIngress,
 	}
 
 	return bugReportCfg.Run()

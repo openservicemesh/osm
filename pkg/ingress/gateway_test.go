@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	maxTimeToSubscribe           = 500 * time.Millisecond
 	maxTimeForEventToBePublished = 2 * time.Second
 	maxSecretPollTime            = 2 * time.Second
 	secretPollInterval           = 25 * time.Millisecond
@@ -335,7 +336,7 @@ func TestHandleCertificateChange(t *testing.T) {
 
 			go c.handleCertificateChange(tc.previousCertSpec, tc.stopChan)
 			defer close(tc.stopChan)
-			time.Sleep(maxTimeForEventToBePublished)
+			time.Sleep(maxTimeToSubscribe)
 
 			// If a secret is supposed to exist, create it
 			if tc.previousCertSpec != nil {
@@ -349,6 +350,7 @@ func TestHandleCertificateChange(t *testing.T) {
 					NewObj: tc.updatedMeshConfig,
 					OldObj: tc.previousMeshConfig,
 				}, announcements.MeshConfigUpdated.String())
+				time.Sleep(maxTimeForEventToBePublished)
 			}
 
 			if !tc.expectSecretToExist {

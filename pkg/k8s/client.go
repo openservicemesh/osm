@@ -314,7 +314,7 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 }
 
 // IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
-func (c client) IsMetricsEnabled(pod *corev1.Pod) bool {
+func IsMetricsEnabled(pod *corev1.Pod) bool {
 	isScrapingEnabled := false
 	prometheusScrapeAnnotation, ok := pod.Annotations[constants.PrometheusScrapeAnnotation]
 	if !ok {
@@ -338,7 +338,9 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	}
 }
 
-func (c client) K8sServiceToMeshServices(svc corev1.Service) []service.MeshService {
+// ServiceToMeshServices translates a k8s service with one or more ports to one or more
+// MeshService objects per port.
+func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {

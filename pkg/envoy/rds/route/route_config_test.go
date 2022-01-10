@@ -428,28 +428,25 @@ func TestBuildRoute(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
-		name             string
-		weightedClusters mapset.Set
-		totalWeight      int
-		path             string
-		pathMatchType    trafficpolicy.PathMatchType
-		method           string
-		headersMap       map[string]string
-		retryPolicy      trafficpolicy.RetryPolicy
-		expectedRoute    *xds_route.Route
+		name          string
+		route         trafficpolicy.RouteWeightedClusters
+		method        string
+		expectedRoute *xds_route.Route
 	}{
 		{
-			name:          "outbound route for regex path match",
-			path:          "/somepath",
-			pathMatchType: trafficpolicy.PathMatchRegex,
-			method:        "GET",
-			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
-			totalWeight:   100,
-			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 30},
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70},
-			}),
-			retryPolicy: trafficpolicy.RetryPolicy{},
+			name: "outbound route for regex path match",
+			route: trafficpolicy.RouteWeightedClusters{
+				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+					PathMatchType: trafficpolicy.PathMatchRegex,
+					Path:          "/somepath",
+					Headers:       map[string]string{"header1": "header1-val", "header2": "header2-val"},
+				},
+				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 30},
+					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70}}),
+				RetryPolicy: trafficpolicy.RetryPolicy{},
+			},
+			method: "GET",
 			expectedRoute: &xds_route.Route{
 				Match: &xds_route.RouteMatch{
 					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -512,16 +509,18 @@ func TestBuildRoute(t *testing.T) {
 			},
 		},
 		{
-			name:          "inbound route for regex path match",
-			path:          "/somepath",
-			pathMatchType: trafficpolicy.PathMatchRegex,
-			method:        "GET",
-			headersMap:    map[string]string{"header1": "header1-val", "header2": "header2-val"},
-			totalWeight:   100,
-			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
-			}),
-			retryPolicy: trafficpolicy.RetryPolicy{},
+			name: "inbound route for regex path match",
+			route: trafficpolicy.RouteWeightedClusters{
+				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+					PathMatchType: trafficpolicy.PathMatchRegex,
+					Path:          "/somepath",
+					Headers:       map[string]string{"header1": "header1-val", "header2": "header2-val"},
+				},
+				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
+				RetryPolicy: trafficpolicy.RetryPolicy{},
+			},
+			method: "GET",
 			expectedRoute: &xds_route.Route{
 				Match: &xds_route.RouteMatch{
 					PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -580,19 +579,18 @@ func TestBuildRoute(t *testing.T) {
 			},
 		},
 		{
-			name:          "inbound route for exact path match",
-			path:          "/somepath",
-			pathMatchType: trafficpolicy.PathMatchExact,
-			method:        "GET",
-			headersMap:    nil,
-			totalWeight:   100,
-			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
-			}),
-			retryPolicy: trafficpolicy.RetryPolicy{
-				RetryOn: "apple",
+			name: "inbound route for exact path match",
+			route: trafficpolicy.RouteWeightedClusters{
+				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+					PathMatchType: trafficpolicy.PathMatchExact,
+					Path:          "/somepath",
+					Headers:       nil,
+				},
+				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
+				RetryPolicy: trafficpolicy.RetryPolicy{RetryOn: "apple"},
 			},
-
+			method: "GET",
 			expectedRoute: &xds_route.Route{
 				Match: &xds_route.RouteMatch{
 					PathSpecifier: &xds_route.RouteMatch_Path{
@@ -632,20 +630,21 @@ func TestBuildRoute(t *testing.T) {
 			},
 		},
 		{
-			name:          "inbound route for prefix path match",
-			path:          "/somepath",
-			pathMatchType: trafficpolicy.PathMatchPrefix,
-			method:        "GET",
-			headersMap:    nil,
-			totalWeight:   100,
-			weightedClusters: mapset.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100},
-			}),
-			retryPolicy: trafficpolicy.RetryPolicy{
-				RetryOn:       "banana",
-				PerTryTimeout: &duration.Duration{Seconds: 2},
-				NumRetries:    &wrapperspb.UInt32Value{Value: 45},
+			name: "inbound route for prefix path match",
+			route: trafficpolicy.RouteWeightedClusters{
+				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+					PathMatchType: trafficpolicy.PathMatchPrefix,
+					Path:          "/somepath",
+					Headers:       nil,
+				},
+				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
+				RetryPolicy: trafficpolicy.RetryPolicy{
+					RetryOn:       "banana",
+					PerTryTimeout: &duration.Duration{Seconds: 2},
+					NumRetries:    &wrapperspb.UInt32Value{Value: 45}},
 			},
+			method: "GET",
 			expectedRoute: &xds_route.Route{
 				Match: &xds_route.RouteMatch{
 					PathSpecifier: &xds_route.RouteMatch_Prefix{
@@ -690,7 +689,7 @@ func TestBuildRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := buildRoute(tc.pathMatchType, tc.path, tc.method, tc.headersMap, tc.weightedClusters, tc.retryPolicy)
+			actual := buildRoute(tc.route, tc.method)
 			// Assert route.Match
 			assert.Equal(tc.expectedRoute.Match.PathSpecifier, actual.Match.PathSpecifier)
 			assert.ElementsMatch(tc.expectedRoute.Match.Headers, actual.Match.Headers)

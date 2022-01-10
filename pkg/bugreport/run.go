@@ -54,6 +54,30 @@ func (c *Config) Run() error {
 	c.completionSuccess("Finished generating report for individual app pods")
 	c.endSection()
 
+	// Generate report for control plane pods
+	fmt.Fprintf(c.Stdout, "[+] Collecting information from control plane pods\n")
+	if err := c.collectControlPlaneLogs(); err != nil {
+		c.completionFailure("Error getting control plane logs")
+		return errors.Wrap(err, "Error getting control plane pods")
+	}
+	c.completionSuccess("Finished generating report for control plane pods")
+	c.endSection()
+
+	// Generate report for ingress
+	if c.CollectIngress {
+		fmt.Fprintf(c.Stdout, "[+] Collecting ingress information\n")
+		if err := c.collectIngressReport(); err != nil {
+			c.completionFailure("Error getting ingress")
+			return errors.Wrap(err, "Error getting ingress")
+		}
+		if err := c.collectIngressControllerReport(); err != nil {
+			c.completionFailure("Error getting ingress controller")
+			return errors.Wrap(err, "Error getting ingress controller")
+		}
+		c.completionSuccess("Finished generating report for ingress")
+		c.endSection()
+	}
+
 	// Generate output file if not provided
 	if c.OutFile == "" {
 		outFd, err := ioutil.TempFile("", "*_osm-bug-report.tar.gz")

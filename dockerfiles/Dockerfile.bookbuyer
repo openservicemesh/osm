@@ -1,2 +1,0 @@
-FROM gcr.io/distroless/base
-COPY bookbuyer bookbuyer.html.template /
