@@ -1,6 +1,6 @@
 # Open Service Mesh Helm Chart
 
-![Version: 1.0.0-rc.2](https://img.shields.io/badge/Version-1.0.0--rc.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.0-rc.2](https://img.shields.io/badge/AppVersion-v1.0.0--rc.2-informational?style=flat-square)
+![Version: 1.0.0-rc.3](https://img.shields.io/badge/Version-1.0.0--rc.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.0-rc.3](https://img.shields.io/badge/AppVersion-v1.0.0--rc.3-informational?style=flat-square)
 
 A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
 
@@ -106,12 +106,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
-| osm.image.digest | object | `{"osmBootstrap":"sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8","osmCRDs":"sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694efd","osmController":"sha256:069f20906035d9b8c4c59792ee1f2b90586a6134a5e286bf015af8ee83041510","osmInjector":"sha256:d2e96d99a311b120c4afd7bd3248f75d0766c98bd121a979a343e438e9cd2c35","osmSidecarInit":"sha256:96bdf7c283ac679344ab1bc5badc406ff486ad2fecb46b209e11e19d2a0a4d3c"}` | Image digest (defaults to latest compatible tag) |
-| osm.image.digest.osmBootstrap | string | `"sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8"` | osm-boostrap's image digest |
-| osm.image.digest.osmCRDs | string | `"sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694efd"` | osm-crds' image digest |
-| osm.image.digest.osmController | string | `"sha256:069f20906035d9b8c4c59792ee1f2b90586a6134a5e286bf015af8ee83041510"` | osm-controller's image digest |
-| osm.image.digest.osmInjector | string | `"sha256:d2e96d99a311b120c4afd7bd3248f75d0766c98bd121a979a343e438e9cd2c35"` | osm-injector's image digest |
-| osm.image.digest.osmSidecarInit | string | `"sha256:96bdf7c283ac679344ab1bc5badc406ff486ad2fecb46b209e11e19d2a0a4d3c"` | Sidecar init container's image digest |
+| osm.image.digest | object | `{"osmBootstrap":"sha256:c4ba7979b2eb8a5b4956fff2696d07cf36207ccbb619c1928006fe921234afef","osmCRDs":"sha256:150d6742c63931387c8f85a06857dc47a880e7a9a3272ee2db40ba7db5488355","osmController":"sha256:2920de0c9c1bb7edaf4c7b133193068b052f0a9335d635577cc3f2ebf823df1a","osmInjector":"sha256:ef8bff3b8b0596c37ee04c32dc1987e8270b483b67ed1bbf1cfc5f8e15bb8085","osmSidecarInit":"sha256:8727628bf266f27b717bf73c93ac6dc12a49ebffcd64376093362d009e8aed0a"}` | Image digest (defaults to latest compatible tag) |
+| osm.image.digest.osmBootstrap | string | `"sha256:c4ba7979b2eb8a5b4956fff2696d07cf36207ccbb619c1928006fe921234afef"` | osm-boostrap's image digest |
+| osm.image.digest.osmCRDs | string | `"sha256:150d6742c63931387c8f85a06857dc47a880e7a9a3272ee2db40ba7db5488355"` | osm-crds' image digest |
+| osm.image.digest.osmController | string | `"sha256:2920de0c9c1bb7edaf4c7b133193068b052f0a9335d635577cc3f2ebf823df1a"` | osm-controller's image digest |
+| osm.image.digest.osmInjector | string | `"sha256:ef8bff3b8b0596c37ee04c32dc1987e8270b483b67ed1bbf1cfc5f8e15bb8085"` | osm-injector's image digest |
+| osm.image.digest.osmSidecarInit | string | `"sha256:8727628bf266f27b717bf73c93ac6dc12a49ebffcd64376093362d009e8aed0a"` | Sidecar init container's image digest |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
 | osm.image.tag | string | `""` | Container image tag for control plane images |
