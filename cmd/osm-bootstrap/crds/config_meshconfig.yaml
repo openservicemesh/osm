@@ -194,6 +194,7 @@ spec:
                           type: array
                           items:
                             type: string
+                          minItems: 1
                         validityDuration:
                           description: Certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix
                           type: string
