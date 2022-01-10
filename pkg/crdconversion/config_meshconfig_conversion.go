@@ -14,12 +14,40 @@ func serveMeshConfigConversion(w http.ResponseWriter, r *http.Request) {
 
 // convertMeshConfig contains the business logic to convert meshconfigs.config.openservicemesh.io CRD
 // Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
-func convertMeshConfig(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
-	convertedObject := Object.DeepCopy()
-	fromVersion := Object.GetAPIVersion()
+func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
+	convertedObject := obj.DeepCopy()
+	fromVersion := obj.GetAPIVersion()
 
 	if toVersion == fromVersion {
 		return nil, statusErrorWithMessage("MeshConfig: conversion from a version to itself should not call the webhook: %s", toVersion)
+	}
+
+	log.Debug().Msgf("MeshConfig conversion request: from-version=%s, to-version=%s", fromVersion, toVersion)
+	switch fromVersion {
+	case "config.openservicemesh.io/v1alpha1":
+		switch toVersion {
+		case "config.openservicemesh.io/v1alpha2":
+			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha2")
+			// v1alpha2 is backward compatible with v1alpha1, so no conversion is
+			// necessary at this moment.
+
+		default:
+			return nil, statusErrorWithMessage("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+		}
+
+	case "config.openservicemesh.io/v1alpha2":
+		switch toVersion {
+		case "config.openservicemesh.io/v1alpha1":
+			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha1")
+			// v1alpha2 is backward compatible with v1alpha1, so no conversion is
+			// necessary at this moment.
+
+		default:
+			return nil, statusErrorWithMessage("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+		}
+
+	default:
+		return nil, statusErrorWithMessage("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}
 
 	log.Debug().Msg("MeshConfig: successfully converted object")

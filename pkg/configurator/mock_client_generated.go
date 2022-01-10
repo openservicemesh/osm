@@ -9,7 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	auth "github.com/openservicemesh/osm/pkg/auth"
 	v1 "k8s.io/api/core/v1"
 )
@@ -108,10 +108,10 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyWindowsImage() *gomock.Call {
 }
 
 // GetFeatureFlags mocks base method.
-func (m *MockConfigurator) GetFeatureFlags() v1alpha1.FeatureFlags {
+func (m *MockConfigurator) GetFeatureFlags() v1alpha2.FeatureFlags {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFeatureFlags")
-	ret0, _ := ret[0].(v1alpha1.FeatureFlags)
+	ret0, _ := ret[0].(v1alpha2.FeatureFlags)
 	return ret0
 }
 
@@ -178,10 +178,10 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 }
 
 // GetMeshConfig mocks base method.
-func (m *MockConfigurator) GetMeshConfig() *v1alpha1.MeshConfig {
+func (m *MockConfigurator) GetMeshConfig() *v1alpha2.MeshConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMeshConfig")
-	ret0, _ := ret[0].(*v1alpha1.MeshConfig)
+	ret0, _ := ret[0].(*v1alpha2.MeshConfig)
 	return ret0
 }
 

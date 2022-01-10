@@ -26,7 +26,7 @@ func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller,
 	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
 
 	client := client{
-		informer:       informerFactory.Config().V1alpha1().MultiClusterServices(),
+		informer:       informerFactory.Config().V1alpha2().MultiClusterServices(),
 		kubeController: kubeController,
 	}
 

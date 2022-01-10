@@ -30,9 +30,76 @@ spec:
     plural: multiclusterservices
     singular: multiclusterservice
   versions:
-    - name: v1alpha1
+    - name: v1alpha2
       served: true
       storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - serviceAccount
+                - clusters
+              properties:
+                serviceAccount:
+                  type: string
+                ports:
+                  description: The list of ports that are exposed by this service.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - port
+                      - protocol
+                    properties:
+                      port:
+                        description: The port that will be exposed by this service.
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                      protocol:
+                        description: The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
+                        type: string
+                        default: "TCP"
+                        enum:
+                          - TCP
+                          - UDP
+                          - SCTP
+                clusters:
+                  description: The clusters the service accounts are hosted on.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - address
+                      - name
+                    properties:
+                      address:
+                        description: a routable IP + port
+                        type: string
+                        pattern: ^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):[0-9]+$
+                      name:
+                        description: Name of the remote cluster
+                        type: string
+                      weight:
+                        description: Load balancing weight of the remote cluster
+                        type: integer
+                        minimum: 0
+                        default: 0
+                      priority:
+                        description: Priority of the remote cluster in locality based load balancing
+                        type: integer
+                        minimum: 0
+                      certificate:
+                        description: mTLS certificates (optional)
+                        type: string
+    - name: v1alpha1
+      served: true
+      storage: false
+      deprecated: true
+      deprecationWarning: "config.openservicemesh.io/v1alpha1 MultiClusterService is deprecated; use config.openservicemesh.io/v1alpha2 MultiClusterService"
       schema:
         openAPIV3Schema:
           type: object

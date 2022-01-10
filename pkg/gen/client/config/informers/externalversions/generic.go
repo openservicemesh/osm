@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -54,6 +55,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha1().MeshConfigs().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("multiclusterservices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha1().MultiClusterServices().Informer()}, nil
+
+		// Group=config.openservicemesh.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("meshconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha2().MeshConfigs().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("multiclusterservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha2().MultiClusterServices().Informer()}, nil
 
 	}
 

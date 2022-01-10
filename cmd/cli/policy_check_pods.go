@@ -14,8 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/openservicemesh/osm/pkg/cli"
 	osmConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const trafficPolicyCheckDescription = `
@@ -178,7 +179,7 @@ func (cmd *trafficPolicyCheckCmd) getMeshedPod(namespace, podName string) (*core
 func (cmd *trafficPolicyCheckCmd) isPermissiveModeEnabled() (bool, error) {
 	osmNamespace := settings.Namespace()
 
-	meshConfig, err := cmd.meshConfigClient.ConfigV1alpha1().MeshConfigs(osmNamespace).Get(context.TODO(), defaultOsmMeshConfigName, metav1.GetOptions{})
+	meshConfig, err := cmd.meshConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace).Get(context.TODO(), defaultOsmMeshConfigName, metav1.GetOptions{})
 
 	if err != nil {
 		return false, errors.Errorf("Error fetching MeshConfig %s: %s", defaultOsmMeshConfigName, err)

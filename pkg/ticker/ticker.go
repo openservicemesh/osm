@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -68,8 +68,8 @@ func (r *ResyncTicker) watchConfig(quit <-chan struct{}) {
 				continue
 			}
 
-			oldMeshSpec, oldOk := event.OldObj.(*configv1alpha1.MeshConfig)
-			newMeshSpec, newOk := event.NewObj.(*configv1alpha1.MeshConfig)
+			oldMeshSpec, oldOk := event.OldObj.(*configv1alpha2.MeshConfig)
+			newMeshSpec, newOk := event.NewObj.(*configv1alpha2.MeshConfig)
 			if !oldOk || !newOk {
 				log.Error().Msgf("Received unexpected message old=%T new=%T on channel, expected *MeshConfig", oldMeshSpec, newMeshSpec)
 				continue

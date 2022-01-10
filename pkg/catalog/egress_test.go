@@ -13,8 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -33,7 +34,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 	testCases := []struct {
 		name                 string
-		egressPolicies       []*policyV1alpha1.Egress
+		egressPolicies       []*policyv1alpha1.Egress
 		egressPort           int
 		httpRouteGroups      []*specs.HTTPRouteGroup
 		expectedEgressPolicy *trafficpolicy.EgressTrafficPolicy
@@ -41,13 +42,13 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 	}{
 		{
 			name: "multiple egress policies for HTTP ports",
-			egressPolicies: []*policyV1alpha1.Egress{
+			egressPolicies: []*policyv1alpha1.Egress{
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"foo.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   80,
 								Protocol: "http",
@@ -56,11 +57,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 					},
 				},
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"bar.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   80,
 								Protocol: "http",
@@ -69,11 +70,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 					},
 				},
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"baz.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   90,
 								Protocol: "http",
@@ -177,13 +178,13 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 		},
 		{
 			name: "multiple egress policies for HTTP and TCP ports",
-			egressPolicies: []*policyV1alpha1.Egress{
+			egressPolicies: []*policyv1alpha1.Egress{
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"foo.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   80,
 								Protocol: "http",
@@ -196,11 +197,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 					},
 				},
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"bar.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   80,
 								Protocol: "http",
@@ -283,13 +284,13 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 		},
 		{
 			name: "multiple egress policies for HTTPS and TCP ports",
-			egressPolicies: []*policyV1alpha1.Egress{
+			egressPolicies: []*policyv1alpha1.Egress{
 				{
-					Spec: policyV1alpha1.EgressSpec{
+					Spec: policyv1alpha1.EgressSpec{
 						Hosts: []string{
 							"foo.com",
 						},
-						Ports: []policyV1alpha1.PortSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   100,
 								Protocol: "https",
@@ -298,8 +299,8 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 					},
 				},
 				{
-					Spec: policyV1alpha1.EgressSpec{
-						Ports: []policyV1alpha1.PortSpec{
+					Spec: policyv1alpha1.EgressSpec{
+						Ports: []policyv1alpha1.PortSpec{
 							{
 								Number:   100,
 								Protocol: "tcp",
@@ -354,7 +355,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				policyController: mockPolicyController,
 			}
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableEgressPolicy: true}).Times(1)
+			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableEgressPolicy: true}).Times(1)
 
 			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)
@@ -372,7 +373,7 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 
 	testCases := []struct {
 		name                   string
-		egressPolicy           *policyV1alpha1.Egress
+		egressPolicy           *policyv1alpha1.Egress
 		egressPort             int
 		httpRouteGroups        []*specs.HTTPRouteGroup
 		expectedRouteConfigs   []*trafficpolicy.EgressHTTPRouteConfig
@@ -380,13 +381,13 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 	}{
 		{
 			name: "egress policy with no SMI HTTP route matches specified",
-			egressPolicy: &policyV1alpha1.Egress{
-				Spec: policyV1alpha1.EgressSpec{
+			egressPolicy: &policyv1alpha1.Egress{
+				Spec: policyv1alpha1.EgressSpec{
 					Hosts: []string{
 						"foo.com",
 						"bar.com",
 					},
-					Ports: []policyV1alpha1.PortSpec{
+					Ports: []policyv1alpha1.PortSpec{
 						{
 							Number:   80,
 							Protocol: "http",
@@ -449,16 +450,16 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 		},
 		{
 			name: "egress policy with SMI matching routes specified",
-			egressPolicy: &policyV1alpha1.Egress{
+			egressPolicy: &policyv1alpha1.Egress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "egress-1",
 					Namespace: "test",
 				},
-				Spec: policyV1alpha1.EgressSpec{
+				Spec: policyv1alpha1.EgressSpec{
 					Hosts: []string{
 						"foo.com",
 					},
-					Ports: []policyV1alpha1.PortSpec{
+					Ports: []policyv1alpha1.PortSpec{
 						{
 							Number:   80,
 							Protocol: "http",
@@ -566,16 +567,16 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 		},
 		{
 			name: "egress policy with SMI matching routes and IP addresses specified",
-			egressPolicy: &policyV1alpha1.Egress{
+			egressPolicy: &policyv1alpha1.Egress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "egress-1",
 					Namespace: "test",
 				},
-				Spec: policyV1alpha1.EgressSpec{
+				Spec: policyv1alpha1.EgressSpec{
 					Hosts: []string{
 						"foo.com",
 					},
-					Ports: []policyV1alpha1.PortSpec{
+					Ports: []policyv1alpha1.PortSpec{
 						{
 							Number:   80,
 							Protocol: "http",
