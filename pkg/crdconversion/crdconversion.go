@@ -12,6 +12,7 @@ import (
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -186,6 +187,7 @@ func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.A
 				Service: &apiv1.ServiceReference{
 					Namespace: osmNamespace,
 					Name:      constants.OSMBootstrapName,
+					Port:      pointer.Int32(constants.CRDConversionWebhookPort),
 					Path:      &crdConversionPath,
 				},
 				CABundle: cert.GetCertificateChain(),

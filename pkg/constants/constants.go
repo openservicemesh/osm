@@ -162,6 +162,9 @@ const (
 
 	// OSMMeshConfig is the name of the OSM MeshConfig
 	OSMMeshConfig = "osm-mesh-config"
+
+	// CRDConversionWebhookPort is the port of the CRD conversion webhook service
+	CRDConversionWebhookPort = 9443
 )
 
 // Annotations used by the control plane
