@@ -72,7 +72,7 @@ A Maintainer must meet the rights, responsiblities, and requirements of a Contri
 
 Process of becoming a maintainer:
 
-1. Any current Maintainer may nominate a current Contributor to become a new Maintainer, by opening a PR against the root of the [OSM repository](https://github.com/openservicemesh/osm) adding the nominee to the [OWNERS file](https://github.com/openservicemesh/osm/blob/main/OWNERS).
+1. Any current Maintainer may nominate a current Contributor to become a new Maintainer, by opening a PR against the root of the [OSM repository](https://github.com/openservicemesh/osm) adding the nominee to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS).
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
