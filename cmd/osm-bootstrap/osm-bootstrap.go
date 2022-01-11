@@ -180,7 +180,7 @@ func main() {
 	}
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	crdConverterConfig.ListenPort = 9443
+	crdConverterConfig.ListenPort = constants.CRDConversionWebhookPort
 	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, enableReconciler, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
