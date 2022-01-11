@@ -45,7 +45,7 @@ spec:
           image: "{{ include "osmBootstrap.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
           ports:
-            - name: "tls"
+            - name: "crdconversion"
               containerPort: 9443
             - name: "metrics"
               containerPort: 9091
