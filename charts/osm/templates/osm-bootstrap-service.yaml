@@ -8,9 +8,8 @@ metadata:
     app: osm-bootstrap
 spec:
   ports:
-    - name: tls
+    - name: crdconversion
       port: 9443
-      targetPort: tls
     - name: health
       port: 9095
   selector:
