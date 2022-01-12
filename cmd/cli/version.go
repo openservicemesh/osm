@@ -106,7 +106,7 @@ func (v *versionCmd) getMeshVersion() (*remoteVersionInfo, error) {
 		return nil, err
 	}
 	if len(controllerPods.Items) == 0 {
-		return nil, errors.Errorf("No mesh found in namespace [%s]", v.namespace)
+		return &remoteVersionInfo{}, nil
 	}
 
 	controllerPod := controllerPods.Items[0]
@@ -142,6 +142,10 @@ func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, client
 func (v *versionCmd) outputVersionInfo(versionInfo versionInfo) {
 	fmt.Fprintf(v.out, "CLI Version: %#v\n", *versionInfo.cliVersionInfo)
 	if versionInfo.remoteVersionInfo != nil {
-		fmt.Fprintf(v.out, "Mesh [%s] Version: %#v\n", versionInfo.remoteVersionInfo.meshName, *versionInfo.remoteVersionInfo.version)
+		if versionInfo.remoteVersionInfo.meshName != "" {
+			fmt.Fprintf(v.out, "Mesh [%s] Version: %#v\n", versionInfo.remoteVersionInfo.meshName, *versionInfo.remoteVersionInfo.version)
+		} else {
+			fmt.Fprintf(v.out, "Mesh Version: No control plane found in namespace [%s]\n", v.namespace)
+		}
 	}
 }
