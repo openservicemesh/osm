@@ -421,13 +421,9 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certific
 
 	mwhc := admissionregv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
-			Labels: map[string]string{
-				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-				constants.OSMAppInstanceLabelKey: meshName,
-				constants.OSMAppVersionLabelKey:  osmVersion,
-				constants.AppLabel:               constants.OSMInjectorName,
-				constants.ReconcileLabel:         strconv.FormatBool(true)}},
+			Name:   webhookName,
+			Labels: mwhcLabels,
+		},
 		Webhooks: []admissionregv1.MutatingWebhook{
 			{
 				Name: MutatingWebhookName,
