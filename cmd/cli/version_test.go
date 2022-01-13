@@ -40,10 +40,10 @@ func TestGetMeshVersion(t *testing.T) {
 			name:                   "no mesh in namespace",
 			namespace:              "test",
 			remoteVersion:          nil,
-			remoteVersionInfo:      nil,
+			remoteVersionInfo:      &remoteVersionInfo{},
 			controllerPods:         []*corev1.Pod{},
 			proxyGetMeshVersionErr: nil,
-			expectedErr:            errors.Errorf("No mesh found in namespace [test]"),
+			expectedErr:            nil,
 		},
 		{
 			name:              "mesh in namespace and proxyGetMeshVersion fails",
@@ -139,7 +139,20 @@ func TestOutputVersionInfo(t *testing.T) {
 		clientOnly  bool
 	}{
 		{
-			name: "cli and no mesh",
+			name: "cli and mesh versions with no control plane installed",
+			versionInfo: versionInfo{
+				cliVersionInfo: &version.Info{
+					Version:   "v0.0.0",
+					GitCommit: "xxxxxxx",
+					BuildDate: "0000-00-00-00:00",
+				},
+				remoteVersionInfo: &remoteVersionInfo{},
+			},
+			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\nMesh Version: No control plane found in namespace [test]\n",
+			clientOnly: false,
+		},
+		{
+			name: "cli version only",
 			versionInfo: versionInfo{
 				cliVersionInfo: &version.Info{
 					Version:   "v0.0.0",
@@ -151,7 +164,7 @@ func TestOutputVersionInfo(t *testing.T) {
 			clientOnly: true,
 		},
 		{
-			name: "cli and mesh",
+			name: "cli and mesh versions with control plane installed",
 			versionInfo: versionInfo{
 				cliVersionInfo: &version.Info{
 					Version:   "v0.0.0",
@@ -170,6 +183,19 @@ func TestOutputVersionInfo(t *testing.T) {
 			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\nMesh [test] Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\n",
 			clientOnly: false,
 		},
+		{
+			name: "cli and mesh versions with no remote version info",
+			versionInfo: versionInfo{
+				cliVersionInfo: &version.Info{
+					Version:   "v0.0.0",
+					GitCommit: "xxxxxxx",
+					BuildDate: "0000-00-00-00:00",
+				},
+				remoteVersionInfo: nil,
+			},
+			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\n",
+			clientOnly: false,
+		},
 	}
 
 	for _, test := range tests {
@@ -180,10 +206,11 @@ func TestOutputVersionInfo(t *testing.T) {
 			cmd := versionCmd{
 				out:        buf,
 				clientOnly: test.clientOnly,
+				namespace:  "test",
 			}
 			cmd.outputVersionInfo(test.versionInfo)
 
-			assert.Equal(buf.String(), test.expected)
+			assert.Equal(test.expected, buf.String())
 		})
 	}
 }
