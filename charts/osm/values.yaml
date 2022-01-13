@@ -65,8 +65,8 @@ osm:
         # -- Average target CPU utilization (%)
         targetAverageUtilization: 80
       memory:
-        # -- Average target memory utilization (%)
-        targetAverageUtilization: 80
+        # -- Average target memory value
+        targetAverageValue: "50M"
 
   #
   # -- Prometheus parameters
@@ -264,8 +264,8 @@ osm:
         # -- Average target CPU utilization (%)
         targetAverageUtilization: 80
       memory:
-      # -- Average target memory utilization (%)
-        targetAverageUtilization: 80
+      # -- Average target memory value
+        targetAverageValue: "40M"
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
 

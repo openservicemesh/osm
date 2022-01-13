@@ -139,18 +139,16 @@
                     "title": "Autoscale memory resource schema",
                     "description": "Autoscale memory configuration",
                     "required": [
-                        "targetAverageUtilization"
+                        "targetAverageValue"
                     ],
                     "properties": {
-                        "targetAverageUtilization": {
-                            "$id": "#/properties/definitions/properties/autoScale/properties/memory/properties/targetAverageUtilization",
-                            "type": "integer",
-                            "title": "Autoscale memory targetAverageUtilization",
-                            "description": "Indicates average target memory utilization (percentage) for autoscale.",
-                            "minimum": 0,
-                            "maximum": 100,
-                            "examples": [
-                                80
+                        "targetAverageValue": {
+                            "$id": "#/properties/definitions/properties/autoScale/properties/memory/properties/targetAverageValue",
+                            "type": "string",
+                            "title": "Autoscale memory targetAverageValue",
+                            "description": "Indicates average target memory value for autoscale.",
+                            "examples":[
+                                "2M"
                             ]
                         }
                     },
