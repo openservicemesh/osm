@@ -106,7 +106,7 @@ func (v *versionCmd) getMeshVersion() (*remoteVersionInfo, error) {
 		return nil, err
 	}
 	if len(controllerPods.Items) == 0 {
-		return nil, errors.Errorf("No mesh found for namespace [%s]", v.namespace)
+		return nil, errors.Errorf("OSM control plane not found in namespace [%s]", v.namespace)
 	}
 
 	controllerPod := controllerPods.Items[0]
