@@ -23,5 +23,5 @@ spec:
       name: memory
       target:
         type: Utilization
-        averageValue: {{.Values.osm.osmController.autoScale.memory.targetAverageUtilization}}
+        averageUtilization: {{.Values.osm.osmController.autoScale.memory.targetAverageUtilization}}
 {{- end }}
