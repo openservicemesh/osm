@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Refer to docs/example/manifests/apps/mysql.yaml for database setup
+// Refer to https://github.com/openservicemesh/osm-docs/blob/main/manifests/apps/mysql.yaml for database setup
 const (
 	dbuser = "root"
 	dbpass = "mypassword"
