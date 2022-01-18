@@ -7,6 +7,12 @@
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
+    },
+    {
+      "name": "CONTROL_PLANE_NAMESPACE",
+      "label": "OSM Control Plane Namespace",
+      "description": "Namespace containing the OSM Control plane",
+      "type": "constant"
     }
   ],
   "__requires": [
@@ -293,7 +299,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
+          "expr": "irate(container_cpu_usage_seconds_total{namespace=\"${CONTROL_PLANE_NAMESPACE}\", container!~\"POD\", container!~\"\"}[1m])",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -411,7 +417,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "container_memory_rss{namespace=\"osm-system\", container!=\"\", container!=\"POD\"}",
+          "expr": "container_memory_rss{namespace=\"${CONTROL_PLANE_NAMESPACE}\", container!=\"\", container!=\"POD\"}",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
