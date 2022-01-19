@@ -94,24 +94,21 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 }
 
 func (d *uninstallMeshCmd) run() error {
+	meshInfoList, _ := getMeshInfoList(d.config, d.clientSet)
+	if len(meshInfoList) == 0 {
+		return errors.Errorf("No osm mesh control planes found")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ns := settings.Namespace()
+	w := newTabWriter(d.out)
+	fmt.Fprintf(w, "\nList of meshes present in the cluster:\n")
+	fmt.Fprintf(w, getPrettyPrintedMeshInfoList(meshInfoList))
+	_ = w.Flush()
 
 	if !d.force {
-		// print a list of meshes within the cluster for a better user experience
-		fmt.Fprintf(d.out, "\nList of meshes present in the cluster:\n")
-
-		listCmd := &meshListCmd{
-			out:       d.out,
-			config:    d.config,
-			clientSet: d.clientSet,
-			localPort: d.localPort,
-		}
-
-		_ = listCmd.run()
-
 		confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] ?", d.meshName, ns), 3)
 		if !confirm || err != nil {
 			return err

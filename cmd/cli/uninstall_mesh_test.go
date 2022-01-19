@@ -117,18 +117,8 @@ var _ = Describe("Running the uninstall command", func() {
 			err = cmd.run()
 
 			It("should output empty list of meshes in the cluster", func() {
-				Expect(out.String()).To(ContainSubstring("\nList of meshes present in the cluster:\nNo osm mesh control planes found\n"))
+				Expect(err).To(MatchError("No osm mesh control planes found"))
 			})
-			It("should prompt for confirmation", func() {
-				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] in namespace [" + settings.Namespace() + "] ? [y/n]: "))
-			})
-			It("should error", func() {
-				Expect(err).To(MatchError("No OSM control plane with mesh name [testing] found in namespace [" + settings.Namespace() + "]"))
-			})
-			It("should not give a message confirming the successful uninstall", func() {
-				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] in namespace [" + settings.Namespace() + "] uninstalled\n"))
-			})
-
 		})
 	})
 	Context("custom parameters", func() {
