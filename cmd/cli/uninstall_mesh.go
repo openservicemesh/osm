@@ -103,8 +103,8 @@ func (d *uninstallMeshCmd) run() error {
 	defer cancel()
 
 	ns := settings.Namespace()
+	fmt.Fprintf(d.out, "\nList of meshes present in the cluster:\n")
 	w := newTabWriter(d.out)
-	fmt.Fprintf(w, "\nList of meshes present in the cluster:\n")
 	fmt.Fprintf(w, getPrettyPrintedMeshInfoList(meshInfoList))
 	_ = w.Flush()
 
