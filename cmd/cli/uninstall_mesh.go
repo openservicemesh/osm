@@ -94,6 +94,11 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 }
 
 func (d *uninstallMeshCmd) run() error {
+	meshInfoList, _ := getMeshInfoList(d.config, d.clientSet)
+	if len(meshInfoList) == 0 {
+		return errors.Errorf("No osm mesh control planes found")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
