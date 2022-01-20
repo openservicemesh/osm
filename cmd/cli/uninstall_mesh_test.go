@@ -117,7 +117,7 @@ var _ = Describe("Running the uninstall command", func() {
 			err = cmd.run()
 
 			It("should output empty list of meshes in the cluster", func() {
-				Expect(err).To(MatchError("No osm mesh control planes found"))
+				Expect(err).To(MatchError("No osm mesh found"))
 			})
 		})
 	})
