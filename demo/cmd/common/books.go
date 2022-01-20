@@ -94,13 +94,17 @@ var (
 var log = logger.NewPretty("demo")
 
 // RestockBooks restocks the bookstore with certain amount of books from the warehouse.
-func RestockBooks(amount int) {
+func RestockBooks(amount int, headers map[string]string) {
 	log.Info().Msgf("Restocking from book warehouse with %d books", amount)
 
 	client := &http.Client{}
 	requestBody := strings.NewReader(strconv.Itoa(1))
 	req, err := http.NewRequest("POST", chargeAccountURL, requestBody)
 	req.Host = (fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace))
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	if err != nil {
 		log.Error().Err(err).Msgf("RestockBooks: error posting to %s", chargeAccountURL)
@@ -350,4 +354,21 @@ func GetRawGenerator(books interface{}) func(http.ResponseWriter, *http.Request)
 			log.Fatal().Err(err).Msg("Failed to write raw output")
 		}
 	}
+}
+
+// GetTracingHeaderKeys returns header keys used for distributed tracing with Jaeger
+func GetTracingHeaderKeys() []string {
+	return []string{"X-Ot-Span-Context", "X-Request-Id", "uber-trace-id", "x-b3-traceid", "x-b3-spanid", "x-b3-parentspanid"}
+}
+
+// GetTracingHeaders gets the tracing related header values from a request
+func GetTracingHeaders(r *http.Request) map[string]string {
+	var headers = map[string]string{}
+	for _, key := range GetTracingHeaderKeys() {
+		if v := r.Header.Get(key); v != "" {
+			headers[key] = v
+		}
+	}
+
+	return headers
 }

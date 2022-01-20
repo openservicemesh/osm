@@ -49,10 +49,23 @@ func getBooksStockedRecord() Record {
 	return record
 }
 
-// restockBooks decreases the balance of the given bookwarehouse account.
-func restockBooks(w http.ResponseWriter, r *http.Request) {
+func setHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(common.IdentityHeader, getIdentity())
 
+	if r == nil {
+		return
+	}
+
+	for _, header := range common.GetTracingHeaderKeys() {
+		if v := r.Header.Get(header); v != "" {
+			w.Header().Set(header, v)
+		}
+	}
+}
+
+// restockBooks decreases the balance of the given bookwarehouse account.
+func restockBooks(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w, r)
 	var numberOfBooks int
 	err := json.NewDecoder(r.Body).Decode(&numberOfBooks)
 	if err != nil {

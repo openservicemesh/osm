@@ -50,11 +50,13 @@ func setHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", books.BooksSold))
 	w.Header().Set(common.IdentityHeader, getIdentity())
 
-	if r != nil {
-		for _, header := range common.GetTracingHeaders() {
-			if v := r.Header.Get(header); v != "" {
-				w.Header().Set(header, v)
-			}
+	if r == nil {
+		return
+	}
+
+	for _, header := range common.GetTracingHeaderKeys() {
+		if v := r.Header.Get(header); v != "" {
+			w.Header().Set(header, v)
 		}
 	}
 }
@@ -101,6 +103,7 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 func sellBook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Selling a book!")
 	atomic.AddInt64(&books.BooksSold, 1)
+	tracingHeaders := common.GetTracingHeaders(r)
 	setHeaders(w, r)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), books.BooksSold)
@@ -112,7 +115,7 @@ func sellBook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	go common.RestockBooks(1) // make this async for a smoother demo
+	go common.RestockBooks(1, tracingHeaders) // make this async for a smoother demo
 
 	// Slow down the responses artificially.
 	maxNoiseMilliseconds := 750

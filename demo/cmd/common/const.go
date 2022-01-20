@@ -25,8 +25,3 @@ const (
 	// EnableEgressEnvVar is the environment variable to enable egress requests in the demo
 	EnableEgressEnvVar = "ENABLE_EGRESS"
 )
-
-// GetTracingHeaders returns headers used for distributed tracing with Jaeger
-func GetTracingHeaders() []string {
-	return []string{"X-Ot-Span-Context", "X-Request-Id", "uber-trace-id"}
-}
