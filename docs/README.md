@@ -13,3 +13,4 @@ can be found on the docs website at [https://docs.openservicemesh.io/](https://d
 - [Generating API Reference Documentation](api_reference/README.md)
 - [How OSM uses Envoy](how_osm_uses_envoy.md)
 - [Pull Request Review Guide](pull_request_review_guide.md)
+- [Certificate management](certificate_management.md)
