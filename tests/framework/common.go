@@ -1240,7 +1240,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 				},
 			)
 			if err != nil {
-				td.T.Logf("Cleanup of namespaces timed out: %s", err)
+				td.T.Logf("Error polling namespaces for deletion: %s", err)
 
 				// Dump the namespaces that failed to terminate
 				stdout, stderr, _ := td.RunLocal("kubectl", "get", "namespace", "-l", osmTest, "-o", "yaml")
