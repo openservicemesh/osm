@@ -189,7 +189,6 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 				},
 				Data: map[string][]byte{
 					constants.KubernetesOpaqueSecretCAKey:             certPEM,
-					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
 					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
 				},
 			},
@@ -210,7 +209,6 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 					Namespace: ns,
 				},
 				Data: map[string][]byte{
-					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
 					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
 				},
 			},
@@ -225,39 +223,7 @@ func TestGetCertificateFromKubernetes(t *testing.T) {
 					Namespace: ns,
 				},
 				Data: map[string][]byte{
-					constants.KubernetesOpaqueSecretCAKey:        certPEM,
-					constants.KubernetesOpaqueSecretCAExpiration: []byte("2020-05-07T14:25:18.677Z"),
-				},
-			},
-			expectError:  true,
-			expectNilVal: true,
-		},
-		{
-			// Error when Expiration is missing
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: ns,
-				},
-				Data: map[string][]byte{
-					constants.KubernetesOpaqueSecretCAKey:             certPEM,
-					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
-				},
-			},
-			expectError:  true,
-			expectNilVal: true,
-		},
-		{
-			// Error when Parsing expiration date
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: ns,
-				},
-				Data: map[string][]byte{
-					constants.KubernetesOpaqueSecretCAKey:             certPEM,
-					constants.KubernetesOpaqueSecretCAExpiration:      []byte("Invalid expiration date"),
-					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
+					constants.KubernetesOpaqueSecretCAKey: certPEM,
 				},
 			},
 			expectError:  true,

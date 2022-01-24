@@ -403,7 +403,7 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, time.Now() /* value doesn't matter here */)
+	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false

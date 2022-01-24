@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -168,7 +167,6 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 	// All others will get "AlreadyExists" error back.
 	secretData := map[string][]byte{
 		constants.KubernetesOpaqueSecretCAKey:             cert.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretCAExpiration:      []byte(cert.GetExpiration().Format(constants.TimeDateLayout)),
 		constants.KubernetesOpaqueSecretRootPrivateKeyKey: cert.GetPrivateKey(),
 	}
 
@@ -185,17 +183,17 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 	}
 
 	if _, err := kubeClient.CoreV1().Secrets(ns).Create(context.TODO(), secret, metav1.CreateOptions{}); err == nil {
-		log.Info().Msg("CA created in kubernetes")
+		log.Info().Msgf("Secret %s/%s created in kubernetes", ns, secretName)
 	} else if apierrors.IsAlreadyExists(err) {
-		log.Info().Msg("CA already exists in kubernetes, loading.")
+		log.Info().Msgf("Secret %s/%s already exists in kubernetes, loading.", ns, secretName)
 	} else {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertSecret)).
-			Msgf("Error creating/retrieving root certificate from secret %s/%s", ns, secretName)
+			Msgf("Error creating/retrieving certificate secret %s/%s", ns, secretName)
 		return nil, err
 	}
 
-	// For simplicity, we will load the certificate for all of them, this way the intance which created it
+	// For simplicity, we will load the certificate for all of them, this way the instance which created it
 	// and the ones that didn't share the same code.
 	cert, err := GetCertFromKubernetes(ns, secretName, kubeClient)
 	if err != nil {
@@ -277,23 +275,7 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 		return nil, errInvalidCertSecret
 	}
 
-	expirationBytes, ok := certSecret.Data[constants.KubernetesOpaqueSecretCAExpiration]
-	if !ok {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertExpirationFromSecret)).
-			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAExpiration)
-		return nil, errInvalidCertSecret
-	}
-
-	expiration, err := time.Parse(constants.TimeDateLayout, string(expirationBytes))
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingCertExpiration)).
-			Msgf("Error parsing cert expiration %q from Kubernetes rootCertSecret %q from namespace %q", string(expirationBytes), secretName, ns)
-		return nil, err
-	}
-
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, expiration)
+	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create new Certificate from PEM")
 		return nil, err
