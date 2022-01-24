@@ -980,6 +980,7 @@ func (td *OsmTestData) DeleteNs(nsName string) error {
 			td.T.Logf("WARNING: failed to list helm releases in namespace %s, skipping release cleanup: %v", nsName, err)
 		} else {
 			del := action.NewUninstall(helm)
+			del.Wait = true
 			for _, release := range releases {
 				if _, err := del.Run(release.Name); err != nil {
 					td.T.Logf("WARNING: failed to delete helm release %s in namespace %s: %v", release.Name, nsName, err)
@@ -1239,7 +1240,13 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 				},
 			)
 			if err != nil {
-				td.T.Logf("Poll err: %v", err)
+				td.T.Logf("Error polling namespaces for deletion: %s", err)
+
+				// Dump the namespaces that failed to terminate
+				stdout, stderr, _ := td.RunLocal("kubectl", "get", "namespace", "-l", osmTest, "-o", "yaml")
+				td.T.Logf("Namespace info:")
+				td.T.Logf("stdout:\n%s", stdout)
+				td.T.Logf("stderr:\n%s", stderr)
 			}
 		}
 	}
