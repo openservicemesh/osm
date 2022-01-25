@@ -67,16 +67,17 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	if !strings.EqualFold(podOS, constants.OSWindows) {
 		// Build outbound port exclusion list
 		podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
-		globalOutboundPortExclusionList := wh.configurator.GetOutboundPortExclusionList()
+		globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
 		outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
 		// Build inbound port exclusion list
 		podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
-		globalInboundPortExclusionList := wh.configurator.GetInboundPortExclusionList()
+		globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 		inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
 		// Add the Init Container
-		initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, wh.configurator.GetOutboundIPRangeExclusionList(), outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+		globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
+		initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, globalOutboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 	}
 

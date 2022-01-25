@@ -135,20 +135,6 @@ func (mr *MockConfiguratorMockRecorder) GetInboundExternalAuthConfig() *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundExternalAuthConfig", reflect.TypeOf((*MockConfigurator)(nil).GetInboundExternalAuthConfig))
 }
 
-// GetInboundPortExclusionList mocks base method.
-func (m *MockConfigurator) GetInboundPortExclusionList() []int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInboundPortExclusionList")
-	ret0, _ := ret[0].([]int)
-	return ret0
-}
-
-// GetInboundPortExclusionList indicates an expected call of GetInboundPortExclusionList.
-func (mr *MockConfiguratorMockRecorder) GetInboundPortExclusionList() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetInboundPortExclusionList))
-}
-
 // GetInitContainerImage mocks base method.
 func (m *MockConfigurator) GetInitContainerImage() string {
 	m.ctrl.T.Helper()
@@ -232,34 +218,6 @@ func (m *MockConfigurator) GetOSMNamespace() string {
 func (mr *MockConfiguratorMockRecorder) GetOSMNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockConfigurator)(nil).GetOSMNamespace))
-}
-
-// GetOutboundIPRangeExclusionList mocks base method.
-func (m *MockConfigurator) GetOutboundIPRangeExclusionList() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOutboundIPRangeExclusionList")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetOutboundIPRangeExclusionList indicates an expected call of GetOutboundIPRangeExclusionList.
-func (mr *MockConfiguratorMockRecorder) GetOutboundIPRangeExclusionList() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundIPRangeExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundIPRangeExclusionList))
-}
-
-// GetOutboundPortExclusionList mocks base method.
-func (m *MockConfigurator) GetOutboundPortExclusionList() []int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOutboundPortExclusionList")
-	ret0, _ := ret[0].([]int)
-	return ret0
-}
-
-// GetOutboundPortExclusionList indicates an expected call of GetOutboundPortExclusionList.
-func (mr *MockConfiguratorMockRecorder) GetOutboundPortExclusionList() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundPortExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundPortExclusionList))
 }
 
 // GetProxyResources mocks base method.

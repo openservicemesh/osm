@@ -146,9 +146,7 @@ func TestCreatePatch(t *testing.T) {
 
 			if tc.os == constants.OSLinux {
 				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-				mockConfigurator.EXPECT().GetOutboundIPRangeExclusionList().Return(nil).Times(1)
-				mockConfigurator.EXPECT().GetOutboundPortExclusionList().Return(nil).Times(1)
-				mockConfigurator.EXPECT().GetInboundPortExclusionList().Return(nil).Times(1)
+				mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 			}
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
