@@ -17,7 +17,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -235,7 +236,7 @@ func TestRDSRespose(t *testing.T) {
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableWASMStats: false,
 			}).AnyTimes()
 

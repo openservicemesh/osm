@@ -16,9 +16,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -82,7 +82,7 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(c.ListEndpointsForService(meshSvc)).To(Equal([]endpoint.Endpoint{
 			{
@@ -121,7 +121,7 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(c.ListEndpointsForService(svc)).To(Equal([]endpoint.Endpoint{
 			{
@@ -406,7 +406,7 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockConfigController := config.NewMockController(mockCtrl)
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 			provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
 
@@ -446,16 +446,16 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigController := config.NewMockController(mockCtrl)
 
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
 
 	destServiceIdentity := tests.BookstoreServiceIdentity
 	destSA := destServiceIdentity.ToK8sServiceAccount()
 
-	mcServices := []v1alpha1.MultiClusterService{
+	mcServices := []configv1alpha2.MultiClusterService{
 		{
-			Spec: v1alpha1.MultiClusterServiceSpec{
-				Clusters: []v1alpha1.ClusterSpec{
+			Spec: configv1alpha2.MultiClusterServiceSpec{
+				Clusters: []configv1alpha2.ClusterSpec{
 					{
 						Address: "1.2.3.4:8080",
 						Name:    "remote-cluster-1",
@@ -475,7 +475,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	configClient := fakeConfig.NewSimpleClientset()
 	for _, mcService := range mcServices {
 		mcServicePtr := mcService
-		_, err := configClient.ConfigV1alpha1().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
+		_, err := configClient.ConfigV1alpha2().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
 		assert.Nil(err)
 	}
 

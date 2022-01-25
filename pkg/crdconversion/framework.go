@@ -99,7 +99,6 @@ func serve(w http.ResponseWriter, r *http.Request, convert convertFunc) {
 		return
 	}
 
-	log.Debug().Msgf("handling request: %v", body)
 	convertReview := v1beta1.ConversionReview{}
 	if _, _, err := serializer.Decode(body, nil, &convertReview); err != nil {
 		log.Error().Err(err)

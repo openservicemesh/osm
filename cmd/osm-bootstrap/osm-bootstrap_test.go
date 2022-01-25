@@ -12,19 +12,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
 
 var testNamespace = "test-namespace"
 
-var testMeshConfig *v1alpha1.MeshConfig = &v1alpha1.MeshConfig{
+var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
 	},
-	Spec: v1alpha1.MeshConfigSpec{},
+	Spec: configv1alpha2.MeshConfigSpec{},
 }
 
 var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
@@ -200,7 +200,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 			assert.Nil(err)
 		}
 
-		_, err = b.meshConfigClient.ConfigV1alpha1().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+		_, err = b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 		if tc.expectDefaultMeshConfig {
 			if err == nil {
 				assert.Nil(err)

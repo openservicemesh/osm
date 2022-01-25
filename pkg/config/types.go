@@ -2,9 +2,10 @@
 package config
 
 import (
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
-	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions/config/v1alpha1"
-	kubernetes "github.com/openservicemesh/osm/pkg/k8s"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions/config/v1alpha2"
+
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -14,13 +15,13 @@ var (
 
 // client is the type used to represent the Kubernetes client for the multiclusterservice.openservicemesh.io API group
 type client struct {
-	informer       configV1alpha1Informers.MultiClusterServiceInformer
-	kubeController kubernetes.Controller
+	informer       configv1alpha2Client.MultiClusterServiceInformer
+	kubeController k8s.Controller
 }
 
 // Controller is the interface for the functionality provided by the resources part of the multiclusterservice.openservicemesh.io API group
 type Controller interface {
-	ListMultiClusterServices() []v1alpha1.MultiClusterService
-	GetMultiClusterService(name, namespace string) *v1alpha1.MultiClusterService
-	GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []v1alpha1.MultiClusterService
+	ListMultiClusterServices() []configv1alpha2.MultiClusterService
+	GetMultiClusterService(name, namespace string) *configv1alpha2.MultiClusterService
+	GetMultiClusterServiceByServiceAccount(serviceAccount, namespace string) []configv1alpha2.MultiClusterService
 }

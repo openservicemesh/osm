@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -114,16 +114,16 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 			name: "log level updated to trace",
 			event: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				OldObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "info",
 						},
 					},
 				},
-				NewObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				NewObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "trace",
 						},
 					},
@@ -135,16 +135,16 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 			name: "log level updated to info",
 			event: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				OldObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "trace",
 						},
 					},
 				},
-				NewObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				NewObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "info",
 						},
 					},
@@ -156,16 +156,16 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 			name: "log level unchanged",
 			event: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				OldObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "info",
 						},
 					},
 				},
-				NewObj: &configv1alpha1.MeshConfig{
-					Spec: configv1alpha1.MeshConfigSpec{
-						Observability: configv1alpha1.ObservabilitySpec{
+				NewObj: &configv1alpha2.MeshConfig{
+					Spec: configv1alpha2.MeshConfigSpec{
+						Observability: configv1alpha2.ObservabilitySpec{
 							OSMLogLevel: "info",
 						},
 					},

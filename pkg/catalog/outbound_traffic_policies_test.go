@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -575,7 +575,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			// Mock calls to k8s client caches
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha1.FeatureFlags{}).AnyTimes()
+			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			mockServiceProvider.EXPECT().GetID().Return("test").AnyTimes()
@@ -742,7 +742,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockController := k8s.NewMockController(mockCtrl)
 	mockServiceProvider := service.NewMockProvider(mockCtrl)
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha1.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 	mc := MeshCatalog{

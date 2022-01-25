@@ -23,7 +23,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -222,7 +223,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 
 	// Create a default meshConfig
 	defaultMeshConfig := buildDefaultMeshConfig(presetsConfigMap)
-	if _, err := b.meshConfigClient.ConfigV1alpha1().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
@@ -236,7 +237,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 }
 
 func (b *bootstrap) ensureMeshConfig() error {
-	_, err := b.meshConfigClient.ConfigV1alpha1().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+	_, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 	if err == nil {
 		return nil // default meshConfig was found
 	}
@@ -301,18 +302,18 @@ func validateCLIParams() error {
 	return nil
 }
 
-func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *v1alpha1.MeshConfig {
+func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alpha2.MeshConfig {
 	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
-	presetMeshConfigSpec := v1alpha1.MeshConfigSpec{}
+	presetMeshConfigSpec := configv1alpha2.MeshConfigSpec{}
 	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
 	}
 
-	return &v1alpha1.MeshConfig{
+	return &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
-			APIVersion: "config.openservicemesh.io/v1alpha1",
+			APIVersion: "config.openservicemesh.io/configv1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,

@@ -10,8 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -286,8 +287,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		}
 
 	case announcements.MeshConfigUpdated:
-		prevMeshConfig, okPrevCast := msg.OldObj.(*v1alpha1.MeshConfig)
-		newMeshConfig, okNewCast := msg.NewObj.(*v1alpha1.MeshConfig)
+		prevMeshConfig, okPrevCast := msg.OldObj.(*configv1alpha2.MeshConfig)
+		newMeshConfig, okNewCast := msg.NewObj.(*configv1alpha2.MeshConfig)
 		if !okPrevCast || !okNewCast {
 			log.Error().Msgf("Expected MeshConfig type, got previous=%T, new=%T", okPrevCast, okNewCast)
 			return nil

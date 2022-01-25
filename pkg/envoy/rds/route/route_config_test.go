@@ -13,7 +13,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -109,7 +110,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableWASMStats: false,
 			}).AnyTimes()
 			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg)
@@ -183,7 +184,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha1.FeatureFlags{
+			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableWASMStats: tc.wasmEnabled,
 			}).Times(1)
 			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg)

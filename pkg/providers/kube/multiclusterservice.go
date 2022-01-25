@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -61,7 +62,7 @@ func (c *client) getMultiClusterServiceEndpointsForServiceAccount(serviceAccount
 	return endpoints
 }
 
-func getIPPort(cluster v1alpha1.ClusterSpec) (ip net.IP, port int, err error) {
+func getIPPort(cluster configv1alpha2.ClusterSpec) (ip net.IP, port int, err error) {
 	tokens := strings.Split(cluster.Address, portIPSeparator)
 	if len(tokens) != 2 {
 		log.Error().Err(errParseMulticlusterServiceIP).Str(constants.LogFieldContext, constants.LogContextMulticluster).Msgf("Invalid address format %s. It should have IP address and port number separated by %s", cluster.Address, portIPSeparator)

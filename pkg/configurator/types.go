@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -28,7 +28,7 @@ type client struct {
 // Configurator is the controller interface for K8s namespaces
 type Configurator interface {
 	// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-	GetMeshConfig() *configv1alpha1.MeshConfig
+	GetMeshConfig() *configv1alpha2.MeshConfig
 
 	// GetOSMNamespace returns the namespace in which OSM controller pod resides
 	GetOSMNamespace() string
@@ -104,5 +104,5 @@ type Configurator interface {
 	GetInboundExternalAuthConfig() auth.ExtAuthConfig
 
 	// GetFeatureFlags returns OSM's feature flags
-	GetFeatureFlags() configv1alpha1.FeatureFlags
+	GetFeatureFlags() configv1alpha2.FeatureFlags
 }

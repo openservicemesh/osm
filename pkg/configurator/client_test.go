@@ -8,7 +8,7 @@ import (
 
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
 
 const (
@@ -24,9 +24,9 @@ func TestGetMeshConfig(t *testing.T) {
 	c := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
-	a.Equal(&v1alpha1.MeshConfig{}, c.getMeshConfig())
+	a.Equal(&configv1alpha2.MeshConfig{}, c.getMeshConfig())
 
-	newObj := &v1alpha1.MeshConfig{
+	newObj := &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "config.openservicemesh.io",
 			Kind:       "MeshConfig",
