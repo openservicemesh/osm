@@ -31,7 +31,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 
 		stop := make(chan struct{})
 		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
-		tassert.Equal(t, &configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
+		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
 
 	tests := []struct {
@@ -93,7 +93,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 						ServiceCertValidityDuration: "24h",
 					},
 				}
-				expectedConfigJSON, err := marshalConfigToJSON(expectedConfig)
+				expectedConfigJSON, err := marshalConfigToJSON(*expectedConfig)
 				assert.Nil(err)
 
 				configJSON, err := cfg.GetMeshConfigJSON()
