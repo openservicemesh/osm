@@ -38,13 +38,13 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 	testCases := []struct {
 		name                string
-		meshConfig          *configv1alpha2.MeshConfig
+		meshConfig          configv1alpha2.MeshConfig
 		expectSecretToExist bool
 		expectErr           bool
 	}{
 		{
 			name: "ingress gateway cert spec does not exist",
-			meshConfig: &configv1alpha2.MeshConfig{
+			meshConfig: configv1alpha2.MeshConfig{
 				Spec: configv1alpha2.MeshConfigSpec{
 					Certificate: configv1alpha2.CertificateSpec{
 						IngressGateway: nil,
@@ -56,7 +56,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 		},
 		{
 			name: "ingress gateway cert spec exists",
-			meshConfig: &configv1alpha2.MeshConfig{
+			meshConfig: configv1alpha2.MeshConfig{
 				Spec: configv1alpha2.MeshConfigSpec{
 					Certificate: configv1alpha2.CertificateSpec{
 						IngressGateway: &configv1alpha2.IngressGatewayCertSpec{
@@ -72,7 +72,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 		},
 		{
 			name: "ingress gateway cert spec has no SAN",
-			meshConfig: &configv1alpha2.MeshConfig{
+			meshConfig: configv1alpha2.MeshConfig{
 				Spec: configv1alpha2.MeshConfigSpec{
 					Certificate: configv1alpha2.CertificateSpec{
 						IngressGateway: &configv1alpha2.IngressGatewayCertSpec{

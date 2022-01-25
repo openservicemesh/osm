@@ -178,10 +178,10 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 }
 
 // GetMeshConfig mocks base method.
-func (m *MockConfigurator) GetMeshConfig() *v1alpha2.MeshConfig {
+func (m *MockConfigurator) GetMeshConfig() v1alpha2.MeshConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMeshConfig")
-	ret0, _ := ret[0].(*v1alpha2.MeshConfig)
+	ret0, _ := ret[0].(v1alpha2.MeshConfig)
 	return ret0
 }
 

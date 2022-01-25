@@ -68,21 +68,21 @@ func (c *client) getMeshConfigCacheKey() string {
 }
 
 // Returns the current MeshConfig
-func (c *client) getMeshConfig() *configv1alpha2.MeshConfig {
+func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
+	var meshConfig configv1alpha2.MeshConfig
+
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
 	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigFetchFromCache)).Msgf("Error getting MeshConfig from cache with key %s", meshConfigCacheKey)
-		return &configv1alpha2.MeshConfig{}
+		return meshConfig
 	}
 
-	var meshConfig *configv1alpha2.MeshConfig
 	if !exists {
 		log.Warn().Msgf("MeshConfig %s does not exist. Default config values will be used.", meshConfigCacheKey)
-		meshConfig = &configv1alpha2.MeshConfig{}
-	} else {
-		meshConfig = item.(*configv1alpha2.MeshConfig)
+		return meshConfig
 	}
 
+	meshConfig = *item.(*configv1alpha2.MeshConfig)
 	return meshConfig
 }

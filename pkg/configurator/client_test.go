@@ -24,7 +24,7 @@ func TestGetMeshConfig(t *testing.T) {
 	c := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
-	a.Equal(&configv1alpha2.MeshConfig{}, c.getMeshConfig())
+	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())
 
 	newObj := &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -38,5 +38,5 @@ func TestGetMeshConfig(t *testing.T) {
 	}
 	err := c.cache.Add(newObj)
 	a.Nil(err)
-	a.Equal(newObj, c.getMeshConfig())
+	a.Equal(*newObj, c.getMeshConfig())
 }

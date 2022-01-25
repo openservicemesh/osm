@@ -28,7 +28,7 @@ type client struct {
 // Configurator is the controller interface for K8s namespaces
 type Configurator interface {
 	// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-	GetMeshConfig() *configv1alpha2.MeshConfig
+	GetMeshConfig() configv1alpha2.MeshConfig
 
 	// GetOSMNamespace returns the namespace in which OSM controller pod resides
 	GetOSMNamespace() string

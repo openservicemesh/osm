@@ -32,7 +32,7 @@ const (
 // The functions in this file implement the configurator.Configurator interface
 
 // GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-func (c *client) GetMeshConfig() *configv1alpha2.MeshConfig {
+func (c *client) GetMeshConfig() configv1alpha2.MeshConfig {
 	return c.getMeshConfig()
 }
 
@@ -41,8 +41,8 @@ func (c *client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-func marshalConfigToJSON(config *configv1alpha2.MeshConfigSpec) (string, error) {
-	bytes, err := json.MarshalIndent(config, "", "    ")
+func marshalConfigToJSON(config configv1alpha2.MeshConfigSpec) (string, error) {
+	bytes, err := json.MarshalIndent(&config, "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +51,7 @@ func marshalConfigToJSON(config *configv1alpha2.MeshConfigSpec) (string, error) 
 
 // GetMeshConfigJSON returns the MeshConfig in pretty JSON.
 func (c *client) GetMeshConfigJSON() (string, error) {
-	cm, err := marshalConfigToJSON(&c.getMeshConfig().Spec)
+	cm, err := marshalConfigToJSON(c.getMeshConfig().Spec)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigMarshaling)).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
 		return "", err
