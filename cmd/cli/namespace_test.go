@@ -16,8 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const trueValue = "true"
-
 var (
 	testNamespace     = "namespace"
 	testMeshName      = "mesh"
