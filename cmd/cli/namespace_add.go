@@ -121,6 +121,11 @@ func (a *namespaceAddCmd) run() error {
 			continue
 		}
 
+		// if ignore label exits don`t add namespace
+		if namespace.ObjectMeta.Labels[constants.IgnoreLabel] == "true" {
+			return errors.Errorf("Cannot add ignored namespace")
+		}
+
 		var patch string
 		if a.disableSidecarInjection {
 			// Patch the namespace with monitoring label.
