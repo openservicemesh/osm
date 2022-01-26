@@ -229,7 +229,7 @@ When utilizing Vault as the certificate manager, OSM will make a call to Vault's
 
 Notable options when using Vault:
 
-- **osm.certificateProvider.kind** - Certificate manager type (for vault, use vault)
+- **osm.certificateProvider.kind** - Certificate manager type (for vault, use `vault`)
 - **osm.vault.host** - Hashicorp Vault host/service - where Vault is installed (defaults to "")
 - **osm.vault.protocol** - The protocol to use to connect to Vault (defaults to "http")
 - **osm.vault.token** - The token that should be used to connect to Vault (defaults to "")
