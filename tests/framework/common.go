@@ -1240,12 +1240,8 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 			)
 			if err != nil {
 				td.T.Logf("Error polling namespaces for deletion: %s", err)
-
-				// Dump the namespaces that failed to terminate
-				stdout, stderr, _ := td.RunLocal("kubectl", "get", "namespace", "-l", osmTest, "-o", "yaml")
-				td.T.Logf("Namespace info:")
-				td.T.Logf("stdout:\n%s", stdout)
-				td.T.Logf("stderr:\n%s", stderr)
+				testNsInfo, _ := json.MarshalIndent(testNs, "", "  ")
+				td.T.Logf("Namespaces info:\n%s", string(testNsInfo))
 			}
 		}
 	}
