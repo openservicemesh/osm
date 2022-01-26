@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
@@ -66,12 +65,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 	if !strings.EqualFold(podOS, constants.OSWindows) {
 		// Build outbound port exclusion list
-		podOutboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
+		podOutboundPortExclusionList, _ := getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
 		globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
 		outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
 		// Build inbound port exclusion list
-		podInboundPortExclusionList, _ := wh.getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
+		podInboundPortExclusionList, _ := getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
 		globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 		inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
@@ -140,25 +139,4 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)
 	return admissionResponse.Patches
-}
-
-func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionList []int) []int {
-	portExclusionListMap := mapset.NewSet()
-	var portExclusionListMerged []int
-
-	// iterate over the global outbound ports to be excluded
-	for _, port := range globalPortExclusionList {
-		if addedToSet := portExclusionListMap.Add(port); addedToSet {
-			portExclusionListMerged = append(portExclusionListMerged, port)
-		}
-	}
-
-	// iterate over the pod specific ports to be excluded
-	for _, port := range podSpecificPortExclusionList {
-		if addedToSet := portExclusionListMap.Add(port); addedToSet {
-			portExclusionListMerged = append(portExclusionListMerged, port)
-		}
-	}
-
-	return portExclusionListMerged
 }

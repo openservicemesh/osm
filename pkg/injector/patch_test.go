@@ -205,55 +205,6 @@ func TestCreatePatch(t *testing.T) {
 	})
 }
 
-func TestMergePortExclusionLists(t *testing.T) {
-	testCases := []struct {
-		name                              string
-		podOutboundPortExclusionList      []int
-		globalOutboundPortExclusionList   []int
-		expectedOutboundPortExclusionList []int
-	}{
-		{
-			name:                              "overlap in global and pod outbound exclusion list",
-			podOutboundPortExclusionList:      []int{6060, 7070},
-			globalOutboundPortExclusionList:   []int{6060, 8080},
-			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
-		},
-		{
-			name:                              "no overlap in global and pod outbound exclusion list",
-			podOutboundPortExclusionList:      []int{6060, 7070},
-			globalOutboundPortExclusionList:   []int{8080},
-			expectedOutboundPortExclusionList: []int{6060, 7070, 8080},
-		},
-		{
-			name:                              "pod outbound exclusion list is nil",
-			podOutboundPortExclusionList:      nil,
-			globalOutboundPortExclusionList:   []int{8080},
-			expectedOutboundPortExclusionList: []int{8080},
-		},
-		{
-			name:                              "global outbound exclusion list is nil",
-			podOutboundPortExclusionList:      []int{6060, 7070},
-			globalOutboundPortExclusionList:   nil,
-			expectedOutboundPortExclusionList: []int{6060, 7070},
-		},
-		{
-			name:                              "no global or pod level outbound exclusion list",
-			podOutboundPortExclusionList:      nil,
-			globalOutboundPortExclusionList:   nil,
-			expectedOutboundPortExclusionList: nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
-			assert.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
-		})
-	}
-}
-
 func TestVerifyPrerequisites(t *testing.T) {
 	testCases := []struct {
 		name         string
