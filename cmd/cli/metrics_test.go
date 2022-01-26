@@ -109,7 +109,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 	}
 
 	for _, scenario := range testScenarios {
-		// Create test fixrures for test scenario
+		// Create test fixtures for test scenario
 		for _, ns := range scenario.cmd.namespaces {
 			newNs := newNamespace(ns, scenario.nsAnnotations)
 			ns, _ := fakeClient.CoreV1().Namespaces().Create(context.TODO(), newNs, metav1.CreateOptions{})
@@ -179,7 +179,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 	}
 
 	for _, scenario := range testScenarios {
-		// Create test fixrures for test scenario
+		// Create test fixtures for test scenario
 		for _, ns := range scenario.cmd.namespaces {
 			newNs := newNamespace(ns, scenario.nsAnnotations)
 			ns, _ := fakeClient.CoreV1().Namespaces().Create(context.TODO(), newNs, metav1.CreateOptions{})
