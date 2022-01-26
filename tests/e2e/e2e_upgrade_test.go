@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -200,11 +201,13 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			By("Upgrading OSM")
 
+			pullPolicy := corev1.PullAlways
 			if Td.InstType == KindCluster {
+				pullPolicy = corev1.PullIfNotPresent
 				Expect(Td.LoadOSMImagesIntoKind()).To(Succeed())
 			}
 
-			setArgs := "--set=osm.image.tag=" + Td.OsmImageTag + ",osm.image.registry=" + Td.CtrRegistryServer + ",osm.deployPrometheus=true,osm.enablePrivilegedInitContainer=" + strconv.FormatBool(Td.DeployOnOpenShift) + ",osm.osmController.resource.requests.cpu=0.3,osm.injector.resource.requests.cpu=0.1,osm.prometheus.resources.requests.cpu=0.1,osm.prometheus.resources.requests.memory=256M"
+			setArgs := "--set=osm.image.tag=" + Td.OsmImageTag + ",osm.image.registry=" + Td.CtrRegistryServer + ",osm.image.pullPolicy=" + string(pullPolicy) + ",osm.deployPrometheus=true,osm.enablePrivilegedInitContainer=" + strconv.FormatBool(Td.DeployOnOpenShift) + ",osm.osmController.resource.requests.cpu=0.3,osm.injector.resource.requests.cpu=0.1,osm.prometheus.resources.requests.cpu=0.1,osm.prometheus.resources.requests.memory=256M"
 			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, setArgs)
 			Td.T.Log(stdout.String())
 			if err != nil {
