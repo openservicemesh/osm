@@ -15,3 +15,4 @@ jobs:
         with:
           stale-issue-label: 'stale'
           stale-pr-label: 'stale'
+          exempt-all-milestones: true
