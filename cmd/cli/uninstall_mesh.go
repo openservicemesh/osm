@@ -94,6 +94,14 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 }
 
 func (d *uninstallMeshCmd) run() error {
+	meshInfoList, _ := getMeshInfoList(d.config, d.clientSet)
+	if len(meshInfoList) == 0 {
+		if d.force {
+			return nil
+		}
+		return errors.Errorf("No osm mesh found")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
