@@ -1005,9 +1005,7 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetOutboundPortExclusionList()
-		cfg.EXPECT().GetInboundPortExclusionList()
-		cfg.EXPECT().GetOutboundIPRangeExclusionList()
+		cfg.EXPECT().GetMeshConfig().AnyTimes()
 		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
@@ -1053,9 +1051,7 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetOutboundPortExclusionList()
-		cfg.EXPECT().GetInboundPortExclusionList()
-		cfg.EXPECT().GetOutboundIPRangeExclusionList()
+		cfg.EXPECT().GetMeshConfig().AnyTimes()
 		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()

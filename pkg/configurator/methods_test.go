@@ -289,51 +289,6 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:                  "GetOutboundIPRangeExclusionList",
-			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Nil(cfg.GetOutboundIPRangeExclusionList())
-			},
-			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
-				Traffic: configv1alpha2.TrafficSpec{
-					OutboundIPRangeExclusionList: []string{"1.1.1.1/32", "2.2.2.2/24"},
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal([]string{"1.1.1.1/32", "2.2.2.2/24"}, cfg.GetOutboundIPRangeExclusionList())
-			},
-		},
-		{
-			name:                  "GetOutboundPortExclusionList",
-			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Nil(cfg.GetOutboundPortExclusionList())
-			},
-			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
-				Traffic: configv1alpha2.TrafficSpec{
-					OutboundPortExclusionList: []int{7070, 6080},
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal([]int{7070, 6080}, cfg.GetOutboundPortExclusionList())
-			},
-		},
-		{
-			name:                  "GetIboundPortExclusionList",
-			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
-			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Nil(cfg.GetInboundPortExclusionList())
-			},
-			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
-				Traffic: configv1alpha2.TrafficSpec{
-					InboundPortExclusionList: []int{7070, 6080},
-				},
-			},
-			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal([]int{7070, 6080}, cfg.GetInboundPortExclusionList())
-			},
-		},
-		{
 			name: "IsPrivilegedInitContainer",
 			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{

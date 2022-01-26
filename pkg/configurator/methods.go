@@ -173,21 +173,6 @@ func (c *client) GetCertKeyBitSize() int {
 	return bitSize
 }
 
-// GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception
-func (c *client) GetOutboundIPRangeExclusionList() []string {
-	return c.getMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
-}
-
-// GetOutboundPortExclusionList returns the list of ports (positive integers) to exclude from outbound sidecar interception
-func (c *client) GetOutboundPortExclusionList() []int {
-	return c.getMeshConfig().Spec.Traffic.OutboundPortExclusionList
-}
-
-// GetInboundPortExclusionList returns the list of ports (positive integers) to exclude from inbound sidecar interception
-func (c *client) GetInboundPortExclusionList() []int {
-	return c.getMeshConfig().Spec.Traffic.InboundPortExclusionList
-}
-
 // IsPrivilegedInitContainer returns whether init containers should be privileged
 func (c *client) IsPrivilegedInitContainer() bool {
 	return c.getMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer
