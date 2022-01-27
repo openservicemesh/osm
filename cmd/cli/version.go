@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -92,29 +93,22 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			fmt.Fprint(w, versionCmd.outputPrettyVersionInfo(verInfo.remoteVersionInfoList))
 			_ = w.Flush()
 
-			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
-			if err != nil {
-				return errors.Wrapf(err, "unable to list meshes within the cluster")
-			}
-
-			for _, m := range meshInfoList {
-				versionCmd.namespace = m.namespace
-				meshVer, err := versionCmd.getMeshVersion()
+			if !settings.IsManaged() && !versionCmd.versionOnly {
+				latestReleaseVersion, err := getLatestReleaseVersion()
 				if err != nil {
-					multiError = multierror.Append(multiError, errors.Wrap(err, fmt.Sprintf("Failed to get mesh version for mesh %s in namespace %s", m.name, m.namespace)))
+					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to get latest release information"))
+				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
+					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to output latest release information"))
 				}
 			}
 
-			versionCmd.outputVersionInfo(versionInfo)
-			if err != nil {
-				return errors.Wrap(err, "Failed to get mesh version")
-			}
-			return nil
+			return multiError.ErrorOrNil()
 		},
 	}
 
 	f := cmd.Flags()
 	f.BoolVar(&versionCmd.clientOnly, "client-only", false, "only show the OSM CLI version")
+	f.BoolVar(&versionCmd.versionOnly, "version-only", false, "only show the OSM version information. Hide warnings and upgrade notifications")
 
 	return cmd
 }
