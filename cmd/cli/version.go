@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -24,6 +25,7 @@ type versionCmd struct {
 	out           io.Writer
 	namespace     string
 	clientOnly    bool
+	versionOnly   bool
 	clientset     kubernetes.Interface
 	remoteVersion remoteVersionGetter
 }
@@ -55,30 +57,42 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var versionInfo versionInfo
-			var err error
+			var multiError *multierror.Error
 
 			cliVersionInfo := version.GetInfo()
 			versionInfo.cliVersionInfo = &cliVersionInfo
 
 			if !versionCmd.clientOnly {
-				err = versionCmd.setKubeClientset()
-				if err == nil {
+				if err := versionCmd.setKubeClientset(); err != nil {
+					multiError = multierror.Append(multiError, errors.Wrap(err, "Failed to get mesh version"))
+				} else {
 					versionCmd.namespace = settings.Namespace()
 					versionCmd.remoteVersion = &remoteVersion{}
 					versionInfo.remoteVersionInfo, err = versionCmd.getMeshVersion()
+					if err != nil {
+						multiError = multierror.Append(multiError, errors.Wrap(err, "Failed to get mesh version"))
+					}
 				}
 			}
 
 			versionCmd.outputVersionInfo(versionInfo)
-			if err != nil {
-				return errors.Wrap(err, "Failed to get mesh version")
+
+			if !settings.IsManaged() && !versionCmd.versionOnly {
+				latestReleaseVersion, err := getLatestReleaseVersion()
+				if err != nil {
+					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to get latest release information"))
+				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
+					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to output latest release information"))
+				}
 			}
-			return nil
+
+			return multiError.ErrorOrNil()
 		},
 	}
 
 	f := cmd.Flags()
 	f.BoolVar(&versionCmd.clientOnly, "client-only", false, "only show the OSM CLI version")
+	f.BoolVar(&versionCmd.versionOnly, "version-only", false, "only show the OSM version information. Hide warnings and upgrade notifications")
 
 	return cmd
 }
