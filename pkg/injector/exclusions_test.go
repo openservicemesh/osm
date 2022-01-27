@@ -127,3 +127,84 @@ func TestMergePortExclusionLists(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOutboundIPRangeExclusionListForPod(t *testing.T) {
+	testCases := []struct {
+		name             string
+		podAnnotation    map[string]string
+		forAnnotation    string
+		expectedError    error
+		expectedIPRanges []string
+	}{
+		{
+			name:             "valid annotation",
+			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
+			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			expectedError:    nil,
+			expectedIPRanges: []string{"10.0.0.0/8", "2.2.2.2/32"},
+		},
+		{
+			name:             "no annotation",
+			podAnnotation:    nil,
+			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			expectedError:    nil,
+			expectedIPRanges: nil,
+		},
+		{
+			name:             "invalid annotation",
+			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "foobar"},
+			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			expectedError:    errors.Errorf("Invalid IP range 'foobar' specified for annotation '%s'", outboundIPRangeExclusionListAnnotation),
+			expectedIPRanges: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pod-test",
+					Annotations: tc.podAnnotation,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "test-SA",
+				},
+			}
+
+			ipRanges, err := getOutboundIPRangeExclusionListForPod(pod, "test", tc.forAnnotation)
+			if tc.expectedError != nil {
+				a.EqualError(tc.expectedError, err.Error())
+			} else {
+				a.Nil(err)
+			}
+			a.ElementsMatch(tc.expectedIPRanges, ipRanges)
+		})
+	}
+}
+
+func TestMergeIPRangeExclusionLists(t *testing.T) {
+	testCases := []struct {
+		name        string
+		podSpecific []string
+		global      []string
+		expected    []string
+	}{
+		{
+			name:        "handles duplicates",
+			podSpecific: []string{"1.1.1.1/32", "2.2.2.2/32"},
+			global:      []string{"2.2.2.2/32", "3.3.3.3/32"},
+			expected:    []string{"1.1.1.1/32", "2.2.2.2/32", "3.3.3.3/32"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			actual := mergeIPRangeExclusionLists(tc.podSpecific, tc.global)
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
