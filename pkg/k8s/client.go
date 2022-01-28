@@ -127,7 +127,22 @@ func (c *client) initServiceAccountsMonitor() {
 }
 
 func (c *client) initPodMonitor() {
-	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
+	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+		// Pods which are a part of the mesh contain the Envoy ID label.
+		// The informer will observe pod events for pods that have this label.
+		//
+		// For the purposes of this informer-monitor, a pod is considered "added"
+		// to the mesh (announcements.PodAdded event) if it has the Envoy ID label set.
+		//
+		// For the purposes of this informer-monitor, a pod is considered "deleted"
+		// from the mesh (announcements.PodDeleted event) if a k8s pod deletion event occurs
+		// OR if the Envoy ID label is removed from the pod.
+		opt.LabelSelector = constants.EnvoyUniqueIDLabelName
+	})
+
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(c.kubeClient, DefaultKubeEventResyncInterval, option)
+
+	// Add informer
 	c.informers[Pods] = informerFactory.Core().V1().Pods().Informer()
 
 	podEventTypes := EventTypes{
