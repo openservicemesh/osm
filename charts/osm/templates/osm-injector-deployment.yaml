@@ -66,6 +66,7 @@ spec:
             "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
             "--enable-reconciler={{.Values.osm.enableReconciler}}",
+            "--init-container-pull-policy={{.Values.osm.image.pullPolicy}}",
           ]
           resources:
             limits:

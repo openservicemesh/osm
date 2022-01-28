@@ -27,12 +27,13 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		It("Creates init container without ip range exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
 			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged)
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways)
 
 			expected := corev1.Container{
-				Name:    "-container-name-",
-				Image:   "-init-container-image-",
-				Command: []string{"/bin/sh"},
+				Name:            "-container-name-",
+				Image:           "-init-container-image-",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/bin/sh"},
 				Args: []string{
 					"-c",
 					`iptables-restore --noflush <<EOF
