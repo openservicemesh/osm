@@ -41,12 +41,6 @@ const (
 
 	// webhookTimeoutStr is the url variable name for timeout
 	webhookMutateTimeoutKey = "timeout"
-
-	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
-	outboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
-
-	// inboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
-	inboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration

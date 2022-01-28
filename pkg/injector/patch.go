@@ -63,21 +63,10 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	if err := wh.verifyPrerequisites(podOS); err != nil {
 		return nil, err
 	}
-	if !strings.EqualFold(podOS, constants.OSWindows) {
-		// Build outbound port exclusion list
-		podOutboundPortExclusionList, _ := getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
-		globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
-		outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
-		// Build inbound port exclusion list
-		podInboundPortExclusionList, _ := getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
-		globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
-		inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
-
-		// Add the Init Container
-		globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
-		initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, globalOutboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
-		pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
+	err = wh.configurePodInit(podOS, pod, namespace)
+	if err != nil {
+		return nil, err
 	}
 
 	// Add the Envoy sidecar
@@ -126,6 +115,43 @@ func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 		// Linux pods require init container image
 		return errors.New("MeshConfig sidecar.initContainerImage not set")
 	}
+
+	return nil
+}
+
+func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, namespace string) error {
+	if strings.EqualFold(podOS, constants.OSWindows) {
+		// No init container for Windows
+		return nil
+	}
+
+	// Build outbound port exclusion list
+	podOutboundPortExclusionList, err := getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
+	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
+
+	// Build inbound port exclusion list
+	podInboundPortExclusionList, err := getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
+	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
+
+	// Add the Init Container
+	podOutboundIPRangeExclusionList, err := getOutboundIPRangeExclusionListForPod(pod, namespace, outboundIPRangeExclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
+	outboundIPRangeExclusionList := mergeIPRangeExclusionLists(podOutboundIPRangeExclusionList, globalOutboundIPRangeExclusionList)
+
+	// Add the init container to the pod spec
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil
 }
