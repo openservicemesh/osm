@@ -227,6 +227,10 @@ osm:
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []
 
+  # -- Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy.
+  # If specified, must be a list of IP ranges of the form a.b.c.d/x.
+  outboundIPRangeInclusionList: []
+
   # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   outboundPortExclusionList: []

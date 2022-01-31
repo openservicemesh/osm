@@ -997,6 +997,22 @@
                         ]
                     ]
                 },
+                "outboundIPRangeInclusionList": {
+                    "$id": "#/properties/osm/properties/outboundIPRangeInclusionList",
+                    "type": "array",
+                    "title": "The outboundIPRangeInclusionList schema",
+                    "description": "Outbound IP range inclusion list for sidecar traffic interception",
+                    "items": {
+                        "type": "string",
+                        "pattern": "((?:\\d{1,3}\\.){3}\\d{1,3})\\/(\\d{1,2})$"
+                    },
+                    "examples": [
+                        [
+                            "8.8.8.8/32",
+                            "10.0.0.0/24"
+                        ]
+                    ]
+                },
                 "outboundPortExclusionList": {
                     "$id": "#/properties/osm/properties/outboundPortExclusionList",
                     "type": "array",

@@ -141,16 +141,24 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
-	// Add the Init Container
-	podOutboundIPRangeExclusionList, err := getOutboundIPRangeExclusionListForPod(pod, namespace, outboundIPRangeExclusionListAnnotation)
+	// Build the outbound IP range exclusion list
+	podOutboundIPRangeExclusionList, err := getOutboundIPRangeListForPod(pod, namespace, outboundIPRangeExclusionListAnnotation)
 	if err != nil {
 		return err
 	}
 	globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
-	outboundIPRangeExclusionList := mergeIPRangeExclusionLists(podOutboundIPRangeExclusionList, globalOutboundIPRangeExclusionList)
+	outboundIPRangeExclusionList := mergeIPRangeLists(podOutboundIPRangeExclusionList, globalOutboundIPRangeExclusionList)
+
+	// Build the outbound IP range inclusion list
+	podOutboundIPRangeInclusionList, err := getOutboundIPRangeListForPod(pod, namespace, outboundIPRangeInclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalOutboundIPRangeInclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeInclusionList
+	outboundIPRangeInclusionList := mergeIPRangeLists(podOutboundIPRangeInclusionList, globalOutboundIPRangeInclusionList)
 
 	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer())
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil

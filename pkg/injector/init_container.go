@@ -7,9 +7,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundPortExclusionList []int,
+func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
+	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
 	inboundPortExclusionList []int, enablePrivilegedInitContainer bool) corev1.Container {
-	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundPortExclusionList, inboundPortExclusionList)
+	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList)
 
 	return corev1.Container{
 		Name:  containerName,

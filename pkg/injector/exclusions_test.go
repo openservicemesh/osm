@@ -128,7 +128,7 @@ func TestMergePortExclusionLists(t *testing.T) {
 	}
 }
 
-func TestGetOutboundIPRangeExclusionListForPod(t *testing.T) {
+func TestGetOutboundIPRangeListForPod(t *testing.T) {
 	testCases := []struct {
 		name             string
 		podAnnotation    map[string]string
@@ -137,16 +137,30 @@ func TestGetOutboundIPRangeExclusionListForPod(t *testing.T) {
 		expectedIPRanges []string
 	}{
 		{
-			name:             "valid annotation",
+			name:             "valid exclusion annotation",
 			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
 			forAnnotation:    outboundIPRangeExclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: []string{"10.0.0.0/8", "2.2.2.2/32"},
 		},
 		{
-			name:             "no annotation",
+			name:             "no exclusion annotation",
 			podAnnotation:    nil,
 			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			expectedError:    nil,
+			expectedIPRanges: nil,
+		},
+		{
+			name:             "valid inclusion annotation",
+			podAnnotation:    map[string]string{outboundIPRangeInclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
+			forAnnotation:    outboundIPRangeInclusionListAnnotation,
+			expectedError:    nil,
+			expectedIPRanges: []string{"10.0.0.0/8", "2.2.2.2/32"},
+		},
+		{
+			name:             "no inclusion annotation",
+			podAnnotation:    nil,
+			forAnnotation:    outboundIPRangeInclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: nil,
 		},
@@ -173,7 +187,7 @@ func TestGetOutboundIPRangeExclusionListForPod(t *testing.T) {
 				},
 			}
 
-			ipRanges, err := getOutboundIPRangeExclusionListForPod(pod, "test", tc.forAnnotation)
+			ipRanges, err := getOutboundIPRangeListForPod(pod, "test", tc.forAnnotation)
 			if tc.expectedError != nil {
 				a.EqualError(tc.expectedError, err.Error())
 			} else {
@@ -184,7 +198,7 @@ func TestGetOutboundIPRangeExclusionListForPod(t *testing.T) {
 	}
 }
 
-func TestMergeIPRangeExclusionLists(t *testing.T) {
+func TestMergeIPRangeLists(t *testing.T) {
 	testCases := []struct {
 		name        string
 		podSpecific []string
@@ -203,7 +217,7 @@ func TestMergeIPRangeExclusionLists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := mergeIPRangeExclusionLists(tc.podSpecific, tc.global)
+			actual := mergeIPRangeLists(tc.podSpecific, tc.global)
 			a.ElementsMatch(tc.expected, actual)
 		})
 	}
