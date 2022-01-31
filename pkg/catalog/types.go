@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -23,11 +24,11 @@ var (
 
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
-	endpointsProviders []endpoint.Provider
-	serviceProviders   []service.Provider
-	meshSpec           smi.MeshSpec
-	certManager        certificate.Manager
-	configurator       configurator.Configurator
+	provider.Provider
+
+	meshSpec     smi.MeshSpec
+	certManager  certificate.Manager
+	configurator configurator.Configurator
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local

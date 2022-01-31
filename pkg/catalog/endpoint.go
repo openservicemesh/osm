@@ -6,34 +6,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// ListEndpointsForService returns the list of provider endpoints corresponding to a service
-func (mc *MeshCatalog) listEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
-	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.endpointsProviders {
-		ep := provider.ListEndpointsForService(svc)
-		if len(ep) == 0 {
-			log.Trace().Msgf("No endpoints found for service %s by endpoints provider %s", provider.GetID(), svc)
-			continue
-		}
-		endpoints = append(endpoints, ep...)
-	}
-	return endpoints
-}
-
-// getDNSResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
-func (mc *MeshCatalog) getDNSResolvableServiceEndpoints(svc service.MeshService) []endpoint.Endpoint {
-	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.endpointsProviders {
-		ep := provider.GetResolvableEndpointsForService(svc)
-		endpoints = append(endpoints, ep...)
-	}
-	return endpoints
-}
-
 // ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
 // is allowed access the upstream service
 func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) []endpoint.Endpoint {
-	outboundEndpoints := mc.listEndpointsForService(upstreamSvc)
+	outboundEndpoints := mc.ListEndpointsForService(upstreamSvc)
 	if len(outboundEndpoints) == 0 {
 		return nil
 	}
@@ -57,7 +33,7 @@ func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity
 	// i.e. only those intersecting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
 	for _, destSvcIdentity := range mc.ListOutboundServiceIdentities(downstreamIdentity) {
-		for _, ep := range mc.listEndpointsForServiceIdentity(destSvcIdentity) {
+		for _, ep := range mc.ListEndpointsForIdentity(destSvcIdentity) {
 			epIPStr := ep.IP.String()
 			// check if endpoint IP is allowed
 			if _, ok := outboundEndpointsSet[epIPStr]; ok {
@@ -68,18 +44,4 @@ func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity
 	}
 
 	return allowedEndpoints
-}
-
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) listEndpointsForServiceIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
-	var endpoints []endpoint.Endpoint
-	for _, provider := range mc.endpointsProviders {
-		ep := provider.ListEndpointsForIdentity(serviceIdentity)
-		if len(ep) == 0 {
-			log.Trace().Msgf("[%s] No endpoints found for service account=%s", provider.GetID(), serviceIdentity)
-			continue
-		}
-		endpoints = append(endpoints, ep...)
-	}
-	return endpoints
 }

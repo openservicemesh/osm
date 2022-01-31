@@ -5,18 +5,13 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/provider"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-// Provider interface combines endpoint.Provider and service.Provider
-type Provider interface {
-	endpoint.Provider
-	service.Provider
-}
-
 // NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
-func NewFakeProvider() Provider {
+func NewFakeProvider() provider.Provider {
 	return fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
 			tests.BookstoreV1Service.String():   {tests.Endpoint},

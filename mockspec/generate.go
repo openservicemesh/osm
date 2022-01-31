@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -64,8 +66,12 @@ func genMock(ruleStr string) {
 		interfaces,
 	}
 	cmd := exec.Command("go", cmdList...) // nolint gosec
+	var errBuf, outBuf bytes.Buffer
+	cmd.Stderr = io.MultiWriter(os.Stderr, &errBuf)
+	cmd.Stdout = io.MultiWriter(os.Stdout, &outBuf)
+
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Error generating mocks for rule: %v, err: %s", ruleOptions, err)
+		log.Fatalf("Error generating mocks for rule: %v, err: %s\nFull output: %s\nwhattttt\n%s", ruleOptions, err, outBuf.String(), errBuf.String())
 	}
 
 	// Sort imports using goimports
@@ -74,7 +80,8 @@ func genMock(ruleStr string) {
 		"-w", ruleOptions[1],
 	}
 	cmd = exec.Command("go", cmdList...) // nolint gosec
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Error generating mocks for rule: %v, err: %s", ruleOptions, err)
+
+	if out, err := cmd.Output(); err != nil {
+		log.Fatalf("Error generating mocks for rule: %v, err: %s\nFull output: %s", ruleOptions, err, string(out))
 	}
 }

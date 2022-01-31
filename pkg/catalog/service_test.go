@@ -16,9 +16,9 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
+	mockProvider := provider.NewMockProvider(mockCtrl)
 	mc := &MeshCatalog{
-		serviceProviders: []service.Provider{mockServiceProvider},
+		provider: mockProvider,
 	}
 
 	testCases := []struct {
@@ -47,7 +47,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			mockServiceProvider.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(tc.expectedSvcAccounts).Times(1)
+			mockProvider.EXPECT().ListServiceIdentitiesForService(tc.svc).Return(tc.expectedSvcAccounts).Times(1)
 			serviceIdentities := mc.ListServiceIdentitiesForService(tc.svc)
 			assert.ElementsMatch(serviceIdentities, tc.expectedSvcAccounts)
 		})

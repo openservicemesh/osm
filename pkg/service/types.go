@@ -3,8 +3,6 @@ package service
 
 import (
 	"fmt"
-
-	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 // Locality is the relative locality of a service. ie: if a service is being accessed from the same namespace or a
@@ -77,19 +75,4 @@ func (c ClusterName) String() string {
 type WeightedCluster struct {
 	ClusterName ClusterName `json:"cluster_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
-}
-
-// Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
-type Provider interface {
-	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
-	GetServicesForServiceIdentity(identity.ServiceIdentity) []MeshService
-
-	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() []MeshService
-
-	// ListServiceIdentitiesForService returns service identities for given service
-	ListServiceIdentitiesForService(MeshService) []identity.ServiceIdentity
-
-	// GetID returns the unique identifier of the Provider
-	GetID() string
 }

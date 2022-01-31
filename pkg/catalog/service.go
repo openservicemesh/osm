@@ -7,14 +7,8 @@ import (
 
 // getServicesForServiceIdentity returns a list of services corresponding to a service identity
 func (mc *MeshCatalog) getServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) []service.MeshService {
-	var services []service.MeshService
-
-	for _, provider := range mc.serviceProviders {
-		providerServices := provider.GetServicesForServiceIdentity(svcIdentity)
-		log.Trace().Msgf("Found Services %v linked to Service Identity %s from provider %s", providerServices, svcIdentity, provider.GetID())
-		services = append(services, providerServices...)
-	}
-
+	services := mc.provider.GetServicesForServiceIdentity(svcIdentity)
+	log.Trace().Msgf("Found Services %v linked to Service Identity %s from provider %s", services, svcIdentity, mc.provider.GetID())
 	return services
 }
 

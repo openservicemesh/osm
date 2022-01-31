@@ -41,7 +41,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
+		for _, endp := range mc.GetResolvableEndpointsForService(meshSvc) {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
@@ -132,14 +132,14 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
 // TODO: improve code by combining with ListOutboundServicesForIdentity
 func (mc *MeshCatalog) ListOutboundServicesForMulticlusterGateway() []service.MeshService {
-	return mc.listMeshServices()
+	return mc.ListServices()
 }
 
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return mc.listMeshServices()
+		return mc.ListServices()
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
@@ -157,7 +157,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Namespace: t.Spec.Destination.Namespace,
 			}
 
-			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity()) {
+			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
 				}
@@ -174,7 +174,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
+	return mc.GetServicesForServiceIdentity(sa.ToServiceIdentity())
 }
 
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity
