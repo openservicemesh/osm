@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	singlePackage = flag.String("only-package", "", "Only generate mocks for the given package, ie: the first part of the line in the rules file")
+	packageName = flag.String("package-name", "", "Only generate mocks for the given package, ie: the first part of the line in the rules file")
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		if len(ruleOptions) != 4 {
 			log.Fatalf("Invalid syntax for mockgen rule: %v", ruleOptions)
 		}
-		if *singlePackage == "" || *singlePackage == ruleOptions[0] {
+		if *packageName == "" || *packageName == ruleOptions[0] {
 			genMock(ruleOptions)
 		}
 	}
