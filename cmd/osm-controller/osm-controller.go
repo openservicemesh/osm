@@ -35,7 +35,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -49,7 +48,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -203,9 +201,6 @@ func main() {
 	// A nil configClient is passed in if multi cluster mode is not enabled.
 	kubeProvider := kube.NewClient(k8sClient, configClient, cfg)
 
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-	serviceProviders := []service.Provider{kubeProvider}
-
 	if err := ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
@@ -222,8 +217,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		serviceProviders,
-		endpointsProviders,
+		kubeProvider,
 		msgBroker,
 	)
 

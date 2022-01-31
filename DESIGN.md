@@ -64,7 +64,7 @@ is passed as a string pointing to a container registry. This is passed via the `
 The Open Service Mesh project is composed of the following five high-level components:
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
   2. [Certificate manager](#2-certificate-manager) - handles issuance and management of certificates
-  3. [Endpoints providers](#3-endpoints-providers) - components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh
+  3. [Providers](#3-provider) - components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh, and the DNS names
   4. [Mesh specification](#4-mesh-specification) - wrapper around the [SMI Spec's Go SDK](https://github.com/deislabs/smi-sdk-go); this facility provides simple methods to retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface), abstracting away cluster and storage specifics
   5. [Mesh catalog](#5-mesh-catalog) - the service mesh's heart; this is the central component that collects inputs from all other components and dispatches configuration to the proxy control plane
 
@@ -87,8 +87,8 @@ The Proxy Control Plane's availability is of foremost importance when it comes t
 Certificate Manager is a component that provides each service participating in the service mesh with a TLS certificate.
 These service certificates are used to establish and encrypt connections between services using mTLS.
 
-### (3) Endpoints Providers
-Endpoints Providers are one or more components that communicate with the compute platforms (Kubernetes clusters, on-prem machines, or cloud-providers' VMs) participating in the service mesh. Endpoints providers resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
+### (3) Provider
+The Provider is a component that communicates with the compute platforms (Kubernetes clusters, on-prem machines, or cloud-providers' VMs) participating in the service mesh. Providers resolve service names into lists of IP addresses, can query for service names, and associate service names with service identities. The Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
 
 ### (4) Mesh specification
 Mesh Specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
@@ -210,7 +210,7 @@ A given certificate's expiration will be randomly shortened or extended from the
 
   - `ProxyCertificate` is issued by OSM for a `Proxy`, which is expected to connect to the proxy control plane sometime in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in the `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
   - `Proxy` is the reverse-proxy, which attempts to connect to the proxy control plane; the `Proxy` may, or may not be allowed to connect to the proxy control plane.
-  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. OSM may have discovered endpoints, via the [endpoints providers](#3-endpoints-providers), which belong to a given service, but OSM has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
+  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. OSM may have discovered endpoints, via the [providers](#3-provider), which belong to a given service, but OSM has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
 
 
 The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Proxies` ∩ discovered `Endpoints` is the set of participants in the service mesh.
@@ -294,11 +294,14 @@ connected Envoy proxies with a list of clusters, mapping of service name to list
 The `ListEndpointsForService` method will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
-The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s and `ServiceProvider`s.
+The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the `Provider`.
 
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
+  // Expects all the methods of the Provider
+  provider.Provider
+
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
@@ -313,9 +316,6 @@ type MeshCataloger interface {
 
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
-
-	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
-	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
@@ -380,38 +380,32 @@ type Proxy struct {
 }
 ```
 
-### Endpoints Providers Interface
-The [Endpoints providers](#3-endpoints-providers) component provides abstractions around the Go
-SDKs of various Kubernetes clusters, or cloud vendor's virtual machines and other compute, which
-participate in the service mesh. Each [endpoint provider](#3-endpoints-providers) is responsible for either a particular Kubernetes cluster, or a cloud vendor subscription.
-The [Mesh catalog](#5-mesh-catalog) will query each [Endpoints provider](#3-endpoints-providers) for a particular [service](#c-service), and obtain the IP addresses and ports of the endpoints handling traffic for service.
+### Provider Interface
+The [provider](#3-provider) component provides abstractions around the Go SDKs of various Kubernetes clusters, or cloud
+vendor's virtual machines and other compute, which participate in the service mesh.
+The [Mesh catalog](#5-mesh-catalog) will query the [provider](#3-provider) for a particular [service](#c-service), and obtain the IP addresses and ports of the endpoints handling traffic for service.
 
-The [Endpoints providers](#3-endpoints-providers) are aware of:
+The [provider](#3-provider) is aware of:
   - Kubernetes Service and their own CRD
   - vendor-specific APIs and methods to retrieve IP addresses and Port numbers for Endpoints
+  - vendor-specific APIs to retrieve DNS services
+  - vendor-specific APIs to retrieve DNS services associated with Service Identities
 
-The [Endpoints providers](#3-endpoints-providers) has no awareness of:
+The [provider](#3-provider) has no awareness of:
   - what SMI Spec is
   - what Proxy or sidecar is
 
 > Note: As of this iteration of OSM we deliberately choose to leak the Mesh Specification implementation into the
-EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
+EndpointsProvider. The [Provider](#3-provider) is responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
-when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
+when Azure Provider's `ListEndpointsForService` is invoked with a service name
 the provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
 
-In the sample `ListEndpointsForService` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
-```go
-for _, provider := range catalog.ListEndpointsProviders() {
-```
-
-For each `provider` registered in the Mesh Catalog, we invoke `ListEndpointsForService`.
-The function will be provided a `ServiceName`, which is an SMI-declared service. The provider will
-resolve the service to its own resource ID. For example `ListEndpointsForService` invoked on the
-Azure EndpointsProvider with service `webservice`, will resolve `webservice` to the URI of an
+For example `ListEndpointsForService` invoked on the
+Azure Provider with service `webservice`, will resolve `webservice` to the URI of an
 [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/) hosting an instance of
 the service: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`.
 From the URI the provider will resolve the list of IP addresses of participating Envoy proxies.
@@ -419,12 +413,40 @@ From the URI the provider will resolve the list of IP addresses of participating
 ```go
 package osm
 
-// EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
-type EndpointsProvider interface {
-    // ListEndpointsForService fetches the IPs and Ports for the given service
-    ListEndpointsForService(ServiceName) []Endpoint
+// Provider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
+type Provider interface {
+	// Endpoint methods
+
+	// ListEndpointsForService retrieves the IP addresses comprising the given service.
+	ListEndpointsForService(service.MeshService) []endpoint.Endpoint
+
+	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
+	ListEndpointsForIdentity(identity.ServiceIdentity) []endpoint.Endpoint
+
+	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
+	// the scope of the provider
+	GetResolvableEndpointsForService(service.MeshService) []endpoint.Endpoint
+
+	// Service methods
+
+	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentity) []service.MeshService
+
+	// ListServices returns a list of services that are part of monitored namespaces
+	ListServices() []service.MeshService
+
+	// ListServiceIdentitiesForService returns service identities for given service
+	ListServiceIdentitiesForService(service.MeshService) []identity.ServiceIdentity
+
+	// Generic methods
+
+	// GetID returns the unique identifier of the EndpointsProvider.
+	GetID() string
 }
 ```
+
+NOTE: A user may supply a custom provider that allows OSM to straddle multiple underlying infrastrucutre. For example
+a given provider may have knowledge of both Azure VM's and AKS.
 
 ### Mesh Specification
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
@@ -443,25 +465,26 @@ The `MeshSpec` implementation **has no awareness** of:
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
 	// ListTrafficSplits lists SMI TrafficSplit resources
-	ListTrafficSplits() []*split.TrafficSplit
+	ListTrafficSplits(...TrafficSplitListOption) []*split.TrafficSplit
 
-	// ListServiceAccounts lists Service Account resources specified in SMI TrafficTarget resources
-	ListServiceAccounts() []service.K8sServiceAccount
-
-	// GetService fetches a Kubernetes Service resource for the given MeshService
-	GetService(service.MeshService) *corev1.Service
-
-	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
-	ListServices() []*corev1.Service
-
-	// ListServiceAccounts Lists Kubernetes Service Account resources that are part of monitored namespaces
-	ListServiceAccounts() []*corev1.ServiceAccounts
+	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
+	ListServiceAccounts() []identity.K8sServiceAccount
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
-	// ListTrafficTargets lists SMI TrafficTarget resources
-	ListTrafficTargets() []*target.TrafficTarget
+	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
+
+	// ListTCPTrafficSpecs lists SMI TCPRoute resources
+	ListTCPTrafficSpecs() []*spec.TCPRoute
+
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
+	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
+	// returned list
+	ListTrafficTargets(...TrafficTargetListOption) []*access.TrafficTarget
 }
 ```
 

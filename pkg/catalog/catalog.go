@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/provider"
+	"github.com/openservicemesh/osm/pkg/providers"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/ticker"
 )
@@ -16,7 +16,7 @@ import (
 // NewMeshCatalog creates a new service catalog
 func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager certificate.Manager,
 	policyController policy.Controller, stop <-chan struct{},
-	cfg configurator.Configurator, provider provider.Provider,
+	cfg configurator.Configurator, provider providers.Provider,
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
 		Provider:         provider,

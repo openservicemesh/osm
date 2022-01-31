@@ -1,4 +1,4 @@
-package provider
+package providers
 
 import (
 	"github.com/openservicemesh/osm/pkg/endpoint"

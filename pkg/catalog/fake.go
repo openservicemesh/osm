@@ -13,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -132,13 +131,6 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	provider := kube.NewFakeProvider()
 
-	endpointProviders := []endpoint.Provider{
-		provider,
-	}
-	serviceProviders := []service.Provider{
-		provider,
-	}
-
 	kubeClient := fake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 
@@ -224,5 +216,5 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, stop, cfg, provider, messaging.NewBroker(stop))
 }

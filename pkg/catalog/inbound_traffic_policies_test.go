@@ -15,9 +15,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/providers"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -1589,16 +1589,14 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockProvider := providers.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
+				kubeController: mockKubeController,
+				Provider:       mockProvider,
+				configurator:   mockCfg,
+				meshSpec:       mockMeshSpec,
 			}
 
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode)
@@ -1840,14 +1838,12 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockProvider := providers.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Provider:       mockProvider,
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
