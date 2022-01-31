@@ -82,3 +82,5 @@ rootfs/
 # Envoy config captured during development
 envoy_*.json
 
+# Interim files that can stick around from a bad mockgen run.
+gomock_reflect_*/

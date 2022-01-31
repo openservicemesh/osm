@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"log"
 	"os"
 	"os/exec"
@@ -14,6 +15,10 @@ const (
 
 	// commentPrefix is the prefix used for comments in the rules file
 	commentPrefix = "#"
+)
+
+var (
+	packageName = flag.String("package-name", "", "Only generate mocks for the given package, ie: the first part of the line in the rules file")
 )
 
 func main() {
@@ -31,7 +36,14 @@ func main() {
 		if strings.HasPrefix(line, commentPrefix) || line == "" {
 			continue
 		}
-		genMock(line)
+
+		ruleOptions := strings.Split(line, ";")
+		if len(ruleOptions) != 4 {
+			log.Fatalf("Invalid syntax for mockgen rule: %v", ruleOptions)
+		}
+		if *packageName == "" || *packageName == ruleOptions[0] {
+			genMock(ruleOptions)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -39,13 +51,9 @@ func main() {
 	}
 }
 
-func genMock(ruleStr string) {
-	ruleOptions := strings.Split(ruleStr, ";")
+func genMock(ruleOptions []string) {
 	for i := range ruleOptions {
 		ruleOptions[i] = strings.TrimSpace(ruleOptions[i])
-	}
-	if len(ruleOptions) != 4 {
-		log.Fatalf("Invalid syntax for mockgen rule: %v", ruleOptions)
 	}
 
 	packageName := ruleOptions[0]
@@ -64,6 +72,8 @@ func genMock(ruleStr string) {
 		interfaces,
 	}
 	cmd := exec.Command("go", cmdList...) // nolint gosec
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Error generating mocks for rule: %v, err: %s", ruleOptions, err)
 	}
@@ -74,6 +84,8 @@ func genMock(ruleStr string) {
 		"-w", ruleOptions[1],
 	}
 	cmd = exec.Command("go", cmdList...) // nolint gosec
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Error generating mocks for rule: %v, err: %s", ruleOptions, err)
 	}
