@@ -31,8 +31,8 @@ var _ = OSMDescribe("Ignore Namespaces",
 				// Create test NS in mesh with ignore label
 				Expect(Td.CreateNs(ignoreNs, map[string]string{constants.IgnoreLabel: "true"})).To(Succeed())
 
-				// Add test NS to mesh with sidecar injection enabled
-				Expect(Td.AddNsToMesh(true, ignoreNs)).To(Succeed())
+				// Add test NS(with ignore label) to mesh with sidecar injection enabled, it should not succeed
+				Expect(Td.AddNsToMesh(true, ignoreNs)).NotTo(Succeed())
 
 				By("Ensuring a pod is not injected with a sidecar when added to namespace the ignore, and sidecar injection labels set")
 

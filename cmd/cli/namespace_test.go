@@ -16,8 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const trueValue = "true"
-
 var (
 	testNamespace     = "namespace"
 	testMeshName      = "mesh"
@@ -59,6 +57,34 @@ var _ = Describe("Running the namespace add command", func() {
 
 			It("should give error about non-existent mesh", func() {
 				Expect(err.Error()).To(Equal(fmt.Sprintf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", testMeshName)))
+			})
+		})
+
+		Context("adding namespace to the mesh that is ignored", func() {
+
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
+				Expect(err).To(BeNil())
+
+				nsSpec := createNamespaceSpec(testNamespace, "", false, true)
+				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("error in adding ignored namespace", func() {
+				Expect(err).To(MatchError("Cannot add ignored namespace"))
 			})
 		})
 

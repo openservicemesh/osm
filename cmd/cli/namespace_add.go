@@ -15,6 +15,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
+const trueValue = "true"
+
 const namespaceAddDescription = `
 This command adds a namespace or set of namespaces to the mesh so that the osm
 control plane with the given mesh name can observe resources within that namespace
@@ -119,6 +121,11 @@ func (a *namespaceAddCmd) run() error {
 		if a.meshName == meshName {
 			_, _ = fmt.Fprintf(a.out, "Namespace [%s] has already been added to mesh [%s]\n", ns, a.meshName)
 			continue
+		}
+
+		// if ignore label exits don`t add namespace
+		if val, ok := namespace.ObjectMeta.Labels[constants.IgnoreLabel]; ok && val == trueValue {
+			return errors.Errorf("Cannot add ignored namespace")
 		}
 
 		var patch string
