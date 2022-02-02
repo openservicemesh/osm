@@ -33,9 +33,6 @@ var iptablesOutboundStaticRules = []string{
 
 	// Skip localhost traffic, doesn't need to be routed via the proxy
 	"-A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN",
-
-	// Redirect remaining outbound traffic to Envoy
-	"-A OSM_PROXY_OUTBOUND -j OSM_PROXY_OUT_REDIRECT",
 }
 
 // iptablesInboundStaticRules is the list of iptables rules related to inbound traffic interception and redirection
@@ -61,7 +58,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
+func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -89,11 +86,16 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPor
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)
 
-	// 4. Create dynamic outbound ip ranges exclusion rules
+	//
+	// Create outbound exclusion and inclusion rules.
+	// *Note: exclusion rules must be applied before inclusions as order matters
+	//
+
+	// 4. Create dynamic outbound IP range exclusion rules
 	for _, cidr := range outboundIPRangeExclusionList {
 		// *Note: it is important to use the insert option '-I' instead of the append option '-A' to ensure the exclusion
 		// rules take precedence over the static redirection rules. Iptables rules are evaluated in order.
-		rule := fmt.Sprintf("-I OSM_PROXY_OUTBOUND -d %s -j RETURN", cidr)
+		rule := fmt.Sprintf("-A OSM_PROXY_OUTBOUND -d %s -j RETURN", cidr)
 		cmds = append(cmds, rule)
 	}
 
@@ -104,8 +106,22 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundPor
 			portExclusionListStr = append(portExclusionListStr, strconv.Itoa(port))
 		}
 		outboundPortsToExclude := strings.Join(portExclusionListStr, ",")
-		rule := fmt.Sprintf("-I OSM_PROXY_OUTBOUND -p tcp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
+		rule := fmt.Sprintf("-A OSM_PROXY_OUTBOUND -p tcp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
 		cmds = append(cmds, rule)
+	}
+
+	// 6. Create dynamic outbound IP range inclusion rules
+	if len(outboundIPRangeInclusionList) > 0 {
+		// Redirect specified IP ranges to the proxy
+		for _, cidr := range outboundIPRangeInclusionList {
+			rule := fmt.Sprintf("-A OSM_PROXY_OUTBOUND -d %s -j OSM_PROXY_OUT_REDIRECT", cidr)
+			cmds = append(cmds, rule)
+		}
+		// Remaining traffic not belonging to specified inclusion IP ranges are not redirected
+		cmds = append(cmds, "-A OSM_PROXY_OUTBOUND -j RETURN")
+	} else {
+		// Redirect remaining outbound traffic to the proxy
+		cmds = append(cmds, "-A OSM_PROXY_OUTBOUND -j OSM_PROXY_OUT_REDIRECT")
 	}
 
 	for _, rule := range cmds {

@@ -19,6 +19,9 @@ const (
 
 	// outboundIPRangeExclusionListAnnotation is the annotation used for outbound IP range exclusions
 	outboundIPRangeExclusionListAnnotation = "openservicemesh.io/outbound-ip-range-exclusion-list"
+
+	// outboundIPRangeInclusionListAnnotation is the annotation used for outbound IP range inclusions
+	outboundIPRangeInclusionListAnnotation = "openservicemesh.io/outbound-ip-range-inclusion-list"
 )
 
 // getPortExclusionListForPod gets a list of ports to exclude from sidecar traffic interception for the given
@@ -75,16 +78,16 @@ func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionLi
 	return portExclusionListMerged
 }
 
-// getOutboundIPRangeExclusionListForPod gets a list of IP ranges to exclude from sidecar traffic interception for the given
+// getOutboundIPRangeListForPod returns a list of IP ranges to include/exclude from sidecar traffic interception for the given
 // pod and annotation kind.
 //
-// IP ranges are excluded from sidecar interception when the pod is explicitly annotated with a single or
+// IP ranges are included/excluded from sidecar interception when the pod is explicitly annotated with a single or
 // comma separate list of IP CIDR ranges.
 //
-// The kind of exclusion (inbound vs outbound) is determined by the specified annotation.
+// The kind of exclusion (inclusion vs exclusion) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether IP ranges need to be excluded from outbound sidecar interception.
-func getOutboundIPRangeExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]string, error) {
+func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation string) ([]string, error) {
 	ipRangeExclusionsStr, ok := pod.Annotations[annotation]
 	if !ok {
 		// No port exclusion annotation specified
@@ -105,18 +108,18 @@ func getOutboundIPRangeExclusionListForPod(pod *corev1.Pod, namespace string, an
 	return ipRanges, nil
 }
 
-// mergeIPRangeExclusionLists merges the pod specific and global IP range exclusion lists
-func mergeIPRangeExclusionLists(podSpecificExclusionList, globalExclusionList []string) []string {
+// mergeIPRangeLists merges the pod specific and global IP range (exclusion/inclusion) lists
+func mergeIPRangeLists(podSpecific, global []string) []string {
 	ipSet := mapset.NewSet()
 	var ipRanges []string
 
-	for _, ip := range podSpecificExclusionList {
+	for _, ip := range podSpecific {
 		if addedToSet := ipSet.Add(ip); addedToSet {
 			ipRanges = append(ipRanges, ip)
 		}
 	}
 
-	for _, ip := range globalExclusionList {
+	for _, ip := range global {
 		if addedToSet := ipSet.Add(ip); addedToSet {
 			ipRanges = append(ipRanges, ip)
 		}

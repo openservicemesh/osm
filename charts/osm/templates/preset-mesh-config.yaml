@@ -17,7 +17,8 @@ data:
         "enablePermissiveTrafficPolicyMode": {{.Values.osm.enablePermissiveTrafficPolicy | mustToJson}},
         "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},
         "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
-        "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}}
+        "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}},
+        "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}}
       },
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
