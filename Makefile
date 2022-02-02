@@ -141,7 +141,11 @@ kind-demo: .env kind-up clean-osm
 
 .PHONE: build-bookwatcher
 build-bookwatcher:
+<<<<<<< HEAD
 	go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
+=======
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
+>>>>>>> 1fe17a7d (remove nodeselector, but changed to arm64)
 
 DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
 # docker-build-bookbuyer, etc
