@@ -64,9 +64,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookwarehouse
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         # Main container with APP
         - name: bookwarehouse

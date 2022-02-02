@@ -15,9 +15,6 @@ spec:
         testing: test
     spec:
       {{- with .Values.osm.imagePullSecrets }}
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end}}

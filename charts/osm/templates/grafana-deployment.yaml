@@ -24,9 +24,6 @@ spec:
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       serviceAccountName: osm-grafana
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         - name: grafana
           image: {{.Values.osm.grafana.image}}

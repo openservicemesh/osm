@@ -88,9 +88,6 @@ spec:
         version: $VERSION
     spec:
       serviceAccountName: "$SVC"
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
