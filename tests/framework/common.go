@@ -1196,8 +1196,13 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 	if td.CollectLogs == CollectLogs || td.CollectLogs == ControlPlaneOnly ||
 		((restartSeen && !td.IgnoreRestarts) || CurrentGinkgoTestDescription().Failed) && td.CollectLogs == CollectLogsIfErrorOnly {
 		// Grab logs. We will move this to use CLI when able.
+
 		if err := td.GrabLogs(); err != nil {
 			td.T.Logf("Error getting logs: %v", err)
+		}
+
+		if err := td.GetBugReport(); err != nil {
+			td.T.Logf("Error getting bug report: %v", err)
 		}
 	}
 
@@ -1387,6 +1392,29 @@ func (td *OsmTestData) GetOsmCtlComponentRestarts() map[string]int {
 	}
 
 	return restartMap
+}
+
+// GetBugReport runs the "osm support bug-report" command
+func (td *OsmTestData) GetBugReport() error {
+	absTestDirPath, err := filepath.Abs(td.GetTestDirPath())
+	if err != nil {
+		return err
+	}
+
+	args := []string{"support", "bug-report", "--all", fmt.Sprintf("-o=%s/osm_bug_report.tar.gz", absTestDirPath)}
+
+	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+
+	td.T.Logf("stdout:\n%s", stdout)
+
+	if err != nil {
+		td.T.Logf("error running osm support bug-report")
+		td.T.Logf("stdout:\n%s", stdout)
+		td.T.Logf("stderr:\n%s", stderr)
+		return errors.Wrap(err, "failed to run osm support bug-report")
+	}
+
+	return nil
 }
 
 // GrabLogs Collects logs on test folder for td.OsmNamespace
