@@ -569,7 +569,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
+		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		close(stop)
 	})
@@ -585,7 +585,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg)
+		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())

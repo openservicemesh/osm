@@ -44,7 +44,7 @@ const (
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator, initContainerPullPolicy corev1.PullPolicy) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the MutatingWebhookConfiguration
@@ -63,14 +63,15 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	}
 
 	wh := mutatingWebhook{
-		config:         config,
-		kubeClient:     kubeClient,
-		certManager:    certManager,
-		kubeController: kubeController,
-		osmNamespace:   osmNamespace,
-		meshName:       meshName,
-		cert:           webhookHandlerCert,
-		configurator:   cfg,
+		config:                  config,
+		kubeClient:              kubeClient,
+		certManager:             certManager,
+		kubeController:          kubeController,
+		osmNamespace:            osmNamespace,
+		meshName:                meshName,
+		cert:                    webhookHandlerCert,
+		configurator:            cfg,
+		initContainerPullPolicy: initContainerPullPolicy,
 
 		// Envoy sidecars should never be injected in these namespaces
 		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{

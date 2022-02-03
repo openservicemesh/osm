@@ -9,12 +9,13 @@ import (
 
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
-	inboundPortExclusionList []int, enablePrivilegedInitContainer bool) corev1.Container {
+	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy) corev1.Container {
 	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList)
 
 	return corev1.Container{
-		Name:  containerName,
-		Image: cfg.GetInitContainerImage(),
+		Name:            containerName,
+		Image:           cfg.GetInitContainerImage(),
+		ImagePullPolicy: pullPolicy,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: &enablePrivilegedInitContainer,
 			Capabilities: &corev1.Capabilities{

@@ -4,6 +4,7 @@ package injector
 
 import (
 	mapset "github.com/deckarep/golang-set"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -20,14 +21,15 @@ var log = logger.New("sidecar-injector")
 
 // mutatingWebhook is the type used to represent the webhook for sidecar injection
 type mutatingWebhook struct {
-	config         Config
-	kubeClient     kubernetes.Interface
-	certManager    certificate.Manager
-	kubeController k8s.Controller
-	osmNamespace   string
-	meshName       string
-	cert           certificate.Certificater
-	configurator   configurator.Configurator
+	config                  Config
+	kubeClient              kubernetes.Interface
+	certManager             certificate.Manager
+	kubeController          k8s.Controller
+	osmNamespace            string
+	meshName                string
+	cert                    certificate.Certificater
+	configurator            configurator.Configurator
+	initContainerPullPolicy corev1.PullPolicy
 
 	nonInjectNamespaces mapset.Set
 }
