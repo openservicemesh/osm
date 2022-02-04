@@ -3,6 +3,7 @@ package route
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -10,6 +11,10 @@ import (
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -232,12 +237,8 @@ func buildRoute(weightedClusters trafficpolicy.RouteWeightedClusters, method str
 				},
 				// Disable default 15s timeout. This otherwise results in requests that take
 				// longer than 15s to timeout, e.g. large file transfers.
-				Timeout: &duration.Duration{Seconds: 0},
-				RetryPolicy: &xds_route.RetryPolicy{
-					RetryOn:       weightedClusters.RetryPolicy.RetryOn,
-					NumRetries:    weightedClusters.RetryPolicy.NumRetries,
-					PerTryTimeout: weightedClusters.RetryPolicy.PerTryTimeout,
-				},
+				Timeout:     &duration.Duration{Seconds: 0},
+				RetryPolicy: buildRetryPolicy(weightedClusters.RetryPolicy),
 			},
 		},
 	}
@@ -285,6 +286,39 @@ func buildWeightedCluster(weightedClusters mapset.Set) *xds_route.WeightedCluste
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(wc.Clusters))
 	return &wc
+}
+
+// TODO: Add validation webhook for retry policy
+func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
+	if retry == nil {
+		return nil
+	}
+
+	rp := &xds_route.RetryPolicy{}
+
+	rp.RetryOn = retry.RetryOn
+	rp.NumRetries = &wrapperspb.UInt32Value{
+		Value: uint32(retry.NumRetries),
+	}
+	rp.PerTryTimeout = timeToDuration(retry.PerTryTimeout)
+	rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
+		BaseInterval: timeToDuration(retry.RetryBackoffBaseInterval),
+	}
+
+	return rp
+}
+
+func timeToDuration(timeStr string) *durationpb.Duration {
+	if timeStr == "" {
+		return nil
+	}
+
+	duration, err := time.ParseDuration(timeStr)
+	if err != nil {
+		log.Error().Msgf("Error parsing time: %s", timeStr)
+		return nil
+	}
+	return durationpb.New(duration)
 }
 
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of

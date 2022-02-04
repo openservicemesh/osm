@@ -41,6 +41,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&EgressList{},
 		&IngressBackend{},
 		&IngressBackendList{},
+		&Retry{},
+		&RetryList{},
 	)
 
 	metav1.AddToGroupVersion(

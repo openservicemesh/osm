@@ -18,3 +18,5 @@ package v1alpha1
 type EgressExpansion interface{}
 
 type IngressBackendExpansion interface{}
+
+type RetryExpansion interface{}

@@ -63,3 +63,17 @@ func (mr *MockControllerMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockController)(nil).ListEgressPoliciesForSourceIdentity), arg0)
 }
+
+// ListRetryPolicies mocks base method.
+func (m *MockController) ListRetryPolicies(arg0 identity.K8sServiceAccount) []*v1alpha1.Retry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRetryPolicies", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Retry)
+	return ret0
+}
+
+// ListRetryPolicies indicates an expected call of ListRetryPolicies.
+func (mr *MockControllerMockRecorder) ListRetryPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockController)(nil).ListRetryPolicies), arg0)
+}

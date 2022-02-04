@@ -34,7 +34,7 @@ type MeshCatalog struct {
 	// lookups
 	kubeController k8s.Controller
 
-	// policyController implements the functionality related to the resources part of the policy.openrservicemesh.io
+	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.
 	policyController policy.Controller
 }
@@ -44,7 +44,7 @@ type MeshCataloger interface {
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// ListOutboundServicesForMulticlusterGateway  lists the upstream services for the multicluster gateway
+	// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
 	ListOutboundServicesForMulticlusterGateway() []service.MeshService
 
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity

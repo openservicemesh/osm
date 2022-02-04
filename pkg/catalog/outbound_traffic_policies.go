@@ -91,6 +91,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			upstreamClusters = append(upstreamClusters, wc)
 		}
 
+		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
+
 		// ---
 		// Create a TrafficMatch for this upstream service and port combination.
 		// The TrafficMatch will be used by LDS to program a filter chain match
@@ -114,7 +116,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
 		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
-		if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, upstreamClusters...); err != nil {
+		if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 				Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
 			continue

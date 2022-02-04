@@ -14,10 +14,11 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -68,6 +69,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 									Route: trafficpolicy.RouteWeightedClusters{
 										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+										RetryPolicy:      nil,
 									},
 									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
 								},
@@ -330,7 +332,6 @@ func TestBuildInboundRoutes(t *testing.T) {
 		ClusterName: "default/testCluster|80|local",
 		Weight:      100,
 	}
-
 	testCases := []struct {
 		name       string
 		inputRules []*trafficpolicy.Rule
@@ -411,7 +412,12 @@ func TestBuildOutboundRoutes(t *testing.T) {
 				Headers:       map[string]string{"hello": "world"},
 			},
 			WeightedClusters: mapset.NewSet(testWeightedCluster),
-			RetryPolicy:      trafficpolicy.RetryPolicy{},
+			RetryPolicy: &policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "4xx",
+				PerTryTimeout:            "2s",
+				NumRetries:               45,
+				RetryBackoffBaseInterval: "3s",
+			},
 		},
 	}
 	actual := buildOutboundRoutes(input)
@@ -422,7 +428,15 @@ func TestBuildOutboundRoutes(t *testing.T) {
 	assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().TotalWeight.GetValue())
 	assert.Equal("testCluster", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
 	assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
-	assert.Equal(&xds_route.RetryPolicy{}, actual[0].GetRoute().RetryPolicy)
+	retry := &xds_route.RetryPolicy{
+		RetryOn:       "4xx",
+		PerTryTimeout: timeToDuration("2s"),
+		NumRetries:    &wrapperspb.UInt32Value{Value: 45},
+		RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
+			BaseInterval: timeToDuration("3s"),
+		},
+	}
+	assert.Equal(retry, actual[0].GetRoute().GetRetryPolicy())
 }
 
 func TestBuildRoute(t *testing.T) {
@@ -445,7 +459,12 @@ func TestBuildRoute(t *testing.T) {
 				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 30},
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70}}),
-				RetryPolicy: trafficpolicy.RetryPolicy{},
+				RetryPolicy: &policyv1alpha1.RetryPolicySpec{
+					RetryOn:                  "4xx",
+					PerTryTimeout:            "2s",
+					NumRetries:               45,
+					RetryBackoffBaseInterval: "3s",
+				},
 			},
 			method: "GET",
 			expectedRoute: &xds_route.Route{
@@ -503,8 +522,15 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						Timeout:     &duration.Duration{Seconds: 0},
-						RetryPolicy: &xds_route.RetryPolicy{},
+						Timeout: &duration.Duration{Seconds: 0},
+						RetryPolicy: &xds_route.RetryPolicy{
+							RetryOn:       "4xx",
+							PerTryTimeout: timeToDuration("2s"),
+							NumRetries:    &wrapperspb.UInt32Value{Value: 45},
+							RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
+								BaseInterval: timeToDuration("3s"),
+							},
+						},
 					},
 				},
 			},
@@ -519,7 +545,9 @@ func TestBuildRoute(t *testing.T) {
 				},
 				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
-				RetryPolicy: trafficpolicy.RetryPolicy{},
+				RetryPolicy: &policyv1alpha1.RetryPolicySpec{
+					RetryOn: "4xx",
+				},
 			},
 			method: "GET",
 			expectedRoute: &xds_route.Route{
@@ -573,8 +601,12 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						Timeout:     &duration.Duration{Seconds: 0},
-						RetryPolicy: &xds_route.RetryPolicy{},
+						Timeout: &duration.Duration{Seconds: 0},
+						RetryPolicy: &xds_route.RetryPolicy{
+							RetryOn:      "4xx",
+							NumRetries:   &wrapperspb.UInt32Value{},
+							RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{},
+						},
 					},
 				},
 			},
@@ -589,7 +621,7 @@ func TestBuildRoute(t *testing.T) {
 				},
 				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
-				RetryPolicy: trafficpolicy.RetryPolicy{RetryOn: "apple"},
+				RetryPolicy: nil,
 			},
 			method: "GET",
 			expectedRoute: &xds_route.Route{
@@ -622,10 +654,8 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						Timeout: &duration.Duration{Seconds: 0},
-						RetryPolicy: &xds_route.RetryPolicy{
-							RetryOn: "apple",
-						},
+						Timeout:     &duration.Duration{Seconds: 0},
+						RetryPolicy: nil,
 					},
 				},
 			},
@@ -640,10 +670,7 @@ func TestBuildRoute(t *testing.T) {
 				},
 				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
-				RetryPolicy: trafficpolicy.RetryPolicy{
-					RetryOn:       "banana",
-					PerTryTimeout: &duration.Duration{Seconds: 2},
-					NumRetries:    &wrapperspb.UInt32Value{Value: 45}},
+				RetryPolicy: nil,
 			},
 			method: "GET",
 			expectedRoute: &xds_route.Route{
@@ -676,12 +703,8 @@ func TestBuildRoute(t *testing.T) {
 								TotalWeight: &wrappers.UInt32Value{Value: 100},
 							},
 						},
-						Timeout: &duration.Duration{Seconds: 0},
-						RetryPolicy: &xds_route.RetryPolicy{
-							RetryOn:       "banana",
-							PerTryTimeout: &duration.Duration{Seconds: 2},
-							NumRetries:    &wrapperspb.UInt32Value{Value: 45},
-						},
+						Timeout:     &duration.Duration{Seconds: 0},
+						RetryPolicy: nil,
 					},
 				},
 			},
@@ -738,6 +761,59 @@ func TestBuildWeightedCluster(t *testing.T) {
 
 			assert.Len(actual.Clusters, tc.expectedClusters)
 			assert.EqualValues(tc.expectedTotalWeight, actual.TotalWeight.GetValue())
+		})
+	}
+}
+
+func TestBuildRetryPolicy(t *testing.T) {
+	testCases := []struct {
+		name        string
+		retryPolicy *policyv1alpha1.RetryPolicySpec
+		expRetry    *xds_route.RetryPolicy
+	}{
+		{
+			name:        "no retry",
+			retryPolicy: nil,
+			expRetry:    nil,
+		},
+		{
+			name: "valid retry policy",
+			retryPolicy: &policyv1alpha1.RetryPolicySpec{
+				RetryOn: "2xx",
+			},
+			expRetry: &xds_route.RetryPolicy{
+				RetryOn:      "2xx",
+				NumRetries:   &wrapperspb.UInt32Value{},
+				RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{},
+			},
+		},
+		{
+			name: "valid retry policy with all fields",
+			retryPolicy: &policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "2xx",
+				PerTryTimeout:            "2s",
+				NumRetries:               4,
+				RetryBackoffBaseInterval: "9s",
+			},
+			expRetry: &xds_route.RetryPolicy{
+				RetryOn:       "2xx",
+				PerTryTimeout: timeToDuration("2s"),
+				NumRetries: &wrapperspb.UInt32Value{
+					Value: uint32(4),
+				},
+				RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
+					BaseInterval: timeToDuration("9s"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			actual := buildRetryPolicy(tc.retryPolicy)
+			assert.Equal(tc.expRetry, actual)
 		})
 	}
 }
@@ -965,11 +1041,7 @@ func TestBuildEgressRoute(t *testing.T) {
 						WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 							service.WeightedCluster{ClusterName: "foo.com:80", Weight: 100},
 						}),
-						RetryPolicy: trafficpolicy.RetryPolicy{
-							RetryOn:       "pear",
-							PerTryTimeout: &duration.Duration{Seconds: 2},
-							NumRetries:    &wrapperspb.UInt32Value{Value: 3},
-						},
+						RetryPolicy: nil,
 					},
 				},
 				{
@@ -982,11 +1054,7 @@ func TestBuildEgressRoute(t *testing.T) {
 						WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 							service.WeightedCluster{ClusterName: "foo.com:80", Weight: 100},
 						}),
-						RetryPolicy: trafficpolicy.RetryPolicy{
-							RetryOn:       "cake",
-							PerTryTimeout: &duration.Duration{Seconds: 2},
-							NumRetries:    &wrapperspb.UInt32Value{Value: 3},
-						},
+						RetryPolicy: nil,
 					},
 				},
 			},
@@ -1024,12 +1092,8 @@ func TestBuildEgressRoute(t *testing.T) {
 									TotalWeight: &wrappers.UInt32Value{Value: 100},
 								},
 							},
-							Timeout: &duration.Duration{Seconds: 0},
-							RetryPolicy: &xds_route.RetryPolicy{
-								RetryOn:       "pear",
-								PerTryTimeout: &duration.Duration{Seconds: 2},
-								NumRetries:    &wrapperspb.UInt32Value{Value: 3},
-							},
+							Timeout:     &duration.Duration{Seconds: 0},
+							RetryPolicy: nil,
 						},
 					},
 				},
@@ -1066,12 +1130,8 @@ func TestBuildEgressRoute(t *testing.T) {
 									TotalWeight: &wrappers.UInt32Value{Value: 100},
 								},
 							},
-							Timeout: &duration.Duration{Seconds: 0},
-							RetryPolicy: &xds_route.RetryPolicy{
-								RetryOn:       "cake",
-								PerTryTimeout: &duration.Duration{Seconds: 2},
-								NumRetries:    &wrapperspb.UInt32Value{Value: 3},
-							},
+							Timeout:     &duration.Duration{Seconds: 0},
+							RetryPolicy: nil,
 						},
 					},
 				},
@@ -1166,6 +1226,7 @@ func TestBuildOutboundMeshRouteConfiguration(t *testing.T) {
 					},
 				},
 			},
+
 			expectedRouteConfigs: []*xds_route.RouteConfiguration{
 				{
 					Name:             "rds-outbound.80",
@@ -1217,8 +1278,7 @@ func TestBuildOutboundMeshRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
@@ -1270,8 +1330,7 @@ func TestBuildOutboundMeshRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
@@ -1329,8 +1388,7 @@ func TestBuildOutboundMeshRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
@@ -1380,7 +1438,6 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 										service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
 									}),
-									RetryPolicy: trafficpolicy.RetryPolicy{},
 								},
 							},
 						},
@@ -1398,7 +1455,6 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 										service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
 									}),
-									RetryPolicy: trafficpolicy.RetryPolicy{},
 								},
 							},
 						},
@@ -1418,7 +1474,6 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 										service.WeightedCluster{ClusterName: service.ClusterName("baz.com:90"), Weight: 100},
 									}),
-									RetryPolicy: trafficpolicy.RetryPolicy{},
 								},
 							},
 						},
@@ -1470,8 +1525,7 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
@@ -1517,8 +1571,7 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
@@ -1570,8 +1623,7 @@ func TestBuildEgressRouteConfiguration(t *testing.T) {
 													TotalWeight: &wrappers.UInt32Value{Value: 100},
 												},
 											},
-											Timeout:     &duration.Duration{Seconds: 0},
-											RetryPolicy: &xds_route.RetryPolicy{},
+											Timeout: &duration.Duration{Seconds: 0},
 										},
 									},
 								},
