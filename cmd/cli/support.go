@@ -20,6 +20,7 @@ func newSupportCmd(config *action.Configuration, stdout io.Writer, stderr io.Wri
 		Args:  cobra.NoArgs,
 	}
 	cmd.AddCommand(newSupportErrInfoCmd(stdout))
+	cmd.AddCommand(newOsmControllerDebugServerCmd(stdout))
 	cmd.AddCommand(newSupportBugReportCmd(config, stdout, stderr))
 
 	return cmd

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/pprof"
 
+	"github.com/openservicemesh/osm/pkg/constants"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -33,7 +35,7 @@ func (ds DebugConfig) GetHandlers() map[string]http.Handler {
 	}
 
 	// provides an index of the available /debug endpoints
-	handlers["/debug"] = ds.getDebugIndex(handlers)
+	handlers[constants.DebugServerIndexPath] = ds.getDebugIndex(handlers)
 
 	return handlers
 }

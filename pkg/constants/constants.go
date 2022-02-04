@@ -70,6 +70,9 @@ const (
 	// DebugPort is the port on which OSM exposes its debug server
 	DebugPort = 9092
 
+	// DebugServerIndexPath is the path on which OSM exposes its debug server
+	DebugServerIndexPath = "/debug"
+
 	// ValidatorWebhookPort is the port on which the resource validator webhook listens
 	ValidatorWebhookPort = 9093
 
