@@ -194,13 +194,35 @@ func (i *installCmd) validateOptions() error {
 		return err
 	}
 
+	osmControllerDeployments, err := getControllerDeployments(i.clientSet)
+	if err != nil {
+		return err
+	}
+
+	// Check if single mesh cluster is already specified
+	debug("Verifying if single-mesh is enforced in the cluster")
+	for _, deployment := range osmControllerDeployments.Items {
+		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == trueValue
+		name := deployment.ObjectMeta.Labels["meshName"]
+		if singleMeshEnforced {
+			return errors.Errorf("Cannot install mesh [%s]. Existing mesh [%s] enforces single mesh cluster.", i.meshName, name)
+		}
+	}
+
+	// Enforce single mesh cluster if needed
+	if i.enforceSingleMesh {
+		if len(osmControllerDeployments.Items) != 0 {
+			return errAlreadyExists
+		}
+	}
+
 	// ensure no control plane exists in cluster with the same meshName
 	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
-	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
+	osmControllerDeployments, err = deploymentsClient.List(context.TODO(), listOptions)
 	if err != nil {
 		return err
 	}
@@ -220,28 +242,6 @@ func (i *installCmd) validateOptions() error {
 		return errNamespaceAlreadyHasController(settings.Namespace())
 	} else if err != nil {
 		return annotateErrorMessageWithOsmNamespace("Error ensuring no osm-controller running in OSM namespace [%s]: %s", settings.Namespace(), err)
-	}
-
-	osmControllerDeployments, err = getControllerDeployments(i.clientSet)
-	if err != nil {
-		return err
-	}
-
-	// Check if single mesh cluster is already specified
-	debug("Verifying if single-mesh is enforced in the cluster")
-	for _, deployment := range osmControllerDeployments.Items {
-		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == "true"
-		name := deployment.ObjectMeta.Labels["meshName"]
-		if singleMeshEnforced {
-			return errors.Errorf("Cannot install mesh [%s]. Existing mesh [%s] enforces single mesh cluster.", i.meshName, name)
-		}
-	}
-
-	// Enforce single mesh cluster if needed
-	if i.enforceSingleMesh {
-		if len(osmControllerDeployments.Items) != 0 {
-			return errAlreadyExists
-		}
 	}
 
 	s := map[string]interface{}{}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -29,15 +28,10 @@ import (
 )
 
 var (
-	testRegistry           = "test-registry"
-	testRegistrySecret     = "test-registry-secret"
-	testOsmImageTag        = "test-tag"
-	testVaultHost          = "vault.osm.svc.cluster.local"
-	testVaultToken         = "token"
-	testRetentionTime      = "5d"
-	testEnvoyLogLevel      = "error"
-	testControllerLogLevel = "info"
-	testChartPath          = "testdata/test-chart"
+	testRegistrySecret = "test-registry-secret"
+	testVaultHost      = "vault.osm.svc.cluster.local"
+	testVaultToken     = "token"
+	testChartPath      = "testdata/test-chart"
 )
 
 var _ = Describe("Running the install command", func() {
@@ -351,7 +345,7 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("when a mesh with the given name already exists", func() {
+	Describe("when a mesh with the given name already exists and enforceSingleMesh is false", func() {
 		var (
 			out           *bytes.Buffer
 			store         *storage.Storage
@@ -385,6 +379,7 @@ var _ = Describe("Running the install command", func() {
 			installCmd = getDefaultInstallCmd(out)
 			// Use the client set with the existing mesh deployment
 			installCmd.clientSet = fakeClientSet
+			installCmd.enforceSingleMesh = false
 
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
@@ -411,7 +406,7 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("when a mesh already exists in the given namespace", func() {
+	Describe("when a mesh already exists in the given namespace and enforceSingleMesh is false", func() {
 		var (
 			out           *bytes.Buffer
 			store         *storage.Storage
@@ -445,6 +440,7 @@ var _ = Describe("Running the install command", func() {
 			installCmd = getDefaultInstallCmd(out)
 			installCmd.meshName = defaultMeshName + "-2" //use different name than pre-existing mesh
 			installCmd.clientSet = fakeClientSet
+			installCmd.enforceSingleMesh = false
 
 			// Create pre-existing mesh
 			err = config.Releases.Create(&release.Release{
@@ -647,142 +643,78 @@ func TestEnforceSingleMesh(t *testing.T) {
 		Capabilities: chartutil.DefaultCapabilities,
 		Log:          func(format string, v ...interface{}) {},
 	}
-
 	fakeClientSet := fake.NewSimpleClientset()
 
-	install := &installCmd{
-		out:               out,
-		chartPath:         testChartPath,
-		meshName:          defaultMeshName,
-		clientSet:         fakeClientSet,
-		enforceSingleMesh: true,
-		setOptions: []string{
-			fmt.Sprintf("osm.image.registry=%s", testRegistry),
-			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
-			"osm.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
-			"osm.certificateProvider.serviceCertValidityDuration=24h",
-			"osm.deployGrafana=false",
-			"osm.enableIngress=true",
-			"osm.certificateProvider.kind=tresor",
+	testCases := []struct {
+		name             string
+		createDeployment bool
+		deploymentSpec   *v1.Deployment
+		install          installCmd
+		expErr           string
+		expOut           string
+	}{
+		{
+			name:             "Install mesh with single mesh enforced",
+			createDeployment: false,
+			install:          getDefaultInstallCmd(out),
+			expErr:           "",
+			expOut:           "OSM installed successfully in namespace [osm-system] with mesh name [osm]\n",
+		},
+		{
+			name:             "Reject mesh because single mesh is enforced",
+			createDeployment: true,
+			deploymentSpec: &v1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.OSMControllerName,
+					Namespace: settings.Namespace() + "-existing",
+					Labels:    map[string]string{"meshName": defaultMeshName, constants.AppLabel: constants.OSMControllerName, "enforceSingleMesh": "true"},
+				},
+			},
+			install: installCmd{
+				out:        out,
+				chartPath:  testChartPath,
+				meshName:   defaultMeshName,
+				clientSet:  fakeClientSet,
+				setOptions: []string{},
+			},
+			expErr: "Cannot install mesh [osm]. Existing mesh [osm] enforces single mesh cluster.",
+			expOut: "",
+		},
+		{
+			name:             "Enforce Single Mesh With Existing Mesh",
+			createDeployment: true,
+			deploymentSpec:   createDeploymentSpec(settings.Namespace()+"-existing", defaultMeshName),
+			install: installCmd{
+				out:               out,
+				chartPath:         testChartPath,
+				meshName:          defaultMeshName,
+				clientSet:         fakeClientSet,
+				enforceSingleMesh: true,
+				setOptions:        []string{},
+			},
+			expErr: "Meshes already exist in cluster. Cannot enforce single mesh cluster.",
+			expOut: "",
 		},
 	}
-
-	err := install.run(config)
-	assert.Nil(err)
-	assert.Equal(out.String(), "OSM installed successfully in namespace [osm-system] with mesh name [osm]\n")
-}
-
-func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
-	assert := tassert.New(t)
-
-	out := new(bytes.Buffer)
-	store := storage.Init(driver.NewMemory())
-	if mem, ok := store.Driver.(*driver.Memory); ok {
-		mem.SetNamespace(settings.Namespace())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.createDeployment {
+				_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), tc.deploymentSpec, metav1.CreateOptions{})
+				assert.Nil(err)
+			}
+			i := tc.install
+			err := i.run(config)
+			if err != nil {
+				assert.Equal(tc.expErr, err.Error())
+			} else {
+				assert.Equal(out.String(), tc.expOut)
+			}
+			if tc.createDeployment {
+				err = fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Delete(context.TODO(), constants.OSMControllerName, metav1.DeleteOptions{})
+				assert.Nil(err)
+			}
+		})
 	}
-
-	config := &helm.Configuration{
-		Releases: store,
-		KubeClient: &kubefake.PrintingKubeClient{
-			Out: ioutil.Discard,
-		},
-		Capabilities: chartutil.DefaultCapabilities,
-		Log:          func(format string, v ...interface{}) {},
-	}
-
-	fakeClientSet := fake.NewSimpleClientset()
-
-	labelMap := make(map[string]string)
-	labelMap["meshName"] = defaultMeshName
-	labelMap[constants.AppLabel] = constants.OSMControllerName
-	labelMap["enforceSingleMesh"] = "true"
-
-	deploymentSpec := &v1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.OSMControllerName,
-			Namespace: settings.Namespace() + "-existing",
-			Labels:    labelMap,
-		},
-	}
-	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
-	assert.Nil(err)
-
-	install := &installCmd{
-		out:       out,
-		chartPath: testChartPath,
-		meshName:  defaultMeshName + "-2",
-		clientSet: fakeClientSet,
-		setOptions: []string{
-			fmt.Sprintf("osm.image.registry=%s", testRegistry),
-			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
-			"osm.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
-			"osm.certificateProvider.serviceCertValidityDuration=24h",
-			"osm.deployGrafana=false",
-			"osm.deployPrometheus=false",
-			"osm.enableIngress=true",
-			"osm.certificateProvider.kind=tresor",
-		},
-	}
-
-	err = install.run(config)
-	assert.NotNil(err)
-	assert.True(strings.Contains(err.Error(), "Cannot install mesh [osm-2]. Existing mesh [osm] enforces single mesh cluster"))
-}
-
-func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
-	assert := tassert.New(t)
-
-	out := new(bytes.Buffer)
-	store := storage.Init(driver.NewMemory())
-	if mem, ok := store.Driver.(*driver.Memory); ok {
-		mem.SetNamespace(settings.Namespace())
-	}
-
-	config := &helm.Configuration{
-		Releases: store,
-		KubeClient: &kubefake.PrintingKubeClient{
-			Out: ioutil.Discard,
-		},
-		Capabilities: chartutil.DefaultCapabilities,
-		Log:          func(format string, v ...interface{}) {},
-	}
-
-	fakeClientSet := fake.NewSimpleClientset()
-
-	deploymentSpec := createDeploymentSpec(settings.Namespace()+"-existing", defaultMeshName)
-	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
-	assert.Nil(err)
-
-	install := &installCmd{
-		out:               out,
-		chartPath:         testChartPath,
-		meshName:          defaultMeshName + "-2",
-		clientSet:         fakeClientSet,
-		enforceSingleMesh: true,
-		setOptions: []string{
-			fmt.Sprintf("osm.image.registry=%s", testRegistry),
-			fmt.Sprintf("osm.image.tag=%s", testOsmImageTag),
-			"osm.image.pullPolicy=IfNotPresent",
-			fmt.Sprintf("osm.envoyLogLevel=%s", testEnvoyLogLevel),
-			fmt.Sprintf("osm.controllerLogLevel=%s", testControllerLogLevel),
-			fmt.Sprintf("osm.prometheus.retention.time=%s", testRetentionTime),
-			"osm.certificateProvider.serviceCertValidityDuration=24h",
-			"osm.deployPrometheus=true",
-			"osm.deployGrafana=false",
-			"osm.enableIngress=true",
-			"osm.certificateProvider.kind=tresor",
-		},
-	}
-
-	err = install.run(config)
-	assert.NotNil(err)
-	assert.Equal(err, errAlreadyExists)
 }
 
 func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
