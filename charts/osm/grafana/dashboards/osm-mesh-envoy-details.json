@@ -538,7 +538,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "idelta(osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])",
+          "expr": "sum(rate(osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
@@ -547,7 +547,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Sidecar injector timings (sec)",
+      "title": "Sidecar injector timings (sec) - Heatmap",
       "tooltip": {
         "show": true,
         "showHistogram": false
@@ -625,7 +625,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(idelta(osm_cert_issued_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
+          "expr": "sum(rate(osm_cert_issued_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
@@ -634,7 +634,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Certificate Issue timings (sec)",
+      "title": "Certificate Issue timings (sec) - Heatmap",
       "tooltip": {
         "show": true,
         "showHistogram": false
@@ -657,6 +657,128 @@
       "yBucketBound": "auto",
       "yBucketNumber": null,
       "yBucketSize": null
+    },
+    {
+      "id": 46,
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 28
+      },
+      "type": "bargauge",
+      "title": "Sidecar injector timings (sec) - Distribution",
+      "datasource": "${DS_PROMETHEUS}",
+      "pluginVersion": "8.2.2",
+      "interval": "10s",
+      "targets": [
+        {
+          "expr": "osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}",
+          "legendFormat": "{{le}}",
+          "interval": "",
+          "exemplar": true,
+          "format": "heatmap",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "text": {},
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 80,
+                "color": "red"
+              }
+            ]
+          },
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "timeFrom": null,
+      "timeShift": null
+    },
+    {
+      "id": 47,
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 9,
+        "y": 28
+      },
+      "type": "bargauge",
+      "title": "Certificate Issue timings (sec) - Distribution",
+      "datasource": "${DS_PROMETHEUS}",
+      "pluginVersion": "8.2.2",
+      "interval": "10s",
+      "targets": [
+        {
+          "expr": "osm_cert_issued_time_bucket{source_pod_name=~\"$osm_injector_instance\"}",
+          "legendFormat": "{{le}}",
+          "interval": "",
+          "exemplar": true,
+          "format": "heatmap",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "text": {},
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 80,
+                "color": "red"
+              }
+            ]
+          },
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "timeFrom": null,
+      "timeShift": null
     },
     {
       "cards": {
@@ -698,7 +820,7 @@
         "h": 10,
         "w": 18,
         "x": 0,
-        "y": 28
+        "y": 36
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -712,7 +834,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(idelta(osm_proxy_config_update_time_bucket{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])) by (le)",
+          "expr": "sum(rate(osm_proxy_config_update_time_bucket{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "hide": false,
           "interval": "",
@@ -779,7 +901,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "hiddenSeries": false,
       "id": 36,
@@ -895,7 +1017,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 38
+        "y": 46
       },
       "hiddenSeries": false,
       "id": 37,
@@ -986,7 +1108,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 55
       },
       "id": 41,
       "panels": [],
@@ -1011,7 +1133,7 @@
         "h": 10,
         "w": 18,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "hiddenSeries": false,
       "id": 45,
@@ -1112,7 +1234,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 58
+        "y": 66
       },
       "hiddenSeries": false,
       "id": 39,
@@ -1214,7 +1336,7 @@
         "h": 9,
         "w": 9,
         "x": 9,
-        "y": 58
+        "y": 66
       },
       "hiddenSeries": false,
       "id": 43,
