@@ -2,7 +2,7 @@
 
 ## Process and Tools
 
-The OSM team uses the [Roadmap GitHub Project Board](https://github.com/openservicemesh/osm/projects/3) to track short term (1-3 months) and medium term (3-6 months) efforts. Once a broad objective (from the "Research & Scoping" column) is further scoped into a GitHub issue that has a clear objective, background and motive, it is moved into the "Planned & Scoped" column. From there, the team plans monthly releases via [GitHub Milestones](https://github.com/openservicemesh/osm/milestones).
+The OSM team uses the [Roadmap GitHub Project Board](https://github.com/orgs/openservicemesh/projects/1) to track short term (1-3 months) and medium term (3-6 months) efforts. Once a broad objective (from the "Research & Scoping" column) is further scoped into a GitHub issue that has a clear objective, background and motive, it is moved into the "Planned & Scoped" column. From there, the team plans monthly releases via [GitHub Milestones](https://github.com/openservicemesh/osm/milestones).
 
 ## Current and Future Objectives
 
