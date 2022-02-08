@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -240,15 +241,13 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("without required vault parameters", func() {
 		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
+			installCmd installCmd
+			config     *helm.Configuration
 		)
 
 		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
+			out := new(bytes.Buffer)
+			store := storage.Init(driver.NewMemory())
 			if mem, ok := store.Driver.(*driver.Memory); ok {
 				mem.SetNamespace(settings.Namespace())
 			}
@@ -261,15 +260,24 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			installCmd := getDefaultInstallCmd(out)
+			installCmd = getDefaultInstallCmd(out)
+			installCmd.chartPath = filepath.FromSlash("../../charts/osm")
 			installCmd.setOptions = []string{
 				"osm.certificateProvider.kind=vault",
 			}
-			err = installCmd.run(config)
 		})
 
-		It("should error", func() {
-			Expect(err).To(MatchError("Missing arguments for certificate-manager vault: [osm.vault.host osm.vault.token]"))
+		It("should error when host isn't set", func() {
+			err := installCmd.run(config)
+			Expect(err.Error()).To(ContainSubstring("osm.vault.host is required"))
+		})
+
+		It("should error when token isn't set", func() {
+			installCmd.setOptions = append(installCmd.setOptions,
+				"osm.vault.host=my-host",
+			)
+			err := installCmd.run(config)
+			Expect(err.Error()).To(ContainSubstring("osm.vault.token is required"))
 		})
 	})
 
