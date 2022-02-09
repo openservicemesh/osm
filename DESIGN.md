@@ -36,28 +36,10 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 
 ## OSM Components & Interactions
-![OSM Components & Interactions](/docs/development_guide/osm-components-and-interactions.png)
+![OSM Components & Interactions](/docs/images/osm-components-and-interactions.png)
 
 ### Containers
-When a new Pod creation is initiated, OSM's
-[MutatingWebhookConfiguration](/charts/osm/templates/mutatingwebhook.yaml)
-intercepts the
-[create](/charts/osm/templates/mutatingwebhook.yaml#L40)
-[pod](/pkg/injector/webhook.go#L42)
-operations for [namespaces joined to the mesh](/charts/osm/templates/mutatingwebhook.yaml#L22),
-and forwards these API calls to the
-[OSM control plane](/charts/osm/templates/mutatingwebhook.yaml#L12).
-OSM control plane augments ([patches](/pkg/injector/webhook.go#L256-L262))
-the Pod spec with 2 new containers.
-One is the [Envoy sidecar](/pkg/injector/patch.go#L67),
-the other is an [init container](/pkg/injector/patch.go#L63).
-The init container is ephemeral. It executes a [generated `iptables` script](/pkg/injector/iptables.go)
-and terminates.
-The init container requires [NET_ADMIN Kernel capability](/pkg/injector/init-container.go#L21-L25) for
-[iptables](https://en.wikipedia.org/wiki/Iptables) changes to be applied.
-OSM uses `iptables` to ensure that all inbound and outbound traffic flows through the Envoy sidecar.
-The [init container Docker image](https://hub.docker.com/r/openservicemesh/init)
-is passed as a string pointing to a container registry. This is passed via the `spec.sidecar.initContainerImage` field of the `MeshConfig`. The default value is defined in the [chart values](/charts/osm/values.yaml#L20).
+When a new Pod creation is initiated, OSM's [Sidecar Injector](/pkg/injector/webhook.go) intercepts the create pod operations for namespaces joined to the mesh, and forwards these API calls to the OSM control plane. OSM control plane [patches](/pkg/injector/patch.go) the Pod spec with two new containers - 1. Init container, 2. Envoy sidecar. The init container is ephemeral. It executes a [set of `iptables` commands](/pkg/injector/iptables.go) and terminates. The init container requires [NET_ADMIN Kernel capability](/pkg/injector/init_container.go) for [iptables](https://en.wikipedia.org/wiki/Iptables) changes to be applied. OSM uses `iptables` to ensure that all inbound and outbound traffic is intercepted and redirected to the Envoy sidecar. The [init container Docker image](https://hub.docker.com/r/openservicemesh/init) is passed as a string pointing to a container registry. This is passed via the `spec.sidecar.initContainerImage` field of the `MeshConfig`. The default value is defined in the [chart values](/charts/osm/values.yaml).
 
 ## High-level software architecture
 
