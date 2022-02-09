@@ -25,6 +25,8 @@ osm:
       osmCRDs: ""
       # -- osm-boostrap's image digest
       osmBootstrap: ""
+      # -- osm-preinstall's image digest
+      osmPreinstall: ""
 
 
   # -- `osm-controller` image pull secret
