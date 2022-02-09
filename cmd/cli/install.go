@@ -249,28 +249,6 @@ func (i *installCmd) validateOptions() error {
 		return errors.Wrap(err, "invalid format for --set")
 	}
 
-	if setOptions, ok := s["osm"].(map[string]interface{}); ok {
-		// if the certificate provider kind is vault, ensure all relevant information (vault-host, vault-token) is available
-		if certProvider, ok := setOptions["certificateProvider"].(map[string]interface{}); ok && certProvider["kind"] == "vault" {
-			var missingFields []string
-			vaultOptions, ok := setOptions["vault"].(map[string]interface{})
-			if !ok {
-				missingFields = append(missingFields, "osm.vault.host", "osm.vault.token")
-			} else {
-				if vaultOptions["host"] == nil || vaultOptions["host"] == "" {
-					missingFields = append(missingFields, "osm.vault.host")
-				}
-				if vaultOptions["token"] == nil || vaultOptions["token"] == "" {
-					missingFields = append(missingFields, "osm.vault.token")
-				}
-			}
-
-			if len(missingFields) != 0 {
-				return errors.Errorf("Missing arguments for certificate-manager vault: %v", missingFields)
-			}
-		}
-	}
-
 	return nil
 }
 
