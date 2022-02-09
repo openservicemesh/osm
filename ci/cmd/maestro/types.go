@@ -1,7 +1,6 @@
 package maestro
 
 import (
-	"errors"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -46,6 +45,5 @@ var (
 	// FailureLogsFromTimeSince is the interval we go back in time to get pod logs
 	FailureLogsFromTimeSince = 10 * time.Minute
 
-	log            = logger.NewPretty("ci/maestro")
-	errNoPodsFound = errors.New("no pods found")
+	log = logger.NewPretty("ci/maestro")
 )

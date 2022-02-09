@@ -197,8 +197,7 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 	// and the ones that didn't share the same code.
 	cert, err := GetCertFromKubernetes(ns, secretName, kubeClient)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch certificate from Kubernetes")
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch certificate from Kubernetes: %w", err)
 	}
 
 	return cert, nil
@@ -277,8 +276,7 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 
 	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create new Certificate from PEM")
-		return nil, err
+		return nil, fmt.Errorf("failed to create new Certificate from PEM")
 	}
 
 	return cert, nil
@@ -301,7 +299,7 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certi
 		c.msgBroker,
 	)
 	if err != nil {
-		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
+		return nil, nil, errors.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
 	}
 
 	return vaultCertManager, vaultCertManager, nil
@@ -344,7 +342,7 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 		c.msgBroker,
 	)
 	if err != nil {
-		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
+		return nil, nil, errors.Errorf("error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
 	}
 
 	return certmanagerCertManager, certmanagerCertManager, nil

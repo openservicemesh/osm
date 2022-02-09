@@ -112,8 +112,7 @@ func GetPodName(kubeClient kubernetes.Interface, namespace, selector string) (st
 	}
 
 	if len(podList.Items) == 0 {
-		log.Error().Msgf("Zero pods found for selector %s in namespace %s", selector, namespace)
-		return "", errNoPodsFound
+		return "", fmt.Errorf("zero pods found for selector %s in namespace %s", selector, namespace)
 	}
 
 	sort.SliceStable(podList.Items, func(i, j int) bool {
@@ -235,7 +234,7 @@ func WaitForPodToBeReady(kubeClient kubernetes.Interface, totalWait time.Duratio
 
 		podName, err := GetPodName(kubeClient, namespace, selector)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting Pod w/ selector %q", selector)
+			log.Error().Err(err)
 			time.Sleep(WaitForPod)
 			// Pod might not be up yet, try again
 			continue

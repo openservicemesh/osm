@@ -30,8 +30,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
 	client := &http.Client{}
 	resp, err := client.Get(fmt.Sprintf("http://%s:%d/%s", "localhost", portFwdRequest.LocalPort, url))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
-		return fmt.Sprintf("Error: %s", err)
+		return fmt.Sprintf("Error getting Pod with UID=%s: %s", pod.ObjectMeta.UID, err)
 	}
 
 	defer func() {
@@ -46,8 +45,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
 	}
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
-		return fmt.Sprintf("Error: %s", err)
+		return fmt.Sprintf("Error getting Pod with UID=%s: %s", pod.ObjectMeta.UID, err)
 	}
 
 	return string(bodyBytes)

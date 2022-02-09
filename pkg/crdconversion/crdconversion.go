@@ -61,14 +61,14 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMBootstrapName, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
+		return errors.Errorf("error issuing certificate for the crd-converter: %+v", err)
 	}
 
 	// The following function ensures to atomically create or get the certificate from Kubernetes
 	// secret API store. Multiple instances should end up with the same crdConversionwebhookHandlerCert after this function executed.
 	crdConversionWebhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.CrdConverterCertificateSecretName, crdConversionWebhookHandlerCert, kubeClient)
 	if err != nil {
-		return errors.Errorf("Error fetching crd-converter certificate from k8s secret: %s", err)
+		return errors.Errorf("error fetching crd-converter certificate from k8s secret: %s", err)
 	}
 
 	crdWh := crdConversionWebhook{
@@ -80,7 +80,7 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 	go crdWh.run(stop)
 
 	if err = patchCrds(crdConversionWebhookHandlerCert, crdClient, osmNamespace, enableReconciler); err != nil {
-		return errors.Errorf("Error patching crds with conversion webhook %v", err)
+		return errors.Errorf("error patching crds with conversion webhook %v", err)
 	}
 
 	return nil
@@ -169,8 +169,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 func patchCrds(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
 	for crdName, crdConversionPath := range crdConversionWebhookConfiguration {
 		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
-			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
-			return err
+			return fmt.Errorf("error updating conversion webhook configuration for crd, %s: %w", crdName, err)
 		}
 	}
 	return nil
@@ -209,8 +208,7 @@ func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.A
 	}
 
 	if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {
-		log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
-		return err
+		return fmt.Errorf("error updating conversion webhook configuration for crd, %s: %w", crdName, err)
 	}
 
 	log.Info().Msgf("successfully updated conversion webhook configuration for crd : %s", crdName)

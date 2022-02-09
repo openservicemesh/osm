@@ -52,14 +52,14 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMInjectorName, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
+		return errors.Errorf("error issuing certificate for the mutating webhook: %+v", err)
 	}
 
 	// The following function ensures to atomically create or get the certificate from Kubernetes
 	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
 	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.MutatingWebhookCertificateSecretName, webhookHandlerCert, kubeClient)
 	if err != nil {
-		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
+		return errors.Errorf("error fetching webhook certificate from k8s secret: %s", err)
 	}
 
 	wh := mutatingWebhook{
@@ -85,7 +85,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	go wh.run(stop)
 
 	if err = createOrUpdateMutatingWebhook(wh.kubeClient, webhookHandlerCert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
-		return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		return errors.Errorf("error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 	return nil
 }

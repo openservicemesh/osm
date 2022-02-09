@@ -258,7 +258,7 @@ func (b *bootstrap) ensureMeshConfig() error {
 func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
 	if err != nil {
-		return errors.Errorf("Error fetching osm-bootstrap pod: %s", err)
+		return errors.Errorf("error fetching osm-bootstrap pod: %s", err)
 	}
 	eventRecorder := events.GenericEventRecorder()
 	return eventRecorder.Initialize(bootstrapPod, b.kubeClient, osmNamespace)
@@ -274,8 +274,7 @@ func (b *bootstrap) getBootstrapPod() (*corev1.Pod, error) {
 
 	pod, err := b.kubeClient.CoreV1().Pods(b.namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving osm-bootstrap pod %s", podName)
-		return nil, err
+		return nil, fmt.Errorf("error retrieving osm-bootstrap pod %s: %w", podName, err)
 	}
 
 	return pod, nil

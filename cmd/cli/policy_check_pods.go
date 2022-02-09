@@ -65,7 +65,7 @@ func newPolicyCheckPods(out io.Writer) *cobra.Command {
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 
 			trafficPolicyCheckCmd.restConfig = config
@@ -125,7 +125,7 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 
 	// Check if permissive mode is enabled, in which case every meshed pod is allowed to communicate with each other
 	if permissiveMode, err := cmd.isPermissiveModeEnabled(); err != nil {
-		return errors.Errorf("Error checking if permissive mode is enabled: %s", err)
+		return errors.Errorf("error checking if permissive mode is enabled: %s", err)
 	} else if permissiveMode {
 		fmt.Fprintf(cmd.out, "[+] Permissive mode enabled for mesh operated by osm-controller running in '%s' namespace\n\n "+
 			"[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s'\n",
@@ -137,7 +137,7 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 	fmt.Fprintf(cmd.out, "[+] SMI traffic policy mode enabled for mesh operated by osm-controller running in %s namespace\n\n", osmNamespace)
 	trafficTargets, err := cmd.smiAccessClient.AccessV1alpha3().TrafficTargets(dstPod.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return errors.Errorf("Error listing SMI TrafficTarget policies: %s", err)
+		return errors.Errorf("error listing SMI TrafficTarget policies: %s", err)
 	}
 
 	var foundTrafficTarget bool
@@ -182,7 +182,7 @@ func (cmd *trafficPolicyCheckCmd) isPermissiveModeEnabled() (bool, error) {
 	meshConfig, err := cmd.meshConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace).Get(context.TODO(), defaultOsmMeshConfigName, metav1.GetOptions{})
 
 	if err != nil {
-		return false, errors.Errorf("Error fetching MeshConfig %s: %s", defaultOsmMeshConfigName, err)
+		return false, errors.Errorf("error fetching MeshConfig %s: %s", defaultOsmMeshConfigName, err)
 	}
 	return meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode, nil
 }

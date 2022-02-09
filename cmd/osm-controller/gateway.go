@@ -28,7 +28,7 @@ const (
 func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace string) error {
 	secret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.Background(), gatewayBootstrapSecretName, metav1.GetOptions{})
 	if err != nil {
-		return errors.Errorf("Error fetching OSM gateway's bootstrap config %s/%s", osmNamespace, gatewayBootstrapSecretName)
+		return errors.Errorf("error fetching OSM gateway's bootstrap config %s/%s", osmNamespace, gatewayBootstrapSecretName)
 	}
 
 	if bootstrapData, ok := secret.Data[bootstrapConfigKey]; !ok {
@@ -43,7 +43,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 	gatewayCN := multicluster.GetMulticlusterGatewaySubjectCommonName(osmServiceAccount, osmNamespace)
 	bootstrapCert, err := certManager.IssueCertificate(gatewayCN, constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		return errors.Errorf("Error issuing bootstrap certificate for OSM gateway: %s", err)
+		return errors.Errorf("error issuing bootstrap certificate for OSM gateway: %w", err)
 	}
 
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
@@ -57,12 +57,12 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 		PrivateKey:       bootstrapCert.GetPrivateKey(),
 	})
 	if err != nil {
-		return errors.Errorf("Error building OSM gateway's bootstrap config from %s/%s", osmNamespace, gatewayBootstrapSecretName)
+		return errors.Errorf("error building OSM gateway's bootstrap config from %s/%s", osmNamespace, gatewayBootstrapSecretName)
 	}
 
 	bootstrapData, err := utils.ProtoToYAML(bootstrapConfig)
 	if err != nil {
-		return errors.Errorf("Error marshalling updated OSM gateway's bootstrap config from %s/%s", osmNamespace, gatewayBootstrapSecretName)
+		return errors.Errorf("error marshalling updated OSM gateway's bootstrap config from %s/%s", osmNamespace, gatewayBootstrapSecretName)
 	}
 
 	updatedSecret := &corev1.Secret{
@@ -81,7 +81,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 	}
 
 	if _, err = kubeClient.CoreV1().Secrets(osmNamespace).Patch(context.Background(), gatewayBootstrapSecretName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
-		return errors.Errorf("Error patching OSM gateway's bootstrap secret %s/%s: %s", osmNamespace, gatewayBootstrapSecretName, err)
+		return errors.Errorf("error patching OSM gateway's bootstrap secret %s/%s: %s", osmNamespace, gatewayBootstrapSecretName, err)
 	}
 
 	return nil

@@ -9,7 +9,7 @@ import (
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
 func validateCLIParams() error {
 	if err := validateCertificateManagerOptions(); err != nil {
-		return errors.Errorf("Error validating certificate manager options: %s", err)
+		return errors.Errorf("error validating certificate manager options: %s", err)
 	}
 
 	if meshName == "" {

@@ -286,7 +286,7 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 
 	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
-		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+		return nil, errors.Errorf("error fetching service %q: %s", svc, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()

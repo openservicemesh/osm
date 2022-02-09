@@ -207,7 +207,7 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.OSMHTTPServerPort))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up port forwarding: %s", err)
 	}
 
 	var smiSupported map[string]string
@@ -219,16 +219,16 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return errors.Errorf("error fetching url %s: %s", url, err)
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&smiSupported); err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
+			return errors.Errorf("error rendering HTTP response: %s", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
+		return nil, errors.Errorf("error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
 	}
 
 	for smiAPI, smiAPIVersion := range smiSupported {

@@ -171,7 +171,7 @@ func (td *OsmTestData) ValidateStringParams() error {
 func (td *OsmTestData) GetTestDirPath() string {
 	absPath, err := filepath.Abs(strings.Join([]string{td.TestDirBase, td.TestDirName}, "/"))
 	if err != nil {
-		td.T.Errorf("Error getting TestDirAbsPath: %v", err)
+		td.T.Errorf("error getting TestDirAbsPath: %v", err)
 	}
 	return absPath
 }
@@ -183,12 +183,12 @@ func (td *OsmTestData) GetTestFilePath(filename string) string {
 
 	err := os.Mkdir(testDirPath, 0750)
 	if err != nil && !os.IsExist(err) {
-		td.T.Errorf("Error on Mkdir for %s: %v", testDirPath, err)
+		td.T.Errorf("error on Mkdir for %s: %v", testDirPath, err)
 	}
 
 	absPath, err := filepath.Abs(strings.Join([]string{testDirPath, filename}, "/"))
 	if err != nil {
-		td.T.Errorf("Error computing TestDirAbsPath: %v", err)
+		td.T.Errorf("error computing TestDirAbsPath: %v", err)
 	}
 	return absPath
 }

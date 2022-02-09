@@ -92,7 +92,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 				if andPermissionRule.Attribute == DestinationPort {
 					port, err := strconv.ParseUint(andPermissionRule.Value, 10, 32)
 					if err != nil {
-						return nil, errors.Errorf("Error parsing destination port value %s", andPermissionRule.Value)
+						return nil, errors.Errorf("error parsing destination port value %s", andPermissionRule.Value)
 					}
 					portPermission := GetDestinationPortPermission(uint32(port))
 					andPermissionRules = append(andPermissionRules, portPermission)
@@ -108,7 +108,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 				if orPermissionRule.Attribute == DestinationPort {
 					port, err := strconv.ParseUint(orPermissionRule.Value, 10, 32)
 					if err != nil {
-						return nil, errors.Errorf("Error parsing destination port value %s", orPermissionRule.Value)
+						return nil, errors.Errorf("error parsing destination port value %s", orPermissionRule.Value)
 					}
 					portPermission := GetDestinationPortPermission(uint32(port))
 					orPermissionRules = append(orPermissionRules, portPermission)

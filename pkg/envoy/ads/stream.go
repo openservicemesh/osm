@@ -53,8 +53,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
 		// Service Account mismatch
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
-		return err
+		return fmt.Errorf("mismatched service account for proxy: %s: %w", proxy.String(), err)
 	}
 
 	s.proxyRegistry.RegisterProxy(proxy)
@@ -376,8 +375,7 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	cn := p.GetCertificateCommonName()
 	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
 	if err != nil {
-		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
-		return err
+		return fmt.Errorf("Error getting service account from XDS certificate with CommonName=%s; proxy=%s; error=%w", cn, p.String(), err)
 	}
 
 	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {

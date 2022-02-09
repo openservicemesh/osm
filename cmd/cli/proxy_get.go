@@ -59,7 +59,7 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 			getCmd.pod = args[1]
 			conf, err := config.RESTClientGetter.ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 			getCmd.config = conf
 
@@ -92,7 +92,7 @@ func (cmd *proxyGetCmd) run() error {
 	if cmd.outFile != "" {
 		fd, err := os.Create(cmd.outFile)
 		if err != nil {
-			return errors.Errorf("Error opening file %s: %s", cmd.outFile, err)
+			return errors.Errorf("error opening file %s: %s", cmd.outFile, err)
 		}
 		//nolint: errcheck
 		//#nosec G307

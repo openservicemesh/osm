@@ -53,7 +53,7 @@ func NewCertManager(
 
 	var err error
 	if c.client, err = api.NewClient(config); err != nil {
-		return nil, errors.Errorf("Error creating Vault CertManager without TLS at %s", vaultAddr)
+		return nil, errors.Errorf("error creating Vault CertManager without TLS at %s", vaultAddr)
 	}
 
 	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", role, vaultAddr)

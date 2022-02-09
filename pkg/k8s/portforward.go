@@ -29,7 +29,7 @@ func NewPortForwarder(dialer httpstream.Dialer, portSpec string) (*PortForwarder
 	readyChan := make(chan struct{})
 	forwarder, err := portforward.New(dialer, []string{portSpec}, stopChan, readyChan, ioutil.Discard, os.Stderr)
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up port forwarding: %s", err)
 	}
 
 	return &PortForwarder{
@@ -67,7 +67,7 @@ func (pf *PortForwarder) Start(readyFunc func(pf *PortForwarder) error) error {
 		return readyFunc(pf)
 
 	case err := <-errChan:
-		return errors.Errorf("Error during port forwarding: %s", err)
+		return errors.Errorf("error during port forwarding: %s", err)
 	}
 }
 
@@ -90,7 +90,7 @@ func (pf *PortForwarder) Done() <-chan struct{} {
 func DialerToPod(conf *rest.Config, clientSet kubernetes.Interface, podName string, namespace string) (httpstream.Dialer, error) {
 	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
 	if err != nil {
-		return nil, errors.Errorf("Error setting up round tripper for port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up round tripper for port forwarding: %s", err)
 	}
 
 	serverURL := clientSet.CoreV1().RESTClient().Post().

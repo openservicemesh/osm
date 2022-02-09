@@ -130,7 +130,7 @@ func (td *OsmTestData) CreatePod(ns string, pod corev1.Pod) (*corev1.Pod, error)
 		}
 		return podRet, nil
 	}
-	return nil, errors.Errorf("Error creating pod in namespace %s after %d attempts", ns, maxRetries)
+	return nil, errors.Errorf("error creating pod in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateDeployment is a wrapper to create a deployment
@@ -149,7 +149,7 @@ func (td *OsmTestData) CreateDeployment(ns string, deployment appsv1.Deployment)
 		}
 		return deploymentRet, nil
 	}
-	return nil, errors.Errorf("Error creating Deployment in namespace %s after %d attempts", ns, maxRetries)
+	return nil, errors.Errorf("error creating Deployment in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateService is a wrapper to create a service
@@ -379,12 +379,12 @@ func (td *OsmTestData) simpleRoleBinding(name string, namespace string) rbacv1.R
 func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
 	version, err := td.Client.Discovery().ServerVersion()
 	if err != nil {
-		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+		return nil, errors.Errorf("error getting K8s server version: %s", err)
 	}
 
 	ver, err := goversion.NewVersion(version.String())
 	if err != nil {
-		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version, err)
+		return nil, errors.Errorf("error parsing k8s server version %s: %s", version, err)
 	}
 
 	return ver.Segments(), nil
@@ -620,7 +620,7 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 	}
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up port forwarding: %s", err)
 	}
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
@@ -648,7 +648,7 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up port forwarding: %s", err)
 	}
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
@@ -727,7 +727,7 @@ func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 		},
 	})
 	if err != nil || len(prometheusPod) == 0 {
-		return nil, errors.Errorf("Error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
+		return nil, errors.Errorf("error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
 	}
 	pHandle, err := Td.GetPrometheusPodHandle(prometheusPod[0].Namespace, prometheusPod[0].Name, DefaultOsmPrometheusPort)
 	if err != nil {
@@ -746,7 +746,7 @@ func (td *OsmTestData) GetOSMGrafanaHandle() (*Grafana, error) {
 		},
 	})
 	if err != nil || len(grafanaPod) == 0 {
-		return nil, errors.Errorf("Error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
+		return nil, errors.Errorf("error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
 	}
 	gHandle, err := Td.GetGrafanaPodHandle(grafanaPod[0].Namespace, grafanaPod[0].Name, DefaultOsmGrafanaPort)
 	if err != nil {

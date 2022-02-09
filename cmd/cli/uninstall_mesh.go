@@ -72,7 +72,7 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 			// get kubeconfig and initialize k8s client
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 			uninstall.config = kubeconfig
 
@@ -182,7 +182,7 @@ func (d *uninstallMeshCmd) run() error {
 					fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", d.meshNamespace)
 					return nil
 				}
-				return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", d.meshNamespace, err)
+				return errors.Errorf("error occurred while deleting OSM namespace [%s] - %v", d.meshNamespace, err)
 			}
 			fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", d.meshNamespace)
 		} else {

@@ -91,7 +91,7 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 		RunE: func(_ *cobra.Command, args []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 			bugReportCmd.kubeClient, err = kubernetes.NewForConfig(config)
 			if err != nil {

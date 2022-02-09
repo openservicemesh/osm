@@ -44,14 +44,14 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 		certificate.CommonName(fmt.Sprintf("%s.%s.svc", ValidatorWebhookSvc, osmNamespace)),
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		return errors.Errorf("Error issuing certificate for the validating webhook: %+v", err)
+		return errors.Errorf("error issuing certificate for the validating webhook: %+v", err)
 	}
 
 	// The following function ensures to atomically create or get the certificate from Kubernetes
 	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
 	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.ValidatingWebhookCertificateSecretName, webhookHandlerCert, kubeClient)
 	if err != nil {
-		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
+		return errors.Errorf("error fetching webhook certificate from k8s secret: %s", err)
 	}
 
 	v := &validatingWebhookServer{
@@ -64,7 +64,7 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 
 	// Create the ValidatingWebhook
 	if err := createOrUpdateValidatingWebhook(kubeClient, webhookHandlerCert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
-		return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		return errors.Errorf("error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 
 	go v.run(port, webhookHandlerCert, stop)

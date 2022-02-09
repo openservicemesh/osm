@@ -62,12 +62,12 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
+		return nil, errors.Errorf("error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
 	}
 
 	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
 	if err != nil {
-		return nil, errors.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
+		return nil, errors.Errorf("error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
 	}
 
 	var sourcePrefixes []*xds_core.CidrRange
@@ -115,7 +115,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 
 		marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation))
 		if err != nil {
-			return nil, errors.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
+			return nil, errors.Errorf("error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
 		}
 
 		filterChain.TransportSocket = &xds_core.TransportSocket{

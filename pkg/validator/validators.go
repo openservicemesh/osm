@@ -179,11 +179,11 @@ func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admission
 		}
 		clusterAddress := strings.Split(cluster.Address, ":")
 		if net.ParseIP(clusterAddress[0]) == nil {
-			return nil, errors.Errorf("Error parsing IP address %s", cluster.Address)
+			return nil, errors.Errorf("error parsing IP address %s", cluster.Address)
 		}
 		_, err := strconv.ParseUint(clusterAddress[1], 10, 32)
 		if err != nil {
-			return nil, errors.Errorf("Error parsing port value %s", cluster.Address)
+			return nil, errors.Errorf("error parsing port value %s", cluster.Address)
 		}
 		clusterNames[cluster.Name] = true
 	}

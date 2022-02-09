@@ -41,7 +41,7 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)

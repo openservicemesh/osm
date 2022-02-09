@@ -56,12 +56,12 @@ func GetKubernetesServerVersionNumber(kubeClient kubernetes.Interface) ([]int, e
 
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
-		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+		return nil, errors.Errorf("error getting K8s server version: %s", err)
 	}
 
 	ver, err := goversion.NewVersion(version.String())
 	if err != nil {
-		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version, err)
+		return nil, errors.Errorf("error parsing k8s server version %s: %s", version, err)
 	}
 
 	return ver.Segments(), nil

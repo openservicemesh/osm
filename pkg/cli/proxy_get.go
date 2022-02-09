@@ -38,7 +38,7 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.EnvoyAdminPort))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, errors.Errorf("error setting up port forwarding: %s", err)
 	}
 
 	var envoyProxyConfig []byte
@@ -49,17 +49,17 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return errors.Errorf("error fetching url %s: %s", url, err)
 		}
 
 		envoyProxyConfig, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
+			return errors.Errorf("error rendering HTTP response: %s", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Error retrieving proxy config for pod %s in namespace %s: %s", podName, namespace, err)
+		return nil, errors.Errorf("error retrieving proxy config for pod %s in namespace %s: %s", podName, namespace, err)
 	}
 
 	return envoyProxyConfig, nil

@@ -48,7 +48,7 @@ func newMeshList(out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 			listCmd.config = config
 			clientset, err := kubernetes.NewForConfig(config)

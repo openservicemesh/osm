@@ -53,8 +53,8 @@ func marshalConfigToJSON(config configv1alpha2.MeshConfigSpec) (string, error) {
 func (c *client) GetMeshConfigJSON() (string, error) {
 	cm, err := marshalConfigToJSON(c.getMeshConfig().Spec)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigMarshaling)).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
-		return "", err
+		return "", fmt.Errorf("%s: %s | error marshaling MeshConfig %s, %+v: %w", errcode.Kind,
+			errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigMarshaling), c.getMeshConfigCacheKey(), c.getMeshConfig(), err)
 	}
 	return cm, nil
 }

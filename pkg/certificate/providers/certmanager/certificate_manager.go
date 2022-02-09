@@ -191,15 +191,15 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq))
-		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
+		return nil, fmt.Errorf("%s: %s | error creating x509 certificate request: %w", errcode.Kind,
+			errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq), err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM))
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
+		return nil, fmt.Errorf("%s: %s | failed to encode certificate request DER to PEM CN=%s: %w", errcode.Kind,
+			errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM), cn, err)
 	}
 
 	cr := &cmapi.CertificateRequest{

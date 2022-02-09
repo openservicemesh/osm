@@ -90,14 +90,13 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
-	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
 	originalProbe.timeout = time.Duration(probe.TimeoutSeconds) * time.Second
 
 	log.Debug().Msgf(
 		"Rewriting %s probe (:%d%s) to :%d%s",
 		probeType,
 		originalProbe.port, originalProbe.path,
-		definedPort.IntValue(), newPath,
+		port, newPath,
 	)
 
 	return originalProbe

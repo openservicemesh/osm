@@ -90,7 +90,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return errors.Errorf("error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(kubeconfig)
@@ -159,7 +159,7 @@ func (i *installCmd) loadOSMChart() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error loading chart for installation: %s", err)
+		return fmt.Errorf("error loading chart for installation: %s", err)
 	}
 
 	return nil
