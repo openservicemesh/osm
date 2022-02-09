@@ -1,12 +1,11 @@
 #!make
 
-TARGETS         := darwin/amd64 linux/amd64 windows/amd64
-BINNAME         ?= osm
-DIST_DIRS       := find * -type d -exec
-CTR_REGISTRY    ?= openservicemesh
-CTR_TAG         ?= latest
-CTR_DIGEST_FILE ?= /tmp/osm_image_digest_$(CTR_TAG).txt
-VERIFY_TAGS     ?= false
+TARGETS      := darwin/amd64 linux/amd64 windows/amd64
+BINNAME      ?= osm
+DIST_DIRS    := find * -type d -exec
+CTR_REGISTRY ?= openservicemesh
+CTR_TAG      ?= latest
+VERIFY_TAGS  ?= false
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
@@ -219,27 +218,26 @@ embed-files-test:
 build-ci: embed-files
 	go build -v ./...
 
-.PHONY: clean-image-digest
-clean-image-digest:
-	@rm -f "$(CTR_DIGEST_FILE)"
+.PHONY: trivy-ci-setup
+trivy-ci-setup:
+	wget https://github.com/aquasecurity/trivy/releases/download/v0.23.0/trivy_0.23.0_Linux-64bit.tar.gz
+	tar zxvf trivy_0.23.0_Linux-64bit.tar.gz
+	echo $$(pwd) >> $(GITHUB_PATH)
 
-trivy-scan-images:
-	wget https://github.com/aquasecurity/trivy/releases/download/v0.18.0/trivy_0.18.0_Linux-64bit.tar.gz
-	tar zxvf trivy_0.18.0_Linux-64bit.tar.gz
+# Show all vulnerabilities in logs
+trivy-scan-verbose-%: NAME=$(@:trivy-scan-verbose-%=%)
+trivy-scan-verbose-%:
+	trivy image "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
 
-	# Show all vulnerabilities in logs
-	./trivy $(CTR_REGISTRY)/osm-controller:$(CTR_TAG)
-	./trivy $(CTR_REGISTRY)/osm-injector:$(CTR_TAG)
-	./trivy $(CTR_REGISTRY)/init:$(CTR_TAG)
-	./trivy $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG)
-	./trivy $(CTR_REGISTRY)/osm-crds:$(CTR_TAG)
+# Exit if vulnerability exists
+trivy-scan-fail-%: NAME=$(@:trivy-scan-fail-%=%)
+trivy-scan-fail-%:
+	trivy image --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
 
-	# Exit if vulnerability exists
-	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-controller:$(CTR_TAG)" || exit 1
-	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-injector:$(CTR_TAG)" || exit 1
-	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/init:$(CTR_TAG)" || exit 1
-	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG)" || exit 1
-	./trivy --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-crds:$(CTR_TAG)" || exit 1
+.PHONY: trivy-scan-images trivy-scan-images-fail trivy-scan-images-verbose
+trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(OSM_TARGETS))
+trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(OSM_TARGETS))
+trivy-scan-images: trivy-scan-images-verbose trivy-scan-images-fail
 
 .PHONY: shellcheck
 shellcheck:
