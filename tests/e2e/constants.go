@@ -14,4 +14,6 @@ const (
 
 var (
 	fortioSingleCallSpec = framework.FortioLoadTestSpec{Calls: 1}
+	// NumRetries is the number of retries for retry e2e
+	NumRetries uint32 = 5
 )

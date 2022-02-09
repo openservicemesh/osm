@@ -128,7 +128,7 @@ kind-reset:
 
 .PHONY: test-e2e
 test-e2e: DOCKER_BUILDX_OUTPUT=type=docker
-test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server
+test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server docker-build-retry
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -143,7 +143,7 @@ kind-demo: .env kind-up clean-osm
 build-bookwatcher:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
 
-DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
+DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client retry
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_DEMO_TARGETS)
