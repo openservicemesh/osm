@@ -81,9 +81,7 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 	}
 
 	if s.cacheEnabled {
-		// TODO: Zerolog can't be passed as snapshot cache internal logger as it doesn't implement golang's logger interface
-		// passing nil as logger (third argument) for now
-		s.ch = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, nil)
+		s.ch = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
 		s.srv = serverv3.NewServer(ctx, s.ch, &Callbacks{})
 
 		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.srv)
