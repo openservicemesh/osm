@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Workload to Workload Metrics latest",
+    "title": "OSM Workload to Workload Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard displays the latencies of requests in the mesh from workload to workload.",
+    "uid": "OSMWorkloadToWorkloadMetrics",
+    "version": 2,
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
@@ -491,8 +494,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Workload to Workload Metrics",
-    "uid": "OSMworkloadToWorkloadMetrics",
-    "version": 1
+    "timezone": ""
 }

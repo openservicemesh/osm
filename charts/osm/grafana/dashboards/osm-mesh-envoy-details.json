@@ -66,7 +66,10 @@
       }
     ]
   },
-  "description": "Mesh and Envoy Details latest",
+  "title": "OSM Mesh and Envoy Details",
+  "description": "Compatible with OSM v1.0.0. This dashboard lets you view the performance and behavior of OSM’s control plane.",
+  "uid": "OSMMeshAndEnvoyDetails",
+  "version": 4,
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -1548,8 +1551,5 @@
       "1d"
     ]
   },
-  "timezone": "",
-  "title": "Mesh and Envoy Details",
-  "uid": "PLyKJcHGz",
-  "version": 3
+  "timezone": ""
 }

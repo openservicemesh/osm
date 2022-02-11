@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Data Plane Performance Metrics latest",
+    "title": "OSM Data Plane Performance Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard lets you view the performance of OSM’s data plane.",
+    "uid": "OSMDataPlanePerformanceMetrics",
+    "version": 3,
     "editable": true,
     "gnetId": null,
     "graphTooltip": 0,
@@ -576,8 +579,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Data plane Performance Metrics",
-    "uid": "G-Mk07H7z",
-    "version": 2
+    "timezone": ""
   }

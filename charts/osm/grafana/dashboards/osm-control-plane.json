@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Control Plane Metrics latest",
+    "title": "OSM Control Plane Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard provides traffic metrics from the given service to OSM’s control plane.",
+    "uid": "OSMControlPlaneMetrics",
+    "version": 2,
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
@@ -718,8 +721,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Control Plane Metrics",
-    "uid": "OSMCPMetrics",
-    "version": 1
+    "timezone": ""
   }

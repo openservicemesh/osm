@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Pod to Services Metrics latest",
+    "title": "OSM Pod to Service Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard lets you investigate the traffic metrics from a pod to all the services it connects/talks to.",
+    "uid": "OSMPodToServiceMetrics",
+    "version": 2,
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
@@ -903,8 +906,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Pod to Services Metrics",
-    "uid": "OSMpodMetrics",
-    "version": 1
+    "timezone": ""
   }
