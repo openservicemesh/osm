@@ -16,8 +16,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
@@ -112,7 +110,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
-	if err := i.validateOptions(); err != nil {
+	if err := i.loadOSMChart(); err != nil {
 		return err
 	}
 
@@ -149,6 +147,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 }
 
 func (i *installCmd) loadOSMChart() error {
+	debug("Loading OSM helm chart")
 	var err error
 	if i.chartPath != "" {
 		i.chartRequested, err = loader.Load(i.chartPath)
@@ -180,50 +179,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	}
 
 	return finalValues, nil
-}
-
-func (i *installCmd) validateOptions() error {
-	debug("Loading OSM helm chart")
-	if err := i.loadOSMChart(); err != nil {
-		return err
-	}
-
-	if err := isValidMeshName(i.meshName); err != nil {
-		return err
-	}
-
-	// ensure no control plane exists in cluster with the same meshName
-	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
-	if err != nil {
-		return err
-	}
-	if len(osmControllerDeployments.Items) != 0 {
-		return errMeshAlreadyExists(i.meshName, osmControllerDeployments.Items[0].Namespace)
-	}
-
-	s := map[string]interface{}{}
-	if err := parseVal(i.setOptions, s); err != nil {
-		return errors.Wrap(err, "invalid format for --set")
-	}
-
-	return nil
-}
-
-func isValidMeshName(meshName string) error {
-	meshNameErrs := validation.IsValidLabelValue(meshName)
-	if len(meshNameErrs) != 0 {
-		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
-	}
-	return nil
-}
-
-func errMeshAlreadyExists(name string, namespace string) error {
-	return errors.Errorf("Mesh %s already exists in namespace %s. Please specify a new mesh name using --mesh-name and install the mesh in a different namespace using --osm-namespace", name, namespace)
 }
 
 // parses Helm strvals line and merges into a map

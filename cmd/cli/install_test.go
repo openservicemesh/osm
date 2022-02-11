@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +21,6 @@ import (
 	"helm.sh/helm/v3/pkg/strvals"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -352,103 +350,6 @@ var _ = Describe("Running the install command", func() {
 			})
 		})
 	})
-
-	Describe("when a mesh with the given name already exists and enforceSingleMesh is false", func() {
-		var (
-			out           *bytes.Buffer
-			store         *storage.Storage
-			config        *helm.Configuration
-			installCmd    installCmd
-			err           error
-			fakeClientSet kubernetes.Interface
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
-			if mem, ok := store.Driver.(*driver.Memory); ok {
-				mem.SetNamespace(settings.Namespace())
-			}
-
-			config = &helm.Configuration{
-				Releases: store,
-				KubeClient: &kubefake.PrintingKubeClient{
-					Out: ioutil.Discard,
-				},
-				Capabilities: chartutil.DefaultCapabilities,
-				Log:          func(format string, v ...interface{}) {},
-			}
-
-			fakeClientSet = fake.NewSimpleClientset()
-			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
-			_, err = fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			installCmd = getDefaultInstallCmd(out)
-			// Use the client set with the existing mesh deployment
-			installCmd.clientSet = fakeClientSet
-			installCmd.enforceSingleMesh = false
-
-			err = config.Releases.Create(&release.Release{
-				Namespace: settings.Namespace(), // should be found in any namespace
-				Config: map[string]interface{}{
-					"osm": map[string]interface{}{
-						"meshName": installCmd.meshName,
-					},
-				},
-				Info: &release.Info{
-					// helm list only shows deployed and failed releases by default
-					Status: release.StatusDeployed,
-				},
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			err = installCmd.run(config)
-		})
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(errMeshAlreadyExists(installCmd.meshName, settings.Namespace()).Error()))
-		})
-	})
-
-	Describe("when a mesh name is invalid", func() {
-		var (
-			out        *bytes.Buffer
-			store      *storage.Storage
-			config     *helm.Configuration
-			installCmd installCmd
-			err        error
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
-			if mem, ok := store.Driver.(*driver.Memory); ok {
-				mem.SetNamespace(settings.Namespace())
-			}
-
-			config = &helm.Configuration{
-				Releases: store,
-				KubeClient: &kubefake.PrintingKubeClient{
-					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
-				Log:          func(format string, v ...interface{}) {},
-			}
-
-			installCmd = getDefaultInstallCmd(out)
-			installCmd.meshName = "osm!!123456789012345678901234567890123456789012345678901234567890" // >65 characters, contains !
-
-			err = installCmd.run(config)
-		})
-
-		It("should error", func() {
-			Expect(err).To(MatchError("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'"))
-		})
-	})
-
 })
 
 var _ = Describe("deployPrometheus is true", func() {
