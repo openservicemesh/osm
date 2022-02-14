@@ -25,10 +25,12 @@ func main() {
 
 	var verbosity string
 	var enforceSingleMesh bool
+	var namespace string
 
 	flags := pflag.NewFlagSet("osm-preinstall", pflag.ExitOnError)
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.BoolVar(&enforceSingleMesh, "enforce-single-mesh", true, "Enforce only deploying one mesh in the cluster")
+	flags.StringVar(&namespace, "namespace", "", "The namespace where the new mesh is to be installed")
 
 	err := flags.Parse(os.Args)
 	if err != nil {
@@ -51,6 +53,7 @@ func main() {
 
 	checks := []func() error{
 		singleMeshOK(clientset, enforceSingleMesh),
+		namespaceHasNoMesh(clientset, namespace),
 	}
 
 	ok := true
@@ -95,6 +98,27 @@ func singleMeshOK(clientset kubernetes.Interface, enforceSingleMesh bool) func()
 			return errors.Errorf("Mesh(es) %s already exist so a new mesh enforcing it is the only one cannot be installed", strings.Join(existingMeshes, ", "))
 		}
 
+		return nil
+	}
+}
+
+func namespaceHasNoMesh(clientset kubernetes.Interface, namespace string) func() error {
+	return func() error {
+		deps, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(map[string]string{
+				constants.AppLabel: constants.OSMControllerName,
+			}).String(),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "listing osm-controller deployments in namespace %s", namespace)
+		}
+		var meshNames []string
+		for _, dep := range deps.Items {
+			meshNames = append(meshNames, dep.Labels["meshName"])
+		}
+		if len(meshNames) > 0 {
+			return errors.Errorf("Namespace %s already contains meshes %v", namespace, meshNames)
+		}
 		return nil
 	}
 }

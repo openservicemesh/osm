@@ -71,6 +71,7 @@ spec:
           args:
             - --verbosity={{ .Values.osm.controllerLogLevel }}
             - --enforce-single-mesh={{ .Values.osm.enforceSingleMesh }}
+            - --namespace={{ include "osm.namespace" . }}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

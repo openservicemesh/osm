@@ -20,8 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const installDesc = `
@@ -208,20 +206,6 @@ func (i *installCmd) validateOptions() error {
 		return errMeshAlreadyExists(i.meshName, osmControllerDeployments.Items[0].Namespace)
 	}
 
-	// ensure no osm-controller is running in the same namespace
-	debug("Verifying no osm-controller exists in the install namespace")
-	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
-	listOptions = metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	osmControllerDeployments, err = deploymentsClient.List(context.TODO(), listOptions)
-	if osmControllerDeployments != nil && len(osmControllerDeployments.Items) > 0 {
-		return errNamespaceAlreadyHasController(settings.Namespace())
-	} else if err != nil {
-		return annotateErrorMessageWithOsmNamespace("Error ensuring no osm-controller running in OSM namespace [%s]: %s", settings.Namespace(), err)
-	}
-
 	s := map[string]interface{}{}
 	if err := parseVal(i.setOptions, s); err != nil {
 		return errors.Wrap(err, "invalid format for --set")
@@ -240,10 +224,6 @@ func isValidMeshName(meshName string) error {
 
 func errMeshAlreadyExists(name string, namespace string) error {
 	return errors.Errorf("Mesh %s already exists in namespace %s. Please specify a new mesh name using --mesh-name and install the mesh in a different namespace using --osm-namespace", name, namespace)
-}
-
-func errNamespaceAlreadyHasController(namespace string) error {
-	return annotateErrorMessageWithOsmNamespace("Namespace [%s] already has an osm controller. Please specify a different namespace using --osm-namespace", namespace)
 }
 
 // parses Helm strvals line and merges into a map
