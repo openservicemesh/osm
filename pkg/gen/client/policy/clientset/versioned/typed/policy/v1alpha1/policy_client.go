@@ -26,6 +26,7 @@ type PolicyV1alpha1Interface interface {
 	EgressesGetter
 	IngressBackendsGetter
 	RetriesGetter
+	UpstreamTrafficSettingsGetter
 }
 
 // PolicyV1alpha1Client is used to interact with features provided by the policy.openservicemesh.io group.
@@ -43,6 +44,10 @@ func (c *PolicyV1alpha1Client) IngressBackends(namespace string) IngressBackendI
 
 func (c *PolicyV1alpha1Client) Retries(namespace string) RetryInterface {
 	return newRetries(c, namespace)
+}
+
+func (c *PolicyV1alpha1Client) UpstreamTrafficSettings(namespace string) UpstreamTrafficSettingInterface {
+	return newUpstreamTrafficSettings(c, namespace)
 }
 
 // NewForConfig creates a new PolicyV1alpha1Client for the given config.

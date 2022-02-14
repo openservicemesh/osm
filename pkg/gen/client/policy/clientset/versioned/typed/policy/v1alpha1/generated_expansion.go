@@ -20,3 +20,5 @@ type EgressExpansion interface{}
 type IngressBackendExpansion interface{}
 
 type RetryExpansion interface{}
+
+type UpstreamTrafficSettingExpansion interface{}

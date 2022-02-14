@@ -27,6 +27,8 @@ type Interface interface {
 	IngressBackends() IngressBackendInformer
 	// Retries returns a RetryInformer.
 	Retries() RetryInformer
+	// UpstreamTrafficSettings returns a UpstreamTrafficSettingInformer.
+	UpstreamTrafficSettings() UpstreamTrafficSettingInformer
 }
 
 type version struct {
@@ -53,4 +55,9 @@ func (v *version) IngressBackends() IngressBackendInformer {
 // Retries returns a RetryInformer.
 func (v *version) Retries() RetryInformer {
 	return &retryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// UpstreamTrafficSettings returns a UpstreamTrafficSettingInformer.
+func (v *version) UpstreamTrafficSettings() UpstreamTrafficSettingInformer {
+	return &upstreamTrafficSettingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
