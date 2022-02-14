@@ -143,7 +143,7 @@ func TestSynchronizeCertificate(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(10)
-	certResults := make([]certificate.Certificater, 10)
+	certResults := make([]*certificate.Certificate, 10)
 
 	// Test synchronization, expect all routines end up with the same cert
 	for i := 0; i < 10; i++ {

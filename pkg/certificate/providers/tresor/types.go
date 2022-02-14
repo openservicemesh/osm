@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -29,10 +28,10 @@ var (
 // CertManager implements certificate.Manager
 type CertManager struct {
 	// The Certificate Authority root certificate to be used by this certificate manager
-	ca certificate.Certificater
+	ca *certificate.Certificate
 
 	// Cache for all the certificates issued
-	// Types: map[certificate.CommonName]certificate.Certificater
+	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
 	certificatesOrganization string
@@ -43,23 +42,4 @@ type CertManager struct {
 	keySize                     int
 
 	msgBroker *messaging.Broker
-}
-
-// Certificate implements certificate.Certificater
-type Certificate struct {
-	// The commonName of the certificate
-	commonName certificate.CommonName
-
-	// The serial number of the certificate
-	serialNumber certificate.SerialNumber
-
-	// When the cert expires
-	expiration time.Time
-
-	// PEM encoded Certificate and Key (byte arrays)
-	certChain  pem.Certificate
-	privateKey pem.PrivateKey
-
-	// Certificate authority signing this certificate
-	issuingCA pem.RootCertificate
 }

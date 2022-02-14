@@ -59,7 +59,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	return sdsResources, nil
 }
 
-func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []string, proxy *envoy.Proxy) (certs []*xds_auth.Secret) {
+func (s *sdsImpl) getSDSSecrets(cert *certificate.Certificate, requestedCerts []string, proxy *envoy.Proxy) (certs []*xds_auth.Secret) {
 	// requestedCerts is expected to be a list of either of the following:
 	// - "service-cert:namespace/service-account"
 	// - "root-cert-for-mtls-outbound:namespace/service"
@@ -106,7 +106,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 
 // getServiceCertSecret creates the struct with certificates for the service, which the
 // connected Envoy proxy belongs to.
-func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth.Secret, error) {
+func getServiceCertSecret(cert *certificate.Certificate, name string) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
 		Name: name,
@@ -128,7 +128,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth
 	return secret, nil
 }
 
-func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert secrets.SDSCert) (*xds_auth.Secret, error) {
+func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDSCert) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: sdscert.String(),

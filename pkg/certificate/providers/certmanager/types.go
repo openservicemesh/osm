@@ -10,7 +10,6 @@ import (
 	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -30,11 +29,11 @@ var (
 type CertManager struct {
 	// The Certificate Authority root certificate to be used by this certificate
 	// manager.
-	ca certificate.Certificater
+	ca *certificate.Certificate
 
 	// cache holds a local cache of issued certificates as
-	// certificate.Certificaters
-	cache     map[certificate.CommonName]certificate.Certificater
+	// *certificate.Certificates
+	cache     map[certificate.CommonName]*certificate.Certificate
 	cacheLock sync.RWMutex
 
 	// Control plane namespace where CertificateRequests are created.
@@ -56,23 +55,4 @@ type CertManager struct {
 	keySize                     int
 
 	msgBroker *messaging.Broker
-}
-
-// Certificate implements certificate.Certificater
-type Certificate struct {
-	// The commonName of the certificate
-	commonName certificate.CommonName
-
-	// The serial number of the certificate
-	serialNumber certificate.SerialNumber
-
-	// When the cert expires
-	expiration time.Time
-
-	// PEM encoded Certificate and Key (byte arrays)
-	certChain  pem.Certificate
-	privateKey pem.PrivateKey
-
-	// Certificate authority signing this certificate.
-	issuingCA pem.RootCertificate
 }

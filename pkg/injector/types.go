@@ -27,7 +27,7 @@ type mutatingWebhook struct {
 	kubeController          k8s.Controller
 	osmNamespace            string
 	meshName                string
-	cert                    certificate.Certificater
+	cert                    *certificate.Certificate
 	configurator            configurator.Configurator
 	initContainerPullPolicy corev1.PullPolicy
 

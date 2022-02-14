@@ -12,7 +12,7 @@ var log = logger.New("crd-conversion")
 // crdConversionWebhook is the type used to represent the webhook for the crd converter
 type crdConversionWebhook struct {
 	config Config
-	cert   certificate.Certificater
+	cert   *certificate.Certificate
 }
 
 // Config is the type used to represent the config options for the crd-conversion webhook

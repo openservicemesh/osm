@@ -14,20 +14,12 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-type mockCertificate struct{}
-
-func (mc mockCertificate) GetCommonName() certificate.CommonName     { return "" }
-func (mc mockCertificate) GetCertificateChain() []byte               { return []byte("chain") }
-func (mc mockCertificate) GetPrivateKey() []byte                     { return []byte("key") }
-func (mc mockCertificate) GetIssuingCA() []byte                      { return []byte("ca") }
-func (mc mockCertificate) GetExpiration() time.Time                  { return time.Now() }
-func (mc mockCertificate) GetSerialNumber() certificate.SerialNumber { return "serial_number" }
 
 func TestUpdateCrdConfiguration(t *testing.T) {
 	testCases := []struct {
@@ -41,10 +33,18 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 			enableReconciler: false,
 		},
 	}
+
+	var cert = &certificate.Certificate{
+		CommonName:   "",
+		CertChain:    pem.Certificate("chain"),
+		PrivateKey:   pem.PrivateKey("key"),
+		IssuingCA:    pem.RootCertificate("ca"),
+		Expiration:   time.Now(),
+		SerialNumber: "serial_number",
+	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			cert := mockCertificate{}
 
 			crdClient := fake.NewSimpleClientset(&apiv1.CustomResourceDefinition{
 				TypeMeta: metav1.TypeMeta{

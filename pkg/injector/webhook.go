@@ -354,7 +354,7 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 	resp.PatchType = &pt
 }
 
-func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
+func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certificate.Certificate, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
 	failurePolicy := admissionregv1.Fail

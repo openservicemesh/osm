@@ -3,6 +3,7 @@ package tresor
 import (
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -22,7 +23,7 @@ func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
 	}
 
 	return &CertManager{
-		ca:      ca.(*Certificate),
+		ca:      ca,
 		cfg:     cfg,
 		keySize: 2048, // hardcoding this to remove depdendency on configurator mock
 	}
@@ -36,18 +37,13 @@ func NewFakeCertManagerForRotation(cfg configurator.Configurator, msgBroker *mes
 }
 
 // NewFakeCertificate is a helper creating Certificates for unit tests.
-func NewFakeCertificate() *Certificate {
-	cert := Certificate{
-		privateKey:   pem.PrivateKey("yy"),
-		certChain:    pem.Certificate("xx"),
-		expiration:   time.Now(),
-		commonName:   "foo.bar.co.uk",
-		serialNumber: "-the-certificate-serial-number-",
+func NewFakeCertificate() *certificate.Certificate {
+	return &certificate.Certificate{
+		PrivateKey:   pem.PrivateKey("yy"),
+		CertChain:    pem.Certificate("xx"),
+		IssuingCA:    pem.RootCertificate("xx"),
+		Expiration:   time.Now(),
+		CommonName:   "foo.bar.co.uk",
+		SerialNumber: "-the-certificate-serial-number-",
 	}
-
-	// It is acceptable in the context of a unit test (so far) for
-	// the Issuing CA to be the same as the certificate itself.
-	cert.issuingCA = pem.RootCertificate(cert.certChain)
-
-	return &cert
 }

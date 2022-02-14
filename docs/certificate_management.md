@@ -14,19 +14,19 @@ All certificate managers implement the `Manager` interface (located in `pkg/cert
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (Certificater, error)
+	GetCertificate(CommonName) (*Certificate, error)
 
 	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (Certificater, error)
+	RotateCertificate(CommonName) (*Certificate, error)
 
 	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (Certificater, error)
+	GetRootCertificate() (*Certificate, error)
 
 	// ListCertificates lists all certificates issued
-	ListCertificates() ([]Certificater, error)
+	ListCertificates() ([]*Certificate, error)
 
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
@@ -159,7 +159,7 @@ cmapi.CertificateRequest{
 }
 ```
 
-The certificate will be retrieved by making a request directly to cert-manager by `(*CertManager).certificaterFromCertificateRequest`. Here is an example issuer for OSM:
+The certificate will be retrieved by making a request directly to cert-manager by `(*CertManager).certificateFromCertificateRequest`. Here is an example issuer for OSM:
 
 ```
 $ kubectl get issuer -n osm-system osm-ca -o yaml

@@ -26,7 +26,7 @@ func TestGetCertHandler(t *testing.T) {
 	assert.Nil(err)
 
 	// mock expected cert
-	mock.EXPECT().ListIssuedCertificates().Return([]certificate.Certificater{
+	mock.EXPECT().ListIssuedCertificates().Return([]*certificate.Certificate{
 		testCert,
 	})
 

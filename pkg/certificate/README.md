@@ -7,11 +7,7 @@ For design and details on mTLS and certificate issuance please see [docs/pattern
 
 ## Interfaces
 
-In `types.go` we define 2 interfaces:
-
-  1. `certificate.Manager` - is the interface exposing a particular certificate provider. The certificate manager is responsible for issuing and renewing certificates. It abstracts away the particular methods of signing, renewing, and storing certificates away from the rest of the service mesh components.
-  2. `certificate.Certificater` - an abstraction over an actual certificate, which is signed by our CA, has an expiration, and certain properties common to all PEM encoded certificates issued by any certificate provider implemented.
-
+In `types.go` we define a single interface, `certificate.Manager`, the interface exposing a particular certificate provider. The certificate manager is responsible for issuing and renewing certificates. It abstracts away the particular methods of signing, renewing, and storing certificates away from the rest of the service mesh components.
 
 ## Providers
 The directory `providers` contains implementations of certificate issuers (`certificate.Manager`s):

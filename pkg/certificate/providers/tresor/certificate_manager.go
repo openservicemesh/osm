@@ -11,12 +11,47 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+const (
+	checkCertificateExpirationInterval = 5 * time.Second
+)
+
+// NewCertManager creates a new CertManager with the passed CA and CA Private Key
+func NewCertManager(
+	ca *certificate.Certificate,
+	certificatesOrganization string,
+	cfg configurator.Configurator,
+	serviceCertValidityDuration time.Duration,
+	keySize int,
+	msgBroker *messaging.Broker) (*CertManager, error) {
+	if ca == nil {
+		return nil, errNoIssuingCA
+	}
+
+	certManager := CertManager{
+		// The root certificate signing all newly issued certificates
+		ca:                          ca,
+		certificatesOrganization:    certificatesOrganization,
+		cfg:                         cfg,
+		serviceCertValidityDuration: serviceCertValidityDuration,
+		keySize:                     keySize,
+		msgBroker:                   msgBroker,
+	}
+
+	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
+	rotor.New(&certManager).Start(checkCertificateExpirationInterval)
+
+	return &certManager, nil
+}
+
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	if cm.ca == nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidCA)).
@@ -99,13 +134,13 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, err
 	}
 
-	cert := Certificate{
-		commonName:   cn,
-		serialNumber: certificate.SerialNumber(serialNumber.String()),
-		certChain:    certPEM,
-		privateKey:   privKeyPEM,
-		issuingCA:    cm.ca.GetCertificateChain(),
-		expiration:   template.NotAfter,
+	cert := &certificate.Certificate{
+		CommonName:   cn,
+		SerialNumber: certificate.SerialNumber(serialNumber.String()),
+		CertChain:    certPEM,
+		PrivateKey:   privKeyPEM,
+		IssuingCA:    pem.RootCertificate(cm.ca.GetCertificateChain()),
+		Expiration:   template.NotAfter,
 	}
 
 	log.Trace().Msgf("Created new certificate for SerialNumber=%s; validity=%+v; expires on %+v; serial: %x", serialNumber, validityPeriod, template.NotAfter, template.SerialNumber)
@@ -117,9 +152,9 @@ func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
 	cm.cache.Delete(cn)
 }
 
-func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
+func (cm *CertManager) getFromCache(cn certificate.CommonName) *certificate.Certificate {
 	if certInterface, exists := cm.cache.Load(cn); exists {
-		cert := certInterface.(certificate.Certificater)
+		cert := certInterface.(*certificate.Certificate)
 		log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
 			log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
@@ -131,7 +166,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -157,7 +192,7 @@ func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
 }
 
 // GetCertificate returns a certificate given its Common Name (CN)
-func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) GetCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
 	if cert := cm.getFromCache(cn); cert != nil {
 		return cert, nil
 	}
@@ -165,12 +200,17 @@ func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Ce
 }
 
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
-func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
 	start := time.Now()
 
-	oldCert, ok := cm.cache.Load(cn)
+	oldObj, ok := cm.cache.Load(cn)
 	if !ok {
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
+	}
+
+	oldCert, ok := oldObj.(*certificate.Certificate)
+	if !ok {
+		return nil, errors.Errorf("unexpected type %T for old certificate does not exist for CN=%s", oldCert, cn)
 	}
 
 	// We want the validity duration of the CertManager to remain static during the lifetime
@@ -190,25 +230,25 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
 		NewObj: newCert,
-		OldObj: oldCert.(certificate.Certificater),
+		OldObj: oldCert,
 	}, announcements.CertificateRotated.String())
 
-	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.SerialNumber, newCert.SerialNumber, time.Since(start))
 
 	return newCert, nil
 }
 
 // ListCertificates lists all certificates issued
-func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
-	var certs []certificate.Certificater
+func (cm *CertManager) ListCertificates() ([]*certificate.Certificate, error) {
+	var certs []*certificate.Certificate
 	cm.cache.Range(func(cn interface{}, certInterface interface{}) bool {
-		certs = append(certs, certInterface.(certificate.Certificater))
+		certs = append(certs, certInterface.(*certificate.Certificate))
 		return true // continue the iteration
 	})
 	return certs, nil
 }
 
 // GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
+func (cm *CertManager) GetRootCertificate() (*certificate.Certificate, error) {
 	return cm.ca, nil
 }

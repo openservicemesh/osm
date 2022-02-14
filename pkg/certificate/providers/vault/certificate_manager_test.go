@@ -23,33 +23,33 @@ var (
 	issuingCA = pem.RootCertificate("zz")
 
 	expiredCertCN = certificate.CommonName("this.has.expired")
-	expiredCert   = &Certificate{
-		issuingCA:    pem.RootCertificate("zz"),
-		privateKey:   pem.PrivateKey("yy"),
-		certChain:    pem.Certificate("xx"),
-		expiration:   time.Now(), // This certificate has ALREADY expired
-		commonName:   expiredCertCN,
-		serialNumber: "-serial-number-",
+	expiredCert   = &certificate.Certificate{
+		IssuingCA:    pem.RootCertificate("zz"),
+		PrivateKey:   pem.PrivateKey("yy"),
+		CertChain:    pem.Certificate("xx"),
+		Expiration:   time.Now(), // This certificate has ALREADY expired
+		CommonName:   expiredCertCN,
+		SerialNumber: "-serial-number-",
 	}
 
 	validCertCN = certificate.CommonName("valid.certificate")
-	validCert   = &Certificate{
-		issuingCA:    issuingCA,
-		privateKey:   pem.PrivateKey("yy"),
-		certChain:    pem.Certificate("xx"),
-		expiration:   time.Now().Add(24 * time.Hour),
-		commonName:   validCertCN,
-		serialNumber: "-serial-number-",
+	validCert   = &certificate.Certificate{
+		IssuingCA:    issuingCA,
+		PrivateKey:   pem.PrivateKey("yy"),
+		CertChain:    pem.Certificate("xx"),
+		Expiration:   time.Now().Add(24 * time.Hour),
+		CommonName:   validCertCN,
+		SerialNumber: "-serial-number-",
 	}
 
 	rootCertCN = certificate.CommonName("root.cert")
-	rootCert   = &Certificate{
-		issuingCA:    pem.RootCertificate("zz"),
-		privateKey:   pem.PrivateKey("yy"),
-		certChain:    pem.Certificate("xx"),
-		expiration:   time.Now().Add(24 * time.Hour),
-		commonName:   rootCertCN,
-		serialNumber: "-serial-number-",
+	rootCert   = &certificate.Certificate{
+		IssuingCA:    pem.RootCertificate("zz"),
+		PrivateKey:   pem.PrivateKey("yy"),
+		CertChain:    pem.Certificate("xx"),
+		Expiration:   time.Now().Add(24 * time.Hour),
+		CommonName:   rootCertCN,
+		SerialNumber: "-serial-number-",
 	}
 )
 
@@ -102,13 +102,13 @@ var _ = Describe("Test client helpers", func() {
 
 			actual := newCert(cn, secret, expiration)
 
-			expected := &Certificate{
-				issuingCA:    pem.RootCertificate("zz"),
-				privateKey:   pem.PrivateKey("yy"),
-				certChain:    pem.Certificate("xx"),
-				expiration:   expiration,
-				commonName:   "foo.bar.co.uk",
-				serialNumber: "123",
+			expected := &certificate.Certificate{
+				IssuingCA:    pem.RootCertificate("zz"),
+				PrivateKey:   pem.PrivateKey("yy"),
+				CertChain:    pem.Certificate("xx"),
+				Expiration:   expiration,
+				CommonName:   "foo.bar.co.uk",
+				SerialNumber: "123",
 			}
 
 			Expect(actual).To(Equal(expected))
@@ -125,7 +125,7 @@ var _ = Describe("Test client helpers", func() {
 		getCachedCertificateCNs := func() []certificate.CommonName {
 			var commonNames []certificate.CommonName
 			cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
-				cert := certInterface.(*Certificate)
+				cert := certInterface.(*certificate.Certificate)
 				commonNames = append(commonNames, cert.GetCommonName())
 				return true // continue the iteration
 			})
@@ -139,10 +139,10 @@ var _ = Describe("Test client helpers", func() {
 			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("this.has.expired")))
 			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("valid.certificate")))
 			certBytes := uuid.New().String()
-			issue := func(certificate.CommonName, time.Duration) (certificate.Certificater, error) {
-				cert := Certificate{
-					issuingCA:    pem.RootCertificate(certBytes),
-					serialNumber: certSerialNum,
+			issue := func(certificate.CommonName, time.Duration) (*certificate.Certificate, error) {
+				cert := &certificate.Certificate{
+					IssuingCA:    pem.RootCertificate(certBytes),
+					SerialNumber: certSerialNum,
 				}
 				return cert, nil
 			}
@@ -180,13 +180,13 @@ var _ = Describe("Test client helpers", func() {
 			Expect(actual).To(Equal(rootCert))
 		})
 
-		It("implements Certificater correctly", func() {
+		It("implements Certificate correctly", func() {
 			actual, err := cm.GetCertificate(validCertCN)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual.GetCommonName()).To(Equal(validCertCN))
-			Expect(actual.GetCertificateChain()).To(Equal([]byte(validCert.certChain)))
-			Expect(actual.GetExpiration()).To(Equal(validCert.expiration))
-			Expect(actual.GetIssuingCA()).To(Equal([]byte(issuingCA)))
+			Expect(actual.CommonName).To(Equal(validCertCN))
+			Expect([]byte(actual.GetCertificateChain())).To(Equal([]byte(validCert.GetCertificateChain())))
+			Expect(actual.GetExpiration()).To(Equal(validCert.GetExpiration()))
+			Expect([]byte(actual.IssuingCA)).To(Equal([]byte(issuingCA)))
 		})
 	})
 })

@@ -15,7 +15,7 @@ import (
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (certificate.Certificater, error) {
+func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (*certificate.Certificate, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
@@ -70,21 +70,18 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		return nil, err
 	}
 
-	rootCertificate := Certificate{
-		commonName:   certificate.CommonName(template.Subject.CommonName),
-		serialNumber: certificate.SerialNumber(serialNumber.String()),
-		certChain:    pemCert,
-		privateKey:   pemKey,
-		expiration:   template.NotAfter,
-	}
-
-	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
-
-	return &rootCertificate, nil
+	return &certificate.Certificate{
+		CommonName:   certificate.CommonName(template.Subject.CommonName),
+		SerialNumber: certificate.SerialNumber(serialNumber.String()),
+		CertChain:    pemCert,
+		IssuingCA:    pem.RootCertificate(pemCert),
+		PrivateKey:   pemKey,
+		Expiration:   template.NotAfter,
+	}, nil
 }
 
-// NewCertificateFromPEM is a helper returning a certificate.Certificater from the PEM components given.
-func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (certificate.Certificater, error) {
+// NewCertificateFromPEM is a helper returning a *certificate.Certificate from the PEM components given.
+func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*certificate.Certificate, error) {
 	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -93,15 +90,12 @@ func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (cert
 		return nil, err
 	}
 
-	rootCertificate := Certificate{
-		commonName:   certificate.CommonName(x509Cert.Subject.CommonName),
-		serialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
-		certChain:    pemCert,
-		privateKey:   pemKey,
-		expiration:   x509Cert.NotAfter,
-	}
-
-	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
-
-	return &rootCertificate, nil
+	return &certificate.Certificate{
+		CommonName:   certificate.CommonName(x509Cert.Subject.CommonName),
+		SerialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
+		CertChain:    pemCert,
+		IssuingCA:    pem.RootCertificate(pemCert),
+		PrivateKey:   pemKey,
+		Expiration:   x509Cert.NotAfter,
+	}, nil
 }

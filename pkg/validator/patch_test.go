@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,9 +63,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			cert := certificate.NewMockCertificater(mockCtrl)
-			cert.EXPECT().GetCertificateChain()
+			cert := &certificate.Certificate{}
 
 			kubeClient := fake.NewSimpleClientset()
 

@@ -162,7 +162,7 @@ func (c *Config) GetCertificateManager() (certificate.Manager, debugger.Certific
 
 // GetCertificateFromSecret is a helper function that ensures creation and synchronization of a certificate
 // using Kubernetes Secrets backend and API atomicity.
-func GetCertificateFromSecret(ns string, secretName string, cert certificate.Certificater, kubeClient kubernetes.Interface) (certificate.Certificater, error) {
+func GetCertificateFromSecret(ns string, secretName string, cert *certificate.Certificate, kubeClient kubernetes.Interface) (*certificate.Certificate, error) {
 	// Attempt to create it in Kubernetes. When multiple agents attempt to create, only one of them will succeed.
 	// All others will get "AlreadyExists" error back.
 	secretData := map[string][]byte{
@@ -207,7 +207,7 @@ func GetCertificateFromSecret(ns string, secretName string, cert certificate.Cer
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
 func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
-	var rootCert certificate.Certificater
+	var rootCert *certificate.Certificate
 
 	// This part synchronizes CA creation using the inherent atomicity of kubernetes API backend
 	// Assuming multiple instances of Tresor are instantiated at the same time, only one of them will
@@ -250,7 +250,7 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 
 // GetCertFromKubernetes is a helper function that loads a certificate from a Kubernetes secret
 // The function returns an error only if a secret is found with invalid data.
-func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.Interface) (certificate.Certificater, error) {
+func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.Interface) (*certificate.Certificate, error) {
 	certSecret, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error

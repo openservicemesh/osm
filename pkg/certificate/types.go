@@ -4,6 +4,8 @@ package certificate
 
 import (
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 const (
@@ -32,44 +34,41 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
-// Certificater is the interface declaring methods each Certificate object must have.
-type Certificater interface {
+// Certificate represents an x509 certificate.
+type Certificate struct {
+	// The CommonName of the certificate
+	CommonName CommonName
 
-	// GetCommonName retrieves the name of the certificate.
-	GetCommonName() CommonName
+	// The serial number of the certificate
+	SerialNumber SerialNumber
 
-	// GetCertificateChain retrieves the cert chain.
-	GetCertificateChain() []byte
+	// When the cert expires
+	Expiration time.Time
 
-	// GetPrivateKey returns the private key.
-	GetPrivateKey() []byte
+	// PEM encoded Certificate and Key (byte arrays)
+	CertChain  pem.Certificate
+	PrivateKey pem.PrivateKey
 
-	// GetIssuingCA returns the root certificate for the given cert.
-	GetIssuingCA() []byte
-
-	// GetExpiration returns the time the certificate would expire.
-	GetExpiration() time.Time
-
-	// GetSerialNumber returns the serial number of the given certificate.
-	GetSerialNumber() SerialNumber
+	// Certificate authority signing this certificate
+	IssuingCA pem.RootCertificate
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (Certificater, error)
+	GetCertificate(CommonName) (*Certificate, error)
 
 	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (Certificater, error)
+	RotateCertificate(CommonName) (*Certificate, error)
 
 	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (Certificater, error)
+	GetRootCertificate() (*Certificate, error)
 
 	// ListCertificates lists all certificates issued
-	ListCertificates() ([]Certificater, error)
+	ListCertificates() ([]*Certificate, error)
 
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
