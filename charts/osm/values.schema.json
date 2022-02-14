@@ -293,7 +293,8 @@
                                 "osmInjector",
                                 "osmSidecarInit",
                                 "osmCRDs",
-                                "osmBootstrap"
+                                "osmBootstrap",
+                                "osmPreinstall"
                             ],
                             "properties": {
                                 "osmController": {
@@ -325,6 +326,12 @@
                                     "type": "string",
                                     "title": "osm-boostrap's image digest",
                                     "description": "osm-bootstrap container's image digest."
+                                },
+                                "osmPreinstall": {
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmPreinstall",
+                                    "type": "string",
+                                    "title": "osm-preinstall's image digest",
+                                    "description": "osm-preinstall container's image digest."
                                 }
                             }
                         }

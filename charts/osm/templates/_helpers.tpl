@@ -84,3 +84,12 @@ securityContext:
 {{- printf "%s/osm-crds@%s" .Values.osm.image.registry .Values.osm.image.digest.osmCRDs -}}
 {{- end -}}
 {{- end -}}
+
+{{/* osm-preinstall image */}}
+{{- define "osmPreinstall.image" -}}
+{{- if .Values.osm.image.tag -}}
+{{- printf "%s/osm-preinstall:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-preinstall@%s" .Values.osm.image.registry .Values.osm.image.digest.osmPreinstall -}}
+{{- end -}}
+{{- end -}}
