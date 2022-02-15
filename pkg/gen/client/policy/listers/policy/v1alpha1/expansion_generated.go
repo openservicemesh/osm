@@ -38,3 +38,11 @@ type RetryListerExpansion interface{}
 // RetryNamespaceListerExpansion allows custom methods to be added to
 // RetryNamespaceLister.
 type RetryNamespaceListerExpansion interface{}
+
+// UpstreamTrafficSettingListerExpansion allows custom methods to be added to
+// UpstreamTrafficSettingLister.
+type UpstreamTrafficSettingListerExpansion interface{}
+
+// UpstreamTrafficSettingNamespaceListerExpansion allows custom methods to be added to
+// UpstreamTrafficSettingNamespaceLister.
+type UpstreamTrafficSettingNamespaceListerExpansion interface{}
