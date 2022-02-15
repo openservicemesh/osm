@@ -84,10 +84,11 @@ func (r *namespaceRemoveCmd) run() error {
 			"%s": null
 		},
 		"annotations": {
+			"%s": null,
 			"%s": null
 		}
 	}
-}`, constants.OSMKubeResourceMonitorAnnotation, constants.IgnoreLabel, constants.SidecarInjectionAnnotation)
+}`, constants.OSMKubeResourceMonitorAnnotation, constants.IgnoreLabel, constants.SidecarInjectionAnnotation, constants.MetricsAnnotation)
 
 			_, err = r.clientSet.CoreV1().Namespaces().Patch(ctx, r.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 
