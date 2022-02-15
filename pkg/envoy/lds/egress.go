@@ -7,7 +7,7 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -83,7 +83,7 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: match.Cluster},
 	}
 
-	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy for TrafficMatch %v", match)

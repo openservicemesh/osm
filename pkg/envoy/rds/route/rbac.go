@@ -4,9 +4,9 @@ import (
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 
@@ -74,7 +74,7 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 		Rbac: httpRBAC,
 	}
 
-	marshalled, err := ptypes.MarshalAny(httpRBACPerRoute)
+	marshalled, err := anypb.New(httpRBACPerRoute)
 	if err != nil {
 		return nil, err
 	}

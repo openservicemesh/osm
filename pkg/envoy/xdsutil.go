@@ -9,12 +9,12 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
 
@@ -87,7 +87,7 @@ func GetTLSParams() *xds_auth.TlsParameters {
 
 // GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*xds_accesslog_filter.AccessLog {
-	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
+	accessLog, err := anypb.New(getStdoutAccessLog())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling AccessLog object")
@@ -234,7 +234,7 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 
 // GetHTTP2ProtocolOptions creates an Envoy http configuration that matches the downstream protocol
 func GetHTTP2ProtocolOptions() (map[string]*any.Any, error) {
-	marshalledHTTPProtocolOptions, err := ptypes.MarshalAny(
+	marshalledHTTPProtocolOptions, err := anypb.New(
 		&extensions_upstream_http_v3.HttpProtocolOptions{
 			UpstreamProtocolOptions: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
 				UseDownstreamProtocolConfig: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamHttpConfig{

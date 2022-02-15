@@ -4,7 +4,8 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -136,7 +137,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				},
 			},
 		}
-		pbHTTPConnectionManager, err := ptypes.MarshalAny(httpConnectionManager)
+		pbHTTPConnectionManager, err := anypb.New(httpConnectionManager)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
@@ -166,7 +167,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				Cluster: clusterName,
 			},
 		}
-		pbTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+		pbTCPProxy, err := anypb.New(tcpProxy)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
@@ -227,7 +228,7 @@ func getVirtualHost(newPath, clusterName, originalProbePath string, routeTimeout
 							Cluster: clusterName,
 						},
 						PrefixRewrite: originalProbePath,
-						Timeout:       ptypes.DurationProto(routeTimeout),
+						Timeout:       durationpb.New(routeTimeout),
 					},
 				},
 			},
@@ -237,7 +238,7 @@ func getVirtualHost(newPath, clusterName, originalProbePath string, routeTimeout
 
 // getHTTPAccessLog creates an Envoy AccessLog struct.
 func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
-	accessLog, err := ptypes.MarshalAny(getStdoutAccessLog())
+	accessLog, err := anypb.New(getStdoutAccessLog())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Error marshalling AccessLog object")
@@ -253,7 +254,7 @@ func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
 
 // getTCPAccessLog creates an Envoy AccessLog struct.
 func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
-	accessLog, err := ptypes.MarshalAny(getTCPStdoutAccessLog())
+	accessLog, err := anypb.New(getTCPStdoutAccessLog())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Error marshalling tcp AccessLog object")

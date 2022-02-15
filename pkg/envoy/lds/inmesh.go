@@ -8,9 +8,9 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -90,7 +90,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
 	}
 
-	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
+	marshalledInboundConnManager, err := anypb.New(inboundConnManager)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
 	}
@@ -114,7 +114,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	}
 
 	// Construct downstream TLS context
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
@@ -167,7 +167,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	}
 
 	// Construct downstream TLS context
-	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
@@ -225,7 +225,7 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, proxyService.EnvoyLocalClusterName()),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: proxyService.EnvoyLocalClusterName()},
 	}
-	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
@@ -262,7 +262,7 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 		return nil, errors.Wrapf(err, "Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
-	marshalledFilter, err = ptypes.MarshalAny(outboundConnManager)
+	marshalledFilter, err = anypb.New(outboundConnManager)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
@@ -372,7 +372,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.Traff
 		}
 	}
 
-	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for traffic match %s", trafficMatch.Name)

@@ -7,7 +7,8 @@ import (
 	xds_ext_authz "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -34,7 +35,7 @@ func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilte
 						StatPrefix: extAuthConfig.StatPrefix,
 					},
 				},
-				Timeout: ptypes.DurationProto(extAuthConfig.AuthzTimeout),
+				Timeout: durationpb.New(extAuthConfig.AuthzTimeout),
 			},
 		},
 		TransportApiVersion: envoy_config_core_v3.ApiVersion_V3,
@@ -45,7 +46,7 @@ func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilte
 		FailureModeAllow: extAuthConfig.FailureModeAllow,
 	}
 
-	extAuthMarshalled, err := ptypes.MarshalAny(extAuth)
+	extAuthMarshalled, err := anypb.New(extAuth)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msg("Failed to marshal External Authorization config")

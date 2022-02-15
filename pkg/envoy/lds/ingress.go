@@ -6,8 +6,8 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -65,7 +65,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		return nil, errors.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
 	}
 
-	marshalledIngressConnManager, err := ptypes.MarshalAny(ingressConnManager)
+	marshalledIngressConnManager, err := anypb.New(ingressConnManager)
 	if err != nil {
 		return nil, errors.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
 	}
@@ -113,7 +113,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		filterChain.FilterChainMatch.TransportProtocol = envoy.TransportProtocolTLS
 		filterChain.FilterChainMatch.ServerNames = trafficMatch.ServerNames
 
-		marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation))
+		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation))
 		if err != nil {
 			return nil, errors.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
 		}

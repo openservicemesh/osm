@@ -12,7 +12,6 @@ import (
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -183,7 +182,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 			proxyServiceCert := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[0]
-			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
+			err = tmpResource.UnmarshalTo(&proxyServiceCert)
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
@@ -192,7 +191,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
+			err = tmpResource.UnmarshalTo(&serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
@@ -249,7 +248,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 			proxyServiceCert := xds_auth.Secret{}
 			tmpResource = sdsResponse.Resources[0]
-			err = ptypes.UnmarshalAny(tmpResource, &proxyServiceCert)
+			err = tmpResource.UnmarshalTo(&proxyServiceCert)
 			Expect(err).To(BeNil())
 			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),
@@ -258,7 +257,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
 			tmpResource = sdsResponse.Resources[1]
-			err = ptypes.UnmarshalAny(tmpResource, &serverRootCertTypeForMTLSInbound)
+			err = tmpResource.UnmarshalTo(&serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
 			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
 				Name:     proxySvcAccount.String(),

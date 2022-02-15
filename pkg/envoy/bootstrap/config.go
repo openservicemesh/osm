@@ -9,8 +9,8 @@ import (
 	xds_accesslog_stream "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -26,7 +26,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			},
 		},
 	}
-	pbHTTPProtocolOptions, err := ptypes.MarshalAny(httpProtocolOptions)
+	pbHTTPProtocolOptions, err := anypb.New(httpProtocolOptions)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshaling HttpProtocolOptions struct into an anypb.Any message")
@@ -34,7 +34,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 	}
 
 	accessLogger := &xds_accesslog_stream.StdoutAccessLog{}
-	pbAccessLog, err := ptypes.MarshalAny(accessLogger)
+	pbAccessLog, err := anypb.New(accessLogger)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshaling StdoutAccessLog struct into an anypb.Any message")
@@ -75,7 +75,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			},
 		},
 	}
-	pbUpstreamTLSContext, err := ptypes.MarshalAny(upstreamTLSContext)
+	pbUpstreamTLSContext, err := anypb.New(upstreamTLSContext)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshaling UpstreamTlsContext struct into an anypb.Any message")

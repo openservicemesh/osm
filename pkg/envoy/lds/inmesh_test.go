@@ -9,7 +9,6 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -585,7 +584,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			assert.Equal(tc.expectError, err != nil)
 
 			actualConfig := &xds_tcp_proxy.TcpProxy{}
-			err = ptypes.UnmarshalAny(filter.GetTypedConfig(), actualConfig)
+			err = filter.GetTypedConfig().UnmarshalTo(actualConfig)
 			assert.Nil(err)
 			assert.Equal(wellknown.TCPProxy, filter.Name)
 

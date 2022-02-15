@@ -7,7 +7,7 @@ import (
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_network_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -24,7 +24,7 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 		return nil, err
 	}
 
-	marshalledNetworkRBACPolicy, err := ptypes.MarshalAny(networkRBACPolicy)
+	marshalledNetworkRBACPolicy, err := anypb.New(networkRBACPolicy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling RBAC policy: %v", networkRBACPolicy)

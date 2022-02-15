@@ -12,7 +12,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
@@ -21,6 +20,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -179,7 +179,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service))
+	upstreamTLSProto, err := anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service))
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
@@ -208,7 +208,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
+	upstreamTLSProto, err = anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
@@ -355,7 +355,7 @@ func TestNewResponse(t *testing.T) {
 			assert.Truef(cmp.Equal(expectedBookstoreV1Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
-			err = ptypes.UnmarshalAny(a.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
+			err = a.TransportSocket.GetTypedConfig().UnmarshalTo(&upstreamTLSContext)
 			require.Nil(err)
 
 			assert.Equal(expectedBookstoreV1TLSContext.CommonTlsContext.TlsParams, upstreamTLSContext.CommonTlsContext.TlsParams)
@@ -370,7 +370,7 @@ func TestNewResponse(t *testing.T) {
 			assert.Truef(cmp.Equal(expectedBookstoreV2Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
-			err = ptypes.UnmarshalAny(a.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
+			err = a.TransportSocket.GetTypedConfig().UnmarshalTo(&upstreamTLSContext)
 			require.Nil(err)
 
 			assert.Equal(expectedBookstoreV2TLSContext.CommonTlsContext.TlsParams, upstreamTLSContext.CommonTlsContext.TlsParams)
