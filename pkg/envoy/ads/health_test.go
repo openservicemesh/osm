@@ -19,5 +19,5 @@ func TestReadiness(t *testing.T) {
 func TestServerGetID(t *testing.T) {
 	assert := tassert.New(t)
 	actual := (&Server{}).GetID()
-	assert.Equal(actual, ServerType)
+	assert.Equal(ServerType, actual)
 }
