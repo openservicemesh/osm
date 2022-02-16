@@ -37,7 +37,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
@@ -69,7 +69,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, true)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, true, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 
@@ -97,7 +97,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, false)
+				nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 
@@ -129,7 +129,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
@@ -173,7 +173,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 
@@ -217,7 +217,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", true, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", true, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 
@@ -267,11 +267,11 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
-				nsSpec2 := createNamespaceSpec(testNamespace2, "", false, false)
+				nsSpec2 := createNamespaceSpec(testNamespace2, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec2, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
@@ -316,7 +316,7 @@ var _ = Describe("Running the namespace add command", func() {
 				_, err = addDeployment(fakeClientSet, constants.OSMControllerName, testMeshName, "osm-system-namespace", "testVersion0.1.2", true)
 				Expect(err).To(BeNil())
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
@@ -353,7 +353,7 @@ var _ = Describe("Running the namespace add command", func() {
 				out = new(bytes.Buffer)
 				fakeClientSet = fake.NewSimpleClientset()
 
-				nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+				nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
 
@@ -422,7 +422,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, testMeshName, false, false)
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName, false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 
@@ -451,7 +451,7 @@ var _ = Describe("Running the namespace remove command", func() {
 		})
 	})
 
-	Describe("with pre-existing namespace, correct label and annotation", func() {
+	Describe("with pre-existing namespace, correct label, injection annotation, and metrics annotation", func() {
 		var (
 			out           *bytes.Buffer
 			fakeClientSet kubernetes.Interface
@@ -462,7 +462,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, false)
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, false, true)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -495,6 +495,12 @@ var _ = Describe("Running the namespace remove command", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ns.Annotations).ShouldNot(HaveKey(constants.SidecarInjectionAnnotation))
 		})
+
+		It("should correctly remove the metrics annotation on the namespace", func() {
+			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns.Annotations).ShouldNot(HaveKey(constants.MetricsAnnotation))
+		})
 	})
 
 	Describe("with pre-existing namespace and incorrect label", func() {
@@ -508,7 +514,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, testMeshName, false, false)
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName, false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 
@@ -540,7 +546,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+			nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 
@@ -563,7 +569,7 @@ var _ = Describe("Running the namespace remove command", func() {
 		})
 	})
 
-	Describe("with pre-existing ignored namespace with annotation", func() {
+	Describe("with pre-existing ignored namespace with injection and metrics annotations", func() {
 		var (
 			out           *bytes.Buffer
 			fakeClientSet kubernetes.Interface
@@ -574,7 +580,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, true)
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName, true, true, true)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 
@@ -612,6 +618,12 @@ var _ = Describe("Running the namespace remove command", func() {
 			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ns.Annotations).ShouldNot(HaveKey(constants.SidecarInjectionAnnotation))
+		})
+
+		It("should correctly remove the metrics annotation on the namespace", func() {
+			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns.Annotations).ShouldNot(HaveKey(constants.MetricsAnnotation))
 		})
 	})
 
@@ -656,7 +668,7 @@ var _ = Describe("Running the namespace list command", func() {
 
 		// helper function that adds a name space to the clientset
 		addNamespace := func(name, mesh string, enableSideCarInjection bool) {
-			ns := createNamespaceSpec(name, mesh, enableSideCarInjection, false)
+			ns := createNamespaceSpec(name, mesh, enableSideCarInjection, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 		}
@@ -798,7 +810,7 @@ var _ = Describe("Running the namespace ignore command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+			nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -829,11 +841,11 @@ var _ = Describe("Running the namespace ignore command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := createNamespaceSpec(testNamespace, "", false, false)
+			nsSpec := createNamespaceSpec(testNamespace, "", false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			nsSpec2 := createNamespaceSpec(testNamespace2, "", false, false)
+			nsSpec2 := createNamespaceSpec(testNamespace2, "", false, false, false)
 			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec2, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -859,7 +871,7 @@ var _ = Describe("Running the namespace ignore command", func() {
 	})
 })
 
-func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool, ignoreNamespace bool) *v1.Namespace {
+func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool, ignoreNamespace bool, enableMetrics bool) *v1.Namespace {
 	labelMap := make(map[string]string)
 	if meshName != "" {
 		labelMap[constants.OSMKubeResourceMonitorAnnotation] = meshName
@@ -877,6 +889,10 @@ func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool
 
 	if ignoreNamespace {
 		labelMap[constants.IgnoreLabel] = trueValue
+	}
+
+	if enableMetrics {
+		labelMap[constants.MetricsAnnotation] = "enabled"
 	}
 
 	return ns
