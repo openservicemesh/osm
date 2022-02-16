@@ -166,6 +166,15 @@ const (
 	// RetryPolicyUpdated is the type of announcement emitted when we observe an update to retries.policy.openservicemesh.io
 	RetryPolicyUpdated Kind = "retry-updated"
 
+	// UpstreamTrafficSettingAdded is the type of announcement emitted when we observe an addition of upstreamtrafficsettings.policy.openservicemesh.io
+	UpstreamTrafficSettingAdded Kind = "upstreamtrafficsetting-added"
+
+	// UpstreamTrafficSettingDeleted is the type of announcement emitted when we observe a deletion of upstreamtrafficsettings.policy.openservicemesh.io
+	UpstreamTrafficSettingDeleted Kind = "upstreamtrafficsetting-deleted"
+
+	// UpstreamTrafficSettingUpdated is the type of announcement emitted when we observe an update of upstreamtrafficsettings.policy.openservicemesh.io
+	UpstreamTrafficSettingUpdated Kind = "upstreamtrafficsetting-updated"
+
 	// ---
 
 	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io
