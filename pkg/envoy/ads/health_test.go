@@ -8,27 +8,16 @@ import (
 
 func TestLiveness(t *testing.T) {
 	assert := tassert.New(t)
-
-	exp := true
-	res := (&Server{}).Liveness()
-	assert.Equal(res, exp)
+	assert.True((&Server{}).Liveness())
 }
 
 func TestReadiness(t *testing.T) {
 	assert := tassert.New(t)
-
-	s := Server{
-		ready: true,
-	}
-	exp := true
-	res := s.Readiness()
-	assert.Equal(res, exp)
+	assert.True((&Server{ready: true}).Readiness())
 }
 
 func TestServerGetID(t *testing.T) {
 	assert := tassert.New(t)
-
-	expected := ServerType
 	actual := (&Server{}).GetID()
-	assert.Equal(actual, expected)
+	assert.Equal(ServerType, actual)
 }
