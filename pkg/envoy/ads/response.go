@@ -8,7 +8,8 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -128,7 +129,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 	resourcesSent := mapset.NewSet()
 	subscribedResources := proxy.GetSubscribedResources(typeURI)
 	for _, res := range resourcesToSend {
-		proto, err := ptypes.MarshalAny(res)
+		proto, err := anypb.New(res.(proto.Message))
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())

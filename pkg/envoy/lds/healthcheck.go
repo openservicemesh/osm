@@ -5,8 +5,8 @@ import (
 	xds_health_check "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/health_check/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -31,7 +31,7 @@ func getHealthCheckFilter() (*xds_hcm.HttpFilter, error) {
 		},
 	}
 
-	hcAny, err := ptypes.MarshalAny(hc)
+	hcAny, err := anypb.New(hc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error marshaling health check filter")
 	}

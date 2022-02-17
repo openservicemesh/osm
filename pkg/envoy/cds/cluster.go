@@ -8,9 +8,9 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -35,7 +35,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 		return nil
 	}
 
-	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+	marshalledUpstreamTLSContext, err := anypb.New(
 		envoy.GetUpstreamTLSContext(downstreamIdentity, config.Service))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling UpstreamTLSContext for upstream cluster %s", config.Name)

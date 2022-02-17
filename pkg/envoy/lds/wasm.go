@@ -14,7 +14,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 //go:embed stats.wasm
@@ -93,7 +93,7 @@ func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error)
 		InlineCode: addCallsReq.String(),
 	}
 
-	luaAny, err := ptypes.MarshalAny(lua)
+	luaAny, err := anypb.New(lua)
 	if err != nil {
 		return nil, errors.Wrap(err, "error marshaling Lua filter")
 	}
@@ -131,7 +131,7 @@ func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {
 		},
 	}
 
-	wasmAny, err := ptypes.MarshalAny(wasmPlug)
+	wasmAny, err := anypb.New(wasmPlug)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error marshalling Wasm config")
 	}

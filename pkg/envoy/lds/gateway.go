@@ -6,7 +6,7 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -49,7 +49,7 @@ func getMulticlusterGatewayFilterChains(upstreamServices []service.MeshService) 
 			AccessLog:        envoy.GetAccessLog(),
 		}
 
-		marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+		marshalledTCPProxy, err := anypb.New(tcpProxy)
 		if err != nil {
 			log.Error().Err(err).Msgf("[Multicluster] Error marshalling tcpProxy object for gateway filter chain service %s", upstreamSvc.String())
 			continue

@@ -10,7 +10,7 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -126,7 +126,7 @@ func newInboundListener() *xds_listener.Listener {
 }
 
 func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
-	marshalledConnManager, err := ptypes.MarshalAny(connManager)
+	marshalledConnManager, err := anypb.New(connManager)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling HttpConnectionManager object")
@@ -159,7 +159,7 @@ func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 		StatPrefix:       fmt.Sprintf("%s.%s", egressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
-	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")

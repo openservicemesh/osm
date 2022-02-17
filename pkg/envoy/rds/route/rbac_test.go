@@ -8,7 +8,6 @@ import (
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
@@ -118,7 +117,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 
 			marshalled := rbacFilter[wellknown.HTTPRoleBasedAccessControl]
 			httpRBACPerRoute := &xds_http_rbac.RBACPerRoute{}
-			err = ptypes.UnmarshalAny(marshalled, httpRBACPerRoute)
+			err = marshalled.UnmarshalTo(httpRBACPerRoute)
 			assert.Nil(err)
 
 			rbacRules := httpRBACPerRoute.Rbac.Rules
