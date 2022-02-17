@@ -41,10 +41,10 @@ func (m *MockCertificateManagerDebugger) EXPECT() *MockCertificateManagerDebugge
 }
 
 // ListIssuedCertificates mocks base method.
-func (m *MockCertificateManagerDebugger) ListIssuedCertificates() []certificate.Certificater {
+func (m *MockCertificateManagerDebugger) ListIssuedCertificates() []*certificate.Certificate {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListIssuedCertificates")
-	ret0, _ := ret[0].([]certificate.Certificater)
+	ret0, _ := ret[0].([]*certificate.Certificate)
 	return ret0
 }
 

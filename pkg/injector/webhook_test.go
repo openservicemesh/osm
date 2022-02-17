@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -36,7 +37,14 @@ import (
 
 func TestCreateMutatingWebhook(t *testing.T) {
 	assert := tassert.New(t)
-	cert := mockCertificate{}
+	cert := &certificate.Certificate{
+		CommonName:   "",
+		CertChain:    pem.Certificate("chain"),
+		PrivateKey:   pem.PrivateKey("key"),
+		IssuingCA:    pem.RootCertificate("ca"),
+		Expiration:   time.Now(),
+		SerialNumber: "serial_number",
+	}
 	webhookName := "--webhookName--"
 	webhookTimeout := int32(20)
 	meshName := "test-mesh"
@@ -100,15 +108,6 @@ func TestCreateMutatingWebhook(t *testing.T) {
 	assert.Equal(wh.Webhooks[0].TimeoutSeconds, &webhookTimeout)
 	assert.Equal(wh.Webhooks[0].AdmissionReviewVersions, []string{"v1"})
 }
-
-type mockCertificate struct{}
-
-func (mc mockCertificate) GetCommonName() certificate.CommonName     { return "" }
-func (mc mockCertificate) GetCertificateChain() []byte               { return []byte("chain") }
-func (mc mockCertificate) GetPrivateKey() []byte                     { return []byte("key") }
-func (mc mockCertificate) GetIssuingCA() []byte                      { return []byte("ca") }
-func (mc mockCertificate) GetExpiration() time.Time                  { return time.Now() }
-func (mc mockCertificate) GetSerialNumber() certificate.SerialNumber { return "serial_number" }
 
 func TestIsAnnotatedForInjection(t *testing.T) {
 	testCases := []struct {

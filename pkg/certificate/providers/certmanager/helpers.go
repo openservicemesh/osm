@@ -13,20 +13,20 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
-// NewRootCertificateFromPEM is a helper returning a certificate.Certificater
+// NewRootCertificateFromPEM is a helper returning a *certificate.Certificate
 // from the PEM components given.
-func NewRootCertificateFromPEM(pemCert pem.Certificate) (certificate.Certificater, error) {
+func NewRootCertificateFromPEM(pemCert pem.Certificate) (*certificate.Certificate, error) {
 	cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decoded root certificate: %s", err)
 	}
 
-	return Certificate{
-		commonName:   certificate.CommonName(cert.Subject.CommonName),
-		serialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
-		certChain:    pemCert,
-		expiration:   cert.NotAfter,
-		issuingCA:    pem.RootCertificate(pemCert),
+	return &certificate.Certificate{
+		CommonName:   certificate.CommonName(cert.Subject.CommonName),
+		SerialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
+		CertChain:    pemCert,
+		Expiration:   cert.NotAfter,
+		IssuingCA:    pem.RootCertificate(pemCert),
 	}, nil
 }
 

@@ -22,7 +22,7 @@ const (
 	ValidatorWebhookSvc = "osm-validator"
 )
 
-func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool, enableReconciler bool) error {
+func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certificate.Certificate, webhookName, meshName, osmNamespace, osmVersion string, validateTrafficTarget bool, enableReconciler bool) error {
 	webhookPath := validationAPIPath
 	webhookPort := int32(constants.ValidatorWebhookPort)
 	failurePolicy := admissionregv1.Fail

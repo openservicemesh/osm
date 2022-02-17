@@ -65,12 +65,12 @@ func NewCertManager(
 		return nil, err
 	}
 
-	c.ca = &Certificate{
-		commonName:   constants.CertificationAuthorityCommonName,
-		serialNumber: serialNumber,
-		expiration:   time.Now().Add(decade),
-		certChain:    issuingCA,
-		issuingCA:    issuingCA,
+	c.ca = &certificate.Certificate{
+		CommonName:   constants.CertificationAuthorityCommonName,
+		SerialNumber: serialNumber,
+		Expiration:   time.Now().Add(decade),
+		CertChain:    issuingCA,
+		IssuingCA:    issuingCA,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
@@ -79,7 +79,7 @@ func NewCertManager(
 	return c, nil
 }
 
-func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (certificate.Certificater, error)) ([]byte, certificate.SerialNumber, error) {
+func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (*certificate.Certificate, error)) ([]byte, certificate.SerialNumber, error) {
 	// Create a temp certificate to determine the public part of the issuing CA
 	cert, err := issue("localhost", decade)
 	if err != nil {
@@ -94,7 +94,7 @@ func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Dura
 	return issuingCA, cert.GetSerialNumber(), err
 }
 
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	secret, err := cm.client.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -110,9 +110,9 @@ func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
 	cm.cache.Delete(cn)
 }
 
-func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
+func (cm *CertManager) getFromCache(cn certificate.CommonName) *certificate.Certificate {
 	if certificateInterface, exists := cm.cache.Load(cn); exists {
-		cert := certificateInterface.(certificate.Certificater)
+		cert := certificateInterface.(*certificate.Certificate)
 		log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
 			log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
@@ -124,7 +124,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault CertManager.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -150,17 +150,17 @@ func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
 }
 
 // ListCertificates lists all certificates issued
-func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
-	var certs []certificate.Certificater
+func (cm *CertManager) ListCertificates() ([]*certificate.Certificate, error) {
+	var certs []*certificate.Certificate
 	cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
-		certs = append(certs, certInterface.(certificate.Certificater))
+		certs = append(certs, certInterface.(*certificate.Certificate))
 		return true // continue the iteration
 	})
 	return certs, nil
 }
 
 // GetCertificate returns a certificate given its Common Name (CN)
-func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) GetCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
 	if cert := cm.getFromCache(cn); cert != nil {
 		return cert, nil
 	}
@@ -168,12 +168,12 @@ func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Ce
 }
 
 // GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
+func (cm *CertManager) GetRootCertificate() (*certificate.Certificate, error) {
 	return cm.ca, nil
 }
 
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
-func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
 	start := time.Now()
 
 	oldCert, ok := cm.cache.Load(cn)
@@ -198,70 +198,21 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
 		NewObj: newCert,
-		OldObj: oldCert.(certificate.Certificater),
+		OldObj: oldCert.(*certificate.Certificate),
 	}, announcements.CertificateRotated.String())
 
-	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(certificate.Certificater).GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.(*certificate.Certificate).GetSerialNumber(), newCert.SerialNumber, time.Since(start))
 
 	return newCert, nil
 }
 
-// Certificate implements certificate.Certificater
-type Certificate struct {
-	// The commonName of the certificate
-	commonName certificate.CommonName
-
-	// When the cert expires
-	expiration time.Time
-
-	// PEM encoded Certificate and Key (byte arrays)
-	certChain  pem.Certificate
-	privateKey pem.PrivateKey
-
-	// Certificate authority signing this certificate.
-	issuingCA pem.RootCertificate
-
-	// serialNumber is the serial_number value in the Data field assigned to the Certificate Hashicorp Vault issued
-	serialNumber certificate.SerialNumber
-}
-
-// GetCommonName returns the common name of the given certificate.
-func (c Certificate) GetCommonName() certificate.CommonName {
-	return c.commonName
-}
-
-// GetCertificateChain returns the PEM encoded certificate.
-func (c Certificate) GetCertificateChain() []byte {
-	return c.certChain
-}
-
-// GetPrivateKey returns the PEM encoded private key of the given certificate.
-func (c Certificate) GetPrivateKey() []byte {
-	return c.privateKey
-}
-
-// GetIssuingCA returns the root certificate signing the given cert.
-func (c Certificate) GetIssuingCA() []byte {
-	return c.issuingCA
-}
-
-// GetExpiration implements certificate.Certificater and returns the time the given certificate expires.
-func (c Certificate) GetExpiration() time.Time {
-	return c.expiration
-}
-
-func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *Certificate {
-	return &Certificate{
-		commonName:   cn,
-		serialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
-		expiration:   expiration,
-		certChain:    pem.Certificate(secret.Data[certificateField].(string)),
-		privateKey:   []byte(secret.Data[privateKeyField].(string)),
-		issuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
+func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {
+	return &certificate.Certificate{
+		CommonName:   cn,
+		SerialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
+		Expiration:   expiration,
+		CertChain:    pem.Certificate(secret.Data[certificateField].(string)),
+		PrivateKey:   []byte(secret.Data[privateKeyField].(string)),
+		IssuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
 	}
-}
-
-// GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() certificate.SerialNumber {
-	return c.serialNumber
 }

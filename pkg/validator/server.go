@@ -150,7 +150,7 @@ func (s *validatingWebhookServer) handleValidation(req *admissionv1.AdmissionReq
 	return
 }
 
-func (s *validatingWebhookServer) run(port int, certificater certificate.Certificater, stop <-chan struct{}) {
+func (s *validatingWebhookServer) run(port int, cert *certificate.Certificate, stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -167,7 +167,7 @@ func (s *validatingWebhookServer) run(port int, certificater certificate.Certifi
 	log.Info().Msgf("Starting resource validator webhook server on port: %v", port)
 	go func() {
 		// Generate a key pair from your pem-encoded cert and key
-		cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
+		cert, err := tls.X509KeyPair(cert.GetCertificateChain(), cert.GetPrivateKey())
 		if err != nil {
 			// TODO: Need to push metric
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingValidatingWebhookCert)).

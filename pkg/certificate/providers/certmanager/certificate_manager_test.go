@@ -153,11 +153,11 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 })
 
 func TestReleaseCertificate(t *testing.T) {
-	cert := &Certificate{
-		commonName: cn,
-		expiration: time.Now().Add(1 * time.Hour),
+	cert := &certificate.Certificate{
+		CommonName: cn,
+		Expiration: time.Now().Add(1 * time.Hour),
 	}
-	manager := &CertManager{cache: map[certificate.CommonName]certificate.Certificater{cn: cert}}
+	manager := &CertManager{cache: map[certificate.CommonName]*certificate.Certificate{cn: cert}}
 
 	testCases := []struct {
 		name       string
@@ -188,9 +188,9 @@ func TestGetRootCertificate(t *testing.T) {
 	assert := tassert.New(t)
 
 	manager := &CertManager{
-		ca: &Certificate{
-			commonName: cn,
-			expiration: time.Now().Add(1 * time.Hour),
+		ca: &certificate.Certificate{
+			CommonName: cn,
+			Expiration: time.Now().Add(1 * time.Hour),
 		},
 	}
 	cert, err := manager.GetRootCertificate()
@@ -199,7 +199,7 @@ func TestGetRootCertificate(t *testing.T) {
 	assert.Equal(manager.ca, cert)
 }
 
-func TestCertificaterFromCertificateRequest(t *testing.T) {
+func TestCertificateFromCertificateRequest(t *testing.T) {
 	assert := tassert.New(t)
 	fakeClient := cmfakeclient.NewSimpleClientset()
 
@@ -274,14 +274,14 @@ func TestCertificaterFromCertificateRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			cert, err := cm.certificaterFromCertificateRequest(&tc.cr, emptyArr)
+			cert, err := cm.certificateFromCertificateRequest(&tc.cr, emptyArr)
 
 			assert.Equal(tc.expectedCertIsNil, cert == nil)
 			assert.Equal(tc.expectedError, err)
 		})
 	}
 	// Tests if cmapi.CertificateRequest is nil
-	cert, err := cm.certificaterFromCertificateRequest(nil, emptyArr)
+	cert, err := cm.certificateFromCertificateRequest(nil, emptyArr)
 	assert.Nil(cert)
 	assert.Nil(err)
 }

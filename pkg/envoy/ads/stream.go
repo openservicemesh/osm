@@ -132,7 +132,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS}, nil))
 
 		case certRotateMsg := <-certRotateChan:
-			cert := certRotateMsg.(events.PubSubMessage).NewObj.(certificate.Certificater)
+			cert := certRotateMsg.(events.PubSubMessage).NewObj.(*certificate.Certificate)
 			if isCNforProxy(proxy, cert.GetCommonName()) {
 				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
 				// with this proxy, so update the secrets corresponding to this certificate via SDS.

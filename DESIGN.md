@@ -474,19 +474,19 @@ package certificate
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (Certificater, error)
+	GetCertificate(CommonName) (*Certificate, error)
 
 	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (Certificater, error)
+	RotateCertificate(CommonName) (*Certificate, error)
 
 	// GetRootCertificate returns the root certificate.
-	GetRootCertificate() (Certificater, error)
+	GetRootCertificate() (*Certificate, error)
 
 	// ListCertificates lists all certificates issued
-	ListCertificates() ([]Certificater, error)
+	ListCertificates() ([]*Certificate, error)
 
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
@@ -496,34 +496,6 @@ type Manager interface {
 	GetAnnouncementsChannel() <-chan interface{}
 }
 ```
-
-
-
-Additionally we define an interface for the `Certificate` object, which requires the following methods:
-```go
-// Certificater is the interface declaring methods each Certificate object must have.
-type Certificater interface {
-
-	// GetCommonName retrieves the name of the certificate.
-	GetCommonName() CommonName
-
-	// GetCertificateChain retrieves the cert chain.
-	GetCertificateChain() []byte
-
-	// GetPrivateKey returns the private key.
-	GetPrivateKey() []byte
-
-	// GetIssuingCA returns the root certificate for the given cert.
-	GetIssuingCA() Certificater
-
-	// GetExpiration() returns the expiration of the certificate
-	GetExpiration() time.Time
-
- 	// GetSerialNumber returns the serial number of the given certificate.
- 	GetSerialNumber() string
-}
-```
-
 
 ## Appendix
 

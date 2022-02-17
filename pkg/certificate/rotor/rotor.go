@@ -70,7 +70,7 @@ func (r *CertRotor) checkAndRotate() {
 }
 
 // ShouldRotate determines whether a certificate should be rotated.
-func ShouldRotate(cert certificate.Certificater) bool {
+func ShouldRotate(cert *certificate.Certificate) bool {
 	// The certificate is going to expire at a timestamp T
 	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
 	// We add a few seconds noise to the early renew period so that certificates that may have been

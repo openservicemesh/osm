@@ -84,10 +84,7 @@ func TestGetRootCert(t *testing.T) {
 	type dynamicMock struct {
 		mockCatalog      *catalog.MockMeshCataloger
 		mockConfigurator *configurator.MockConfigurator
-		mockCertificater *certificate.MockCertificater
 	}
-
-	mockCertManager := certificate.NewMockManager(mockCtrl)
 
 	type testCase struct {
 		name            string
@@ -110,9 +107,7 @@ func TestGetRootCert(t *testing.T) {
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
-			prepare: func(d *dynamicMock) {
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
-			},
+			prepare: func(d *dynamicMock) {},
 
 			// expectations
 			expectedSANs: nil,
@@ -138,7 +133,6 @@ func TestGetRootCert(t *testing.T) {
 					Name:      "service-2",
 					Namespace: "ns-2",
 				}).Return(associatedSvcAccounts).Times(1)
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
 			// expectations
@@ -153,11 +147,13 @@ func TestGetRootCert(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			cert := &certificate.Certificate{}
+			mockCertManager := certificate.NewMockManager(mockCtrl)
+
 			// Initialize the dynamic mocks
 			d := dynamicMock{
 				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
 				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
-				mockCertificater: certificate.NewMockCertificater(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -175,7 +171,7 @@ func TestGetRootCert(t *testing.T) {
 			}
 
 			// test the function
-			sdsSecret, err := s.getRootCert(d.mockCertificater, tc.sdsCert)
+			sdsSecret, err := s.getRootCert(cert, tc.sdsCert)
 			assert.Equal(err != nil, tc.expectError)
 
 			if err != nil {
@@ -189,8 +185,6 @@ func TestGetRootCert(t *testing.T) {
 func TestGetServiceCert(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-
-	mockCertificater := certificate.NewMockCertificater(mockCtrl)
 
 	type testCase struct {
 		certName    string
@@ -209,11 +203,13 @@ func TestGetServiceCert(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Mock cert
-			mockCertificater.EXPECT().GetCertificateChain().Return(tc.certChain).Times(1)
-			mockCertificater.EXPECT().GetPrivateKey().Return(tc.privKey).Times(1)
+			cert := &certificate.Certificate{
+				CertChain:  tc.certChain,
+				PrivateKey: tc.privKey,
+			}
 
 			// Test the function
-			sdsSecret, err := getServiceCertSecret(mockCertificater, tc.certName)
+			sdsSecret, err := getServiceCertSecret(cert, tc.certName)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.NotNil(sdsSecret)
@@ -230,11 +226,16 @@ func TestGetSDSSecrets(t *testing.T) {
 
 	mockCertManager := certificate.NewMockManager(mockCtrl)
 
+	cert := &certificate.Certificate{
+		CertChain:  []byte("foo"),
+		PrivateKey: []byte("foo"),
+		IssuingCA:  []byte("foo"),
+	}
+
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
 		mockCatalog      *catalog.MockMeshCataloger
 		mockConfigurator *configurator.MockConfigurator
-		mockCertificater *certificate.MockCertificater
 	}
 
 	type testCase struct {
@@ -261,9 +262,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			name:            "test root-cert-for-mtls-inbound cert type request",
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
-			prepare: func(d *dynamicMock) {
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
-			},
+			prepare: func(d *dynamicMock) {},
 
 			sdsCertType:    secrets.RootCertTypeForMTLSInbound,
 			requestedCerts: []string{"root-cert-for-mtls-inbound:ns-1/sa-1"}, // root-cert requested
@@ -289,7 +288,6 @@ func TestGetSDSSecrets(t *testing.T) {
 					Namespace: "ns-2",
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(associatedSvcAccounts).Times(1)
-				d.mockCertificater.EXPECT().GetIssuingCA().Return([]byte("foo")).Times(1)
 			},
 
 			sdsCertType:    secrets.RootCertTypeForMTLSOutbound,
@@ -306,10 +304,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			name:            "test service-cert cert type request",
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
-			prepare: func(d *dynamicMock) {
-				d.mockCertificater.EXPECT().GetCertificateChain().Return([]byte("foo")).Times(1)
-				d.mockCertificater.EXPECT().GetPrivateKey().Return([]byte("foo")).Times(1)
-			},
+			prepare: func(d *dynamicMock) {},
 
 			sdsCertType:    secrets.ServiceCertType,
 			requestedCerts: []string{"service-cert:ns-1/sa-1"}, // service-cert requested
@@ -346,7 +341,6 @@ func TestGetSDSSecrets(t *testing.T) {
 			d := dynamicMock{
 				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
 				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
-				mockCertificater: certificate.NewMockCertificater(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -369,7 +363,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			assert.Nil(err)
 
 			// test the function
-			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts, proxy)
+			sdsSecrets := s.getSDSSecrets(cert, tc.requestedCerts, proxy)
 			assert.Len(sdsSecrets, tc.expectedSecretCount)
 
 			if tc.expectedSecretCount <= 0 {

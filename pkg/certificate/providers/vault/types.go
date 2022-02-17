@@ -15,10 +15,10 @@ import (
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
 type CertManager struct {
 	// The Certificate Authority root certificate to be used by this certificate manager
-	ca certificate.Certificater
+	ca *certificate.Certificate
 
 	// Cache for all the certificates issued
-	// Types: map[certificate.CommonName]certificate.Certificater
+	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
 	// Hashicorp Vault client
