@@ -30,15 +30,17 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 	informerFactory := policyInformers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := informerCollection{
-		egress:         informerFactory.Policy().V1alpha1().Egresses().Informer(),
-		ingressBackend: informerFactory.Policy().V1alpha1().IngressBackends().Informer(),
-		retry:          informerFactory.Policy().V1alpha1().Retries().Informer(),
+		egress:                 informerFactory.Policy().V1alpha1().Egresses().Informer(),
+		ingressBackend:         informerFactory.Policy().V1alpha1().IngressBackends().Informer(),
+		retry:                  informerFactory.Policy().V1alpha1().Retries().Informer(),
+		upstreamTrafficSetting: informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer(),
 	}
 
 	cacheCollection := cacheCollection{
-		egress:         informerCollection.egress.GetStore(),
-		ingressBackend: informerCollection.ingressBackend.GetStore(),
-		retry:          informerCollection.retry.GetStore(),
+		egress:                 informerCollection.egress.GetStore(),
+		ingressBackend:         informerCollection.ingressBackend.GetStore(),
+		retry:                  informerCollection.retry.GetStore(),
+		upstreamTrafficSetting: informerCollection.upstreamTrafficSetting.GetStore(),
 	}
 
 	client := client{
@@ -68,12 +70,19 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 	}
 	informerCollection.ingressBackend.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
 
-	RetryEventTypes := k8s.EventTypes{
+	retryEventTypes := k8s.EventTypes{
 		Add:    announcements.RetryPolicyAdded,
 		Update: announcements.RetryPolicyUpdated,
 		Delete: announcements.RetryPolicyDeleted,
 	}
-	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, RetryEventTypes, msgBroker))
+	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, retryEventTypes, msgBroker))
+
+	upstreamTrafficSettingEventTypes := k8s.EventTypes{
+		Add:    announcements.UpstreamTrafficSettingAdded,
+		Update: announcements.UpstreamTrafficSettingUpdated,
+		Delete: announcements.UpstreamTrafficSettingDeleted,
+	}
+	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
 
 	err := client.run(stop)
 	if err != nil {
@@ -91,8 +100,10 @@ func (c client) run(stop <-chan struct{}) error {
 	}
 
 	sharedInformers := map[string]cache.SharedInformer{
-		"Egress":         c.informers.egress,
-		"IngressBackend": c.informers.ingressBackend,
+		"Egress":                 c.informers.egress,
+		"IngressBackend":         c.informers.ingressBackend,
+		"Retry":                  c.informers.retry,
+		"UpstreamTrafficSetting": c.informers.upstreamTrafficSetting,
 	}
 
 	var informerNames []string

@@ -43,6 +43,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&IngressBackendList{},
 		&Retry{},
 		&RetryList{},
+		&UpstreamTrafficSetting{},
+		&UpstreamTrafficSettingList{},
 	)
 
 	metav1.AddToGroupVersion(

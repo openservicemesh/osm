@@ -18,16 +18,18 @@ var (
 
 // informerCollection is the type used to represent the collection of informers for the policy.openservicemesh.io API group
 type informerCollection struct {
-	egress         cache.SharedIndexInformer
-	ingressBackend cache.SharedIndexInformer
-	retry          cache.SharedIndexInformer
+	egress                 cache.SharedIndexInformer
+	ingressBackend         cache.SharedIndexInformer
+	retry                  cache.SharedIndexInformer
+	upstreamTrafficSetting cache.SharedIndexInformer
 }
 
 // cacheCollection is the type used to represent the collection of caches for the policy.openservicemesh.io API group
 type cacheCollection struct {
-	egress         cache.Store
-	ingressBackend cache.Store
-	retry          cache.Store
+	egress                 cache.Store
+	ingressBackend         cache.Store
+	retry                  cache.Store
+	upstreamTrafficSetting cache.Store
 }
 
 // client is the type used to represent the Kubernetes client for the policy.openservicemesh.io API group
