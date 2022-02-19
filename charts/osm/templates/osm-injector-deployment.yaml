@@ -122,6 +122,8 @@ spec:
               value: "{{ .Values.osm.sidecarWindowsImage }}"
             - name: OSM_DEFAULT_INIT_CONTAINER_IMAGE
               value: '{{ include "osmSidecarInit.image" . }}'
+            - name: OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE
+              value: '{{ include "osmHealthcheck.image" . }}'
     {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}

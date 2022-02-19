@@ -106,10 +106,11 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
-| osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmInjector":"","osmPreinstall":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
+| osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmHealthcheck":"","osmInjector":"","osmPreinstall":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
 | osm.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
 | osm.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
 | osm.image.digest.osmController | string | `""` | osm-controller's image digest |
+| osm.image.digest.osmHealthcheck | string | `""` | osm-healthcheck's image digest |
 | osm.image.digest.osmInjector | string | `""` | osm-injector's image digest |
 | osm.image.digest.osmPreinstall | string | `""` | osm-preinstall's image digest |
 | osm.image.digest.osmSidecarInit | string | `""` | Sidecar init container's image digest |

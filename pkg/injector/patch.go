@@ -69,6 +69,14 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
+	if (originalHealthProbes.liveness != nil && originalHealthProbes.liveness.isTCPSocket) ||
+		(originalHealthProbes.readiness != nil && originalHealthProbes.readiness.isTCPSocket) ||
+		(originalHealthProbes.startup != nil && originalHealthProbes.startup.isTCPSocket) {
+		if err = wh.configurePodHealthcheck(pod); err != nil {
+			return nil, err
+		}
+	}
+
 	// Add the Envoy sidecar
 	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
@@ -160,6 +168,14 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	// Add the init container to the pod spec
 	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.initContainerPullPolicy)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
+
+	return nil
+}
+
+func (wh *mutatingWebhook) configurePodHealthcheck(pod *corev1.Pod) error {
+	// Add the healthcheck container to the pod spec
+	healthcheckContainer := getHealthcheckContainerSpec(constants.HealthcheckContainerName)
+	pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
 
 	return nil
 }

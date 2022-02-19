@@ -150,6 +150,9 @@ const (
 	// InitContainerName is the name of the init container
 	InitContainerName = "osm-init"
 
+	// HealthcheckContainerName is the name of the healthcheck container
+	HealthcheckContainerName = "osm-healthcheck"
+
 	// EnvoyServiceNodeSeparator is the character separating the strings used to create an Envoy service node parameter.
 	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
 	EnvoyServiceNodeSeparator = "/"

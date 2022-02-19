@@ -52,6 +52,8 @@ var iptablesInboundStaticRules = []string{
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", livenessProbePort),
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", readinessProbePort),
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", startupProbePort),
+	// Skip inbound health probes (originally TCPSocket health probes); requests handled by osm-healthcheck
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", healthcheckPort),
 
 	// Redirect remaining inbound traffic to Envoy
 	"-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",

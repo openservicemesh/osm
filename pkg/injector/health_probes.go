@@ -2,6 +2,7 @@ package injector
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -12,10 +13,12 @@ const (
 	livenessProbePort  = int32(15901)
 	readinessProbePort = int32(15902)
 	startupProbePort   = int32(15903)
+	healthcheckPort    = int32(15904)
 
 	livenessProbePath  = "/osm-liveness-probe"
 	readinessProbePath = "/osm-readiness-probe"
 	startupProbePath   = "/osm-startup-probe"
+	healthcheckPath    = "/osm-healthcheck"
 )
 
 var errNoMatchingPort = errors.New("no matching port")
@@ -28,6 +31,9 @@ type healthProbe struct {
 	// isHTTP corresponds to an httpGet probe with a scheme of HTTP or undefined.
 	// This helps inform what kind of Envoy config to add to the pod.
 	isHTTP bool
+
+	// isTCPSocket indicates if the probe defines a TCPSocketAction.
+	isTCPSocket bool
 }
 
 // healthProbes is to serve as an indication whether the given healthProbe has been rewritten
@@ -80,7 +86,17 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 			newPath = probe.HTTPGet.Path
 		}
 	} else if probe.TCPSocket != nil {
-		definedPort = &probe.TCPSocket.Port
+		// Transform the TCPSocket probe into a HttpGet probe
+		originalProbe.isTCPSocket = true
+		probe.HTTPGet = &corev1.HTTPGetAction{
+			Port:        probe.TCPSocket.Port,
+			Path:        healthcheckPath,
+			HTTPHeaders: []corev1.HTTPHeader{},
+		}
+		newPath = probe.HTTPGet.Path
+		definedPort = &probe.HTTPGet.Port
+		port = healthcheckPort
+		probe.TCPSocket = nil
 	} else {
 		return nil
 	}
@@ -90,6 +106,9 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
+	if originalProbe.isTCPSocket {
+		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Tcp-Port", Value: fmt.Sprint(originalProbe.port)})
+	}
 	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
 	originalProbe.timeout = time.Duration(probe.TimeoutSeconds) * time.Second
 
@@ -97,7 +116,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		"Rewriting %s probe (:%d%s) to :%d%s",
 		probeType,
 		originalProbe.port, originalProbe.path,
-		definedPort.IntValue(), newPath,
+		port, newPath,
 	)
 
 	return originalProbe

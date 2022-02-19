@@ -294,7 +294,8 @@
                                 "osmSidecarInit",
                                 "osmCRDs",
                                 "osmBootstrap",
-                                "osmPreinstall"
+                                "osmPreinstall",
+                                "osmHealthcheck"
                             ],
                             "properties": {
                                 "osmController": {
@@ -332,6 +333,12 @@
                                     "type": "string",
                                     "title": "osm-preinstall's image digest",
                                     "description": "osm-preinstall container's image digest."
+                                },
+                                "osmHealthcheck": {
+                                    "$id": "#/properties/osm/properties/image/properties/digest/properties/osmHealthcheck",
+                                    "type": "string",
+                                    "title": "osm-healthcheck's image digest",
+                                    "description": "osm-healthcheck container's image digest."
                                 }
                             }
                         }
