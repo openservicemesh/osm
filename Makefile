@@ -1,6 +1,6 @@
 #!make
 
-TARGETS      := darwin/amd64 linux/amd64 windows/amd64
+TARGETS      := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
 CTR_REGISTRY ?= openservicemesh
@@ -257,7 +257,7 @@ install-git-pre-push-hook:
 
 .PHONY: build-cross
 build-cross: cmd/cli/chart.tgz
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=5 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
 dist:
