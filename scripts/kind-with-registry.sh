@@ -48,12 +48,12 @@ nodes:
 - role: worker
 containerdConfigPatches:
 - |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."127.0.0.1:${reg_port}"]
     endpoint = ["http://${reg_host}:${reg_port}"]
 EOF
 
 for node in $(kind get nodes --name "${KIND_CLUSTER_NAME}"); do
-  kubectl annotate node "${node}" tilt.dev/registry=localhost:${reg_port};
+  kubectl annotate node "${node}" tilt.dev/registry=127.0.0.1:${reg_port};
 done
 
 if [ "${kind_network}" != "bridge" ]; then

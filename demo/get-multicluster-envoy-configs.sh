@@ -29,7 +29,7 @@ for CONTEXT in $MULTICLUSTER_CONTEXTS; do
 
     ( kubectl port-forward -n "${NS}" "${OSM_GATEWAY_POD}" "${PORT}" > /dev/null & echo $! >&3 ) 3> "${TMP_PID_FILE}"
     sleep 1
-    curl -s "http://localhost:${PORT}/config_dump?include_eds"  >  "envoy_config_${CONTEXT}_${NS}_${OSM_GATEWAY_POD}.json"
+    curl -s "http://127.0.0.1:${PORT}/config_dump?include_eds"  >  "envoy_config_${CONTEXT}_${NS}_${OSM_GATEWAY_POD}.json"
     kill -9 "$(<"${TMP_PID_FILE}")"
     rm -rf "${TMP_PID_FILE}"
 done
