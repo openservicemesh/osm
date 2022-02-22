@@ -61,7 +61,7 @@ The following table lists the configurable parameters of the osm chart and their
 |-----|------|---------|-------------|
 | contour.contour | object | `{"image":{"registry":"docker.io","repository":"projectcontour/contour","tag":"v1.18.0"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
-| contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.19.1"}}` | Contour envoy edge proxy configuration |
+| contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.21.1"}}` | Contour envoy edge proxy configuration |
 | osm.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
 | osm.certificateProvider.certKeyBitSize | int | `2048` | Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS |
 | osm.certificateProvider.kind | string | `"tresor"` | The Certificate manager type: `tresor`, `vault` or `cert-manager` |
@@ -155,8 +155,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
-| osm.sidecarImage | string | `"envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd"` | Envoy sidecar image for Linux workloads (v1.19.1) |
-| osm.sidecarWindowsImage | string | `"envoyproxy/envoy-windows@sha256:c904fda95891ebbccb9b1f24c1a9482c8d01cbca215dd081fc8c8db36db85f85"` | Envoy sidecar image for Windows workloads (v1.19.1) |
+| osm.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.21.1@sha256:c2c0b7c136f9daf09c36ef550635eaf5db26465529a1354f725f11390e530879"` | Envoy sidecar image for Linux workloads (v1.21.1) |
+| osm.sidecarWindowsImage | string | `"envoyproxy/envoy-windows:v1.21.1@sha256:04d06653294ac2908885568f78586f7cc337b1d79357d9cf561d9bc7d36bc963"` | Envoy sidecar image for Windows workloads (v1.21.1) |
 | osm.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | osm.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | osm.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
