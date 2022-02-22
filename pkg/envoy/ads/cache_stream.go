@@ -1,6 +1,7 @@
 package ads
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -86,24 +87,22 @@ func GetProxyFromPod(pod *v1.Pod) (*envoy.Proxy, error) {
 // RecordFullSnapshot stores a group of resources as a new Snapshot with a new version in the cache.
 // It also runs a consistency check on the snapshot (will warn if there are missing resources referenced in
 // the snapshot)
-func (s *Server) RecordFullSnapshot(proxy *envoy.Proxy, snapshotResources map[envoy.TypeURI][]types.Resource) error {
+func (s *Server) RecordFullSnapshot(proxy *envoy.Proxy, snapshotResources map[string][]types.Resource) error {
 	s.configVerMutex.Lock()
 	s.configVersion[proxy.GetCertificateCommonName().String()]++
 	s.configVerMutex.Unlock()
 
-	snapshot := cache.NewSnapshot(
+	snapshot, err := cache.NewSnapshot(
 		fmt.Sprintf("%d", s.configVersion[proxy.GetCertificateCommonName().String()]),
-		snapshotResources[envoy.TypeEDS],
-		snapshotResources[envoy.TypeCDS],
-		snapshotResources[envoy.TypeRDS],
-		snapshotResources[envoy.TypeLDS],
-		[]types.Resource{}, // Runtimes
-		snapshotResources[envoy.TypeSDS],
+		snapshotResources,
 	)
+	if err != nil {
+		return err
+	}
 
 	if err := snapshot.Consistent(); err != nil {
 		log.Warn().Err(err).Str("proxy", proxy.String()).Msgf("Snapshot for proxy not consistent")
 	}
 
-	return s.ch.SetSnapshot(proxy.GetCertificateCommonName().String(), snapshot)
+	return s.ch.SetSnapshot(context.TODO(), proxy.GetCertificateCommonName().String(), snapshot)
 }

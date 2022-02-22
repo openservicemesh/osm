@@ -60,7 +60,6 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
 			"--service-cluster", clusterID,
-			"--bootstrap-version 3",
 		},
 		Env: []corev1.EnvVar{
 			{
