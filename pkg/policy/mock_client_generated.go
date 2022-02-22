@@ -50,6 +50,20 @@ func (mr *MockControllerMockRecorder) GetIngressBackendPolicy(arg0 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockController)(nil).GetIngressBackendPolicy), arg0)
 }
 
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockController) GetUpstreamTrafficSetting(arg0 UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
 // ListEgressPoliciesForSourceIdentity mocks base method.
 func (m *MockController) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
 	m.ctrl.T.Helper()

@@ -2,9 +2,11 @@
 package policy
 
 import (
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -49,4 +51,18 @@ type Controller interface {
 
 	// ListRetryPolicies returns the Retry policies for the given source identity
 	ListRetryPolicies(identity.K8sServiceAccount) []*policyV1alpha1.Retry
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
+	GetUpstreamTrafficSetting(UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
+}
+
+// UpstreamTrafficSettingGetOpt specifies the options used to filter UpstreamTrafficSetting objects as a part of its getter
+type UpstreamTrafficSettingGetOpt struct {
+	// MeshService specifies the mesh service known within the cluster
+	// Must be specified when retrieving a resource matching the upstream
+	// mesh service.
+	MeshService *service.MeshService
+
+	// NamespacedName specifies the name and namespace of the resource
+	NamespacedName *types.NamespacedName
 }

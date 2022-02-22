@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -154,6 +156,18 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 	trafficSplits := []*split.TrafficSplit{trafficSplitSvc3}
 
+	// Add UpstreamTrafficSetting config for service meshSvc1P1, meshSvc1P1: ns1/s1
+	// Both map to the same k8s service but different ports
+	upstreamTrafficSettingSvc1 := policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "meshSvc1P1",
+			Namespace: meshSvc1P1.Namespace,
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: meshSvc1P1.FQDN(),
+		},
+	}
+
 	testCases := []struct {
 		name           string
 		permissiveMode bool
@@ -262,12 +276,14 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 					{
-						Name:    "ns1/s1|80",
-						Service: meshSvc1P1,
+						Name:                   "ns1/s1|80",
+						Service:                meshSvc1P1,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
-						Name:    "ns1/s1|90",
-						Service: meshSvc1P2,
+						Name:                   "ns1/s1|90",
+						Service:                meshSvc1P2,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
 						Name:    "ns3/s3|80",
@@ -518,12 +534,14 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 					{
-						Name:    "ns1/s1|80",
-						Service: meshSvc1P1,
+						Name:                   "ns1/s1|80",
+						Service:                meshSvc1P1,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
-						Name:    "ns1/s1|90",
-						Service: meshSvc1P2,
+						Name:                   "ns1/s1|90",
+						Service:                meshSvc1P2,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
 						Name:    "ns2/s2|80",
@@ -565,12 +583,15 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockPolicyController := policy.NewMockController(mockCtrl)
+
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
 				configurator:       mockCfg,
 				meshSpec:           mockMeshSpec,
+				policyController:   mockPolicyController,
 			}
 
 			// Mock calls to k8s client caches
@@ -588,7 +609,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					for _, opt := range options {
 						opt(o)
 					}
-					// In this test, only service ns3/s3 as a split configured
+					// In this test, only service ns3/s3 has a split configured
 					if o.ApexService.String() == "ns3/s3" {
 						return []*split.TrafficSplit{trafficSplitSvc3}
 					}
@@ -611,6 +632,17 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).DoAndReturn(
 				func(svc service.MeshService) ([]endpoint.Endpoint, error) {
 					return svcToEndpointsMap[svc.String()], nil
+				}).AnyTimes()
+
+			// Mock calls to UpstreamTrafficSetting lookups
+			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
+				func(opt policy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
+					if opt.MeshService != nil &&
+						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+						return &upstreamTrafficSettingSvc1
+					}
+					return nil
 				}).AnyTimes()
 
 			actual := mc.GetOutboundMeshTrafficPolicy(downstreamIdentity)

@@ -1,13 +1,16 @@
 package cds
 
 import (
+	"math"
 	"strings"
 	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	extensions_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -29,11 +32,7 @@ var replacer = strings.NewReplacer(".", "_", ":", "_")
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTP2ProtocolOptions for upstream cluster %s", config.Name)
-		return nil
-	}
+	httpProtocolOptions := getDefaultHTTPProtocolOptions()
 
 	marshalledUpstreamTLSContext, err := anypb.New(
 		envoy.GetUpstreamTLSContext(downstreamIdentity, config.Service))
@@ -42,9 +41,8 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 		return nil
 	}
 
-	remoteCluster := &xds_cluster.Cluster{
-		Name:                          config.Name,
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+	upstreamCluster := &xds_cluster.Cluster{
+		Name: config.Name,
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
@@ -54,19 +52,73 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	}
 
 	// Configure service discovery based on traffic policies
-	remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-	remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-	remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	upstreamCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+	upstreamCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+	upstreamCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 
 	if config.EnableEnvoyActiveHealthChecks {
-		enableHealthChecksOnCluster(remoteCluster, config.Service)
+		enableHealthChecksOnCluster(upstreamCluster, config.Service)
 	}
-	return remoteCluster
+
+	// Circuit breaking is enabled by default, disable it by setting the
+	// thresholds to be max.
+	threshold := getDefaultCircuitBreakerThreshold()
+
+	if config.UpstreamTrafficSetting != nil {
+		log.Trace().Msgf("UpstreamTrafficSetting for cluster %s: %v", config.Name, *config.UpstreamTrafficSetting)
+		connectionSettings := config.UpstreamTrafficSetting.Spec.ConnectionSettings
+
+		// Apply TCP connection settings
+		if connectionSettings.TCP != nil {
+			if connectionSettings.TCP.ConnectTimeout != nil {
+				upstreamCluster.ConnectTimeout = durationpb.New(connectionSettings.TCP.ConnectTimeout.Duration)
+			}
+			if connectionSettings.TCP.MaxConnections != nil {
+				threshold.MaxConnections = wrapperspb.UInt32(*connectionSettings.TCP.MaxConnections)
+			}
+		}
+
+		// Apply HTTP connection settings
+		if connectionSettings.HTTP != nil {
+			if connectionSettings.HTTP.MaxRequests != nil {
+				threshold.MaxRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequests)
+			}
+			if connectionSettings.HTTP.MaxPendingRequests != nil {
+				threshold.MaxPendingRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxPendingRequests)
+			}
+			if connectionSettings.HTTP.MaxRetries != nil {
+				threshold.MaxRetries = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRetries)
+			}
+			if connectionSettings.HTTP.MaxRequestsPerConnection != nil {
+				// TODO(#4500): When Envoy is upgraded to v1.20+, MaxRequestsPerConnection must be set
+				// via the HttpProtocolOptions extensions field instead (commented below), as setting this
+				// directly on the Cluster object is deprecated.
+				// httpProtocolOptions.CommonHttpProtocolOptions = &xds_core.HttpProtocolOptions{
+				// 	MaxRequestsPerConnection: wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection),
+				// }
+				upstreamCluster.MaxRequestsPerConnection = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection)
+			}
+		}
+	}
+
+	// Apply Circuit Breaker threshold
+	upstreamCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{
+		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
+	}
+
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(httpProtocolOptions)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for upstream cluster %s", upstreamCluster.Name)
+		return nil
+	}
+	upstreamCluster.TypedExtensionProtocolOptions = typedHTTPProtocolOptions
+
+	return upstreamCluster
 }
 
 // getMulticlusterGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service for the multicluster gateway
 func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, withActiveHealthChecks bool) (*xds_cluster.Cluster, error) {
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +129,7 @@ func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger,
 			Type: xds_cluster.Cluster_STRICT_DNS,
 		},
 		LbPolicy:                      xds_cluster.Cluster_ROUND_ROBIN,
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: upstreamSvc.ServerName(),
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -127,9 +179,9 @@ func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc servi
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTP2ProtocolOptions for local cluster %s", config.Name)
+		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for local cluster %s", config.Name)
 		return nil
 	}
 
@@ -165,7 +217,7 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 				},
 			},
 		},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 	}
 }
 
@@ -279,7 +331,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 // getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
 // The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
 func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, error) {
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +342,7 @@ func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, err
 			Type: xds_cluster.Cluster_ORIGINAL_DST,
 		},
 		LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 	}, nil
 }
 
@@ -318,4 +370,37 @@ func localClustersFromClusterConfigs(configs []*trafficpolicy.MeshClusterConfig)
 		clusters = append(clusters, getLocalServiceCluster(*c))
 	}
 	return clusters
+}
+
+func getDefaultHTTPProtocolOptions() *extensions_upstream_http.HttpProtocolOptions {
+	return &extensions_upstream_http.HttpProtocolOptions{
+		UpstreamProtocolOptions: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamProtocolConfig{
+			UseDownstreamProtocolConfig: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamHttpConfig{
+				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			},
+		},
+	}
+}
+
+func getTypedHTTPProtocolOptions(httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) (map[string]*any.Any, error) {
+	marshalledHTTPProtocolOptions, err := anypb.New(httpProtocolOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]*any.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": marshalledHTTPProtocolOptions,
+	}, nil
+}
+
+// getDefaultCircuitBreakerThreshold returns the XDS Circuit Breaker thresholds
+// at their max value, effectively disabling circuit breaking
+func getDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds {
+	return &xds_cluster.CircuitBreakers_Thresholds{
+		MaxConnections:     &wrapperspb.UInt32Value{Value: math.MaxUint32},
+		MaxRequests:        &wrapperspb.UInt32Value{Value: math.MaxUint32},
+		MaxPendingRequests: &wrapperspb.UInt32Value{Value: math.MaxUint32},
+		MaxRetries:         &wrapperspb.UInt32Value{Value: math.MaxUint32},
+		TrackRemaining:     true,
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -37,6 +38,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity) {
+		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+
 		// Retrieve the destination IP address from the endpoints for this service
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
@@ -54,6 +57,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
 			EnableEnvoyActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
+				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 

@@ -114,6 +114,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	mockPolicyController.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
 		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
