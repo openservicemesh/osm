@@ -46,8 +46,10 @@ spec:
         app: mysql
     spec:
       serviceAccountName: mysql
+      nodeSelector:
+        kubernetes.io/os: linux
       containers:
-      - image: mysql/mysql-server
+      - image: mysql/mysql-server:8.0.28
         name: mysql
         env:
         - name: MYSQL_ROOT_PASSWORD

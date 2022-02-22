@@ -18,6 +18,20 @@ spec:
       name: osm-multicluster-gateway
     spec:
       serviceAccountName: {{ .Release.Name }}
+      affinity: 
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                  - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values: 
+                  - amd64
+                  - arm64
       initContainers:
         - name: osm-multicluster-gateway-init
           image: {{ .Values.osm.curlImage }}

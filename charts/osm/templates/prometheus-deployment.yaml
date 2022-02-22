@@ -22,6 +22,20 @@ spec:
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
+      affinity: 
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                  - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values: 
+                  - amd64
+                  - arm64
       containers:
       - name: prometheus
         ports:

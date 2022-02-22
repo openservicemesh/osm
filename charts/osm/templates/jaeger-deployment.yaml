@@ -22,6 +22,20 @@ spec:
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       serviceAccountName: jaeger
+      affinity: 
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                  - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values: 
+                  - amd64
+                  - arm64
       containers:
       - name: jaeger
         image: {{ .Values.osm.tracing.image }}

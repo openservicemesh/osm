@@ -42,6 +42,8 @@ spec:
       annotations:
         openservicemesh.io/sidecar-injection: "false"
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       serviceAccountName: "$BOOKSTORE_SVC"
       containers:
         - image: curlimages/curl
