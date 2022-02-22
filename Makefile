@@ -142,7 +142,6 @@ kind-demo: .env kind-up clean-osm
 .PHONE: build-bookwatcher
 build-bookwatcher:
 	go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
-	
 DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
