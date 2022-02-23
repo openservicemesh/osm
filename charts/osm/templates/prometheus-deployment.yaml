@@ -36,6 +36,8 @@ spec:
                   values: 
                   - amd64
                   - arm64
+                  - s390x
+                  - arm
       containers:
       - name: prometheus
         ports:
