@@ -151,7 +151,12 @@ func (d *uninstallMeshCmd) run() error {
 						clientSet: d.clientSet,
 					}
 
-					removeCmd.run()
+					err := removeCmd.run()
+
+					// Unable to remove namespace in mesh
+					if err != nil {
+						return err
+					}
 				}
 			}
 			fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", d.meshName, d.meshNamespace)
