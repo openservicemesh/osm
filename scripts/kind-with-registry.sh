@@ -28,7 +28,7 @@ esac
 running="$(docker inspect -f '{{.State.Running}}' "${reg_name}" 2>/dev/null || true)"
 if [ "${running}" != 'true' ]; then
   docker run \
-    -d --restart=always -p "${reg_port}:5000" --name "${reg_name}" \
+    -d --restart=always -p "127.0.0.1:${reg_port}:5000" --name "${reg_name}" \
     registry:2
 fi
 
@@ -48,12 +48,12 @@ nodes:
 - role: worker
 containerdConfigPatches:
 - |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."127.0.0.1:${reg_port}"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
     endpoint = ["http://${reg_host}:${reg_port}"]
 EOF
 
 for node in $(kind get nodes --name "${KIND_CLUSTER_NAME}"); do
-  kubectl annotate node "${node}" tilt.dev/registry=127.0.0.1:${reg_port};
+  kubectl annotate node "${node}" tilt.dev/registry=localhost:${reg_port};
 done
 
 if [ "${kind_network}" != "bridge" ]; then

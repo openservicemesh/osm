@@ -184,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CTR_TAG: ${{ github.sha }}
-      CTR_REGISTRY: "127.0.0.1:5000"
+      CTR_REGISTRY: "localhost:5000"
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -206,7 +206,7 @@ jobs:
         bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     env:
       CTR_TAG: ${{ github.sha }}
-      CTR_REGISTRY: "127.0.0.1:5000" # unused for kind, but currently required in framework
+      CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
     steps:
       - name: Checkout
         uses: actions/checkout@v1

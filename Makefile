@@ -135,7 +135,7 @@ test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server
 	cp .env.example .env
 
 .PHONY: kind-demo
-kind-demo: export CTR_REGISTRY=127.0.0.1:5000
+kind-demo: export CTR_REGISTRY=localhost:5000
 kind-demo: .env kind-up clean-osm
 	./demo/run-osm-demo.sh
 
