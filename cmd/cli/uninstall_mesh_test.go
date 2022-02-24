@@ -145,7 +145,7 @@ func TestUninstallCmd(t *testing.T) {
 					},
 				},
 			}
-			nsInMesh := []runtime.Object{createNamespaceSpec(test.namespaceOfMesh, test.meshName, true, false)}
+			nsInMesh := []runtime.Object{createNamespaceSpec(test.namespaceOfMesh, test.meshName, true, false, true)}
 			existingCustomResourceDefinitions := []runtime.Object{
 				// OSM CRD
 				&apiv1.CustomResourceDefinition{
