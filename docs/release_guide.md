@@ -10,12 +10,6 @@ This guide describes the process to create a GitHub Release for this project.
 
 **Note**: These steps assume that all OSM components are being released together, including the CLI, container images, and Helm chart, all with the same version.
 
-## Release Candidates
-
-Release candidates (RCs) should be created before each significant release so final testing can be performed. RCs are tagged as `vX.Y.Z-rc.W`. After the following steps have been performed to publish the RC, perform any final testing with the published release artifacts for about one week.
-
-If issues are found, submit patches to the RC's release branch and create a new RC with the tag `vX.Y.Z-rc.W+1`. Apply those same patches to the `main` branch. Repeat until the release is suitably stable.
-
 Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
 
 - [Release Guide](#release-guide)
