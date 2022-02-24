@@ -60,6 +60,11 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
 			"--service-cluster", clusterID,
+			// Drain time is set to 30s and drain strategy is set to immediate so that connections
+			// are drained sooner when the listener is updated/removed via LDS.
+			// Ref: https://www.envoyproxy.io/docs/envoy/latest/operations/cli#cmdoption-drain-time-s
+			"--drain-time-s", "30",
+			"--drain-strategy", "immediate",
 		},
 		Env: []corev1.EnvVar{
 			{
