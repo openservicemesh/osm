@@ -76,11 +76,6 @@ Process of becoming a maintainer:
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
-## Approvers
-
-All pull requests must be reviewed and approved by at least 2 members in the [approvers list](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS).
-
-An approver may nominate a current contributor who has shown significant understanding in one or more areas of the project by adding the nominee to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS) by opening a PR. The nominee must add a comment to the PR testifying they agree to become a code approver. A majority of the current approvers must then approve the PR for the nomination to succeed.
 
 ## Inactivity
 
