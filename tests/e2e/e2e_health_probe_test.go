@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -281,7 +282,8 @@ location = /50x.html {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to not be ready
-			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, 1, nil)).To(MatchError("not all pods were Running & Ready in NS healthprobe after 1m0s"))
+			timeout := 60 * time.Second
+			Expect(Td.WaitForPodsRunningReady(ns, timeout, 1, nil)).To(MatchError(fmt.Sprintf("not all pods were Running & Ready in NS healthprobe after %v", timeout)))
 		})
 
 	},

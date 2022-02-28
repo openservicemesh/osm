@@ -3,6 +3,7 @@ package injector
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -72,9 +73,23 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	if (originalHealthProbes.liveness != nil && originalHealthProbes.liveness.isTCPSocket) ||
 		(originalHealthProbes.readiness != nil && originalHealthProbes.readiness.isTCPSocket) ||
 		(originalHealthProbes.startup != nil && originalHealthProbes.startup.isTCPSocket) {
-		if err = wh.configurePodHealthcheck(pod); err != nil {
-			return nil, err
+		healthcheckContainer := corev1.Container{
+			Name:            "osm-healthcheck",
+			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
+			ImagePullPolicy: wh.osmContainerPullPolicy,
+			Args: []string{
+				"--verbosity", log.GetLevel().String(),
+			},
+			Command: []string{
+				"/osm-healthcheck",
+			},
+			Ports: []corev1.ContainerPort{
+				{
+					ContainerPort: healthcheckPort,
+				},
+			},
 		}
+		pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
 	}
 
 	// Add the Envoy sidecar
@@ -166,16 +181,8 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	outboundIPRangeInclusionList := mergeIPRangeLists(podOutboundIPRangeInclusionList, globalOutboundIPRangeInclusionList)
 
 	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.initContainerPullPolicy)
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.osmContainerPullPolicy)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
-
-	return nil
-}
-
-func (wh *mutatingWebhook) configurePodHealthcheck(pod *corev1.Pod) error {
-	// Add the healthcheck container to the pod spec
-	healthcheckContainer := getHealthcheckContainerSpec(constants.HealthcheckContainerName)
-	pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
 
 	return nil
 }

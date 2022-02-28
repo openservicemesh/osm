@@ -96,25 +96,22 @@ func TestRewriteProbe(t *testing.T) {
 		actual := rewriteHealthProbes(pod)
 		expected := healthProbes{
 			liveness: &healthProbe{
-				path:        "/b",
-				port:        2,
-				isHTTP:      true,
-				isTCPSocket: false,
-				timeout:     probeTimeoutDuration,
+				path:    "/b",
+				port:    2,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 			readiness: &healthProbe{
-				path:        "/a",
-				port:        1,
-				isHTTP:      true,
-				isTCPSocket: false,
-				timeout:     probeTimeoutDuration,
+				path:    "/a",
+				port:    1,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 			startup: &healthProbe{
-				path:        "/c",
-				port:        3,
-				isHTTP:      true,
-				isTCPSocket: false,
-				timeout:     probeTimeoutDuration,
+				path:    "/c",
+				port:    3,
+				isHTTP:  true,
+				timeout: probeTimeoutDuration,
 			},
 		}
 		tassert.Equal(t, expected, actual)

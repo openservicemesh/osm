@@ -625,7 +625,7 @@ func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 		"osm-crds",
 		constants.OSMBootstrapName,
 		"osm-preinstall",
-		constants.HealthcheckContainerName,
+		"osm-healthcheck",
 	}
 
 	return td.LoadImagesToKind(imageNames)

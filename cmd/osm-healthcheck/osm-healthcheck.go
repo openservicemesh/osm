@@ -7,16 +7,36 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/spf13/pflag"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
 var log = logger.New("osm-healthcheck/main")
 
 func main() {
+	log.Info().Msgf("Starting osm-healthcheck %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+
+	var verbosity string
+
+	flags := pflag.NewFlagSet("osm-healthcheck", pflag.ExitOnError)
+	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
+
+	err := flags.Parse(os.Args)
+	if err != nil {
+		log.Fatal().Err(err).Msg("parsing flags")
+	}
+
+	if err := logger.SetLogLevel(verbosity); err != nil {
+		log.Fatal().Err(err).Msg("Error setting log level")
+	}
+
 	stop := signals.RegisterExitHandlers()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
