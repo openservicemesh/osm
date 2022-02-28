@@ -20,9 +20,9 @@ const (
 )
 
 // New creates and starts a new facility for automatic certificate rotation.
-func New(certManager certificate.Manager) *CertRotor {
+func New(certManager *certificate.Manager) *CertRotor {
 	return &CertRotor{
-		certManager: certManager,
+		certManager: *certManager,
 	}
 }
 
@@ -39,6 +39,7 @@ func (r CertRotor) Start(checkInterval time.Duration) {
 	}()
 }
 
+//todo(schristoff): point
 func (r *CertRotor) checkAndRotate() {
 	certs, err := r.certManager.ListCertificates()
 	if err != nil {
