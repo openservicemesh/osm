@@ -178,7 +178,11 @@ docker-build-osm-bootstrap:
 docker-build-osm-preinstall:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall
+.PHONY: docker-build-osm-healthcheck
+docker-build-osm-healthcheck:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+
+OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall osm-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
 .PHONY: docker-build-osm

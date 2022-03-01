@@ -16,10 +16,10 @@ import (
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
 
 	timeout := 42 * time.Second
-	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true, timeout: timeout}
-	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false, timeout: timeout}
-	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true, timeout: timeout}
-	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true, timeout: timeout}
+	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false, isTCPSocket: false, timeout: timeout}
+	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true, isTCPSocket: false, timeout: timeout}
 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.

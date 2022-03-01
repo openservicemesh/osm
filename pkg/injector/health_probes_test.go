@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -64,6 +65,13 @@ func TestRewriteProbe(t *testing.T) {
 			PeriodSeconds:       3,
 			SuccessThreshold:    4,
 			FailureThreshold:    5,
+		}
+	}
+
+	makeOriginalTCPPortHeader := func(port int32) v1.HTTPHeader {
+		return v1.HTTPHeader{
+			Name:  "Original-Tcp-Port",
+			Value: fmt.Sprint(port),
 		}
 	}
 
@@ -144,11 +152,12 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteProbe", func(t *testing.T) {
 		tests := []struct {
-			name     string
-			probe    *v1.Probe
-			newPath  string
-			newPort  int32
-			expected *healthProbe
+			name         string
+			probe        *v1.Probe
+			newPath      string
+			originalPort int32
+			newPort      int32
+			expected     *healthProbe
 		}{
 			{
 				name:     "nil",
@@ -195,13 +204,16 @@ func TestRewriteProbe(t *testing.T) {
 				},
 			},
 			{
-				name:    "tcp",
-				probe:   makeTCPProbe(3456),
-				newPort: 3465,
+				name:         "tcp",
+				probe:        makeTCPProbe(3456),
+				originalPort: 3456,
+				newPath:      "/osm-healthcheck",
+				newPort:      15904,
 				expected: &healthProbe{
-					port:    3456,
-					isHTTP:  false,
-					timeout: probeTimeoutDuration,
+					port:        3456,
+					isHTTP:      false,
+					isTCPSocket: true,
+					timeout:     probeTimeoutDuration,
 				},
 			},
 		}
@@ -219,11 +231,14 @@ func TestRewriteProbe(t *testing.T) {
 				// Verify the probe was modified correctly
 				if test.probe != nil {
 					if test.probe.Handler.HTTPGet != nil {
-						assert.Equal(test.probe.Handler.HTTPGet.Port, intstr.FromInt(int(test.newPort)))
-						assert.Equal(test.probe.Handler.HTTPGet.Path, test.newPath)
+						assert.Equal(intstr.FromInt(int(test.newPort)), test.probe.Handler.HTTPGet.Port)
+						assert.Equal(test.newPath, test.probe.Handler.HTTPGet.Path)
 					}
-					if test.probe.Handler.TCPSocket != nil {
-						assert.Equal(test.probe.Handler.TCPSocket.Port, intstr.FromInt(int(test.newPort)))
+					// After rewrite there should be no TCPSocket probes
+					assert.Nil(test.probe.Handler.TCPSocket)
+					if actual != nil && actual.isTCPSocket {
+						expectedHeader := makeOriginalTCPPortHeader(test.originalPort)
+						assert.Contains(test.probe.Handler.HTTPGet.HTTPHeaders, expectedHeader)
 					}
 				}
 			})

@@ -228,6 +228,18 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			Expect(actualListeners).To(BeNil())
 			Expect(actualClusters).To(BeNil())
 		})
+
+		It("Should not create listeners and cluster for TCPSocket probes", func() {
+			config.OriginalHealthProbes = healthProbes{
+				liveness:  &healthProbe{port: 81, isTCPSocket: true},
+				readiness: &healthProbe{port: 82, isTCPSocket: true},
+				startup:   &healthProbe{port: 83, isTCPSocket: true},
+			}
+			actualListeners, actualClusters, err := getProbeResources(config)
+			Expect(err).To(BeNil())
+			Expect(actualListeners).To(BeNil())
+			Expect(actualClusters).To(BeNil())
+		})
 	})
 
 	Context("Test getEnvoyContainerPorts()", func() {

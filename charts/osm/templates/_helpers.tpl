@@ -93,3 +93,12 @@ securityContext:
 {{- printf "%s/osm-preinstall@%s" .Values.osm.image.registry .Values.osm.image.digest.osmPreinstall -}}
 {{- end -}}
 {{- end -}}
+
+{{/* osm-healthcheck image */}}
+{{- define "osmHealthcheck.image" -}}
+{{- if .Values.osm.image.tag -}}
+{{- printf "%s/osm-healthcheck:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- else -}}
+{{- printf "%s/osm-healthcheck@%s" .Values.osm.image.registry .Values.osm.image.digest.osmHealthcheck -}}
+{{- end -}}
+{{- end -}}

@@ -27,6 +27,8 @@ osm:
       osmBootstrap: ""
       # -- osm-preinstall's image digest
       osmPreinstall: ""
+      # -- osm-healthcheck's image digest
+      osmHealthcheck: ""
 
 
   # -- `osm-controller` image pull secret
