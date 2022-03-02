@@ -34,7 +34,7 @@ func (cb *Callbacks) OnStreamRequest(a int64, req *discovery.DiscoveryRequest) e
 }
 
 // OnStreamResponse is called when a response is being sent to a request
-func (cb *Callbacks) OnStreamResponse(aa int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+func (cb *Callbacks) OnStreamResponse(_ context.Context, aa int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
 	log.Debug().Msgf("OnStreamResponse REQ: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
 	log.Debug().Msgf("OnStreamResponse RESP: type: %s, v: %s, nonce: %s, NumResources: %d", resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
 }
