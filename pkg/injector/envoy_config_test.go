@@ -299,7 +299,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-cluster", "svcacc.namespace",
-					"--bootstrap-version 3",
 				},
 				Env: []corev1.EnvVar{
 					{
@@ -426,7 +425,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-cluster", "svcacc.namespace",
-					"--bootstrap-version 3",
 				},
 				Env: []corev1.EnvVar{
 					{
