@@ -7,8 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (
@@ -47,7 +51,7 @@ func NewHTTPServer(port uint16) *HTTPServer {
 // AddHandler adds an HTTP handlers for the given path on the HTTPServer
 // For changes to be effective, server requires restart
 func (s *HTTPServer) AddHandler(url string, handler http.Handler) {
-	s.httpServeMux.Handle(url, handler)
+	s.httpServeMux.Handle(url, addMetrics(handler))
 }
 
 // AddHandlers convenience, multi-value AddHandler
@@ -102,4 +106,13 @@ func (s *HTTPServer) Stop() error {
 	}
 
 	return nil
+}
+
+func addMetrics(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		labels := prometheus.Labels{"path": r.URL.Path}
+		promhttp.InstrumentHandlerDuration(metricsstore.DefaultMetricsStore.HTTPResponseDuration.MustCurryWith(labels),
+			promhttp.InstrumentHandlerCounter(metricsstore.DefaultMetricsStore.HTTPResponseTotal.MustCurryWith(labels), h)).
+			ServeHTTP(w, r)
+	})
 }
