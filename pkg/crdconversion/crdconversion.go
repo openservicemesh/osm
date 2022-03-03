@@ -38,16 +38,12 @@ const (
 	retryPolicyConverterPath           = "/convert/retrypolicy"
 )
 
-var crdConversionWebhookConfiguration = map[string]string{
-	"traffictargets.access.smi-spec.io":              trafficAccessConverterPath,
-	"httproutegroups.specs.smi-spec.io":              httpRouteGroupConverterPath,
-	"meshconfigs.config.openservicemesh.io":          meshConfigConverterPath,
-	"multiclusterservices.config.openservicemesh.io": multiclusterServiceConverterPath,
-	"egresses.policy.openservicemesh.io":             egressPolicyConverterPath,
-	"trafficsplits.split.smi-spec.io":                trafficSplitConverterPath,
-	"tcproutes.specs.smi-spec.io":                    tcpRoutesConverterPath,
-	"ingressbackends.policy.openservicemesh.io":      ingressBackendsPolicyConverterPath,
-	"retries.policy.openservicemesh.io":              retryPolicyConverterPath,
+// apiKindToPath maps the resource API kind to the HTTP path at which
+// the webhook server peforms the conversion
+// *Note: only add API kinds for which conversion is necessary so that
+// the webhook is not invoked otherwise.
+var apiKindToPath = map[string]string{
+	"meshconfigs.config.openservicemesh.io": meshConfigConverterPath,
 }
 
 var conversionReviewVersions = []string{"v1beta1", "v1"}
@@ -167,7 +163,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
-	for crdName, crdConversionPath := range crdConversionWebhookConfiguration {
+	for crdName, crdConversionPath := range apiKindToPath {
 		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
 			return err
