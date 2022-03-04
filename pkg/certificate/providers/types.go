@@ -2,12 +2,7 @@
 package providers
 
 import (
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("cert-provider-util")
@@ -35,46 +30,3 @@ var (
 	// ValidCertificateProviders is the list of supported certificate providers
 	ValidCertificateProviders = []Kind{TresorKind, VaultKind, CertManagerKind}
 )
-
-// Config is a type that stores config related to certificate providers and implements generic utility functions
-type Config struct {
-	kubeClient kubernetes.Interface
-	kubeConfig *rest.Config
-	cfg        configurator.Configurator
-
-	providerKind       Kind
-	providerNamespace  string
-	caBundleSecretName string
-
-	// tresorOptions is the options for 'Tresor' certificate provider
-	tresorOptions TresorOptions
-
-	// vaultOptions is the options for 'Hashicorp Vault' certificate provider
-	vaultOptions VaultOptions
-
-	// certManagerOptions is the options for 'cert-manager.io' certiticate provider
-	certManagerOptions CertManagerOptions
-
-	msgBroker *messaging.Broker
-}
-
-// TresorOptions is a type that specifies 'Tresor' certificate provider options
-type TresorOptions struct {
-	// No options at the moment
-}
-
-// VaultOptions is a type that specifies 'Hashicorp Vault' certificate provider options
-type VaultOptions struct {
-	VaultProtocol string
-	VaultHost     string
-	VaultToken    string
-	VaultRole     string
-	VaultPort     int
-}
-
-// CertManagerOptions is a type that specifies 'cert-manager.io' certificate provider options
-type CertManagerOptions struct {
-	IssuerName  string
-	IssuerKind  string
-	IssuerGroup string
-}

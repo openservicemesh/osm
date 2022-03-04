@@ -29,16 +29,18 @@ var errCertNotFound = errors.New("failed to find cert")
 
 type CertManager struct {
 	provider                    Provider
+	ca                          *Certificate
 	cache                       sync.Map
 	msgBroker                   *messaging.Broker
 	serviceCertValidityDuration time.Duration
 }
 
-func NewManager(provider Provider, serviceCertValidityDuration time.Duration) *CertManager {
+func NewManager(ca *Certificate, provider Provider, msgBroker *messaging.Broker, serviceCertValidityDuration time.Duration) *CertManager {
 	cm := &CertManager{
-		provider: provider,
-		//todo(schristoff) note about sync.Map
-		msgBroker:                   messaging.NewBroker(make(<-chan struct{})),
+		ca:                          ca,
+		provider:                    provider,
+		cache:                       sync.Map{}, // NOTE: the empty struct is valid.
+		msgBroker:                   msgBroker,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 	}
 	cm.start(checkCertificateExpirationInterval)
@@ -139,8 +141,8 @@ func (cm *CertManager) ListCertificates() ([]*Certificate, error) {
 }
 
 // GetRootCertificate returns the root
-func (cm *CertManager) GetRootCertificate() (*Certificate, error) {
-	return cm.provider.GetRootCertificate()
+func (cm *CertManager) GetRootCertificate() *Certificate {
+	return cm.ca
 }
 
 // Start starts a new facility for automatic certificate rotation.
