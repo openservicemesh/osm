@@ -66,7 +66,7 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 
 	// The following function ensures to atomically create or get the certificate from Kubernetes
 	// secret API store. Multiple instances should end up with the same crdConversionwebhookHandlerCert after this function executed.
-	crdConversionWebhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.CrdConverterCertificateSecretName, crdConversionWebhookHandlerCert, kubeClient)
+	crdConversionWebhookHandlerCert, err = providers.GetOrCreateCertificateFromSecret(osmNamespace, constants.CrdConverterCertificateSecretName, crdConversionWebhookHandlerCert, kubeClient)
 	if err != nil {
 		return errors.Errorf("Error fetching crd-converter certificate from k8s secret: %s", err)
 	}

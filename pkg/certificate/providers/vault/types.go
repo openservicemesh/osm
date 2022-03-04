@@ -3,11 +3,12 @@ package vault
 
 import (
 	"github.com/hashicorp/vault/api"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
 type Provider struct {
-
+	ca *certificate.Certificate
 	// Hashicorp Vault client
 	client *api.Client
 
@@ -25,4 +26,12 @@ type vaultPath string
 
 func (vp vaultPath) String() string {
 	return string(vp)
+}
+
+type Options struct {
+	Protocol string
+	Host     string
+	Token    string
+	Role     string
+	Port     int
 }

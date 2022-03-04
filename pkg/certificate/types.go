@@ -57,7 +57,4 @@ type Certificate struct {
 type Provider interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (*Certificate, error)
 }

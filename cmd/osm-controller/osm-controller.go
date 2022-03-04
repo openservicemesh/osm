@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -22,8 +23,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -31,6 +34,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -72,9 +78,8 @@ var (
 
 	certProviderKind string
 
-	tresorOptions      providers.TresorOptions
-	vaultOptions       providers.VaultOptions
-	certManagerOptions providers.CertManagerOptions
+	vaultOptions       vault.Options
+	certManagerOptions certmanager.Options
 
 	enableReconciler      bool
 	validateTrafficTarget bool
@@ -86,6 +91,44 @@ var (
 	flags = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
 	log   = logger.New("osm-controller/main")
 )
+
+func getCertProviderAndCA(cfg configurator.Configurator, kubeClient kubernetes.Interface, kubeConfig *rest.Config) (certificate.Provider, *certificate.Certificate, error) {
+	switch providers.Kind(certProviderKind) {
+	case providers.TresorKind:
+		rootCert, err := providers.GetOrCreateTresorCA(osmNamespace, caBundleSecretName, kubeClient)
+		if err != nil {
+			return nil, nil, err
+		}
+		p, err := tresor.NewProvider(rootCert, "", cfg.GetCertKeyBitSize())
+		return p, rootCert, err
+	case providers.VaultKind:
+		p, err := vault.NewProvider(&vaultOptions)
+		if err != nil {
+			return nil, nil, err
+		}
+		return p, p.GetCA(), nil
+	case providers.CertManagerKind:
+		rootCert, err := providers.GetCertFromKubernetes(osmNamespace, caBundleSecretName, kubeClient)
+		if err != nil {
+			return nil, nil, err
+		}
+		client, err := cmversionedclient.NewForConfig(kubeConfig)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
+		}
+
+		p, err := certmanager.NewProvider(
+			rootCert,
+			client,
+			osmNamespace,
+			&certManagerOptions,
+			cfg.GetCertKeyBitSize(),
+		)
+		return p, rootCert, err
+	default:
+		panic(fmt.Sprintf("unknown cert provider kind, %s", certProviderKind))
+	}
+}
 
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", constants.DefaultOSMLogLevel, "Set boot log verbosity level")
@@ -101,11 +144,11 @@ func init() {
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// Vault certificate manager/provider options
-	flags.StringVar(&vaultOptions.VaultProtocol, "vault-protocol", "http", "Host name of the Hashi Vault")
-	flags.StringVar(&vaultOptions.VaultHost, "vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
-	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
-	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
-	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+	flags.StringVar(&vaultOptions.Protocol, "vault-protocol", "http", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.Host, "vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.Token, "vault-token", "", "Secret token for the the Hashi Vault")
+	flags.StringVar(&vaultOptions.Role, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
+	flags.IntVar(&vaultOptions.Port, "vault-port", 8200, "Port of the Hashi Vault")
 
 	// Cert-manager certificate manager/provider options
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
@@ -176,13 +219,16 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	//
+	// func NewManager(provider Provider, msgBroker *messaging.Broker, serviceCertValidityDuration time.Duration) *CertManager {
 
+	certClient, ca, err := getCertProviderAndCA(cfg, kubeClient, kubeConfig)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
+
+	certManager := certificate.NewManager(ca, certClient, msgBroker, cfg.GetServiceCertValidityPeriod())
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
 		log.Info().Msgf("Bootstrapping OSM multicluster gateway")
@@ -271,7 +317,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

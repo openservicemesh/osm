@@ -30,10 +30,15 @@ const (
 )
 
 // NewProvider implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewProvider(vaultAddr string, token string, role string) (*Provider, error) {
-	p := &Provider{
-		role: vaultRole(role),
+func NewProvider(opts *Options) (*Provider, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
 	}
+	p := &Provider{
+		role: vaultRole(opts.Role),
+	}
+
+	vaultAddr := opts.Address()
 
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -43,31 +48,18 @@ func NewProvider(vaultAddr string, token string, role string) (*Provider, error)
 		return nil, errors.Errorf("Error creating Vault CertManager without TLS at %s", vaultAddr)
 	}
 
-	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", role, vaultAddr)
+	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", opts.Role, vaultAddr)
 
-	p.client.SetToken(token)
+	p.client.SetToken(opts.Token)
+
+	if err := p.setIssuingCA(); err != nil {
+		return nil, err
+	}
 
 	return p, nil
 }
 
 func (p *Provider) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
-
-	issuingCA, serialNumber, err := p.GetIssuingCA(p.IssueCertificate)
-	if err != nil {
-		return nil, err
-	}
-
-	ca := &certificate.Certificate{
-		CommonName:   constants.CertificationAuthorityCommonName,
-		SerialNumber: serialNumber,
-		Expiration:   time.Now().Add(decade),
-		CertChain:    issuingCA,
-		IssuingCA:    issuingCA,
-	}
-
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	certificate.New(c).Start(checkCertificateExpirationInterval)
-
 	secret, err := p.client.Logical().Delete().v.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -88,29 +80,23 @@ func (p *Provider) IssueCertificate(cn certificate.CommonName, validityPeriod ti
 }
 
 //todo(schristoff): is this needed?
-func (p *Provider) getIssuingCA(issue func(certificate.CommonName, time.Duration) (*certificate.Certificate, error)) ([]byte, certificate.SerialNumber, error) {
+func (p *Provider) setIssuingCA() error {
 	// Create a temp certificate to determine the public part of the issuing CA
-	cert, err := issue("localhost", decade)
+	cert, err := p.IssueCertificate("localhost", decade)
 	if err != nil {
-		return nil, "", err
+		return err
 	}
 
-	issuingCA := cert.GetIssuingCA()
-
-	// We are not going to need this certificate - remove it
-	p.ReleaseCertificate(cert.GetCommonName())
-
-	return issuingCA, cert.GetSerialNumber(), err
+	p.ca = &certificate.Certificate{
+		CommonName:   constants.CertificationAuthorityCommonName,
+		SerialNumber: cert.GetSerialNumber(),
+		Expiration:   time.Now().Add(decade),
+		CertChain:    pem.Certificate(cert.GetIssuingCA()),
+		IssuingCA:    cert.GetIssuingCA(),
+	}
+	return nil
 }
 
-// ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
-func (p *Provider) ReleaseCertificate(cn certificate.CommonName) {
-	// TODO(draychev): implement Hashicorp Vault delete-cert API here: https://github.com/openservicemesh/osm/issues/2068
-	secret, err := p.client.Logical().Delete().v.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIssuingCert)).
-			Msgf("Error issuing new certificate for CN=%s", cn)
-		return nil, err
-	}
+func (p *Provider) GetCA() *certificate.Certificate {
+	return p.ca
 }

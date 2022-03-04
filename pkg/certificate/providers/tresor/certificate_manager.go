@@ -14,13 +14,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
-// NewCertManager creates a new CertManager with the passed CA and CA Private Key
+// NewProvider creates a new CertManager with the passed CA and CA Private Key
 func NewProvider(
 	ca *certificate.Certificate,
 	certificatesOrganization string,
 	keySize int) (*Provider, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
+	}
+	if ca.GetPrivateKey() == nil {
+		return nil, errNoPrivateKey
 	}
 
 	return &Provider{
@@ -120,8 +123,4 @@ func (p *Provider) IssueCertificate(cn certificate.CommonName, validityPeriod ti
 	log.Trace().Msgf("Created new certificate for SerialNumber=%s; validity=%+v; expires on %+v; serial: %x", serialNumber, validityPeriod, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
-}
-
-func (p *Provider) GetRootCertificate() (*certificate.Certificate, error) {
-	return p.ca, nil
 }
