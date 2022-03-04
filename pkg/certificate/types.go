@@ -3,11 +3,9 @@
 package certificate
 
 import (
-	"sync"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -55,25 +53,11 @@ type Certificate struct {
 	IssuingCA pem.RootCertificate
 }
 
-type Manager struct {
-	provider  Provider
-	cache     sync.Map
-	msgBroker *messaging.Broker
-	//todo(schristoff): double check that this is needed
-	ca *Certificate
-}
-
-func NewManager(provider Provider) *Manager {
-	return &Manager{
-		provider: provider,
-		// Types: map[certificate.CommonName]*certificate.Certificate
-		cache:     make(map[string]*Certificate),
-		msgBroker: *messaging.NewBroker(make(<-chan struct{})),
-	}
-}
-
 // Provider is the interface declaring the methods for the Certificate Provider.
 type Provider interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+
+	// GetRootCertificate returns the root certificate in PEM format and its expiration.
+	GetRootCertificate() (*Certificate, error)
 }

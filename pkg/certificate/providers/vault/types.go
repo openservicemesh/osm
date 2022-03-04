@@ -6,7 +6,7 @@ import (
 )
 
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
-type VaultManager struct {
+type Provider struct {
 
 	// Hashicorp Vault client
 	client *api.Client

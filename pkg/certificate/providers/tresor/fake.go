@@ -5,35 +5,24 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
-	rootCertOrganization = "Open Service Mesh Tresor"
+	rootCertOrganization = "Open Service Mesh"
 )
 
-// NewFakeCertManager creates a fake CertManager used for testing.
-func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
+// NewFakeProvider creates a fake CertManager used for testing.
+func NewFakeProvider() *Provider {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
-	ca, err := NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
+	ca, err := NewCA("Fake Provider CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
 	}
-
-	return &CertManager{
+	return &Provider{
 		ca:      ca,
-		cfg:     cfg,
 		keySize: 2048, // hardcoding this to remove depdendency on configurator mock
 	}
-}
-
-// NewFakeCertManagerForRotation creates a fake CertManager used for testing certificate rotation
-func NewFakeCertManagerForRotation(cfg configurator.Configurator, msgBroker *messaging.Broker) *CertManager {
-	cm := NewFakeCertManager(cfg)
-	cm.msgBroker = msgBroker
-	return cm
 }
 
 // NewFakeCertificate is a helper creating Certificates for unit tests.
