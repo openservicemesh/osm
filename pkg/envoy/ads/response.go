@@ -161,7 +161,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.Inc()
+		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
 			Str("proxy", proxy.String()).Msgf("Error sending response for typeURI %s to proxy", typeURI.Short())
 		return err
@@ -169,7 +169,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Sending discovery response succeeded, record last resources sent
 	proxy.SetLastResourcesSent(typeURI, resourcesSent)
-	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.Inc()
+	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
 
 	return nil
 }
