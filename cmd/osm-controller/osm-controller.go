@@ -306,6 +306,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
+		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
 	)
 }
 

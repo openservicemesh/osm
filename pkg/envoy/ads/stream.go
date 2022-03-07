@@ -116,6 +116,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
 
+			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(certCommonName.String(), discoveryRequest.TypeUrl).Inc()
+
 		case <-proxyUpdateChan:
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
 

@@ -49,6 +49,9 @@ type MetricsStore struct {
 	// ProxyResponseSendErrorCount is the metric for the total number of errors encountered while sending responses to proxies
 	ProxyResponseSendErrorCount prometheus.Counter
 
+	// ProxyXDSRequestCount counts XDS requests made by proxies
+	ProxyXDSRequestCount *prometheus.CounterVec
+
 	/*
 	 * Injector metrics
 	 */
@@ -170,6 +173,13 @@ func init() {
 		Name:      "broadcast_event_count",
 		Help:      "Represents the number of ProxyBroadcast events published by the OSM controller",
 	})
+
+	defaultMetricsStore.ProxyXDSRequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "xds_request_count",
+		Help:      "Represents the number of XDS requests made by proxies",
+	}, []string{"common_name", "type"})
 
 	/*
 	 * Injector metrics
