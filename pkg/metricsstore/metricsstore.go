@@ -81,6 +81,10 @@ type MetricsStore struct {
 	// HTTP requests
 	HTTPResponseDuration *prometheus.HistogramVec
 
+	// FeatureFlagEnabled represents whether each feature flag is enabled (1) or
+	// disabled (0)
+	FeatureFlagEnabled *prometheus.GaugeVec
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -234,6 +238,12 @@ func init() {
 		Buckets:   []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 		Help:      "Duration in seconds of HTTP responses sent",
 	}, []string{"code", "method", "path"})
+
+	defaultMetricsStore.FeatureFlagEnabled = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "feature_flag_enabled",
+		Help:      "Represents whether a feature flag is enabled (1) or disabled (0)",
+	}, []string{"feature_flag"})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
