@@ -1,6 +1,14 @@
-# ref: https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# Code maintainers (borrowed from https://github.com/openservicemesh/osm/blob/main/CODEOWNERS)
 
-* @shashankram @snehachhabria @nojnhuh @draychev @jaellio
+- @shashankram
+- @snehachhabria
+- @nojnhuh
+- @draychev
+- @jaellio
+
+# Non-code maintainers
+- @phillipgibson
 
 # Emeritus maintainers
-# @michelleN @eduser25
+- @michelleN
+- @eduser25
