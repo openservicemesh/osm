@@ -303,6 +303,8 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount,
 		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 	)
 }
 
