@@ -1,15 +1,6 @@
-#ref: https://github.com/orgs/openservicemesh/teams/osm-maintainers/members
-maintainers:
-  - draychev
-  - eduser25
-  - ksubrmnn
-  - michelleN
-  - nojnhuh
-  - nshankar13
-  - SanyaKochhar
-  - shalier
-  - shashankram
-  - snehachhabria
-  - phillipgibson
-emeritus:
-  -
+# ref: https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+
+* @shashankram @snehachhabria @nojnhuh @draychev @jaellio
+
+# Emeritus maintainers
+# @michelleN @eduser25
