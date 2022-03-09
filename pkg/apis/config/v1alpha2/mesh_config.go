@@ -65,6 +65,18 @@ type SidecarSpec struct {
 
 	// Resources defines the compute resources for the sidecar.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// TLSMinProtocolVersion defines the minimum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+	TLSMinProtocolVersion string `json:"tlsMinProtocolVersion,omitempty"`
+
+	// TLSMaxProtocolVersion defines the maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+	TLSMaxProtocolVersion string `json:"tlsMaxProtocolVersion,omitempty"`
+
+	// CipherSuites defines a list of ciphers that listener supports when negotiating TLS 1.0-1.2. This setting has no effect when negotiating TLS 1.3. For valid cipher names, see the latest OpenSSL ciphers manual page. E.g. https://www.openssl.org/docs/man1.1.1/apps/ciphers.html.
+	CipherSuites []string `json:"cipherSuites,omitempty"`
+
+	// ECDHCurves defines a list of ECDH curves that TLS connection supports. If not specified, the curves are [X25519, P-256] for non-FIPS build and P-256 for builds using BoringSSL FIPS.
+	ECDHCurves []string `json:"ecdhCurves,omitempty"`
 }
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.

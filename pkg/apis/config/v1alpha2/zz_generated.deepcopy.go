@@ -317,6 +317,16 @@ func (in *PortSpec) DeepCopy() *PortSpec {
 func (in *SidecarSpec) DeepCopyInto(out *SidecarSpec) {
 	*out = *in
 	in.Resources.DeepCopyInto(&out.Resources)
+	if in.CipherSuites != nil {
+		in, out := &in.CipherSuites, &out.CipherSuites
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ECDHCurves != nil {
+		in, out := &in.ECDHCurves, &out.ECDHCurves
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

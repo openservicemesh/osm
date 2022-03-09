@@ -40,11 +40,20 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 		case "config.openservicemesh.io/v1alpha1":
 			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha1")
 			// Remove spec.traffic.outboundIPRangeInclusionList field not supported in v1alpha1
-			_, found, err := unstructured.NestedSlice(convertedObject.Object, "spec", "traffic", "outboundIPRangeInclusionList")
-			if found && err == nil {
-				unstructured.RemoveNestedField(convertedObject.Object, "spec", "traffic", "outboundIPRangeInclusionList")
+			unsupportedFields := [][]string{
+				{"spec", "traffic", "outboundIPRangeInclusionList"},
+				{"spec", "sidecar", "tlsMinProtocolVersion"},
+				{"spec", "sidecar", "tlsMaxProtocolVersion"},
+				{"spec", "sidecar", "cipherSuites"},
+				{"spec", "sidecar", "ecdhCurves"},
 			}
 
+			for _, unsupportedField := range unsupportedFields {
+				_, found, err := unstructured.NestedSlice(convertedObject.Object, unsupportedField...)
+				if found && err == nil {
+					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
+				}
+			}
 		default:
 			return nil, statusErrorWithMessage("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}

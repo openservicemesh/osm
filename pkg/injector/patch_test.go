@@ -146,8 +146,9 @@ func TestCreatePatch(t *testing.T) {
 
 			if tc.os == constants.OSLinux {
 				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-				mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 			}
+
+			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
@@ -190,6 +191,7 @@ func TestCreatePatch(t *testing.T) {
 		}
 
 		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
+		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 

@@ -33,4 +33,16 @@ type Config struct {
 
 	// PrivateKey is the private key for the certificate used by the proxy to connect to the XDS cluster
 	PrivateKey []byte
+
+	// TLSMinProtocolVersion is the minimum supported TLS protocol version
+	TLSMinProtocolVersion string
+
+	// TLSMaxProtocolVersion is the maximum supported TLS protocol version
+	TLSMaxProtocolVersion string
+
+	// CipherSuites is the list of cipher that TLS 1.0-1.2 supports
+	CipherSuites []string
+
+	// ECDHCurves is the list of ECDH curves it supports
+	ECDHCurves []string
 }

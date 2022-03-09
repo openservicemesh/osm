@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -63,9 +64,20 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
+	meshConfig := v1alpha2.MeshConfig{
+		Spec: v1alpha2.MeshConfigSpec{
+			Sidecar: v1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+				CipherSuites:          []string{},
+			},
+		},
+	}
+
 	cert := tresor.NewFakeCertificate()
 	mockCtrl := gomock.NewController(GinkgoT())
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	originalHealthProbes := healthProbes{
 		liveness:  &healthProbe{path: "/liveness", port: 81},
@@ -117,7 +129,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		XDSHost:        "osm-controller.b.svc.cluster.local",
 		XDSPort:        15128,
 
-		OriginalHealthProbes: probes,
+		OriginalHealthProbes:  probes,
+		TLSMinProtocolVersion: meshConfig.Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: meshConfig.Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          meshConfig.Spec.Sidecar.CipherSuites,
+		ECDHCurves:            meshConfig.Spec.Sidecar.ECDHCurves,
 	}
 
 	Context("Test getEnvoyConfigYAML()", func() {
@@ -140,6 +156,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
+				configurator:        mockConfigurator,
 			}
 			name := uuid.New().String()
 			namespace := "a"
@@ -197,6 +214,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
+				configurator:        mockConfigurator,
 			}
 
 			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)

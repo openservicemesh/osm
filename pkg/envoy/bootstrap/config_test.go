@@ -15,14 +15,18 @@ func TestBuildFromConfig(t *testing.T) {
 	cert := tresor.NewFakeCertificate()
 
 	config := Config{
-		NodeID:           cert.GetCommonName().String(),
-		AdminPort:        15000,
-		XDSClusterName:   constants.OSMControllerName,
-		TrustedCA:        cert.GetIssuingCA(),
-		CertificateChain: cert.GetCertificateChain(),
-		PrivateKey:       cert.GetPrivateKey(),
-		XDSHost:          "osm-controller.osm-system.svc.cluster.local",
-		XDSPort:          15128,
+		NodeID:                cert.GetCommonName().String(),
+		AdminPort:             15000,
+		XDSClusterName:        constants.OSMControllerName,
+		TrustedCA:             cert.GetIssuingCA(),
+		CertificateChain:      cert.GetCertificateChain(),
+		PrivateKey:            cert.GetPrivateKey(),
+		XDSHost:               "osm-controller.osm-system.svc.cluster.local",
+		XDSPort:               15128,
+		TLSMinProtocolVersion: "TLSv1_0",
+		TLSMaxProtocolVersion: "TLSv1_2",
+		CipherSuites:          []string{"abc", "xyz"},
+		ECDHCurves:            []string{"ABC", "XYZ"},
 	}
 
 	bootstrapConfig, err := BuildFromConfig(config)
@@ -82,8 +86,14 @@ static_resources:
             private_key:
               inline_bytes: eXk=
           tls_params:
-            tls_maximum_protocol_version: TLSv1_3
-            tls_minimum_protocol_version: TLSv1_2
+            cipher_suites:
+            - abc
+            - xyz
+            ecdh_curves:
+            - ABC
+            - XYZ
+            tls_maximum_protocol_version: TLSv1_2
+            tls_minimum_protocol_version: TLSv1_0
           validation_context:
             trusted_ca:
               inline_bytes: eHg=
