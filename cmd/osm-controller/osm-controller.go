@@ -305,6 +305,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
 	)
 }
 
