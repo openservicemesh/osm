@@ -105,12 +105,11 @@ func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
 		//   alphanumeric field name without any other directive like `omitempty`
 		flags := reflect.ValueOf(config.Spec.FeatureFlags)
 		for i := 0; i < flags.NumField(); i++ {
-			field := flags.Field(i)
-			name := flags.Type().Field(i).Tag.Get("json")
-			var val float64 = 0
-			if field.Bool() {
+			var val float64
+			if flags.Field(i).Bool() {
 				val = 1
 			}
+			name := flags.Type().Field(i).Tag.Get("json")
 			metricsstore.DefaultMetricsStore.FeatureFlagEnabled.WithLabelValues(name).Set(val)
 		}
 	}
