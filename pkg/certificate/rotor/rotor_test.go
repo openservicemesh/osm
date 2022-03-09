@@ -4,58 +4,38 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
+type fakeIssuer struct{}
+
+func (i *fakeIssuer) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+	return &certificate.Certificate{
+		CommonName: cn,
+		Expiration: time.Now().Add(validityPeriod),
+	}, nil
+}
+
 var _ = Describe("Test Rotor", func() {
-
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-
-	mockCtrl = gomock.NewController(GinkgoT())
 
 	cn := certificate.CommonName("foo")
 
 	Context("Testing rotating expiring certificates", func() {
 
-		validityPeriod := 1 * time.Hour
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Times(0)
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
-
-		It("determines whether a certificate has expired", func() {
-			cert, err := certManager.IssueCertificate(cn, validityPeriod)
-			Expect(err).ToNot(HaveOccurred())
-			actual := rotor.ShouldRotate(cert)
-			Expect(actual).To(BeFalse())
-		})
-	})
-
-	Context("Testing rotating expiring certificates", func() {
-
 		validityPeriod := -1 * time.Hour // negative time means this cert has already expired -- will be rotated asap
-
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		stop := make(chan struct{})
 		defer close(stop)
 		msgBroker := messaging.NewBroker(stop)
-		certManager := tresor.NewFakeCertManagerForRotation(mockConfigurator, msgBroker)
+		certManager, err := certificate.NewManager(&certificate.Certificate{}, &fakeIssuer{}, validityPeriod, msgBroker)
+
+		Expect(err).ToNot(HaveOccurred())
 
 		certA, err := certManager.IssueCertificate(cn, validityPeriod)
 
@@ -63,11 +43,6 @@ var _ = Describe("Test Rotor", func() {
 
 		It("issued a new certificate", func() {
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("will determine that the certificate needs to be rotated because it has already expired due to negative validity period", func() {
-			actual := rotor.ShouldRotate(certA)
-			Expect(actual).To(BeTrue())
 		})
 
 		It("rotates certificate", func() {

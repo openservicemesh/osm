@@ -156,7 +156,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) *certificate.Cert
 	if certInterface, exists := cm.cache.Load(cn); exists {
 		cert := certInterface.(*certificate.Certificate)
 		log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
-		if rotor.ShouldRotate(cert) {
+		if cert.ShouldRotate() {
 			log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
 			return nil
 		}
