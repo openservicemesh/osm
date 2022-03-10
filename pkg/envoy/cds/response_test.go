@@ -65,6 +65,15 @@ func TestNewResponse(t *testing.T) {
 		TargetPort: 8080,
 	}
 
+	meshConfig := configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Sidecar: configv1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+			},
+		},
+	}
+
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{testMeshSvc}, nil
 	}), nil)
@@ -91,6 +100,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 	}
+
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
@@ -101,6 +111,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -179,7 +190,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err := anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service))
+	upstreamTLSProto, err := anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service, meshConfig.Spec.Sidecar))
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
@@ -211,7 +222,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err = anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
+	upstreamTLSProto, err = anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service, meshConfig.Spec.Sidecar))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
