@@ -84,20 +84,6 @@ func TestMetricsHandler(t *testing.T) {
 	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 1` + "\n")
 	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n")
 
-	// Adding a different MeshConfig whose settings are ignored
-	handlers.OnAdd(&configv1alpha2.MeshConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "not-" + osmMeshConfigName,
-		},
-		Spec: configv1alpha2.MeshConfigSpec{
-			FeatureFlags: configv1alpha2.FeatureFlags{
-				EnableSnapshotCacheMode: true,
-			},
-		},
-	})
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 1` + "\n")
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n")
-
 	// Updating the "real" MeshConfig
 	handlers.OnUpdate(nil, &configv1alpha2.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{

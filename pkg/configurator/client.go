@@ -4,32 +4,37 @@ import (
 	"fmt"
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
-	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/messaging"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string,
+func NewConfigurator(meshConfigClientSet configClientset.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string,
 	msgBroker *messaging.Broker) Configurator {
 	return newConfigurator(meshConfigClientSet, stop, osmNamespace, meshConfigName, msgBroker)
 }
 
-func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string,
+func newConfigurator(meshConfigClientSet configClientset.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string,
 	msgBroker *messaging.Broker) *client {
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+	listOption := configInformers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+		opt.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, meshConfigName).String()
+	})
+	informerFactory := configInformers.NewSharedInformerFactoryWithOptions(
 		meshConfigClientSet,
 		k8s.DefaultKubeEventResyncInterval,
-		informers.WithNamespace(osmNamespace),
+		configInformers.WithNamespace(osmNamespace),
+		listOption,
 	)
 	informer := informerFactory.Config().V1alpha2().MeshConfigs().Informer()
 	c := &client{
@@ -93,9 +98,7 @@ func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
 func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
 	handleMetrics := func(obj interface{}) {
 		config := obj.(*configv1alpha2.MeshConfig)
-		if config.Name != c.meshConfigName {
-			return
-		}
+
 		// This uses reflection to iterate over the feature flags to avoid
 		// enumerating them here individually. This code assumes the following:
 		// - MeshConfig.Spec.FeatureFlags is a struct, not a pointer to a struct
