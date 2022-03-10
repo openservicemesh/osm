@@ -8,8 +8,6 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	extensions_upstream_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
@@ -230,25 +228,6 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 		Sni: upstreamSvc.ServerName(),
 	}
 	return tlsConfig
-}
-
-// GetHTTP2ProtocolOptions creates an Envoy http configuration that matches the downstream protocol
-func GetHTTP2ProtocolOptions() (map[string]*any.Any, error) {
-	marshalledHTTPProtocolOptions, err := anypb.New(
-		&extensions_upstream_http_v3.HttpProtocolOptions{
-			UpstreamProtocolOptions: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
-				UseDownstreamProtocolConfig: &extensions_upstream_http_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
-					Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-				},
-			},
-		})
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]*any.Any{
-		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": marshalledHTTPProtocolOptions,
-	}, nil
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.

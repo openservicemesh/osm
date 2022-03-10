@@ -5,6 +5,8 @@ package trafficpolicy
 import (
 	mapset "github.com/deckarep/golang-set"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -139,6 +141,9 @@ type MeshClusterConfig struct {
 	// EnableEnvoyActiveHealthChecks enables Envoy's active health checks for the cluster
 	// +optional
 	EnableEnvoyActiveHealthChecks bool
+
+	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
+	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
 }
 
 // TrafficMatch is the type used to represent attributes used to match traffic

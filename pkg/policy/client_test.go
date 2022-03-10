@@ -7,6 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
@@ -473,6 +474,148 @@ func TestListRetryPolicy(t *testing.T) {
 
 			actual := c.ListRetryPolicies(tc.source)
 			a.ElementsMatch(tc.expectedRetries, actual)
+		})
+	}
+}
+
+func TestGetUpstreamTrafficSetting(t *testing.T) {
+	testCases := []struct {
+		name         string
+		allResources []*policyV1alpha1.UpstreamTrafficSetting
+		opt          UpstreamTrafficSettingGetOpt
+		expected     *policyV1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name: "MeshService has matching UpstreamTrafficSetting",
+			allResources: []*policyV1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u2",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s2.ns1.svc.cluster.local",
+					},
+				},
+			},
+			opt: UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s1", Namespace: "ns1"}},
+			expected: &policyV1alpha1.UpstreamTrafficSetting{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "u1",
+					Namespace: "ns1",
+				},
+				Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+					Host: "s1.ns1.svc.cluster.local",
+				},
+			},
+		},
+		{
+			name: "MeshService that does not match any UpstreamTrafficSetting",
+			allResources: []*policyV1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+			},
+			opt:      UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s3", Namespace: "ns1"}},
+			expected: nil,
+		},
+		{
+			name: "UpstreamTrafficSetting namespaced name found",
+			allResources: []*policyV1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u2",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s2.ns1.svc.cluster.local",
+					},
+				},
+			},
+			opt: UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u1"}},
+			expected: &policyV1alpha1.UpstreamTrafficSetting{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "u1",
+					Namespace: "ns1",
+				},
+				Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+					Host: "s1.ns1.svc.cluster.local",
+				},
+			},
+		},
+		{
+			name: "UpstreamTrafficSetting namespaced name not found",
+			allResources: []*policyV1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+			},
+			opt:      UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u3"}},
+			expected: nil,
+		},
+		{
+			name: "no filter option specified",
+			allResources: []*policyV1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyV1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+			},
+			opt:      UpstreamTrafficSettingGetOpt{},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, resource := range tc.allResources {
+				_ = c.caches.upstreamTrafficSetting.Add(resource)
+			}
+
+			actual := c.GetUpstreamTrafficSetting(tc.opt)
+			a.Equal(tc.expected, actual)
 		})
 	}
 }

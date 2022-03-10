@@ -2,6 +2,7 @@ package cds
 
 import (
 	"testing"
+	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -9,6 +10,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -19,6 +24,9 @@ import (
 )
 
 func TestGetUpstreamServiceCluster(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdDuration := &metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	downstreamSvcAccount := tests.BookbuyerServiceIdentity
 	upstreamSvc := service.MeshService{
 		Namespace: "default",
@@ -26,8 +34,9 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		Port:      14001,
 	}
 	testCases := []struct {
-		name          string
-		clusterConfig trafficpolicy.MeshClusterConfig
+		name                            string
+		clusterConfig                   trafficpolicy.MeshClusterConfig
+		expectedCircuitBreakerThreshold *xds_cluster.CircuitBreakers
 	}{
 		{
 			name: "EDS based cluster adds health checks when configured",
@@ -45,6 +54,40 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				EnableEnvoyActiveHealthChecks: false,
 			},
 		},
+		{
+			name: "Cluster with Circuit Breaker",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:    "default/bookstore-v1_14001",
+				Service: upstreamSvc,
+				UpstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						ConnectionSettings: &policyv1alpha1.ConnectionSettingsSpec{
+							TCP: &policyv1alpha1.TCPConnectionSettings{
+								MaxConnections: &thresholdUintVal,
+								ConnectTimeout: thresholdDuration,
+							},
+							HTTP: &policyv1alpha1.HTTPConnectionSettings{
+								MaxRequests:              &thresholdUintVal,
+								MaxPendingRequests:       &thresholdUintVal,
+								MaxRetries:               &thresholdUintVal,
+								MaxRequestsPerConnection: &thresholdUintVal,
+							},
+						},
+					},
+				},
+			},
+			expectedCircuitBreakerThreshold: &xds_cluster.CircuitBreakers{
+				Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{
+					{
+						MaxConnections:     wrapperspb.UInt32(thresholdUintVal),
+						MaxRequests:        wrapperspb.UInt32(thresholdUintVal),
+						MaxPendingRequests: wrapperspb.UInt32(thresholdUintVal),
+						MaxRetries:         wrapperspb.UInt32(thresholdUintVal),
+						TrackRemaining:     true,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -58,6 +101,10 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				assert.NotNil(remoteCluster.HealthChecks)
 			} else {
 				assert.Nil(remoteCluster.HealthChecks)
+			}
+
+			if tc.clusterConfig.UpstreamTrafficSetting != nil {
+				assert.Equal(tc.expectedCircuitBreakerThreshold, remoteCluster.CircuitBreakers)
 			}
 		})
 	}
@@ -246,8 +293,9 @@ func TestGetPrometheusCluster(t *testing.T) {
 
 func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	assert.Nil(err)
+
 	testCases := []struct {
 		name        string
 		clusterName string
@@ -262,7 +310,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
 				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
-				TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+				TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 			},
 		},
 		{
@@ -274,7 +322,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 					Type: xds_cluster.Cluster_ORIGINAL_DST,
 				},
 				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
-				TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+				TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 			},
 		},
 	}

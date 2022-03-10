@@ -59,14 +59,14 @@ type ConnectionSettingsSpec struct {
 type TCPConnectionSettings struct {
 	// MaxConnections specifies the maximum number of TCP connections
 	// allowed to the upstream host.
-	// Defaults to 1024 if not specified.
+	// Defaults to 2147483647 (2^32 - 1) if not specified.
 	// +optional
 	MaxConnections *uint32 `json:"maxConnections,omitempty"`
 
 	// ConnectTimeout specifies the TCP connection timeout.
 	// Defaults to 5s if not specified.
 	// +optional
-	ConnectTimeout metav1.Duration `json:"connectTimeout,omitempty"`
+	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
 }
 
 // HTTPConnectionSettings defines the HTTP connection settings for an
@@ -74,7 +74,7 @@ type TCPConnectionSettings struct {
 type HTTPConnectionSettings struct {
 	// MaxRequests specifies the maximum number of parallel requests
 	// allowed to the upstream host.
-	// Defaults to 1024 if not specified.
+	// Defaults to 2147483647 (2^32 - 1) if not specified.
 	// +optional
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 
@@ -86,13 +86,13 @@ type HTTPConnectionSettings struct {
 
 	// MaxPendingRequests specifies the maximum number of pending HTTP/1.1
 	// requests allowed to the upstream host.
-	// Defaults to 1024 if not specified.
+	// Defaults to 2147483647 (2^32 - 1) if not specified.
 	// +optional
 	MaxPendingRequests *uint32 `json:"maxPendingRequests,omitempty"`
 
 	// MaxRetries specifies the maximum number of parallel retries
 	// allowed to the upstream host.
-	// Defaults to 3 if not specified.
+	// Defaults to 2147483647 (2^32 - 1) if not specified.
 	// +optional
 	MaxRetries *uint32 `json:"maxRetries,omitempty"`
 }

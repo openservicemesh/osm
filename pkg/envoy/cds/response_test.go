@@ -135,7 +135,7 @@ func TestNewResponse(t *testing.T) {
 		actualClusters = append(actualClusters, cl)
 	}
 
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	assert.Nil(err)
 
 	expectedLocalCluster := &xds_cluster.Cluster{
@@ -146,7 +146,7 @@ func TestNewResponse(t *testing.T) {
 		EdsClusterConfig:              nil,
 		RespectDnsTtl:                 true,
 		DnsLookupFamily:               xds_cluster.Cluster_V4_ONLY,
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: "default/bookbuyer|8080|local",
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -187,7 +187,7 @@ func TestNewResponse(t *testing.T) {
 		Name:                          "default/bookstore-v1|80",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -205,6 +205,9 @@ func TestNewResponse(t *testing.T) {
 					Value:   upstreamTLSProto.Value,
 				},
 			},
+		},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
 		},
 	}
 
@@ -215,7 +218,7 @@ func TestNewResponse(t *testing.T) {
 		Name:                          "default/bookstore-v2|80",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -233,6 +236,9 @@ func TestNewResponse(t *testing.T) {
 					Value:   upstreamTLSProto.Value,
 				},
 			},
+		},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
 		},
 	}
 
