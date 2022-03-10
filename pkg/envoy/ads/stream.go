@@ -105,6 +105,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(&discoveryRequest))
 
+			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(certCommonName.String(), discoveryRequest.TypeUrl).Inc()
+
 			// This function call runs xDS proto state machine given DiscoveryRequest as input.
 			// It's output is the decision to reply or not to this request.
 			if !respondToRequest(proxy, &discoveryRequest) {
