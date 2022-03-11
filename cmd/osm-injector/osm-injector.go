@@ -152,6 +152,9 @@ func main() {
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
 	)
 
 	msgBroker := messaging.NewBroker(stop)

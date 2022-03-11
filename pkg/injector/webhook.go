@@ -26,6 +26,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -96,11 +97,11 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(WebhookHealthPath, healthHandler)
+	mux.Handle(WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	// We know that the events arriving at this handler are CREATE POD only
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
-	mux.HandleFunc(webhookCreatePod, wh.podCreationHandler)
+	mux.Handle(webhookCreatePod, metricsstore.AddHTTPMetrics(http.HandlerFunc(wh.podCreationHandler)))
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
@@ -165,6 +166,8 @@ func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionReq
 	if admissionReq.Request != nil {
 		requestForNamespace = admissionReq.Request.Namespace
 	}
+
+	webhook.RecordAdmissionMetrics(admissionReq.Request, admissionResp.Response)
 
 	return
 }
