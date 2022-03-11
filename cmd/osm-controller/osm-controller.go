@@ -307,6 +307,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
 		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
+		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 	)
 }
 

@@ -52,6 +52,10 @@ type MetricsStore struct {
 	// ProxyXDSRequestCount counts XDS requests made by proxies
 	ProxyXDSRequestCount *prometheus.CounterVec
 
+	// ProxyMaxConnectionsRejected counts the number of proxy connections
+	// rejected due to the max connections limit being reached
+	ProxyMaxConnectionsRejected prometheus.Counter
+
 	/*
 	 * Injector metrics
 	 */
@@ -180,6 +184,13 @@ func init() {
 		Name:      "xds_request_count",
 		Help:      "Represents the number of XDS requests made by proxies",
 	}, []string{"common_name", "type"})
+
+	defaultMetricsStore.ProxyMaxConnectionsRejected = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "max_connections_rejected",
+		Help:      "Represents the number of proxy connections rejected due to the configured max connections limit",
+	})
 
 	/*
 	 * Injector metrics
