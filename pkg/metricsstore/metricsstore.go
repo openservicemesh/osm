@@ -3,6 +3,8 @@ package metricsstore
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,10 +46,10 @@ type MetricsStore struct {
 	ProxyBroadcastEventCount prometheus.Counter
 
 	// ProxyResponseSendSuccessCount is the metric for the total number of successful responses sent to the proxies
-	ProxyResponseSendSuccessCount prometheus.Counter
+	ProxyResponseSendSuccessCount *prometheus.CounterVec
 
 	// ProxyResponseSendErrorCount is the metric for the total number of errors encountered while sending responses to proxies
-	ProxyResponseSendErrorCount prometheus.Counter
+	ProxyResponseSendErrorCount *prometheus.CounterVec
 
 	// ProxyXDSRequestCount counts XDS requests made by proxies
 	ProxyXDSRequestCount *prometheus.CounterVec
@@ -144,19 +146,19 @@ func init() {
 		Help:      "Represents the number of reconnects from known proxies to OSM controller",
 	})
 
-	defaultMetricsStore.ProxyResponseSendSuccessCount = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.ProxyResponseSendSuccessCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "response_send_success_count",
 		Help:      "Represents the number of responses successfully sent to proxies",
-	})
+	}, []string{"common_name", "type"})
 
-	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "response_send_error_count",
 		Help:      "Represents the number of responses that errored when being set to proxies",
-	})
+	}, []string{"common_name", "type"})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -287,4 +289,15 @@ func (ms *MetricsStore) Handler() http.Handler {
 		ms.registry,
 		promhttp.HandlerFor(ms.registry, promhttp.HandlerOpts{}),
 	)
+}
+
+// Contains returns whether or not the given string appears in the store's HTTP
+// handler response
+func (ms *MetricsStore) Contains(metric string) bool {
+	req := httptest.NewRequest("GET", "http://this.doesnt/matter", nil)
+	w := httptest.NewRecorder()
+	ms.Handler().ServeHTTP(w, req)
+	res := w.Body.String()
+
+	return strings.Contains(res, metric)
 }

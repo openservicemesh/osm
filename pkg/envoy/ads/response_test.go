@@ -19,6 +19,7 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -142,6 +143,8 @@ var _ = Describe("Test ADS response functions", func() {
 			EnableEgressPolicy: false,
 		}).AnyTimes()
 
+		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
+
 		It("returns Aggregated Discovery Service response", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
 
@@ -197,6 +200,8 @@ var _ = Describe("Test ADS response functions", func() {
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.ServiceCertType,
 			}.String()))
+
+			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{common_name=%q,type=%q} 1\n", proxy.GetCertificateCommonName(), envoy.TypeCDS))).To(BeTrue())
 		})
 	})
 

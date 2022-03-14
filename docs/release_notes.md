@@ -1,5 +1,21 @@
 # Release Notes
 
+## Release v1.1.0
+
+### Notable changes
+
+None
+
+### Breaking changes
+
+The following changes are not backward compatible with the previous release.
+
+- The `osm_proxy_response_send_success_count` and `osm_proxy_response_send_error_count` metrics are now labeled with the proxy certificate's common name and XDS type, so queries to match the previous equivalent need to sum for all values of each of those labels.
+
+### Deprecation notes
+
+None
+
 ## Release v1.0.0
 
 ### Notable changes

@@ -1,7 +1,6 @@
 package configurator
 
 import (
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +52,8 @@ func (s *store) GetByKey(_ string) (interface{}, bool, error) {
 }
 
 func TestMetricsHandler(t *testing.T) {
+	a := assert.New(t)
+
 	c := &client{
 		cache:          &store{},
 		meshConfigName: osmMeshConfigName,
@@ -60,17 +61,7 @@ func TestMetricsHandler(t *testing.T) {
 	handlers := c.metricsHandler()
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
 
-	assertMetricsContain := func(metric string) {
-		t.Helper()
-		req := httptest.NewRequest("GET", "http://this.doesnt/matter", nil)
-		w := httptest.NewRecorder()
-		metricsstore.DefaultMetricsStore.Handler().ServeHTTP(w, req)
-		res := w.Body.String()
-
-		assert.Contains(t, res, metric)
-	}
-
-	// Adding a MeshConfig
+	// Adding the MeshConfig
 	handlers.OnAdd(&configv1alpha2.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
@@ -81,10 +72,10 @@ func TestMetricsHandler(t *testing.T) {
 			},
 		},
 	})
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 1` + "\n")
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n")
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 1` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
 
-	// Updating the "real" MeshConfig
+	// Updating the MeshConfig
 	handlers.OnUpdate(nil, &configv1alpha2.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
@@ -95,10 +86,10 @@ func TestMetricsHandler(t *testing.T) {
 			},
 		},
 	})
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n")
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 1` + "\n")
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 1` + "\n"))
 
-	// Deleting the "real" MeshConfig
+	// Deleting the MeshConfig
 	handlers.OnDelete(&configv1alpha2.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
@@ -109,6 +100,6 @@ func TestMetricsHandler(t *testing.T) {
 			},
 		},
 	})
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n")
-	assertMetricsContain(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n")
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
 }
