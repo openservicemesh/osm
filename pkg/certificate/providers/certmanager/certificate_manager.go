@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,15 +16,11 @@ import (
 	cminformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
+<<<<<<< HEAD
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	start := time.Now()
@@ -128,6 +125,9 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 }
 
 // certificaterFromCertificateRequest will construct a certificate.Certificater
+=======
+// certificateFromCertificateRequest will construct a certificate.Certificate
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 // from a given CertificateRequest and private key.
 func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateRequest, privateKey []byte) (certificate.Certificater, error) {
 	if cr == nil {
@@ -149,19 +149,18 @@ func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateR
 	}, nil
 }
 
+<<<<<<< HEAD
 // issue will request a new signed certificate from the configured cert-manager
 // issuer.
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+=======
+// IssueCertificate will request a new signed certificate from the configured cert-manager issuer.
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	duration := &metav1.Duration{
 		Duration: validityPeriod,
 	}
 
-	// Key bit size should remain static during the lifetime of the CertManager. In the event that this
-	// is a zero value, we make the call to config to get the setting and then cache it for future
-	// certificate operations.
-	if cm.keySize == 0 {
-		cm.keySize = cm.cfg.GetCertKeyBitSize()
-	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -242,30 +241,30 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		}
 	}()
 
-	cm.cacheLock.Lock()
-	defer cm.cacheLock.Unlock()
-	cm.cache[cert.GetCommonName()] = cert
-
 	return cert, nil
 }
 
+<<<<<<< HEAD
 // NewCertManager will construct a new certificate.Certificater implemented
 // using Jetstack's cert-manager,
 func NewCertManager(
 	ca certificate.Certificater,
+=======
+// New will construct a new certificate client using Jetstack's cert-manager,
+func New(
+	ca *certificate.Certificate,
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	client cmversionedclient.Interface,
 	namespace string,
 	issuerRef cmmeta.ObjectReference,
-	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration,
-	keySize int,
-	msgBroker *messaging.Broker) (*CertManager, error) {
+	keySize int) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
 	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
 
 	// TODO: pass through graceful shutdown
 	informerFactory.Start(make(chan struct{}))
 
+<<<<<<< HEAD
 	cm := &CertManager{
 		ca:                          ca,
 		cache:                       make(map[certificate.CommonName]certificate.Certificater),
@@ -277,10 +276,18 @@ func NewCertManager(
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		keySize:                     keySize,
 		msgBroker:                   msgBroker,
+=======
+	if keySize == 0 {
+		return nil, errors.New("key bit size cannot be zero")
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	}
 
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.New(cm).Start(checkCertificateExpirationInterval)
-
-	return cm, nil
+	return &CertManager{
+		ca:        ca,
+		namespace: namespace,
+		client:    client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		keySize:   keySize,
+	}, nil
 }

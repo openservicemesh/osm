@@ -3,7 +3,14 @@
 package certificate
 
 import (
+	"sync"
 	"time"
+<<<<<<< HEAD
+=======
+
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/messaging"
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 )
 
 const (
@@ -74,4 +81,25 @@ type Manager interface {
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
 	ReleaseCertificate(CommonName)
+}
+
+type client interface {
+	// IssueCertificate issues a new certificate.
+	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+}
+
+// manager is a struct that is soon to replace the Manager interface.
+// TODO(#4533): export this struct and remove the Manager interface
+type manager struct {
+	client client
+
+	// The Certificate Authority root certificate to be used by this certificate manager
+	ca *Certificate
+
+	// Cache for all the certificates issued
+	// Types: map[certificate.CommonName]*certificate.Certificate
+	cache sync.Map
+
+	serviceCertValidityDuration time.Duration
+	msgBroker                   *messaging.Broker
 }

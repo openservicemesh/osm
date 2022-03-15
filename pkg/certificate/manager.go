@@ -21,7 +21,11 @@ func NewManager(
 	ca *Certificate,
 	client client,
 	serviceCertValidityDuration time.Duration,
+<<<<<<< HEAD
 	msgBroker *messaging.Broker) (*manager, error) { //nolint:revive // unexported-return
+=======
+	msgBroker *messaging.Broker) (*manager, error) {
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}

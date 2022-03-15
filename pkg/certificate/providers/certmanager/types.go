@@ -2,24 +2,17 @@
 package certmanager
 
 import (
-	"sync"
-	"time"
-
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
+=======
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
-)
-
-const (
-	// checkCertificateExpirationInterval is the interval to check whether a
-	// certificate is close to expiration and needs renewal.
-	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 var (
@@ -32,11 +25,14 @@ type CertManager struct {
 	// manager.
 	ca certificate.Certificater
 
+<<<<<<< HEAD
 	// cache holds a local cache of issued certificates as
 	// certificate.Certificaters
 	cache     map[certificate.CommonName]certificate.Certificater
 	cacheLock sync.RWMutex
 
+=======
+>>>>>>> caaa189c (feat(certificates) begin to abstract the cert manager patterns (#4580))
 	// Control plane namespace where CertificateRequests are created.
 	namespace string
 
@@ -49,13 +45,8 @@ type CertManager struct {
 	// crLister is used to list CertificateRequests in the given namespace.
 	crLister cmlisters.CertificateRequestNamespaceLister
 
-	cfg configurator.Configurator
-
 	// Issuing certificate properties.
-	serviceCertValidityDuration time.Duration
-	keySize                     int
-
-	msgBroker *messaging.Broker
+	keySize int
 }
 
 // Certificate implements certificate.Certificater

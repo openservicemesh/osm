@@ -356,6 +356,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
 		CertKeyBitSize:         2048,
+		CertValidtyDuration:    time.Hour * 24,
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      true,
@@ -429,7 +430,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *v1alpha1.MeshCo
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
 
-	meshConfig.Spec.Certificate.ServiceCertValidityDuration = "24h"
+	meshConfig.Spec.Certificate.ServiceCertValidityDuration = instOpts.CertValidtyDuration.String()
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
 
 	meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy = instOpts.EnableIngressBackendPolicy
