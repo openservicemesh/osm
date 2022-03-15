@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Service to Service Metrics latest",
+    "title": "OSM Service to Service Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard lets you view the traffic metrics from a given source service to a given destination service.",
+    "uid": "OSMServiceToServiceMetrics",
+    "version": 2,
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
@@ -739,8 +742,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Service to Service Metrics",
-    "uid": "OSMs2sMetrics",
-    "version": 1
+    "timezone": ""
   }
