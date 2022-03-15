@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -296,13 +298,17 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	assert.Nil(err)
 
+	var thresholdUintVal uint32 = 3
+	thresholdDuration := &metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	testCases := []struct {
-		name        string
-		clusterName string
-		expected    *xds_cluster.Cluster
+		name                   string
+		clusterName            string
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expected               *xds_cluster.Cluster
 	}{
 		{
-			name:        "foo cluster",
+			name:        "foo cluster without UpstreamTrafficSetting specified",
 			clusterName: "foo",
 			expected: &xds_cluster.Cluster{
 				Name: "foo",
@@ -311,11 +317,38 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 				},
 				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
 				TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
+				CircuitBreakers: &xds_cluster.CircuitBreakers{
+					Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{
+						{
+							MaxConnections:     wrapperspb.UInt32(math.MaxUint32),
+							MaxRequests:        wrapperspb.UInt32(math.MaxUint32),
+							MaxPendingRequests: wrapperspb.UInt32(math.MaxUint32),
+							MaxRetries:         wrapperspb.UInt32(math.MaxUint32),
+							TrackRemaining:     true,
+						},
+					},
+				},
 			},
 		},
 		{
-			name:        "bar cluster",
+			name:        "bar cluster with UpstreamTrafficSetting specified",
 			clusterName: "bar",
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					ConnectionSettings: &policyv1alpha1.ConnectionSettingsSpec{
+						TCP: &policyv1alpha1.TCPConnectionSettings{
+							MaxConnections: &thresholdUintVal,
+							ConnectTimeout: thresholdDuration,
+						},
+						HTTP: &policyv1alpha1.HTTPConnectionSettings{
+							MaxRequests:              &thresholdUintVal,
+							MaxPendingRequests:       &thresholdUintVal,
+							MaxRetries:               &thresholdUintVal,
+							MaxRequestsPerConnection: &thresholdUintVal,
+						},
+					},
+				},
+			},
 			expected: &xds_cluster.Cluster{
 				Name: "bar",
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
@@ -323,6 +356,19 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 				},
 				LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
 				TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
+				ConnectTimeout:                durationpb.New(thresholdDuration.Duration),
+				MaxRequestsPerConnection:      wrapperspb.UInt32(thresholdUintVal),
+				CircuitBreakers: &xds_cluster.CircuitBreakers{
+					Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{
+						{
+							MaxConnections:     wrapperspb.UInt32(thresholdUintVal),
+							MaxRequests:        wrapperspb.UInt32(thresholdUintVal),
+							MaxPendingRequests: wrapperspb.UInt32(thresholdUintVal),
+							MaxRetries:         wrapperspb.UInt32(thresholdUintVal),
+							TrackRemaining:     true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -331,7 +377,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual, err := getOriginalDestinationEgressCluster(tc.clusterName)
+			actual, err := getOriginalDestinationEgressCluster(tc.clusterName, tc.upstreamTrafficSetting)
 			assert.Nil(err)
 			assert.Equal(tc.expected, actual)
 		})
@@ -393,6 +439,8 @@ func TestGetEgressClusters(t *testing.T) {
 }
 
 func TestGetDNSResolvableEgressCluster(t *testing.T) {
+	typedHTTPProtocolOptions, _ := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+
 	testCases := []struct {
 		name            string
 		clusterConfig   *trafficpolicy.EgressClusterConfig
@@ -433,6 +481,18 @@ func TestGetDNSResolvableEgressCluster(t *testing.T) {
 									Value: constants.ClusterWeightAcceptAll,
 								},
 							}},
+						},
+					},
+				},
+				TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
+				CircuitBreakers: &xds_cluster.CircuitBreakers{
+					Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{
+						{
+							MaxConnections:     wrapperspb.UInt32(math.MaxUint32),
+							MaxRequests:        wrapperspb.UInt32(math.MaxUint32),
+							MaxPendingRequests: wrapperspb.UInt32(math.MaxUint32),
+							MaxRetries:         wrapperspb.UInt32(math.MaxUint32),
+							TrackRemaining:     true,
 						},
 					},
 				},

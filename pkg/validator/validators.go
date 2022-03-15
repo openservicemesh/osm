@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -145,14 +146,37 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 		return nil, err
 	}
 
+	// Validate match references
+	allowedAPIGroups := []string{smiSpecs.SchemeGroupVersion.String(), policyv1alpha1.SchemeGroupVersion.String()}
+	upstreamTrafficSettingMatchCount := 0
 	for _, m := range egress.Spec.Matches {
-		if m.Kind != "HTTPRouteGroup" {
-			return nil, errors.Errorf("Expected 'Matches.Kind' to be 'HTTPRouteGroup', got: %s", m.Kind)
-		}
+		switch *m.APIGroup {
+		case smiSpecs.SchemeGroupVersion.String():
+			switch m.Kind {
+			case "HTTPRouteGroup":
+				// no additional validation
 
-		if *m.APIGroup != "specs.smi-spec.io/v1alpha4" {
-			return nil, errors.Errorf("Expected 'Matches.APIGroup' to be 'specs.smi-spec.io/v1alpha4', got: %s", *m.APIGroup)
+			default:
+				return nil, errors.Errorf("Expected 'Matches.Kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
+			}
+
+		case policyv1alpha1.SchemeGroupVersion.String():
+			switch m.Kind {
+			case "UpstreamTrafficSetting":
+				upstreamTrafficSettingMatchCount++
+
+			default:
+				return nil, errors.Errorf("Expected 'Matches.Kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
+			}
+
+		default:
+			return nil, errors.Errorf("Expected 'Matches.APIGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
 		}
+	}
+
+	// Can't have more than 1 UpstreamTrafficSetting match for an Egress policy
+	if upstreamTrafficSettingMatchCount > 1 {
+		return nil, errors.New("Cannot have more than 1 UpstreamTrafficSetting match")
 	}
 
 	return nil, nil

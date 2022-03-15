@@ -17,6 +17,8 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -60,51 +62,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 		enableHealthChecksOnCluster(upstreamCluster, config.Service)
 	}
 
-	// Circuit breaking is enabled by default, disable it by setting the
-	// thresholds to be max.
-	threshold := getDefaultCircuitBreakerThreshold()
-
-	if config.UpstreamTrafficSetting != nil {
-		log.Trace().Msgf("UpstreamTrafficSetting for cluster %s: %v", config.Name, *config.UpstreamTrafficSetting)
-		connectionSettings := config.UpstreamTrafficSetting.Spec.ConnectionSettings
-
-		// Apply TCP connection settings
-		if connectionSettings.TCP != nil {
-			if connectionSettings.TCP.ConnectTimeout != nil {
-				upstreamCluster.ConnectTimeout = durationpb.New(connectionSettings.TCP.ConnectTimeout.Duration)
-			}
-			if connectionSettings.TCP.MaxConnections != nil {
-				threshold.MaxConnections = wrapperspb.UInt32(*connectionSettings.TCP.MaxConnections)
-			}
-		}
-
-		// Apply HTTP connection settings
-		if connectionSettings.HTTP != nil {
-			if connectionSettings.HTTP.MaxRequests != nil {
-				threshold.MaxRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequests)
-			}
-			if connectionSettings.HTTP.MaxPendingRequests != nil {
-				threshold.MaxPendingRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxPendingRequests)
-			}
-			if connectionSettings.HTTP.MaxRetries != nil {
-				threshold.MaxRetries = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRetries)
-			}
-			if connectionSettings.HTTP.MaxRequestsPerConnection != nil {
-				// TODO(#4500): When Envoy is upgraded to v1.20+, MaxRequestsPerConnection must be set
-				// via the HttpProtocolOptions extensions field instead (commented below), as setting this
-				// directly on the Cluster object is deprecated.
-				// httpProtocolOptions.CommonHttpProtocolOptions = &xds_core.HttpProtocolOptions{
-				// 	MaxRequestsPerConnection: wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection),
-				// }
-				upstreamCluster.MaxRequestsPerConnection = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection)
-			}
-		}
-	}
-
-	// Apply Circuit Breaker threshold
-	upstreamCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{
-		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
-	}
+	applyUpstreamTrafficSetting(config.UpstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
 
 	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(httpProtocolOptions)
 	if err != nil {
@@ -264,7 +222,7 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 		case "":
 			// Cluster config does not have a Host specified, route it to its original destination.
 			// Used for TCP based clusters
-			if originalDestinationEgressCluster, err := getOriginalDestinationEgressCluster(config.Name); err != nil {
+			if originalDestinationEgressCluster, err := getOriginalDestinationEgressCluster(config.Name, config.UpstreamTrafficSetting); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingOrgDstEgressCluster)).
 					Msg("Error building the original destination cluster for the given egress cluster config")
 			} else {
@@ -301,7 +259,9 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 		return nil, errors.New("Invalid egress cluster config: Port unspecified")
 	}
 
-	return &xds_cluster.Cluster{
+	httpProtocolOptions := getDefaultHTTPProtocolOptions()
+
+	upstreamCluster := &xds_cluster.Cluster{
 		Name:        config.Name,
 		AltStatName: formatAltStatNameForPrometheus(config.Name),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
@@ -325,25 +285,42 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 				},
 			},
 		},
-	}, nil
+	}
+
+	applyUpstreamTrafficSetting(config.UpstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
+
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(httpProtocolOptions)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for egress cluster %s", upstreamCluster.Name)
+		return nil, err
+	}
+	upstreamCluster.TypedExtensionProtocolOptions = typedHTTPProtocolOptions
+
+	return upstreamCluster, nil
 }
 
 // getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
 // The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
-func getOriginalDestinationEgressCluster(name string) (*xds_cluster.Cluster, error) {
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
-	if err != nil {
-		return nil, err
-	}
+func getOriginalDestinationEgressCluster(name string, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) (*xds_cluster.Cluster, error) {
+	httpProtocolOptions := getDefaultHTTPProtocolOptions()
 
-	return &xds_cluster.Cluster{
+	upstreamCluster := &xds_cluster.Cluster{
 		Name: name,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_ORIGINAL_DST,
 		},
-		LbPolicy:                      xds_cluster.Cluster_CLUSTER_PROVIDED,
-		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
-	}, nil
+		LbPolicy: xds_cluster.Cluster_CLUSTER_PROVIDED,
+	}
+
+	applyUpstreamTrafficSetting(upstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
+
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	if err != nil {
+		return nil, err
+	}
+	upstreamCluster.TypedExtensionProtocolOptions = typedHTTPProtocolOptions
+
+	return upstreamCluster, nil
 }
 
 // formatAltStatNameForPrometheus returns an altStatName for a Envoy cluster. If the cluster name contains
@@ -402,5 +379,55 @@ func getDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds
 		MaxPendingRequests: &wrapperspb.UInt32Value{Value: math.MaxUint32},
 		MaxRetries:         &wrapperspb.UInt32Value{Value: math.MaxUint32},
 		TrackRemaining:     true,
+	}
+}
+
+// applyUpstreamTrafficSetting updates the given upstream cluster and HTTP protocol options based on the
+// upstream traffic setting provided.
+// It applies the default circuit breaker thresholds to the upstream cluster.
+func applyUpstreamTrafficSetting(upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting, upstreamCluster *xds_cluster.Cluster,
+	httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) {
+	// Apply Circuit Breaker threshold
+	threshold := getDefaultCircuitBreakerThreshold()
+	upstreamCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{
+		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
+	}
+
+	if upstreamTrafficSetting == nil {
+		return
+	}
+
+	connectionSettings := upstreamTrafficSetting.Spec.ConnectionSettings
+
+	// Apply TCP connection settings
+	if connectionSettings.TCP != nil {
+		if connectionSettings.TCP.ConnectTimeout != nil {
+			upstreamCluster.ConnectTimeout = durationpb.New(connectionSettings.TCP.ConnectTimeout.Duration)
+		}
+		if connectionSettings.TCP.MaxConnections != nil {
+			threshold.MaxConnections = wrapperspb.UInt32(*connectionSettings.TCP.MaxConnections)
+		}
+	}
+
+	// Apply HTTP connection settings
+	if connectionSettings.HTTP != nil {
+		if connectionSettings.HTTP.MaxRequests != nil {
+			threshold.MaxRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequests)
+		}
+		if connectionSettings.HTTP.MaxPendingRequests != nil {
+			threshold.MaxPendingRequests = wrapperspb.UInt32(*connectionSettings.HTTP.MaxPendingRequests)
+		}
+		if connectionSettings.HTTP.MaxRetries != nil {
+			threshold.MaxRetries = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRetries)
+		}
+		if connectionSettings.HTTP.MaxRequestsPerConnection != nil {
+			// TODO(#4500): When Envoy is upgraded to v1.20+, MaxRequestsPerConnection must be set
+			// via the HttpProtocolOptions extensions field instead (commented below), as setting this
+			// directly on the Cluster object is deprecated.
+			// httpProtocolOptions.CommonHttpProtocolOptions = &xds_core.HttpProtocolOptions{
+			// 	MaxRequestsPerConnection: wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection),
+			// }
+			upstreamCluster.MaxRequestsPerConnection = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection)
+		}
 	}
 }

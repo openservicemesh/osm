@@ -493,9 +493,8 @@ func TestEgressValidator(t *testing.T) {
 					`),
 				},
 			},
-
 			expResp:   nil,
-			expErrStr: "Expected 'Matches.Kind' to be 'HTTPRouteGroup', got: BadHttpRoute",
+			expErrStr: "Expected 'Matches.APIGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: v1alpha1",
 		},
 		{
 			name: "Egress with bad API group fails",
@@ -523,9 +522,8 @@ func TestEgressValidator(t *testing.T) {
 					`),
 				},
 			},
-
 			expResp:   nil,
-			expErrStr: "Expected 'Matches.APIGroup' to be 'specs.smi-spec.io/v1alpha4', got: test",
+			expErrStr: "Expected 'Matches.APIGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: test",
 		},
 		{
 			name: "Egress with valid http route and API group passes",
@@ -553,9 +551,71 @@ func TestEgressValidator(t *testing.T) {
 					`),
 				},
 			},
-
 			expResp:   nil,
 			expErrStr: "",
+		},
+		{
+			name: "Egress with valid UpstreamTrafficSetting match",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Egress",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Egress",
+						"spec": {
+							"matches": [
+								{
+								"apiGroup": "policy.openservicemesh.io/v1alpha1",
+								"kind": "UpstreamTrafficSetting",
+								"name": "foo"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "Egress with multiple UpstreamTrafficSetting matches is invalid",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Egress",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Egress",
+						"spec": {
+							"matches": [
+								{
+								"apiGroup": "policy.openservicemesh.io/v1alpha1",
+								"kind": "UpstreamTrafficSetting",
+								"name": "foo"
+								},
+								{
+								"apiGroup": "policy.openservicemesh.io/v1alpha1",
+								"kind": "UpstreamTrafficSetting",
+								"name": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Cannot have more than 1 UpstreamTrafficSetting match",
 		},
 	}
 
