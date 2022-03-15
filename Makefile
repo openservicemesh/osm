@@ -111,7 +111,7 @@ go-mod-tidy:
 	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
-go-test:
+go-test: cmd/cli/chart.tgz
 	./scripts/go-test.sh
 
 .PHONY: go-test-coverage
