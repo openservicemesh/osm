@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var (
