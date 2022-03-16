@@ -157,7 +157,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				// no additional validation
 
 			default:
-				return nil, errors.Errorf("Expected 'Matches.Kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
+				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
 			}
 
 		case policyv1alpha1.SchemeGroupVersion.String():
@@ -166,11 +166,11 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				upstreamTrafficSettingMatchCount++
 
 			default:
-				return nil, errors.Errorf("Expected 'Matches.Kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
+				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
 			}
 
 		default:
-			return nil, errors.Errorf("Expected 'Matches.APIGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
+			return nil, errors.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
 		}
 	}
 

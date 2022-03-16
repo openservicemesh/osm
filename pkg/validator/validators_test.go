@@ -468,7 +468,7 @@ func TestEgressValidator(t *testing.T) {
 		expErrStr string
 	}{
 		{
-			name: "Egress with bad http route fails",
+			name: "matches.apiGroup is invalid",
 			input: &admissionv1.AdmissionRequest{
 				Kind: metav1.GroupVersionKind{
 					Group:   "v1alpha1",
@@ -483,7 +483,7 @@ func TestEgressValidator(t *testing.T) {
 						"spec": {
 							"matches": [
 								{
-								"apiGroup": "v1alpha1",
+								"apiGroup": "invalid",
 								"kind": "BadHttpRoute",
 								"name": "Name"
 								}
@@ -494,36 +494,7 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Expected 'Matches.APIGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: v1alpha1",
-		},
-		{
-			name: "Egress with bad API group fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "policy.openservicemesh.io",
-					Kind:    "Egress",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "Egress",
-						"spec": {
-							"matches": [
-								{
-								"apiGroup": "test",
-								"kind": "HTTPRouteGroup",
-								"name": "Name"
-								}
-							]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Expected 'Matches.APIGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: test",
+			expErrStr: "Expected 'matches.apiGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: invalid",
 		},
 		{
 			name: "Egress with valid http route and API group passes",
