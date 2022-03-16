@@ -58,15 +58,6 @@ type MetricsStore struct {
 	// rejected due to the max connections limit being reached
 	ProxyMaxConnectionsRejected prometheus.Counter
 
-	/*
-	 * Injector metrics
-	 */
-	// InjectorSidecarCount counts the number of injector webhooks dealt with over time
-	InjectorSidecarCount prometheus.Counter
-
-	// InjectorRqTime the histogram to track times for the injector webhook calls
-	InjectorRqTime *prometheus.HistogramVec
-
 	// AdmissionWebhookResponseTotal counts the number of webhook responses
 	// generated for both validating and mutating webhooks
 	AdmissionWebhookResponseTotal *prometheus.CounterVec
@@ -197,28 +188,6 @@ func init() {
 		Name:      "max_connections_rejected",
 		Help:      "Represents the number of proxy connections rejected due to the configured max connections limit",
 	})
-
-	/*
-	 * Injector metrics
-	 */
-	defaultMetricsStore.InjectorSidecarCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: metricsRootNamespace,
-		Subsystem: "injector",
-		Name:      "injector_sidecar_count",
-		Help:      "Counts the number of injector webhooks dealt with over time",
-	})
-
-	defaultMetricsStore.InjectorRqTime = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: metricsRootNamespace,
-			Subsystem: "injector",
-			Name:      "injector_rq_time",
-			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40},
-			Help:      "Histogram for time taken to perform sidecar injection",
-		},
-		[]string{
-			"success",
-		})
 
 	defaultMetricsStore.AdmissionWebhookResponseTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,

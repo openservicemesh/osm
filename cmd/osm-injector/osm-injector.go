@@ -147,8 +147,6 @@ func main() {
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
-		metricsstore.DefaultMetricsStore.InjectorRqTime,
-		metricsstore.DefaultMetricsStore.InjectorSidecarCount,
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
