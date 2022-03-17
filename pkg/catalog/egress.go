@@ -11,11 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
