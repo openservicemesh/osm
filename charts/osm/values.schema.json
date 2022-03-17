@@ -250,6 +250,7 @@
                     ],
                     "required": [
                         "registry",
+                        "name",
                         "pullPolicy",
                         "tag",
                         "digest"
@@ -263,6 +264,65 @@
                             "examples": [
                                 "openservicemesh"
                             ]
+                        },
+                        "name": {
+                            "$id": "#/properties/osm/properties/image/properties/name",
+                            "type": "object",
+                            "title": "Default image names",
+                            "description": "Default image names for control plane.",
+                            "required": [
+                                "osmController",
+                                "osmInjector",
+                                "osmSidecarInit",
+                                "osmBootstrap",
+                                "osmCRDs",
+                                "osmPreinstall",
+                                "osmHealthcheck"
+                            ],
+                            "properties": {
+                                "osmController": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmController",
+                                    "type": "string",
+                                    "title": "osm-controller's image names",
+                                    "description": "osm-controller container's image names."
+                                },
+                                "osmInjector": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmInjector",
+                                    "type": "string",
+                                    "title": "osm-injector's image name",
+                                    "description": "osm-injector container's image name."
+                                },
+                                "osmSidecarInit": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmSidecarInit",
+                                    "type": "string",
+                                    "title": "osm-osmSidecarInit's image name",
+                                    "description": "osm-osmSidecarInit container's image name."
+                                },
+                                "osmBootstrap": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmBootstrap",
+                                    "type": "string",
+                                    "title": "osm-boostrap's image name",
+                                    "description": "osm-bootstrap container's image name."
+                                },
+                                "osmCRDs": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmCRDs",
+                                    "type": "string",
+                                    "title": "osm-crds' image name",
+                                    "description": "osm-crds container's image name."
+                                },
+                                "osmPreinstall": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmPreinstall",
+                                    "type": "string",
+                                    "title": "osm-preinstall's image name",
+                                    "description": "osm-preinstall container's image name."
+                                },
+                                "osmHealthcheck": {
+                                    "$id": "#/properties/osm/properties/image/properties/name/properties/osmHealthcheck",
+                                    "type": "string",
+                                    "title": "osm-healthcheck's image name",
+                                    "description": "osm-healthcheck container's image name."
+                                }
+                            }
                         },
                         "pullPolicy": {
                             "$id": "#/properties/osm/properties/image/properties/pullPolicy",

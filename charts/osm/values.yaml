@@ -13,6 +13,22 @@ osm:
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
     tag: "latest-main"
+    # -- Image name defaults
+    name:
+      # -- osm-controller's image name
+      osmController: osm-controller
+      # -- osm-injector's image name
+      osmInjector: osm-injector
+      # -- Sidecar init container's image name
+      osmSidecarInit: init
+      # -- osm-boostrap's image name
+      osmBootstrap: osm-bootstrap
+      # -- osm-crds' image name
+      osmCRDs: osm-crds
+      # -- osm-preinstall's image name
+      osmPreinstall: osm-preinstall
+      # -- osm-healthcheck's image name
+      osmHealthcheck: osm-healthcheck
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
