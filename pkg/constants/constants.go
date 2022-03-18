@@ -100,15 +100,6 @@ const (
 	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
 	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
 
-	// MutatingWebhookCertificateSecretName is the default value for mutating webhook secret name
-	MutatingWebhookCertificateSecretName = "mutating-webhook-cert-secret"
-
-	// ValidatingWebhookCertificateSecretName is the default value for validating webhook secret name
-	ValidatingWebhookCertificateSecretName = "validating-webhook-cert-secret" // #nosec G101: Potential hardcoded credentials
-
-	// CrdConverterCertificateSecretName is the default value for conversion webhook secret name
-	CrdConverterCertificateSecretName = "crd-converter-cert-secret" // #nosec G101: Potential hardcoded credentials
-
 	// RegexMatchAll is a regex pattern match for all
 	RegexMatchAll = ".*"
 

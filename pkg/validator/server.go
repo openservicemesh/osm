@@ -15,7 +15,6 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/webhook"
@@ -45,13 +44,6 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the validating webhook: %+v", err)
-	}
-
-	// The following function ensures to atomically create or get the certificate from Kubernetes
-	// secret API store. Multiple instances should end up with the same webhookHandlerCert after this function executed.
-	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.ValidatingWebhookCertificateSecretName, webhookHandlerCert, kubeClient)
-	if err != nil {
-		return errors.Errorf("Error fetching webhook certificate from k8s secret: %s", err)
 	}
 
 	v := &validatingWebhookServer{
