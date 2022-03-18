@@ -63,7 +63,7 @@ func doConversion(convertRequest *v1beta1.ConversionRequest, convert convertFunc
 	for _, obj := range convertRequest.Objects {
 		cr := unstructured.Unstructured{}
 		if err := cr.UnmarshalJSON(obj.Raw); err != nil {
-			log.Error().Err(err)
+			log.Error().Err(err).Msg("error unmarshalling object JSON")
 			return conversionResponseFailureWithMessagef("failed to unmarshall object (%v) with error: %v", string(obj.Raw), err)
 		}
 		convertedCR, status := convert(&cr, convertRequest.DesiredAPIVersion)
@@ -101,7 +101,7 @@ func serve(w http.ResponseWriter, r *http.Request, convert convertFunc) {
 
 	convertReview := v1beta1.ConversionReview{}
 	if _, _, err := serializer.Decode(body, nil, &convertReview); err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msgf("failed to deserialize body (%v)", string(body))
 		convertReview.Response = conversionResponseFailureWithMessagef("failed to deserialize body (%v) with error %v", string(body), err)
 	} else {
 		convertReview.Response = doConversion(convertReview.Request, convert)
@@ -122,7 +122,7 @@ func serve(w http.ResponseWriter, r *http.Request, convert convertFunc) {
 	}
 	err := outSerializer.Encode(&convertReview, w)
 	if err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msg("error encoding ConversionReview")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
