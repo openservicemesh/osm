@@ -3,7 +3,7 @@ package crdconversion
 import (
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -14,14 +14,14 @@ func serveTCPRouteConversion(w http.ResponseWriter, r *http.Request) {
 
 // convertTCPRoute contains the business logic to convert tcproutes.specs.smi-spec.io CRD
 // Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
-func convertTCPRoute(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
+func convertTCPRoute(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, error) {
 	convertedObject := Object.DeepCopy()
 	fromVersion := Object.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, statusErrorWithMessage("TCPRoute: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, errors.Errorf("TCPRoute: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Info().Msgf("TCPRoute: successfully converted object")
-	return convertedObject, statusSucceed()
+	return convertedObject, nil
 }

@@ -17,7 +17,7 @@ func TestConvertMeshConfig(t *testing.T) {
 		name      string
 		request   runtime.Object
 		toVersion string
-		verifyFn  func(*assert.Assertions, *unstructured.Unstructured, metav1.Status)
+		verifyFn  func(*assert.Assertions, *unstructured.Unstructured, error)
 	}{
 		{
 			name: "v1alpha2 -> v1alpha1 should remove additional field",
@@ -39,8 +39,8 @@ func TestConvertMeshConfig(t *testing.T) {
 				},
 			},
 			toVersion: "config.openservicemesh.io/v1alpha1",
-			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, status metav1.Status) {
-				a.Equal(status, statusSucceed())
+			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, err error) {
+				a.NoError(err)
 
 				unsupportedFields := [][]string{
 					{"spec", "traffic", "outboundIPRangeInclusionList"},
@@ -66,8 +66,8 @@ func TestConvertMeshConfig(t *testing.T) {
 				Spec: configv1alpha1.MeshConfigSpec{},
 			},
 			toVersion: "config.openservicemesh.io/v1alpha2",
-			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, status metav1.Status) {
-				a.Equal(status, statusSucceed())
+			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, err error) {
+				a.NoError(err)
 			},
 		},
 	}

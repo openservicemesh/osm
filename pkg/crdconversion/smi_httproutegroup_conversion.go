@@ -3,7 +3,7 @@ package crdconversion
 import (
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -14,14 +14,14 @@ func serveHTTPRouteGroupConversion(w http.ResponseWriter, r *http.Request) {
 
 // convertEgressPolicy contains the business logic to convert httproutegroups.specs.smi-spec.io CRD
 // Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
-func convertHTTPRouteGroup(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
+func convertHTTPRouteGroup(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, error) {
 	convertedObject := Object.DeepCopy()
 	fromVersion := Object.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, statusErrorWithMessage("HTTPRouteGroup: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, errors.Errorf("HTTPRouteGroup: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Debug().Msg("HTTPRouteGroup: successfully converted object")
-	return convertedObject, statusSucceed()
+	return convertedObject, nil
 }

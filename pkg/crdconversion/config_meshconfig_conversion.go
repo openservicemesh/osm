@@ -3,7 +3,7 @@ package crdconversion
 import (
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -14,12 +14,12 @@ func serveMeshConfigConversion(w http.ResponseWriter, r *http.Request) {
 
 // convertMeshConfig contains the business logic to convert meshconfigs.config.openservicemesh.io CRD
 // Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
-func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
+func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, error) {
 	convertedObject := obj.DeepCopy()
 	fromVersion := obj.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, statusErrorWithMessage("MeshConfig: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, errors.Errorf("MeshConfig: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Debug().Msgf("MeshConfig conversion request: from-version=%s, to-version=%s", fromVersion, toVersion)
@@ -32,7 +32,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			// necessary at this moment.
 
 		default:
-			return nil, statusErrorWithMessage("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
 	case "config.openservicemesh.io/v1alpha2":
@@ -55,13 +55,13 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 				}
 			}
 		default:
-			return nil, statusErrorWithMessage("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
 	default:
-		return nil, statusErrorWithMessage("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
+		return nil, errors.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}
 
 	log.Debug().Msg("MeshConfig: successfully converted object")
-	return convertedObject, statusSucceed()
+	return convertedObject, nil
 }
