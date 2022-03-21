@@ -142,6 +142,7 @@ var _ = Describe("Test ADS response functions", func() {
 			EnableWASMStats:    false,
 			EnableEgressPolicy: false,
 		}).AnyTimes()
+		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 

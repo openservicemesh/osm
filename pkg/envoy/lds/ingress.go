@@ -10,6 +10,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
@@ -33,7 +35,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 
 	var filterChains []*xds_listener.FilterChain
 	for _, trafficMatch := range ingressPolicy.TrafficMatches {
-		if filterChain, err := lb.getIngressFilterChainFromTrafficMatch(trafficMatch); err != nil {
+		if filterChain, err := lb.getIngressFilterChainFromTrafficMatch(trafficMatch, lb.cfg.GetMeshConfig().Spec.Sidecar); err != nil {
 			log.Error().Err(err).Msgf("Error building ingress filter chain for proxy with identity %s service %s", lb.serviceIdentity, svc)
 		} else {
 			filterChains = append(filterChains, filterChain)
@@ -43,7 +45,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 	return filterChains
 }
 
-func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch, sidecarSpec configv1alpha2.SidecarSpec) (*xds_listener.FilterChain, error) {
 	if trafficMatch == nil {
 		return nil, errors.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
 	}
@@ -113,7 +115,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		filterChain.FilterChainMatch.TransportProtocol = envoy.TransportProtocolTLS
 		filterChain.FilterChainMatch.ServerNames = trafficMatch.ServerNames
 
-		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation))
+		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation, sidecarSpec))
 		if err != nil {
 			return nil, errors.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
 		}
