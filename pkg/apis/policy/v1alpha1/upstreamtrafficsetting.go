@@ -59,7 +59,7 @@ type ConnectionSettingsSpec struct {
 type TCPConnectionSettings struct {
 	// MaxConnections specifies the maximum number of TCP connections
 	// allowed to the upstream host.
-	// Defaults to 2147483647 (2^32 - 1) if not specified.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxConnections *uint32 `json:"maxConnections,omitempty"`
 
@@ -74,7 +74,7 @@ type TCPConnectionSettings struct {
 type HTTPConnectionSettings struct {
 	// MaxRequests specifies the maximum number of parallel requests
 	// allowed to the upstream host.
-	// Defaults to 2147483647 (2^32 - 1) if not specified.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 
@@ -84,15 +84,18 @@ type HTTPConnectionSettings struct {
 	// +optional
 	MaxRequestsPerConnection *uint32 `json:"maxRequestsPerConnection,omitempty"`
 
-	// MaxPendingRequests specifies the maximum number of pending HTTP/1.1
-	// requests allowed to the upstream host.
-	// Defaults to 2147483647 (2^32 - 1) if not specified.
+	// MaxPendingRequests specifies the maximum number of pending HTTP
+	// requests allowed to the upstream host. For HTTP/2 connections,
+	// if `maxRequestsPerConnection` is not configured, all requests will
+	// be multiplexed over the same connection so this circuit breaker
+	// will only be hit when no connection is already established.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxPendingRequests *uint32 `json:"maxPendingRequests,omitempty"`
 
 	// MaxRetries specifies the maximum number of parallel retries
 	// allowed to the upstream host.
-	// Defaults to 2147483647 (2^32 - 1) if not specified.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxRetries *uint32 `json:"maxRetries,omitempty"`
 }
