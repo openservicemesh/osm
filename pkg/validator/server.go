@@ -118,6 +118,8 @@ func (s *validatingWebhookServer) getAdmissionReqResp(admissionRequestBody []byt
 	admissionResp.TypeMeta = admissionReq.TypeMeta
 	admissionResp.Kind = admissionReq.Kind
 
+	webhook.RecordAdmissionMetrics(admissionReq.Request, admissionResp.Response)
+
 	return admissionReq.Request.Namespace, admissionResp
 }
 

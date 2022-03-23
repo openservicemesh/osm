@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
@@ -26,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -38,9 +38,6 @@ const (
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
-
-	// webhookTimeoutStr is the url variable name for timeout
-	webhookMutateTimeoutKey = "timeout"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -96,11 +93,11 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(WebhookHealthPath, healthHandler)
+	mux.Handle(WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	// We know that the events arriving at this handler are CREATE POD only
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
-	mux.HandleFunc(webhookCreatePod, wh.podCreationHandler)
+	mux.Handle(webhookCreatePod, metricsstore.AddHTTPMetrics(http.HandlerFunc(wh.podCreationHandler)))
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
@@ -166,23 +163,14 @@ func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionReq
 		requestForNamespace = admissionReq.Request.Namespace
 	}
 
+	webhook.RecordAdmissionMetrics(admissionReq.Request, admissionResp.Response)
+
 	return
 }
 
 // podCreationHandler is a MutatingWebhookConfiguration handler exclusive to POD CREATE events.
 func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
-
-	// Tracks the success of the current injector webhook request
-	success := false
-	// Read timeout from request url
-	reqTimeout, err := readTimeout(req)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingReqTimeout)).
-			Msg("Could not read timeout from request url")
-	}
-	// Execute at return of this handler
-	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
 
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
 		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
@@ -216,8 +204,6 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	if _, err := w.Write(resp); err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrWritingAdmissionResp)).
 			Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
-	} else {
-		success = true // read by the deferred function
 	}
 
 	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)

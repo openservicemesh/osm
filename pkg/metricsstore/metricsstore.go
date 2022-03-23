@@ -58,14 +58,9 @@ type MetricsStore struct {
 	// rejected due to the max connections limit being reached
 	ProxyMaxConnectionsRejected prometheus.Counter
 
-	/*
-	 * Injector metrics
-	 */
-	// InjectorSidecarCount counts the number of injector webhooks dealt with over time
-	InjectorSidecarCount prometheus.Counter
-
-	// InjectorRqTime the histogram to track times for the injector webhook calls
-	InjectorRqTime *prometheus.HistogramVec
+	// AdmissionWebhookResponseTotal counts the number of webhook responses
+	// generated for both validating and mutating webhooks
+	AdmissionWebhookResponseTotal *prometheus.CounterVec
 
 	/*
 	 * Certificate metrics
@@ -194,27 +189,11 @@ func init() {
 		Help:      "Represents the number of proxy connections rejected due to the configured max connections limit",
 	})
 
-	/*
-	 * Injector metrics
-	 */
-	defaultMetricsStore.InjectorSidecarCount = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.AdmissionWebhookResponseTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
-		Subsystem: "injector",
-		Name:      "injector_sidecar_count",
-		Help:      "Counts the number of injector webhooks dealt with over time",
-	})
-
-	defaultMetricsStore.InjectorRqTime = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: metricsRootNamespace,
-			Subsystem: "injector",
-			Name:      "injector_rq_time",
-			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40},
-			Help:      "Histogram for time taken to perform sidecar injection",
-		},
-		[]string{
-			"success",
-		})
+		Name:      "admission_webhook_response_total",
+		Help:      "Counter for responses sent by admission webhooks",
+	}, []string{"kind", "success"})
 
 	/*
 	 * Certificate metrics
@@ -300,4 +279,15 @@ func (ms *MetricsStore) Contains(metric string) bool {
 	res := w.Body.String()
 
 	return strings.Contains(res, metric)
+}
+
+// AddHTTPMetrics wraps the given handler with one that tracks HTTP metrics for
+// response counts and durations
+func AddHTTPMetrics(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		labels := prometheus.Labels{"path": r.URL.Path}
+		promhttp.InstrumentHandlerDuration(DefaultMetricsStore.HTTPResponseDuration.MustCurryWith(labels),
+			promhttp.InstrumentHandlerCounter(DefaultMetricsStore.HTTPResponseTotal.MustCurryWith(labels), h)).
+			ServeHTTP(w, r)
+	})
 }
