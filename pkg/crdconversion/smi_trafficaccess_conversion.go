@@ -3,7 +3,7 @@ package crdconversion
 import (
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -14,14 +14,14 @@ func serveTrafficAccessConversion(w http.ResponseWriter, r *http.Request) {
 
 // convertTrafficAccess contains the business logic to convert traffictargets.access.smi-spec.io CRD
 // Example implementation reference : https://github.com/kubernetes/kubernetes/blob/release-1.22/test/images/agnhost/crd-conversion-webhook/converter/example_converter.go
-func convertTrafficAccess(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, metav1.Status) {
+func convertTrafficAccess(Object *unstructured.Unstructured, toVersion string) (*unstructured.Unstructured, error) {
 	convertedObject := Object.DeepCopy()
 	fromVersion := Object.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, statusErrorWithMessage("TrafficAccess: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, errors.Errorf("TrafficAccess: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Debug().Msg("TrafficAccess: successfully converted object")
-	return convertedObject, statusSucceed()
+	return convertedObject, nil
 }

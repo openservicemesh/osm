@@ -30,7 +30,7 @@ import (
 
 // convertFunc is the user defined function for any conversion. The code in this file is a
 // template that can be use for any CR conversion given this function.
-type convertFunc func(Object *unstructured.Unstructured, version string) (*unstructured.Unstructured, metav1.Status)
+type convertFunc func(Object *unstructured.Unstructured, version string) (*unstructured.Unstructured, error)
 
 // conversionResponseFailureWithMessagef is a helper function to create an AdmissionResponse
 // with a formatted embedded error message.
@@ -43,43 +43,46 @@ func conversionResponseFailureWithMessagef(msg string, params ...interface{}) *v
 	}
 }
 
-func statusErrorWithMessage(msg string, params ...interface{}) metav1.Status {
-	return metav1.Status{
-		Message: fmt.Sprintf(msg, params...),
-		Status:  metav1.StatusFailure,
-	}
-}
-
-func statusSucceed() metav1.Status {
-	return metav1.Status{
-		Status: metav1.StatusSuccess,
-	}
-}
-
 // doConversion converts the requested object given the conversion function and returns a conversion response.
 // failures will be reported as Reason in the conversion response.
 func doConversion(convertRequest *v1beta1.ConversionRequest, convert convertFunc) *v1beta1.ConversionResponse {
 	var convertedObjects []runtime.RawExtension
+	// aggregate errors from all objects in the request vs. only returning the
+	// first so errors from all objects are sent in the request and metrics are
+	// recorded as accurately as possible.
+	var errs []string
 	for _, obj := range convertRequest.Objects {
 		cr := unstructured.Unstructured{}
 		if err := cr.UnmarshalJSON(obj.Raw); err != nil {
 			log.Error().Err(err).Msg("error unmarshalling object JSON")
-			return conversionResponseFailureWithMessagef("failed to unmarshall object (%v) with error: %v", string(obj.Raw), err)
+			errs = append(errs, fmt.Sprintf("failed to unmarshal object (%v) with error: %v", string(obj.Raw), err))
+			continue
 		}
-		convertedCR, status := convert(&cr, convertRequest.DesiredAPIVersion)
-		if status.Status != metav1.StatusSuccess {
-			log.Error().Msgf(status.String())
-			return &v1beta1.ConversionResponse{
-				Result: status,
-			}
+		convertedCR, err := convert(&cr, convertRequest.DesiredAPIVersion)
+		if err != nil {
+			log.Error().Err(err).Msg("conversion failed")
+			errs = append(errs, err.Error())
+			continue
 		}
 		convertedCR.SetAPIVersion(convertRequest.DesiredAPIVersion)
 		convertedObjects = append(convertedObjects, runtime.RawExtension{Object: convertedCR})
 	}
-	return &v1beta1.ConversionResponse{
+
+	resp := &v1beta1.ConversionResponse{
 		ConvertedObjects: convertedObjects,
-		Result:           statusSucceed(),
+		Result: metav1.Status{
+			Status: metav1.StatusSuccess,
+		},
 	}
+	if len(errs) > 0 {
+		resp = &v1beta1.ConversionResponse{
+			Result: metav1.Status{
+				Message: strings.Join(errs, "; "),
+				Status:  metav1.StatusFailure,
+			},
+		}
+	}
+	return resp
 }
 
 func serve(w http.ResponseWriter, r *http.Request, convert convertFunc) {
