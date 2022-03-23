@@ -49,11 +49,18 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
 		Ports:           getEnvoyContainerPorts(originalHealthProbes),
-		VolumeMounts: []corev1.VolumeMount{{
-			Name:      envoyBootstrapConfigVolume,
-			ReadOnly:  true,
-			MountPath: envoyProxyConfigPath,
-		}},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      envoyBootstrapConfigVolume,
+				ReadOnly:  false,
+				MountPath: envoyProxyConfigPath,
+			},
+			{
+				Name:      "bootstrapsecret",
+				ReadOnly:  false,
+				MountPath: "/certs/current",
+			},
+		},
 		Command:   []string{"envoy"},
 		Resources: cfg.GetProxyResources(),
 		Args: []string{

@@ -1,6 +1,8 @@
 package injector
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -12,6 +14,14 @@ func getVolumeSpec(envoyBootstrapConfigName string) []corev1.Volume {
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: envoyBootstrapConfigName,
+				},
+			},
+		},
+		{
+			Name: "bootstrapsecret",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: fmt.Sprintf("%s%s", envoyBootstrapConfigName, "bootstrapsecret"),
 				},
 			},
 		},
