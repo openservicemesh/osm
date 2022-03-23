@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/munnerz/goautoneg"
@@ -26,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // convertFunc is the user defined function for any conversion. The code in this file is a
@@ -51,13 +54,15 @@ func doConversion(convertRequest *v1beta1.ConversionRequest, convert convertFunc
 	// first so errors from all objects are sent in the request and metrics are
 	// recorded as accurately as possible.
 	var errs []string
-	for _, obj := range convertRequest.Objects {
+	for i, obj := range convertRequest.Objects {
 		cr := unstructured.Unstructured{}
 		if err := cr.UnmarshalJSON(obj.Raw); err != nil {
 			log.Error().Err(err).Msg("error unmarshalling object JSON")
 			errs = append(errs, fmt.Sprintf("failed to unmarshal object (%v) with error: %v", string(obj.Raw), err))
 			continue
 		}
+		// Save the parsed object to read from later when metrics are recorded
+		convertRequest.Objects[i].Object = &cr
 		convertedCR, err := convert(&cr, convertRequest.DesiredAPIVersion)
 		if err != nil {
 			log.Error().Err(err).Msg("conversion failed")
@@ -110,6 +115,24 @@ func serve(w http.ResponseWriter, r *http.Request, convert convertFunc) {
 		convertReview.Response = doConversion(convertReview.Request, convert)
 		convertReview.Response.UID = convertReview.Request.UID
 	}
+
+	var success bool
+	if convertReview.Response != nil {
+		success = convertReview.Response.Result.Status == metav1.StatusSuccess
+	}
+	if convertReview.Request != nil {
+		toVersion := convertReview.Request.DesiredAPIVersion
+		for _, reqObj := range convertReview.Request.Objects {
+			var fromVersion string
+			var kind string
+			if reqObj.Object != nil && reqObj.Object.GetObjectKind() != nil {
+				fromVersion = reqObj.Object.GetObjectKind().GroupVersionKind().GroupVersion().String()
+				kind = reqObj.Object.GetObjectKind().GroupVersionKind().Kind
+			}
+			metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal.WithLabelValues(kind, fromVersion, toVersion, strconv.FormatBool(success)).Inc()
+		}
+	}
+
 	log.Debug().Msgf(fmt.Sprintf("sending response: %v", convertReview.Response))
 
 	// reset the request, it is not needed in a response.
