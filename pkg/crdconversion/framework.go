@@ -47,7 +47,9 @@ func conversionResponseFailureWithMessagef(msg string, params ...interface{}) *v
 // failures will be reported as Reason in the conversion response.
 func doConversion(convertRequest *v1beta1.ConversionRequest, convert convertFunc) *v1beta1.ConversionResponse {
 	var convertedObjects []runtime.RawExtension
-	// aggregate errors from all objects in the request vs. only returning the first
+	// aggregate errors from all objects in the request vs. only returning the
+	// first so errors from all objects are sent in the request and metrics are
+	// recorded as accurately as possible.
 	var errs []string
 	for _, obj := range convertRequest.Objects {
 		cr := unstructured.Unstructured{}
