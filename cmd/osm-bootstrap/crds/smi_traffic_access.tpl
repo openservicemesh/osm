@@ -20,6 +20,9 @@ metadata:
   name: traffictargets.access.smi-spec.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: access.smi-spec.io
   scope: Namespaced 

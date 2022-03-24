@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -199,15 +198,6 @@ func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.A
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},
-	}
-
-	if enableReconciler {
-		existingLabels := crd.Labels
-		if existingLabels == nil {
-			existingLabels = map[string]string{}
-		}
-		existingLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
-		crd.Labels = existingLabels
 	}
 
 	if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {

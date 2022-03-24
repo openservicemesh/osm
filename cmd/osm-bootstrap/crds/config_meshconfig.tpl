@@ -20,6 +20,9 @@ metadata:
   name: meshconfigs.config.openservicemesh.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: config.openservicemesh.io
   scope: Namespaced

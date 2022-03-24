@@ -20,6 +20,9 @@ metadata:
   name: multiclusterservices.config.openservicemesh.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: config.openservicemesh.io
   scope: Namespaced # osm-system is the required namespace

@@ -1,10 +1,15 @@
-FROM --platform=$BUILDPLATFORM busybox:1.33 AS builder
-ARG TARGETPLATFORM
-# Talking to the internet in an arm64 container doesn't seem to work from a
-# amd64 Mac, so download the kubectl binary in a stage running the native arch.
-RUN wget https://dl.k8s.io/release/v1.22.2/bin/$TARGETPLATFORM/kubectl -O /bin/kubectl && \
-    chmod +x /bin/kubectl
-FROM busybox:1.33
-COPY --from=builder /bin/kubectl /bin
-COPY * /osm-crds/
-ENTRYPOINT ["/bin/kubectl"]
+ARG GO_VERSION
+FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /osm
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-bootstrap -ldflags "$LDFLAGS" ./cmd/osm-bootstrap
+
+FROM gcr.io/distroless/static
+COPY --from=builder /osm/cmd/osm-bootstrap/crds/* /osm-crds/
+COPY --from=builder /osm/osm-bootstrap /

@@ -20,6 +20,9 @@ metadata:
   name: httproutegroups.specs.smi-spec.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: specs.smi-spec.io
   scope: Namespaced

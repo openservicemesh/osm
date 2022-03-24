@@ -4,17 +4,24 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiScheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,8 +71,10 @@ var (
 	certManagerOptions providers.CertManagerOptions
 
 	enableReconciler bool
+	onlyCRDs         bool
 
-	scheme = runtime.NewScheme()
+	scheme  = runtime.NewScheme()
+	crdPath = "/osm-crds"
 )
 
 var (
@@ -104,6 +113,7 @@ func init() {
 
 	// Reconciler options
 	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
+	flags.BoolVar(&onlyCRDs, "only-crds", false, "Only install CRDs and then exit")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -132,6 +142,15 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
+
+	if onlyCRDs { // whether there's an error or not, we return here
+		err := installCRDs(crdClient)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error installing CRDs in the cluster")
+		}
+		return
+	}
+
 	apiServerClient := clientset.NewForConfigOrDie(kubeConfig)
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
@@ -294,6 +313,10 @@ func parseFlags() error {
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
 func validateCLIParams() error {
+	if onlyCRDs {
+		return nil
+	}
+
 	if osmNamespace == "" {
 		return errors.New("Please specify the OSM namespace using --osm-namespace")
 	}
@@ -323,4 +346,79 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 		},
 		Spec: presetMeshConfigSpec,
 	}
+}
+
+func installCRDs(crdClient apiclient.ApiextensionsV1Interface) error {
+	tmpl, err := template.ParseGlob(fmt.Sprintf("%s/*.tpl", crdPath))
+	if err != nil {
+		log.Error().Err(err).Msg("Error parsing OSM CRD templates")
+		return err
+	}
+
+	crdSettings := struct {
+		EnableReconciler bool
+		ReconcileLabel   string
+	}{
+		EnableReconciler: enableReconciler,
+		ReconcileLabel:   constants.ReconcileLabel,
+	}
+
+	err = filepath.Walk(crdPath, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			log.Error().Str("file", info.Name()).Err(err).Msg("Error walking crd directory path")
+			return err
+		}
+
+		if !strings.Contains(info.Name(), ".tpl") {
+			return nil
+		}
+
+		// We found a template; execute it
+		var buffer bytes.Buffer
+
+		err = tmpl.ExecuteTemplate(&buffer, info.Name(), crdSettings)
+		if err != nil {
+			return err
+		}
+
+		obj, gvk, err := apiScheme.Codecs.UniversalDeserializer().Decode(buffer.Bytes(), nil, nil)
+		if err != nil {
+			return err
+		}
+
+		switch crd := obj.(type) {
+		case *v1.CustomResourceDefinitionList:
+			if len(crd.Items) == 0 {
+				log.Debug().Str("crd", info.Name()).Msg("skipping CRD definition with 0 YAML documents")
+				return nil
+			}
+
+			for _, definition := range crd.Items {
+				r, err := crdClient.CustomResourceDefinitions().Create(context.Background(), &definition, metav1.CreateOptions{})
+				if err != nil {
+					log.Error().Str("crd", info.Name()).Err(err).Msg("Error applying CRD to cluster")
+					return err
+				}
+				log.Info().Str("crd", info.Name()).Msgf("%s.%s/%s created", strings.ToLower(r.GroupVersionKind().Kind), r.GroupVersionKind().Group, r.GetObjectMeta().GetName())
+			}
+		case *v1.CustomResourceDefinition:
+			r, err := crdClient.CustomResourceDefinitions().Create(context.Background(), crd, metav1.CreateOptions{})
+			if err != nil {
+				log.Error().Str("crd", info.Name()).Err(err).Msg("Error applying CRD to cluster")
+				return err
+			}
+			log.Info().Str("crd", info.Name()).Msgf("%s.%s/%s created", strings.ToLower(r.GroupVersionKind().Kind), r.GroupVersionKind().Group, r.GetObjectMeta().GetName())
+		default:
+			log.Error().Str("crd", info.Name()).Msgf("Invalid YAML manifest encountered in CRD directory: %q", gvk)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("Error executing CRD templates")
+		return err
+	}
+
+	return nil
 }

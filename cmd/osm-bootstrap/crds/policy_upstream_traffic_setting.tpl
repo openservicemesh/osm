@@ -20,6 +20,9 @@ metadata:
   name: upstreamtrafficsettings.policy.openservicemesh.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: policy.openservicemesh.io
   scope: Namespaced

@@ -20,6 +20,9 @@ metadata:
   name: trafficsplits.split.smi-spec.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
+{{ if .EnableReconciler }}
+    {{ .ReconcileLabel }} : "true"
+{{ end }}
 spec:
   group: split.smi-spec.io
   scope: Namespaced

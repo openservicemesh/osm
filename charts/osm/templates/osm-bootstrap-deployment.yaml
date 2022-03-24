@@ -57,10 +57,12 @@ spec:
         - name: init-osm-bootstrap
           image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
-          args:
-          - apply
-          - -f
-          - /osm-crds
+          command: ['/osm-bootstrap']
+          args: [
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
+            "--only-crds",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
+          ]
       containers:
         - name: osm-bootstrap
           image: "{{ include "osmBootstrap.image" . }}"
