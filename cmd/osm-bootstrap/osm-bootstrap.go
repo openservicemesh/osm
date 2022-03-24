@@ -393,8 +393,8 @@ func installCRDs(crdClient apiclient.ApiextensionsV1Interface) error {
 				return nil
 			}
 
-			for _, definition := range crd.Items {
-				r, err := crdClient.CustomResourceDefinitions().Create(context.Background(), &definition, metav1.CreateOptions{})
+			for i := range crd.Items {
+				r, err := crdClient.CustomResourceDefinitions().Create(context.Background(), &crd.Items[i], metav1.CreateOptions{})
 				if err != nil {
 					log.Error().Str("crd", info.Name()).Err(err).Msg("Error applying CRD to cluster")
 					return err

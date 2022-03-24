@@ -169,7 +169,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 
 func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
 	for crdName, crdConversionPath := range apiKindToPath {
-		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
+		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
 			return err
 		}
@@ -178,7 +178,7 @@ func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV
 }
 
 // updateCrdConfiguration updates the Conversion section of the CRD and adds a reconcile label if OSM's reconciler is enabled.
-func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
+func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string) error {
 	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if err != nil {
 		return err
