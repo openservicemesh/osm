@@ -37,6 +37,7 @@ type UpstreamTrafficSettingsGetter interface {
 type UpstreamTrafficSettingInterface interface {
 	Create(ctx context.Context, upstreamTrafficSetting *v1alpha1.UpstreamTrafficSetting, opts v1.CreateOptions) (*v1alpha1.UpstreamTrafficSetting, error)
 	Update(ctx context.Context, upstreamTrafficSetting *v1alpha1.UpstreamTrafficSetting, opts v1.UpdateOptions) (*v1alpha1.UpstreamTrafficSetting, error)
+	UpdateStatus(ctx context.Context, upstreamTrafficSetting *v1alpha1.UpstreamTrafficSetting, opts v1.UpdateOptions) (*v1alpha1.UpstreamTrafficSetting, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.UpstreamTrafficSetting, error)
@@ -125,6 +126,22 @@ func (c *upstreamTrafficSettings) Update(ctx context.Context, upstreamTrafficSet
 		Namespace(c.ns).
 		Resource("upstreamtrafficsettings").
 		Name(upstreamTrafficSetting.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(upstreamTrafficSetting).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *upstreamTrafficSettings) UpdateStatus(ctx context.Context, upstreamTrafficSetting *v1alpha1.UpstreamTrafficSetting, opts v1.UpdateOptions) (result *v1alpha1.UpstreamTrafficSetting, err error) {
+	result = &v1alpha1.UpstreamTrafficSetting{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("upstreamtrafficsettings").
+		Name(upstreamTrafficSetting.Name).
+		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(upstreamTrafficSetting).
 		Do(ctx).
