@@ -798,7 +798,7 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 	install.RepoURL = "https://kubernetes.github.io/ingress-nginx"
 	install.Namespace = NginxIngressSvc.Namespace
 	install.ReleaseName = "ingress-nginx"
-	install.Version = "3.23.0"
+	install.Version = "4.0.18"
 	install.Wait = true
 	install.Timeout = 5 * time.Minute
 

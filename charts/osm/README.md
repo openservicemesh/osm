@@ -6,7 +6,7 @@ A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) contro
 
 ## Prerequisites
 
-- Kubernetes >= 1.19.0-0
+- Kubernetes >= 1.20.0-0
 
 ## Get Repo Info
 
