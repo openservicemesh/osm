@@ -163,6 +163,9 @@ func main() {
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+		metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal,
 	)
 
 	msgBroker := messaging.NewBroker(stop)

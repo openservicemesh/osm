@@ -6,7 +6,7 @@ A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) contro
 
 ## Prerequisites
 
-- Kubernetes >= 1.19.0-0
+- Kubernetes >= 1.20.0-0
 
 ## Get Repo Info
 
@@ -114,6 +114,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.digest.osmInjector | string | `""` | osm-injector's image digest |
 | osm.image.digest.osmPreinstall | string | `""` | osm-preinstall's image digest |
 | osm.image.digest.osmSidecarInit | string | `""` | Sidecar init container's image digest |
+| osm.image.name | object | `{"osmBootstrap":"osm-bootstrap","osmCRDs":"osm-crds","osmController":"osm-controller","osmHealthcheck":"osm-healthcheck","osmInjector":"osm-injector","osmPreinstall":"osm-preinstall","osmSidecarInit":"init"}` | Image name defaults |
+| osm.image.name.osmBootstrap | string | `"osm-bootstrap"` | osm-boostrap's image name |
+| osm.image.name.osmCRDs | string | `"osm-crds"` | osm-crds' image name |
+| osm.image.name.osmController | string | `"osm-controller"` | osm-controller's image name |
+| osm.image.name.osmHealthcheck | string | `"osm-healthcheck"` | osm-healthcheck's image name |
+| osm.image.name.osmInjector | string | `"osm-injector"` | osm-injector's image name |
+| osm.image.name.osmPreinstall | string | `"osm-preinstall"` | osm-preinstall's image name |
+| osm.image.name.osmSidecarInit | string | `"init"` | Sidecar init container's image name |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
 | osm.image.tag | string | `"latest-main"` | Container image tag for control plane images |

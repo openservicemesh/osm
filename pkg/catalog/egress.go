@@ -6,15 +6,24 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/pkg/errors"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	"k8s.io/apimachinery/pkg/types"
 
-	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+)
+
+const (
+	// upstreamTrafficSettingKind is the upstreamTrafficSettingKind API kind
+	upstreamTrafficSettingKind = "UpstreamTrafficSetting"
 )
 
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
@@ -29,12 +38,18 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	egressResources := mc.policyController.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
 
 	for _, egress := range egressResources {
+		upstreamTrafficSetting, err := mc.getUpstreamTrafficSettingForEgress(egress)
+		if err != nil {
+			log.Error().Err(err).Msg("Ignoring invalid Egress policy")
+			continue
+		}
+
 		for _, portSpec := range egress.Spec.Ports {
 			switch strings.ToLower(portSpec.Protocol) {
 			case constants.ProtocolHTTP:
 				// ---
 				// Build the HTTP route configs for the given Egress policy
-				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number)
+				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number, upstreamTrafficSetting)
 				portToRouteConfigMap[portSpec.Number] = append(portToRouteConfigMap[portSpec.Number], httpRouteConfigs...)
 				clusterConfigs = append(clusterConfigs, httpClusterConfigs...)
 
@@ -48,8 +63,9 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 				// ---
 				// Build the TCP cluster config for this port
 				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{
-					Name: fmt.Sprintf("%d", portSpec.Number),
-					Port: portSpec.Number,
+					Name:                   fmt.Sprintf("%d", portSpec.Number),
+					Port:                   portSpec.Number,
+					UpstreamTrafficSetting: upstreamTrafficSetting,
 				})
 
 				// Configure port + IP range TrafficMatches
@@ -65,8 +81,9 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 				// Build the HTTPS cluster config for this port
 				// HTTPS is TLS encrypted, so will be proxied as a TCP stream
 				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{
-					Name: fmt.Sprintf("%d", portSpec.Number),
-					Port: portSpec.Number,
+					Name:                   fmt.Sprintf("%d", portSpec.Number),
+					Port:                   portSpec.Number,
+					UpstreamTrafficSetting: upstreamTrafficSetting,
 				})
 
 				// Configure port + IP range TrafficMatches
@@ -105,7 +122,34 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	}, nil
 }
 
-func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress, port int) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
+func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1alpha1.Egress) (*policyv1alpha1.UpstreamTrafficSetting, error) {
+	if egressPolicy == nil {
+		return nil, nil
+	}
+
+	for _, match := range egressPolicy.Spec.Matches {
+		if match.APIGroup != nil && *match.APIGroup == policyv1alpha1.SchemeGroupVersion.String() && match.Kind == upstreamTrafficSettingKind {
+			namespacedName := types.NamespacedName{
+				Namespace: egressPolicy.Namespace,
+				Name:      match.Name,
+			}
+			upstreamtrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
+				policy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
+
+			if upstreamtrafficSetting == nil {
+				return nil, errors.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
+					namespacedName.String(), egressPolicy.Namespace, egressPolicy.Name)
+			}
+
+			return upstreamtrafficSetting, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress, port int,
+	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
 	if egressPolicy == nil {
 		return nil, nil
 	}
@@ -170,9 +214,10 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyV1alpha1.Egress
 		// Create cluster config for this host and port combination
 		clusterName := hostnameWithPort
 		clusterConfig := &trafficpolicy.EgressClusterConfig{
-			Name: clusterName,
-			Host: host,
-			Port: port,
+			Name:                   clusterName,
+			Host:                   host,
+			Port:                   port,
+			UpstreamTrafficSetting: upstreamTrafficSetting,
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfig)
 

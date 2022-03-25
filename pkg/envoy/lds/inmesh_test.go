@@ -218,6 +218,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		EnableWASMStats:        false,
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -314,6 +315,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,

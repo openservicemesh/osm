@@ -32,13 +32,21 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 	defer mockCtrl.Finish()
 
+	upstreamTrafficSetting := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: "ns1",
+		},
+	}
+
 	testCases := []struct {
-		name                 string
-		egressPolicies       []*policyv1alpha1.Egress
-		egressPort           int
-		httpRouteGroups      []*specs.HTTPRouteGroup
-		expectedEgressPolicy *trafficpolicy.EgressTrafficPolicy
-		expectError          bool
+		name                   string
+		egressPolicies         []*policyv1alpha1.Egress
+		egressPort             int
+		httpRouteGroups        []*specs.HTTPRouteGroup
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expectedEgressPolicy   *trafficpolicy.EgressTrafficPolicy
+		expectError            bool
 	}{
 		{
 			name: "multiple egress policies for HTTP ports",
@@ -335,6 +343,88 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name: "policy with valid UpstreamTrafficSetting match is processed",
+			egressPolicies: []*policyv1alpha1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: upstreamTrafficSetting.Namespace,
+					},
+					Spec: policyv1alpha1.EgressSpec{
+						Hosts: []string{
+							"foo.com",
+						},
+						Ports: []policyv1alpha1.PortSpec{
+							{
+								Number:   100,
+								Protocol: "https",
+							},
+						},
+						Matches: []corev1.TypedLocalObjectReference{
+							{
+								APIGroup: pointer.StringPtr("policy.openservicemesh.io/v1alpha1"),
+								Kind:     "UpstreamTrafficSetting",
+								Name:     upstreamTrafficSetting.Name,
+							},
+						},
+					},
+				},
+			},
+			httpRouteGroups:        nil, // no SMI HTTP route matches
+			upstreamTrafficSetting: upstreamTrafficSetting,
+			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.TrafficMatch{
+					{
+						DestinationPort:     100,
+						DestinationProtocol: "https",
+						ServerNames:         []string{"foo.com"},
+						Cluster:             "100",
+					},
+				},
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
+					{
+						// Same cluster used for both HTTPS and TCP on port 100
+						Name:                   "100",
+						Port:                   100,
+						UpstreamTrafficSetting: upstreamTrafficSetting,
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "policy with invalid UpstreamTrafficSetting match is ignored",
+			egressPolicies: []*policyv1alpha1.Egress{
+				{
+					Spec: policyv1alpha1.EgressSpec{
+						Hosts: []string{
+							"foo.com",
+						},
+						Ports: []policyv1alpha1.PortSpec{
+							{
+								Number:   100,
+								Protocol: "https",
+							},
+						},
+						Matches: []corev1.TypedLocalObjectReference{
+							{
+								APIGroup: pointer.StringPtr("policy.openservicemesh.io/v1alpha1"),
+								Kind:     "UpstreamTrafficSetting",
+								Name:     "invalid",
+							},
+						},
+					},
+				},
+			},
+			httpRouteGroups: nil, // no SMI HTTP route matches
+			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
+				TrafficMatches:          nil,
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+				ClustersConfigs:         nil,
+			},
+			expectError: false,
+		},
 	}
 
 	testSourceIdentity := identity.ServiceIdentity("foo.bar.cluster.local")
@@ -348,6 +438,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
 			mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
+			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 
 			mc := &MeshCatalog{
 				meshSpec:         mockMeshSpec,
@@ -371,11 +462,19 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	upstreamTrafficSetting := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: "ns1",
+		},
+	}
+
 	testCases := []struct {
 		name                   string
 		egressPolicy           *policyv1alpha1.Egress
 		egressPort             int
 		httpRouteGroups        []*specs.HTTPRouteGroup
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
 		expectedRouteConfigs   []*trafficpolicy.EgressHTTPRouteConfig
 		expectedClusterConfigs []*trafficpolicy.EgressClusterConfig
 	}{
@@ -649,6 +748,78 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "egress policy with UpstreamTrafficSetting match specified",
+			egressPolicy: &policyv1alpha1.Egress{
+				Spec: policyv1alpha1.EgressSpec{
+					Hosts: []string{
+						"foo.com",
+						"bar.com",
+					},
+					Ports: []policyv1alpha1.PortSpec{
+						{
+							Number:   80,
+							Protocol: "http",
+						},
+					},
+				},
+			},
+			egressPort:             80,
+			httpRouteGroups:        nil, // no matches specified in the egress policy via Spec.Matches
+			upstreamTrafficSetting: upstreamTrafficSetting,
+			expectedRouteConfigs: []*trafficpolicy.EgressHTTPRouteConfig{
+				{
+					Name: "foo.com",
+					Hostnames: []string{
+						"foo.com",
+						"foo.com:80",
+					},
+					RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+									service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
+								}),
+							},
+							AllowedDestinationIPRanges: nil,
+						},
+					},
+				},
+				{
+					Name: "bar.com",
+					Hostnames: []string{
+						"bar.com",
+						"bar.com:80",
+					},
+					RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+									service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
+								}),
+							},
+							AllowedDestinationIPRanges: nil,
+						},
+					},
+				},
+			},
+			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					Name:                   "foo.com:80",
+					Host:                   "foo.com",
+					Port:                   80,
+					UpstreamTrafficSetting: upstreamTrafficSetting,
+				},
+				{
+					Name:                   "bar.com:80",
+					Host:                   "bar.com",
+					Port:                   80,
+					UpstreamTrafficSetting: upstreamTrafficSetting,
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -663,7 +834,7 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 				meshSpec: mockMeshSpec,
 			}
 
-			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort)
+			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting)
 			assert.ElementsMatch(tc.expectedRouteConfigs, routeConfigs)
 			assert.ElementsMatch(tc.expectedClusterConfigs, clusterConfigs)
 		})

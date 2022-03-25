@@ -42,7 +42,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// Build upstream clusters based on allowed outbound traffic policies
 	outboundMeshTrafficPolicy := meshCatalog.GetOutboundMeshTrafficPolicy(proxyIdentity)
 	if outboundMeshTrafficPolicy != nil {
-		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxyIdentity, outboundMeshTrafficPolicy.ClustersConfigs)...)
+		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxyIdentity, outboundMeshTrafficPolicy.ClustersConfigs, cfg.GetMeshConfig().Spec.Sidecar)...)
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
@@ -66,7 +66,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 	}
 
-	outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
+	outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster, nil)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingOrgDstEgressCluster.String()).
 			Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)

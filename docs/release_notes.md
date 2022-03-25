@@ -4,7 +4,7 @@
 
 ### Notable changes
 
-None
+- Circuit breaking support for traffic directed to in-mesh and external destinations
 
 ### Breaking changes
 
@@ -14,7 +14,10 @@ The following changes are not backward compatible with the previous release.
 
 ### Deprecation notes
 
-None
+The following capabilities have been deprecated and cannot be used.
+
+- The `osm_injector_injector_sidecar_count` and `osm_injector_injector_rq_time` metrics have been removed. The `osm_admission_webhook_response_total` and `osm_http_response_duration` metrics should be used instead.
+- OSM will no longer support installation on Kubernetes version v1.19.
 
 ## Release v1.0.0
 

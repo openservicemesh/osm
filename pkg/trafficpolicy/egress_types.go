@@ -1,5 +1,9 @@
 package trafficpolicy
 
+import (
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+)
+
 // EgressTrafficPolicy is the type used to represent the different egress traffic policy configurations
 // applicable to a client of Egress destinations.
 type EgressTrafficPolicy struct {
@@ -37,6 +41,9 @@ type EgressClusterConfig struct {
 
 	// Port defines the port number of the external cluster's endpoint
 	Port int
+
+	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
+	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
 }
 
 // EgressHTTPRouteConfig is the type used to represent an HTTP route configuration along with associated routing rules

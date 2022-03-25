@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (
@@ -87,15 +88,20 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	defer cancel()
 
 	webhookMux := http.NewServeMux()
-	webhookMux.HandleFunc(meshConfigConverterPath, serveMeshConfigConversion)
-	webhookMux.HandleFunc(trafficAccessConverterPath, serveTrafficAccessConversion)
-	webhookMux.HandleFunc(httpRouteGroupConverterPath, serveHTTPRouteGroupConversion)
-	webhookMux.HandleFunc(multiclusterServiceConverterPath, serveMultiClusterServiceConversion)
-	webhookMux.HandleFunc(egressPolicyConverterPath, serveEgressPolicyConversion)
-	webhookMux.HandleFunc(trafficSplitConverterPath, serveTrafficSplitConversion)
-	webhookMux.HandleFunc(tcpRoutesConverterPath, serveTCPRouteConversion)
-	webhookMux.HandleFunc(ingressBackendsPolicyConverterPath, serveIngressBackendsPolicyConversion)
-	webhookMux.HandleFunc(retryPolicyConverterPath, serveRetryPolicyConversion)
+	handlers := map[string]http.HandlerFunc{
+		meshConfigConverterPath:            serveMeshConfigConversion,
+		trafficAccessConverterPath:         serveTrafficAccessConversion,
+		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,
+		multiclusterServiceConverterPath:   serveMultiClusterServiceConversion,
+		egressPolicyConverterPath:          serveEgressPolicyConversion,
+		trafficSplitConverterPath:          serveTrafficSplitConversion,
+		tcpRoutesConverterPath:             serveTCPRouteConversion,
+		ingressBackendsPolicyConverterPath: serveIngressBackendsPolicyConversion,
+		retryPolicyConverterPath:           serveRetryPolicyConversion,
+	}
+	for endpoint, h := range handlers {
+		webhookMux.Handle(endpoint, metricsstore.AddHTTPMetrics(h))
+	}
 
 	webhookServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),
@@ -124,7 +130,7 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}()
 
 	healthMux := http.NewServeMux()
-	healthMux.HandleFunc(webhookHealthPath, healthHandler)
+	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", healthPort),

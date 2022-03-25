@@ -37,7 +37,7 @@ func (ds DebugConfig) forwardPort(req portForward) {
 
 	transport, upgrader, err := spdy.RoundTripperFor(ds.kubeConfig)
 	if err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msg("error getting spdy RoundTripper")
 	}
 
 	client := &http.Client{Transport: transport}
@@ -52,10 +52,10 @@ func (ds DebugConfig) forwardPort(req portForward) {
 		streams.ErrOut,
 	)
 	if err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msg("error initializing port forward")
 	}
 
 	if err = fw.ForwardPorts(); err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msgf("error starting port forward")
 	}
 }
