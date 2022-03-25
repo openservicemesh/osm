@@ -7,7 +7,6 @@ import (
 // UpstreamTrafficSetting defines the settings applicable to traffic destined
 // to an upstream host.
 // +genclient
-// +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type UpstreamTrafficSetting struct {
 	// Object's type metadata
@@ -20,6 +19,10 @@ type UpstreamTrafficSetting struct {
 	// Spec is the UpstreamTrafficSetting policy specification
 	// +optional
 	Spec UpstreamTrafficSettingSpec `json:"spec,omitempty"`
+
+	// Status is the status of the UpstreamTrafficSetting resource.
+	// +optional
+	Status UpstreamTrafficSettingStatus `json:"status,omitempty"`
 }
 
 // UpstreamTrafficSettingSpec defines the upstream traffic setting specification.
@@ -35,10 +38,6 @@ type UpstreamTrafficSettingSpec struct {
 	// directed to the upstream host.
 	// +optional
 	ConnectionSettings *ConnectionSettingsSpec `json:"connectionSettings,omitempty"`
-
-	// Status is the status of the UpstreamTrafficSetting resource.
-	// +optional
-	Status UpstreamTrafficSettingStatus `json:"status,omitempty"`
 }
 
 // ConnectionSettingsSpec defines the connection settings for an

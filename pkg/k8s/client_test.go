@@ -644,7 +644,33 @@ func TestUpdateStatus(t *testing.T) {
 					Reason:        "valid",
 				},
 			},
-		}, {
+		},
+		{
+			name: "valid UpstreamTrafficSetting resource",
+			existingResource: &policyv1alpha1.UpstreamTrafficSetting{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "bar",
+				},
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					Host: "foo.bar.svc.cluster.local",
+				},
+			},
+			updatedResource: &policyv1alpha1.UpstreamTrafficSetting{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "bar",
+				},
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					Host: "foo.bar.svc.cluster.local",
+				},
+				Status: policyv1alpha1.UpstreamTrafficSettingStatus{
+					CurrentStatus: "valid",
+					Reason:        "valid",
+				},
+			},
+		},
+		{
 			name:             "unsupported resource",
 			existingResource: &policyv1alpha1.Egress{},
 			updatedResource:  &policyv1alpha1.Egress{},

@@ -535,6 +535,7 @@ func (in *UpstreamTrafficSetting) DeepCopyInto(out *UpstreamTrafficSetting) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
+	out.Status = in.Status
 	return
 }
 
@@ -597,7 +598,6 @@ func (in *UpstreamTrafficSettingSpec) DeepCopyInto(out *UpstreamTrafficSettingSp
 		*out = new(ConnectionSettingsSpec)
 		(*in).DeepCopyInto(*out)
 	}
-	out.Status = in.Status
 	return
 }
 

@@ -61,7 +61,7 @@ rules:
     resources: ["egresses", "ingressbackends", "retries", "upstreamtrafficsettings"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["ingressbackends/status"]
+    resources: ["ingressbackends/status", "upstreamtrafficsettings/status"]
     verbs: ["update"]
 
   # Used for interacting with cert-manager CertificateRequest resources.
