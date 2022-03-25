@@ -1,0 +1,94 @@
+# Custom Resource Definition (CRD) for OSM's UpstreamTrafficSetting API.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: upstreamtrafficsettings.policy.openservicemesh.io
+  labels:
+    app.kubernetes.io/name : "openservicemesh.io"
+spec:
+  group: policy.openservicemesh.io
+  scope: Namespaced
+  names:
+    kind: UpstreamTrafficSetting
+    listKind: UpstreamTrafficSettingList
+    shortNames:
+      - upstreamtrafficsetting
+    singular: upstreamtrafficsetting
+    plural: upstreamtrafficsettings
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+      - description: Current status of the UpstreamTrafficSetting policy.
+        jsonPath: .status.currentStatus
+        name: Status
+        type: string
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - host
+              properties:
+                host:
+                  description: Upstream host the policy is applicabe to.
+                  type: string
+                connectionSettings:
+                  description: Connection settings for the upstream host.
+                  type: object
+                  properties:
+                    tcp:
+                      description: TCP connection settings.
+                      type: object
+                      properties:
+                        maxConnections:
+                          description: Maximum number of TCP connections.
+                          type: integer
+                          minimum: 0
+                        connectTimeout:
+                          description: TCP connection timeout.
+                          type: string
+                    http:
+                      description: HTTP connection settings.
+                      type: object
+                      properties:
+                        maxRequests:
+                          description: Maximum number of parallel HTTP requests allowed.
+                          type: integer
+                          minimum: 0
+                        maxRequestsPerConnection:
+                          description: Maximum number of HTTP requests per connection allowed.
+                          type: integer
+                          minimum: 0
+                        maxPendingRequests:
+                          description: Maximum number of pending HTTP/1.1 requests allowed.
+                          type: integer
+                          minimum: 0
+                        maxRetries:
+                          description: Maximum number of parallel retries allowed.
+                          type: integer
+                          minimum: 0
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        # status enables the status subresource
+        status: {}

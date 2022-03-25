@@ -7,14 +7,12 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	fakeApi "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
@@ -324,75 +322,6 @@ func TestGetBootstrapPod(t *testing.T) {
 		} else {
 			assert.Nil(err)
 		}
-	}
-}
-
-func TestInstallCRDs(t *testing.T) {
-	prevCRDPath := crdPath
-	prevEnableReconciler := enableReconciler
-	tests := []struct {
-		name             string
-		crdPath          string
-		enableReconciler bool
-		wantErr          bool
-	}{
-		{
-			name:    "success",
-			crdPath: "./crds",
-		},
-		{
-			name:    "badCRDPath",
-			crdPath: "nonsensePath",
-			wantErr: true,
-		},
-		{
-			name:             "reconcile enabled",
-			crdPath:          "./crds",
-			enableReconciler: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			crdPath = tt.crdPath
-			enableReconciler = tt.enableReconciler
-			defer func() { // reset vars after each test
-				crdPath = prevCRDPath
-				enableReconciler = prevEnableReconciler
-			}()
-
-			clientset := fakeApi.NewSimpleClientset()
-			crdClient := clientset.ApiextensionsV1()
-			err := installCRDs(crdClient)
-			if gotErr := err != nil; gotErr != tt.wantErr {
-				t.Errorf("received err %s when wantErr was %t", err, tt.wantErr)
-				return
-			}
-
-			// get created CRDs
-			crds, err := crdClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
-			if err != nil {
-				t.Errorf("received err %s while querying fake clientset", err)
-			}
-
-			for _, crd := range crds.Items {
-				reconcileEnabledLabel, ok := crd.GetLabels()[constants.ReconcileLabel]
-				if !ok && tt.enableReconciler {
-					t.Errorf("reconciler label %s does not exist when enableReconciler is true", constants.ReconcileLabel)
-					continue
-				}
-
-				if tt.enableReconciler && reconcileEnabledLabel != "true" {
-					t.Errorf("reconciler label %s equals %s when true is expected", constants.ReconcileLabel, reconcileEnabledLabel)
-					continue
-				}
-
-				if !tt.enableReconciler && reconcileEnabledLabel == "true" {
-					t.Errorf("reconciler label %s equals %s when a non-true value is expected", constants.ReconcileLabel, reconcileEnabledLabel)
-					continue
-				}
-			}
-		})
 	}
 }
 

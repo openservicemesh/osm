@@ -57,12 +57,14 @@ spec:
         - name: init-osm-bootstrap
           image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
-          command: ['/osm-bootstrap']
-          args: [
-            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
-            "--only-crds",
-            "--enable-reconciler={{.Values.osm.enableReconciler}}",
-          ]
+          command:
+          - sh
+          - -c
+          - >
+            kubectl apply -f /osm-crds;
+            {{- if .Values.osm.enableReconciler }}
+            kubectl label -f /osm-crds openservicemesh.io/reconcile=true;
+            {{- end }}
       containers:
         - name: osm-bootstrap
           image: "{{ include "osmBootstrap.image" . }}"

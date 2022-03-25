@@ -1,0 +1,471 @@
+# Custom Resource Definition (CRD) for OSM's configuration specification.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: meshconfigs.config.openservicemesh.io
+  labels:
+    app.kubernetes.io/name : "openservicemesh.io"
+spec:
+  group: config.openservicemesh.io
+  scope: Namespaced
+  names:
+    kind: MeshConfig
+    listKind: MeshConfigList
+    shortNames:
+      - meshconfig
+    singular: meshconfig
+    plural: meshconfigs
+  versions:
+    - name: v1alpha2
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                sidecar:
+                  description: Configuration for Envoy sidecar
+                  type: object
+                  properties:
+                    enablePrivilegedInitContainer:
+                      description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
+                      type: boolean
+                    logLevel:
+                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      type: string
+                      enum:
+                        - trace
+                        - debug
+                        - info
+                        - warning
+                        - warn
+                        - error
+                        - critical
+                        - off
+                    maxDataPlaneConnections:
+                      description: Max allowed data plane sidecar connections
+                      type: integer
+                    envoyImage:
+                      description: Image for the Envoy sidecar
+                      type: string
+                    envoyWindowsImage:
+                      description: Image for the Envoy sidecar on Windows workers
+                      type: string
+                    initContainerImage:
+                      description: Image for the init container
+                      type: string
+                    resources:
+                      type: object
+                      properties:
+                        limits:
+                          description: "Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                          type: object
+                          additionalProperties: true
+                        requests:
+                          description: "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                          type: object
+                          additionalProperties: true
+                    configResyncInterval:
+                      description: Resync interval for regular proxy broadcast updates
+                      type: string
+                    tlsMinProtocolVersion:
+                      description: The minimum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+                      type: string
+                      enum:
+                        - TLS_AUTO
+                        - TLSv1_0
+                        - TLSv1_1
+                        - TLSv1_2
+                        - TLSv1_3
+                      default: TLSv1_2
+                    tlsMaxProtocolVersion:
+                      description: The maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+                      type: string
+                      enum:
+                        - TLS_AUTO
+                        - TLSv1_0
+                        - TLSv1_1
+                        - TLSv1_2
+                        - TLSv1_3
+                      default: TLSv1_3
+                    cipherSuites:
+                      description: A list of ciphers that listener supports when negotiating TLS 1.0-1.2. This setting has no effect when negotiating TLS 1.3. For valid cipher names, see the latest OpenSSL ciphers manual page. E.g. https://www.openssl.org/docs/man1.1.1/apps/ciphers.html.
+                      type: array
+                      items:
+                        type: string
+                    ecdhCurves:
+                      description: A list of ECDH curves that TLS connection supports. If not specified, the curves are [X25519, P-256] for non-FIPS build and P-256 for builds using BoringSSL FIPS.
+                      type: array
+                      items:
+                        type: string
+                traffic:
+                  description: Configuration for traffic management
+                  type: object
+                  properties:
+                    enableEgress:
+                      description: Enables egress in the mesh
+                      type: boolean
+                    outboundIPRangeExclusionList:
+                      description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: string
+                        pattern: ((?:\d{1,3}\.){3}\d{1,3})\/(\d{1,2})$
+                    outboundIPRangeInclusionList:
+                      description: Global list of IP address ranges to include for outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: string
+                        pattern: ((?:\d{1,3}\.){3}\d{1,3})\/(\d{1,2})$
+                    outboundPortExclusionList:
+                      description: Global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                    inboundPortExclusionList:
+                      description: Global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                    enablePermissiveTrafficPolicyMode:
+                      description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
+                      type: boolean
+                    inboundExternalAuthorization:
+                      description: Configures external authorization for inbound and ingress connections.
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables/disables the inbound external authorization policy if present.
+                          type: boolean
+                        address:
+                          description: Target destination endpoint that will handle external authorization.
+                          type: string
+                        port:
+                          description: Remote destination port for the external authorization endpoint.
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
+                        statPrefix:
+                          description: String prefix for inbound external authorization related metrics.
+                          type: string
+                          default: "inboundExtAuthz"
+                        timeout:
+                          description: Defines the timeout to consider for the remote endpoint to reply in time.
+                          type: string
+                          default: "1s"
+                        failureModeAllow:
+                          description: Allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
+                          type: boolean
+                observability:
+                  description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
+                  type: object
+                  properties:
+                    osmLogLevel:
+                      description: Allows setting OSM control plane log level at runtime
+                      type: string
+                    enableDebugServer:
+                      description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                    tracing:
+                      description: Configuration for distributed tracing
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables Jaeger tracing for the mesh.
+                          type: boolean
+                        port:
+                          description: Port on which tracing is enabled.
+                          type: integer
+                        address:
+                          description: Address of Jaeger tracing deployment, if tracing is enabled.
+                          type: string
+                        endpoint:
+                          description: Endpoint for tracing data, if tracing is enabled.
+                          type: string
+                certificate:
+                  description: Configuration for certificate management
+                  type: object
+                  required:
+                    - serviceCertValidityDuration
+                    - certKeyBitSize
+                  properties:
+                    serviceCertValidityDuration:
+                      description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+                      type: string
+                    certKeyBitSize:
+                      description: Sets the certificate key bit size for data plane certificates.
+                      type: integer
+                    ingressGateway:
+                      description: Configuration for the ingress gateway's certificate
+                      type: object
+                      required:
+                        - subjectAltNames
+                        - validityDuration
+                        - secret
+                      properties:
+                        subjectAltNames:
+                          description: Subject Alternative Names secured by the certificate
+                          type: array
+                          items:
+                            type: string
+                          minItems: 1
+                        validityDuration:
+                          description: Certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix
+                          type: string
+                        secret:
+                          description: Secret reference to store the certificate in
+                          type: object
+                          required:
+                            - name
+                            - namespace
+                          properties:
+                            name:
+                              description: Name of the secret
+                              type: string
+                            namespace:
+                              description: Namespace of the secret
+                              type: string
+                featureFlags:
+                  description: OSM feature flags
+                  type: object
+                  properties:
+                    enableWASMStats:
+                      type: boolean
+                    enableEgressPolicy:
+                      type: boolean
+                    enableMulticlusterMode:
+                      type: boolean
+                    enableSnapshotCacheMode:
+                      type: boolean
+                    enableAsyncProxyServiceMapping:
+                      type: boolean
+                    enableIngressBackendPolicy:
+                      type: boolean
+                    enableEnvoyActiveHealthChecks:
+                      type: boolean
+                    enableRetryPolicy:
+                      type: boolean
+    - name: v1alpha1
+      served: true
+      storage: false
+      deprecated: true
+      deprecationWarning: "config.openservicemesh.io/v1alpha1 MeshConfig is deprecated; use config.openservicemesh.io/v1alpha2 MeshConfig"
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                sidecar:
+                  description: Configuration for Envoy sidecar
+                  type: object
+                  properties:
+                    enablePrivilegedInitContainer:
+                      description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
+                      type: boolean
+                    logLevel:
+                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      type: string
+                      enum:
+                        - trace
+                        - debug
+                        - info
+                        - warning
+                        - warn
+                        - error
+                        - critical
+                        - off
+                    maxDataPlaneConnections:
+                      description: Max allowed data plane sidecar connections
+                      type: integer
+                    envoyImage:
+                      description: Image for the Envoy sidecar
+                      type: string
+                    envoyWindowsImage:
+                      description: Image for the Envoy sidecar on Windows workers
+                      type: string
+                    initContainerImage:
+                      description: Image for the init container
+                      type: string
+                    resources:
+                      type: object
+                      properties:
+                        limits:
+                          description: "Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                          type: object
+                          additionalProperties: true
+                        requests:
+                          description: "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                          type: object
+                          additionalProperties: true
+                    configResyncInterval:
+                      description: Resync interval for regular proxy broadcast updates
+                      type: string
+                traffic:
+                  description: Configuration for traffic management
+                  type: object
+                  properties:
+                    enableEgress:
+                      description: Enables egress in the mesh
+                      type: boolean
+                    outboundIPRangeExclusionList:
+                      description: Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: string
+                        pattern: ((?:\d{1,3}\.){3}\d{1,3})\/(\d{1,2})$
+                    outboundPortExclusionList:
+                      description: Global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                    inboundPortExclusionList:
+                      description: Global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 65535
+                    enablePermissiveTrafficPolicyMode:
+                      description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
+                      type: boolean
+                    inboundExternalAuthorization:
+                      description: Configures external authorization for inbound and ingress connections.
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables/disables the inbound external authorization policy if present.
+                          type: boolean
+                        address:
+                          description: Target destination endpoint that will handle external authorization.
+                          type: string
+                        port:
+                          description: Remote destination port for the external authorization endpoint.
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
+                        statPrefix:
+                          description: String prefix for inbound external authorization related metrics.
+                          type: string
+                          default: "inboundExtAuthz"
+                        timeout:
+                          description: Defines the timeout to consider for the remote endpoint to reply in time.
+                          type: string
+                          default: "1s"
+                        failureModeAllow:
+                          description: Allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
+                          type: boolean
+                observability:
+                  description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
+                  type: object
+                  properties:
+                    osmLogLevel:
+                      description: Allows setting OSM control plane log level at runtime
+                      type: string
+                    enableDebugServer:
+                      description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
+                      type: boolean
+                    tracing:
+                      description: Configuration for distributed tracing
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables Jaeger tracing for the mesh.
+                          type: boolean
+                        port:
+                          description: Port on which tracing is enabled.
+                          type: integer
+                        address:
+                          description: Address of Jaeger tracing deployment, if tracing is enabled.
+                          type: string
+                        endpoint:
+                          description: Endpoint for tracing data, if tracing is enabled.
+                          type: string
+                certificate:
+                  description: Configuration for certificate management
+                  type: object
+                  required:
+                    - serviceCertValidityDuration
+                    - certKeyBitSize
+                  properties:
+                    serviceCertValidityDuration:
+                      description: Sets the service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+                      type: string
+                    certKeyBitSize:
+                      description: Sets the certificate key bit size for data plane certificates.
+                      type: integer
+                    ingressGateway:
+                      description: Configuration for the ingress gateway's certificate
+                      type: object
+                      required:
+                        - subjectAltNames
+                        - validityDuration
+                        - secret
+                      properties:
+                        subjectAltNames:
+                          description: Subject Alternative Names secured by the certificate
+                          type: array
+                          items:
+                            type: string
+                          minItems: 1
+                        validityDuration:
+                          description: Certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix
+                          type: string
+                        secret:
+                          description: Secret reference to store the certificate in
+                          type: object
+                          required:
+                            - name
+                            - namespace
+                          properties:
+                            name:
+                              description: Name of the secret
+                              type: string
+                            namespace:
+                              description: Namespace of the secret
+                              type: string
+                featureFlags:
+                  description: OSM feature flags
+                  type: object
+                  properties:
+                    enableWASMStats:
+                      type: boolean
+                    enableEgressPolicy:
+                      type: boolean
+                    enableMulticlusterMode:
+                      type: boolean
+                    enableSnapshotCacheMode:
+                      type: boolean
+                    enableAsyncProxyServiceMapping:
+                      type: boolean
+                    enableIngressBackendPolicy:
+                      type: boolean
+                    enableEnvoyActiveHealthChecks:
+                      type: boolean
+                    enableRetryPolicy:
+                      type: boolean
