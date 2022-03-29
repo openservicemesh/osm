@@ -74,7 +74,8 @@ func TestGetMeshVersion(t *testing.T) {
 				BuildDate: "Date",
 			},
 			remoteVersionInfo: &remoteVersionInfo{
-				meshName: "osm",
+				meshName:  "osm",
+				namespace: "test",
 				version: &version.Info{
 					Version:   "v0.0.0",
 					GitCommit: "xxxxxxx",
@@ -131,47 +132,77 @@ func TestGetMeshVersion(t *testing.T) {
 	}
 }
 
-func TestOutputVersionInfo(t *testing.T) {
+func TestOutputPrettyVersionInfo(t *testing.T) {
 	tests := []struct {
-		name        string
-		versionInfo versionInfo
-		expected    string
-		clientOnly  bool
+		name                  string
+		remoteVersionInfoList []*remoteVersionInfo
+		expected              string
 	}{
 		{
-			name: "cli and mesh versions with no control plane installed",
-			versionInfo: versionInfo{
-				cliVersionInfo: &version.Info{
-					Version:   "v0.0.0",
-					GitCommit: "xxxxxxx",
-					BuildDate: "0000-00-00-00:00",
+			name: "mesh versions with one mesh info not found",
+			remoteVersionInfoList: []*remoteVersionInfo{
+				{
+					meshName: "test",
+					version: &version.Info{
+						Version:   "v0.0.0",
+						GitCommit: "xxxxxxx",
+						BuildDate: "0000-00-00-00:00",
+					},
 				},
-				remoteVersionInfo: &remoteVersionInfo{},
+				{
+					meshName: "test2",
+					version: &version.Info{
+						Version:   "v0.0.0",
+						GitCommit: "aaaaaaa",
+						BuildDate: "0000-00-00-00:00",
+					},
+				},
+				{
+					meshName: "",
+					version:  &version.Info{},
+				},
 			},
-			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\nMesh Version: No control plane found in namespace [test]\n",
-			clientOnly: false,
+			expected: "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE" +
+				"\ntest\t\tv0.0.0\txxxxxxx\t0000-00-00-00:00" +
+				"\ntest2\t\tv0.0.0\taaaaaaa\t0000-00-00-00:00\n",
 		},
 		{
-			name: "cli version only",
-			versionInfo: versionInfo{
-				cliVersionInfo: &version.Info{
-					Version:   "v0.0.0",
-					GitCommit: "xxxxxxx",
-					BuildDate: "0000-00-00-00:00",
+			name: "mesh versions with multiple remote version info",
+			remoteVersionInfoList: []*remoteVersionInfo{
+				{
+					meshName: "test",
+					version: &version.Info{
+						Version:   "v0.0.0",
+						GitCommit: "xxxxxxx",
+						BuildDate: "0000-00-00-00:00",
+					},
+				},
+				{
+					meshName: "test2",
+					version: &version.Info{
+						Version:   "v0.0.1",
+						GitCommit: "yyyyyyy",
+						BuildDate: "0000-00-00-00:00",
+					},
+				},
+				{
+					meshName: "test3",
+					version: &version.Info{
+						Version:   "v0.0.2",
+						GitCommit: "xxxxxxy",
+						BuildDate: "0000-00-00-00:00",
+					},
 				},
 			},
-			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\n",
-			clientOnly: true,
+			expected: "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE" +
+				"\ntest\t\tv0.0.0\txxxxxxx\t0000-00-00-00:00" +
+				"\ntest2\t\tv0.0.1\tyyyyyyy\t0000-00-00-00:00" +
+				"\ntest3\t\tv0.0.2\txxxxxxy\t0000-00-00-00:00\n",
 		},
 		{
-			name: "cli and mesh versions with control plane installed",
-			versionInfo: versionInfo{
-				cliVersionInfo: &version.Info{
-					Version:   "v0.0.0",
-					GitCommit: "xxxxxxx",
-					BuildDate: "0000-00-00-00:00",
-				},
-				remoteVersionInfo: &remoteVersionInfo{
+			name: "mesh versions with control plane installed",
+			remoteVersionInfoList: []*remoteVersionInfo{
+				{
 					meshName: "test",
 					version: &version.Info{
 						Version:   "v0.0.0",
@@ -180,21 +211,13 @@ func TestOutputVersionInfo(t *testing.T) {
 					},
 				},
 			},
-			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\nMesh [test] Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\n",
-			clientOnly: false,
+			expected: "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE" +
+				"\ntest\t\tv0.0.0\txxxxxxx\t0000-00-00-00:00\n",
 		},
 		{
-			name: "cli and mesh versions with no remote version info",
-			versionInfo: versionInfo{
-				cliVersionInfo: &version.Info{
-					Version:   "v0.0.0",
-					GitCommit: "xxxxxxx",
-					BuildDate: "0000-00-00-00:00",
-				},
-				remoteVersionInfo: nil,
-			},
-			expected:   "CLI Version: version.Info{Version:\"v0.0.0\", GitCommit:\"xxxxxxx\", BuildDate:\"0000-00-00-00:00\"}\n",
-			clientOnly: false,
+			name:                  "mesh versions with no remote version info",
+			remoteVersionInfoList: nil,
+			expected:              "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n",
 		},
 	}
 
@@ -202,15 +225,12 @@ func TestOutputVersionInfo(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			buf := bytes.NewBuffer(nil)
 			cmd := versionCmd{
-				out:        buf,
-				clientOnly: test.clientOnly,
-				namespace:  "test",
+				namespace: "test",
 			}
-			cmd.outputVersionInfo(test.versionInfo)
+			tbl := cmd.outputPrettyVersionInfo(test.remoteVersionInfoList)
 
-			assert.Equal(test.expected, buf.String())
+			assert.Equal(test.expected, tbl)
 		})
 	}
 }
