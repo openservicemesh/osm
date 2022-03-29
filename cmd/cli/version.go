@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
@@ -24,6 +25,8 @@ type versionCmd struct {
 	out           io.Writer
 	namespace     string
 	clientOnly    bool
+	versionOnly   bool
+	config        *rest.Config
 	clientset     kubernetes.Interface
 	remoteVersion remoteVersionGetter
 }
@@ -35,13 +38,14 @@ type remoteVersionGetter interface {
 type remoteVersion struct{}
 
 type remoteVersionInfo struct {
-	meshName string
-	version  *version.Info
+	meshName  string
+	namespace string
+	version   *version.Info
 }
 
 type versionInfo struct {
-	cliVersionInfo    *version.Info
-	remoteVersionInfo *remoteVersionInfo
+	cliVersionInfo        *version.Info
+	remoteVersionInfoList []*remoteVersionInfo
 }
 
 func newVersionCmd(out io.Writer) *cobra.Command {
@@ -54,19 +58,52 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Long:  versionHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+<<<<<<< HEAD
 			var versionInfo versionInfo
 			var err error
+=======
+			var verInfo versionInfo
+			var multiError *multierror.Error
+>>>>>>> a0d81ccb (ref(cli): refactor version subcommand to search all namespaces (#4611))
+
+			versionCmd.remoteVersion = &remoteVersion{}
 
 			cliVersionInfo := version.GetInfo()
 			verInfo.cliVersionInfo = &cliVersionInfo
 			fmt.Fprintf(versionCmd.out, "CLI Version: %#v\n", *verInfo.cliVersionInfo)
 			if versionCmd.clientOnly {
 				return nil
+<<<<<<< HEAD
 			}
 
 			if err := versionCmd.setKubeClientset(); err != nil {
 				return err
 			}
+=======
+			}
+
+			if err := versionCmd.setKubeClientset(); err != nil {
+				return err
+			}
+
+			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
+			if err != nil {
+				return errors.Wrapf(err, "Unable to list meshes within the cluster.")
+			}
+
+			for _, m := range meshInfoList {
+				versionCmd.namespace = m.namespace
+				meshVer, err := versionCmd.getMeshVersion()
+				if err != nil {
+					multiError = multierror.Append(multiError, errors.Wrap(err, fmt.Sprintf("Failed to get mesh version for mesh %s in namespace %s", m.name, m.namespace)))
+				}
+				verInfo.remoteVersionInfoList = append(verInfo.remoteVersionInfoList, meshVer)
+			}
+
+			w := newTabWriter(versionCmd.out)
+			fmt.Fprint(w, versionCmd.outputPrettyVersionInfo(verInfo.remoteVersionInfoList))
+			_ = w.Flush()
+>>>>>>> a0d81ccb (ref(cli): refactor version subcommand to search all namespaces (#4611))
 
 			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
 			if err != nil {
@@ -127,8 +164,9 @@ func (v *versionCmd) getMeshVersion() (*remoteVersionInfo, error) {
 		return nil, err
 	}
 	versionInfo = &remoteVersionInfo{
-		meshName: controllerPod.Labels[constants.OSMAppInstanceLabelKey],
-		version:  version,
+		meshName:  controllerPod.Labels[constants.OSMAppInstanceLabelKey],
+		namespace: v.namespace,
+		version:   version,
 	}
 	return versionInfo, nil
 }
@@ -151,13 +189,19 @@ func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, client
 	return versionInfo, nil
 }
 
-func (v *versionCmd) outputVersionInfo(versionInfo versionInfo) {
-	fmt.Fprintf(v.out, "CLI Version: %#v\n", *versionInfo.cliVersionInfo)
-	if versionInfo.remoteVersionInfo != nil {
-		if versionInfo.remoteVersionInfo.meshName != "" {
-			fmt.Fprintf(v.out, "Mesh [%s] Version: %#v\n", versionInfo.remoteVersionInfo.meshName, *versionInfo.remoteVersionInfo.version)
-		} else {
-			fmt.Fprintf(v.out, "Mesh Version: No control plane found in namespace [%s]\n", v.namespace)
+func (v *versionCmd) outputPrettyVersionInfo(remoteVerList []*remoteVersionInfo) string {
+	table := "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n"
+	for _, remoteVersionInfo := range remoteVerList {
+		if remoteVersionInfo != nil && remoteVersionInfo.meshName != "" {
+			table += fmt.Sprintf(
+				"%s\t%s\t%s\t%s\t%s\n",
+				remoteVersionInfo.meshName,
+				remoteVersionInfo.namespace,
+				remoteVersionInfo.version.Version,
+				remoteVersionInfo.version.GitCommit,
+				remoteVersionInfo.version.BuildDate,
+			)
 		}
 	}
+	return table
 }
