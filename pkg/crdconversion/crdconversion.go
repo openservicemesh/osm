@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -162,7 +161,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 
 func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
 	for crdName, crdConversionPath := range apiKindToPath {
-		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
+		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
 			return err
 		}
@@ -171,7 +170,7 @@ func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV
 }
 
 // updateCrdConfiguration updates the Conversion section of the CRD and adds a reconcile label if OSM's reconciler is enabled.
-func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
+func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string) error {
 	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -191,15 +190,6 @@ func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.A
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},
-	}
-
-	if enableReconciler {
-		existingLabels := crd.Labels
-		if existingLabels == nil {
-			existingLabels = map[string]string{}
-		}
-		existingLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
-		crd.Labels = existingLabels
 	}
 
 	if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {

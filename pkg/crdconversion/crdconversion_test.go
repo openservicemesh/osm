@@ -2,7 +2,6 @@ package crdconversion
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
@@ -23,14 +22,10 @@ import (
 
 func TestUpdateCrdConfiguration(t *testing.T) {
 	testCases := []struct {
-		name             string
-		enableReconciler bool
+		name string
 	}{
-		{name: "reconciler enabled",
-			enableReconciler: true,
-		},
-		{name: "reconciler disabled",
-			enableReconciler: false,
+		{
+			name: "base case",
 		},
 	}
 
@@ -80,7 +75,7 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 				},
 			})
 
-			err := updateCrdConfiguration(cert, crdClient.ApiextensionsV1(), tests.Namespace, "tests.test.openservicemesh.io", "/testconversion", tc.enableReconciler)
+			err := updateCrdConfiguration(cert, crdClient.ApiextensionsV1(), tests.Namespace, "tests.test.openservicemesh.io", "/testconversion")
 			assert.Nil(err)
 
 			crds, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
@@ -94,10 +89,6 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 			assert.Equal(crd.Spec.Conversion.Webhook.ConversionReviewVersions, conversionReviewVersions)
 
 			assert.Equal(crd.Labels[constants.OSMAppNameLabelKey], constants.OSMAppNameLabelValue)
-			if tc.enableReconciler {
-				assert.Len(crd.Labels, 2)
-				assert.Equal(crd.Labels[constants.ReconcileLabel], strconv.FormatBool(true))
-			}
 		})
 	}
 }
