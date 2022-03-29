@@ -331,9 +331,6 @@ func (d *uninstallMeshCmd) uninstallValidatingWebhookConfigurations() error {
 func (d *uninstallMeshCmd) uninstallSecrets() error {
 	secrets := []string{
 		d.caBundleSecretName,
-		constants.CrdConverterCertificateSecretName,
-		constants.MutatingWebhookCertificateSecretName,
-		constants.ValidatingWebhookCertificateSecretName,
 	}
 
 	var failedDeletions []string

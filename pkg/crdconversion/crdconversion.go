@@ -15,7 +15,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -59,13 +58,6 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
-	}
-
-	// The following function ensures to atomically create or get the certificate from Kubernetes
-	// secret API store. Multiple instances should end up with the same crdConversionwebhookHandlerCert after this function executed.
-	crdConversionWebhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.CrdConverterCertificateSecretName, crdConversionWebhookHandlerCert, kubeClient)
-	if err != nil {
-		return errors.Errorf("Error fetching crd-converter certificate from k8s secret: %s", err)
 	}
 
 	crdWh := crdConversionWebhook{
@@ -195,7 +187,7 @@ func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.A
 					Port:      pointer.Int32(constants.CRDConversionWebhookPort),
 					Path:      &crdConversionPath,
 				},
-				CABundle: cert.GetCertificateChain(),
+				CABundle: cert.GetIssuingCA(),
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},

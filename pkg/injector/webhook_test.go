@@ -77,7 +77,7 @@ func TestCreateMutatingWebhook(t *testing.T) {
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Name, constants.OSMInjectorName)
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Path, &webhookPath)
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Port, &webhookPort)
-	assert.Equal(wh.Webhooks[0].ClientConfig.CABundle, []byte("chain"))
+	assert.Equal(wh.Webhooks[0].ClientConfig.CABundle, []byte("ca"))
 
 	assert.Equal(wh.Webhooks[0].NamespaceSelector.MatchLabels[constants.OSMKubeResourceMonitorAnnotation], meshName)
 	assert.EqualValues(wh.Webhooks[0].NamespaceSelector.MatchExpressions, []metav1.LabelSelectorRequirement{
