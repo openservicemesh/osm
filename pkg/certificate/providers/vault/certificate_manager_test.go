@@ -11,6 +11,7 @@ import (
 	vault "github.com/hashicorp/vault/vault"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -52,6 +53,7 @@ var _ = Describe("Test client helpers", func() {
 })
 
 func TestNew(t *testing.T) {
+	tassert := assert.New(t)
 	token, addr := mockVault(t)
 
 	testCases := []struct {
@@ -101,13 +103,10 @@ func TestNew(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			_, err := New(tc.vaultaddr, tc.token, tc.role)
-
-			if (err == nil) && tc.wantErr {
-				t.Errorf("expected error, got nil")
-			}
-
-			if (err != nil) && !tc.wantErr {
-				t.Errorf("did not expect error, got %v", err)
+			if tc.wantErr {
+				tassert.Error(err, "expected error, got nil")
+			} else {
+				tassert.NoError(err, "did not expect error, got %v", err)
 			}
 		})
 	}
@@ -117,6 +116,7 @@ func TestIssueCertificate(t *testing.T) {
 	var commonName certificate.CommonName = "localhost"
 	var validityPeriod = time.Hour
 
+	tassert := assert.New(t)
 	token, addr := mockVault(t)
 
 	cm, err := New(addr, token, vaultRole)
@@ -147,13 +147,11 @@ func TestIssueCertificate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			_, err = cm.IssueCertificate(tc.cn, tc.vP)
-
-			if (err == nil) && tc.wantErr {
-				t.Errorf("expected error, got nil")
-			}
-
-			if (err != nil) && !tc.wantErr {
-				t.Errorf("did not expect error, got %v", err)
+			if tc.wantErr {
+				tassert.Error(err, "expected error, got nil")
+				return
+			} else {
+				tassert.NoError(err, "did not expect error, got %v", err)
 			}
 		})
 	}
