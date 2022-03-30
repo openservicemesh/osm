@@ -291,24 +291,33 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
 func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[options.VaultProtocol]; !ok {
-		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", options.VaultProtocol)
+		return nil, nil, fmt.Errorf("value %s is not a valid Hashi Vault protocol", options.VaultProtocol)
 	}
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", options.VaultProtocol, options.VaultHost, options.VaultPort)
-	vaultCertManager, err := vault.NewCertManager(
+	vaultClient, err := vault.New(
 		vaultAddr,
 		options.VaultToken,
 		options.VaultRole,
-		c.cfg,
-		c.cfg.GetServiceCertValidityPeriod(),
-		c.msgBroker,
 	)
 	if err != nil {
-		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
+		return nil, nil, fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
 
-	return vaultCertManager, vaultCertManager, nil
+	vaultCert, err := vaultClient.GetRootCertificate()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
+	}
+
+	certManager, err := certificate.NewManager(vaultCert, vaultClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Vault cert-manager : %w", err)
+	}
+
+	rotor.New(certManager).Start(checkCertificateExpirationInterval)
+
+	return certManager, certManager, nil
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider

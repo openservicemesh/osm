@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("Test tools", func() {
-	role := vaultRole(uuid.New().String())
+	role := uuid.New().String()
 
 	Context("Test converting duration into Vault recognizable string", func() {
 		It("converts 36 hours into correct string representation", func() {
@@ -26,15 +26,7 @@ var _ = Describe("Test tools", func() {
 	Context("Test cert issuance URL", func() {
 		It("creates the URL for issuing a new certificate", func() {
 			actual := getIssueURL(role)
-			expected := vaultPath(fmt.Sprintf("pki/issue/%s", role))
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test role config URL", func() {
-		It("creates the URL for role configuration", func() {
-			actual := getRoleConfigURL(role)
-			expected := vaultPath(fmt.Sprintf("pki/roles/%s", role))
+			expected := fmt.Sprintf("pki/issue/%s", role)
 			Expect(actual).To(Equal(expected))
 		})
 	})
