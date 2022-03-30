@@ -53,7 +53,6 @@ var _ = Describe("Test client helpers", func() {
 })
 
 func TestNew(t *testing.T) {
-	tassert := assert.New(t)
 	token, addr := mockVault(t)
 
 	testCases := []struct {
@@ -102,12 +101,14 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
+			tassert := assert.New(t)
 			_, err := New(tc.vaultaddr, tc.token, tc.role)
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
 			} else {
 				tassert.NoError(err, "did not expect error, got %v", err)
 			}
+
 		})
 	}
 }
@@ -116,7 +117,6 @@ func TestIssueCertificate(t *testing.T) {
 	var commonName certificate.CommonName = "localhost"
 	var validityPeriod = time.Hour
 
-	tassert := assert.New(t)
 	token, addr := mockVault(t)
 
 	cm, err := New(addr, token, vaultRole)
@@ -146,13 +146,14 @@ func TestIssueCertificate(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
+			tassert := assert.New(t)
 			_, err = cm.IssueCertificate(tc.cn, tc.vP)
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
-				return
 			} else {
 				tassert.NoError(err, "did not expect error, got %v", err)
 			}
+
 		})
 	}
 }
