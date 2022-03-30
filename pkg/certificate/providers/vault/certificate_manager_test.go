@@ -108,7 +108,6 @@ func TestNew(t *testing.T) {
 			} else {
 				tassert.NoError(err, "did not expect error, got %v", err)
 			}
-
 		})
 	}
 }
@@ -153,7 +152,6 @@ func TestIssueCertificate(t *testing.T) {
 			} else {
 				tassert.NoError(err, "did not expect error, got %v", err)
 			}
-
 		})
 	}
 }
