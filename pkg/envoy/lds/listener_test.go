@@ -43,6 +43,7 @@ var _ = Describe("Construct inbound listeners", func() {
 		It("Tests the inbound listener config", func() {
 			listener := newInboundListener()
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
+			Expect(listener.AccessLog).NotTo(BeEmpty())
 			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
@@ -202,6 +203,7 @@ func TestNewOutboundListener(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Len(listener.ListenerFilters, 3) // OriginalDst, TlsInspector, HttpInspector
+	assert.NotEmpty(listener.AccessLog)
 	assert.Equal(wellknown.TlsInspector, listener.ListenerFilters[1].Name)
 	assert.Equal(&xds_listener.ListenerFilterChainMatchPredicate{
 		Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{

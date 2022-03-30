@@ -42,6 +42,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 				Name: wellknown.OriginalDestination,
 			},
 		},
+		AccessLog: envoy.GetAccessLog(),
 	}
 
 	// Create a default passthrough filter chain when global egress is enabled.
@@ -122,6 +123,7 @@ func newInboundListener() *xds_listener.Listener {
 				Name: wellknown.OriginalDestination,
 			},
 		},
+		AccessLog: envoy.GetAccessLog(),
 	}
 }
 
