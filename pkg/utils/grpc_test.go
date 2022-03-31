@@ -12,7 +12,7 @@ import (
 
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
-	certManager := tresor.NewFakeCertManager(nil)
+	certManager := tresor.NewFake(nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -51,7 +51,7 @@ func TestNewGrpc(t *testing.T) {
 func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
-	certManager := tresor.NewFakeCertManager(nil)
+	certManager := tresor.NewFake(nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -142,9 +140,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	enableReconciler := false
 	validateTrafficTarget := true
 	t.Run("successful startup", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
-		cfg := configurator.NewMockConfigurator(mockCtrl)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresor.NewFake(nil)
 
 		port := 41414
 		stop := make(chan struct{})
@@ -161,9 +157,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
-		cfg := configurator.NewMockConfigurator(mockCtrl)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresor.NewFake(nil)
 		enableReconciler = true
 
 		port := 41414
@@ -176,9 +170,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
-		cfg := configurator.NewMockConfigurator(mockCtrl)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresor.NewFake(nil)
 		enableReconciler = true
 		validateTrafficTarget = false
 

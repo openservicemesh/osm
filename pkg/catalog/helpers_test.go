@@ -53,7 +53,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	stop := make(chan struct{})
 
-	certManager := tresor.NewFakeCertManager(mockConfigurator)
+	certManager := tresor.NewFake(nil)
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)

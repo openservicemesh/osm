@@ -237,19 +237,22 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 		return nil, nil, errors.Errorf("Failed to synchronize certificate on Secrets API : %v", err)
 	}
 
-	certManager, err := tresor.NewCertManager(
+	tresorClient, err := tresor.New(
 		rootCert,
 		rootCertOrganization,
-		c.cfg,
-		c.cfg.GetServiceCertValidityPeriod(),
 		c.cfg.GetCertKeyBitSize(),
-		c.msgBroker,
 	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
 	}
 
-	return certManager, certManager, nil
+	tresorCertManager, err := certificate.NewManager(rootCert, tresorClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Tresor cert-manager : %w", err)
+	}
+	rotor.New(tresorCertManager).Start(checkCertificateExpirationInterval)
+
+	return tresorCertManager, tresorCertManager, nil
 }
 
 // GetCertFromKubernetes is a helper function that loads a certificate from a Kubernetes secret

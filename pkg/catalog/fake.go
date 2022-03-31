@@ -55,7 +55,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	osmMeshConfigName := "-test-osm-mesh-config-"
 	cfg := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
 
-	certManager := tresor.NewFakeCertManager(cfg)
+	certManager := tresor.NewFake(nil)
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
@@ -152,7 +152,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, nil)
 
-	certManager := tresor.NewFakeCertManager(cfg)
+	certManager := tresor.NewFake(nil)
 
 	// Create a Bookstore-v1 pod
 	pod := tests.NewPodFixture(tests.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
