@@ -28,8 +28,8 @@ func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentit
 				log.Error().Msgf("Retry policy destinations must be a service: %s is a %s", dest, dest.Kind)
 				continue
 			}
-			destMeshSvc := service.MeshService{Name: dest.Name, Namespace: dest.Namespace}
-			if upstreamSvc == destMeshSvc {
+
+			if upstreamSvc.Name == dest.Name && upstreamSvc.Namespace == dest.Namespace {
 				// Will return retry policy that applies to the specific upstream service
 				return &retryCRD.Spec.RetryPolicy
 			}

@@ -178,9 +178,6 @@ func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1
 
 	for _, retryInterface := range c.caches.retry.List() {
 		retry := retryInterface.(*policyV1alpha1.Retry)
-		if !c.kubeController.IsMonitoredNamespace(retry.Namespace) {
-			continue
-		}
 		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
 			retries = append(retries, retry)
 		}
