@@ -10,7 +10,7 @@ jobs:
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
-      CTR_TAG: v1.1.0
+      CTR_TAG: latest-main
       CTR_REGISTRY: ${{ github.repository_owner }}
     steps:
       - name: Checkout

@@ -6,7 +6,7 @@ on:
 
 env:
   CTR_REGISTRY: openservicemesh
-  CTR_TAG: v1.1.0
+  CTR_TAG: latest-main
 
 jobs:
   test:
