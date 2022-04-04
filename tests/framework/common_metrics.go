@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -178,7 +179,7 @@ func (g *Grafana) PanelPNGSnapshot(dashboard string, panelID int, fromMinutes in
 	}()
 
 	saveFilepath = fmt.Sprintf("%s%s", saveFilepath, ".png")
-	out, err := os.Create(saveFilepath)
+	out, err := os.Create(filepath.Clean(saveFilepath))
 	if err != nil {
 		return err
 	}
