@@ -351,10 +351,11 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 		return nil, ErrDidNotFindPodForCertificate
 	}
 
-	// --- CONVENTION ---
-	// By Open Service Mesh convention the number of services a pod can belong to is 1
-	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
-	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
+	// Each pod is assigned a unique UUID at the time of sidecar injection.
+	// The certificate's CommonName encodes this UUID, and we lookup the pod
+	// whose label matches this UUID.
+	// Only 1 pod must match the UUID encoded in the given certificate. If multiple
+	// pods match, it is an error.
 	if len(pods) > 1 {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
 			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
