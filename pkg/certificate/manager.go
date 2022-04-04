@@ -21,7 +21,7 @@ func NewManager(
 	ca *Certificate,
 	client client,
 	serviceCertValidityDuration time.Duration,
-	msgBroker *messaging.Broker) (*manager, error) {
+	msgBroker *messaging.Broker) (*manager, error) { //nolint:revive // unexported-return
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
