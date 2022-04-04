@@ -124,7 +124,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		certManager := tresor.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
@@ -208,7 +208,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		certManager := tresor.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)

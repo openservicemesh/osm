@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -101,10 +100,7 @@ func TestNewConversionWebhook(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	keySize := 2048
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
-	fakeCertManager := tresor.NewFakeCertManager(mockConfigurator)
+	fakeCertManager := tresor.NewFake(nil)
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
 	stop := make(<-chan struct{})

@@ -562,7 +562,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresor.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -580,7 +580,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresor.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -855,7 +855,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFakeCertManager(cfg),
+			certManager:         tresor.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
@@ -901,7 +901,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFakeCertManager(cfg),
+			certManager:         tresor.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}

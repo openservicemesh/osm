@@ -63,7 +63,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(err, envoy.ErrInvalidCertificateCN)
 
 	cfg := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
-	certManager := tresor.NewFakeCertManager(cfg)
+	certManager := tresor.NewFake(nil)
 	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with an properly configured proxy

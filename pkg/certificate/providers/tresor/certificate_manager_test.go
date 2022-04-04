@@ -1,17 +1,12 @@
 package tresor
 
 import (
-	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -22,12 +17,6 @@ const (
 var _ = Describe("Test Certificate Manager", func() {
 	defer GinkgoRecover()
 
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-	mockCtrl = gomock.NewController(GinkgoT())
-
 	const serviceFQDN = "a.b.c"
 
 	Context("Test issuing a certificate from a newly created CA", func() {
@@ -37,21 +26,14 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertLocality := "CA"
 		rootCertOrganization := "Open Service Mesh Tresor"
 
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
 			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
-		m, newCertError := NewCertManager(
+		m, newCertError := New(
 			rootCert,
 			"org",
-			mockConfigurator,
-			mockConfigurator.GetServiceCertValidityPeriod(),
-			mockConfigurator.GetCertKeyBitSize(),
-			nil,
+			2048,
 		)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
@@ -79,56 +61,14 @@ var _ = Describe("Test Certificate Manager", func() {
 	})
 
 	Context("Test nil certificate issue", func() {
-		validity := 3 * time.Second
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-		m, newCertError := NewCertManager(
+		m, newCertError := New(
 			nil,
 			"org",
-			mockConfigurator,
-			mockConfigurator.GetServiceCertValidityPeriod(),
-			mockConfigurator.GetCertKeyBitSize(),
-			nil,
+			2048,
 		)
 		It("should return nil and error of no certificate", func() {
 			Expect(m).To(BeNil())
 			Expect(newCertError).To(Equal(errNoIssuingCA))
-		})
-	})
-
-	Context("Test Getting a certificate from the cache", func() {
-		validity := 1 * time.Hour
-		cn := certificate.CommonName("Test CA")
-		rootCertCountry := "US"
-		rootCertLocality := "CA"
-		rootCertOrganization := "Open Service Mesh Tresor"
-
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-
-		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
-		if err != nil {
-			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
-		}
-		m, newCertError := NewCertManager(
-			rootCert,
-			"org",
-			mockConfigurator,
-			mockConfigurator.GetServiceCertValidityPeriod(),
-			mockConfigurator.GetCertKeyBitSize(),
-			nil,
-		)
-		It("should get an issued certificate from the cache", func() {
-			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
-			Expect(issueCertificateError).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
-
-			cachedCert, getCertificateError := m.GetCertificate(serviceFQDN)
-			Expect(getCertificateError).ToNot(HaveOccurred())
-			Expect(cachedCert).To(Equal(cert))
 		})
 	})
 
@@ -143,227 +83,3 @@ var _ = Describe("Test Certificate Manager", func() {
 		})
 	})
 })
-
-func TestReleaseCertificate(t *testing.T) {
-	cn := certificate.CommonName("Test CN")
-	cert := &certificate.Certificate{
-		CommonName: cn,
-		Expiration: time.Now().Add(1 * time.Hour),
-	}
-
-	manager := &CertManager{}
-	manager.cache.Store(cn, cert)
-
-	testCases := []struct {
-		name       string
-		commonName certificate.CommonName
-	}{
-		{
-			name:       "release existing certificate",
-			commonName: cn,
-		},
-		{
-			name:       "release non-existing certificate",
-			commonName: cn,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			manager.ReleaseCertificate(tc.commonName)
-			_, err := manager.GetCertificate(tc.commonName)
-
-			assert.ErrorIs(err, errCertNotFound)
-		})
-	}
-}
-
-func TestGetCertificate(t *testing.T) {
-	cn := certificate.CommonName("Test Cert")
-	cert := &certificate.Certificate{
-		CommonName: cn,
-		Expiration: time.Now().Add(1 * time.Hour),
-	}
-
-	expiredCn := certificate.CommonName("Expired Test Cert")
-	expiredCert := &certificate.Certificate{
-		CommonName: expiredCn,
-		Expiration: time.Now().Add(-1 * time.Hour),
-	}
-
-	manager := &CertManager{}
-	manager.cache.Store(cn, cert)
-	manager.cache.Store(expiredCn, expiredCert)
-
-	testCases := []struct {
-		name                string
-		commonName          certificate.CommonName
-		expectedCertificate *certificate.Certificate
-		expectedErr         error
-	}{
-		{
-			name:                "cache hit",
-			commonName:          cn,
-			expectedCertificate: cert,
-		},
-		{
-			name:        "cache miss",
-			commonName:  certificate.CommonName("Wrong Cert"),
-			expectedErr: errCertNotFound,
-		},
-		{
-			name:        "certificate expiration",
-			commonName:  expiredCn,
-			expectedErr: errCertNotFound,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			c, err := manager.GetCertificate(tc.commonName)
-			if tc.expectedErr != nil {
-				assert.ErrorIs(err, tc.expectedErr)
-				return
-			}
-
-			assert.Nil(err)
-			assert.Equal(tc.expectedCertificate, c)
-		})
-	}
-}
-
-func TestRotateCertificate(t *testing.T) {
-	validity := 1 * time.Hour
-	keySize := 2048
-
-	ca := certificate.CommonName("Test CA")
-	rootCertCountry := "US"
-	rootCertLocality := "CA"
-	rootCertOrganization := "Open Service Mesh"
-
-	rootCert, err := NewCA(ca, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
-	if err != nil {
-		t.Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err)
-	}
-
-	cn := certificate.CommonName("Test Cert")
-
-	oldCert := &certificate.Certificate{
-		CommonName: cn,
-		Expiration: time.Now().Add(-1 * time.Hour),
-	}
-
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
-
-	stop := make(chan struct{})
-	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
-	manager := &CertManager{ca: rootCert, cfg: mockConfigurator, msgBroker: msgBroker}
-	manager.cache.Store(cn, oldCert)
-
-	testCases := []struct {
-		name           string
-		commonName     certificate.CommonName
-		expectedErrMsg string
-	}{
-		{
-			name:           "non-existing cert",
-			commonName:     certificate.CommonName("Wrong Cert"),
-			expectedErrMsg: "Old certificate does not exist for CN=Wrong Cert",
-		},
-		{
-			name:       "existing cert",
-			commonName: cn,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			newCert, err := manager.RotateCertificate(tc.commonName)
-			if len(tc.expectedErrMsg) != 0 {
-				assert.EqualError(err, tc.expectedErrMsg)
-				return
-			}
-
-			assert.Nil(err)
-			assert.Equal(tc.commonName, newCert.GetCommonName())
-			assert.True(newCert.GetExpiration().After(oldCert.GetExpiration()))
-
-			cert, err := manager.GetCertificate(tc.commonName)
-			assert.Nil(err)
-			assert.Equal(newCert, cert)
-		})
-	}
-}
-
-func TestListCertificate(t *testing.T) {
-	assert := tassert.New(t)
-
-	cn := certificate.CommonName("Test Cert")
-	cert := &certificate.Certificate{
-		CommonName: cn,
-	}
-
-	anotherCn := certificate.CommonName("Another Test Cert")
-	anotherCert := &certificate.Certificate{
-		CommonName: anotherCn,
-	}
-
-	expectedCertificates := []*certificate.Certificate{cert, anotherCert}
-
-	manager := &CertManager{}
-	manager.cache.Store(cn, cert)
-	manager.cache.Store(anotherCn, anotherCert)
-
-	cs, err := manager.ListCertificates()
-
-	assert.Nil(err)
-	assert.Len(cs, 2)
-
-	for i, c := range cs {
-		match := false
-		for _, ec := range expectedCertificates {
-			if c.GetCommonName() == ec.GetCommonName() {
-				match = true
-				assert.Equal(ec, c)
-				break
-			}
-		}
-
-		if !match {
-			t.Fatalf("Certificate #%v %v does not exist", i, c.GetCommonName())
-		}
-	}
-}
-
-func TestGetRootCertificate(t *testing.T) {
-	assert := tassert.New(t)
-
-	validity := 1 * time.Hour
-
-	ca := certificate.CommonName("Test CA")
-	rootCertCountry := "US"
-	rootCertLocality := "CA"
-	rootCertOrganization := "Open Service Mesh"
-
-	rootCert, err := NewCA(ca, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
-	if err != nil {
-		t.Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err)
-	}
-
-	manager := &CertManager{ca: rootCert}
-
-	got, err := manager.GetRootCertificate()
-
-	assert.Nil(err)
-	assert.Equal(rootCert, got)
-}

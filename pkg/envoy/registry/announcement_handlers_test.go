@@ -107,7 +107,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 
 			msgBroker := messaging.NewBroker(stop)
 			proxyRegistry := NewProxyRegistry(nil, msgBroker)
-			certManager := tresor.NewFakeCertManager(nil)
+			certManager := tresor.NewFake(msgBroker)
 
 			_, err := certManager.IssueCertificate(proxyCN, 1*time.Hour)
 			a.Nil(err)

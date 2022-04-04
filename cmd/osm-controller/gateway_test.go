@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
@@ -12,17 +11,13 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	fakeCertManager := tresor.NewFakeCertManager(mockConfigurator)
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(15 * time.Second).AnyTimes()
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+	fakeCertManager := tresor.NewFake(nil)
 
 	testCases := []struct {
 		name            string

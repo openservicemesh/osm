@@ -3,13 +3,9 @@ package tresor
 
 import (
 	"math/big"
-	"sync"
-	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -28,18 +24,7 @@ var (
 // CertManager implements certificate.Manager
 type CertManager struct {
 	// The Certificate Authority root certificate to be used by this certificate manager
-	ca *certificate.Certificate
-
-	// Cache for all the certificates issued
-	// Types: map[certificate.CommonName]*certificate.Certificate
-	cache sync.Map
-
+	ca                       *certificate.Certificate
 	certificatesOrganization string
-
-	cfg configurator.Configurator
-
-	serviceCertValidityDuration time.Duration
-	keySize                     int
-
-	msgBroker *messaging.Broker
+	keySize                  int
 }

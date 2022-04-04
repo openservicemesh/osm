@@ -23,7 +23,6 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 		serviceProviders:   serviceProviders,
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
-		certManager:        certManager,
 		policyController:   policyController,
 		configurator:       cfg,
 
