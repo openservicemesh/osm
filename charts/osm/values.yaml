@@ -12,7 +12,7 @@ osm:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "latest-main"
+    tag: ""
     # -- Image name defaults
     name:
       # -- osm-controller's image name
@@ -32,19 +32,19 @@ osm:
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
-      osmController: ""
+      osmController: "sha256:afe9bac0cd67018cff956c4fa1bd1fd8792ffa7938e978a16f772f9fdb4f94f5"
       # -- osm-injector's image digest
-      osmInjector: ""
+      osmInjector: "sha256:a6d688b3b2777a10b702b947528cb19e5a61ebca675b51d19457a96fd105d640"
       # -- Sidecar init container's image digest
-      osmSidecarInit: ""
+      osmSidecarInit: "sha256:f87c4cf91b8ff6721133dce7ae889504b1061935a4d7b010f818b62b39268817"
       # -- osm-crds' image digest
-      osmCRDs: ""
+      osmCRDs: "sha256:f5963ed9c41ad88f6be14d236d9aae5ec3f333a388ad4a992ff0afc9f374951d"
       # -- osm-boostrap's image digest
-      osmBootstrap: ""
+      osmBootstrap: "sha256:6b1cbe1ba00c5d3c1ae0b2355b48e8efbcc44ce0a9c79324c36f3b1e43a54d61"
       # -- osm-preinstall's image digest
-      osmPreinstall: ""
+      osmPreinstall: "sha256:704b1c8af9918b61585b3d7157acee28ff4dc1ecfd3d1b210b80cb688986f177"
       # -- osm-healthcheck's image digest
-      osmHealthcheck: ""
+      osmHealthcheck: "sha256:b9caaa6926a8d7e6ca6f5551808d1c572ddcb7dc596fb039bdb326ade4539496"
 
 
   # -- `osm-controller` image pull secret
