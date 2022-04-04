@@ -12,7 +12,7 @@ osm:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "v1.1.0"
+    tag: ""
     # -- Image name defaults
     name:
       # -- osm-controller's image name
