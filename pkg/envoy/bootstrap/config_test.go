@@ -10,6 +10,52 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+func TestBuildTLSSecret(t *testing.T) {
+	assert := tassert.New(t)
+
+	tlsSecret, err := BuildTLSSecret()
+	assert.Nil(err)
+	assert.NotNil(tlsSecret)
+
+	actualYAML, err := utils.ProtoToYAML(tlsSecret)
+	assert.Nil(err)
+
+	expectedYAML := `resources:
+- '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
+  name: tls_sds
+  tls_certificate:
+    certificate_chain:
+      filename: /certs/current/sds_cert.pem
+    private_key:
+      filename: /certs/current/sds_key.pem
+    watched_directory:
+      path: /certs
+`
+	assert.Equal(expectedYAML, string(actualYAML))
+}
+
+func TestBuildValidationSecret(t *testing.T) {
+	assert := tassert.New(t)
+
+	tlsSecret, err := BuildTLSSecret()
+	assert.Nil(err)
+	assert.NotNil(tlsSecret)
+
+	actualYAML, err := utils.ProtoToYAML(tlsSecret)
+	assert.Nil(err)
+
+	expectedYAML := `resources:
+- '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
+  name: validation_context_sds
+  validation_context:
+    trusted_ca:
+      filename: /certs/current/cacert.pem
+    watched_directory:
+      path: /certs
+`
+	assert.Equal(expectedYAML, string(actualYAML))
+}
+
 func TestBuildFromConfig(t *testing.T) {
 	assert := tassert.New(t)
 	cert := tresorFake.NewFakeCertificate()
@@ -18,9 +64,6 @@ func TestBuildFromConfig(t *testing.T) {
 		NodeID:                cert.GetCommonName().String(),
 		AdminPort:             15000,
 		XDSClusterName:        constants.OSMControllerName,
-		TrustedCA:             cert.GetIssuingCA(),
-		CertificateChain:      cert.GetCertificateChain(),
-		PrivateKey:            cert.GetPrivateKey(),
 		XDSHost:               "osm-controller.osm-system.svc.cluster.local",
 		XDSPort:               15128,
 		TLSMinProtocolVersion: "TLSv1_0",
@@ -79,12 +122,15 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
         common_tls_context:
           alpn_protocols:
-          - h2
-          tls_certificates:
-          - certificate_chain:
-              inline_bytes: eHg=
-            private_key:
-              inline_bytes: eXk=
+          - h2=
+          tls_certificate_sds_secret_configs:
+            name: tls_sds
+            sds_config:
+              path: /etc/envoy/tls_certificate_sds_secret.yaml
+          validation_context_sds_secret_config:
+            name: validation_context_sds
+            sds_config:
+              path: /etc/envoy/validation_context_sds_secret.yaml
           tls_params:
             cipher_suites:
             - abc
@@ -94,9 +140,6 @@ static_resources:
             - XYZ
             tls_maximum_protocol_version: TLSv1_2
             tls_minimum_protocol_version: TLSv1_0
-          validation_context:
-            trusted_ca:
-              inline_bytes: eHg=
     type: LOGICAL_DNS
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:

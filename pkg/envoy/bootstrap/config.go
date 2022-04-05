@@ -9,78 +9,54 @@ import (
 	xds_accesslog_stream "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
-	"gopkg.in/yaml.v2"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
-func BuildTLSSecret(config Config) ([]byte, error) {
-	tlsYaml := map[interface{}]interface{}{
-		"resources": []map[string]interface{}{
-			{
-				"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-				"name":  "tls_sds",
-				"tls_certificate": map[string]interface{}{
-					"certificate_chain": map[string]interface{}{
-						"filename": "/certs/current/sds_cert.pem",
-					},
-					"private_key": map[string]interface{}{
-						"filename": "/certs/current/sds_key.pem",
-					},
-					"watched_directory": map[string]interface{}{
-						"path": "/certs",
+// BuildTLSSecret builds and returns an Envoy Discovery Response object for Envoy's xDS TLS
+// Certificate
+func BuildTLSSecret() (*xds_discovery.DiscoveryResponse, error) {
+	secret := &xds_transport_sockets.Secret{
+		Name: "tls_sds",
+		Type: &xds_transport_sockets.Secret_TlsCertificate{
+			TlsCertificate: &xds_transport_sockets.TlsCertificate{
+				CertificateChain: &xds_core.DataSource{
+					Specifier: &xds_core.DataSource_Filename{
+						Filename: "/certs/current/sds_cert.pem",
 					},
 				},
-			},
-		},
-	} /*
-		secret := &xds_transport_sockets.Secret{
-			Name: "tls_sds",
-			Type: &xds_transport_sockets.Secret_TlsCertificate{
-				TlsCertificate: &xds_transport_sockets.TlsCertificate{
-					CertificateChain: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_Filename{
-							Filename: "/certs/current/sds_cert.pem",
-						},
-					},
-					PrivateKey: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_Filename{
-							Filename: "/certs/current/sds_key.pem",
-						},
-					},
-					WatchedDirectory: &xds_core.WatchedDirectory{
-						Path: "/certs",
+				PrivateKey: &xds_core.DataSource{
+					Specifier: &xds_core.DataSource_Filename{
+						Filename: "/certs/current/sds_key.pem",
 					},
 				},
-			},
-		}*/
-	yamlout, _ := yaml.Marshal(tlsYaml)
-	return yamlout, nil
-}
-
-func BuildValidationSecret(config Config) ([]byte, error) {
-	validationYaml := map[string]interface{}{
-		"resources": []map[string]interface{}{
-			{
-				"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-				"name":  "validation_context_sds",
-				"validation_context": map[string]interface{}{
-					"trusted_ca": map[string]interface{}{
-						"filename": "/certs/current/cacert.pem",
-					},
-					"watched_directory": map[string]interface{}{
-						"path": "/certs",
-					},
+				WatchedDirectory: &xds_core.WatchedDirectory{
+					Path: "/certs",
 				},
 			},
 		},
 	}
-	/*secret := &xds_transport_sockets.Secret{
-		Name: "tls_sds",
+	marshalledSecret, err := anypb.New(secret)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling Secret for Envoy's xDS TLS certificate resource")
+		return nil, err
+	}
+
+	return &xds_discovery.DiscoveryResponse{
+		Resources: []*any.Any{marshalledSecret},
+	}, nil
+}
+
+// BuildValidationSecret builds and returns an Envoy Discovery Response object for Envoy's xDS
+// Validation Context
+func BuildValidationSecret() (*xds_discovery.DiscoveryResponse, error) {
+	secret := &xds_transport_sockets.Secret{
+		Name: "validation_context_sds",
 		Type: &xds_transport_sockets.Secret_ValidationContext{
 			ValidationContext: &xds_transport_sockets.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
@@ -93,9 +69,16 @@ func BuildValidationSecret(config Config) ([]byte, error) {
 				},
 			},
 		},
-	}*/
-	yamlout, _ := yaml.Marshal(validationYaml)
-	return yamlout, nil
+	}
+	marshalledSecret, err := anypb.New(secret)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling Secret for Envoy's xDS Validation Context resource")
+		return nil, err
+	}
+
+	return &xds_discovery.DiscoveryResponse{
+		Resources: []*any.Any{marshalledSecret},
+	}, nil
 }
 
 // BuildFromConfig builds and returns an Envoy Bootstrap object from the given config
@@ -132,15 +115,6 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			AlpnProtocols: []string{
 				"h2",
 			},
-			/*ValidationContextType: &xds_transport_sockets.CommonTlsContext_ValidationContext{
-				ValidationContext: &xds_transport_sockets.CertificateValidationContext{
-					TrustedCa: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.TrustedCA,
-						},
-					},
-				},
-			},*/
 			ValidationContextType: &xds_transport_sockets.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_transport_sockets.SdsSecretConfig{
 					Name: "validation_context_sds",
@@ -167,20 +141,6 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 					},
 				},
 			},
-			/*TlsCertificates: []*xds_transport_sockets.TlsCertificate{
-				{
-					CertificateChain: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.CertificateChain,
-						},
-					},
-					PrivateKey: &xds_core.DataSource{
-						Specifier: &xds_core.DataSource_InlineBytes{
-							InlineBytes: config.PrivateKey,
-						},
-					},
-				},
-			},*/
 		},
 	}
 	pbUpstreamTLSContext, err := anypb.New(upstreamTLSContext)

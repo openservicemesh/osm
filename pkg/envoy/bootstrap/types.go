@@ -24,16 +24,6 @@ type Config struct {
 	// NodeID is the proxy's node ID
 	NodeID string
 
-	// TrustedCA is the trusted certificate authority used to validate the certificate
-	// presented by the XDS cluster during a TLS handshake
-	TrustedCA []byte
-
-	// CertificateChain is the certificate used by the proxy to connect to the XDS cluster
-	CertificateChain []byte
-
-	// PrivateKey is the private key for the certificate used by the proxy to connect to the XDS cluster
-	PrivateKey []byte
-
 	// TLSMinProtocolVersion is the minimum supported TLS protocol version
 	TLSMinProtocolVersion string
 

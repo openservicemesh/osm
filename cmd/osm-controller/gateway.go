@@ -47,14 +47,11 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 	}
 
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
-		NodeID:           bootstrapCert.GetCommonName().String(),
-		AdminPort:        constants.EnvoyAdminPort,
-		XDSClusterName:   constants.OSMControllerName,
-		XDSHost:          fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
-		XDSPort:          constants.ADSServerPort,
-		TrustedCA:        bootstrapCert.GetIssuingCA(),
-		CertificateChain: bootstrapCert.GetCertificateChain(),
-		PrivateKey:       bootstrapCert.GetPrivateKey(),
+		NodeID:         bootstrapCert.GetCommonName().String(),
+		AdminPort:      constants.EnvoyAdminPort,
+		XDSClusterName: constants.OSMControllerName,
+		XDSHost:        fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
+		XDSPort:        constants.ADSServerPort,
 	})
 	if err != nil {
 		return errors.Errorf("Error building OSM gateway's bootstrap config from %s/%s", osmNamespace, gatewayBootstrapSecretName)

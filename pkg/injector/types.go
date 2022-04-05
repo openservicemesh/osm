@@ -15,6 +15,7 @@ import (
 
 const (
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
+	envoyXDSSecretVolume       = "envoy-xds-secret-volume"
 )
 
 var log = logger.New("sidecar-injector")
@@ -45,9 +46,6 @@ type envoyBootstrapConfigMeta struct {
 	EnvoyAdminPort uint32
 	XDSClusterName string
 	NodeID         string
-	RootCert       []byte
-	Cert           []byte
-	Key            []byte
 
 	// Host and port of the Envoy xDS server
 	XDSHost string

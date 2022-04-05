@@ -13,6 +13,7 @@ import (
 const (
 	envoyBootstrapConfigFile = "bootstrap.yaml"
 	envoyProxyConfigPath     = "/etc/envoy"
+	envoyXDSSecretPath       = "/certs/current"
 )
 
 func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
@@ -56,9 +57,9 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 				MountPath: envoyProxyConfigPath,
 			},
 			{
-				Name:      "bootstrapsecret",
+				Name:      envoyXDSSecretVolume,
 				ReadOnly:  false,
-				MountPath: "/certs/current",
+				MountPath: envoyXDSSecretPath,
 			},
 		},
 		Command:   []string{"envoy"},

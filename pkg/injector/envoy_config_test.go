@@ -118,10 +118,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	}
 
 	config := envoyBootstrapConfigMeta{
-		NodeID:   cert.GetCommonName().String(),
-		RootCert: cert.GetIssuingCA(),
-		Cert:     cert.GetCertificateChain(),
-		Key:      cert.GetPrivateKey(),
+		NodeID: cert.GetCommonName().String(),
 
 		EnvoyAdminPort: 15000,
 
@@ -300,6 +297,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 						ReadOnly:  true,
 						MountPath: envoyProxyConfigPath,
 					},
+					{
+						Name:      envoyXDSSecretVolume,
+						ReadOnly:  false,
+						MountPath: envoyXDSSecretPath,
+					},
 				},
 				Resources: corev1.ResourceRequirements{
 					// Test set Limits
@@ -425,6 +427,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 						Name:      envoyBootstrapConfigVolume,
 						ReadOnly:  true,
 						MountPath: envoyProxyConfigPath,
+					},
+					{
+						Name:      envoyXDSSecretVolume,
+						ReadOnly:  false,
+						MountPath: envoyXDSSecretPath,
 					},
 				},
 				Resources: corev1.ResourceRequirements{

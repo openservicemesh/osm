@@ -24,9 +24,6 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 		NodeID:                config.NodeID,
 		AdminPort:             constants.EnvoyAdminPort,
 		XDSClusterName:        constants.OSMControllerName,
-		TrustedCA:             config.RootCert,
-		CertificateChain:      config.Cert,
-		PrivateKey:            config.Key,
 		XDSHost:               config.XDSHost,
 		XDSPort:               config.XDSPort,
 		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
@@ -55,62 +52,36 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	return configYAML, nil
 }
 
-func getTlsSdsYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
-	tlssdssecret, err := bootstrap.BuildTLSSecret(bootstrap.Config{
-		NodeID:                config.NodeID,
-		AdminPort:             constants.EnvoyAdminPort,
-		XDSClusterName:        constants.OSMControllerName,
-		TrustedCA:             config.RootCert,
-		CertificateChain:      config.Cert,
-		PrivateKey:            config.Key,
-		XDSHost:               config.XDSHost,
-		XDSPort:               config.XDSPort,
-		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
-		TLSMaxProtocolVersion: config.TLSMaxProtocolVersion,
-		CipherSuites:          config.CipherSuites,
-		ECDHCurves:            config.ECDHCurves,
-	})
+func getTlsSdsConfigYAML() ([]byte, error) {
+	tlsSdsConfig, err := bootstrap.BuildTLSSecret()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
 		return nil, err
 	}
 
-	/*configYAML, err := utils.ProtoToYAML(tlssdssecret)
+	configYAML, err := utils.ProtoToYAML(tlsSdsConfig)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
-			Msgf("Failed to marshal envoy tlssdssecret to yaml")
+			Msgf("Failed to marshal envoy tlsSdsConfig to yaml")
 		return nil, err
-	}*/
-	return tlssdssecret, nil
+	}
+	return configYAML, nil
 }
 
-func getValidationContextSdsYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
-	validationcontextsdssecret, err := bootstrap.BuildValidationSecret(bootstrap.Config{
-		NodeID:                config.NodeID,
-		AdminPort:             constants.EnvoyAdminPort,
-		XDSClusterName:        constants.OSMControllerName,
-		TrustedCA:             config.RootCert,
-		CertificateChain:      config.Cert,
-		PrivateKey:            config.Key,
-		XDSHost:               config.XDSHost,
-		XDSPort:               config.XDSPort,
-		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
-		TLSMaxProtocolVersion: config.TLSMaxProtocolVersion,
-		CipherSuites:          config.CipherSuites,
-		ECDHCurves:            config.ECDHCurves,
-	})
+func getValidationContextSdsConfigYAML() ([]byte, error) {
+	validationContextSdsConfig, err := bootstrap.BuildValidationSecret()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
 		return nil, err
 	}
 
-	/*configYAML, err := utils.ProtoToYAML(validationcontextsdssecret)
+	configYAML, err := utils.ProtoToYAML(validationContextSdsConfig)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
-			Msgf("Failed to marshal envoy validationcontextsdssecret to yaml")
+			Msgf("Failed to marshal envoy validationContextSdsConfig to yaml")
 		return nil, err
-	}*/
-	return validationcontextsdssecret, nil
+	}
+	return configYAML, nil
 }
 
 // getProbeResources returns the listener and cluster objects that are statically configured to serve
@@ -165,10 +136,6 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		XDSClusterName: constants.OSMControllerName,
 		NodeID:         cert.GetCommonName().String(),
 
-		RootCert: cert.GetIssuingCA(),
-		Cert:     cert.GetCertificateChain(),
-		Key:      cert.GetPrivateKey(),
-
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.ADSServerPort,
 
@@ -187,15 +154,15 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		return nil, err
 	}
 
-	tlsYamlContent, err := getTlsSdsYAML(configMeta)
+	tlsYamlContent, err := getTlsSdsConfigYAML()
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Envoy tls YAML")
+		log.Error().Err(err).Msg("Error creating Envoy TLS SDS Config YAML")
 		return nil, err
 	}
 
-	validationYamlContent, err := getValidationContextSdsYAML(configMeta)
+	validationYamlContent, err := getValidationContextSdsConfigYAML()
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Envoy validation YAML")
+		log.Error().Err(err).Msg("Error creating Envoy Validation SDS Config YAML")
 		return nil, err
 	}
 
@@ -217,65 +184,16 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
 		log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
-		wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-	} else {
-		log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
-		wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
-	/*
-		tlssdssecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "tlssds",
-				Labels: map[string]string{
-					constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-					constants.OSMAppInstanceLabelKey: wh.meshName,
-					constants.OSMAppVersionLabelKey:  version.Version,
-				},
-			},
-			Data: map[string][]byte{
-				"tls_certificate_sds_secret.yaml": tlsYamlContent,
-			},
-		}
-		if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), "tlssds", metav1.GetOptions{}); err == nil {
-			log.Debug().Msgf("Updating tlssds: name=%s, namespace=%s", "tlssds", namespace)
-			existing.Data = tlssdssecret.Data
-			wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-		} else {
-			log.Debug().Msgf("Creating tlssds for Envoy: name=%s, namespace=%s", "tlssds", namespace)
-			wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), tlssdssecret, metav1.CreateOptions{})
-		}
+	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
+	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+}
 
-		validationYamlContent, err := getValidationContextSdsYAML(configMeta)
-		if err != nil {
-			log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
-			return nil, err
-		}
-		validationcontextsdssecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "validationcontextsds",
-				Labels: map[string]string{
-					constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-					constants.OSMAppInstanceLabelKey: wh.meshName,
-					constants.OSMAppVersionLabelKey:  version.Version,
-				},
-			},
-			Data: map[string][]byte{
-				"validation_context_sds_secret.yaml": validationYamlContent,
-			},
-		}
-		if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), "validationcontextsds", metav1.GetOptions{}); err == nil {
-			log.Debug().Msgf("Updating tlssds: name=%s, namespace=%s", "validationcontextsds", namespace)
-			existing.Data = validationcontextsdssecret.Data
-			return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-		} else {
-			log.Debug().Msgf("Creating tlssds for Envoy: name=%s, namespace=%s", "validationcontextsds", namespace)
-			wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), validationcontextsdssecret, metav1.CreateOptions{})
-		}
-	*/
-	secretname := fmt.Sprintf("%s%s", name, "bootstrapsecret")
+func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *certificate.Certificate) (*corev1.Secret, error) {
 	certsecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: secretname,
+			Name: name,
 			Labels: map[string]string{
 				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
 				constants.OSMAppInstanceLabelKey: wh.meshName,
@@ -288,13 +206,12 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 			"sds_key.pem":  cert.GetPrivateKey(),
 		},
 	}
-	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretname, metav1.GetOptions{}); err == nil {
-		log.Debug().Msgf("Updating tlssds: name=%s, namespace=%s", secretname, namespace)
+	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
+		log.Debug().Msgf("Updating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
 		existing.Data = certsecret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
-	log.Debug().Msgf("Creating tlssds for Envoy: name=%s, namespace=%s", secretname, namespace)
+	log.Debug().Msgf("Creating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), certsecret, metav1.CreateOptions{})
-
 }

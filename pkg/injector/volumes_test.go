@@ -10,15 +10,25 @@ import (
 var _ = Describe("Test volume functions", func() {
 	Context("Test getVolumeSpec", func() {
 		It("creates volume spec", func() {
-			actual := getVolumeSpec("-envoy-config-")
-			expected := []v1.Volume{{
-				Name: "envoy-bootstrap-config-volume",
-				VolumeSource: v1.VolumeSource{
-					Secret: &v1.SecretVolumeSource{
-						SecretName: "-envoy-config-",
+			actual := getVolumeSpec("-envoy-config-", "-envoy-xds-secret-")
+			expected := []v1.Volume{
+				{
+					Name: "envoy-bootstrap-config-volume",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "-envoy-config-",
+						},
 					},
 				},
-			}}
+				{
+					Name: "envoy-xds-secret-volume",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "-envoy-xds-secret-",
+						},
+					},
+				},
+			}
 			Expect(actual).To(Equal(expected))
 		})
 	})
