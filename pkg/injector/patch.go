@@ -44,9 +44,9 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
 	envoyXDSSecretName := fmt.Sprintf("envoy-xds-secret-%s", proxyUUID)
 
-	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-	// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
-	// when the request is a DryRun.
+	// The webhook has a side effect (making out-of-band changes) of creating a k8s ConfigMap
+	// and Secret corresponding to the Envoy bootstrap config. Such a side effect needs to be
+	// skipped when the request is a DryRun.
 	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 	if req.DryRun != nil && *req.DryRun {
 		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
@@ -58,7 +58,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	if req.DryRun != nil && *req.DryRun {
 		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 	} else if _, err = wh.createEnvoyXDSSecret(envoyXDSSecretName, namespace, bootstrapCertificate); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+		log.Error().Err(err).Msgf("Failed to create Envoy xDS secrets for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
 		return nil, err
 	}
 

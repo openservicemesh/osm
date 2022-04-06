@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	envoyBootstrapConfigFile = "bootstrap.yaml"
-	envoyProxyConfigPath     = "/etc/envoy"
-	envoyXDSSecretPath       = "/certs/current"
+	envoyBootstrapConfigFile            = "bootstrap.yaml"
+	envoyTLSCertificateSDSSecretFile    = "tls_certificate_sds_secret.yaml"
+	envoyValidationContextSDSSecretFile = "validation_context_sds_secret.yaml"
+	envoyProxyConfigPath                = "/etc/envoy"
+	envoyXDSSecretPath                  = "/certs/current"
 )
 
 func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {

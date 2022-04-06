@@ -10,8 +10,10 @@ func getVolumeSpec(envoyBootstrapConfigName, envoyXDSSecretName string) []corev1
 		{
 			Name: envoyBootstrapConfigVolume,
 			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: envoyBootstrapConfigName,
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: envoyBootstrapConfigName,
+					},
 				},
 			},
 		},

@@ -15,8 +15,10 @@ var _ = Describe("Test volume functions", func() {
 				{
 					Name: "envoy-bootstrap-config-volume",
 					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
-							SecretName: "-envoy-config-",
+						ConfigMap: &v1.ConfigMapVolumeSource{
+							LocalObjectReference: v1.LocalObjectReference{
+								Name: "-envoy-config-",
+							},
 						},
 					},
 				},

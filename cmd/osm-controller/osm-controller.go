@@ -276,8 +276,8 @@ func main() {
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
-	// Start the k8s pod watcher that updates corresponding k8s secrets
-	go k8s.WatchAndUpdateProxyBootstrapSecret(kubeClient, msgBroker, stop)
+	// Start the k8s pod watcher that updates corresponding k8s ConfigMaps and Secrets
+	go k8s.WatchAndUpdateProxyBootstrap(kubeClient, msgBroker, stop)
 	// Start the global log level watcher that updates the log level dynamically
 	go k8s.WatchAndUpdateLogLevel(msgBroker, stop)
 

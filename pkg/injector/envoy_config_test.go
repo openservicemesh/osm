@@ -36,8 +36,12 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		// to every new Pod that is being created in a namespace participating in the service mesh.
 		// We deliberately leave this entire string literal here to document and visualize what the
 		// generated YAML looks like!
-		expectedEnvoyBootstrapConfigFileName        = "expected_envoy_bootstrap_config.yaml"
-		actualGeneratedEnvoyBootstrapConfigFileName = "actual_envoy_bootstrap_config.yaml"
+		expectedEnvoyBootstrapConfigFileName                   = "expected_envoy_bootstrap_config.yaml"
+		actualGeneratedEnvoyBootstrapConfigFileName            = "actual_envoy_bootstrap_config.yaml"
+		expectedEnvoyTLSCertificateSDSSecretFileName           = "expected_tls_certificate_sds_secret.yaml"
+		actualGeneratedEnvoyTLSCertificateSDSSecretFileName    = "actual_tls_certificate_sds_secret.yaml"
+		expectedEnvoyValidationContextSDSSecretFileName        = "expected_validation_context_sds_secret.yaml"
+		actualGeneratedEnvoyValidationContextSDSSecretFileName = "actual_validation_context_sds_secret.yaml"
 
 		// All the YAML files listed above are in this sub-directory
 		directoryForYAMLFiles = "test_fixtures"
@@ -133,7 +137,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		ECDHCurves:            meshConfig.Spec.Sidecar.ECDHCurves,
 	}
 
-	Context("Test getEnvoyConfigYAML()", func() {
+	Context("Test createEnvoyBootStrapConfig()", func() {
 		It("creates Envoy bootstrap config", func() {
 			config.OriginalHealthProbes = probes
 			actual, err := getEnvoyConfigYAML(config, mockConfigurator)
@@ -145,6 +149,30 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			Expect(string(actual)).To(Equal(expectedEnvoyConfig),
 				fmt.Sprintf("Compare files %s and %s\nExpected:\n%s\nActual:\n%s\n",
 					expectedEnvoyBootstrapConfigFileName, actualGeneratedEnvoyBootstrapConfigFileName, expectedEnvoyConfig, string(actual)))
+		})
+
+		It("creates Envoy TLS certificate SDS secret", func() {
+			actual, err := getTlsSdsConfigYAML()
+			Expect(err).ToNot(HaveOccurred())
+			saveActualEnvoyYAML(actualGeneratedEnvoyTLSCertificateSDSSecretFileName, actual)
+
+			expectedTLSCertificateSDSSecret := getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)
+
+			Expect(string(actual)).To(Equal(expectedTLSCertificateSDSSecret),
+				fmt.Sprintf("Compare files %s and %s\nExpected:\n%s\nActual:\n%s\n",
+					expectedEnvoyTLSCertificateSDSSecretFileName, actualGeneratedEnvoyTLSCertificateSDSSecretFileName, expectedTLSCertificateSDSSecret, string(actual)))
+		})
+
+		It("creates Envoy Validation Context SDS secret", func() {
+			actual, err := getValidationContextSdsConfigYAML()
+			Expect(err).ToNot(HaveOccurred())
+			saveActualEnvoyYAML(actualGeneratedEnvoyValidationContextSDSSecretFileName, actual)
+
+			expectedValidationContextSDSSecret := getExpectedEnvoyYAML(expectedEnvoyValidationContextSDSSecretFileName)
+
+			Expect(string(actual)).To(Equal(expectedValidationContextSDSSecret),
+				fmt.Sprintf("Compare files %s and %s\nExpected:\n%s\nActual:\n%s\n",
+					expectedEnvoyValidationContextSDSSecretFileName, actualGeneratedEnvoyValidationContextSDSSecretFileName, expectedValidationContextSDSSecret, string(actual)))
 		})
 
 		It("Creates bootstrap config for the Envoy proxy", func() {
@@ -162,7 +190,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := corev1.Secret{
+			expected := corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
@@ -172,8 +200,10 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 						constants.OSMAppVersionLabelKey:  version.Version,
 					},
 				},
-				Data: map[string][]byte{
-					envoyBootstrapConfigFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+				BinaryData: map[string][]byte{
+					envoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+					envoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
+					envoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
 				},
 			}
 
@@ -220,7 +250,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			expected := corev1.Secret{
 				ObjectMeta: meta,
 				Data: map[string][]byte{
-					envoyBootstrapConfigFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+					envoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+					envoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
+					envoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
 				},
 			}
 

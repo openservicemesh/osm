@@ -33,7 +33,7 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 
 	// Start the function being tested
-	go WatchAndUpdateProxyBootstrapSecret(kubeClient, msgBroker, stop)
+	go WatchAndUpdateProxyBootstrap(kubeClient, msgBroker, stop)
 	// Subscription should happen before an event is published by the test, so
 	// add a delay before the test triggers events
 	time.Sleep(500 * time.Millisecond)
@@ -41,10 +41,18 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 	podName := "app"
 	namespace := "app"
 	envoyBootstrapConfigVolume := "envoy-bootstrap-config-volume"
+	envoyXDSSecretVolume := "envoy-xds-secret-volume"
 	podUUID := uuid.New().String()
 	podUID := uuid.New().String()
-	secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+	configMapName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+	secretName := fmt.Sprintf("envoy-xds-secret-%s", podUUID)
 
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+		},
+	}
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -68,11 +76,23 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 						},
 					},
 				},
+				{
+					Name: envoyXDSSecretVolume,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: configMapName,
+							},
+						},
+					},
+				},
 			},
 		},
 	}
 
-	_, err := kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), &secret, metav1.CreateOptions{})
+	_, err := kubeClient.CoreV1().ConfigMaps(namespace).Create(context.Background(), &configMap, metav1.CreateOptions{})
+	a.Nil(err)
+	_, err = kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), &secret, metav1.CreateOptions{})
 	a.Nil(err)
 	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.Background(), &pod, metav1.CreateOptions{})
 	a.Nil(err)
@@ -91,16 +111,35 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 		UID:        pod.UID,
 	}
 
-	// Expect the OwnerReference to be updated eventually
-	a.Eventually(func() bool {
+	foundSecretOwnerRef := func() bool {
 		secret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
-		a.Nil(err)
+		if err != nil {
+			return false
+		}
 		for _, ownerReference := range secret.GetOwnerReferences() {
 			if reflect.DeepEqual(ownerReference, expectedOwnerReference) {
 				return true
 			}
 		}
 		return false
+	}
+
+	foundConfigMapOwnerRef := func() bool {
+		configMap, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+		for _, ownerReference := range configMap.GetOwnerReferences() {
+			if reflect.DeepEqual(ownerReference, expectedOwnerReference) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Expect the OwnerReference to be updated eventually
+	a.Eventually(func() bool {
+		return foundSecretOwnerRef() && foundConfigMapOwnerRef()
 	}, 1*time.Second, 50*time.Millisecond)
 }
 
