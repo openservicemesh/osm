@@ -47,12 +47,13 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				}
 
 				// Get simple pod definitions for the HTTP server
+				destinationPort := fortioHTTPPort
 				serverSvcAccDef, serverPodDef, serverSvcDef, err := Td.SimplePodApp(
 					SimplePodAppDef{
 						PodName:   framework.RandomNameWithPrefix("pod"),
 						Namespace: serverNamespace,
-						Image:     "kennethreitz/httpbin",
-						Ports:     []int{80},
+						Image:     fortioImageName,
+						Ports:     []int{destinationPort},
 						OS:        Td.ClusterOS,
 					})
 				Expect(err).NotTo(HaveOccurred())
@@ -72,10 +73,8 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 					PodName:       framework.RandomNameWithPrefix("pod"),
 					Namespace:     clientNamespace,
 					ContainerName: clientContainerName,
-					Command:       []string{"/bin/bash", "-c", "--"},
-					Args:          []string{"while true; do sleep 30; done;"},
-					Image:         "songrgg/alpine-debug",
-					Ports:         []int{80},
+					Image:         fortioImageName,
+					Ports:         []int{destinationPort},
 					OS:            Td.ClusterOS,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -94,7 +93,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
 					SimpleAllowPolicy{
 						RouteGroupName:    "routes",
-						TrafficTargetName: "test-target",
+						TrafficTargetName: "target",
 
 						SourceNamespace:      clientNamespace,
 						SourceSVCAccountName: clientSvcAccDef.Name,
@@ -114,19 +113,21 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				for i := 0; i < 2; i++ {
 					cond := Td.WaitForRepeatedSuccess(func() bool {
 						result :=
-							Td.HTTPRequest(HTTPRequestDef{
-								SourceNs:        srcPod.Namespace,
-								SourcePod:       srcPod.Name,
-								SourceContainer: clientContainerName,
+							Td.FortioHTTPLoadTest(FortioHTTPLoadTestDef{
+								HTTPRequestDef: HTTPRequestDef{
+									SourceNs:        srcPod.Namespace,
+									SourcePod:       srcPod.Name,
+									SourceContainer: clientContainerName,
 
-								Destination: fmt.Sprintf("%s.%s", serverSvcDef.Name, dstPod.Namespace),
+									Destination: fmt.Sprintf("%s.%s:%d", serverSvcDef.Name, dstPod.Namespace, destinationPort),
+								},
 							})
 
-						if result.Err != nil || result.StatusCode != 200 {
-							Td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
+						if result.Err != nil || result.HasFailedHTTPRequests() {
+							Td.T.Logf("> REST req has failed requests: %v", result.Err)
 							return false
 						}
-						Td.T.Logf("> REST req succeeded: %d", result.StatusCode)
+						Td.T.Logf("> REST req succeeded. Status codes: %v", result.AllReturnCodes())
 						return true
 					}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
 					Expect(cond).To(BeTrue())

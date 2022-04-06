@@ -1074,11 +1074,8 @@ func (td *OsmTestData) RunRemote(
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	if err != nil {
-		return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
-	}
 
-	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
 }
 
 // WaitForPodsRunningReady waits for a <n> number of pods on an NS to be running and ready
