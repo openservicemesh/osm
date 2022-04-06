@@ -22,7 +22,7 @@ import (
 
 const gatewayBootstrapSecretName = "osm-multicluster-gateway-bootstrap-config" // #nosec G101: Potential hardcoded credentials
 
-func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace string) error {
+func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager *certificate.Manager, osmNamespace string) error {
 	secret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.Background(), gatewayBootstrapSecretName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("Error fetching OSM gateway's bootstrap config %s/%s", osmNamespace, gatewayBootstrapSecretName)

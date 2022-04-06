@@ -26,7 +26,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 	testCases := []struct {
 		name       string
 		eventFunc  func(*messaging.Broker)
-		assertFunc func(*assert.Assertions, certificate.Manager)
+		assertFunc func(*assert.Assertions, *certificate.Manager)
 	}{
 		{
 			name: "The certificate is released when the corresponding pod is deleted",
@@ -41,7 +41,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					},
 				}, announcements.PodDeleted.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
 				a.Eventually(func() bool {
 					cert, err := cm.GetCertificate(proxyCN)
 					return err != nil && cert == nil
@@ -61,7 +61,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					},
 				}, announcements.PodDeleted.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
 				// Give enough time for the cert to be removed
 				// and only then verify that the cert still exists.
 				// This delay is important because even when the cert is
@@ -85,7 +85,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					},
 				}, announcements.PodAdded.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm certificate.Manager) {
+			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
 				// Give enough time for the cert to be removed
 				// and only then verify that the cert still exists.
 				// This delay is important because even when the cert is

@@ -1,29 +1,17 @@
 package certificate
 
 import (
+	"fmt"
 	"testing"
 	time "time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-var (
-	caCert = &Certificate{
-		CommonName: "Test CA",
-		Expiration: time.Now().Add(time.Hour * 24),
-	}
-)
-
-type fakeIssuer struct{}
-
-func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duration) (*Certificate, error) {
-	return &Certificate{
-		CommonName: cn,
-		Expiration: time.Now().Add(validityPeriod),
-	}, nil
-}
 
 var _ = Describe("Test Tresor Debugger", func() {
 	Context("test ListIssuedCertificates()", func() {
@@ -32,7 +20,7 @@ var _ = Describe("Test Tresor Debugger", func() {
 		//   2. Reuse the same certificate as the Issuing CA
 		//   3. Populate the CertManager's cache w/ cert
 		cert := &Certificate{CommonName: "fake-cert-for-debugging"}
-		cm := &manager{}
+		cm := &Manager{}
 		cm.cache.Store("foo", cert)
 
 		It("lists all issued certificates", func() {
@@ -48,13 +36,11 @@ var _ = Describe("Test Certificate Manager", func() {
 	const serviceFQDN = "a.b.c"
 
 	Context("Test Getting a certificate from the cache", func() {
-		validity := time.Hour
 		m, newCertError := NewManager(
 			caCert,
 			&fakeIssuer{},
 			validity,
-			nil,
-		)
+			nil)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
@@ -68,6 +54,34 @@ var _ = Describe("Test Certificate Manager", func() {
 	})
 })
 
+func TestRotor(t *testing.T) {
+	assert := tassert.New(t)
+
+	cn := CommonName("foo")
+	validityPeriod := -1 * time.Hour // negative time means this cert has already expired -- will be rotated asap
+
+	stop := make(chan struct{})
+	defer close(stop)
+	msgBroker := messaging.NewBroker(stop)
+	certManager, err := NewManager(&Certificate{}, &fakeIssuer{}, validityPeriod, msgBroker)
+	certManager.Start(5*time.Second, stop)
+	assert.NoError(err)
+
+	certA, err := certManager.IssueCertificate(cn, validityPeriod)
+	assert.NoError(err)
+	certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
+
+	start := time.Now()
+	// Wait for one certificate rotation to be announced and terminate
+	<-certRotateChan
+
+	fmt.Printf("It took %+v to rotate certificate %s\n", time.Since(start), cn)
+	newCert, err := certManager.IssueCertificate(cn, validityPeriod)
+	assert.NoError(err)
+	assert.NotEqual(certA.GetExpiration(), newCert.GetExpiration())
+	assert.NotEqual(certA, newCert)
+}
+
 func TestReleaseCertificate(t *testing.T) {
 	cn := CommonName("Test CN")
 	cert := &Certificate{
@@ -75,7 +89,7 @@ func TestReleaseCertificate(t *testing.T) {
 		Expiration: time.Now().Add(1 * time.Hour),
 	}
 
-	manager := &manager{}
+	manager := &Manager{}
 	manager.cache.Store(cn, cert)
 
 	testCases := []struct {
@@ -117,7 +131,7 @@ func TestGetCertificate(t *testing.T) {
 		Expiration: time.Now().Add(-1 * time.Hour),
 	}
 
-	manager := &manager{}
+	manager := &Manager{}
 	manager.cache.Store(cn, cert)
 	manager.cache.Store(expiredCn, expiredCert)
 
@@ -175,7 +189,7 @@ func TestListCertificate(t *testing.T) {
 
 	expectedCertificates := []*Certificate{cert, anotherCert}
 
-	manager := &manager{}
+	manager := &Manager{}
 	manager.cache.Store(cn, cert)
 	manager.cache.Store(anotherCn, anotherCert)
 
@@ -203,7 +217,7 @@ func TestListCertificate(t *testing.T) {
 func TestGetRootCertificate(t *testing.T) {
 	assert := tassert.New(t)
 
-	manager := &manager{ca: caCert}
+	manager := &Manager{ca: caCert}
 
 	got, err := manager.GetRootCertificate()
 

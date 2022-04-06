@@ -149,7 +149,10 @@ func TestGetRootCert(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			cert := &certificate.Certificate{}
-			mockCertManager := certificate.NewMockManager(mockCtrl)
+			fakeCertManager, err := certificate.FakeCertManager()
+			if err != nil {
+				t.Error(err)
+			}
 
 			// Initialize the dynamic mocks
 			d := dynamicMock{
@@ -164,7 +167,7 @@ func TestGetRootCert(t *testing.T) {
 
 			s := &sdsImpl{
 				serviceIdentity: tc.serviceIdentity,
-				certManager:     mockCertManager,
+				certManager:     fakeCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
@@ -225,7 +228,10 @@ func TestGetSDSSecrets(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockCertManager := certificate.NewMockManager(mockCtrl)
+	fakeCertManager, err := certificate.FakeCertManager()
+	if err != nil {
+		t.Error(err)
+	}
 
 	cert := &certificate.Certificate{
 		CertChain:  []byte("foo"),
@@ -353,7 +359,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				serviceIdentity: tc.serviceIdentity,
-				certManager:     mockCertManager,
+				certManager:     fakeCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,

@@ -14,7 +14,7 @@ const (
 )
 
 // NewFake constructs a fake certificate client using a certificate
-func NewFake(msgBroker *messaging.Broker) certificate.Manager {
+func NewFake(msgBroker *messaging.Broker) *certificate.Manager {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
 	ca, err := tresor.NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)

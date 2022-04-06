@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -18,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -32,14 +30,12 @@ const (
 	rootCertCountry      = "US"
 	rootCertLocality     = "CA"
 	rootCertOrganization = "Open Service Mesh"
-
-	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 // NewCertificateProvider returns a new certificate provider and associated config
 func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
 	providerNamespace string, caBundleSecretName string, tresorOptions TresorOptions, vaultOptions VaultOptions,
-	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) (certificate.Manager, debugger.CertificateManagerDebugger, *Config, error) {
+	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) (*certificate.Manager, debugger.CertificateManagerDebugger, *Config, error) {
 	config := &Config{
 		kubeClient:         kubeClient,
 		kubeConfig:         kubeConfig,
@@ -151,7 +147,7 @@ func ValidateCertManagerOptions(options CertManagerOptions) error {
 }
 
 // GetCertificateManager returns the certificate manager/provider instance
-func (c *Config) GetCertificateManager() (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func (c *Config) GetCertificateManager() (*certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch c.providerKind {
 	case TresorKind:
 		return c.getTresorOSMCertificateManager()
@@ -209,7 +205,7 @@ func GetCertificateFromSecret(ns string, secretName string, cert *certificate.Ce
 }
 
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
-func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func (c *Config) getTresorOSMCertificateManager() (*certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert *certificate.Certificate
 
@@ -250,8 +246,6 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 	if err != nil {
 		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Tresor cert-manager : %w", err)
 	}
-	rotor.New(tresorCertManager).Start(checkCertificateExpirationInterval)
-
 	return tresorCertManager, tresorCertManager, nil
 }
 
@@ -292,7 +286,7 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
-func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (*certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[options.VaultProtocol]; !ok {
 		return nil, nil, fmt.Errorf("value %s is not a valid Hashi Vault protocol", options.VaultProtocol)
 	}
@@ -317,14 +311,11 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certi
 	if err != nil {
 		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Vault cert-manager : %w", err)
 	}
-
-	rotor.New(certManager).Start(checkCertificateExpirationInterval)
-
 	return certManager, certManager, nil
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
-func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions) (*certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	rootCertSecret, err := c.kubeClient.CoreV1().Secrets(c.providerNamespace).Get(context.TODO(), c.caBundleSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", c.providerNamespace, c.caBundleSecretName, err)
@@ -364,9 +355,5 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 	if err != nil {
 		return nil, nil, errors.Errorf("error instantiating osm certificate.Manager for Jetstack cert-manager : %+v", err)
 	}
-
-	// TODO(#4533): push this into the certificate.manager object.
-	rotor.New(certManager).Start(checkCertificateExpirationInterval)
-
 	return certManager, certManager, nil
 }
