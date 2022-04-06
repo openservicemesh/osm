@@ -93,7 +93,7 @@ func (a *namespaceAddCmd) run() error {
 			return err
 		}
 		if !exists {
-			return errors.Errorf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", a.meshName)
+			return errors.Errorf("mesh [%s] does not exist, please specify another mesh using --mesh-name or create a new mesh", a.meshName)
 		}
 
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)

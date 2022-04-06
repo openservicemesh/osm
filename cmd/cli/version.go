@@ -58,14 +58,26 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			var err error
 
 			cliVersionInfo := version.GetInfo()
-			versionInfo.cliVersionInfo = &cliVersionInfo
+			verInfo.cliVersionInfo = &cliVersionInfo
+			fmt.Fprintf(versionCmd.out, "CLI Version: %#v\n", *verInfo.cliVersionInfo)
+			if versionCmd.clientOnly {
+				return nil
+			}
 
-			if !versionCmd.clientOnly {
-				err = versionCmd.setKubeClientset()
-				if err == nil {
-					versionCmd.namespace = settings.Namespace()
-					versionCmd.remoteVersion = &remoteVersion{}
-					versionInfo.remoteVersionInfo, err = versionCmd.getMeshVersion()
+			if err := versionCmd.setKubeClientset(); err != nil {
+				return err
+			}
+
+			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
+			if err != nil {
+				return errors.Wrapf(err, "unable to list meshes within the cluster")
+			}
+
+			for _, m := range meshInfoList {
+				versionCmd.namespace = m.namespace
+				meshVer, err := versionCmd.getMeshVersion()
+				if err != nil {
+					multiError = multierror.Append(multiError, errors.Wrap(err, fmt.Sprintf("Failed to get mesh version for mesh %s in namespace %s", m.name, m.namespace)))
 				}
 			}
 

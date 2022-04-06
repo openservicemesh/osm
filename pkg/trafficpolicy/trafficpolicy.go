@@ -14,7 +14,7 @@ import (
 )
 
 // WildCardRouteMatch represents a wildcard HTTP route match condition
-var WildCardRouteMatch HTTPRouteMatch = HTTPRouteMatch{
+var WildCardRouteMatch = HTTPRouteMatch{
 	Path:          constants.RegexMatchAll,
 	PathMatchType: PathMatchRegex,
 	Methods:       []string{constants.WildcardHTTPMethod},

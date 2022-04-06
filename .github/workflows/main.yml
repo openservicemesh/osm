@@ -47,11 +47,10 @@ jobs:
       - name: go build deps
         run: make embed-files-test
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.41.1
+          version: latest
           skip-pkg-cache: true
-          args: --timeout 10m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
   codegen:
     name: Codegen

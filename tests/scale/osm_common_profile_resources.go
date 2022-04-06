@@ -3,6 +3,7 @@ package scale
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -107,7 +108,7 @@ func getOSMTrackResources() []TrackedLabel {
 
 // Get common outputs we are interested to print in (resultsFile and stdout basically)
 func getOSMTestOutputFiles() []*os.File {
-	fName := Td.GetTestFilePath(defaultFilename)
+	fName := filepath.Clean(Td.GetTestFilePath(defaultFilename))
 	f, err := os.Create(fName)
 	if err != nil {
 		fmt.Printf("Failed to open file: %v", err)
