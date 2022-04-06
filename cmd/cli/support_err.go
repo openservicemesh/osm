@@ -60,11 +60,11 @@ func (cmd *errInfoCmd) run(errCode string) error {
 		// Print the error code description mapping only for the given error code
 		e, err := errcode.FromStr(errCode)
 		if err != nil {
-			return errors.Errorf("Error code '%s' is not a valid error code format. Should be of the form Exxxx, ex. E1000.", errCode)
+			return errors.Errorf("error code '%s' is not a valid error code format, should be of the form Exxxx, ex. E1000", errCode)
 		}
 		description, ok := errcode.ErrCodeMap[e]
 		if !ok {
-			return errors.Errorf("Error code '%s' is not a valid error code recognized by OSM", errCode)
+			return errors.Errorf("error code '%s' is not a valid error code recognized by OSM", errCode)
 		}
 		table.Append([]string{errCode, description})
 	} else {

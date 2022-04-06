@@ -77,7 +77,7 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 
 			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
 			if err != nil {
-				return errors.Wrapf(err, "Unable to list meshes within the cluster.")
+				return errors.Wrapf(err, "unable to list meshes within the cluster")
 			}
 
 			for _, m := range meshInfoList {

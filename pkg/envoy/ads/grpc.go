@@ -12,7 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
-func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
+func receive(requests chan *xds_discovery.DiscoveryRequest, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
 	for {
 		var request *xds_discovery.DiscoveryRequest
 		request, recvErr := (*server).Recv()
@@ -31,7 +31,7 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			log.Trace().Str("proxy", proxy.String()).Msgf("gRPC stream from proxy terminated")
 			close(quit)
 			return
-		case requests <- *request:
+		case requests <- request:
 		}
 		log.Debug().Str("proxy", proxy.String()).Msgf("Received DiscoveryRequest from proxy")
 	}
