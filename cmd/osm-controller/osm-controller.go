@@ -309,6 +309,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
+		metricsstore.DefaultMetricsStore.EventsQueued,
 	)
 }
 

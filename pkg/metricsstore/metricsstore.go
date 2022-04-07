@@ -93,6 +93,10 @@ type MetricsStore struct {
 	// disabled (0)
 	FeatureFlagEnabled *prometheus.GaugeVec
 
+	// EventsQueued represents the number of events seen but not yet processed
+	// by the control plane
+	EventsQueued prometheus.Gauge
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -256,6 +260,12 @@ func init() {
 		Name:      "feature_flag_enabled",
 		Help:      "Represents whether a feature flag is enabled (1) or disabled (0)",
 	}, []string{"feature_flag"})
+
+	defaultMetricsStore.EventsQueued = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "events_queued",
+		Help:      "Number of events seen but not yet processed by the control plane",
+	})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
