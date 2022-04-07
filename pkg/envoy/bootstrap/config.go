@@ -18,25 +18,36 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
+const (
+	envoyXDSCertPath                 = "/certs/current/sds_cert.pem"
+	envoyXDSKeyPath                  = "/certs/current/sds_key.pem"
+	envoyXDSCACertPath               = "/certs/current/cacert.pem"
+	envoyWatchedDirectory            = "/certs"
+	envoyTLSCertificateSecretName    = "tls_sds"
+	envoyValidationContextSecretName = "validation_context_sds"
+	envoyTLSCertificateConfigPath    = "/etc/envoy/tls_certificate_sds_secret.yaml"
+	envoyValidationContextConfigPath = "/etc/envoy/validation_context_sds_secret.yaml"
+)
+
 // BuildTLSSecret builds and returns an Envoy Discovery Response object for Envoy's xDS TLS
 // Certificate
 func BuildTLSSecret() (*xds_discovery.DiscoveryResponse, error) {
 	secret := &xds_transport_sockets.Secret{
-		Name: "tls_sds",
+		Name: envoyTLSCertificateSecretName,
 		Type: &xds_transport_sockets.Secret_TlsCertificate{
 			TlsCertificate: &xds_transport_sockets.TlsCertificate{
 				CertificateChain: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_Filename{
-						Filename: "/certs/current/sds_cert.pem",
+						Filename: envoyXDSCertPath,
 					},
 				},
 				PrivateKey: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_Filename{
-						Filename: "/certs/current/sds_key.pem",
+						Filename: envoyXDSKeyPath,
 					},
 				},
 				WatchedDirectory: &xds_core.WatchedDirectory{
-					Path: "/certs",
+					Path: envoyWatchedDirectory,
 				},
 			},
 		},
@@ -56,16 +67,16 @@ func BuildTLSSecret() (*xds_discovery.DiscoveryResponse, error) {
 // Validation Context
 func BuildValidationSecret() (*xds_discovery.DiscoveryResponse, error) {
 	secret := &xds_transport_sockets.Secret{
-		Name: "validation_context_sds",
+		Name: envoyValidationContextSecretName,
 		Type: &xds_transport_sockets.Secret_ValidationContext{
 			ValidationContext: &xds_transport_sockets.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_Filename{
-						Filename: "/certs/current/cacert.pem",
+						Filename: envoyXDSCACertPath,
 					},
 				},
 				WatchedDirectory: &xds_core.WatchedDirectory{
-					Path: "/certs",
+					Path: envoyWatchedDirectory,
 				},
 			},
 		},
@@ -117,10 +128,10 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			},
 			ValidationContextType: &xds_transport_sockets.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_transport_sockets.SdsSecretConfig{
-					Name: "validation_context_sds",
+					Name: envoyValidationContextSecretName,
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Path{
-							Path: "/etc/envoy/validation_context_sds_secret.yaml",
+							Path: envoyValidationContextConfigPath,
 						},
 					},
 				},
@@ -133,10 +144,10 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			},
 			TlsCertificateSdsSecretConfigs: []*xds_transport_sockets.SdsSecretConfig{
 				{
-					Name: "tls_sds",
+					Name: envoyTLSCertificateSecretName,
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Path{
-							Path: "/etc/envoy/tls_certificate_sds_secret.yaml",
+							Path: envoyTLSCertificateConfigPath,
 						},
 					},
 				},

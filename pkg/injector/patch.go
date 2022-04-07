@@ -49,17 +49,16 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// skipped when the request is a DryRun.
 	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 	if req.DryRun != nil && *req.DryRun {
-		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-		return nil, err
-	}
-
-	if req.DryRun != nil && *req.DryRun {
-		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createEnvoyXDSSecret(envoyXDSSecretName, namespace, bootstrapCertificate); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy xDS secrets for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-		return nil, err
+		log.Debug().Msgf("Skipping envoy bootstrap config and secret creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
+	} else {
+		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			return nil, err
+		}
+		if _, err = wh.createEnvoyXDSSecret(envoyXDSSecretName, namespace, bootstrapCertificate); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy xDS secret for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			return nil, err
+		}
 	}
 
 	// Create volumes for the envoy bootstrap config and xDS secret

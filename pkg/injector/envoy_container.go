@@ -55,7 +55,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      envoyBootstrapConfigVolume,
-				ReadOnly:  false,
+				ReadOnly:  true,
 				MountPath: envoyProxyConfigPath,
 			},
 			{

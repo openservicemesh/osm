@@ -37,11 +37,11 @@ func TestBuildTLSSecret(t *testing.T) {
 func TestBuildValidationSecret(t *testing.T) {
 	assert := tassert.New(t)
 
-	tlsSecret, err := BuildTLSSecret()
+	validationSecret, err := BuildValidationSecret()
 	assert.Nil(err)
-	assert.NotNil(tlsSecret)
+	assert.NotNil(validationSecret)
 
-	actualYAML, err := utils.ProtoToYAML(tlsSecret)
+	actualYAML, err := utils.ProtoToYAML(validationSecret)
 	assert.Nil(err)
 
 	expectedYAML := `resources:
@@ -122,15 +122,11 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
         common_tls_context:
           alpn_protocols:
-          - h2=
+          - h2
           tls_certificate_sds_secret_configs:
-            name: tls_sds
+          - name: tls_sds
             sds_config:
               path: /etc/envoy/tls_certificate_sds_secret.yaml
-          validation_context_sds_secret_config:
-            name: validation_context_sds
-            sds_config:
-              path: /etc/envoy/validation_context_sds_secret.yaml
           tls_params:
             cipher_suites:
             - abc
@@ -140,6 +136,10 @@ static_resources:
             - XYZ
             tls_maximum_protocol_version: TLSv1_2
             tls_minimum_protocol_version: TLSv1_0
+          validation_context_sds_secret_config:
+            name: validation_context_sds
+            sds_config:
+              path: /etc/envoy/validation_context_sds_secret.yaml
     type: LOGICAL_DNS
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:

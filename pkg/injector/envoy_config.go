@@ -21,8 +21,8 @@ import (
 
 const (
 	envoyXDSCACertFile = "cacert.pem"
-	envoyXDSKeyFile    = "sds_key.pem"
 	envoyXDSCertFile   = "sds_cert.pem"
+	envoyXDSKeyFile    = "sds_key.pem"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
@@ -58,33 +58,33 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	return configYAML, nil
 }
 
-func getTlsSdsConfigYAML() ([]byte, error) {
-	tlsSdsConfig, err := bootstrap.BuildTLSSecret()
+func getTLSSDSConfigYAML() ([]byte, error) {
+	tlsSDSConfig, err := bootstrap.BuildTLSSecret()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
+		log.Error().Err(err).Msgf("Error building Envoy TLS Certificate SDS Config")
 		return nil, err
 	}
 
-	configYAML, err := utils.ProtoToYAML(tlsSdsConfig)
+	configYAML, err := utils.ProtoToYAML(tlsSDSConfig)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
-			Msgf("Failed to marshal envoy tlsSdsConfig to yaml")
+			Msgf("Failed to marshal Envoy TLS Certificate SDS Config to yaml")
 		return nil, err
 	}
 	return configYAML, nil
 }
 
-func getValidationContextSdsConfigYAML() ([]byte, error) {
-	validationContextSdsConfig, err := bootstrap.BuildValidationSecret()
+func getValidationContextSDSConfigYAML() ([]byte, error) {
+	validationContextSDSConfig, err := bootstrap.BuildValidationSecret()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
+		log.Error().Err(err).Msgf("Error building Envoy Validation Context SDS Config")
 		return nil, err
 	}
 
-	configYAML, err := utils.ProtoToYAML(validationContextSdsConfig)
+	configYAML, err := utils.ProtoToYAML(validationContextSDSConfig)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
-			Msgf("Failed to marshal envoy validationContextSdsConfig to yaml")
+			Msgf("Failed to marshal Envoy Validation Context SDS Config to yaml")
 		return nil, err
 	}
 	return configYAML, nil
@@ -154,21 +154,21 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
 		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
-	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
+	configYamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
 		return nil, err
 	}
 
-	tlsYamlContent, err := getTlsSdsConfigYAML()
+	tlsYamlContent, err := getTLSSDSConfigYAML()
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Envoy TLS SDS Config YAML")
+		log.Error().Err(err).Msg("Error creating Envoy TLS Certificate SDS Config YAML")
 		return nil, err
 	}
 
-	validationYamlContent, err := getValidationContextSdsConfigYAML()
+	validationYamlContent, err := getValidationContextSDSConfigYAML()
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Envoy Validation SDS Config YAML")
+		log.Error().Err(err).Msg("Error creating Envoy Validation Context SDS Config YAML")
 		return nil, err
 	}
 
@@ -182,7 +182,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 			},
 		},
 		BinaryData: map[string][]byte{
-			envoyBootstrapConfigFile:            yamlContent,
+			envoyBootstrapConfigFile:            configYamlContent,
 			envoyTLSCertificateSDSSecretFile:    tlsYamlContent,
 			envoyValidationContextSDSSecretFile: validationYamlContent,
 		},
@@ -219,6 +219,6 @@ func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *ce
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
-	log.Debug().Msgf("Creating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
+	log.Debug().Msgf("Creating Envoy secret for xDS: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), envoyXDSSecret, metav1.CreateOptions{})
 }
