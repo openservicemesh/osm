@@ -19,6 +19,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
+const (
+	envoyXDSCACertFile = "cacert.pem"
+	envoyXDSKeyFile    = "sds_key.pem"
+	envoyXDSCertFile   = "sds_cert.pem"
+)
+
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
 		NodeID:                config.NodeID,
@@ -192,7 +198,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 }
 
 func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *certificate.Certificate) (*corev1.Secret, error) {
-	certsecret := &corev1.Secret{
+	envoyXDSSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -202,17 +208,17 @@ func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *ce
 			},
 		},
 		Data: map[string][]byte{
-			"cacert.pem":   cert.GetIssuingCA(),
-			"sds_cert.pem": cert.GetCertificateChain(),
-			"sds_key.pem":  cert.GetPrivateKey(),
+			envoyXDSCACertFile: cert.GetIssuingCA(),
+			envoyXDSCertFile:   cert.GetCertificateChain(),
+			envoyXDSKeyFile:    cert.GetPrivateKey(),
 		},
 	}
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
 		log.Debug().Msgf("Updating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
-		existing.Data = certsecret.Data
+		existing.Data = envoyXDSSecret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
 	log.Debug().Msgf("Creating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), certsecret, metav1.CreateOptions{})
+	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), envoyXDSSecret, metav1.CreateOptions{})
 }
