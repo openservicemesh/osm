@@ -3,6 +3,8 @@ package validator
 import (
 	"testing"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,10 +13,11 @@ import (
 
 func TestIngressBackendValidator(t *testing.T) {
 	testCases := []struct {
-		name      string
-		input     *admissionv1.AdmissionRequest
-		expResp   *admissionv1.AdmissionResponse
-		expErrStr string
+		name                    string
+		input                   *admissionv1.AdmissionRequest
+		expResp                 *admissionv1.AdmissionResponse
+		expErrStr               string
+		existingIngressBackends []*policyv1alpha1.IngressBackend
 	}{
 		{
 			name: "IngressBackend with valid protocol succeeds",
@@ -445,13 +448,257 @@ func TestIngressBackendValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
 		},
+		{
+			name: "IngressBackend with invalid source kind",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
+		},
+		{
+			name: "IngressBackend has duplicate backends",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								},
+								{
+									"name": "test",
+									"port": {
+										"number": 80
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Duplicate backends detected with service name: test and port: 80",
+		},
+		{
+			name: "success: IngressBackend has duplicate backend names but different ports",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								},
+								{
+									"name": "test",
+									"port": {
+										"number": 8080,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "IngressBackend conflicts with existing IngressBackend backends",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingIngressBackends: []*policyv1alpha1.IngressBackend{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "IngressBackend",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-2",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "error: duplicate backends detected\n[+] IngressBackend default/test-1 conflicts with default/test-2:\nBackend test specified in test-1 and test-2 conflicts\n\n",
+		},
+		{
+			name: "success: IngressBackend conflicts with existing IngressBackend backends",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingIngressBackends: []*policyv1alpha1.IngressBackend{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "IngressBackend",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-2",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   8080,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
+			objects := make([]runtime.Object, len(tc.existingIngressBackends))
+			for i := range tc.existingIngressBackends {
+				objects[i] = tc.existingIngressBackends[i]
+			}
 
-			resp, err := ingressBackendValidator(tc.input)
+			policy := fakePolicyClientset.NewSimpleClientset(objects...)
+			pv := &policyValidator{
+				policyClient: policy,
+			}
+
+			resp, err := pv.ingressBackendValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -151,8 +152,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 			},
 		}
 		kube := fake.NewSimpleClientset(webhook)
+		policy := fakePolicyClientset.NewSimpleClientset()
 
-		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policy, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -164,8 +166,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		kube := fake.NewSimpleClientset()
+		policy := fakePolicyClientset.NewSimpleClientset()
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policy, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -178,8 +181,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		kube := fake.NewSimpleClientset()
+		policy := fakePolicyClientset.NewSimpleClientset()
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policy, nil)
 		tassert.NoError(t, err)
 	})
 }

@@ -162,7 +162,8 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 		// Multiple IngressBackend policies for the same backend will be prevented
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
-			if backend.Name == svc.Name {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.Port) && backend.Port.Protocol == svc.Protocol {
 				return ingressBackend
 			}
 		}
