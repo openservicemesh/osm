@@ -163,7 +163,7 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
 			// we need to check ports to allow ingress to multiple ports on the same svc
-			if backend.Name == svc.Name && backend.Port.Number == int(svc.Port) && backend.Port.Protocol == svc.Protocol {
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) && backend.Port.Protocol == svc.Protocol {
 				return ingressBackend
 			}
 		}
@@ -208,6 +208,10 @@ func (c client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) 
 	// Filter by MeshService
 	for _, resource := range c.caches.upstreamTrafficSetting.List() {
 		upstreamTrafficSetting := resource.(*policyV1alpha1.UpstreamTrafficSetting)
+
+		if upstreamTrafficSetting.Spec.Host == options.Host {
+			return upstreamTrafficSetting
+		}
 
 		if upstreamTrafficSetting.Namespace == options.MeshService.Namespace &&
 			upstreamTrafficSetting.Spec.Host == options.MeshService.FQDN() {

@@ -65,4 +65,10 @@ type UpstreamTrafficSettingGetOpt struct {
 
 	// NamespacedName specifies the name and namespace of the resource
 	NamespacedName *types.NamespacedName
+
+	// Host specifies the host field of matching UpstreamTrafficSettings
+	// This field is not qualified by namespace because, by definition,
+	// a properly formatted Host includes a namespace and UpstreamTrafficSetting
+	// resources should not target services in different namespaces.
+	Host string
 }

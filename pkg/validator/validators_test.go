@@ -3,12 +3,18 @@ package validator
 import (
 	"testing"
 
-	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s"
+
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/policy"
 )
 
 func TestIngressBackendValidator(t *testing.T) {
@@ -626,7 +632,7 @@ func TestIngressBackendValidator(t *testing.T) {
 			expErrStr: "error: duplicate backends detected\n[+] IngressBackend default/test-1 conflicts with default/test-2:\nBackend test specified in test-1 and test-2 conflicts\n\n",
 		},
 		{
-			name: "success: IngressBackend conflicts with existing IngressBackend backends",
+			name: "success: IngressBackend conflicts with existing IngressBackend backends on different ports",
 			input: &admissionv1.AdmissionRequest{
 				Kind: metav1.GroupVersionKind{
 					Group:   "v1alpha1",
@@ -683,23 +689,96 @@ func TestIngressBackendValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "",
 		},
+		{
+			name: "success: IngressBackend doesn't error on update",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "IngressBackend",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingIngressBackends: []*policyv1alpha1.IngressBackend{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "IngressBackend",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
 			objects := make([]runtime.Object, len(tc.existingIngressBackends))
 			for i := range tc.existingIngressBackends {
 				objects[i] = tc.existingIngressBackends[i]
 			}
 
-			policy := fakePolicyClientset.NewSimpleClientset(objects...)
+			k8sController := k8s.NewMockController(mockCtrl)
+			if len(objects) > 0 {
+				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
+			}
+
+			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
 			pv := &policyValidator{
-				policyClient: policy,
+				policyClient: policyClient,
 			}
 
 			resp, err := pv.ingressBackendValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
+			if tc.expErrStr == "" {
+				// we expect a nil error
+				assert.Nil(err)
+			}
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())
 			}
@@ -1108,6 +1187,166 @@ func TestTrafficTargetValidator(t *testing.T) {
 
 			resp, err := trafficTargetValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
+
+func TestUpstreamTrafficSettingValidator(t *testing.T) {
+	testCases := []struct {
+		name                            string
+		input                           *admissionv1.AdmissionRequest
+		expResp                         *admissionv1.AdmissionResponse
+		expErrStr                       string
+		existingUpstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name: "UpstreamTrafficSetting with unique host",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local"
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "UpstreamTrafficSetting with duplicate host",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local"
+						}
+					}
+					`),
+				},
+			},
+			existingUpstreamTrafficSettings: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "UpstreamTrafficSetting",
+						APIVersion: "policy.openservicemesh.io/v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "httpbin1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host: "httpbin.test.svc.cluster.local",
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "UpstreamTrafficSetting test/httpbin conflicts with test/httpbin1 since they have the same host httpbin.test.svc.cluster.local",
+		},
+		{
+			name: "success: UpstreamTrafficSetting with duplicate host on update",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local"
+						}
+					}
+					`),
+				},
+			},
+			existingUpstreamTrafficSettings: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "UpstreamTrafficSetting",
+						APIVersion: "policy.openservicemesh.io/v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "httpbin",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:               "httpbin.test.svc.cluster.local",
+						ConnectionSettings: nil,
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
+			objects := make([]runtime.Object, len(tc.existingUpstreamTrafficSettings))
+			for i := range tc.existingUpstreamTrafficSettings {
+				objects[i] = tc.existingUpstreamTrafficSettings[i]
+			}
+
+			k8sController := k8s.NewMockController(mockCtrl)
+			if len(objects) > 0 {
+				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
+			}
+
+			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+
+			pv := &policyValidator{
+				policyClient: policyClient,
+			}
+
+			resp, err := pv.upstreamTrafficSettingValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if tc.expErrStr == "" {
+				// we expect a nil error
+				assert.Nil(err)
+			}
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())
 			}

@@ -202,7 +202,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					Spec: policyV1alpha1.IngressBackendSpec{
 						Backends: []policyV1alpha1.BackendSpec{
 							{
-								Name: "backend2", // does not match the backend specified in the test case
+								Name: "backend3", // does not match the backend specified in the test case
 								Port: policyV1alpha1.PortSpec{
 									Number:   80,
 									Protocol: "http",
@@ -219,7 +219,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					},
 				},
 			},
-			backend: service.MeshService{Name: "backend1", Namespace: "test"},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
 			expectedIngressBackend: &policyV1alpha1.IngressBackend{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ingress-backend-1",
