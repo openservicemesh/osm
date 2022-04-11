@@ -7,51 +7,45 @@ import (
 	"github.com/fatih/color"
 )
 
-// VerificationStatus is a type describing the status of a verification
-type VerificationStatus string
+// Status is a type describing the status of a verification
+type Status string
 
 const (
 	// Success indicates the verification succeeded
-	Success VerificationStatus = "Success"
+	Success Status = "Success"
 
 	// Failure indicates the verification failed
-	Failure VerificationStatus = "Failure"
+	Failure Status = "Failure"
 
 	// Unknown indicates the result of the verification could not be determined
-	Unknown VerificationStatus = "Unknown"
+	Unknown Status = "Unknown"
 )
 
-// VerificationResult defines the result returned by a Verifier instance
-type VerificationResult struct {
+// Result defines the result returned by a Verifier instance
+type Result struct {
 	Context       string
-	Status        VerificationStatus
+	Status        Status
 	Reason        string
 	Suggestion    string
-	NestedResults []*VerificationResult
+	NestedResults []*Result
 }
 
 // Verifier defines the interface to perform a verification
 type Verifier interface {
-	Run() VerificationResult
+	Run() Result
 }
 
-// Verify runs the given list of verifiers and returns a corresponding
-// list of verification results.
-func Verify(toVerify []Verifier) []*VerificationResult {
-	var result []*VerificationResult
-	for _, v := range toVerify {
-		res := v.Run()
-		result = append(result, &res)
-	}
-	return result
-}
-
-// Print prints the
-func Print(result VerificationResult, w io.Writer) {
+// Print prints the Result
+func Print(result Result, w io.Writer) {
 	fmt.Fprintf(w, "[+] Context: %s\n", result.Context)
 	fmt.Fprintf(w, "Status: %s\n", result.Status.Color())
-	fmt.Fprintf(w, "Reason: %s\n", result.Reason)
-	fmt.Fprintf(w, "Suggestion: %s\n\n", result.Suggestion)
+	if result.Reason != "" {
+		fmt.Fprintf(w, "Reason: %s\n", result.Reason)
+	}
+	if result.Suggestion != "" {
+		fmt.Fprintf(w, "Suggestion: %s\n", result.Suggestion)
+	}
+	fmt.Fprintln(w)
 
 	if result.Status == Success {
 		return
@@ -63,7 +57,7 @@ func Print(result VerificationResult, w io.Writer) {
 }
 
 // Color returns a color coded string for the verification status
-func (s VerificationStatus) Color() string {
+func (s Status) Color() string {
 	if s == Success {
 		return color.GreenString("%s", s)
 	} else if s == Failure {
@@ -77,8 +71,8 @@ func (s VerificationStatus) Color() string {
 type Set []Verifier
 
 // Run executes runs the verification for each verifier in the list
-func (verifiers Set) Run(ctx string) VerificationResult {
-	result := VerificationResult{
+func (verifiers Set) Run(ctx string) Result {
+	result := Result{
 		Context: ctx,
 	}
 	for _, verification := range verifiers {

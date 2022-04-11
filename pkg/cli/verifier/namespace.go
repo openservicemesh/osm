@@ -11,8 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-var _ Verifier = (*NamespaceMonitorVerifier)(nil)
-
 // NamespaceMonitorVerifier implements the Verifier interface for pod connectivity
 type NamespaceMonitorVerifier struct {
 	stdout     io.Writer
@@ -34,8 +32,8 @@ func NewNamespaceMonitorVerifier(stdout io.Writer, stderr io.Writer, kubeClient 
 }
 
 // Run executes the namespace monitor verification
-func (v *NamespaceMonitorVerifier) Run() VerificationResult {
-	result := VerificationResult{
+func (v *NamespaceMonitorVerifier) Run() Result {
+	result := Result{
 		Context: fmt.Sprintf("Verify if namespace %q is monitored", v.namespace),
 	}
 

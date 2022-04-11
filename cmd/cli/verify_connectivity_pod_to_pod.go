@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/pkg/action"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
@@ -29,7 +28,7 @@ type verifyConnectPodToPodCmd struct {
 	meshName    string
 }
 
-func newVerifyConnectivityPodToPodCmd(config *action.Configuration, stdout io.Writer, stderr io.Writer) *cobra.Command {
+func newVerifyConnectivityPodToPodCmd(stdout io.Writer, stderr io.Writer) *cobra.Command {
 	verifyConnectPodToPodCmd := &verifyConnectPodToPodCmd{
 		stdout: stdout,
 		stderr: stderr,
@@ -69,7 +68,7 @@ func newVerifyConnectivityPodToPodCmd(config *action.Configuration, stdout io.Wr
 
 	f := cmd.Flags()
 	f.StringVar(&verifyConnectPodToPodCmd.appProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
-	f.StringVar(&verifyConnectPodToPodCmd.meshName, "mesh-name", "osm", "Mesh name")
+	f.StringVar(&verifyConnectPodToPodCmd.meshName, "mesh-name", defaultMeshName, "Mesh name")
 
 	return cmd
 }

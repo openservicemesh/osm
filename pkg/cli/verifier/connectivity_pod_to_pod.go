@@ -8,8 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var _ Verifier = (*PodConnectivityVerifier)(nil)
-
 // PodConnectivityVerifier implements the Verifier interface for pod connectivity
 type PodConnectivityVerifier struct {
 	stdout      io.Writer
@@ -36,7 +34,7 @@ func NewPodConnectivityVerifier(stdout io.Writer, stderr io.Writer, kubeClient k
 }
 
 // Run executes the pod connectivity verifier
-func (v *PodConnectivityVerifier) Run() VerificationResult {
+func (v *PodConnectivityVerifier) Run() Result {
 	ctx := fmt.Sprintf("Verify if pod %q can access pod %q for app protocol %q", v.srcPod, v.dstPod, v.appProtocol)
 
 	verifiers := Set{
