@@ -63,7 +63,7 @@ spec:
           - >
             kubectl apply -f /osm-crds;
             {{- if .Values.osm.enableReconciler }}
-            kubectl label -f /osm-crds openservicemesh.io/reconcile=true;
+            kubectl label -f /osm-crds openservicemesh.io/reconcile=true --overwrite;
             {{- end }}
       containers:
         - name: osm-bootstrap
