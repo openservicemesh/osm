@@ -116,7 +116,7 @@ func TestNewResponse(t *testing.T) {
 	// validating outbound listener
 	listener, ok := resources[0].(*xds_listener.Listener)
 	assert.True(ok)
-	assert.Equal(listener.Name, outboundListenerName)
+	assert.Equal(listener.Name, OutboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
 	assert.Len(listener.ListenerFilters, 3) // Test has egress policy feature enabled, so 3 filters are expected: OriginalDst, TlsInspector, HttpInspector
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.OriginalDestination)
@@ -125,7 +125,7 @@ func TestNewResponse(t *testing.T) {
 	// 1. Filter chain for bookstore-v1
 	// 2. Filter chain for bookstore-v2
 	// 3. Filter chain for bookstore-apex due to TrafficSplit being configured
-	expectedServiceFilterChainNames := []string{"outbound-mesh-http-filter-chain:default/bookstore-v1_8888_http", "outbound-mesh-http-filter-chain:default/bookstore-v2_8888_http", "outbound-mesh-http-filter-chain:default/bookstore-apex_8888_http"}
+	expectedServiceFilterChainNames := []string{"outbound_default/bookstore-v1_8888_http", "outbound_default/bookstore-v2_8888_http", "outbound_default/bookstore-apex_8888_http"}
 	var actualServiceFilterChainNames []string
 	for _, fc := range listener.FilterChains {
 		actualServiceFilterChainNames = append(actualServiceFilterChainNames, fc.Name)
@@ -139,7 +139,7 @@ func TestNewResponse(t *testing.T) {
 	// validating inbound listener
 	listener, ok = resources[1].(*xds_listener.Listener)
 	assert.True(ok)
-	assert.Equal(listener.Name, inboundListenerName)
+	assert.Equal(listener.Name, InboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.Len(listener.ListenerFilters, 2)
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)

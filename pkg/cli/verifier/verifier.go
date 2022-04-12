@@ -3,6 +3,7 @@ package verifier
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -35,9 +36,13 @@ type Verifier interface {
 	Run() Result
 }
 
+func marker(count int) string {
+	return "[" + strings.Repeat("+", count) + "]"
+}
+
 // Print prints the Result
-func Print(result Result, w io.Writer) {
-	fmt.Fprintf(w, "[+] Context: %s\n", result.Context)
+func Print(result Result, w io.Writer, markerDepth int) {
+	fmt.Fprintf(w, "%s Context: %s\n", marker(markerDepth), result.Context)
 	fmt.Fprintf(w, "Status: %s\n", result.Status.Color())
 	if result.Reason != "" {
 		fmt.Fprintf(w, "Reason: %s\n", result.Reason)
@@ -52,7 +57,7 @@ func Print(result Result, w io.Writer) {
 	}
 
 	for _, res := range result.NestedResults {
-		Print(*res, w)
+		Print(*res, w, markerDepth+1)
 	}
 }
 

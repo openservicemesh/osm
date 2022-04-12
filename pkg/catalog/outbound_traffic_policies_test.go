@@ -180,7 +180,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -193,7 +193,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -206,7 +206,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -223,7 +223,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -236,7 +236,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -249,7 +249,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},
@@ -262,7 +262,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s5 on port 9091
-						Name:                "ns3/s5_9091_tcp-server-first",
+						Name:                meshSvc5.OutboundTrafficMatchName(),
 						DestinationPort:     9091,
 						DestinationProtocol: "tcp-server-first",
 						DestinationIPRanges: []string{"10.0.5.1/32"},
@@ -438,7 +438,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -451,7 +451,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -464,7 +464,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns2/s2 on port 8080
-						Name:                "ns2/s2_8080_http",
+						Name:                meshSvc2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.2.1/32"},
@@ -477,7 +477,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -494,7 +494,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -507,7 +507,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -520,7 +520,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},

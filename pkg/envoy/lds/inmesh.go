@@ -22,12 +22,8 @@ import (
 )
 
 const (
-	inboundMeshHTTPFilterChainPrefix  = "inbound-mesh-http-filter-chain"
-	outboundMeshHTTPFilterChainPrefix = "outbound-mesh-http-filter-chain"
-	inboundMeshTCPFilterChainPrefix   = "inbound-mesh-tcp-filter-chain"
-	outboundMeshTCPFilterChainPrefix  = "outbound-mesh-tcp-filter-chain"
-	inboundMeshTCPProxyStatPrefix     = "inbound-mesh-tcp-proxy"
-	outboundMeshTCPProxyStatPrefix    = "outbound-mesh-tcp-proxy"
+	inboundMeshTCPProxyStatPrefix  = "inbound-mesh-tcp-proxy"
+	outboundMeshTCPProxyStatPrefix = "outbound-mesh-tcp-proxy"
 )
 
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
@@ -37,14 +33,14 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 	switch strings.ToLower(proxyService.Protocol) {
 	case constants.ProtocolHTTP, constants.ProtocolGRPC:
 		// Filter chain for HTTP port
-		filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, uint32(proxyService.TargetPort))
+		filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
 		}
 		filterChains = append(filterChains, filterChainForPort)
 
 	case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
-		filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService, uint32(proxyService.TargetPort))
+		filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
 		}
@@ -57,7 +53,7 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 	return filterChains
 }
 
-func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshService, servicePort uint32) ([]*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshService) ([]*xds_listener.Filter, error) {
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
@@ -75,7 +71,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	// Build the HTTP Connection Manager filter from its options
 	inboundConnManager, err := httpConnManagerOptions{
 		direction:         inbound,
-		rdsRoutConfigName: route.GetInboundMeshRouteConfigNameForPort(int(servicePort)),
+		rdsRoutConfigName: route.GetInboundMeshRouteConfigNameForPort(int(proxyService.TargetPort)),
 
 		// Additional filters
 		wasmStatsHeaders:         lb.getWASMStatsHeaders(),
@@ -105,9 +101,9 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	return filters, nil
 }
 
-func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService, servicePort uint32) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService) (*xds_listener.FilterChain, error) {
 	// Construct HTTP filters
-	filters, err := lb.getInboundHTTPFilters(proxyService, servicePort)
+	filters, err := lb.getInboundHTTPFilters(proxyService)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error constructing inbound HTTP filters for proxy service %s", proxyService)
 		return nil, err
@@ -121,19 +117,17 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 		return nil, err
 	}
 
-	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshHTTPFilterChainPrefix, proxyService, servicePort)
-
 	serverNames := []string{proxyService.ServerName()}
 
 	filterChain := &xds_listener.FilterChain{
-		Name:    filterchainName,
+		Name:    proxyService.InboundTrafficMatchName(),
 		Filters: filters,
 
 		// The 'FilterChainMatch' field defines the criteria for matching traffic against filters in this filter chain
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			// The DestinationPort is the service port the downstream directs traffic to
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: servicePort,
+				Value: uint32(proxyService.TargetPort),
 			},
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
@@ -158,7 +152,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	return filterChain, nil
 }
 
-func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.MeshService, servicePort uint32) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.MeshService) (*xds_listener.FilterChain, error) {
 	// Construct TCP filters
 	filters, err := lb.getInboundTCPFilters(proxyService)
 	if err != nil {
@@ -176,13 +170,12 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 
 	serverNames := []string{proxyService.ServerName()}
 
-	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshTCPFilterChainPrefix, proxyService, servicePort)
 	return &xds_listener.FilterChain{
-		Name: filterchainName,
+		Name: proxyService.InboundTrafficMatchName(),
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			// The DestinationPort is the service port the downstream directs traffic to
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: servicePort,
+				Value: uint32(proxyService.TargetPort),
 			},
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
@@ -315,9 +308,8 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(trafficMatch tra
 		return nil, err
 	}
 
-	filterChainName := fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, trafficMatch.Name)
 	return &xds_listener.FilterChain{
-		Name:             filterChainName,
+		Name:             trafficMatch.Name,
 		Filters:          []*xds_listener.Filter{filter},
 		FilterChainMatch: filterChainMatch,
 	}, nil
@@ -338,9 +330,8 @@ func (lb *listenerBuilder) getOutboundTCPFilterChainForService(trafficMatch traf
 		return nil, err
 	}
 
-	filterChainName := fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, trafficMatch.Name)
 	return &xds_listener.FilterChain{
-		Name:             filterChainName,
+		Name:             trafficMatch.Name,
 		Filters:          []*xds_listener.Filter{filter},
 		FilterChainMatch: filterChainMatch,
 	}, nil
