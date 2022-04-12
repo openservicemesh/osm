@@ -72,7 +72,6 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	}
 
 	meshSpec, err := newSMIClient(
-		kubeClient,
 		smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet,
 		smiTrafficTargetClientSet,
