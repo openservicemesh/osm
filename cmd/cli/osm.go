@@ -46,6 +46,7 @@ func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer,
 		newPolicyCmd(stdout, stderr),
 		newSupportCmd(config, stdout, stderr),
 		newUninstallCmd(config, stdin, stdout),
+		newVerifyCmd(stdout, stderr),
 	)
 
 	// Add subcommands related to unmanaged environments
