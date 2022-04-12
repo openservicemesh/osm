@@ -171,7 +171,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, k8sClient, stop, msgBroker)
+	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, osmNamespace, k8sClient, stop, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
