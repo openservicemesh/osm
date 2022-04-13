@@ -39,7 +39,7 @@ ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 # get code-generator version from go.sum
 CODEGEN_VERSION="v0.22.1" # Must match k8s.io/client-go version defined in go.mod
-CODEGEN_PKG="$(echo $HOME/go/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
+CODEGEN_PKG="$(echo `go env GOPATH`/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
 
 echo ">>> using codegen: ${CODEGEN_PKG}"
 # ensure we can execute the codegen script
@@ -48,6 +48,7 @@ chmod +x ${CODEGEN_PKG}/generate-groups.sh
 function generate_client() {
   TEMP_DIR=$(mktemp -d)
   CUSTOM_RESOURCE_NAME=$1
+  CUSTOM_RESOURCE_VERSIONS=$2
 
   # delete the generated deepcopy
   for V in ${CUSTOM_RESOURCE_VERSIONS//,/ }; do
@@ -70,5 +71,8 @@ function generate_client() {
   rm -rf ${TEMP_DIR}
 }
 
-echo "##### Generating *.openservicemesh.io client ######"
-generate_client "policy:v1alpha1 config:v1alpha1,v1alpha2"
+echo "##### Generating config.openservicemesh.io client ######"
+generate_client "config" "v1alpha1,v1alpha2"
+
+echo "##### Generating policy.openservicemesh.io client ######"
+generate_client "policy" "v1alpha1"
