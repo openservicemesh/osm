@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -89,7 +90,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			done:      make(chan struct{}),
 		}
 	}
-
+	var coalesce sync.Mutex
 	for {
 		select {
 		case <-quit:
@@ -118,7 +119,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			typesRequest := []envoy.TypeURI{envoy.TypeURI(discoveryRequest.TypeUrl)}
 
 			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
-
 		case <-proxyUpdateChan:
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
 
@@ -129,10 +129,14 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				log.Error().Str("proxy", proxy.String()).Msg("Proxy has still not gone through init phase, not force-pushing new version")
 				continue
 			}
-
+			if !coalesce.TryLock() {
+				// record metric that we're coalescing this update.
+				continue
+			}
 			// Queue a full configuration update
 			// Do not send SDS, let envoy figure out what certs does it want.
 			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS}, nil))
+			coalesce.Unlock()
 
 		case certRotateMsg := <-certRotateChan:
 			cert := certRotateMsg.(events.PubSubMessage).NewObj.(*certificate.Certificate)
