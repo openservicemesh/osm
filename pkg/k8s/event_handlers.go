@@ -39,7 +39,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, eventTypes EventTypes, ms
 			logResourceEvent(log, eventTypes.Add, obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
+			msgBroker.GetQueue().Add(events.PubSubMessage{
 				Kind:   eventTypes.Add,
 				NewObj: obj,
 				OldObj: nil,
@@ -53,7 +53,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, eventTypes EventTypes, ms
 			logResourceEvent(log, eventTypes.Update, newObj)
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
+			msgBroker.GetQueue().Add(events.PubSubMessage{
 				Kind:   eventTypes.Update,
 				NewObj: newObj,
 				OldObj: oldObj,
@@ -67,7 +67,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, eventTypes EventTypes, ms
 			logResourceEvent(log, eventTypes.Delete, obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
+			msgBroker.GetQueue().Add(events.PubSubMessage{
 				Kind:   eventTypes.Delete,
 				NewObj: nil,
 				OldObj: obj,

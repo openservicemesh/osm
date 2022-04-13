@@ -16,7 +16,7 @@ var (
 
 // Broker implements the message broker functionality
 type Broker struct {
-	queue                          workqueue.RateLimitingInterface
+	queue                          workqueue.Interface
 	proxyUpdatePubSub              *pubsub.PubSub
 	proxyUpdateCh                  chan proxyUpdateEvent
 	kubeEventPubSub                *pubsub.PubSub

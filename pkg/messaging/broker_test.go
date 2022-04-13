@@ -25,8 +25,8 @@ func TestAllEvents(t *testing.T) {
 
 	c := NewBroker(stopCh)
 
-	proxyUpdateChan := c.GetProxyUpdatePubSub().Sub(announcements.ProxyUpdate.String())
-	defer c.Unsub(c.proxyUpdatePubSub, proxyUpdateChan)
+	proxyUpdateChan, unsub := c.SubscribeProxyUpdates(announcements.ProxyUpdate.String())
+	defer unsub()
 
 	podChan := c.GetKubeEventPubSub().Sub(
 		announcements.PodAdded.String(),
@@ -353,8 +353,8 @@ func TestRunProxyUpdateDispatcher(t *testing.T) {
 	defer close(stopCh)
 
 	b := NewBroker(stopCh) // this starts runProxyUpdateDispatcher() in a goroutine
-	proxyUpdateChan := b.GetProxyUpdatePubSub().Sub(announcements.ProxyUpdate.String())
-	defer b.Unsub(b.proxyUpdatePubSub, proxyUpdateChan)
+	proxyUpdateChan, unsub := b.SubscribeProxyUpdates(announcements.ProxyUpdate.String())
+	defer unsub()
 
 	// Verify sliding window expiry
 	b.proxyUpdateCh <- proxyUpdateEvent{

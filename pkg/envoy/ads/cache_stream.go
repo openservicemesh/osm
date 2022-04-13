@@ -21,9 +21,8 @@ import (
 // Routine which fulfills listening to proxy broadcasts
 func (s *Server) broadcastListener() {
 	// Register for proxy config updates broadcasted by the message broker
-	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
-	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
-	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
+	proxyUpdateChan, unsub := s.msgBroker.SubscribeProxyUpdates(announcements.ProxyUpdate.String())
+	defer unsub()
 
 	for {
 		<-proxyUpdateChan
@@ -33,7 +32,7 @@ func (s *Server) broadcastListener() {
 
 func (s *Server) allPodUpdater() {
 	allpods := s.kubecontroller.ListPods()
-
+	jobs := make([]<-chan struct{}, len(allpods))
 	for _, pod := range allpods {
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
@@ -51,7 +50,11 @@ func (s *Server) allPodUpdater() {
 			typeURIs:  envoy.XDSResponseOrder,
 			done:      make(chan struct{}),
 		}
-		s.workqueues.AddJob(&job)
+		jobs = append(jobs, s.workqueues.AddJob(&job))
+	}
+	// Ensure all jobs are completed before we allow the next run.
+	for _, job := range jobs {
+		<-job
 	}
 }
 

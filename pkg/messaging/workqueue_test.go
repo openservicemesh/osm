@@ -15,7 +15,7 @@ func TestProcessNextItem(t *testing.T) {
 	b := NewBroker(stop)
 
 	// Verify that a non PubSubMessage does not panic
-	b.queue.AddRateLimited("string")
+	b.queue.Add("string")
 	a.Eventually(func() bool {
 		return b.GetTotalQEventCount() == 1
 	}, 100*time.Millisecond, 10*time.Millisecond)

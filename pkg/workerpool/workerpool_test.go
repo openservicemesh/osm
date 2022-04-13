@@ -44,8 +44,6 @@ func (tj *testJob) Hash() uint64 {
 
 // Uses AddJob, which relies on job hash for queue assignment
 func TestAddJob(t *testing.T) {
-	assert := tassert.New(t)
-
 	njobs := 10 // also worker routines
 	wp := NewWorkerPool(njobs)
 	joblist := make([]testJob, njobs)
@@ -66,41 +64,4 @@ func TestAddJob(t *testing.T) {
 	}
 
 	wp.Stop()
-
-	// Verify all the workers processed 1 job (as expected by the static hash)
-	for i := 0; i < njobs; i++ {
-		assert.Equal(uint64(1), wp.workerContext[i].jobsProcessed)
-	}
-}
-
-// Uses AddJobRoundRobin, which relies on round robin for queue assignment
-func TestAddJobRoundRobin(t *testing.T) {
-	assert := tassert.New(t)
-
-	njobs := 10 // also worker routines
-	wp := NewWorkerPool(njobs)
-	joblist := make([]testJob, njobs)
-
-	// Create and add jobs
-	for i := 0; i < njobs; i++ {
-		joblist[i] = testJob{
-			jobDone: make(chan struct{}, 1),
-			hash:    uint64(i),
-		}
-
-		wp.AddJobRoundRobin(&joblist[i])
-	}
-
-	// Verify all jobs ran through the workers
-	for i := 0; i < njobs; i++ {
-		<-joblist[i].jobDone
-	}
-
-	wp.Stop()
-
-	// Verify all the workers processed 1 job (round-robbined)
-	assert.Equal(uint64(njobs), wp.rRobinCounter)
-	for i := 0; i < njobs; i++ {
-		assert.Equal(uint64(1), wp.workerContext[i].jobsProcessed)
-	}
 }

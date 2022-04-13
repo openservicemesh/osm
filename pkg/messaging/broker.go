@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cskr/pubsub"
+	"golang.org/x/sync/singleflight"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
@@ -31,7 +32,7 @@ const (
 // to process events added to the workqueue.
 func NewBroker(stopCh <-chan struct{}) *Broker {
 	b := &Broker{
-		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue:             workqueue.New(),
 		proxyUpdatePubSub: pubsub.New(0),
 		proxyUpdateCh:     make(chan proxyUpdateEvent),
 		kubeEventPubSub:   pubsub.New(0),
@@ -45,8 +46,11 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 }
 
 // GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events
-func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
-	return b.proxyUpdatePubSub
+func (b *Broker) SubscribeProxyUpdates(topics ...string) (<-chan interface{}, func()) {
+	ch := b.proxyUpdatePubSub.Sub(topics...)
+	return ch, func() {
+		b.Unsub(b.proxyUpdatePubSub, ch)
+	}
 }
 
 // GetKubeEventPubSub returns the PubSub instance corresponding to k8s events
@@ -82,8 +86,27 @@ func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
 	// if 'processNextItems()' returns false.
 	go wait.Until(
 		func() {
-			for b.processNextItem() {
+			for {
+				// Wait for an item to appear in the queue
+				item, shutdown := b.queue.Get()
+				if shutdown {
+					// We'll retry to start the queue in 1 second, unless stopCh is closed.
+					log.Info().Msg("Queue shutdown")
+					break
+				}
+				atomic.AddUint64(&b.totalQEventCount, 1)
+
+				msg, ok := item.(events.PubSubMessage)
+				if !ok {
+					log.Error().Msgf("Received msg of type %T on workqueue, expected events.PubSubMessage", msg)
+					b.queue.Done(item)
+					return
+				}
+
+				b.processEvent(msg)
+				b.queue.Done(item)
 			}
+
 		},
 		time.Second,
 		stopCh,
@@ -92,99 +115,24 @@ func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
 
 // runProxyUpdateDispatcher runs the dispatcher responsible for batching
 // proxy update events received in close proximity.
-// It batches proxy update events with the use of 2 timers:
-// 1. Sliding window timer that resets when a proxy update event is received
-// 2. Max window timer that caps the max duration a sliding window can be reset to
-// When either of the above timers expire, the proxy update event is published
-// on the dedicated pub-sub instance.
+// It batches proxy update events with singleflight
 func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
-	// batchTimer and maxTimer are updated by the dispatcher routine
-	// when events are processed and timeouts expire. They are initialized
-	// with a large timeout (a decade) so they don't time out till an event
-	// is received.
-	noTimeout := 87600 * time.Hour // A decade
-	slidingTimer := time.NewTimer(noTimeout)
-	maxTimer := time.NewTimer(noTimeout)
-
-	// dispatchPending indicates whether a proxy update event is pending
-	// from being published on the pub-sub. A proxy update event will
-	// be held for 'proxyUpdateSlidingWindow' duration to be able to
-	// coalesce multiple proxy update events within that duration, before
-	// it is dispatched on the pub-sub. The 'proxyUpdateSlidingWindow' duration
-	// is a sliding window, which means each event received within a window
-	// slides the window further ahead in time, up to a max of 'proxyUpdateMaxWindow'.
-	//
-	// This mechanism is necessary to avoid triggering proxy update pub-sub events in
-	// a hot loop, which would otherwise result in CPU spikes on the controller.
-	// We want to coalesce as many proxy update events within the 'proxyUpdateMaxWindow'
-	// duration.
-	dispatchPending := false
-	batchCount := 0 // number of proxy update events batched per dispatch
-
-	var event proxyUpdateEvent
+	var group singleflight.Group
 	for {
 		select {
-		case e, ok := <-b.proxyUpdateCh:
+		case event, ok := <-b.proxyUpdateCh:
 			if !ok {
 				log.Warn().Msgf("Proxy update event chan closed, exiting dispatcher")
 				return
 			}
-			event = e
-
-			if !dispatchPending {
-				// No proxy update events are pending send on the pub-sub.
-				// Reset the dispatch timers. The events will be dispatched
-				// when either of the timers expire.
-				if !slidingTimer.Stop() {
-					<-slidingTimer.C
-				}
-				slidingTimer.Reset(proxyUpdateSlidingWindow)
-				if !maxTimer.Stop() {
-					<-maxTimer.C
-				}
-				maxTimer.Reset(proxyUpdateMaxWindow)
-				dispatchPending = true
-				batchCount++
-				log.Trace().Msgf("Pending dispatch of msg kind %s", event.msg.Kind)
-			} else {
-				// A proxy update event is pending dispatch. Update the sliding window.
-				if !slidingTimer.Stop() {
-					<-slidingTimer.C
-				}
-				slidingTimer.Reset(proxyUpdateSlidingWindow)
-				batchCount++
-				log.Trace().Msgf("Reset sliding window for msg kind %s", event.msg.Kind)
-			}
-
-		case <-slidingTimer.C:
-			slidingTimer.Reset(noTimeout) // 'slidingTimer' drained in this case statement
-			// Stop and drain 'maxTimer' before Reset()
-			if !maxTimer.Stop() {
-				// Drain channel. Refer to Reset() doc for more info.
-				<-maxTimer.C
-			}
-			maxTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
-			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Sliding window expired, msg kind %s, batch size %d", event.msg.Kind, batchCount)
-			dispatchPending = false
-			batchCount = 0
-
-		case <-maxTimer.C:
-			maxTimer.Reset(noTimeout) // 'maxTimer' drained in this case statement
-			// Stop and drain 'slidingTimer' before Reset()
-			if !slidingTimer.Stop() {
-				// Drain channel. Refer to Reset() doc for more info.
-				<-slidingTimer.C
-			}
-			slidingTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
-			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Max window expired, msg kind %s, batch size %d", event.msg.Kind, batchCount)
-			dispatchPending = false
-			batchCount = 0
+			go group.Do("global-updater", func() (interface{}, error) {
+				// TODO: we somehow need a timeout, it case a single proxy gets stuck (it would do so by starving the workerpool).
+				atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
+				metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
+				b.proxyUpdatePubSub.Pub(event.msg, event.topic)
+				// TODO: need to 1) enqueue a blocking update to a proxy channel. 2) enqueue a pubsub blocking update to a specific channel.
+				return nil, nil
+			})
 
 		case <-stopCh:
 			log.Info().Msg("Proxy update dispatcher received stop signal, exiting")
@@ -204,15 +152,15 @@ func (b *Broker) processEvent(msg events.PubSubMessage) {
 	if event := getProxyUpdateEvent(msg); event != nil {
 		log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
 		atomic.AddUint64(&b.totalQProxyEventCount, 1)
-		if event.topic != announcements.ProxyUpdate.String() {
+		if event.topic == announcements.ProxyUpdate.String() {
+			// Pass the broadcast event to the dispatcher routine, that coalesces
+			// multiple broadcasts received in close proximity.
+			b.proxyUpdateCh <- *event
+		} else {
 			// This is not a broadcast event, so it cannot be coalesced with
 			// other events as the event is specific to one or more proxies.
 			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
 			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-		} else {
-			// Pass the broadcast event to the dispatcher routine, that coalesces
-			// multiple broadcasts received in close proximity.
-			b.proxyUpdateCh <- *event
 		}
 	}
 
