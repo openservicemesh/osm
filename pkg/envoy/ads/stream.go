@@ -90,6 +90,9 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 
 	for {
+		// All of these scenarios can block, blocking the messaging broker, and preventing updates to other proxies.
+		// TODO: look into implementing a timeout, or managing an internal queue on each proxy, to prevent blocking
+		// other proxies.
 		select {
 		case <-quit:
 			log.Debug().Str("proxy", proxy.String()).Msgf("gRPC stream closed")
