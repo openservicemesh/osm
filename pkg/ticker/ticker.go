@@ -130,26 +130,16 @@ func (r *ResyncTicker) stopTicker() {
 func (r *ResyncTicker) startTicker(tickIterval time.Duration) {
 	ticker := time.NewTicker(time.Duration(tickIterval))
 	r.running = true
-
-	ch, unsub := r.msgBroker.SubscribeProxyUpdates(announcements.ProxyUpdate.String())
-	defer unsub()
-	var lastUpdate time.Duration
 	for {
 		select {
 		case <-r.stopTickerCh:
 			log.Info().Msgf("Received signal to stop ticker, exiting ticker routine")
 			return
-
-		case <-ch:
-			// lastUpdate = time.Now()
-			lastUpdate = time.Now()
 		case <-ticker.C:
-			// TODO(steeling): consider checking if we've sent an update since the last interval
 			r.msgBroker.GetQueue().Add(events.PubSubMessage{
 				Kind: announcements.ProxyUpdate,
 			})
 			log.Trace().Msg("Ticking, queued internal event")
-			lastUpdate = time.Now()
 		}
 	}
 }
