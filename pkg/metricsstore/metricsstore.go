@@ -31,6 +31,16 @@ type MetricsStore struct {
 	MonitoredNamespaceCounter prometheus.Gauge
 
 	/*
+	 * Queueing metrics
+	 */
+	//
+	// ProxyBroadcastEnqueuedEventCount is the metric for the total number of ProxyBroadcast events published
+	ProxyBroadcastEnqueuedEventCount *prometheus.CounterVec
+	// ProxyBroadcastEnqueuedEventDuration is the histogram to track time spent waiting for a broadcast to get pulled
+	// off the queue.
+	ProxyBroadcastEnqueuedEventDuration *prometheus.HistogramVec
+
+	/*
 	 * Proxy metrics
 	 */
 	// ProxyConnectCount is the metric for the total number of proxies connected to the controller

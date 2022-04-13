@@ -45,7 +45,7 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 	return b
 }
 
-// GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events
+// SubscribeProxyUpdates returns the PubSub instance corresponding to proxy update events
 func (b *Broker) SubscribeProxyUpdates(topics ...string) (<-chan interface{}, func()) {
 	ch := b.proxyUpdatePubSub.Sub(topics...)
 	return ch, func() {
@@ -125,20 +125,36 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 				log.Warn().Msgf("Proxy update event chan closed, exiting dispatcher")
 				return
 			}
-			go group.Do("global-updater", func() (interface{}, error) {
-				// TODO: we somehow need a timeout, it case a single proxy gets stuck (it would do so by starving the workerpool).
-				atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-				metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-				b.proxyUpdatePubSub.Pub(event.msg, event.topic)
-				// TODO: need to 1) enqueue a blocking update to a proxy channel. 2) enqueue a pubsub blocking update to a specific channel.
-				return nil, nil
-			})
+			go func() {
+				now := time.Now()
+				_, _, shared := group.Do("global-updater", func() (interface{}, error) {
+					atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
+					// This is a user-friendly metric with how many events were actually sent out.
+					metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
+					// this blocks until the last proxy pulls it off the queue. However, this doesn't mean this msg was
+					// processed, instead it means that the message was enqueued on the workerpool.
+					b.proxyUpdatePubSub.Pub(event.msg, event.topic)
+					return nil, nil
+				})
+				recordEvent(now, shared)
+			}()
 
 		case <-stopCh:
 			log.Info().Msg("Proxy update dispatcher received stop signal, exiting")
 			return
 		}
 	}
+}
+
+func recordEvent(start time.Time, coallesced bool) {
+	elapsed := time.Since(start)
+	label := "sent"
+	if coallesced {
+		label = "coallesced"
+	}
+	// Whereas this is a more internal-facing metric, on how many events were actually processed.
+	metricsstore.DefaultMetricsStore.ProxyBroadcastEnqueuedEventCount.WithLabelValues(label).Inc()
+	metricsstore.DefaultMetricsStore.ProxyBroadcastEnqueuedEventDuration.WithLabelValues(label).Observe(float64(elapsed.Milliseconds()))
 }
 
 // processEvent processes an event dispatched from the workqueue.
