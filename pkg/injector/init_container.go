@@ -32,5 +32,16 @@ func getInitContainerSpec(containerName string, cfg configurator.Configurator, o
 			"-c",
 			iptablesInitCommand,
 		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "POD_IP",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.podIP",
+					},
+				},
+			},
+		},
 	}
 }

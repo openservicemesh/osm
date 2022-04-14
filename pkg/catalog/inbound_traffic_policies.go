@@ -46,6 +46,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	for _, upstreamSvc := range allUpstreamServices {
 		// ---
 		// Create local cluster configs for this upstram service
+
 		clusterConfigForSvc := &trafficpolicy.MeshClusterConfig{
 			Name:    upstreamSvc.EnvoyLocalClusterName(),
 			Service: upstreamSvc,
