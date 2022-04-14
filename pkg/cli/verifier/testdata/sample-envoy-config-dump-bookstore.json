@@ -1,0 +1,2329 @@
+{
+ "configs": [
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump",
+   "bootstrap": {
+    "node": {
+     "id": "b2d941c7-484a-4cd4-ad65-76e41b79e48a.sidecar.bookstore-v1.bookstore.cluster.local",
+     "hidden_envoy_deprecated_build_version": "98c1c9e9a40804b93b074badad1cdf284b47d58b/1.18.3/Clean/RELEASE/BoringSSL",
+     "user_agent_name": "envoy",
+     "user_agent_build_version": {
+      "version": {
+       "major_number": 1,
+       "minor_number": 18,
+       "patch": 3
+      },
+      "metadata": {
+       "revision.sha": "98c1c9e9a40804b93b074badad1cdf284b47d58b",
+       "revision.status": "Clean",
+       "ssl.version": "BoringSSL",
+       "build.type": "RELEASE"
+      }
+     },
+     "extensions": []
+    },
+    "static_resources": {
+     "listeners": [
+      {
+       "name": "liveness_listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15901
+        }
+       },
+       "filter_chains": [
+        {
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "health_probes_http",
+            "route_config": {
+             "name": "local_route",
+             "virtual_hosts": [
+              {
+               "name": "local_service",
+               "domains": [
+                "*"
+               ],
+               "routes": [
+                {
+                 "match": {
+                  "prefix": "/osm-liveness-probe"
+                 },
+                 "route": {
+                  "cluster": "liveness_cluster",
+                  "prefix_rewrite": "/liveness"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "authority": "%REQ(:AUTHORITY)%",
+                 "method": "%REQ(:METHOD)%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "duration": "%DURATION%",
+                 "protocol": "%PROTOCOL%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "start_time": "%START_TIME%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "request_id": "%REQ(X-REQUEST-ID)%"
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "readiness_listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15902
+        }
+       },
+       "filter_chains": [
+        {
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "health_probes_http",
+            "route_config": {
+             "name": "local_route",
+             "virtual_hosts": [
+              {
+               "name": "local_service",
+               "domains": [
+                "*"
+               ],
+               "routes": [
+                {
+                 "match": {
+                  "prefix": "/osm-readiness-probe"
+                 },
+                 "route": {
+                  "cluster": "readiness_cluster",
+                  "prefix_rewrite": "/readiness"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "authority": "%REQ(:AUTHORITY)%",
+                 "protocol": "%PROTOCOL%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "duration": "%DURATION%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "method": "%REQ(:METHOD)%",
+                 "start_time": "%START_TIME%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "response_code": "%RESPONSE_CODE%"
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "startup_listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15903
+        }
+       },
+       "filter_chains": [
+        {
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "health_probes_http",
+            "route_config": {
+             "name": "local_route",
+             "virtual_hosts": [
+              {
+               "name": "local_service",
+               "domains": [
+                "*"
+               ],
+               "routes": [
+                {
+                 "match": {
+                  "prefix": "/osm-startup-probe"
+                 },
+                 "route": {
+                  "cluster": "startup_cluster",
+                  "prefix_rewrite": "/startup"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "authority": "%REQ(:AUTHORITY)%",
+                 "duration": "%DURATION%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "protocol": "%PROTOCOL%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "start_time": "%START_TIME%",
+                 "method": "%REQ(:METHOD)%",
+                 "bytes_received": "%BYTES_RECEIVED%"
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "clusters": [
+      {
+       "name": "osm-controller",
+       "type": "LOGICAL_DNS",
+       "connect_timeout": "0.250s",
+       "transport_socket": {
+        "name": "envoy.transport_sockets.tls",
+        "typed_config": {
+         "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+         "common_tls_context": {
+          "tls_params": {
+           "tls_minimum_protocol_version": "TLSv1_2",
+           "tls_maximum_protocol_version": "TLSv1_3"
+          },
+          "tls_certificates": [
+           {
+            "certificate_chain": {
+             "inline_bytes": ""
+            },
+            "private_key": {
+             "inline_bytes": ""
+            }
+           }
+          ],
+          "validation_context": {
+           "trusted_ca": {
+            "inline_bytes": ""
+           }
+          },
+          "alpn_protocols": [
+           "h2"
+          ]
+         }
+        }
+       },
+       "load_assignment": {
+        "cluster_name": "osm-controller",
+        "endpoints": [
+         {
+          "lb_endpoints": [
+           {
+            "endpoint": {
+             "address": {
+              "socket_address": {
+               "address": "osm-controller.osm-system.svc.cluster.local",
+               "port_value": 15128
+              }
+             }
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "typed_extension_protocol_options": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+         "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+         "explicit_http_config": {
+          "http2_protocol_options": {}
+         }
+        }
+       }
+      },
+      {
+       "name": "liveness_cluster",
+       "type": "STATIC",
+       "connect_timeout": "1s",
+       "load_assignment": {
+        "cluster_name": "liveness_cluster",
+        "endpoints": [
+         {
+          "lb_endpoints": [
+           {
+            "endpoint": {
+             "address": {
+              "socket_address": {
+               "address": "127.0.0.1",
+               "port_value": 14001
+              }
+             }
+            }
+           }
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "name": "readiness_cluster",
+       "type": "STATIC",
+       "connect_timeout": "1s",
+       "load_assignment": {
+        "cluster_name": "readiness_cluster",
+        "endpoints": [
+         {
+          "lb_endpoints": [
+           {
+            "endpoint": {
+             "address": {
+              "socket_address": {
+               "address": "127.0.0.1",
+               "port_value": 14001
+              }
+             }
+            }
+           }
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "name": "startup_cluster",
+       "type": "STATIC",
+       "connect_timeout": "1s",
+       "load_assignment": {
+        "cluster_name": "startup_cluster",
+        "endpoints": [
+         {
+          "lb_endpoints": [
+           {
+            "endpoint": {
+             "address": {
+              "socket_address": {
+               "address": "127.0.0.1",
+               "port_value": 14001
+              }
+             }
+            }
+           }
+          ]
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "dynamic_resources": {
+     "lds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+     },
+     "cds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+     },
+     "ads_config": {
+      "api_type": "GRPC",
+      "grpc_services": [
+       {
+        "envoy_grpc": {
+         "cluster_name": "osm-controller"
+        }
+       }
+      ],
+      "set_node_on_first_message_only": true,
+      "transport_api_version": "V3"
+     }
+    },
+    "admin": {
+     "address": {
+      "socket_address": {
+       "address": "127.0.0.1",
+       "port_value": 15000
+      }
+     },
+     "access_log": [
+      {
+       "name": "envoy.access_loggers.stream",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog"
+       }
+      }
+     ]
+    }
+   },
+   "last_updated": "2021-08-02T18:35:46.061Z"
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ClustersConfigDump",
+   "version_info": "1",
+   "static_clusters": [
+    {
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "liveness_cluster",
+      "type": "STATIC",
+      "connect_timeout": "1s",
+      "load_assignment": {
+       "cluster_name": "liveness_cluster",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 14001
+             }
+            }
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.067Z"
+    },
+    {
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "osm-controller",
+      "type": "LOGICAL_DNS",
+      "connect_timeout": "0.250s",
+      "transport_socket": {
+       "name": "envoy.transport_sockets.tls",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+        "common_tls_context": {
+         "tls_params": {
+          "tls_minimum_protocol_version": "TLSv1_2",
+          "tls_maximum_protocol_version": "TLSv1_3"
+         },
+         "tls_certificates": [
+          {
+           "certificate_chain": {
+            "inline_bytes": ""
+           },
+           "private_key": {
+            "inline_bytes": ""
+           }
+          }
+         ],
+         "validation_context": {
+          "trusted_ca": {
+           "inline_bytes": ""
+          }
+         },
+         "alpn_protocols": [
+          "h2"
+         ]
+        }
+       }
+      },
+      "load_assignment": {
+       "cluster_name": "osm-controller",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "osm-controller.osm-system.svc.cluster.local",
+              "port_value": 15128
+             }
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "explicit_http_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.067Z"
+    },
+    {
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "readiness_cluster",
+      "type": "STATIC",
+      "connect_timeout": "1s",
+      "load_assignment": {
+       "cluster_name": "readiness_cluster",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 14001
+             }
+            }
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.067Z"
+    },
+    {
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "startup_cluster",
+      "type": "STATIC",
+      "connect_timeout": "1s",
+      "load_assignment": {
+       "cluster_name": "startup_cluster",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 14001
+             }
+            }
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.068Z"
+    }
+   ],
+   "dynamic_active_clusters": [
+    {
+     "version_info": "1",
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "bookstore/bookstore-v1-local",
+      "type": "STRICT_DNS",
+      "connect_timeout": "1s",
+      "dns_lookup_family": "V4_ONLY",
+      "alt_stat_name": "bookstore/bookstore-v1-local",
+      "load_assignment": {
+       "cluster_name": "bookstore/bookstore-v1-local",
+       "endpoints": [
+        {
+         "locality": {
+          "zone": "zone"
+         },
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 14001
+             }
+            }
+           },
+           "load_balancing_weight": 100
+          }
+         ]
+        }
+       ]
+      },
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "use_downstream_protocol_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      },
+      "respect_dns_ttl": true
+     },
+     "last_updated": "2021-08-02T18:35:46.950Z"
+    },
+    {
+     "version_info": "1",
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "bookwarehouse/bookwarehouse",
+      "type": "EDS",
+      "eds_cluster_config": {
+       "eds_config": {
+        "ads": {},
+        "resource_api_version": "V3"
+       }
+      },
+      "connect_timeout": "1s",
+      "health_checks": [
+       {
+        "timeout": "1s",
+        "interval": "10s",
+        "unhealthy_threshold": 3,
+        "healthy_threshold": 1,
+        "http_health_check": {
+         "host": "bookwarehouse.bookwarehouse.svc.cluster.local",
+         "path": "/healthz/osm",
+         "request_headers_to_add": [
+          {
+           "header": {
+            "key": "x-osm-envoy-healthcheck",
+            "value": "1"
+           }
+          }
+         ]
+        }
+       }
+      ],
+      "transport_socket": {
+       "name": "envoy.transport_sockets.tls",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+        "common_tls_context": {
+         "tls_params": {
+          "tls_minimum_protocol_version": "TLSv1_2",
+          "tls_maximum_protocol_version": "TLSv1_3"
+         },
+         "alpn_protocols": [
+          "osm"
+         ],
+         "tls_certificate_sds_secret_configs": [
+          {
+           "name": "service-cert:bookstore/bookstore-v1",
+           "sds_config": {
+            "ads": {},
+            "resource_api_version": "V3"
+           }
+          }
+         ],
+         "validation_context_sds_secret_config": {
+          "name": "root-cert-for-mtls-outbound:bookwarehouse/bookwarehouse",
+          "sds_config": {
+           "ads": {},
+           "resource_api_version": "V3"
+          }
+         }
+        },
+        "sni": "bookwarehouse.bookwarehouse.svc.cluster.local"
+       }
+      },
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "use_downstream_protocol_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.949Z"
+    },
+    {
+     "version_info": "1",
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "envoy-metrics-cluster",
+      "type": "STATIC",
+      "connect_timeout": "1s",
+      "alt_stat_name": "envoy-metrics-cluster",
+      "load_assignment": {
+       "cluster_name": "envoy-metrics-cluster",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 15000
+             }
+            }
+           },
+           "load_balancing_weight": 100
+          }
+         ]
+        }
+       ]
+      }
+     },
+     "last_updated": "2021-08-02T18:35:46.951Z"
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump",
+   "static_endpoint_configs": [
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "readiness_cluster",
+      "endpoints": [
+       {
+        "locality": {},
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "127.0.0.1",
+             "port_value": 14001
+            }
+           },
+           "health_check_config": {}
+          },
+          "health_status": "HEALTHY",
+          "load_balancing_weight": 1
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    },
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "startup_cluster",
+      "endpoints": [
+       {
+        "locality": {},
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "127.0.0.1",
+             "port_value": 14001
+            }
+           },
+           "health_check_config": {}
+          },
+          "health_status": "HEALTHY",
+          "load_balancing_weight": 1
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    },
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "liveness_cluster",
+      "endpoints": [
+       {
+        "locality": {},
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "127.0.0.1",
+             "port_value": 14001
+            }
+           },
+           "health_check_config": {}
+          },
+          "health_status": "HEALTHY",
+          "load_balancing_weight": 1
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    },
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "osm-controller",
+      "endpoints": [
+       {
+        "locality": {},
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "10.96.81.238",
+             "port_value": 15128
+            }
+           },
+           "health_check_config": {},
+           "hostname": "osm-controller.osm-system.svc.cluster.local"
+          },
+          "health_status": "HEALTHY",
+          "metadata": {},
+          "load_balancing_weight": 1
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    }
+   ],
+   "dynamic_endpoint_configs": [
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "envoy-metrics-cluster",
+      "endpoints": [
+       {
+        "locality": {},
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "127.0.0.1",
+             "port_value": 15000
+            }
+           },
+           "health_check_config": {}
+          },
+          "health_status": "HEALTHY",
+          "load_balancing_weight": 100
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    },
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "endpoints": [
+       {
+        "locality": {
+         "zone": "zone"
+        },
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "10.244.2.5",
+             "port_value": 14001
+            }
+           },
+           "health_check_config": {}
+          },
+          "health_status": "HEALTHY",
+          "load_balancing_weight": 100
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    },
+    {
+     "endpoint_config": {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "cluster_name": "bookstore/bookstore-v1-local",
+      "endpoints": [
+       {
+        "locality": {
+         "zone": "zone"
+        },
+        "lb_endpoints": [
+         {
+          "endpoint": {
+           "address": {
+            "socket_address": {
+             "address": "127.0.0.1",
+             "port_value": 14001
+            }
+           },
+           "health_check_config": {},
+           "hostname": "127.0.0.1"
+          },
+          "health_status": "HEALTHY",
+          "metadata": {},
+          "load_balancing_weight": 100
+         }
+        ]
+       }
+      ],
+      "policy": {
+       "overprovisioning_factor": 140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ListenersConfigDump",
+   "version_info": "4",
+   "static_listeners": [
+    {
+     "listener": {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "liveness_listener",
+      "address": {
+       "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 15901
+       }
+      },
+      "filter_chains": [
+       {
+        "filters": [
+         {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typed_config": {
+           "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+           "stat_prefix": "health_probes_http",
+           "route_config": {
+            "name": "local_route",
+            "virtual_hosts": [
+             {
+              "name": "local_service",
+              "domains": [
+               "*"
+              ],
+              "routes": [
+               {
+                "match": {
+                 "prefix": "/osm-liveness-probe"
+                },
+                "route": {
+                 "cluster": "liveness_cluster",
+                 "prefix_rewrite": "/liveness"
+                }
+               }
+              ]
+             }
+            ]
+           },
+           "http_filters": [
+            {
+             "name": "envoy.filters.http.router"
+            }
+           ],
+           "access_log": [
+            {
+             "name": "envoy.access_loggers.stream",
+             "typed_config": {
+              "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+              "log_format": {
+               "json_format": {
+                "bytes_received": "%BYTES_RECEIVED%",
+                "authority": "%REQ(:AUTHORITY)%",
+                "method": "%REQ(:METHOD)%",
+                "bytes_sent": "%BYTES_SENT%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "duration": "%DURATION%",
+                "protocol": "%PROTOCOL%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "user_agent": "%REQ(USER-AGENT)%",
+                "time_to_first_byte": "%RESPONSE_DURATION%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "start_time": "%START_TIME%",
+                "response_code": "%RESPONSE_CODE%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "request_id": "%REQ(X-REQUEST-ID)%"
+               }
+              }
+             }
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.072Z"
+    },
+    {
+     "listener": {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "readiness_listener",
+      "address": {
+       "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 15902
+       }
+      },
+      "filter_chains": [
+       {
+        "filters": [
+         {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typed_config": {
+           "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+           "stat_prefix": "health_probes_http",
+           "route_config": {
+            "name": "local_route",
+            "virtual_hosts": [
+             {
+              "name": "local_service",
+              "domains": [
+               "*"
+              ],
+              "routes": [
+               {
+                "match": {
+                 "prefix": "/osm-readiness-probe"
+                },
+                "route": {
+                 "cluster": "readiness_cluster",
+                 "prefix_rewrite": "/readiness"
+                }
+               }
+              ]
+             }
+            ]
+           },
+           "http_filters": [
+            {
+             "name": "envoy.filters.http.router"
+            }
+           ],
+           "access_log": [
+            {
+             "name": "envoy.access_loggers.stream",
+             "typed_config": {
+              "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+              "log_format": {
+               "json_format": {
+                "request_id": "%REQ(X-REQUEST-ID)%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "bytes_sent": "%BYTES_SENT%",
+                "authority": "%REQ(:AUTHORITY)%",
+                "protocol": "%PROTOCOL%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "time_to_first_byte": "%RESPONSE_DURATION%",
+                "duration": "%DURATION%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "method": "%REQ(:METHOD)%",
+                "start_time": "%START_TIME%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "user_agent": "%REQ(USER-AGENT)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                "bytes_received": "%BYTES_RECEIVED%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "response_code": "%RESPONSE_CODE%"
+               }
+              }
+             }
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.074Z"
+    },
+    {
+     "listener": {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "startup_listener",
+      "address": {
+       "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 15903
+       }
+      },
+      "filter_chains": [
+       {
+        "filters": [
+         {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typed_config": {
+           "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+           "stat_prefix": "health_probes_http",
+           "route_config": {
+            "name": "local_route",
+            "virtual_hosts": [
+             {
+              "name": "local_service",
+              "domains": [
+               "*"
+              ],
+              "routes": [
+               {
+                "match": {
+                 "prefix": "/osm-startup-probe"
+                },
+                "route": {
+                 "cluster": "startup_cluster",
+                 "prefix_rewrite": "/startup"
+                }
+               }
+              ]
+             }
+            ]
+           },
+           "http_filters": [
+            {
+             "name": "envoy.filters.http.router"
+            }
+           ],
+           "access_log": [
+            {
+             "name": "envoy.access_loggers.stream",
+             "typed_config": {
+              "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+              "log_format": {
+               "json_format": {
+                "user_agent": "%REQ(USER-AGENT)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "request_id": "%REQ(X-REQUEST-ID)%",
+                "authority": "%REQ(:AUTHORITY)%",
+                "duration": "%DURATION%",
+                "time_to_first_byte": "%RESPONSE_DURATION%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "protocol": "%PROTOCOL%",
+                "bytes_sent": "%BYTES_SENT%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "response_code": "%RESPONSE_CODE%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "start_time": "%START_TIME%",
+                "method": "%REQ(:METHOD)%",
+                "bytes_received": "%BYTES_RECEIVED%"
+               }
+              }
+             }
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.076Z"
+    }
+   ],
+   "dynamic_listeners": [
+    {
+     "name": "outbound-listener",
+     "active_state": {
+      "version_info": "1",
+      "listener": {
+       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+       "name": "outbound-listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15001
+        }
+       },
+       "filter_chains": [
+        {
+         "filter_chain_match": {
+          "prefix_ranges": [
+           {
+            "address_prefix": "10.96.196.30",
+            "prefix_len": 32
+           }
+          ],
+          "destination_port": 14001
+         },
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "mesh-http-conn-manager.rds-outbound",
+            "rds": {
+             "config_source": {
+              "ads": {},
+              "resource_api_version": "V3"
+             },
+             "route_config_name": "rds-outbound"
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.rbac"
+             },
+             {
+              "name": "envoy.filters.http.lua",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+               "inline_code": "--\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"osm-stats-pod\", \"bookstore-v1-74d9cbd7c8-vxsbm\")\n  request_handle:headers():add(\"osm-stats-namespace\", \"bookstore\")\n  request_handle:headers():add(\"osm-stats-kind\", \"Deployment\")\n  request_handle:headers():add(\"osm-stats-name\", \"bookstore-v1\")\nend"
+              }
+             },
+             {
+              "name": "envoy.filters.http.wasm",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm",
+               "config": {
+                "name": "stats",
+                "vm_config": {
+                 "runtime": "envoy.wasm.runtime.v8",
+                 "code": {
+                  "local": {
+                   "inline_bytes": ""
+                  }
+                 },
+                 "allow_precompiled": true
+                }
+               }
+              }
+             },
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "method": "%REQ(:METHOD)%",
+                 "protocol": "%PROTOCOL%",
+                 "duration": "%DURATION%",
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "start_time": "%START_TIME%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "authority": "%REQ(:AUTHORITY)%"
+                }
+               }
+              }
+             }
+            ],
+            "local_reply_config": {
+             "mappers": [
+              {
+               "filter": {
+                "not_health_check_filter": {}
+               },
+               "headers_to_add": [
+                {
+                 "header": {
+                  "key": "osm-stats-pod",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-namespace",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-kind",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-name",
+                  "value": "unknown"
+                 }
+                }
+               ]
+              }
+             ]
+            }
+           }
+          }
+         ],
+         "name": "outbound-mesh-http-filter-chain:bookwarehouse/bookwarehouse"
+        }
+       ],
+       "listener_filters": [
+        {
+         "name": "envoy.filters.listener.original_dst"
+        },
+        {
+         "name": "envoy.filters.listener.tls_inspector"
+        },
+        {
+         "name": "envoy.filters.listener.http_inspector"
+        }
+       ],
+       "traffic_direction": "OUTBOUND",
+       "continue_on_listener_filters_timeout": true
+      },
+      "last_updated": "2021-08-02T18:35:57.522Z"
+     }
+    },
+    {
+     "name": "inbound-listener",
+     "active_state": {
+      "version_info": "1",
+      "listener": {
+       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+       "name": "inbound-listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15003
+        }
+       },
+       "filter_chains": [
+        {
+         "filter_chain_match": {
+          "destination_port": 14001,
+          "transport_protocol": "tls",
+          "application_protocols": [
+           "osm"
+          ],
+          "server_names": [
+           "bookstore-v1.bookstore.svc.cluster.local"
+          ]
+         },
+         "filters": [
+          {
+           "name": "envoy.filters.network.rbac",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+            "rules": {
+             "policies": {
+              "bookstore/bookbuyer-access-bookstore-v1": {
+               "permissions": [
+                {
+                 "any": true
+                }
+               ],
+               "principals": [
+                {
+                 "or_ids": {
+                  "ids": [
+                   {
+                    "authenticated": {
+                     "principal_name": {
+                      "exact": "bookbuyer.bookbuyer.cluster.local"
+                     }
+                    }
+                   }
+                  ]
+                 }
+                }
+               ]
+              }
+             }
+            },
+            "stat_prefix": "network-"
+           }
+          },
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "mesh-http-conn-manager.rds-inbound",
+            "rds": {
+             "config_source": {
+              "ads": {},
+              "resource_api_version": "V3"
+             },
+             "route_config_name": "rds-inbound"
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.rbac"
+             },
+             {
+              "name": "envoy.filters.http.lua",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+               "inline_code": "--\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"osm-stats-pod\", \"bookstore-v1-74d9cbd7c8-vxsbm\")\n  request_handle:headers():add(\"osm-stats-namespace\", \"bookstore\")\n  request_handle:headers():add(\"osm-stats-kind\", \"Deployment\")\n  request_handle:headers():add(\"osm-stats-name\", \"bookstore-v1\")\nend"
+              }
+             },
+             {
+              "name": "envoy.filters.http.wasm",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm",
+               "config": {
+                "name": "stats",
+                "vm_config": {
+                 "runtime": "envoy.wasm.runtime.v8",
+                 "code": {
+                  "local": {
+                   "inline_bytes": ""
+                  }
+                 },
+                 "allow_precompiled": true
+                }
+               }
+              }
+             },
+             {
+              "name": "envoy.filters.http.health_check",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck",
+               "pass_through_mode": false,
+               "headers": [
+                {
+                 "name": ":path",
+                 "exact_match": "/healthz/osm"
+                },
+                {
+                 "name": "x-osm-envoy-healthcheck",
+                 "present_match": true
+                }
+               ]
+              }
+             },
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "duration": "%DURATION%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "protocol": "%PROTOCOL%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "start_time": "%START_TIME%",
+                 "method": "%REQ(:METHOD)%",
+                 "authority": "%REQ(:AUTHORITY)%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "user_agent": "%REQ(USER-AGENT)%"
+                }
+               }
+              }
+             }
+            ],
+            "local_reply_config": {
+             "mappers": [
+              {
+               "filter": {
+                "not_health_check_filter": {}
+               },
+               "headers_to_add": [
+                {
+                 "header": {
+                  "key": "osm-stats-pod",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-namespace",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-kind",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-name",
+                  "value": "unknown"
+                 }
+                }
+               ]
+              }
+             ]
+            }
+           }
+          }
+         ],
+         "transport_socket": {
+          "name": "envoy.transport_sockets.tls",
+          "typed_config": {
+           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+           "common_tls_context": {
+            "tls_params": {
+             "tls_minimum_protocol_version": "TLSv1_2",
+             "tls_maximum_protocol_version": "TLSv1_3"
+            },
+            "tls_certificate_sds_secret_configs": [
+             {
+              "name": "service-cert:bookstore/bookstore-v1",
+              "sds_config": {
+               "ads": {},
+               "resource_api_version": "V3"
+              }
+             }
+            ],
+            "validation_context_sds_secret_config": {
+             "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+             "sds_config": {
+              "ads": {},
+              "resource_api_version": "V3"
+             }
+            }
+           },
+           "require_client_certificate": true
+          }
+         },
+         "name": "inbound-mesh-http-filter-chain:bookstore/bookstore-v1:14001"
+        }
+       ],
+       "listener_filters": [
+        {
+         "name": "envoy.filters.listener.tls_inspector"
+        },
+        {
+         "name": "envoy.filters.listener.original_dst"
+        }
+       ],
+       "traffic_direction": "INBOUND"
+      },
+      "last_updated": "2021-08-02T18:36:07.029Z"
+     }
+    },
+    {
+     "name": "inbound-prometheus-listener",
+     "active_state": {
+      "version_info": "1",
+      "listener": {
+       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+       "name": "inbound-prometheus-listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15010
+        }
+       },
+       "filter_chains": [
+        {
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "prometheus-http-conn-manager",
+            "route_config": {
+             "virtual_hosts": [
+              {
+               "name": "prometheus-inbound-virtual-host",
+               "domains": [
+                "*"
+               ],
+               "routes": [
+                {
+                 "match": {
+                  "prefix": "/stats/prometheus"
+                 },
+                 "route": {
+                  "cluster": "envoy-metrics-cluster",
+                  "prefix_rewrite": "/stats/prometheus"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "start_time": "%START_TIME%",
+                 "method": "%REQ(:METHOD)%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "duration": "%DURATION%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "protocol": "%PROTOCOL%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "authority": "%REQ(:AUTHORITY)%"
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ],
+       "traffic_direction": "INBOUND"
+      },
+      "last_updated": "2021-08-02T18:35:47.636Z"
+     }
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump"
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.RoutesConfigDump",
+   "static_route_configs": [
+    {
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "local_route",
+      "virtual_hosts": [
+       {
+        "name": "local_service",
+        "domains": [
+         "*"
+        ],
+        "routes": [
+         {
+          "match": {
+           "prefix": "/osm-readiness-probe"
+          },
+          "route": {
+           "cluster": "readiness_cluster",
+           "prefix_rewrite": "/readiness"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.073Z"
+    },
+    {
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "local_route",
+      "virtual_hosts": [
+       {
+        "name": "local_service",
+        "domains": [
+         "*"
+        ],
+        "routes": [
+         {
+          "match": {
+           "prefix": "/osm-liveness-probe"
+          },
+          "route": {
+           "cluster": "liveness_cluster",
+           "prefix_rewrite": "/liveness"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.072Z"
+    },
+    {
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "local_route",
+      "virtual_hosts": [
+       {
+        "name": "local_service",
+        "domains": [
+         "*"
+        ],
+        "routes": [
+         {
+          "match": {
+           "prefix": "/osm-startup-probe"
+          },
+          "route": {
+           "cluster": "startup_cluster",
+           "prefix_rewrite": "/startup"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:46.075Z"
+    },
+    {
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "virtual_hosts": [
+       {
+        "name": "prometheus-inbound-virtual-host",
+        "domains": [
+         "*"
+        ],
+        "routes": [
+         {
+          "match": {
+           "prefix": "/stats/prometheus"
+          },
+          "route": {
+           "cluster": "envoy-metrics-cluster",
+           "prefix_rewrite": "/stats/prometheus"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     "last_updated": "2021-08-02T18:35:47.635Z"
+    }
+   ],
+   "dynamic_route_configs": [
+    {
+     "version_info": "1",
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "rds-outbound",
+      "virtual_hosts": [
+       {
+        "name": "outbound_virtual-host|bookstore.bookstore.svc.cluster.local",
+        "domains": [
+         "bookstore",
+         "bookstore.bookstore",
+         "bookstore.bookstore.svc",
+         "bookstore.bookstore.svc.cluster",
+         "bookstore.bookstore.svc.cluster.local",
+         "bookstore:14001",
+         "bookstore.bookstore:14001",
+         "bookstore.bookstore.svc:14001",
+         "bookstore.bookstore.svc.cluster:14001",
+         "bookstore.bookstore.svc.cluster.local:14001"
+        ],
+        "routes": [
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": ".*"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": ".*"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore-v1",
+              "weight": 50
+             },
+             {
+              "name": "bookstore/bookstore-v2",
+              "weight": 50
+             }
+            ],
+            "total_weight": 100
+           }
+          }
+         }
+        ]
+       },
+       {
+        "name": "outbound_virtual-host|bookwarehouse.bookwarehouse.svc.cluster.local",
+        "domains": [
+         "bookwarehouse.bookwarehouse",
+         "bookwarehouse.bookwarehouse.svc",
+         "bookwarehouse.bookwarehouse.svc.cluster",
+         "bookwarehouse.bookwarehouse.svc.cluster.local",
+         "bookwarehouse.bookwarehouse:14001",
+         "bookwarehouse.bookwarehouse.svc:14001",
+         "bookwarehouse.bookwarehouse.svc.cluster:14001",
+         "bookwarehouse.bookwarehouse.svc.cluster.local:14001"
+        ],
+        "routes": [
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": ".*"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": ".*"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookwarehouse/bookwarehouse",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          }
+         }
+        ]
+       }
+      ],
+      "validate_clusters": false
+     },
+     "last_updated": "2021-08-02T18:35:47.645Z"
+    },
+    {
+     "version_info": "5",
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "rds-inbound",
+      "virtual_hosts": [
+       {
+        "name": "inbound_virtual-host|bookstore-v1.bookstore.svc.cluster.local",
+        "domains": [
+         "bookstore-v1",
+         "bookstore-v1.bookstore",
+         "bookstore-v1.bookstore.svc",
+         "bookstore-v1.bookstore.svc.cluster",
+         "bookstore-v1.bookstore.svc.cluster.local",
+         "bookstore-v1:14001",
+         "bookstore-v1.bookstore:14001",
+         "bookstore-v1.bookstore.svc:14001",
+         "bookstore-v1.bookstore.svc.cluster:14001",
+         "bookstore-v1.bookstore.svc.cluster.local:14001"
+        ],
+        "routes": [
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "GET"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": ".*a-book.*new"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore-v1-local",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          },
+          "typed_per_filter_config": {
+           "envoy.filters.http.rbac": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute",
+            "rbac": {
+             "rules": {
+              "policies": {
+               "rbac-for-route": {
+                "permissions": [
+                 {
+                  "any": true
+                 }
+                ],
+                "principals": [
+                 {
+                  "or_ids": {
+                   "ids": [
+                    {
+                     "authenticated": {
+                      "principal_name": {
+                       "exact": "bookbuyer.bookbuyer.cluster.local"
+                      }
+                     }
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "GET"
+             }
+            },
+            {
+             "name": "user-agent",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": ".*-http-client/*.*"
+             }
+            },
+            {
+             "name": "client-app",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "bookbuyer"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": "/books-bought"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore-v1-local",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          },
+          "typed_per_filter_config": {
+           "envoy.filters.http.rbac": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute",
+            "rbac": {
+             "rules": {
+              "policies": {
+               "rbac-for-route": {
+                "permissions": [
+                 {
+                  "any": true
+                 }
+                ],
+                "principals": [
+                 {
+                  "or_ids": {
+                   "ids": [
+                    {
+                     "authenticated": {
+                      "principal_name": {
+                       "exact": "bookbuyer.bookbuyer.cluster.local"
+                      }
+                     }
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        ]
+       },
+       {
+        "name": "inbound_virtual-host|bookstore.bookstore.svc.cluster.local",
+        "domains": [
+         "bookstore",
+         "bookstore.bookstore",
+         "bookstore.bookstore.svc",
+         "bookstore.bookstore.svc.cluster",
+         "bookstore.bookstore.svc.cluster.local",
+         "bookstore:14001",
+         "bookstore.bookstore:14001",
+         "bookstore.bookstore.svc:14001",
+         "bookstore.bookstore.svc.cluster:14001",
+         "bookstore.bookstore.svc.cluster.local:14001"
+        ],
+        "routes": [
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "GET"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": ".*a-book.*new"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore-v1-local",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          },
+          "typed_per_filter_config": {
+           "envoy.filters.http.rbac": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute",
+            "rbac": {
+             "rules": {
+              "policies": {
+               "rbac-for-route": {
+                "permissions": [
+                 {
+                  "any": true
+                 }
+                ],
+                "principals": [
+                 {
+                  "or_ids": {
+                   "ids": [
+                    {
+                     "authenticated": {
+                      "principal_name": {
+                       "exact": "bookbuyer.bookbuyer.cluster.local"
+                      }
+                     }
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "GET"
+             }
+            },
+            {
+             "name": "client-app",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": "bookbuyer"
+             }
+            },
+            {
+             "name": "user-agent",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": ".*-http-client/*.*"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": "/books-bought"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore-v1-local",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          },
+          "typed_per_filter_config": {
+           "envoy.filters.http.rbac": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute",
+            "rbac": {
+             "rules": {
+              "policies": {
+               "rbac-for-route": {
+                "permissions": [
+                 {
+                  "any": true
+                 }
+                ],
+                "principals": [
+                 {
+                  "or_ids": {
+                   "ids": [
+                    {
+                     "authenticated": {
+                      "principal_name": {
+                       "exact": "bookbuyer.bookbuyer.cluster.local"
+                      }
+                     }
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        ]
+       }
+      ],
+      "response_headers_to_add": [
+       {
+        "header": {
+         "key": "osm-stats-pod",
+         "value": "bookstore-v1-74d9cbd7c8-vxsbm"
+        }
+       },
+       {
+        "header": {
+         "key": "osm-stats-namespace",
+         "value": "bookstore"
+        }
+       },
+       {
+        "header": {
+         "key": "osm-stats-kind",
+         "value": "Deployment"
+        }
+       },
+       {
+        "header": {
+         "key": "osm-stats-name",
+         "value": "bookstore-v1"
+        }
+       }
+      ],
+      "validate_clusters": false
+     },
+     "last_updated": "2021-08-02T18:54:19.809Z"
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump",
+   "dynamic_active_secrets": [
+    {
+     "name": "service-cert:bookstore/bookstore-v1",
+     "version_info": "4",
+     "last_updated": "2021-08-02T18:54:19.804Z",
+     "secret": {
+      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+      "name": "service-cert:bookstore/bookstore-v1",
+      "tls_certificate": {
+       "certificate_chain": {
+        "inline_bytes": ""
+       },
+       "private_key": {
+        "inline_bytes": ""
+       }
+      }
+     }
+    },
+    {
+     "name": "root-cert-for-mtls-outbound:bookwarehouse/bookwarehouse",
+     "version_info": "4",
+     "last_updated": "2021-08-02T18:54:19.802Z",
+     "secret": {
+      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+      "name": "root-cert-for-mtls-outbound:bookwarehouse/bookwarehouse",
+      "validation_context": {
+       "trusted_ca": {
+        "inline_bytes": ""
+       },
+       "match_subject_alt_names": [
+        {
+         "exact": "bookwarehouse.bookwarehouse.cluster.local"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+     "version_info": "4",
+     "last_updated": "2021-08-02T18:54:19.802Z",
+     "secret": {
+      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+      "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+      "validation_context": {
+       "trusted_ca": {
+        "inline_bytes": ""
+       }
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

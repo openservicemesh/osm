@@ -16,7 +16,6 @@ import (
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -41,14 +40,13 @@ const (
 )
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller,
+func NewMeshSpecClient(smiKubeConfig *rest.Config, osmNamespace string, kubeController k8s.Controller,
 	stop chan struct{}, msgBroker *messaging.Broker) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
 
 	client, err := newSMIClient(
-		kubeClient,
 		smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet,
 		smiTrafficTargetClientSet,
@@ -99,7 +97,7 @@ func (c *client) run(stop <-chan struct{}) error {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface,
+func newSMIClient(smiTrafficSplitClient smiTrafficSplitClient.Interface,
 	smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface,
 	osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{},
 	msgBroker *messaging.Broker) (*client, error) {
