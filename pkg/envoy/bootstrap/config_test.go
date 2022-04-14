@@ -10,52 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func TestBuildTLSSecret(t *testing.T) {
-	assert := tassert.New(t)
-
-	tlsSecret, err := BuildTLSSecret()
-	assert.Nil(err)
-	assert.NotNil(tlsSecret)
-
-	actualYAML, err := utils.ProtoToYAML(tlsSecret)
-	assert.Nil(err)
-
-	expectedYAML := `resources:
-- '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
-  name: tls_sds
-  tls_certificate:
-    certificate_chain:
-      filename: /certs/current/sds_cert.pem
-    private_key:
-      filename: /certs/current/sds_key.pem
-    watched_directory:
-      path: /certs
-`
-	assert.Equal(expectedYAML, string(actualYAML))
-}
-
-func TestBuildValidationSecret(t *testing.T) {
-	assert := tassert.New(t)
-
-	validationSecret, err := BuildValidationSecret()
-	assert.Nil(err)
-	assert.NotNil(validationSecret)
-
-	actualYAML, err := utils.ProtoToYAML(validationSecret)
-	assert.Nil(err)
-
-	expectedYAML := `resources:
-- '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
-  name: validation_context_sds
-  validation_context:
-    trusted_ca:
-      filename: /certs/current/cacert.pem
-    watched_directory:
-      path: /certs
-`
-	assert.Equal(expectedYAML, string(actualYAML))
-}
-
 func TestBuildFromConfig(t *testing.T) {
 	assert := tassert.New(t)
 	cert := tresorFake.NewFakeCertificate()

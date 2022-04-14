@@ -1,6 +1,1 @@
-actual_envoy_bootstrap_config.yaml
-actual_tls_certificate_sds_secret.yaml
-actual_validation_context_sds_secret.yaml
-actual_xds_cluster_without_probes.yaml
-actual_xds_cluster_with_probes.yaml
-actual_xds_static_resources_with_probes.yaml
+actual_*.yaml

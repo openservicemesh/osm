@@ -23,7 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
+func TestWatchAndUpdateProxyBootstrap(t *testing.T) {
 	a := assert.New(t)
 
 	stop := make(chan struct{})
@@ -40,8 +40,6 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 
 	podName := "app"
 	namespace := "app"
-	envoyBootstrapConfigVolume := "envoy-bootstrap-config-volume"
-	envoyXDSSecretVolume := "envoy-xds-secret-volume"
 	podUUID := uuid.New().String()
 	podUID := uuid.New().String()
 	configMapName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
@@ -65,28 +63,6 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 			Namespace: namespace,
 			Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: podUUID},
 			UID:       types.UID(podUID),
-		},
-		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: envoyBootstrapConfigVolume,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: secretName,
-						},
-					},
-				},
-				{
-					Name: envoyXDSSecretVolume,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: configMapName,
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 
