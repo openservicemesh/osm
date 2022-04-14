@@ -19,12 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
-const (
-	envoyXDSCACertFile = "cacert.pem"
-	envoyXDSCertFile   = "sds_cert.pem"
-	envoyXDSKeyFile    = "sds_key.pem"
-)
-
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
 		NodeID:                config.NodeID,
@@ -136,7 +130,7 @@ func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listene
 	return listeners, clusters, nil
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes healthProbes) (*corev1.ConfigMap, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes healthProbes) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
@@ -172,33 +166,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		return nil, err
 	}
 
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-				constants.OSMAppInstanceLabelKey: wh.meshName,
-				constants.OSMAppVersionLabelKey:  version.Version,
-			},
-		},
-		BinaryData: map[string][]byte{
-			envoyBootstrapConfigFile:            configYamlContent,
-			envoyTLSCertificateSDSSecretFile:    tlsYamlContent,
-			envoyValidationContextSDSSecretFile: validationYamlContent,
-		},
-	}
-
-	if existing, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
-		log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
-		existing.BinaryData = configMap.BinaryData
-		return wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-	}
-	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(context.Background(), configMap, metav1.CreateOptions{})
-}
-
-func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *certificate.Certificate) (*corev1.Secret, error) {
-	envoyXDSSecret := &corev1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -208,17 +176,20 @@ func (wh *mutatingWebhook) createEnvoyXDSSecret(name, namespace string, cert *ce
 			},
 		},
 		Data: map[string][]byte{
-			envoyXDSCACertFile: cert.GetIssuingCA(),
-			envoyXDSCertFile:   cert.GetCertificateChain(),
-			envoyXDSKeyFile:    cert.GetPrivateKey(),
+			bootstrap.EnvoyBootstrapConfigFile:            configYamlContent,
+			bootstrap.EnvoyTLSCertificateSDSSecretFile:    tlsYamlContent,
+			bootstrap.EnvoyValidationContextSDSSecretFile: validationYamlContent,
+			bootstrap.EnvoyXDSCACertFile:                  cert.GetIssuingCA(),
+			bootstrap.EnvoyXDSCertFile:                    cert.GetCertificateChain(),
+			bootstrap.EnvoyXDSKeyFile:                     cert.GetPrivateKey(),
 		},
 	}
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
-		log.Debug().Msgf("Updating Envoy secrets for xDS: name=%s, namespace=%s", name, namespace)
-		existing.Data = envoyXDSSecret.Data
+		log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
+		existing.Data = secret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
-	log.Debug().Msgf("Creating Envoy secret for xDS: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), envoyXDSSecret, metav1.CreateOptions{})
+	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
+	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 }

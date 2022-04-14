@@ -52,7 +52,7 @@ func TestCreatePatch(t *testing.T) {
 				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"configMap":{"name":"envoy-bootstrap-config-%v"},"name":"envoy-bootstrap-config-volume"},{"name":"envoy-xds-secret-volume","secret":{"secretName":"envoy-xds-secret-%v"}}]}`, proxyUUID, proxyUUID),
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
 				// Add Init Container
 				`"path":"/spec/initContainers"`,
 				`"command":["/bin/sh"]`,
@@ -75,7 +75,7 @@ func TestCreatePatch(t *testing.T) {
 				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"configMap":{"name":"envoy-bootstrap-config-%v"},"name":"envoy-bootstrap-config-volume"},{"name":"envoy-xds-secret-volume","secret":{"secretName":"envoy-xds-secret-%v"}}]}`, proxyUUID, proxyUUID),
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
 				// Add Envoy Container
 				`"path":"/spec/containers"`,
 				`"command":["envoy"]`,
@@ -99,7 +99,7 @@ func TestCreatePatch(t *testing.T) {
 				`"value":{"prometheus.io/path":"/stats/prometheus","prometheus.io/port":"15010","prometheus.io/scrape":"true"}`,
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"configMap":{"name":"envoy-bootstrap-config-%v"},"name":"envoy-bootstrap-config-volume"},{"name":"envoy-xds-secret-volume","secret":{"secretName":"envoy-xds-secret-%v"}}]}`, proxyUUID, proxyUUID),
+				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
 				// Add Init Container
 				`"path":"/spec/initContainers"`,
 				`"command":["/bin/sh"]`,

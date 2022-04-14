@@ -5,23 +5,13 @@ import (
 )
 
 // getVolumeSpec returns a list of volumes to add to the POD
-func getVolumeSpec(envoyBootstrapConfigName, envoyXDSSecretName string) []corev1.Volume {
+func getVolumeSpec(envoyBootstrapConfigName string) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: envoyBootstrapConfigVolume,
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: envoyBootstrapConfigName,
-					},
-				},
-			},
-		},
-		{
-			Name: envoyXDSSecretVolume,
-			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: envoyXDSSecretName,
+					SecretName: envoyBootstrapConfigName,
 				},
 			},
 		},

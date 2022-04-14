@@ -57,7 +57,7 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 
 				Expect(Td.WaitForPodsRunningReady(userService, 200*time.Second, userReplicaSet, nil)).To(Succeed())
 
-				By("Verifying the secrets and configMaps have been patched with OwnerReference")
+				By("Verifying the secrets have been patched with OwnerReference")
 
 				podSelector := constants.EnvoyUniqueIDLabelName
 
@@ -66,8 +66,12 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 
 				for _, pod := range pods.Items {
 					podUUID := pod.GetLabels()[podSelector]
-					configMapName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
-					secretName := fmt.Sprintf("envoy-xds-secret-%s", podUUID)
+					secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+					secret, err := Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
+					Expect(err).To(BeNil())
+
+					ownerReferences := secret.GetOwnerReferences()
+					Expect(ownerReferences).ToNot(BeNil())
 
 					expectedOwnerReference := v1.OwnerReference{
 						APIVersion: "v1",
@@ -76,36 +80,16 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 						UID:        pod.GetUID(),
 					}
 
-					configMap, err := Td.Client.CoreV1().ConfigMaps(userService).Get(context.Background(), configMapName, metav1.GetOptions{})
-					Expect(err).To(BeNil())
-
-					configMapOwnerReferences := configMap.GetOwnerReferences()
-					Expect(configMapOwnerReferences).ToNot(BeNil())
-
-					foundConfigMapOwnerReference := false
-					for _, configMapOwnerReference := range configMapOwnerReferences {
-						if reflect.DeepEqual(expectedOwnerReference, configMapOwnerReference) {
-							foundConfigMapOwnerReference = true
+					foundReference := false
+					for _, ownerReference := range ownerReferences {
+						if reflect.DeepEqual(expectedOwnerReference, ownerReference) {
+							foundReference = true
 						}
 					}
-					Expect(foundConfigMapOwnerReference).To(BeTrue())
-
-					secret, err := Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
-					Expect(err).To(BeNil())
-
-					secretOwnerReferences := secret.GetOwnerReferences()
-					Expect(secretOwnerReferences).ToNot(BeNil())
-
-					foundSecretOwnerReference := false
-					for _, secretOwnerReference := range secretOwnerReferences {
-						if reflect.DeepEqual(expectedOwnerReference, secretOwnerReference) {
-							foundSecretOwnerReference = true
-						}
-					}
-					Expect(foundSecretOwnerReference).To(BeTrue())
+					Expect(foundReference).To(BeTrue())
 				}
 
-				By("Verifying unused secrets and configMaps are deleted when the referenced owner is deleted")
+				By("Verifying unused secrets are deleted when the referenced owner is deleted")
 
 				pods, err = Td.Client.CoreV1().Pods(userService).List(context.Background(), metav1.ListOptions{LabelSelector: podSelector})
 				Expect(err).To(BeNil())
@@ -118,13 +102,8 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 
 				for _, pod := range pods.Items {
 					podUUID := pod.GetLabels()[podSelector]
-					configMapName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
-					secretName := fmt.Sprintf("envoy-xds-secret-%s", podUUID)
-
-					_, err := Td.Client.CoreV1().ConfigMaps(userService).Get(context.Background(), configMapName, metav1.GetOptions{})
-					Expect(err).ToNot(BeNil())
-
-					_, err = Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
+					secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+					_, err := Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
 					Expect(err).ToNot(BeNil())
 				}
 			})

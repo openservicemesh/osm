@@ -20,10 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-const (
-	gatewayBootstrapSecretName = "osm-multicluster-gateway-bootstrap-config" // #nosec G101: Potential hardcoded credentials
-	bootstrapConfigKey         = "bootstrap.yaml"
-)
+const gatewayBootstrapSecretName = "osm-multicluster-gateway-bootstrap-config" // #nosec G101: Potential hardcoded credentials
 
 func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace string) error {
 	secret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.Background(), gatewayBootstrapSecretName, metav1.GetOptions{})
@@ -31,7 +28,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 		return errors.Errorf("Error fetching OSM gateway's bootstrap config %s/%s", osmNamespace, gatewayBootstrapSecretName)
 	}
 
-	if bootstrapData, ok := secret.Data[bootstrapConfigKey]; !ok {
+	if bootstrapData, ok := secret.Data[bootstrap.EnvoyBootstrapConfigFile]; !ok {
 		return errors.Errorf("Missing OSM gateway bootstrap config in %s/%s", osmNamespace, gatewayBootstrapSecretName)
 	} else if isValidBootstrapData(bootstrapData) {
 		// If there is a valid bootstrap config, it means we do not need to reconfigure it. It implies
@@ -68,7 +65,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 			Namespace: osmNamespace,
 		},
 		Data: map[string][]byte{
-			bootstrapConfigKey: bootstrapData,
+			bootstrap.EnvoyBootstrapConfigFile: bootstrapData,
 		},
 	}
 

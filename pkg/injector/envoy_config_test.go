@@ -21,6 +21,7 @@ import (
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/version"
 )
@@ -161,111 +162,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			namespace := "a"
 			osmNamespace := "b"
 
-			configMap, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
-			Expect(err).ToNot(HaveOccurred())
-
-			expected := corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
-					Labels: map[string]string{
-						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-						constants.OSMAppInstanceLabelKey: "some-mesh",
-						constants.OSMAppVersionLabelKey:  version.Version,
-					},
-				},
-				BinaryData: map[string][]byte{
-					envoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
-					envoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
-					envoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyValidationContextSDSSecretFileName)),
-				},
-			}
-
-			// Contains the "bootstrap.yaml", "tls_certificate_sds_secret.yaml", and "validation_context_sds_secret.yaml" keys
-			Expect(len(configMap.BinaryData)).To(Equal(3))
-
-			Expect(configMap.BinaryData[envoyBootstrapConfigFile]).To(Equal(expected.BinaryData[envoyBootstrapConfigFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			Expect(configMap.BinaryData[envoyTLSCertificateSDSSecretFile]).To(Equal(expected.BinaryData[envoyTLSCertificateSDSSecretFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			Expect(configMap.BinaryData[envoyValidationContextSDSSecretFile]).To(Equal(expected.BinaryData[envoyValidationContextSDSSecretFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			// Now check the entire struct
-			Expect(*configMap).To(Equal(expected))
-		})
-
-		It("Updates bootstrap config for the Envoy proxy if it already exists", func() {
-			name := uuid.New().String()
-			namespace := "a"
-			osmNamespace := "b"
-			meta := metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-				Labels: map[string]string{
-					constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-					constants.OSMAppInstanceLabelKey: "some-mesh",
-					constants.OSMAppVersionLabelKey:  version.Version,
-				},
-			}
-			existing := &corev1.ConfigMap{
-				ObjectMeta: meta,
-				BinaryData: map[string][]byte{
-					"old": []byte("data"),
-				},
-			}
-			wh := &mutatingWebhook{
-				kubeClient:          fake.NewSimpleClientset(existing),
-				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
-				nonInjectNamespaces: mapset.NewSet(),
-				meshName:            "some-mesh",
-				configurator:        mockConfigurator,
-			}
-
-			configMap, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
-			Expect(err).ToNot(HaveOccurred())
-
-			expected := corev1.ConfigMap{
-				ObjectMeta: meta,
-				BinaryData: map[string][]byte{
-					envoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
-					envoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
-					envoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyValidationContextSDSSecretFileName)),
-				},
-			}
-
-			// Contains the "bootstrap.yaml", "tls_certificate_sds_secret.yaml", and "validation_context_sds_secret.yaml" keys
-			Expect(len(configMap.BinaryData)).To(Equal(3))
-
-			Expect(configMap.BinaryData[envoyBootstrapConfigFile]).To(Equal(expected.BinaryData[envoyBootstrapConfigFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			Expect(configMap.BinaryData[envoyTLSCertificateSDSSecretFile]).To(Equal(expected.BinaryData[envoyTLSCertificateSDSSecretFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			Expect(configMap.BinaryData[envoyValidationContextSDSSecretFile]).To(Equal(expected.BinaryData[envoyValidationContextSDSSecretFile]),
-				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.BinaryData, configMap.BinaryData))
-
-			// Now check the entire struct
-			Expect(*configMap).To(Equal(expected))
-		})
-	})
-
-	Context("Test createEnvoyXDSSecrets()", func() {
-		It("Creates secret for the Envoy proxy", func() {
-			wh := &mutatingWebhook{
-				kubeClient:          fake.NewSimpleClientset(),
-				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
-				nonInjectNamespaces: mapset.NewSet(),
-				meshName:            "some-mesh",
-				configurator:        mockConfigurator,
-			}
-			name := uuid.New().String()
-			namespace := "a"
-
-			secret, err := wh.createEnvoyXDSSecret(name, namespace, cert)
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
@@ -279,31 +176,50 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					},
 				},
 				Data: map[string][]byte{
-					envoyXDSCACertFile: cert.IssuingCA,
-					envoyXDSCertFile:   cert.CertChain,
-					envoyXDSKeyFile:    cert.PrivateKey,
+					bootstrap.EnvoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+					bootstrap.EnvoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
+					bootstrap.EnvoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyValidationContextSDSSecretFileName)),
+					bootstrap.EnvoyXDSCACertFile:                  cert.IssuingCA,
+					bootstrap.EnvoyXDSCertFile:                    cert.CertChain,
+					bootstrap.EnvoyXDSKeyFile:                     cert.PrivateKey,
 				},
 			}
 
-			// Contains the "ca_cert.pem", "sds_cert.pem", and "sds_key.pem" keys
-			Expect(len(secret.Data)).To(Equal(3))
+			// Contains the following keys:
+			// - "bootstrap.yaml"
+			// - "tls_certificate_sds_secret.yaml"
+			// - "validation_context_sds_secret.yaml"
+			// - "ca_cert.pem"
+			// - "sds_cert.pem"
+			// - "sds_key.pem"
+			Expect(len(secret.Data)).To(Equal(6))
 
-			Expect(secret.Data[envoyXDSCACertFile]).To(Equal(expected.Data[envoyXDSCACertFile]),
+			Expect(secret.Data[bootstrap.EnvoyBootstrapConfigFile]).To(Equal(secret.Data[bootstrap.EnvoyBootstrapConfigFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
-			Expect(secret.Data[envoyXDSCertFile]).To(Equal(expected.Data[envoyXDSCertFile]),
+			Expect(secret.Data[bootstrap.EnvoyTLSCertificateSDSSecretFile]).To(Equal(secret.Data[bootstrap.EnvoyTLSCertificateSDSSecretFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
-			Expect(secret.Data[envoyXDSKeyFile]).To(Equal(expected.Data[envoyXDSKeyFile]),
+			Expect(secret.Data[bootstrap.EnvoyValidationContextSDSSecretFile]).To(Equal(secret.Data[bootstrap.EnvoyValidationContextSDSSecretFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSCACertFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSCACertFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSCertFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSCertFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSKeyFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSKeyFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
 			// Now check the entire struct
 			Expect(*secret).To(Equal(expected))
 		})
 
-		It("Updates the Envoy xDS Secret for the Envoy proxy if it already exists", func() {
+		It("Updates bootstrap config for the Envoy proxy if it already exists", func() {
 			name := uuid.New().String()
 			namespace := "a"
+			osmNamespace := "b"
 			meta := metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
@@ -327,36 +243,46 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				configurator:        mockConfigurator,
 			}
 
-			secret, err := wh.createEnvoyXDSSecret(name, namespace, cert)
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
-					Labels: map[string]string{
-						constants.OSMAppNameLabelKey:     constants.OSMAppNameLabelValue,
-						constants.OSMAppInstanceLabelKey: "some-mesh",
-						constants.OSMAppVersionLabelKey:  version.Version,
-					},
-				},
+				ObjectMeta: meta,
 				Data: map[string][]byte{
-					envoyXDSCACertFile: cert.IssuingCA,
-					envoyXDSCertFile:   cert.CertChain,
-					envoyXDSKeyFile:    cert.PrivateKey,
+					bootstrap.EnvoyBootstrapConfigFile:            []byte(getExpectedEnvoyYAML(expectedEnvoyBootstrapConfigFileName)),
+					bootstrap.EnvoyTLSCertificateSDSSecretFile:    []byte(getExpectedEnvoyYAML(expectedEnvoyTLSCertificateSDSSecretFileName)),
+					bootstrap.EnvoyValidationContextSDSSecretFile: []byte(getExpectedEnvoyYAML(expectedEnvoyValidationContextSDSSecretFileName)),
+					bootstrap.EnvoyXDSCACertFile:                  cert.IssuingCA,
+					bootstrap.EnvoyXDSCertFile:                    cert.CertChain,
+					bootstrap.EnvoyXDSKeyFile:                     cert.PrivateKey,
 				},
 			}
 
-			// Contains the "ca_cert.pem", "sds_cert.pem", and "sds_key.pem" keys
-			Expect(len(secret.Data)).To(Equal(3))
+			// Contains the following keys:
+			// - "bootstrap.yaml"
+			// - "tls_certificate_sds_secret.yaml"
+			// - "validation_context_sds_secret.yaml"
+			// - "ca_cert.pem"
+			// - "sds_cert.pem"
+			// - "sds_key.pem"
+			Expect(len(secret.Data)).To(Equal(6))
 
-			Expect(secret.Data[envoyXDSCACertFile]).To(Equal(expected.Data[envoyXDSCACertFile]),
+			Expect(secret.Data[bootstrap.EnvoyBootstrapConfigFile]).To(Equal(secret.Data[bootstrap.EnvoyBootstrapConfigFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
-			Expect(secret.Data[envoyXDSCertFile]).To(Equal(expected.Data[envoyXDSCertFile]),
+			Expect(secret.Data[bootstrap.EnvoyTLSCertificateSDSSecretFile]).To(Equal(secret.Data[bootstrap.EnvoyTLSCertificateSDSSecretFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
-			Expect(secret.Data[envoyXDSKeyFile]).To(Equal(expected.Data[envoyXDSKeyFile]),
+			Expect(secret.Data[bootstrap.EnvoyValidationContextSDSSecretFile]).To(Equal(secret.Data[bootstrap.EnvoyValidationContextSDSSecretFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSCACertFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSCACertFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSCertFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSCertFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			Expect(secret.Data[bootstrap.EnvoyXDSKeyFile]).To(Equal(expected.Data[bootstrap.EnvoyXDSKeyFile]),
 				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
 
 			// Now check the entire struct
@@ -424,12 +350,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					{
 						Name:      envoyBootstrapConfigVolume,
 						ReadOnly:  true,
-						MountPath: envoyProxyConfigPath,
-					},
-					{
-						Name:      envoyXDSSecretVolume,
-						ReadOnly:  false,
-						MountPath: envoyXDSSecretPath,
+						MountPath: bootstrap.EnvoyProxyConfigPath,
 					},
 				},
 				Resources: corev1.ResourceRequirements{
@@ -555,12 +476,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					{
 						Name:      envoyBootstrapConfigVolume,
 						ReadOnly:  true,
-						MountPath: envoyProxyConfigPath,
-					},
-					{
-						Name:      envoyXDSSecretVolume,
-						ReadOnly:  false,
-						MountPath: envoyXDSSecretPath,
+						MountPath: bootstrap.EnvoyProxyConfigPath,
 					},
 				},
 				Resources: corev1.ResourceRequirements{

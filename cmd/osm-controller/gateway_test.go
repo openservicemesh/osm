@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 )
 
 func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
@@ -37,7 +38,7 @@ func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
 					Namespace: osmNamespace,
 				},
 				Data: map[string][]byte{
-					bootstrapConfigKey: []byte("-- placeholder --"),
+					bootstrap.EnvoyBootstrapConfigFile: []byte("-- placeholder --"),
 				},
 			},
 			expectError: false,
@@ -50,7 +51,7 @@ func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
 					Namespace: osmNamespace,
 				},
 				Data: map[string][]byte{
-					bootstrapConfigKey: []byte(`admin:
+					bootstrap.EnvoyBootstrapConfigFile: []byte(`admin:
   access_log:
   - name: envoy.access_loggers.stream
     typed_config:

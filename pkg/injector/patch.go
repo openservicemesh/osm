@@ -42,27 +42,20 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
-	envoyXDSSecretName := fmt.Sprintf("envoy-xds-secret-%s", proxyUUID)
 
-	// The webhook has a side effect (making out-of-band changes) of creating a k8s ConfigMap
-	// and Secret corresponding to the Envoy bootstrap config. Such a side effect needs to be
+	// The webhook has a side effect (making out-of-band changes) of creating a k8s
+	// Secret corresponding to the Envoy bootstrap config. Such a side effect needs to be
 	// skipped when the request is a DryRun.
 	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 	if req.DryRun != nil && *req.DryRun {
-		log.Debug().Msgf("Skipping envoy bootstrap config and secret creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else {
-		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-			return nil, err
-		}
-		if _, err = wh.createEnvoyXDSSecret(envoyXDSSecretName, namespace, bootstrapCertificate); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy xDS secret for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-			return nil, err
-		}
+		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
+	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+		return nil, err
 	}
 
-	// Create volumes for the envoy bootstrap config and xDS secret
-	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName, envoyXDSSecretName)...)
+	// Create volume for the envoy bootstrap config Secret
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.

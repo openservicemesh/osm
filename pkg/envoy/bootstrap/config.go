@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"path/filepath"
+
 	xds_accesslog_config "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -19,14 +21,38 @@ import (
 )
 
 const (
-	envoyXDSCertPath                 = "/certs/current/sds_cert.pem"
-	envoyXDSKeyPath                  = "/certs/current/sds_key.pem"
-	envoyXDSCACertPath               = "/certs/current/cacert.pem"
-	envoyWatchedDirectory            = "/certs"
 	envoyTLSCertificateSecretName    = "tls_sds"
 	envoyValidationContextSecretName = "validation_context_sds"
-	envoyTLSCertificateConfigPath    = "/etc/envoy/tls_certificate_sds_secret.yaml"
-	envoyValidationContextConfigPath = "/etc/envoy/validation_context_sds_secret.yaml"
+
+	// EnvoyBootstrapConfigFile is the name Envoy bootstrap configuration file
+	EnvoyBootstrapConfigFile = "bootstrap.yaml"
+
+	// EnvoyTLSCertificateSDSSecretFile is the name of the Envoy TLS certificate SDS config file
+	EnvoyTLSCertificateSDSSecretFile = "tls_certificate_sds_secret.yaml"
+
+	// EnvoyValidationContextSDSSecretFile is the name of the Envoy validation context SDS config file
+	EnvoyValidationContextSDSSecretFile = "validation_context_sds_secret.yaml"
+
+	// EnvoyProxyConfigPath is the path where the Envoy bootstrap config info is located
+	EnvoyProxyConfigPath = "/etc/envoy"
+
+	// EnvoyXDSCACertFile is the name of the Envoy XDS CA certificate file
+	EnvoyXDSCACertFile = "cacert.pem"
+
+	// EnvoyXDSCertFile is the name of the Envoy XDS certificate file
+	EnvoyXDSCertFile = "sds_cert.pem"
+
+	// EnvoyXDSKeyFile is the name of the Envoy XDS private key file
+	EnvoyXDSKeyFile = "sds_key.pem"
+)
+
+var (
+	envoyTLSCertificateConfigPath    = filepath.Join(EnvoyProxyConfigPath, EnvoyTLSCertificateSDSSecretFile)
+	envoyValidationContextConfigPath = filepath.Join(EnvoyProxyConfigPath, EnvoyValidationContextSDSSecretFile)
+
+	envoyXDSCertPath   = filepath.Join(EnvoyProxyConfigPath, EnvoyXDSCertFile)
+	envoyXDSKeyPath    = filepath.Join(EnvoyProxyConfigPath, EnvoyXDSKeyFile)
+	envoyXDSCACertPath = filepath.Join(EnvoyProxyConfigPath, EnvoyXDSCACertFile)
 )
 
 // BuildTLSSecret builds and returns an Envoy Discovery Response object for Envoy's xDS TLS
@@ -45,9 +71,6 @@ func BuildTLSSecret() (*xds_discovery.DiscoveryResponse, error) {
 					Specifier: &xds_core.DataSource_Filename{
 						Filename: envoyXDSKeyPath,
 					},
-				},
-				WatchedDirectory: &xds_core.WatchedDirectory{
-					Path: envoyWatchedDirectory,
 				},
 			},
 		},
@@ -74,9 +97,6 @@ func BuildValidationSecret() (*xds_discovery.DiscoveryResponse, error) {
 					Specifier: &xds_core.DataSource_Filename{
 						Filename: envoyXDSCACertPath,
 					},
-				},
-				WatchedDirectory: &xds_core.WatchedDirectory{
-					Path: envoyWatchedDirectory,
 				},
 			},
 		},

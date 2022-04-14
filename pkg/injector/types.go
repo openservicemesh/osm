@@ -13,10 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
-const (
-	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
-	envoyXDSSecretVolume       = "envoy-xds-secret-volume"
-)
+const envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 
 var log = logger.New("sidecar-injector")
 

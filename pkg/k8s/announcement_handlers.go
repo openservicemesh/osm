@@ -18,10 +18,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// WatchAndUpdateProxyBootstrap watches for new pods being added to the mesh and updates
-// their corresponding proxy bootstrap ConfigMap and xDS Secret's OwnerReferences to point
-// to the associated pod.
-func WatchAndUpdateProxyBootstrap(kubeClient kubernetes.Interface, msgBroker *messaging.Broker, stop <-chan struct{}) {
+// WatchAndUpdateProxyBootstrapSecret watches for new pods being added to the mesh
+// and updates their corresponding proxy bootstrap config Secret's OwnerReferences
+// to point to the associated pod.
+func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBroker *messaging.Broker, stop <-chan struct{}) {
 	kubePubSub := msgBroker.GetKubeEventPubSub()
 	podAddChan := kubePubSub.Sub(announcements.PodAdded.String())
 	defer msgBroker.Unsub(kubePubSub, podAddChan)
@@ -50,8 +50,7 @@ func WatchAndUpdateProxyBootstrap(kubeClient kubernetes.Interface, msgBroker *me
 			podUUID := addedPodObj.GetLabels()[constants.EnvoyUniqueIDLabelName]
 			podName := addedPodObj.GetName()
 			namespace := addedPodObj.GetNamespace()
-			secretName := fmt.Sprintf("envoy-xds-secret-%s", podUUID)
-			configMapName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+			secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
 
 			secret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 			if err != nil {
@@ -74,29 +73,6 @@ func WatchAndUpdateProxyBootstrap(kubeClient kubernetes.Interface, msgBroker *me
 				}
 			} else {
 				log.Debug().Msgf("Updated OwnerReference for Secret %s/%s to reference Pod %s/%s", namespace, secretName, namespace, podName)
-			}
-
-			configMap, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to get ConfigMap %s/%s mounted to Pod %s/%s", namespace, configMapName, namespace, podName)
-				continue
-			}
-
-			configMap.ObjectMeta.OwnerReferences = append(configMap.ObjectMeta.OwnerReferences, metav1.OwnerReference{
-				APIVersion: "v1",
-				Kind:       "Pod",
-				Name:       podName,
-				UID:        podUID,
-			})
-
-			if _, err = kubeClient.CoreV1().ConfigMaps(namespace).Update(context.Background(), configMap, metav1.UpdateOptions{}); err != nil {
-				// There might be conflicts when multiple controllers try to update the same resource
-				// One of the controllers will successfully update the resource, hence conflicts should be ignored and not treated as an error
-				if !apierrors.IsConflict(err) {
-					log.Error().Err(err).Msgf("Failed to update OwnerReference for ConfigMap %s/%s to reference Pod %s/%s", namespace, secretName, namespace, podName)
-				}
-			} else {
-				log.Debug().Msgf("Updated OwnerReference for ConfigMap %s/%s to reference Pod %s/%s", namespace, secretName, namespace, podName)
 			}
 		}
 	}

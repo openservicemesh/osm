@@ -8,14 +8,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-)
-
-const (
-	envoyBootstrapConfigFile            = "bootstrap.yaml"
-	envoyTLSCertificateSDSSecretFile    = "tls_certificate_sds_secret.yaml"
-	envoyValidationContextSDSSecretFile = "validation_context_sds_secret.yaml"
-	envoyProxyConfigPath                = "/etc/envoy"
-	envoyXDSSecretPath                  = "/certs/current"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 )
 
 func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
@@ -52,23 +45,16 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
 		Ports:           getEnvoyContainerPorts(originalHealthProbes),
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      envoyBootstrapConfigVolume,
-				ReadOnly:  true,
-				MountPath: envoyProxyConfigPath,
-			},
-			{
-				Name:      envoyXDSSecretVolume,
-				ReadOnly:  false,
-				MountPath: envoyXDSSecretPath,
-			},
-		},
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      envoyBootstrapConfigVolume,
+			ReadOnly:  true,
+			MountPath: bootstrap.EnvoyProxyConfigPath,
+		}},
 		Command:   []string{"envoy"},
 		Resources: cfg.GetProxyResources(),
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
-			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
+			"--config-path", strings.Join([]string{bootstrap.EnvoyProxyConfigPath, bootstrap.EnvoyBootstrapConfigFile}, "/"),
 			"--service-cluster", clusterID,
 		},
 		Env: []corev1.EnvVar{
