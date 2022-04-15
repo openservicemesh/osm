@@ -22,6 +22,9 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	}
 
 	now := time.Now()
+	// x509 certs only keep track to the nearest second. We could use time.Now(), but this helps for equality tests
+	// when we encode and decode the certs and check the result for equality.
+	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Day(), 0, time.Local)
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -77,25 +80,5 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		IssuingCA:    pem.RootCertificate(pemCert),
 		PrivateKey:   pemKey,
 		Expiration:   template.NotAfter,
-	}, nil
-}
-
-// NewCertificateFromPEM is a helper returning a *certificate.Certificate from the PEM components given.
-func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*certificate.Certificate, error) {
-	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
-			Msg("Error converting PEM cert to x509 to obtain serial number")
-		return nil, err
-	}
-
-	return &certificate.Certificate{
-		CommonName:   certificate.CommonName(x509Cert.Subject.CommonName),
-		SerialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
-		CertChain:    pemCert,
-		IssuingCA:    pem.RootCertificate(pemCert),
-		PrivateKey:   pemKey,
-		Expiration:   x509Cert.NotAfter,
 	}, nil
 }

@@ -53,7 +53,7 @@ func TestCertificateFromCertificateRequest(t *testing.T) {
 	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 	assert.Nil(err)
 
-	rootCertificate, err := NewRootCertificateFromPEM(rootCertPEM)
+	rootCertificate, err := certificate.NewFromPEM(rootCertPEM, nil)
 	assert.Nil(err)
 
 	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()

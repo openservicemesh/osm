@@ -8,13 +8,11 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
@@ -24,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
@@ -36,8 +33,8 @@ const (
 	checkCertificateExpirationInterval = 5 * time.Second
 )
 
-// NewCertificateProvider returns a new certificate provider and associated config
-func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
+// GenerateCertificateManager returns a new certificate provider and associated config
+func GenerateCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
 	providerNamespace string, caBundleSecretName string, tresorOptions TresorOptions, vaultOptions VaultOptions,
 	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) (certificate.Manager, debugger.CertificateManagerDebugger, *Config, error) {
 	config := &Config{
@@ -53,6 +50,8 @@ func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Co
 		certManagerOptions: certManagerOptions,
 
 		msgBroker: msgBroker,
+
+		caStorage: k8s.NewCASecretClient(kubeClient, caBundleSecretName, providerNamespace, ""),
 	}
 
 	if err := config.Validate(); err != nil {
@@ -65,26 +64,6 @@ func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Co
 	}
 
 	return certManager, certDebugger, config, nil
-}
-
-// NewCertificateProviderConfig returns a new certificate provider config
-func NewCertificateProviderConfig(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator, providerKind Kind,
-	providerNamespace string, caBundleSecretName string, tresorOptions TresorOptions, vaultOptions VaultOptions,
-	certManagerOptions CertManagerOptions, msgBroker *messaging.Broker) *Config {
-	return &Config{
-		kubeClient:         kubeClient,
-		kubeConfig:         kubeConfig,
-		cfg:                cfg,
-		providerKind:       providerKind,
-		providerNamespace:  providerNamespace,
-		caBundleSecretName: caBundleSecretName,
-
-		tresorOptions:      tresorOptions,
-		vaultOptions:       vaultOptions,
-		certManagerOptions: certManagerOptions,
-
-		msgBroker: msgBroker,
-	}
 }
 
 // Validate validates the certificate provider config
@@ -164,47 +143,29 @@ func (c *Config) GetCertificateManager() (certificate.Manager, debugger.Certific
 	}
 }
 
-// GetCertificateFromSecret is a helper function that ensures creation and synchronization of a certificate
-// using Kubernetes Secrets backend and API atomicity.
-func GetCertificateFromSecret(ns string, secretName string, cert *certificate.Certificate, kubeClient kubernetes.Interface) (*certificate.Certificate, error) {
+// SetAndGetCA first attempts to write the CA, then reads it, even if the write succeeded.
+func (c *Config) SetAndGetCA(ctx context.Context, cert *certificate.Certificate) (*certificate.Certificate, error) {
 	// Attempt to create it in Kubernetes. When multiple agents attempt to create, only one of them will succeed.
 	// All others will get "AlreadyExists" error back.
-	secretData := map[string][]byte{
-		constants.KubernetesOpaqueSecretCAKey:             cert.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretRootPrivateKeyKey: cert.GetPrivateKey(),
-	}
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: ns,
-			Labels: map[string]string{
-				constants.OSMAppNameLabelKey:    constants.OSMAppNameLabelValue,
-				constants.OSMAppVersionLabelKey: version.Version,
-			},
-		},
-		Data: secretData,
-	}
-
-	if _, err := kubeClient.CoreV1().Secrets(ns).Create(context.TODO(), secret, metav1.CreateOptions{}); err == nil {
-		log.Info().Msgf("Secret %s/%s created in kubernetes", ns, secretName)
-	} else if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("Secret %s/%s already exists in kubernetes, loading.", ns, secretName)
-	} else {
+	if _, err := c.caStorage.Set(ctx, cert); errors.Is(err, certificate.ErrSecretAlreadyExists) {
+		log.Info().Msgf("CA secret already exists in kubernetes, loading.")
+	} else if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertSecret)).
-			Msgf("Error creating/retrieving certificate secret %s/%s", ns, secretName)
+			Msgf("Error creating certificate secret")
 		return nil, err
+	} else {
+		log.Info().Msgf("Secret created")
 	}
 
 	// For simplicity, we will load the certificate for all of them, this way the instance which created it
 	// and the ones that didn't share the same code.
-	cert, err := GetCertFromKubernetes(ns, secretName, kubeClient)
+	cert, err := c.caStorage.Get(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch certificate from Kubernetes")
-		return nil, err
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingCertSecret)).
+			Msgf("Could not retrieve certificate secret")
 	}
-
 	return cert, nil
 }
 
@@ -232,9 +193,16 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 		return nil, nil, errors.Errorf("Root cert does not have a private key")
 	}
 
-	rootCert, err = GetCertificateFromSecret(c.providerNamespace, c.caBundleSecretName, rootCert, c.kubeClient)
+	rootCert, err = c.SetAndGetCA(context.TODO(), rootCert)
 	if err != nil {
-		return nil, nil, errors.Errorf("Failed to synchronize certificate on Secrets API : %v", err)
+		return nil, nil, err
+	}
+
+	if rootCert.GetPrivateKey() == nil {
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
+		log.Info().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingPrivateKeyFromSecret)).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", c.providerNamespace, c.caBundleSecretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
+		return nil, nil, certificate.ErrInvalidCertSecret
 	}
 
 	tresorClient, err := tresor.New(
@@ -253,42 +221,6 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 	rotor.New(tresorCertManager).Start(checkCertificateExpirationInterval)
 
 	return tresorCertManager, tresorCertManager, nil
-}
-
-// GetCertFromKubernetes is a helper function that loads a certificate from a Kubernetes secret
-// The function returns an error only if a secret is found with invalid data.
-func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.Interface) (*certificate.Certificate, error) {
-	certSecret, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, metav1.GetOptions{})
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingCertSecret)).
-			Msgf("Could not retrieve certificate secret %q from namespace %q", secretName, ns)
-		return nil, errSecretNotFound
-	}
-
-	pemCert, ok := certSecret.Data[constants.KubernetesOpaqueSecretCAKey]
-	if !ok {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
-			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAKey)
-		return nil, errInvalidCertSecret
-	}
-
-	pemKey, ok := certSecret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey]
-	if !ok {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(errInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingPrivateKeyFromSecret)).
-			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
-		return nil, errInvalidCertSecret
-	}
-
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create new Certificate from PEM")
-		return nil, err
-	}
-
-	return cert, nil
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
@@ -325,19 +257,9 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certi
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
 func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	rootCertSecret, err := c.kubeClient.CoreV1().Secrets(c.providerNamespace).Get(context.TODO(), c.caBundleSecretName, metav1.GetOptions{})
+	rootCert, err := c.caStorage.Get(context.TODO())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", c.providerNamespace, c.caBundleSecretName, err)
-	}
-
-	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
-	if !ok {
-		return nil, nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", c.providerNamespace, c.caBundleSecretName, constants.KubernetesOpaqueSecretCAKey)
-	}
-
-	rootCert, err := certmanager.NewRootCertificateFromPEM(pemCert)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", c.providerNamespace, c.caBundleSecretName, err)
+		return nil, nil, fmt.Errorf("Failed to get secret for certmanager.io: %w", err)
 	}
 
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)

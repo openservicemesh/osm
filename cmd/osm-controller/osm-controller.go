@@ -176,7 +176,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+	certManager, certDebugger, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
 		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
 
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -54,6 +55,8 @@ type Config struct {
 
 	// certManagerOptions is the options for 'cert-manager.io' certiticate provider
 	certManagerOptions CertManagerOptions
+
+	caStorage certificate.StorageEngine
 
 	msgBroker *messaging.Broker
 }

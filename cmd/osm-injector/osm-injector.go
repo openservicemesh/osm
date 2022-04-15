@@ -167,10 +167,8 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+	certManager, _, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
 		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
-
-	certManager, _, err := certProviderConfig.GetCertificateManager()
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)

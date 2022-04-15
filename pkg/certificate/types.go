@@ -3,6 +3,7 @@
 package certificate
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -80,6 +81,15 @@ type Manager interface {
 type client interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+}
+
+// StorageEngine is a small interface for getting and retrieving a root certificate.
+// Each StorageEngine should be preconfigured with what it needs to query the underlying infrastructure.
+type StorageEngine interface {
+	// Get certificate from the storage engine based on common name and namespace
+	Get(ctx context.Context) (*Certificate, error)
+	// Set sets the certificate in the storage engine, and returns the version of the certificate.
+	Set(ctx context.Context, cert *Certificate) (string, error)
 }
 
 // manager is a struct that is soon to replace the Manager interface.
