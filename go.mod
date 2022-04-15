@@ -301,6 +301,7 @@ require (
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/pyroscope-io/client v0.2.1 // indirect
 	github.com/quasilyte/go-ruleguard v0.2.0 // indirect
 	github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95 // indirect
 	github.com/rboyer/safeio v0.2.1 // indirect

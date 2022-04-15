@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/pyroscope-io/client/pyroscope"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +122,29 @@ func init() {
 }
 
 func main() {
+	pyroscope.Start(pyroscope.Config{
+		ApplicationName: "osm-controller",
+
+		// replace this with the address of pyroscope server
+		ServerAddress:   "http://pyroscope:4040",
+
+		// you can disable logging by setting this to nil
+		Logger:          pyroscope.StandardLogger,
+
+		// optionally, if authentication is enabled, specify the API key:
+		// AuthToken: os.Getenv("PYROSCOPE_AUTH_TOKEN"),
+
+		// by default all profilers are enabled,
+		// but you can select the ones you want to use:
+		ProfileTypes: []pyroscope.ProfileType{
+			pyroscope.ProfileCPU,
+			pyroscope.ProfileAllocObjects,
+			pyroscope.ProfileAllocSpace,
+			pyroscope.ProfileInuseObjects,
+			pyroscope.ProfileInuseSpace,
+		},
+	})
+
 	log.Info().Msgf("Starting osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
 		log.Fatal().Err(err).Str(errcode.Kind, errcode.ErrInvalidCLIArgument.String()).Msg("Error parsing cmd line arguments")
