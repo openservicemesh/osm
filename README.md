@@ -58,7 +58,7 @@ Documentation pertaining to development, release workflows, and other repository
 
 ### Project status
 
-OSM is under active development and is **NOT** ready for production workloads.
+OSM is under active development and is ready for production workloads.
 
 ### Support
 
