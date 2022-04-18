@@ -72,7 +72,6 @@ func (v *PodConnectivityVerifier) Run() Result {
 		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.DstPod),
 		//
 		// Envoy config verification
-
 		NewEnvoyConfigVerifier(v.stdout, v.stderr, v.kubeClient, v.meshConfig, configAttribute{
 			trafficAttr:     v.trafficAttr,
 			srcConfigGetter: v.srcPodConfigGetter,

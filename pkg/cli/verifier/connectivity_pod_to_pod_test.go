@@ -141,7 +141,9 @@ func TestRun(t *testing.T) {
 				SrcPod: &types.NamespacedName{Namespace: "ns1", Name: "pod1"},
 				DstPod: &types.NamespacedName{Namespace: "ns2", Name: "pod2"},
 			},
-			// Use configs that don't allow the pods to communicate
+			// Use configs that don't allow the pods to communicate.
+			// Configs pertain to pods curl and httpbin, while this test uses
+			// pods pod1 and pod2.
 			srcConfigGetter: fakeConfigGetter{
 				configFilePath: "testdata/curl_permissive.json",
 			},

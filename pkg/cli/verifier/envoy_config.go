@@ -15,10 +15,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/service"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // configAttribute describes the attributes of the traffic
@@ -30,24 +30,25 @@ type configAttribute struct {
 
 func (t configAttribute) String() string {
 	var s strings.Builder
+	fmt.Fprintf(&s, "\n")
 	if t.trafficAttr.SrcPod != nil {
-		fmt.Fprintf(&s, "#source pod: %s ", t.trafficAttr.SrcPod)
+		fmt.Fprintf(&s, "\tsource pod: %s\n", t.trafficAttr.SrcPod)
 	}
 	if t.trafficAttr.DstPod != nil {
-		fmt.Fprintf(&s, "#destination pod: %s ", t.trafficAttr.DstPod)
+		fmt.Fprintf(&s, "\tdestination pod: %s\n", t.trafficAttr.DstPod)
 	}
 	if t.trafficAttr.DstService != nil {
-		fmt.Fprintf(&s, "#destination service: %s ", t.trafficAttr.DstService)
+		fmt.Fprintf(&s, "\tdestination service: %s\n", t.trafficAttr.DstService)
 	}
 	if t.trafficAttr.DstHost != "" {
-		fmt.Fprintf(&s, "#destination host: %s ", t.trafficAttr.DstHost)
+		fmt.Fprintf(&s, "\tdestination host: %s\n", t.trafficAttr.DstHost)
 	}
 	if t.trafficAttr.DstPort != 0 {
-		fmt.Fprintf(&s, "#destination port: %d ", t.trafficAttr.DstPort)
+		fmt.Fprintf(&s, "\tdestination port: %d\n", t.trafficAttr.DstPort)
 	}
-	fmt.Fprintf(&s, "#destination protocol: %s ", t.trafficAttr.AppProtocol)
+	fmt.Fprintf(&s, "\tdestination protocol: %s\n", t.trafficAttr.AppProtocol)
 
-	return s.String()
+	return strings.TrimSuffix(s.String(), "\n")
 }
 
 // EnvoyConfigVerifier implements the Verifier interface for Envoy configs
@@ -74,7 +75,7 @@ func NewEnvoyConfigVerifier(stdout io.Writer, stderr io.Writer, kubeClient kuber
 // Run executes the Envoy config verifier
 func (v *EnvoyConfigVerifier) Run() Result {
 	result := Result{
-		Context: fmt.Sprintf("Verify Envoy config for traffic [%s]", v.configAttr),
+		Context: fmt.Sprintf("Verify Envoy config for traffic: %s", v.configAttr),
 	}
 
 	if v.configAttr.trafficAttr.SrcPod != nil {
@@ -93,13 +94,13 @@ func (v *EnvoyConfigVerifier) Run() Result {
 
 func (v *EnvoyConfigVerifier) verifySource() Result {
 	result := Result{
-		Context: fmt.Sprintf("Verify Envoy config on source for traffic [%s]", v.configAttr),
+		Context: fmt.Sprintf("Verify Envoy config on source for traffic: %s", v.configAttr),
 	}
 
 	config, err := v.configAttr.srcConfigGetter.Get()
 	if err != nil || config == nil {
 		result.Status = Unknown
-		result.Reason = fmt.Sprintf("Error retrieving Envoy config for pod %q", v.configAttr.trafficAttr.SrcPod)
+		result.Reason = fmt.Sprintf("Error retrieving Envoy config for pod %q, err: %s", v.configAttr.trafficAttr.SrcPod, err)
 		return result
 	}
 
@@ -110,18 +111,19 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 	listeners := config.Listeners.GetDynamicListeners()
 	var outboundListener xds_listener.Listener
 	for _, l := range listeners {
-		if l.Name == lds.OutboundListenerName {
-			active := l.GetActiveState()
-			if active == nil {
-				result.Status = Failure
-				result.Reason = fmt.Sprintf("Outbound listener %q on source pod %q is not active", lds.OutboundListenerName, v.configAttr.trafficAttr.SrcPod)
-				return result
-			}
-			//nolint: errcheck
-			//#nosec G104: Errors unhandled
-			active.Listener.UnmarshalTo(&outboundListener)
-			break
+		if l.Name != lds.OutboundListenerName {
+			continue
 		}
+		active := l.GetActiveState()
+		if active == nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Outbound listener %q on source pod %q is not active", lds.OutboundListenerName, v.configAttr.trafficAttr.SrcPod)
+			return result
+		}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		active.Listener.UnmarshalTo(&outboundListener)
+		break
 	}
 
 	if outboundListener.Name != lds.OutboundListenerName {
