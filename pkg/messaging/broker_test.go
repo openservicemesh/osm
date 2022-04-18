@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -99,8 +99,8 @@ func TestAllEvents(t *testing.T) {
 
 			meshCfgUpdate := events.PubSubMessage{
 				Kind:   announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha2.MeshConfig{},
-				NewObj: &configv1alpha2.MeshConfig{},
+				OldObj: &configv1alpha3.MeshConfig{},
+				NewObj: &configv1alpha3.MeshConfig{},
 			}
 			c.GetQueue().Add(meshCfgUpdate)
 		}
@@ -193,16 +193,16 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			name: "MeshConfig updated to enable permissive mode",
 			msg: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Traffic: configv1alpha2.TrafficSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Traffic: configv1alpha3.TrafficSpec{
 							EnablePermissiveTrafficPolicyMode: false,
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Traffic: configv1alpha2.TrafficSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Traffic: configv1alpha3.TrafficSpec{
 							EnablePermissiveTrafficPolicyMode: true,
 						},
 					},
@@ -223,16 +223,16 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			name: "MeshConfig updated with field that does not result in proxy update",
 			msg: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Observability: configv1alpha2.ObservabilitySpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Observability: configv1alpha3.ObservabilitySpec{
 							OSMLogLevel: "trace",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Observability: configv1alpha2.ObservabilitySpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Observability: configv1alpha3.ObservabilitySpec{
 							OSMLogLevel: "info",
 						},
 					},
@@ -244,16 +244,16 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			name: "MeshConfig update with feature flags results in proxy update",
 			msg: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						FeatureFlags: configv1alpha2.FeatureFlags{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						FeatureFlags: configv1alpha3.FeatureFlags{
 							EnableEgressPolicy: true,
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						FeatureFlags: configv1alpha2.FeatureFlags{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						FeatureFlags: configv1alpha3.FeatureFlags{
 							EnableEgressPolicy: false,
 						},
 					},

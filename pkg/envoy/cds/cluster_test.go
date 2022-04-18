@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -97,7 +97,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, tc.clusterConfig, configv1alpha2.SidecarSpec{})
+			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, tc.clusterConfig, configv1alpha3.SidecarSpec{})
 			assert.NotNil(remoteCluster)
 
 			if tc.clusterConfig.EnableEnvoyActiveHealthChecks {

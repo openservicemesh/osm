@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -66,18 +66,18 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 	}
 
 	testCases := []struct {
-		meshConfig  configv1alpha2.MeshConfig
+		meshConfig  configv1alpha3.MeshConfig
 		enabled     bool
 		expectError bool
 	}{
 		{
-			configv1alpha2.MeshConfig{
+			configv1alpha3.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace.Name,
 					Name:      defaultOsmMeshConfigName,
 				},
-				Spec: configv1alpha2.MeshConfigSpec{
-					Traffic: configv1alpha2.TrafficSpec{
+				Spec: configv1alpha3.MeshConfigSpec{
+					Traffic: configv1alpha3.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: true,
 					},
 				},
@@ -86,13 +86,13 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 			false,
 		},
 		{
-			configv1alpha2.MeshConfig{
+			configv1alpha3.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace.Name,
 					Name:      defaultOsmMeshConfigName,
 				},
-				Spec: configv1alpha2.MeshConfigSpec{
-					Traffic: configv1alpha2.TrafficSpec{
+				Spec: configv1alpha3.MeshConfigSpec{
+					Traffic: configv1alpha3.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: false,
 					},
 				},
@@ -107,7 +107,7 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 			assert := tassert.New(t)
 
 			// create the MeshConfig
-			_, err := fakeConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
+			_, err := fakeConfigClient.ConfigV1alpha3().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
 			assert.Nil(err)
 
 			enabled, err := cmd.isPermissiveModeEnabled()
@@ -268,19 +268,19 @@ func TestRun(t *testing.T) {
 	assert.Nil(err)
 
 	// Create MeshConfig with permissive mode enabled
-	meshConfig := &configv1alpha2.MeshConfig{
+	meshConfig := &configv1alpha3.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "osm-system",
 			Name:      defaultOsmMeshConfigName,
 		},
-		Spec: configv1alpha2.MeshConfigSpec{
-			Traffic: configv1alpha2.TrafficSpec{
+		Spec: configv1alpha3.MeshConfigSpec{
+			Traffic: configv1alpha3.TrafficSpec{
 				EnablePermissiveTrafficPolicyMode: true,
 			},
 		},
 	}
 
-	_, err = fakeConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace.Name).Create(context.TODO(), meshConfig, metav1.CreateOptions{})
+	_, err = fakeConfigClient.ConfigV1alpha3().MeshConfigs(osmNamespace.Name).Create(context.TODO(), meshConfig, metav1.CreateOptions{})
 	assert.Nil(err)
 
 	for i, tc := range testCases {
@@ -331,7 +331,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 		srcPod            corev1.Pod
 		dstPod            corev1.Pod
 		trafficTarget     smiAccess.TrafficTarget
-		meshConfig        configv1alpha2.MeshConfig
+		meshConfig        configv1alpha3.MeshConfig
 		expectError       bool
 		expectedOutSubstr string
 	}{
@@ -379,13 +379,13 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					}},
 				},
 			},
-			configv1alpha2.MeshConfig{
+			configv1alpha3.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
 					Name:      defaultOsmMeshConfigName,
 				},
-				Spec: configv1alpha2.MeshConfigSpec{
-					Traffic: configv1alpha2.TrafficSpec{
+				Spec: configv1alpha3.MeshConfigSpec{
+					Traffic: configv1alpha3.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: false,
 					},
 				},
@@ -437,13 +437,13 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					}},
 				},
 			},
-			configv1alpha2.MeshConfig{
+			configv1alpha3.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
 					Name:      defaultOsmMeshConfigName,
 				},
-				Spec: configv1alpha2.MeshConfigSpec{
-					Traffic: configv1alpha2.TrafficSpec{
+				Spec: configv1alpha3.MeshConfigSpec{
+					Traffic: configv1alpha3.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: false,
 					},
 				},
@@ -496,13 +496,13 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					}},
 				},
 			},
-			configv1alpha2.MeshConfig{
+			configv1alpha3.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "osm-system",
 					Name:      defaultOsmMeshConfigName,
 				},
-				Spec: configv1alpha2.MeshConfigSpec{
-					Traffic: configv1alpha2.TrafficSpec{
+				Spec: configv1alpha3.MeshConfigSpec{
+					Traffic: configv1alpha3.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: true,
 					},
 				},
@@ -548,7 +548,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			assert := tassert.New(t)
 
 			// create MeshConfig
-			_, err := fakeConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
+			_, err := fakeConfigClient.ConfigV1alpha3().MeshConfigs(osmNamespace.Name).Create(context.TODO(), &tc.meshConfig, metav1.CreateOptions{})
 			assert.Nil(err)
 
 			// create the traffic target
@@ -560,7 +560,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			assert.Contains(out.String(), tc.expectedOutSubstr)
 
 			// delete the MeshConfig for the next test case using the same MeshConfig
-			err = fakeConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace.Name).Delete(context.TODO(), tc.meshConfig.Name, metav1.DeleteOptions{})
+			err = fakeConfigClient.ConfigV1alpha3().MeshConfigs(osmNamespace.Name).Delete(context.TODO(), tc.meshConfig.Name, metav1.DeleteOptions{})
 			assert.Nil(err)
 
 			// delete the TrafficTarget for the next test case

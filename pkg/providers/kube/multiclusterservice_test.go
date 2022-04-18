@@ -10,7 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -31,7 +31,7 @@ func TestHelperFunctions(t *testing.T) {
 	mockConfigController := config.NewMockController(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 
 	toReturn := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: tests.BookbuyerService.Namespace},
@@ -55,9 +55,9 @@ func TestHelperFunctions(t *testing.T) {
 		Zone: "alpha",
 	}}
 
-	toReturnServices := []configv1alpha2.MultiClusterService{{
-		Spec: configv1alpha2.MultiClusterServiceSpec{
-			Clusters: []configv1alpha2.ClusterSpec{{
+	toReturnServices := []configv1alpha3.MultiClusterService{{
+		Spec: configv1alpha3.MultiClusterServiceSpec{
+			Clusters: []configv1alpha3.ClusterSpec{{
 				Address: fmt.Sprintf("%s:%d", expectedEndpoint[0].IP, expectedEndpoint[0].Port),
 				Name:    "alpha",
 			}},
@@ -81,7 +81,7 @@ func TestHelperFunctions(t *testing.T) {
 
 	// Test getIPPort()
 	// returns the port number specified in a ClusterSpec
-	clusterSpec := configv1alpha2.ClusterSpec{
+	clusterSpec := configv1alpha3.ClusterSpec{
 		Address: "1.2.3.4:5678",
 	}
 	actualIP, actualPort, err := getIPPort(clusterSpec)

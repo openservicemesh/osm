@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -78,7 +78,7 @@ func GetAddress(address string, port uint32) *xds_core.Address {
 }
 
 // GetTLSParams creates Envoy TlsParameters struct.
-func GetTLSParams(sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.TlsParameters {
+func GetTLSParams(sidecarSpec configv1alpha3.SidecarSpec) *xds_auth.TlsParameters {
 	minVersionInt := xds_auth.TlsParameters_TlsProtocol_value[sidecarSpec.TLSMinProtocolVersion]
 	maxVersionInt := xds_auth.TlsParameters_TlsProtocol_value[sidecarSpec.TLSMaxProtocolVersion]
 	tlsMinVersion := xds_auth.TlsParameters_TlsProtocol(minVersionInt)
@@ -163,7 +163,7 @@ func pbStringValue(v string) *structpb.Value {
 // is used to indicate peer certificate validation should be skipped, and is used when mTLS is disabled (ex. with TLS
 // based ingress).
 // 'sidecarSpec' is the sidecar section of MeshConfig.
-func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secrets.SDSCert, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secrets.SDSCert, sidecarSpec configv1alpha3.SidecarSpec) *xds_auth.CommonTlsContext {
 	commonTLSContext := &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(sidecarSpec),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
@@ -190,7 +190,7 @@ func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secr
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.DownstreamTlsContext {
+func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool, sidecarSpec configv1alpha3.SidecarSpec) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := secrets.SDSCert{
 		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
 		CertType: secrets.ServiceCertType,
@@ -222,7 +222,7 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, sidecarSpec configv1alpha3.SidecarSpec) *xds_auth.UpstreamTlsContext {
 	downstreamSDSCert := secrets.SDSCert{
 		Name:     secrets.GetSecretNameForIdentity(downstreamIdentity),
 		CertType: secrets.ServiceCertType,

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -32,7 +33,7 @@ var iptablesInboundStaticRules = []string{
 	"-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",
 }
 
-func genIPTablesOutboundStaticRules() []string {
+func genIPTablesOutboundStaticRules(cfg configurator.Configurator) []string {
 	// iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
 	iptablesOutboundStaticRules := []string{
 		// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Envoy's outbound listener port
@@ -66,7 +67,7 @@ func genIPTablesOutboundStaticRules() []string {
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
+func generateIptablesCommands(cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -91,7 +92,7 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPR
 		cmds = append(cmds, rule)
 	}
 
-	iptablesOutboundStaticRules := genIPTablesOutboundStaticRules()
+	iptablesOutboundStaticRules := genIPTablesOutboundStaticRules(cfg)
 
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)

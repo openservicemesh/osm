@@ -10,7 +10,7 @@ import (
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
 	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy) corev1.Container {
-	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList)
+	iptablesInitCommand := generateIptablesCommands(cfg, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList)
 
 	return corev1.Container{
 		Name:            containerName,

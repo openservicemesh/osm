@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 
@@ -36,7 +36,7 @@ func newConfigurator(meshConfigClientSet configClientset.Interface, stop <-chan 
 		configInformers.WithNamespace(osmNamespace),
 		listOption,
 	)
-	informer := informerFactory.Config().V1alpha2().MeshConfigs().Informer()
+	informer := informerFactory.Config().V1alpha3().MeshConfigs().Informer()
 	c := &client{
 		informer:       informer,
 		cache:          informer.GetStore(),
@@ -76,8 +76,8 @@ func (c *client) getMeshConfigCacheKey() string {
 }
 
 // Returns the current MeshConfig
-func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
-	var meshConfig configv1alpha2.MeshConfig
+func (c *client) getMeshConfig() configv1alpha3.MeshConfig {
+	var meshConfig configv1alpha3.MeshConfig
 
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
 	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
@@ -91,13 +91,13 @@ func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
 		return meshConfig
 	}
 
-	meshConfig = *item.(*configv1alpha2.MeshConfig)
+	meshConfig = *item.(*configv1alpha3.MeshConfig)
 	return meshConfig
 }
 
 func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
 	handleMetrics := func(obj interface{}) {
-		config := obj.(*configv1alpha2.MeshConfig)
+		config := obj.(*configv1alpha3.MeshConfig)
 
 		// This uses reflection to iterate over the feature flags to avoid
 		// enumerating them here individually. This code assumes the following:
@@ -122,7 +122,7 @@ func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
 			handleMetrics(newObj)
 		},
 		DeleteFunc: func(obj interface{}) {
-			config := obj.(*configv1alpha2.MeshConfig).DeepCopy()
+			config := obj.(*configv1alpha3.MeshConfig).DeepCopy()
 			// Ensure metrics reflect however the rest of the control plane
 			// handles when the MeshConfig doesn't exist. If this happens not to
 			// be the "real" MeshConfig, handleMetrics() will simply ignore it.

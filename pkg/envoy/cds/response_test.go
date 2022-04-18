@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -65,9 +65,9 @@ func TestNewResponse(t *testing.T) {
 		TargetPort: 8080,
 	}
 
-	meshConfig := configv1alpha2.MeshConfig{
-		Spec: configv1alpha2.MeshConfigSpec{
-			Sidecar: configv1alpha2.SidecarSpec{
+	meshConfig := configv1alpha3.MeshConfig{
+		Spec: configv1alpha3.MeshConfigSpec{
+			Sidecar: configv1alpha3.SidecarSpec{
 				TLSMinProtocolVersion: "TLSv1_2",
 				TLSMaxProtocolVersion: "TLSv1_3",
 			},
@@ -109,7 +109,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{}).AnyTimes()
 	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
@@ -432,7 +432,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
@@ -462,7 +462,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
@@ -495,7 +495,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}, nil).Times(1)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
@@ -518,7 +518,7 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
 		tests.BookstoreV1Service,

@@ -8,7 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -32,7 +32,7 @@ const (
 // The functions in this file implement the configurator.Configurator interface
 
 // GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-func (c *client) GetMeshConfig() configv1alpha2.MeshConfig {
+func (c *client) GetMeshConfig() configv1alpha3.MeshConfig {
 	return c.getMeshConfig()
 }
 
@@ -41,7 +41,7 @@ func (c *client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-func marshalConfigToJSON(config configv1alpha2.MeshConfigSpec) (string, error) {
+func marshalConfigToJSON(config configv1alpha3.MeshConfigSpec) (string, error) {
 	bytes, err := json.MarshalIndent(&config, "", "    ")
 	if err != nil {
 		return "", err
@@ -121,6 +121,17 @@ func (c *client) GetEnvoyLogLevel() string {
 		return logLevel
 	}
 	return constants.DefaultEnvoyLogLevel
+}
+
+func (c *client) GetEnvoyProxyMode() configv1alpha3.ProxyMode {
+	proxyConfig := c.getMeshConfig().Spec.Sidecar.ProxyMode
+	switch proxyConfig {
+	case configv1alpha3.ProxyModeLocalhost, configv1alpha3.ProxyModePodIP:
+		return proxyConfig
+	default:
+		// unrecognized proxy mode; return the default: ProxyModeLocalhost
+		return configv1alpha3.ProxyModeLocalhost
+	}
 }
 
 // GetEnvoyImage returns the envoy image
@@ -217,7 +228,7 @@ func (c *client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 }
 
 // GetFeatureFlags returns OSM's feature flags
-func (c *client) GetFeatureFlags() configv1alpha2.FeatureFlags {
+func (c *client) GetFeatureFlags() configv1alpha3.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
 }
 

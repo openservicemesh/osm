@@ -9,7 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	v1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	auth "github.com/openservicemesh/osm/pkg/auth"
 	v1 "k8s.io/api/core/v1"
 )
@@ -93,6 +93,20 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
+// GetEnvoyProxyMode mocks base method.
+func (m *MockConfigurator) GetEnvoyProxyMode() v1alpha3.ProxyMode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnvoyProxyMode")
+	ret0, _ := ret[0].(v1alpha3.ProxyMode)
+	return ret0
+}
+
+// GetEnvoyProxyMode indicates an expected call of GetEnvoyProxyMode.
+func (mr *MockConfiguratorMockRecorder) GetEnvoyProxyMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyProxyMode", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyProxyMode))
+}
+
 // GetEnvoyWindowsImage mocks base method.
 func (m *MockConfigurator) GetEnvoyWindowsImage() string {
 	m.ctrl.T.Helper()
@@ -108,10 +122,10 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyWindowsImage() *gomock.Call {
 }
 
 // GetFeatureFlags mocks base method.
-func (m *MockConfigurator) GetFeatureFlags() v1alpha2.FeatureFlags {
+func (m *MockConfigurator) GetFeatureFlags() v1alpha3.FeatureFlags {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFeatureFlags")
-	ret0, _ := ret[0].(v1alpha2.FeatureFlags)
+	ret0, _ := ret[0].(v1alpha3.FeatureFlags)
 	return ret0
 }
 
@@ -164,10 +178,10 @@ func (mr *MockConfiguratorMockRecorder) GetMaxDataPlaneConnections() *gomock.Cal
 }
 
 // GetMeshConfig mocks base method.
-func (m *MockConfigurator) GetMeshConfig() v1alpha2.MeshConfig {
+func (m *MockConfigurator) GetMeshConfig() v1alpha3.MeshConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMeshConfig")
-	ret0, _ := ret[0].(v1alpha2.MeshConfig)
+	ret0, _ := ret[0].(v1alpha3.MeshConfig)
 	return ret0
 }
 

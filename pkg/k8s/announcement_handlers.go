@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -96,8 +96,8 @@ func WatchAndUpdateLogLevel(msgBroker *messaging.Broker, stop <-chan struct{}) {
 				continue
 			}
 
-			prevObj, prevOk := msg.OldObj.(*configv1alpha2.MeshConfig)
-			newObj, newOk := msg.NewObj.(*configv1alpha2.MeshConfig)
+			prevObj, prevOk := msg.OldObj.(*configv1alpha3.MeshConfig)
+			newObj, newOk := msg.NewObj.(*configv1alpha3.MeshConfig)
 			if !prevOk || !newOk {
 				log.Error().Msgf("Error casting to *MeshConfig, got type prev=%T, new=%T", prevObj, newObj)
 			}

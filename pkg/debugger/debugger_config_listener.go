@@ -1,7 +1,7 @@
 package debugger
 
 import (
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -36,8 +36,8 @@ func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
 				continue
 			}
 
-			prevSpec := msg.OldObj.(*configv1alpha2.MeshConfig).Spec
-			newSpec := msg.NewObj.(*configv1alpha2.MeshConfig).Spec
+			prevSpec := msg.OldObj.(*configv1alpha3.MeshConfig).Spec
+			newSpec := msg.NewObj.(*configv1alpha3.MeshConfig).Spec
 
 			if prevSpec.Observability.EnableDebugServer == newSpec.Observability.EnableDebugServer {
 				continue

@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
@@ -70,7 +70,7 @@ func TestGetStdoutAccessLog(t *testing.T) {
 	assert.Equal(resAccessLogger, expAccessLogger)
 }
 
-var sidecarSpec = configv1alpha2.SidecarSpec{
+var sidecarSpec = configv1alpha3.SidecarSpec{
 	TLSMinProtocolVersion: "TLSv1_2",
 	TLSMaxProtocolVersion: "TLSv1_3",
 }
