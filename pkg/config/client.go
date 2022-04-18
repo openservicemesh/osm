@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	configV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	configV1alpha1Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
+	configV1alpha3Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	configV1alpha3Informers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -22,11 +22,11 @@ const (
 
 // NewConfigController returns a config.Controller struct related to functionality provided by the resources in the config.openservicemesh.io API group
 func NewConfigController(kubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}, msgBroker *messaging.Broker) (Controller, error) {
-	configClient := configV1alpha1Client.NewForConfigOrDie(kubeConfig)
-	informerFactory := configV1alpha1Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
+	configClient := configV1alpha3Client.NewForConfigOrDie(kubeConfig)
+	informerFactory := configV1alpha3Informers.NewSharedInformerFactory(configClient, k8s.DefaultKubeEventResyncInterval)
 
 	client := client{
-		informer:       informerFactory.Config().V1alpha2().MultiClusterServices(),
+		informer:       informerFactory.Config().V1alpha3().MultiClusterServices(),
 		kubeController: kubeController,
 	}
 

@@ -60,9 +60,6 @@ func TestConvertMeshConfig(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "config.openservicemesh.io/v1alpha3",
 					Kind:       "MeshConfig",
-				},
-				Spec: configv1alpha3.MeshConfigSpec{
-					Traffic: configv1alpha3.TrafficSpec{
 						OutboundIPRangeInclusionList: []string{"1.1.1.1/32"},
 					},
 					Sidecar: configv1alpha3.SidecarSpec{

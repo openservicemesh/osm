@@ -23,7 +23,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -227,7 +227,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 
 	// Create a default meshConfig
 	defaultMeshConfig := buildDefaultMeshConfig(presetsConfigMap)
-	if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err := b.meshConfigClient.ConfigV1alpha3().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
@@ -306,15 +306,15 @@ func validateCLIParams() error {
 	return nil
 }
 
-func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alpha2.MeshConfig {
+func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alpha3.MeshConfig {
 	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
-	presetMeshConfigSpec := configv1alpha2.MeshConfigSpec{}
+	presetMeshConfigSpec := configv1alpha3.MeshConfigSpec{}
 	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
 	}
 
-	return &configv1alpha2.MeshConfig{
+	return &configv1alpha3.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
 			APIVersion: "config.openservicemesh.io/configv1alpha3",

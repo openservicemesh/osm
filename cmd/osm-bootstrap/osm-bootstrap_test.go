@@ -12,19 +12,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
 
 var testNamespace = "test-namespace"
 
-var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+var testMeshConfig *configv1alpha3.MeshConfig = &configv1alpha3.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
 	},
-	Spec: configv1alpha2.MeshConfigSpec{},
+	Spec: configv1alpha3.MeshConfigSpec{},
 }
 
 var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{

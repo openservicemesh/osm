@@ -12,7 +12,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -37,7 +37,7 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableWASMStats: false,
 	}).AnyTimes()
 
@@ -214,7 +214,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableWASMStats:        false,
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
@@ -313,7 +313,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
 	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
@@ -614,7 +614,7 @@ func TestGetOutboundHTTPFilter(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableWASMStats: false,
 	}).AnyTimes()
 

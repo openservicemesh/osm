@@ -181,6 +181,7 @@
                 "meshName",
                 "maxDataPlaneConnections",
                 "envoyLogLevel",
+                "localProxyMode",
                 "controllerLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
@@ -699,6 +700,16 @@
                     "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
                     "examples": [
                         "error"
+                    ]
+                },
+                "localProxyMode": {
+                    "$id": "#/properties/osm/properties/localProxyMode",
+                    "type": "string",
+                    "title": "The localProxyMode schema",
+                    "description": "Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'].",
+                    "pattern": "^(Localhost|PodIP)$",
+                    "examples": [
+                        "Localhost"
                     ]
                 },
                 "controllerLogLevel": {

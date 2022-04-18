@@ -47,7 +47,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyV1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
@@ -285,7 +285,7 @@ nodeRegistration:
 
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s client", configv1alpha2.SchemeGroupVersion)
+		return errors.Wrapf(err, "failed to create %s client", configv1alpha3.SchemeGroupVersion)
 	}
 
 	policyClient, err := policyV1alpha1Client.NewForConfig(kubeConfig)
@@ -415,7 +415,7 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	return nil
 }
 
-func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.MeshConfig) (defaultConfig *configv1alpha2.MeshConfig) {
+func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha3.MeshConfig) (defaultConfig *configv1alpha3.MeshConfig) {
 	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
 	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
 	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
@@ -608,7 +608,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 }
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
-func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha2.MeshConfig, error) {
+func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha3.MeshConfig, error) {
 	meshConfig, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
 
 	if err != nil {
@@ -916,7 +916,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 }
 
 // UpdateOSMConfig updates OSM MeshConfig
-func (td *OsmTestData) UpdateOSMConfig(meshConfig *configv1alpha2.MeshConfig) (*configv1alpha2.MeshConfig, error) {
+func (td *OsmTestData) UpdateOSMConfig(meshConfig *configv1alpha3.MeshConfig) (*configv1alpha3.MeshConfig, error) {
 	updated, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
 
 	if err != nil {

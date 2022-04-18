@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -45,7 +45,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 	return filterChains
 }
 
-func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch, sidecarSpec configv1alpha2.SidecarSpec) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch, sidecarSpec configv1alpha3.SidecarSpec) (*xds_listener.FilterChain, error) {
 	if trafficMatch == nil {
 		return nil, errors.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
 	}

@@ -10,7 +10,7 @@ import (
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 )
 
 const (
@@ -26,9 +26,9 @@ func TestGetMeshConfig(t *testing.T) {
 	c := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
-	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())
+	a.Equal(configv1alpha3.MeshConfig{}, c.getMeshConfig())
 
-	newObj := &configv1alpha2.MeshConfig{
+	newObj := &configv1alpha3.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "config.openservicemesh.io",
 			Kind:       "MeshConfig",
@@ -62,12 +62,12 @@ func TestMetricsHandler(t *testing.T) {
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
 
 	// Adding the MeshConfig
-	handlers.OnAdd(&configv1alpha2.MeshConfig{
+	handlers.OnAdd(&configv1alpha3.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
 		},
-		Spec: configv1alpha2.MeshConfigSpec{
-			FeatureFlags: configv1alpha2.FeatureFlags{
+		Spec: configv1alpha3.MeshConfigSpec{
+			FeatureFlags: configv1alpha3.FeatureFlags{
 				EnableRetryPolicy: true,
 			},
 		},
@@ -76,12 +76,12 @@ func TestMetricsHandler(t *testing.T) {
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
 
 	// Updating the MeshConfig
-	handlers.OnUpdate(nil, &configv1alpha2.MeshConfig{
+	handlers.OnUpdate(nil, &configv1alpha3.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
 		},
-		Spec: configv1alpha2.MeshConfigSpec{
-			FeatureFlags: configv1alpha2.FeatureFlags{
+		Spec: configv1alpha3.MeshConfigSpec{
+			FeatureFlags: configv1alpha3.FeatureFlags{
 				EnableSnapshotCacheMode: true,
 			},
 		},
@@ -90,12 +90,12 @@ func TestMetricsHandler(t *testing.T) {
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 1` + "\n"))
 
 	// Deleting the MeshConfig
-	handlers.OnDelete(&configv1alpha2.MeshConfig{
+	handlers.OnDelete(&configv1alpha3.MeshConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: osmMeshConfigName,
 		},
-		Spec: configv1alpha2.MeshConfigSpec{
-			FeatureFlags: configv1alpha2.FeatureFlags{
+		Spec: configv1alpha3.MeshConfigSpec{
+			FeatureFlags: configv1alpha3.FeatureFlags{
 				EnableSnapshotCacheMode: true,
 			},
 		},

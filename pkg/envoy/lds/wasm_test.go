@@ -6,7 +6,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
@@ -44,7 +44,7 @@ func TestGetWASMStatsHeaders(t *testing.T) {
 				statsHeaders: tc.statsHeaders,
 			}
 
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableWASMStats: tc.enabled}).Times(1)
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableWASMStats: tc.enabled}).Times(1)
 
 			actual := lb.getWASMStatsHeaders()
 			a.Equal(tc.expected, actual)

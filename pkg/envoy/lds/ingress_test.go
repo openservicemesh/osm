@@ -10,7 +10,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -179,7 +179,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 				Enable: false,
 			})
 
-			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch, configv1alpha2.SidecarSpec{})
+			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch, configv1alpha3.SidecarSpec{})
 			assert.Equal(tc.expectError, err != nil)
 
 			if err == nil {

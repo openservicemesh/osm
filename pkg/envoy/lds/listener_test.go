@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -192,7 +192,7 @@ func TestNewOutboundListener(t *testing.T) {
 	}).Times(2)
 	cfg := configurator.NewMockConfigurator(mockCtrl)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableEgressPolicy: true,
 	}).Times(1)
 

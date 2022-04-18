@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -41,16 +41,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Start ticker that ticks every 1s",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "1s",
 						},
 					},
@@ -63,16 +63,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Update ticker from 1s to 500ms",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "1s",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500ms",
 						},
 					},
@@ -85,16 +85,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Stop ticker - 500ms to 0",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "0",
 						},
 					},
@@ -107,16 +107,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Restart ticker from 0 to 500ms",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "0",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500ms",
 						},
 					},
@@ -129,16 +129,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Ticker continues to operate when the tick value is unchanged",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500ms",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500ms",
 						},
 					},
@@ -151,16 +151,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Set ticker interval below min allowed and verify it is ignored",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "0",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "1ms", // Less than 'minTickerInterval'
 						},
 					},
@@ -174,16 +174,16 @@ func TestResyncTicker(t *testing.T) {
 		{
 			name: "Restart ticker from invalid interval to 500ms",
 			event: events.PubSubMessage{
-				OldObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				OldObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "1ms",
 						},
 					},
 				},
-				NewObj: &configv1alpha2.MeshConfig{
-					Spec: configv1alpha2.MeshConfigSpec{
-						Sidecar: configv1alpha2.SidecarSpec{
+				NewObj: &configv1alpha3.MeshConfig{
+					Spec: configv1alpha3.MeshConfigSpec{
+						Sidecar: configv1alpha3.SidecarSpec{
 							ConfigResyncInterval: "500ms",
 						},
 					},

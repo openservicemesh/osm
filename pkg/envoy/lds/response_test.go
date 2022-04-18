@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/auth"
@@ -82,7 +82,7 @@ func TestNewResponse(t *testing.T) {
 	}).AnyTimes()
 	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableWASMStats:        false,
 		EnableEgressPolicy:     true,
 		EnableMulticlusterMode: false,
@@ -165,7 +165,7 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
 

@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -34,7 +34,7 @@ var replacer = strings.NewReplacer(".", "_", ":", "_")
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha2.SidecarSpec) *xds_cluster.Cluster {
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha3.SidecarSpec) *xds_cluster.Cluster {
 	httpProtocolOptions := getDefaultHTTPProtocolOptions()
 
 	marshalledUpstreamTLSContext, err := anypb.New(
@@ -332,7 +332,7 @@ func formatAltStatNameForPrometheus(clusterName string) string {
 	return replacer.Replace(clusterName)
 }
 
-func upstreamClustersFromClusterConfigs(downstreamIdentity identity.ServiceIdentity, configs []*trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha2.SidecarSpec) []*xds_cluster.Cluster {
+func upstreamClustersFromClusterConfigs(downstreamIdentity identity.ServiceIdentity, configs []*trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha3.SidecarSpec) []*xds_cluster.Cluster {
 	var clusters []*xds_cluster.Cluster
 
 	for _, c := range configs {

@@ -3,12 +3,14 @@ package injector
 import (
 	"testing"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateIptablesCommands(t *testing.T) {
 	testCases := []struct {
 		name                      string
+		configurator              configurator.Configurator
 		outboundIPRangeExclusions []string
 		outboundIPRangeInclusions []string
 		outboundPortExclusions    []int
@@ -88,7 +90,7 @@ EOF
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-			actual := generateIptablesCommands(tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions)
+			actual := generateIptablesCommands(tc.configurator, tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions)
 			a.Equal(tc.expected, actual)
 		})
 	}

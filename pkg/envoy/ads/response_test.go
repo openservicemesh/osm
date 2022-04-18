@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
@@ -138,7 +138,7 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 			EnableWASMStats:    false,
 			EnableEgressPolicy: false,
 		}).AnyTimes()

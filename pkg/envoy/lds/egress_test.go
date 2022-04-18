@@ -10,7 +10,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -57,7 +57,7 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false}).AnyTimes()
 			actual, err := lb.getEgressHTTPFilterChain(tc.destinationPort)
@@ -153,7 +153,7 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false,
 			}).AnyTimes()
@@ -229,7 +229,7 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 			}
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false,
 			}).AnyTimes()

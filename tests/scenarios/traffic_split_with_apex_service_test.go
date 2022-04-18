@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
@@ -46,7 +46,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	// ---[  Get the config from rds.NewResponse()  ]-------
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{
 		EnableWASMStats:    false,
 		EnableEgressPolicy: false,
 	}).AnyTimes()

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -60,7 +61,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
+func generateIptablesCommands(cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules

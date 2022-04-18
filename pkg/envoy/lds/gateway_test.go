@@ -7,7 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -25,7 +25,7 @@ func TestBuildMulticlusterGatewayListeners(t *testing.T) {
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
+	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha3.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 
 	id := identity.K8sServiceAccount{Name: "osm", Namespace: "osm-system"}.ToServiceIdentity()
 	meshServices := []service.MeshService{
