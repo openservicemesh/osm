@@ -15,6 +15,7 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
 - [Release Guide](#release-guide)
   - [Release Candidates](#release-candidates)
   - [Create a release branch](#create-a-release-branch)
+  - [Add changes to be backported](#add-changes-to-be-backported)
   - [Create and push the pre-release Git tag](#create-and-push-the-pre-release-git-tag)
   - [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
   - [Create and push the release Git tag](#create-and-push-the-release-git-tag)
@@ -43,9 +44,15 @@ Push the release branch to the upstream repo (NOT forked), identified here by th
 $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
+## Add changes to be backported
+
+Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
+
+If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto the patch branch.
+
 ## Create and push the pre-release Git tag
 
-The pre-release Git tag publishes the OSM control plane images to the Openservicemesh container registry in Dockerhub, and publishes the image digests as an artifact of the pre-release Github workflow. The image digests must be used in the next step to update the default control plane image referenced in the Helm charts.
+The pre-release Git tag publishes the OSM control plane images to the `openservicemesh` organization in Dockerhub, and publishes the image digests as an artifact of the pre-release Github workflow. The image digests must be used in the next step to update the default control plane image referenced in the Helm charts.
 
 The pre-release Git tag is of the form `pre-rel-<release-version>`, e.g. `pre-rel-v0.4.0`.
 
@@ -68,14 +75,10 @@ osm-bootstrap: sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb
 
 ## Update release branch with patches and versioning changes
 
-Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
-
-If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto the patch branch.
-
 Create a new commit on the patch branch to update the hardcoded version information in the following locations:
 
-* The control plane image digests  defined by `osm.image.digest` for images in [charts/osm/values.yaml](/charts/osm/values.yaml) from the image digests obtained from the Pre-release workflow. For example, if the osm-controller image digest is `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`, update the value of `osm.image.digest.osmController` to `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`.
-* Replace the `latest-main` tag with the release version tag for all images throughout the repo, e.g. `v0.4.0`. This includes updating the image references in `charts/osm` folder.
+* The control plane image digests defined by `osm.image.digest` for images in [charts/osm/values.yaml](/charts/osm/values.yaml) from the image digests obtained from the Pre-release workflow. For example, if the osm-controller image digest is `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`, update the value of `osm.image.digest.osmController` to `sha256:eb194138abddbe271d42b290489917168a6a891a3dabb575de02c53f13879bee`.
+  - Ensure the value for `osm.image.tag` in [charts/osm/values.yaml](/charts/osm/values.yaml) is set to the empty string.
 * The chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to the release version.
 * The Helm chart [README.md](/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
