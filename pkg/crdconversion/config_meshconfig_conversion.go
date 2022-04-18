@@ -30,13 +30,20 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha2")
 			// v1alpha2 is backward compatible with v1alpha1, so no conversion is
 			// necessary at this moment.
-
+		case "config.openservicemesh.io/v1alpha3":
+			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha3")
+			// v1alpha3 is backward compatible with v1alpha1, so no conversion is
+			// necessary at this moment.
 		default:
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
 	case "config.openservicemesh.io/v1alpha2":
 		switch toVersion {
+		case "config.openservicemesh.io/v1alpha3":
+			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha3")
+			// v1alpha3 is backward compatible with v1alpha2, so no conversion is
+			// necessary at this moment.
 		case "config.openservicemesh.io/v1alpha1":
 			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha1")
 			// Remove spec.traffic.outboundIPRangeInclusionList field not supported in v1alpha1
@@ -58,6 +65,43 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
+	case "config.openservicemesh.io/v1alpha3":
+		switch toVersion {
+		case "config.openservicemesh.io/v1alpha2":
+			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha2")
+			// Remove spec.sidecar.proxyMode field not supported in v1alpha2
+			unsupportedFields := [][]string{
+				{"spec", "sidecar", "proxyMode"},
+			}
+
+			for _, unsupportedField := range unsupportedFields {
+				_, found, err := unstructured.NestedSlice(convertedObject.Object, unsupportedField...)
+				if found && err == nil {
+					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
+				}
+			}
+		case "config.openservicemesh.io/v1alpha3":
+			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha1")
+			// Remove spec.sidecar.proxyMode field not supported in v1alpha1
+			// as well as other v1alpha2 fields not supported in v1alpha1
+			unsupportedFields := [][]string{
+				{"spec", "traffic", "outboundIPRangeInclusionList"},
+				{"spec", "sidecar", "tlsMinProtocolVersion"},
+				{"spec", "sidecar", "tlsMaxProtocolVersion"},
+				{"spec", "sidecar", "cipherSuites"},
+				{"spec", "sidecar", "ecdhCurves"},
+				{"spec", "sidecar", "proxyMode"},
+			}
+
+			for _, unsupportedField := range unsupportedFields {
+				_, found, err := unstructured.NestedSlice(convertedObject.Object, unsupportedField...)
+				if found && err == nil {
+					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
+				}
+			}
+		default:
+			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+		}
 	default:
 		return nil, errors.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}
