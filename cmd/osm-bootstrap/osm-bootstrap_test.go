@@ -27,6 +27,17 @@ var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
 	Spec: configv1alpha2.MeshConfigSpec{},
 }
 
+var testMeshConfigWithLastAppliedAnnotation *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      meshConfigName,
+		Annotations: map[string]string{
+			"kubectl.kubernetes.io/last-applied-configuration": `{"metadata":{"name":"osm-mesh-config","namespace":"test-namespace","creationTimestamp":null},"spec":{}}`,
+		},
+	},
+	Spec: configv1alpha2.MeshConfigSpec{},
+}
+
 var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "ConfigMap",
@@ -81,7 +92,9 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert := tassert.New(t)
 
-	meshConfig := buildDefaultMeshConfig(testPresetMeshConfigMap)
+	meshConfig, err := buildDefaultMeshConfig(testPresetMeshConfigMap)
+	assert.NoError(err)
+	assert.Contains(meshConfig.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.Equal(meshConfig.Name, meshConfigName)
 	assert.Equal(meshConfig.Spec.Sidecar.LogLevel, "error")
 	assert.Equal(meshConfig.Spec.Sidecar.ConfigResyncInterval, "2s")
@@ -103,12 +116,12 @@ func TestValidateCLIParams(t *testing.T) {
 	prevOsmNamespace := osmNamespace
 
 	tests := []struct {
-		caseName string
-		setup    func()
-		verify   func(error)
+		name   string
+		setup  func()
+		verify func(error)
 	}{
 		{
-			caseName: "osm-namespace is empty",
+			name: "osm-namespace is empty",
 			setup: func() {
 				osmNamespace = ""
 			},
@@ -118,7 +131,7 @@ func TestValidateCLIParams(t *testing.T) {
 			},
 		},
 		{
-			caseName: "osm-namespace is valid",
+			name: "osm-namespace is valid",
 			setup: func() {
 				osmNamespace = "valid-ns"
 			},
@@ -128,7 +141,7 @@ func TestValidateCLIParams(t *testing.T) {
 			},
 		},
 		{
-			caseName: "osm-namespace and ca-bundle-secret-name is valid",
+			name: "osm-namespace and ca-bundle-secret-name is valid",
 			setup: func() {
 				osmNamespace = "valid-ns"
 				caBundleSecretName = "valid-ca-bundle"
@@ -150,8 +163,6 @@ func TestValidateCLIParams(t *testing.T) {
 }
 
 func TestCreateDefaultMeshConfig(t *testing.T) {
-	assert := tassert.New(t)
-
 	tests := []struct {
 		name                    string
 		namespace               string
@@ -187,35 +198,36 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			kubeClient:       tc.kubeClient,
-			meshConfigClient: tc.meshConfigClient,
-			namespace:        tc.namespace,
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:       tc.kubeClient,
+				meshConfigClient: tc.meshConfigClient,
+				namespace:        tc.namespace,
+			}
 
-		err := b.createDefaultMeshConfig()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
-			assert.Nil(err)
-		}
-
-		_, err = b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
-		if tc.expectDefaultMeshConfig {
-			if err == nil {
+			err := b.createDefaultMeshConfig()
+			if tc.expectErr {
+				assert.NotNil(err)
+			} else {
 				assert.Nil(err)
 			}
-		} else {
-			if err == nil {
-				assert.NotNil(err)
+
+			_, err = b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+			if tc.expectDefaultMeshConfig {
+				if err == nil {
+					assert.Nil(err)
+				}
+			} else {
+				if err == nil {
+					assert.NotNil(err)
+				}
 			}
-		}
+		})
 	}
 }
 
 func TestEnsureMeshConfig(t *testing.T) {
-	assert := tassert.New(t)
-
 	tests := []struct {
 		name             string
 		namespace        string
@@ -224,10 +236,17 @@ func TestEnsureMeshConfig(t *testing.T) {
 		expectErr        bool
 	}{
 		{
-			name:             "MeshConfig found",
+			name:             "MeshConfig found with no last-applied annotation",
 			namespace:        testNamespace,
 			kubeClient:       fakeKube.NewSimpleClientset(),
 			meshConfigClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfig}...),
+			expectErr:        false,
+		},
+		{
+			name:             "MeshConfig found with last-applied annotation",
+			namespace:        testNamespace,
+			kubeClient:       fakeKube.NewSimpleClientset(),
+			meshConfigClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfigWithLastAppliedAnnotation}...),
 			expectErr:        false,
 		},
 		{
@@ -247,18 +266,24 @@ func TestEnsureMeshConfig(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			kubeClient:       tc.kubeClient,
-			meshConfigClient: tc.meshConfigClient,
-			namespace:        tc.namespace,
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:       tc.kubeClient,
+				meshConfigClient: tc.meshConfigClient,
+				namespace:        tc.namespace,
+			}
 
-		err := b.ensureMeshConfig()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
-			assert.Nil(err)
-		}
+			err := b.ensureMeshConfig()
+			if tc.expectErr {
+				assert.NotNil(err)
+			} else {
+				assert.Nil(err)
+				config, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+				assert.Nil(err)
+				assert.Contains(config.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+			}
+		})
 	}
 }
 
@@ -304,24 +329,26 @@ func TestGetBootstrapPod(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			namespace:  tc.namespace,
-			kubeClient: tc.kubeClient,
-		}
-		defer func() {
-			err := resetEnv("BOOTSTRAP_POD_NAME", os.Getenv("BOOTSTRAP_POD_NAME"))
-			assert.Nil(err)
-		}()
+		t.Run(tc.name, func(t *testing.T) {
+			b := bootstrap{
+				namespace:  tc.namespace,
+				kubeClient: tc.kubeClient,
+			}
+			defer func() {
+				err := resetEnv("BOOTSTRAP_POD_NAME", os.Getenv("BOOTSTRAP_POD_NAME"))
+				assert.Nil(err)
+			}()
 
-		err := os.Setenv("BOOTSTRAP_POD_NAME", tc.bootstrapPodNameEnv)
-		assert.Nil(err)
-
-		_, err = b.getBootstrapPod()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
+			err := os.Setenv("BOOTSTRAP_POD_NAME", tc.bootstrapPodNameEnv)
 			assert.Nil(err)
-		}
+
+			_, err = b.getBootstrapPod()
+			if tc.expectErr {
+				assert.NotNil(err)
+			} else {
+				assert.Nil(err)
+			}
+		})
 	}
 }
 
