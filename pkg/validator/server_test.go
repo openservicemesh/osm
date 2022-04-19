@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -140,7 +140,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	enableReconciler := false
 	validateTrafficTarget := true
 	t.Run("successful startup", func(t *testing.T) {
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 
 		port := 41414
 		stop := make(chan struct{})
@@ -157,7 +157,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 		enableReconciler = true
 
 		port := 41414
@@ -170,7 +170,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 		enableReconciler = true
 		validateTrafficTarget = false
 

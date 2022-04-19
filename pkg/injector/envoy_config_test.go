@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -74,7 +74,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	cert := tresor.NewFakeCertificate()
+	cert := tresorFake.NewFakeCertificate()
 	mockCtrl := gomock.NewController(GinkgoT())
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()

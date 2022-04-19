@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 
-	"github.com/openservicemesh/osm/pkg/k8s"
+	k8sFake "github.com/openservicemesh/osm/pkg/k8s/fake"
 )
 
 func TestRequiredAPIResourcesExist(t *testing.T) {
@@ -20,7 +20,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "all SMI API resources exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -39,7 +39,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "TrafficSplit does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -56,7 +56,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "HTTPRouteGroup does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TCPRoute"},
@@ -74,7 +74,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "TCPRoute does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -92,7 +92,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "TrafficTarget does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -109,7 +109,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "specs API group does not exit",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -124,7 +124,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "access API group does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -140,7 +140,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 		},
 		{
 			name: "split API group does not exist",
-			discoveryClient: &k8s.FakeDiscoveryClient{
+			discoveryClient: &k8sFake.DiscoveryClient{
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
@@ -170,7 +170,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 func TestGetID(t *testing.T) {
 	assert := tassert.New(t)
 
-	discoveryClient := &k8s.FakeDiscoveryClient{
+	discoveryClient := &k8sFake.DiscoveryClient{
 		Resources: map[string]metav1.APIResourceList{
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},
@@ -193,7 +193,7 @@ func TestGetID(t *testing.T) {
 func TestLiveness(t *testing.T) {
 	assert := tassert.New(t)
 
-	discoveryClient := &k8s.FakeDiscoveryClient{
+	discoveryClient := &k8sFake.DiscoveryClient{
 		Resources: map[string]metav1.APIResourceList{
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},
@@ -216,7 +216,7 @@ func TestLiveness(t *testing.T) {
 func TestReadiness(t *testing.T) {
 	assert := tassert.New(t)
 
-	discoveryClient := &k8s.FakeDiscoveryClient{
+	discoveryClient := &k8sFake.DiscoveryClient{
 		Resources: map[string]metav1.APIResourceList{
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},

@@ -22,9 +22,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -63,7 +63,7 @@ var _ = Describe("Test ADS response functions", func() {
 	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	mc := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
@@ -124,7 +124,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
@@ -208,7 +208,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)

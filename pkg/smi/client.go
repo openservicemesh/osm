@@ -181,15 +181,15 @@ func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSpli
 			continue
 		}
 
-		if filteredSplit := filterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
+		if filteredSplit := FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
 			trafficSplits = append(trafficSplits, filteredSplit)
 		}
 	}
 	return trafficSplits
 }
 
-// filterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
-func filterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
+// FilterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
+func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
 	if trafficSplit == nil {
 		return nil
 	}
@@ -300,7 +300,7 @@ func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAc
 		}
 
 		// Filter TrafficTarget based on the given options
-		if filteredTrafficTarget := filterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
+		if filteredTrafficTarget := FilterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
 			trafficTargets = append(trafficTargets, trafficTarget)
 		}
 	}
@@ -338,7 +338,8 @@ func hasValidRules(rules []smiAccess.TrafficTargetRule) bool {
 	return true
 }
 
-func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
+// FilterTrafficTarget applies the given TrafficTargetListOption filter on the given TrafficTarget object
+func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
 	if trafficTarget == nil {
 		return nil
 	}

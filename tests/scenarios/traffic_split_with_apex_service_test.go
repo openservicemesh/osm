@@ -13,7 +13,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -30,7 +30,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	proxyCertCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))

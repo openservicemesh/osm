@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -135,7 +135,7 @@ func TestCreatePatch(t *testing.T) {
 			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresor.NewFake(nil),
+				certManager:         tresorFake.NewFake(nil),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
@@ -185,7 +185,7 @@ func TestCreatePatch(t *testing.T) {
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
-			certManager:         tresor.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil),
 			configurator:        mockConfigurator,
 			nonInjectNamespaces: mapset.NewSet(),
 		}

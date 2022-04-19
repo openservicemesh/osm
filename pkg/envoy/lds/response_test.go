@@ -20,6 +20,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -70,7 +71,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()

@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -29,7 +29,7 @@ func TestSetupMutualTLS(t *testing.T) {
 		expectedError string
 	}
 
-	certManager := tresor.NewFake(nil)
+	certManager := tresorFake.NewFake(nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -66,7 +66,7 @@ func TestValidateClient(t *testing.T) {
 		expectedError error
 	}
 
-	certManager := tresor.NewFake(nil)
+	certManager := tresorFake.NewFake(nil)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
 	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())

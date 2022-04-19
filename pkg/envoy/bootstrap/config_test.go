@@ -5,14 +5,14 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func TestBuildFromConfig(t *testing.T) {
 	assert := tassert.New(t)
-	cert := tresor.NewFakeCertificate()
+	cert := tresorFake.NewFakeCertificate()
 
 	config := Config{
 		NodeID:                cert.GetCommonName().String(),
