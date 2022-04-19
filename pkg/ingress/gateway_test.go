@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -101,7 +102,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresor.NewFake(msgBroker)
+			fakeCertProvider := tresorFake.NewFake(msgBroker)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -190,7 +191,7 @@ func TestCreateAndStoreGatewayCert(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertProvider := tresor.NewFake(nil)
+			fakeCertProvider := tresorFake.NewFake(nil)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -325,7 +326,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			msgBroker := messaging.NewBroker(stop)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertManager := tresor.NewFake(msgBroker)
+			fakeCertManager := tresorFake.NewFake(msgBroker)
 
 			c := client{
 				kubeClient:   fakeClient,

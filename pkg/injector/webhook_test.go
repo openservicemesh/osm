@@ -28,7 +28,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -562,7 +562,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -580,7 +580,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFake(nil)
+		certManager := tresorFake.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -855,7 +855,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
@@ -901,7 +901,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}

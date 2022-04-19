@@ -4,20 +4,41 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	tassert "github.com/stretchr/testify/assert"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	"github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestListSMIPolicies(t *testing.T) {
-	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockCatalog := newFakeMeshCatalog()
 
-	trafficSplits, serviceAccounts, routeGroups, trafficTargets := mockCatalog.ListSMIPolicies()
-	assert.Equal(trafficSplits[0].Spec.Service, "bookstore-apex")
-	assert.Equal(serviceAccounts[0].String(), "default/bookstore")
-	assert.Equal(routeGroups[0].Name, "bookstore-service-routes")
-	assert.Equal(trafficTargets[0].Name, tests.TrafficTargetName)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+
+	splits := []*smiSplit.TrafficSplit{&tests.TrafficSplit}
+	targets := []*smiAccess.TrafficTarget{&tests.TrafficTarget}
+	httpRoutes := []*smiSpecs.HTTPRouteGroup{&tests.HTTPRouteGroup}
+	svcAccounts := []identity.K8sServiceAccount{tests.BookbuyerServiceAccount}
+
+	mockMeshSpec.EXPECT().ListTrafficSplits().Return(splits)
+	mockMeshSpec.EXPECT().ListTrafficTargets().Return(targets)
+	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(httpRoutes)
+	mockMeshSpec.EXPECT().ListServiceAccounts().Return(svcAccounts)
+
+	mc := &MeshCatalog{
+		meshSpec: mockMeshSpec,
+	}
+
+	a := assert.New(t)
+
+	trafficSplits, serviceAccounts, trafficSpecs, trafficTargets := mc.ListSMIPolicies()
+	a.ElementsMatch(trafficSplits, splits)
+	a.ElementsMatch(targets, trafficTargets)
+	a.ElementsMatch(httpRoutes, trafficSpecs)
+	a.ElementsMatch(svcAccounts, serviceAccounts)
 }

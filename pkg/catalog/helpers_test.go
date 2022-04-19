@@ -15,14 +15,14 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers/kube"
+	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -43,7 +43,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
-	provider := kube.NewFakeProvider()
+	provider := kubeFake.NewFakeProvider()
 	endpointProviders := []endpoint.Provider{
 		provider,
 	}
@@ -53,7 +53,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	stop := make(chan struct{})
 
-	certManager := tresor.NewFake(nil)
+	certManager := tresorFake.NewFake(nil)
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)

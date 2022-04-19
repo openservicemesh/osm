@@ -1,10 +1,11 @@
-package tresor
+package fake
 
 import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -16,17 +17,17 @@ const (
 func NewFake(msgBroker *messaging.Broker) certificate.Manager {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
-	ca, err := NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
+	ca, err := tresor.NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
+		return nil
 	}
-	tresorClient, err := New(ca, rootCertOrganization, 2048)
+	tresorClient, err := tresor.New(ca, rootCertOrganization, 2048)
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
+		return nil
 	}
 	tresorCertManager, err := certificate.NewManager(ca, tresorClient, 1*time.Hour, msgBroker)
 	if err != nil {
-		log.Error().Err(err).Msg("error instantiating osm certificate.Manager for Tresor cert-manager")
+		return nil
 	}
 	return tresorCertManager
 }

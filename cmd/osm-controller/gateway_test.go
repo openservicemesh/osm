@@ -10,14 +10,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 )
 
 func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	fakeCertManager := tresor.NewFake(nil)
+	fakeCertManager := tresorFake.NewFake(nil)
 
 	testCases := []struct {
 		name            string

@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -1619,7 +1620,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 func TestRoutesFromRules(t *testing.T) {
 	assert := tassert.New(t)
-	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+	mc := MeshCatalog{meshSpec: smiFake.NewFakeMeshSpecClient()}
 
 	testCases := []struct {
 		name           string
@@ -1861,7 +1862,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 func TestGetTrafficSpecName(t *testing.T) {
 	assert := tassert.New(t)
 
-	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+	mc := MeshCatalog{meshSpec: smiFake.NewFakeMeshSpecClient()}
 
 	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))

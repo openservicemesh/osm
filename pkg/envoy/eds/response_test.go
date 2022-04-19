@@ -14,7 +14,7 @@ import (
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -59,7 +59,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 
-	meshCatalog := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)
