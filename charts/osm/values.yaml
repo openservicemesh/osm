@@ -106,7 +106,7 @@ osm:
       # -- Prometheus data retention time
       time: 15d
     # -- Image used for Prometheus
-    image: prom/prometheus:v2.18.1
+    image: prom/prometheus:v2.34.0
 
   certificateProvider:
     # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
