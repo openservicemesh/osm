@@ -204,6 +204,9 @@ osm:
   # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 
+  # -- Proxy mode for the Envoy proxy sidecar. Acceptable values are ['LOCALHOST', 'POD_IP']
+  envoyProxyMode: LOCALHOST
+
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
 

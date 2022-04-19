@@ -328,13 +328,20 @@ nodeRegistration:
 	return nil
 }
 
+func WithEnvoyProxyMode(mode configv1alpha3.ProxyMode) InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.EnvoyProxyMode = mode
+	}
+}
+
 // GetOSMInstallOpts initializes install options for OSM
-func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
+func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpts {
 	enablePrivilegedInitContainer := false
 	if td.DeployOnOpenShift {
 		enablePrivilegedInitContainer = true
 	}
-	return InstallOSMOpts{
+
+	baseOpts := InstallOSMOpts{
 		ControlPlaneNS:          td.OsmNamespace,
 		CertManager:             defaultCertManager,
 		ContainerRegistryLoc:    td.CtrRegistryServer,
@@ -364,6 +371,12 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
 	}
+
+	for _, opt := range options {
+		opt(&baseOpts)
+	}
+
+	return baseOpts
 }
 
 // LoadImagesToKind loads the list of images to the node for Kind clusters
@@ -415,7 +428,7 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	return nil
 }
 
-func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha3.MeshConfig) (defaultConfig *configv1alpha3.MeshConfig) {
+func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha3.MeshConfig) *configv1alpha3.MeshConfig {
 	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
 	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
 	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
@@ -482,6 +495,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
 		fmt.Sprintf("osm.enableDebugServer=%v", instOpts.EnableDebugServer),
 		fmt.Sprintf("osm.envoyLogLevel=%s", instOpts.EnvoyLogLevel),
+		fmt.Sprintf("osm.envoyProxyMode=%s", instOpts.EnvoyProxyMode),
 		fmt.Sprintf("osm.deployGrafana=%v", instOpts.DeployGrafana),
 		fmt.Sprintf("osm.deployPrometheus=%v", instOpts.DeployPrometheus),
 		fmt.Sprintf("osm.deployJaeger=%v", instOpts.DeployJaeger),
@@ -609,7 +623,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
 func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha3.MeshConfig, error) {
-	meshConfig, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
+	meshConfig, err := td.ConfigClient.ConfigV1alpha3().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
 
 	if err != nil {
 		return nil, err
@@ -917,7 +931,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 
 // UpdateOSMConfig updates OSM MeshConfig
 func (td *OsmTestData) UpdateOSMConfig(meshConfig *configv1alpha3.MeshConfig) (*configv1alpha3.MeshConfig, error) {
-	updated, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
+	updated, err := td.ConfigClient.ConfigV1alpha3().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
 
 	if err != nil {
 		td.T.Logf("UpdateOSMConfig(): %s", err)

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -41,6 +42,11 @@ func genIPTablesOutboundStaticRules(cfg configurator.Configurator) []string {
 
 		// Traffic to the Proxy Admin port flows to the Proxy -- not redirected
 		fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.EnvoyAdminPort),
+	}
+
+	if cfg.GetEnvoyProxyMode() == v1alpha3.ProxyModePodIP {
+		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
+		iptablesOutboundStaticRules = append(iptablesOutboundStaticRules, fmt.Sprintf("-A OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
 	}
 
 	iptablesOutboundStaticRules = append(iptablesOutboundStaticRules, []string{

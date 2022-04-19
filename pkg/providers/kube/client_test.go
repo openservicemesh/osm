@@ -475,7 +475,7 @@ func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
 	configClient := fakeConfig.NewSimpleClientset()
 	for _, mcService := range mcServices {
 		mcServicePtr := mcService
-		_, err := configClient.ConfigV1alpha2().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
+		_, err := configClient.ConfigV1alpha3().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
 		assert.Nil(err)
 	}
 

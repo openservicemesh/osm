@@ -12,6 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -25,7 +26,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 	func() {
 		Context("Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP", func() {
 			withSourceKubernetesService := true
-			testTraffic(withSourceKubernetesService)
+			testTraffic(withSourceKubernetesService, PodCommandDefault)
 		})
 
 		Context("Test traffic flowing from client to server without a Kubernetes Service for the Source: HTTP", func() {
@@ -33,18 +34,25 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 			// for the Envoy proxy to be configured for outbound traffic to some remote server.
 			// This test ensures we test this scenario: client Pod is not associated w/ a service.
 			withSourceKubernetesService := false
-			testTraffic(withSourceKubernetesService)
+			testTraffic(withSourceKubernetesService, PodCommandDefault)
+		})
+
+		Context("Test traffic flowing from client to a server with a podIP bind", func() {
+			// Prior iterations of OSM didn't allow mesh services to bind to the podIP
+			// This test ensures that that behavior is configurable via MeshConfig
+			withSourceKubernetesService := true
+			testTraffic(withSourceKubernetesService, []string{"gunicorn", "-b", "$(POD_IP):14001", "httpbin:app", "-k", "gevent"}, WithEnvoyProxyMode(v1alpha3.ProxyModePodIP))
 		})
 	})
 
-func testTraffic(withSourceKubernetesService bool) {
+func testTraffic(withSourceKubernetesService bool, destPodCommand []string, installOpts ...InstallOsmOpt) {
 	const sourceName = "client"
 	const destName = "server"
 	var ns = []string{sourceName, destName}
 
 	It("Tests HTTP traffic for client pod -> server pod", func() {
 		// Install OSM
-		Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+		Expect(Td.InstallOSM(Td.GetOSMInstallOpts(installOpts...))).To(Succeed())
 
 		// Create Test NS
 		for _, n := range ns {

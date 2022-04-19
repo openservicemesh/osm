@@ -10,7 +10,8 @@ data:
         "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
         "logLevel": {{.Values.osm.envoyLogLevel | mustToJson}},
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
-        "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}}
+        "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}},
+        "proxyMode": {{.Values.osm.envoyProxyMode | mustToJson}}
       },
       "traffic": {
         "enableEgress": {{.Values.osm.enableEgress | mustToJson}},

@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	v1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 )
 
 // MockController is a mock of Controller interface.
@@ -35,10 +35,10 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // GetMultiClusterService mocks base method.
-func (m *MockController) GetMultiClusterService(arg0, arg1 string) *v1alpha2.MultiClusterService {
+func (m *MockController) GetMultiClusterService(arg0, arg1 string) *v1alpha3.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterService", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha2.MultiClusterService)
+	ret0, _ := ret[0].(*v1alpha3.MultiClusterService)
 	return ret0
 }
 
@@ -49,10 +49,10 @@ func (mr *MockControllerMockRecorder) GetMultiClusterService(arg0, arg1 interfac
 }
 
 // GetMultiClusterServiceByServiceAccount mocks base method.
-func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 string) []v1alpha2.MultiClusterService {
+func (m *MockController) GetMultiClusterServiceByServiceAccount(arg0, arg1 string) []v1alpha3.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiClusterServiceByServiceAccount", arg0, arg1)
-	ret0, _ := ret[0].([]v1alpha2.MultiClusterService)
+	ret0, _ := ret[0].([]v1alpha3.MultiClusterService)
 	return ret0
 }
 
@@ -63,10 +63,10 @@ func (mr *MockControllerMockRecorder) GetMultiClusterServiceByServiceAccount(arg
 }
 
 // ListMultiClusterServices mocks base method.
-func (m *MockController) ListMultiClusterServices() []v1alpha2.MultiClusterService {
+func (m *MockController) ListMultiClusterServices() []v1alpha3.MultiClusterService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListMultiClusterServices")
-	ret0, _ := ret[0].([]v1alpha2.MultiClusterService)
+	ret0, _ := ret[0].([]v1alpha3.MultiClusterService)
 	return ret0
 }
 

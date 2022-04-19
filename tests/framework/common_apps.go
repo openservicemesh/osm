@@ -273,6 +273,17 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 							corev1.ResourceMemory: resource.MustParse("128Mi"),
 						},
 					},
+					Env: []corev1.EnvVar{
+						{
+							Name: "POD_IP",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  "status.podIP",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -399,12 +410,16 @@ type SimpleDeploymentAppDef struct {
 	ServiceAccountName string
 	Image              string
 	ReplicaCount       int32
-	Command            []string
+	Command            PodCommand
 	Args               []string
 	Ports              []int
 	AppProtocol        string
 	OS                 string
 }
+
+type PodCommand []string
+
+var PodCommandDefault = []string{}
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.
 // Includes Deployment, Service and ServiceAccount types
@@ -540,7 +555,7 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 }
 
 // GetOSSpecificHTTPBinPod returns a OS pod that runs httpbin.
-func (td *OsmTestData) GetOSSpecificHTTPBinPod(podName string, namespace string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
+func (td *OsmTestData) GetOSSpecificHTTPBinPod(podName string, namespace string, customCommand ...string) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
 	if td.ClusterOS == constants.OSWindows {
 		return Td.SimplePodApp(
 			SimplePodAppDef{
@@ -553,14 +568,19 @@ func (td *OsmTestData) GetOSSpecificHTTPBinPod(podName string, namespace string)
 				OS:        Td.ClusterOS,
 			})
 	}
-	return Td.SimplePodApp(
-		SimplePodAppDef{
-			PodName:   podName,
-			Namespace: namespace,
-			Image:     "kennethreitz/httpbin",
-			Ports:     []int{80},
-			OS:        Td.ClusterOS,
-		})
+
+	appDef := SimplePodAppDef{
+		PodName:   podName,
+		Namespace: namespace,
+		Image:     "kennethreitz/httpbin",
+		Ports:     []int{80},
+		OS:        Td.ClusterOS,
+	}
+
+	if len(customCommand) > 0 {
+		appDef.Command = customCommand
+	}
+	return Td.SimplePodApp(appDef)
 }
 
 // GetOSSpecificSleepPod returns a simple OS specific busy loop pod.

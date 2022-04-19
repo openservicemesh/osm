@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/kind/pkg/cluster"
 
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 	"github.com/openservicemesh/osm/pkg/cli"
 	versioned2 "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
@@ -119,6 +120,7 @@ type InstallOSMOpts struct {
 	EnablePermissiveMode bool
 	OSMLogLevel          string
 	EnvoyLogLevel        string
+	EnvoyProxyMode       configv1alpha3.ProxyMode
 	EnableDebugServer    bool
 
 	SetOverrides []string
@@ -126,6 +128,8 @@ type InstallOSMOpts struct {
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
 }
+
+type InstallOsmOpt func(*InstallOSMOpts)
 
 // CleanupType identifies what triggered the cleanup
 type CleanupType string
