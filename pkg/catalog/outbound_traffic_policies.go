@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
@@ -104,7 +102,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// for this upstream service, port, and destination IP ranges. This
 		// will be programmed on the downstream client.
 		trafficMatchForServicePort := &trafficpolicy.TrafficMatch{
-			Name:                fmt.Sprintf("%s_%d_%s", meshSvc, meshSvc.Port, meshSvc.Protocol),
+			Name:                meshSvc.OutboundTrafficMatchName(),
 			DestinationPort:     int(meshSvc.Port),
 			DestinationProtocol: meshSvc.Protocol,
 			DestinationIPRanges: destinationIPRanges,

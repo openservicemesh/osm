@@ -1,13 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/cli/verifier"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -20,17 +26,19 @@ connectivity related configurations.
 `
 
 var (
-	fromPod string
-	toPod   string
+	fromPod     string
+	toPod       string
+	appProtocol string
+	dstService  string
 )
 
 type verifyConnectCmd struct {
 	stdout      io.Writer
 	stderr      io.Writer
+	restConfig  *rest.Config
 	kubeClient  kubernetes.Interface
-	srcPod      types.NamespacedName
-	dstPod      types.NamespacedName
-	appProtocol string
+	meshConfig  *configv1alpha2.MeshConfig
+	trafficAttr verifier.TrafficAttribute
 	meshName    string
 }
 
@@ -50,6 +58,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			if err != nil {
 				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
+			verifyCmd.restConfig = config
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
@@ -57,16 +66,29 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			}
 			verifyCmd.kubeClient = clientset
 
-			namespacedName, err := k8s.NamespacedNameFrom(fromPod)
+			configClient, err := configClientset.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Source must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
+				return err
 			}
-			verifyCmd.srcPod = namespacedName
-			namespacedName, err = k8s.NamespacedNameFrom(toPod)
+			meshConfig, err := configClient.ConfigV1alpha2().MeshConfigs(settings.Namespace()).Get(context.Background(), constants.OSMMeshConfig, metav1.GetOptions{})
 			if err != nil {
-				return errors.Errorf("Destination must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+				return err
 			}
-			verifyCmd.dstPod = namespacedName
+			verifyCmd.meshConfig = meshConfig
+
+			srcName, err := k8s.NamespacedNameFrom(fromPod)
+			if err != nil {
+				return errors.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
+			}
+			verifyCmd.trafficAttr.SrcPod = &srcName
+			dstName, err := k8s.NamespacedNameFrom(toPod)
+			if err != nil {
+				return errors.Errorf("--to-pod pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+			}
+			verifyCmd.trafficAttr.DstPod = &dstName
+
+			verifyCmd.trafficAttr.AppProtocol = appProtocol
+			verifyCmd.trafficAttr.DstService = &types.NamespacedName{Namespace: dstName.Namespace, Name: dstService}
 
 			return verifyCmd.run()
 		},
@@ -81,19 +103,23 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 	//nolint: errcheck
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("to-pod")
-	f.StringVar(&verifyCmd.appProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
+	f.StringVar(&dstService, "service", "", "Name of the destination service")
+	//nolint: errcheck
+	//#nosec G104: Errors unhandled
+	cmd.MarkFlagRequired("service")
+	f.StringVar(&appProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
 	f.StringVar(&verifyCmd.meshName, "mesh-name", defaultMeshName, "Mesh name")
 
 	return cmd
 }
 
 func (cmd *verifyConnectCmd) run() error {
-	podConnectivityVerifier := verifier.NewPodConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.kubeClient,
-		cmd.srcPod, cmd.dstPod, cmd.appProtocol, cmd.meshName)
+	podConnectivityVerifier := verifier.NewPodConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
+		cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
 	result := podConnectivityVerifier.Run()
 
 	fmt.Fprintln(cmd.stdout, "---------------------------------------------")
-	verifier.Print(result, cmd.stdout)
+	verifier.Print(result, cmd.stdout, 1)
 	fmt.Fprintln(cmd.stdout, "---------------------------------------------")
 
 	return nil
