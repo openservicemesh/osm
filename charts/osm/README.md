@@ -159,7 +159,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundIPRangeInclusionList | list | `[]` | Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
-| osm.prometheus.image | string | `"prom/prometheus:v2.18.1"` | Image used for Prometheus |
+| osm.prometheus.image | string | `"prom/prometheus:v2.34.0"` | Image used for Prometheus |
 | osm.prometheus.port | int | `7070` | Prometheus service's port |
 | osm.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
