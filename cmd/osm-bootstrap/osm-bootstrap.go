@@ -189,6 +189,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
+	version.SetMetric()
 	/*
 	 * Initialize osm-bootstrap's HTTP server
 	 */

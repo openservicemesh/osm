@@ -248,6 +248,8 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 
+	version.SetMetric()
+
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
@@ -306,6 +308,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
+		metricsstore.DefaultMetricsStore.VersionInfo,
 		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,

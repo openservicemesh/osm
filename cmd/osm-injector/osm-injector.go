@@ -181,6 +181,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
+	version.SetMetric()
 	/*
 	 * Initialize osm-injector's HTTP server
 	 */
