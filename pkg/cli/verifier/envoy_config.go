@@ -87,6 +87,15 @@ func (v *EnvoyConfigVerifier) Run() Result {
 			return result
 		}
 	}
+	if v.configAttr.trafficAttr.DstPod != nil {
+		// verify destination
+		res := v.verifyDestination()
+		result.NestedResults = append(result.NestedResults, &res)
+		if res.Status != Success {
+			result.Status = Failure
+			return result
+		}
+	}
 
 	result.Status = Success
 	return result
@@ -100,7 +109,7 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 	config, err := v.configAttr.srcConfigGetter.Get()
 	if err != nil || config == nil {
 		result.Status = Unknown
-		result.Reason = fmt.Sprintf("Error retrieving Envoy config for pod %q, err: %s", v.configAttr.trafficAttr.SrcPod, err)
+		result.Reason = fmt.Sprintf("Error retrieving Envoy config for pod %q, err: %q", v.configAttr.trafficAttr.SrcPod, err)
 		return result
 	}
 
@@ -247,4 +256,121 @@ func getFilterForProtocol(protocol string) string {
 	default:
 		return ""
 	}
+}
+
+func (v *EnvoyConfigVerifier) verifyDestination() Result {
+	result := Result{
+		Context: fmt.Sprintf("Verify Envoy config on destination for traffic: %s", v.configAttr),
+	}
+
+	config, err := v.configAttr.dstConfigGetter.Get()
+	if err != nil || config == nil {
+		result.Status = Unknown
+		result.Reason = fmt.Sprintf("Error retrieving Envoy config for pod %q, err: %q", v.configAttr.trafficAttr.SrcPod, err)
+		return result
+	}
+
+	//
+	// Verify the config
+
+	// Check for inbound listener
+	listeners := config.Listeners.GetDynamicListeners()
+	var inboundListener xds_listener.Listener
+	for _, l := range listeners {
+		if l.Name != lds.InboundListenerName {
+			continue
+		}
+		active := l.GetActiveState()
+		if active == nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Inbound listener %q on destination pod %q is not active", lds.InboundListenerName, v.configAttr.trafficAttr.DstPod)
+			return result
+		}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		active.Listener.UnmarshalTo(&inboundListener)
+		break
+	}
+
+	if inboundListener.Name != lds.InboundListenerName {
+		result.Status = Failure
+		result.Reason = fmt.Sprintf("Inbound listener %q not found on destination pod %q", lds.InboundListenerName, v.configAttr.trafficAttr.DstPod)
+		return result
+	}
+
+	// Next, if the destination service is known, verify it has a matching filter chain
+	if v.configAttr.trafficAttr.DstService != nil {
+		dst := v.configAttr.trafficAttr.DstService
+		svc, err := v.kubeClient.CoreV1().Services(dst.Namespace).Get(context.Background(), dst.Name, metav1.GetOptions{})
+		if err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Destination service %q not found: %s", dst, err)
+			return result
+		}
+		if err := v.findInboundFilterChainForService(svc, inboundListener.FilterChains); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for service %q: %s", dst, err)
+			return result
+		}
+	}
+
+	result.Status = Success
+	return result
+}
+
+func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
+	if svc == nil {
+		return nil
+	}
+
+	for _, port := range svc.Spec.Ports {
+		meshSvc := service.MeshService{
+			Name:       svc.Name,
+			Namespace:  svc.Namespace,
+			Protocol:   v.configAttr.trafficAttr.AppProtocol,
+			TargetPort: uint16(port.TargetPort.IntVal),
+		}
+		if err := findInboundFilterChainForServicePort(meshSvc, filterChains); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func findInboundFilterChainForServicePort(meshSvc service.MeshService, filterChains []*xds_listener.FilterChain) error {
+	var filterChain *xds_listener.FilterChain
+	for _, fc := range filterChains {
+		if fc.Name == meshSvc.InboundTrafficMatchName() {
+			filterChain = fc
+			break
+		}
+	}
+
+	if filterChain == nil {
+		return errors.Errorf("filter chain match %s not found", meshSvc.InboundTrafficMatchName())
+	}
+
+	// Verify the filter chain match
+	if filterChain.FilterChainMatch.DestinationPort.GetValue() != uint32(meshSvc.TargetPort) {
+		return errors.Errorf("filter chain match not found for port %d", meshSvc.TargetPort)
+	}
+
+	// Verify the app protocol filter is present
+	filterName := getFilterForProtocol(meshSvc.Protocol)
+	if filterName == "" {
+		return errors.Errorf("unsupported protocol %s", meshSvc.Protocol)
+	}
+	filterFound := false
+	for _, filter := range filterChain.Filters {
+		if filter.Name == filterName {
+			filterFound = true
+			break
+		}
+	}
+	if !filterFound {
+		return errors.Errorf("filter %s not found", filterName)
+	}
+
+	return nil
 }

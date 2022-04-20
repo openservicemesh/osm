@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -80,7 +81,8 @@ func TestRun(t *testing.T) {
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
-								Port: 14001,
+								Port:       14001,
+								TargetPort: intstr.FromInt(14001),
 							},
 						},
 						// Must match service IP in outbound filter chain match in testdata/curl_permissive.json
