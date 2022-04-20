@@ -136,6 +136,7 @@ func testTraffic(withSourceKubernetesService bool) {
 	})
 }
 
+// setupSource sets up a curl source service and returns the pod object
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	var svcAccDef v1.ServiceAccount
 	var podDef v1.Pod
@@ -159,6 +160,53 @@ func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 			Command:   []string{"sleep", "365d"},
 			Image:     "curlimages/curl",
 			Ports:     []int{80},
+			OS:        Td.ClusterOS,
+		})
+	}
+
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = Td.CreateServiceAccount(sourceName, &svcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	srcPod, err := Td.CreatePod(sourceName, podDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// In some cases we may want to skip the creation of a Kubernetes service for the source.
+	if withKubernetesService {
+		_, err = Td.CreateService(sourceName, svcDef)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(Td.WaitForPodsRunningReady(sourceName, Td.PodDeploymentTimeout, 1, nil)).To(Succeed())
+
+	return srcPod
+}
+
+// setupFortioSource sets up a Fortio source service and returns the pod object
+func setupFortioSource(sourceName string, withKubernetesService bool) *v1.Pod {
+	var svcAccDef v1.ServiceAccount
+	var podDef v1.Pod
+	var svcDef v1.Service
+	var err error
+	if Td.ClusterOS == constants.OSWindows {
+		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
+			PodName:   sourceName,
+			Namespace: sourceName,
+			Command:   []string{"cmd", "/c"},
+			Args:      []string{"FOR /L %N IN () DO ping -n 30 127.0.0.1> nul"},
+			Image:     WindowsNanoserverDockerImage,
+			Ports:     []int{80},
+			OS:        Td.ClusterOS,
+		})
+	} else {
+		// Get simple Pod definitions for the client
+		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
+			PodName:   sourceName,
+			Namespace: sourceName,
+			Image:     fortioImageName,
+			Ports:     []int{fortioHTTPPort},
 			OS:        Td.ClusterOS,
 		})
 	}
