@@ -163,7 +163,7 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
 			// we need to check ports to allow ingress to multiple ports on the same svc
-			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) && backend.Port.Protocol == svc.Protocol {
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
 				return ingressBackend
 			}
 		}
@@ -191,7 +191,7 @@ func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1
 
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
 func (c client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
-	if options.MeshService == nil && options.NamespacedName == nil {
+	if options.MeshService == nil && options.NamespacedName == nil && options.Host == "" {
 		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil
 	}
