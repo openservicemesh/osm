@@ -23,6 +23,8 @@ import (
 type Interface interface {
 	// MeshConfigs returns a MeshConfigInformer.
 	MeshConfigs() MeshConfigInformer
+	// MeshRootCertificates returns a MeshRootCertificateInformer.
+	MeshRootCertificates() MeshRootCertificateInformer
 	// MultiClusterServices returns a MultiClusterServiceInformer.
 	MultiClusterServices() MultiClusterServiceInformer
 }
@@ -41,6 +43,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // MeshConfigs returns a MeshConfigInformer.
 func (v *version) MeshConfigs() MeshConfigInformer {
 	return &meshConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// MeshRootCertificates returns a MeshRootCertificateInformer.
+func (v *version) MeshRootCertificates() MeshRootCertificateInformer {
+	return &meshRootCertificateInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // MultiClusterServices returns a MultiClusterServiceInformer.
