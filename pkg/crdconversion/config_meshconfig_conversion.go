@@ -84,7 +84,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
 				}
 			}
-		case configv1alpha3.SchemeGroupVersion.String():
+		case configv1alpha1.SchemeGroupVersion.String():
 			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha1")
 			// Remove spec.sidecar.proxyMode field not supported in v1alpha1
 			// as well as other v1alpha2 fields not supported in v1alpha1

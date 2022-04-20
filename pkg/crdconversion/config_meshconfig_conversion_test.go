@@ -24,7 +24,7 @@ func TestConvertMeshConfig(t *testing.T) {
 			name: "v1alpha3 -> v1alpha2 should remove additional field",
 			request: &configv1alpha3.MeshConfig{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "config.openservicemesh.io/v1alpha2",
+					APIVersion: "config.openservicemesh.io/v1alpha3",
 					Kind:       "MeshConfig",
 				},
 				Spec: configv1alpha3.MeshConfigSpec{
@@ -45,7 +45,7 @@ func TestConvertMeshConfig(t *testing.T) {
 				a.NoError(err)
 
 				unsupportedFields := [][]string{
-					{"spec", "sidecar", "proxyMode"},
+					{"spec", "sidecar", "localProxyMode"},
 				}
 
 				for _, unsupportedField := range unsupportedFields {
@@ -58,7 +58,7 @@ func TestConvertMeshConfig(t *testing.T) {
 			name: "v1alpha3 -> v1alpha1 should remove additional field",
 			request: &configv1alpha3.MeshConfig{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "config.openservicemesh.io/v1alpha2",
+					APIVersion: "config.openservicemesh.io/v1alpha3",
 					Kind:       "MeshConfig",
 				},
 				Spec: configv1alpha3.MeshConfigSpec{
