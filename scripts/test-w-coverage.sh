@@ -2,22 +2,23 @@
 
 set -aueo pipefail
 
-readarray -t modules < <(go list ./... | \
-                             grep -v tests/framework | \
-                             grep -v tests/e2e | \
-                             grep -v tests/scenarios | \
-                             grep -v tests/scale | \
-                             grep -v ci/ | \
-                             grep -v demo/ | \
-                             grep -v experimental/ | \
-                             grep -v scripts/)
+modules=$(go list ./... | \
+            grep -v tests/framework | \
+            grep -v tests/e2e | \
+            grep -v tests/scenarios | \
+            grep -v tests/scale | \
+            grep -v ci/ | \
+            grep -v demo/ | \
+            grep -v experimental/ | \
+            grep -v scripts/)
 
+# shellcheck disable=SC2086
 go test -timeout 120s \
    -failfast \
    -race \
    -v \
    -coverprofile=coverage.txt.with_generated_code \
-   -covermode atomic "${modules[@]}" | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
+   -covermode atomic $modules | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
 # shellcheck disable=SC2002
 cat coverage.txt.with_generated_code | grep -v "_generated.go" | grep -v "fake.go" | grep -v "pkg/gen" | grep -v "pkg/apis" > coverage.txt

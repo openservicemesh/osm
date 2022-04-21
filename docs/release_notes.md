@@ -1,5 +1,24 @@
 # Release Notes
 
+## Release v1.1.0
+
+### Notable changes
+
+- Circuit breaking support for traffic directed to in-mesh and external destinations
+
+### Breaking changes
+
+The following changes are not backward compatible with the previous release.
+
+- The `osm_proxy_response_send_success_count` and `osm_proxy_response_send_error_count` metrics are now labeled with the proxy certificate's common name and XDS type, so queries to match the previous equivalent need to sum for all values of each of those labels.
+
+### Deprecation notes
+
+The following capabilities have been deprecated and cannot be used.
+
+- The `osm_injector_injector_sidecar_count` and `osm_injector_injector_rq_time` metrics have been removed. The `osm_admission_webhook_response_total` and `osm_http_response_duration` metrics should be used instead.
+- OSM will no longer support installation on Kubernetes version v1.19.
+
 ## Release v1.0.0
 
 ### Notable changes

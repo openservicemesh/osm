@@ -143,7 +143,7 @@ func runCmdAndWriteToFile(cmdList []string, outFile string) error {
 	cmd := exec.Command(cmdList[0], cmdList[1:]...) //#nosec G204
 
 	// open the out file for writing
-	outfile, err := os.Create(outFile)
+	outfile, err := os.Create(filepath.Clean(outFile))
 	if err != nil {
 		return err
 	}

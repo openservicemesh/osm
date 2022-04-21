@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,117 +16,9 @@ import (
 	cminformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-// IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
-	start := time.Now()
-
-	// Attempt to grab certificate from cache.
-	if cert := cm.getFromCache(cn); cert != nil {
-		return cert, nil
-	}
-
-	// Cache miss/needs rotation so issue new certificate.
-	cert, err := cm.issue(cn, validityPeriod)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug().Msgf("It took %+v to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
-
-	return cert, nil
-}
-
-// ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
-func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
-	cm.deleteFromCache(cn)
-}
-
-// GetCertificate returns a certificate given its Common Name (CN)
-func (cm *CertManager) GetCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
-	if cert := cm.getFromCache(cn); cert != nil {
-		return cert, nil
-	}
-	return nil, errCertNotFound
-}
-
-func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
-	cm.cacheLock.RLock()
-	delete(cm.cache, cn)
-	cm.cacheLock.RUnlock()
-}
-
-func (cm *CertManager) getFromCache(cn certificate.CommonName) *certificate.Certificate {
-	cm.cacheLock.RLock()
-	defer cm.cacheLock.RUnlock()
-	if cert, exists := cm.cache[cn]; exists {
-		log.Trace().Msgf("Certificate with SerialNumber=%s found in cache", cert.GetSerialNumber())
-		if rotor.ShouldRotate(cert) {
-			log.Trace().Msgf("Certificate with SerialNumber=%s found in cache but has expired", cert.GetSerialNumber())
-			return nil
-		}
-		return cert
-	}
-	return nil
-}
-
-// RotateCertificate implements certificate.Manager and rotates an existing
-// certificate. When a certificate is successfully created, garbage collect
-// old CertificateRequests.
-func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (*certificate.Certificate, error) {
-	start := time.Now()
-
-	// We want the validity duration of the CertManager to remain static during the lifetime
-	// of the CertManager. This tests to see if this value is set, and if it isn't then it
-	// should make the infrequent call to configuration to get this value and cache it for
-	// future certificate operations.
-	if cm.serviceCertValidityDuration == 0 {
-		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
-	}
-	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
-	if err != nil {
-		return newCert, err
-	}
-
-	cm.cacheLock.Lock()
-	oldCert := cm.cache[cn]
-	cm.cache[cn] = newCert
-	cm.cacheLock.Unlock()
-
-	cm.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
-		Kind:   announcements.CertificateRotated,
-		NewObj: newCert,
-		OldObj: oldCert,
-	}, announcements.CertificateRotated.String())
-
-	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
-
-	return newCert, nil
-}
-
-// GetRootCertificate returns the root certificate in PEM format and its expiration.
-func (cm *CertManager) GetRootCertificate() (*certificate.Certificate, error) {
-	return cm.ca, nil
-}
-
-// ListCertificates lists all certificates issued
-func (cm *CertManager) ListCertificates() ([]*certificate.Certificate, error) {
-	var certs []*certificate.Certificate
-	cm.cacheLock.RLock()
-	for _, cert := range cm.cache {
-		certs = append(certs, cert)
-	}
-	cm.cacheLock.RUnlock()
-	return certs, nil
-}
 
 // certificateFromCertificateRequest will construct a certificate.Certificate
 // from a given CertificateRequest and private key.
@@ -149,19 +42,12 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 	}, nil
 }
 
-// issue will request a new signed certificate from the configured cert-manager
-// issuer.
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+// IssueCertificate will request a new signed certificate from the configured cert-manager issuer.
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	duration := &metav1.Duration{
 		Duration: validityPeriod,
 	}
 
-	// Key bit size should remain static during the lifetime of the CertManager. In the event that this
-	// is a zero value, we make the call to config to get the setting and then cache it for future
-	// certificate operations.
-	if cm.keySize == 0 {
-		cm.keySize = cm.cfg.GetCertKeyBitSize()
-	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -191,14 +77,16 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq))
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq)).
+			Msg("error creating certificate request")
 		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM))
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
+			Msg("error encoding cert request DER to PEM")
 		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
 	}
 
@@ -242,45 +130,32 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		}
 	}()
 
-	cm.cacheLock.Lock()
-	defer cm.cacheLock.Unlock()
-	cm.cache[cert.GetCommonName()] = cert
-
 	return cert, nil
 }
 
-// NewCertManager will construct a new certificate.Certificate implemented
-// using Jetstack's cert-manager,
-func NewCertManager(
+// New will construct a new certificate client using Jetstack's cert-manager,
+func New(
 	ca *certificate.Certificate,
 	client cmversionedclient.Interface,
 	namespace string,
 	issuerRef cmmeta.ObjectReference,
-	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration,
-	keySize int,
-	msgBroker *messaging.Broker) (*CertManager, error) {
+	keySize int) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
 	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
 
 	// TODO: pass through graceful shutdown
 	informerFactory.Start(make(chan struct{}))
 
-	cm := &CertManager{
-		ca:                          ca,
-		cache:                       make(map[certificate.CommonName]*certificate.Certificate),
-		namespace:                   namespace,
-		client:                      client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef:                   issuerRef,
-		crLister:                    crLister,
-		cfg:                         cfg,
-		serviceCertValidityDuration: serviceCertValidityDuration,
-		keySize:                     keySize,
-		msgBroker:                   msgBroker,
+	if keySize == 0 {
+		return nil, errors.New("key bit size cannot be zero")
 	}
 
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.New(cm).Start(checkCertificateExpirationInterval)
-
-	return cm, nil
+	return &CertManager{
+		ca:        ca,
+		namespace: namespace,
+		client:    client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		keySize:   keySize,
+	}, nil
 }

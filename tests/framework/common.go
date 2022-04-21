@@ -355,6 +355,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
 		CertKeyBitSize:         2048,
+		CertValidtyDuration:    time.Hour * 24,
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      true,
@@ -428,7 +429,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
 
-	meshConfig.Spec.Certificate.ServiceCertValidityDuration = "24h"
+	meshConfig.Spec.Certificate.ServiceCertValidityDuration = instOpts.CertValidtyDuration.String()
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
 
 	meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy = instOpts.EnableIngressBackendPolicy
@@ -625,6 +626,7 @@ func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 		"osm-crds",
 		constants.OSMBootstrapName,
 		"osm-preinstall",
+		"osm-healthcheck",
 	}
 
 	return td.LoadImagesToKind(imageNames)
@@ -1072,11 +1074,8 @@ func (td *OsmTestData) RunRemote(
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	if err != nil {
-		return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
-	}
 
-	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
 }
 
 // WaitForPodsRunningReady waits for a <n> number of pods on an NS to be running and ready

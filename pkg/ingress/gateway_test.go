@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -101,7 +102,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresor.NewFakeCertManager(mockConfigurator)
+			fakeCertProvider := tresorFake.NewFake(msgBroker)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -190,7 +191,7 @@ func TestCreateAndStoreGatewayCert(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertProvider := tresor.NewFakeCertManager(nil)
+			fakeCertProvider := tresorFake.NewFake(nil)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -325,12 +326,11 @@ func TestHandleCertificateChange(t *testing.T) {
 			msgBroker := messaging.NewBroker(stop)
 
 			fakeClient := fake.NewSimpleClientset()
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresor.NewFakeCertManagerForRotation(mockConfigurator, msgBroker)
+			fakeCertManager := tresorFake.NewFake(msgBroker)
 
 			c := client{
 				kubeClient:   fakeClient,
-				certProvider: fakeCertProvider,
+				certProvider: fakeCertManager,
 				msgBroker:    msgBroker,
 			}
 
@@ -378,8 +378,7 @@ func TestHandleCertificateChange(t *testing.T) {
 				a.Nil(err)
 
 				// Start the certificate rotor
-				mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).Times(1)
-				rotor.New(fakeCertProvider).Start(5 * time.Second)
+				rotor.New(fakeCertManager).Start(5 * time.Second)
 
 				a.Eventually(func() bool {
 					rotatedSecret, err := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})

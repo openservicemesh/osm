@@ -20,6 +20,7 @@ package v1alpha1
 
 import (
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -489,7 +490,11 @@ func (in *TCPConnectionSettings) DeepCopyInto(out *TCPConnectionSettings) {
 		*out = new(uint32)
 		**out = **in
 	}
-	out.ConnectTimeout = in.ConnectTimeout
+	if in.ConnectTimeout != nil {
+		in, out := &in.ConnectTimeout, &out.ConnectTimeout
+		*out = new(metav1.Duration)
+		**out = **in
+	}
 	return
 }
 
@@ -530,6 +535,7 @@ func (in *UpstreamTrafficSetting) DeepCopyInto(out *UpstreamTrafficSetting) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
+	out.Status = in.Status
 	return
 }
 
@@ -592,7 +598,6 @@ func (in *UpstreamTrafficSettingSpec) DeepCopyInto(out *UpstreamTrafficSettingSp
 		*out = new(ConnectionSettingsSpec)
 		(*in).DeepCopyInto(*out)
 	}
-	out.Status = in.Status
 	return
 }
 

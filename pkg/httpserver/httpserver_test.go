@@ -36,6 +36,10 @@ func TestNewHTTPServer(t *testing.T) {
 	mockProbe := health.NewMockProbes(mockCtrl)
 	testProbes := []health.Probes{mockProbe}
 	metricsStore := metricsstore.DefaultMetricsStore
+	metricsStore.Start(
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+	)
 
 	httpServ := NewHTTPServer(testPort)
 
@@ -85,12 +89,10 @@ func TestNewHTTPServer(t *testing.T) {
 	respL := recordCall(testServer, fmt.Sprintf("%s%s", url, invalidRoutePath))
 	assert.Equal(http.StatusNotFound, respL.StatusCode)
 
-	//Metrics path Check
-	req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, constants.MetricsPath), nil)
-	w := httptest.NewRecorder()
-	testServer.Config.Handler.ServeHTTP(w, req)
-	respM := w.Result()
-	assert.Equal(http.StatusOK, respM.StatusCode)
+	// Ensure added metrics are generated based on previous requests in this
+	// test
+	assert.True(metricsStore.Contains(`osm_http_response_total{code="200",method="get",path="/health/alive"} 1` + "\n"))
+	assert.True(metricsStore.Contains(`osm_http_response_duration_bucket{code="200",method="get",path="/health/alive",le="+Inf"} 1` + "\n"))
 
 	err := httpServ.Start()
 	assert.Nil(err)

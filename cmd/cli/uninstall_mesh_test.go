@@ -472,27 +472,6 @@ func TestUninstallClusterWideResources(t *testing.T) {
 						Namespace: testNamespace,
 					},
 				},
-				// OSM Secret
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.CrdConverterCertificateSecretName,
-						Namespace: testNamespace,
-					},
-				},
-				// OSM Secret
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.MutatingWebhookCertificateSecretName,
-						Namespace: testNamespace,
-					},
-				},
-				// OSM Secret
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.ValidatingWebhookCertificateSecretName,
-						Namespace: testNamespace,
-					},
-				},
 				// non-OSM Secret
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{

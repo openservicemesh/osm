@@ -21,14 +21,18 @@ import (
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
-		NodeID:           config.NodeID,
-		AdminPort:        constants.EnvoyAdminPort,
-		XDSClusterName:   constants.OSMControllerName,
-		TrustedCA:        config.RootCert,
-		CertificateChain: config.Cert,
-		PrivateKey:       config.Key,
-		XDSHost:          config.XDSHost,
-		XDSPort:          config.XDSPort,
+		NodeID:                config.NodeID,
+		AdminPort:             constants.EnvoyAdminPort,
+		XDSClusterName:        constants.OSMControllerName,
+		TrustedCA:             config.RootCert,
+		CertificateChain:      config.Cert,
+		PrivateKey:            config.Key,
+		XDSHost:               config.XDSHost,
+		XDSPort:               config.XDSPort,
+		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: config.TLSMaxProtocolVersion,
+		CipherSuites:          config.CipherSuites,
+		ECDHCurves:            config.ECDHCurves,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
@@ -54,13 +58,15 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 // getProbeResources returns the listener and cluster objects that are statically configured to serve
 // startup, readiness and liveness probes.
 // These will not change during the lifetime of the Pod.
+// If the original probe defined a TCPSocket action, listener and cluster objects are not configured
+// to serve that probe.
 func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
 	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
 	var listeners []*xds_listener.Listener
 	var clusters []*xds_cluster.Cluster
 
 	// Is there a liveness probe in the Pod Spec?
-	if config.OriginalHealthProbes.liveness != nil {
+	if config.OriginalHealthProbes.liveness != nil && !config.OriginalHealthProbes.liveness.isTCPSocket {
 		listener, err := getLivenessListener(config.OriginalHealthProbes.liveness)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting liveness listener")
@@ -71,7 +77,7 @@ func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listene
 	}
 
 	// Is there a readiness probe in the Pod Spec?
-	if config.OriginalHealthProbes.readiness != nil {
+	if config.OriginalHealthProbes.readiness != nil && !config.OriginalHealthProbes.readiness.isTCPSocket {
 		listener, err := getReadinessListener(config.OriginalHealthProbes.readiness)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting readiness listener")
@@ -82,7 +88,7 @@ func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listene
 	}
 
 	// Is there a startup probe in the Pod Spec?
-	if config.OriginalHealthProbes.startup != nil {
+	if config.OriginalHealthProbes.startup != nil && !config.OriginalHealthProbes.startup.isTCPSocket {
 		listener, err := getStartupListener(config.OriginalHealthProbes.startup)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting startup listener")
@@ -111,6 +117,11 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.
 		OriginalHealthProbes: originalHealthProbes,
+
+		TLSMinProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
+		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
 	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {

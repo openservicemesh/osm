@@ -54,7 +54,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 	// A nil request indicates a change on mesh configuration, OSM will trigger an update
 	// for all proxy config (we generate a response with no direct request from envoy)
 	osmDrivenUpdate := request == nil
-	cacheResourceMap := map[envoy.TypeURI][]types.Resource{}
+	cacheResourceMap := map[string][]types.Resource{}
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
@@ -87,7 +87,7 @@ func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.Aggregat
 
 		if s.cacheEnabled {
 			// Keep a reference to later set the full snapshot in the cache
-			cacheResourceMap[typeURI] = resources
+			cacheResourceMap[typeURI.String()] = resources
 		} else {
 			// If cache disabled, craft and send a reply to the proxy on the stream
 			if err := s.SendDiscoveryResponse(proxy, finalReq, server, resources); err != nil {
@@ -161,7 +161,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.Inc()
+		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
 			Str("proxy", proxy.String()).Msgf("Error sending response for typeURI %s to proxy", typeURI.Short())
 		return err
@@ -169,7 +169,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Sending discovery response succeeded, record last resources sent
 	proxy.SetLastResourcesSent(typeURI, resourcesSent)
-	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.Inc()
+	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
 
 	return nil
 }

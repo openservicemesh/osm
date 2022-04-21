@@ -7,9 +7,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/networking/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -69,23 +68,27 @@ func testIngressBackend() {
 		ingressAddr, err := Td.InstallNginxIngress()
 		Expect(err).ToNot((HaveOccurred()))
 
-		ing := &v1beta1.Ingress{
+		ing := &networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: svcDef.Name,
 			},
-			Spec: v1beta1.IngressSpec{
+			Spec: networkingv1.IngressSpec{
 				IngressClassName: pointer.StringPtr("nginx"),
-				Rules: []v1beta1.IngressRule{
+				Rules: []networkingv1.IngressRule{
 					{
-						IngressRuleValue: v1beta1.IngressRuleValue{
-							HTTP: &v1beta1.HTTPIngressRuleValue{
-								Paths: []v1beta1.HTTPIngressPath{
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{
 									{
 										Path:     "/status/200",
-										PathType: (*v1beta1.PathType)(pointer.StringPtr(string(v1beta1.PathTypeImplementationSpecific))),
-										Backend: v1beta1.IngressBackend{
-											ServiceName: svcDef.Name,
-											ServicePort: intstr.FromInt(serverPort),
+										PathType: (*networkingv1.PathType)(pointer.StringPtr(string(networkingv1.PathTypeImplementationSpecific))),
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: svcDef.Name,
+												Port: networkingv1.ServiceBackendPort{
+													Number: serverPort,
+												},
+											},
 										},
 									},
 								},
@@ -95,7 +98,7 @@ func testIngressBackend() {
 				},
 			},
 		}
-		_, err = Td.Client.NetworkingV1beta1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
+		_, err = Td.Client.NetworkingV1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
 		Expect(err).NotTo(HaveOccurred())
 
 		// Requests should fail when no IngressBackend resource exists

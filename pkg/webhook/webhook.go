@@ -4,6 +4,7 @@ package webhook
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var (
@@ -66,4 +68,17 @@ func AdmissionError(err error) *admissionv1.AdmissionResponse {
 			Message: err.Error(),
 		},
 	}
+}
+
+// RecordAdmissionMetrics records metrics for the given admission response
+func RecordAdmissionMetrics(req *admissionv1.AdmissionRequest, resp *admissionv1.AdmissionResponse) {
+	var kind string
+	if req != nil {
+		kind = req.Kind.Kind
+	}
+	success := false
+	if resp != nil {
+		success = resp.Allowed
+	}
+	metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal.WithLabelValues(kind, strconv.FormatBool(success)).Inc()
 }

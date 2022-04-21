@@ -1,22 +1,10 @@
 package rotor
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
-)
-
-const (
-	// How much earlier (before expiration) should a certificate be renewed
-	renewBeforeCertExpires = 30 * time.Second
-
-	// So that we do not renew all certs at the same time - add noise.
-	// These define the min and max of the seconds of noise to be added
-	// to the early certificate renewal.
-	minNoiseSeconds = 1
-	maxNoiseSeconds = 5
 )
 
 // New creates and starts a new facility for automatic certificate rotation.
@@ -46,14 +34,14 @@ func (r *CertRotor) checkAndRotate() {
 	}
 
 	for _, cert := range certs {
-		shouldRotate := ShouldRotate(cert)
+		shouldRotate := cert.ShouldRotate()
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
 		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v",
 			cert.GetCommonName(),
 			word,
 			time.Until(cert.GetExpiration()),
-			renewBeforeCertExpires)
+			certificate.RenewBeforeCertExpires)
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager
@@ -67,16 +55,4 @@ func (r *CertRotor) checkAndRotate() {
 			log.Trace().Msgf("Rotated cert SerialNumber=%s", newCert.GetSerialNumber())
 		}
 	}
-}
-
-// ShouldRotate determines whether a certificate should be rotated.
-func ShouldRotate(cert *certificate.Certificate) bool {
-	// The certificate is going to expire at a timestamp T
-	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
-	// We add a few seconds noise to the early renew period so that certificates that may have been
-	// created at the same time are not renewed at the exact same time.
-
-	intNoise := rand.Intn(maxNoiseSeconds-minNoiseSeconds) + minNoiseSeconds /* #nosec G404 */
-	secondsNoise := time.Duration(intNoise) * time.Second
-	return time.Until(cert.GetExpiration()) <= (renewBeforeCertExpires + secondsNoise)
 }

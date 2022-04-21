@@ -1,6 +1,6 @@
 #!make
 
-TARGETS      := darwin/amd64 linux/amd64 windows/amd64
+TARGETS      := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
 CTR_REGISTRY ?= openservicemesh
@@ -100,7 +100,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint: embed-files-test
-	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.41.1 golangci-lint run --config .golangci.yml
+	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:
@@ -111,7 +111,7 @@ go-mod-tidy:
 	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
-go-test:
+go-test: cmd/cli/chart.tgz
 	./scripts/go-test.sh
 
 .PHONY: go-test-coverage
@@ -178,7 +178,11 @@ docker-build-osm-bootstrap:
 docker-build-osm-preinstall:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall
+.PHONY: docker-build-osm-healthcheck
+docker-build-osm-healthcheck:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+
+OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall osm-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
 .PHONY: docker-build-osm
@@ -257,7 +261,7 @@ install-git-pre-push-hook:
 
 .PHONY: build-cross
 build-cross: cmd/cli/chart.tgz
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=5 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
 dist:

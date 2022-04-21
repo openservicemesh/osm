@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -135,7 +135,7 @@ func TestCreatePatch(t *testing.T) {
 			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresor.NewFakeCertManager(mockConfigurator),
+				certManager:         tresorFake.NewFake(nil),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
@@ -146,8 +146,9 @@ func TestCreatePatch(t *testing.T) {
 
 			if tc.os == constants.OSLinux {
 				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-				mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 			}
+
+			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
@@ -184,12 +185,13 @@ func TestCreatePatch(t *testing.T) {
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
-			certManager:         tresor.NewFakeCertManager(mockConfigurator),
+			certManager:         tresorFake.NewFake(nil),
 			configurator:        mockConfigurator,
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
 		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
+		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 

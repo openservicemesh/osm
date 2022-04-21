@@ -65,6 +65,15 @@ func TestNewResponse(t *testing.T) {
 		TargetPort: 8080,
 	}
 
+	meshConfig := configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Sidecar: configv1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+			},
+		},
+	}
+
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{testMeshSvc}, nil
 	}), nil)
@@ -91,6 +100,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 	}
+
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
@@ -101,6 +111,7 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 	mockCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -135,7 +146,7 @@ func TestNewResponse(t *testing.T) {
 		actualClusters = append(actualClusters, cl)
 	}
 
-	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
 	assert.Nil(err)
 
 	expectedLocalCluster := &xds_cluster.Cluster{
@@ -146,7 +157,7 @@ func TestNewResponse(t *testing.T) {
 		EdsClusterConfig:              nil,
 		RespectDnsTtl:                 true,
 		DnsLookupFamily:               xds_cluster.Cluster_V4_ONLY,
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: "default/bookbuyer|8080|local",
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
@@ -179,7 +190,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err := anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service))
+	upstreamTLSProto, err := anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service, meshConfig.Spec.Sidecar))
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
@@ -187,7 +198,7 @@ func TestNewResponse(t *testing.T) {
 		Name:                          "default/bookstore-v1|80",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -206,16 +217,19 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 		},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
+		},
 	}
 
-	upstreamTLSProto, err = anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service))
+	upstreamTLSProto, err = anypb.New(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV2Service, meshConfig.Spec.Sidecar))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
 		Name:                          "default/bookstore-v2|80",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
-		TypedExtensionProtocolOptions: HTTP2ProtocolOptions,
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 		EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &xds_core.ConfigSource{
 				ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -233,6 +247,9 @@ func TestNewResponse(t *testing.T) {
 					Value:   upstreamTLSProto.Value,
 				},
 			},
+		},
+		CircuitBreakers: &xds_cluster.CircuitBreakers{
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
 		},
 	}
 

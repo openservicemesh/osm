@@ -61,7 +61,7 @@ var (
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
-	initContainerPullPolicy string
+	osmContainerPullPolicy string
 
 	scheme = runtime.NewScheme()
 )
@@ -103,7 +103,7 @@ func init() {
 	// Reconciler options
 	flags.BoolVar(&enableReconciler, "enable-reconciler", false, "Enable reconciler for CDRs, mutating webhook and validating webhook")
 
-	flags.StringVar(&initContainerPullPolicy, "init-container-pull-policy", "", "The pullPolicy to use for injected init containers")
+	flags.StringVar(&osmContainerPullPolicy, "osm-container-pull-policy", "", "The pullPolicy to use for injected init and healthcheck containers")
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
@@ -147,11 +147,12 @@ func main() {
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
-		metricsstore.DefaultMetricsStore.InjectorRqTime,
-		metricsstore.DefaultMetricsStore.InjectorSidecarCount,
 		metricsstore.DefaultMetricsStore.CertIssuedCount,
 		metricsstore.DefaultMetricsStore.CertIssuedTime,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
 	)
 
 	msgBroker := messaging.NewBroker(stop)
@@ -176,7 +177,7 @@ func main() {
 	}
 
 	// Initialize the sidecar injector webhook
-	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(initContainerPullPolicy)); err != nil {
+	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 

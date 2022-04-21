@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -20,21 +21,13 @@ var _ = OSMDescribe("Test health probes can succeed",
 		Bucket: 4,
 	},
 	func() {
-		It("Configures Pods' probes so they work as expected", func() {
-			const ns = "healthprobe"
-			// Install OSM
-			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
-
-			Expect(Td.CreateNs(ns, nil)).To(Succeed())
-			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
-
-			tls := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "nginx-tls",
-				},
-				Type: corev1.SecretTypeTLS,
-				StringData: map[string]string{
-					"tls.crt": `-----BEGIN CERTIFICATE-----
+		tls := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "nginx-tls",
+			},
+			Type: corev1.SecretTypeTLS,
+			StringData: map[string]string{
+				"tls.crt": `-----BEGIN CERTIFICATE-----
 MIIEpDCCAowCCQD19P4QhwJXHDANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls
 b2NhbGhvc3QwHhcNMjEwNDA3MTU0ODM5WhcNMjIwNDA3MTU0ODM5WjAUMRIwEAYD
 VQQDDAlsb2NhbGhvc3QwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCq
@@ -62,7 +55,7 @@ JyFx3hr65q1hMf/PZ3u+tyUdfyxgu+wXf9UgOaFxLqQjdRPqUOolnh5kKupiCy38
 F0GFx++vOgfecOyhkpKkFb1S23XB69wlWTX/qrktHMILRyW1Eb2DgA==
 -----END CERTIFICATE-----
 `,
-					"tls.key": `-----BEGIN PRIVATE KEY-----
+				"tls.key": `-----BEGIN PRIVATE KEY-----
 MIIJRAIBADANBgkqhkiG9w0BAQEFAASCCS4wggkqAgEAAoICAQCqOMKeB4+F6LmV
 T1PPrTO+VLvioivqOM3dc7CVYBTrOoB2QDh9LXWPBb9ct/n4mqeDnpJnAa91KENh
 gMrhCDnkR7YvswULyfdsnUe96QPsONvGewSkmCzdsNwhVaVWOpUE6R9mC04b8XK3
@@ -115,125 +108,142 @@ YpVd8kui1XILZdfszMQlIPQwRxjWvQW2zVSGkL8MmuosnDCAsrWGFpUxWRsD2/lC
 ZRaHimUjXwDqCTKcz1ttlH6SRcfbhI5D
 -----END PRIVATE KEY-----
 `,
-				},
-			}
-			conf := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "nginx-conf",
-				},
-				Data: map[string]string{
-					"default.conf": `
+			},
+		}
+
+		conf := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "nginx-conf",
+			},
+			Data: map[string]string{
+				"default.conf": `
 server {
-    listen       80;
-    listen       443 ssl;
-    ssl_certificate /etc/nginx//tls/tls.crt;
-    ssl_certificate_key /etc/nginx//tls/tls.key;
-    server_name  localhost;
+listen       80;
+listen       443 ssl;
+ssl_certificate /etc/nginx//tls/tls.crt;
+ssl_certificate_key /etc/nginx//tls/tls.key;
+server_name  localhost;
 
-    location / {
-        root   /usr/share/nginx/html;
-        index  index.html index.htm;
-    }
+location / {
+	root   /usr/share/nginx/html;
+	index  index.html index.htm;
+}
 
-    # redirect server error pages to the static page /50x.html
-    #
-    error_page   500 502 503 504  /50x.html;
-    location = /50x.html {
-        root   /usr/share/nginx/html;
-    }
+# redirect server error pages to the static page /50x.html
+#
+error_page   500 502 503 504  /50x.html;
+location = /50x.html {
+	root   /usr/share/nginx/html;
+}
 }
 `,
+			},
+		}
+
+		http := &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/",
+					Port:   intstr.FromInt(80),
+					Scheme: corev1.URISchemeHTTP,
 				},
-			}
+			},
+		}
 
-			http := &corev1.Probe{
-				Handler: corev1.Handler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path:   "/",
-						Port:   intstr.FromInt(80),
-						Scheme: corev1.URISchemeHTTP,
-					},
+		https := &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/",
+					Port:   intstr.FromInt(443),
+					Scheme: corev1.URISchemeHTTPS,
 				},
-			}
+			},
+		}
 
-			https := &corev1.Probe{
-				Handler: corev1.Handler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path:   "/",
-						Port:   intstr.FromInt(443),
-						Scheme: corev1.URISchemeHTTPS,
-					},
+		tcp := &corev1.Probe{
+			Handler: corev1.Handler{
+				TCPSocket: &corev1.TCPSocketAction{
+					Port: intstr.FromInt(80),
 				},
-			}
+			},
+		}
 
-			tcp := &corev1.Probe{
-				Handler: corev1.Handler{
-					TCPSocket: &corev1.TCPSocketAction{
-						Port: intstr.FromInt(80),
-					},
+		incorrectTCP := &corev1.Probe{
+			Handler: corev1.Handler{
+				TCPSocket: &corev1.TCPSocketAction{
+					Port: intstr.FromInt(81),
 				},
-			}
+			},
+		}
 
-			makePod := func(name string, probe *corev1.Probe) *corev1.Pod {
-				podDef := &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: name,
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name:  "nginx",
-								Image: "nginx:1.19-alpine",
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      "tls",
-										MountPath: "/etc/nginx/tls",
-										ReadOnly:  true,
-									},
-									{
-										Name:      "config",
-										MountPath: "/etc/nginx/conf.d",
-										ReadOnly:  true,
-									},
-								},
-								StartupProbe:   probe,
-								LivenessProbe:  probe,
-								ReadinessProbe: probe,
-							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "tls",
-								VolumeSource: corev1.VolumeSource{
-									Secret: &corev1.SecretVolumeSource{
-										SecretName: "nginx-tls",
-									},
-								},
-							},
-							{
-								Name: "config",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "nginx-conf",
-										},
-									},
-								},
-							},
-						},
-					},
-				}
-
-				if Td.AreRegistryCredsPresent() {
-					podDef.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
+		makePod := func(name string, probe *corev1.Probe) *corev1.Pod {
+			podDef := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: name,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
-							Name: RegistrySecretName,
+							Name:  "nginx",
+							Image: "nginx:1.19-alpine",
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "tls",
+									MountPath: "/etc/nginx/tls",
+									ReadOnly:  true,
+								},
+								{
+									Name:      "config",
+									MountPath: "/etc/nginx/conf.d",
+									ReadOnly:  true,
+								},
+							},
+							StartupProbe:   probe,
+							LivenessProbe:  probe,
+							ReadinessProbe: probe,
 						},
-					}
-				}
-
-				return podDef
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "tls",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "nginx-tls",
+								},
+							},
+						},
+						{
+							Name: "config",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "nginx-conf",
+									},
+								},
+							},
+						},
+					},
+				},
 			}
+
+			if Td.AreRegistryCredsPresent() {
+				podDef.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
+					{
+						Name: RegistrySecretName,
+					},
+				}
+			}
+
+			return podDef
+		}
+
+		It("Configures Pods' probes so they work as expected", func() {
+			const ns = "healthprobe"
+			// Install OSM
+			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+
+			Expect(Td.CreateNs(ns, nil)).To(Succeed())
+			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
 			pods := []*corev1.Pod{
 				makePod("nginx-http", http),
@@ -253,5 +263,28 @@ server {
 			// Expect it to be up and running in it's receiver namespace
 			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, len(pods), nil)).To(Succeed())
 		})
+
+		It("Incorrectly configures Pods' TCPSocket probes so they fail as expected", func() {
+			const ns = "healthprobe"
+			// Install OSM
+			Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+
+			Expect(Td.CreateNs(ns, nil)).To(Succeed())
+			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
+
+			pod := makePod("nginx-tcp", incorrectTCP)
+
+			_, err := Td.Client.CoreV1().Secrets(ns).Create(context.TODO(), tls, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			_, err = Td.Client.CoreV1().ConfigMaps(ns).Create(context.TODO(), conf, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			_, err = Td.Client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Expect it to not be ready
+			timeout := 60 * time.Second
+			Expect(Td.WaitForPodsRunningReady(ns, timeout, 1, nil)).To(MatchError(fmt.Sprintf("not all pods were Running & Ready in NS healthprobe after %v", timeout)))
+		})
+
 	},
 )

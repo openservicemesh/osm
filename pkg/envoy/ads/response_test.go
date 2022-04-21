@@ -19,11 +19,12 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -62,7 +63,7 @@ var _ = Describe("Test ADS response functions", func() {
 	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
+	mc := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
@@ -123,7 +124,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		certManager := tresorFake.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
@@ -141,6 +142,9 @@ var _ = Describe("Test ADS response functions", func() {
 			EnableWASMStats:    false,
 			EnableEgressPolicy: false,
 		}).AnyTimes()
+		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+
+		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
@@ -197,12 +201,14 @@ var _ = Describe("Test ADS response functions", func() {
 				Name:     proxySvcAccount.String(),
 				CertType: secrets.ServiceCertType,
 			}.String()))
+
+			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{common_name=%q,type=%q} 1\n", proxy.GetCertificateCommonName(), envoy.TypeCDS))).To(BeTrue())
 		})
 	})
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresor.NewFakeCertManager(mockConfigurator)
+		certManager := tresorFake.NewFake(nil)
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)

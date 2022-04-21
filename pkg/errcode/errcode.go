@@ -375,7 +375,7 @@ func FromStr(e string) (ErrCode, error) {
 	errStr := strings.TrimLeft(e, "E")
 	errInt, err := strconv.Atoi(errStr)
 	if err != nil {
-		return ErrCode(0), errors.Errorf("Error code '%s' is not a valid error code format. Should be of the form Exxxx, ex. E1000.", e)
+		return ErrCode(0), errors.Errorf("error code '%s' is not a valid error code format, should be of the form Exxxx, ex. E1000", e)
 	}
 	return ErrCode(errInt), nil
 }

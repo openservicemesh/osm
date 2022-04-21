@@ -8,9 +8,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var (
@@ -79,3 +82,22 @@ func TestAdmissionError(t *testing.T) {
 type err int
 
 func (err) Read(_ []byte) (i int, err error) { return 1, errorTest }
+
+func TestRecordAdmissionMetrics(t *testing.T) {
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal)
+
+	resp := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			Kind: metav1.GroupVersionKind{
+				Kind: "SomeKind",
+			},
+		},
+		Response: &admissionv1.AdmissionResponse{
+			Allowed: true,
+		},
+	}
+
+	RecordAdmissionMetrics(resp.Request, resp.Response)
+
+	assert.True(t, metricsstore.DefaultMetricsStore.Contains(`osm_admission_webhook_response_total{kind="SomeKind",success="true"} 1`+"\n"))
+}

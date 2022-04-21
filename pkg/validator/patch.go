@@ -76,7 +76,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 						Path:      &webhookPath,
 						Port:      &webhookPort,
 					},
-					CABundle: cert.GetCertificateChain()},
+					CABundle: cert.GetIssuingCA()},
 				FailurePolicy: &failurePolicy,
 				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{

@@ -5,9 +5,6 @@ import (
 	"net"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -25,32 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-var _ = Describe("Test catalog functions", func() {
-	mc := newFakeMeshCatalog()
-	Context("Testing ListEndpointsForService()", func() {
-		It("lists endpoints for a given service", func() {
-			actual := mc.listEndpointsForService(tests.BookstoreV1Service)
-
-			expected := []endpoint.Endpoint{
-				tests.Endpoint,
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Testing getDNSResolvableServiceEndpoints()", func() {
-		It("returns the endpoint for the service", func() {
-			actual := mc.getDNSResolvableServiceEndpoints(tests.BookstoreV1Service)
-
-			expected := []endpoint.Endpoint{
-				tests.Endpoint,
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-})
 
 func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 	assert := tassert.New(t)

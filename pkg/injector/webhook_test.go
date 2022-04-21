@@ -28,7 +28,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -77,7 +77,7 @@ func TestCreateMutatingWebhook(t *testing.T) {
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Name, constants.OSMInjectorName)
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Path, &webhookPath)
 	assert.Equal(wh.Webhooks[0].ClientConfig.Service.Port, &webhookPort)
-	assert.Equal(wh.Webhooks[0].ClientConfig.CABundle, []byte("chain"))
+	assert.Equal(wh.Webhooks[0].ClientConfig.CABundle, []byte("ca"))
 
 	assert.Equal(wh.Webhooks[0].NamespaceSelector.MatchLabels[constants.OSMKubeResourceMonitorAnnotation], meshName)
 	assert.EqualValues(wh.Webhooks[0].NamespaceSelector.MatchExpressions, []metav1.LabelSelectorRequirement{
@@ -562,7 +562,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresorFake.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -580,7 +580,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresor.NewFakeCertManager(cfg)
+		certManager := tresorFake.NewFake(nil)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -855,7 +855,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFakeCertManager(cfg),
+			certManager:         tresorFake.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
@@ -901,7 +901,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresor.NewFakeCertManager(cfg),
+			certManager:         tresorFake.NewFake(nil),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}

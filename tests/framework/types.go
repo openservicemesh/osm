@@ -113,6 +113,7 @@ type InstallOSMOpts struct {
 	CertmanagerIssuerKind  string
 	CertmanagerIssuerName  string
 	CertKeyBitSize         int
+	CertValidtyDuration    time.Duration
 
 	EgressEnabled        bool
 	EnablePermissiveMode bool

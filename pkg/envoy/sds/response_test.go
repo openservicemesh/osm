@@ -16,8 +16,9 @@ import (
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -63,8 +64,8 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(err, envoy.ErrInvalidCertificateCN)
 
 	cfg := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
-	certManager := tresor.NewFakeCertManager(cfg)
-	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
+	certManager := tresorFake.NewFake(nil)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with an properly configured proxy
 	resources, err := NewResponse(meshCatalog, proxy, request, cfg, certManager, nil)

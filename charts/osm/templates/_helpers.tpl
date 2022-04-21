@@ -43,53 +43,62 @@ securityContext:
 {{/* osm-controller image */}}
 {{- define "osmController.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/osm-controller:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmController .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/osm-controller@%s" .Values.osm.image.registry .Values.osm.image.digest.osmController -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmController .Values.osm.image.digest.osmController -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-injector image */}}
 {{- define "osmInjector.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/osm-injector:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmInjector .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/osm-injector@%s" .Values.osm.image.registry .Values.osm.image.digest.osmInjector -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmInjector .Values.osm.image.digest.osmInjector -}}
 {{- end -}}
 {{- end -}}
 
 {{/* Sidecar init image */}}
 {{- define "osmSidecarInit.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/init:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmSidecarInit .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/init@%s" .Values.osm.image.registry .Values.osm.image.digest.osmSidecarInit -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmSidecarInit .Values.osm.image.digest.osmSidecarInit -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-bootstrap image */}}
 {{- define "osmBootstrap.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/osm-bootstrap:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmBootstrap .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/osm-bootstrap@%s" .Values.osm.image.registry .Values.osm.image.digest.osmBootstrap -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmBootstrap .Values.osm.image.digest.osmBootstrap -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-crds image */}}
 {{- define "osmCRDs.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/osm-crds:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmCRDs .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/osm-crds@%s" .Values.osm.image.registry .Values.osm.image.digest.osmCRDs -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmCRDs .Values.osm.image.digest.osmCRDs -}}
 {{- end -}}
 {{- end -}}
 
 {{/* osm-preinstall image */}}
 {{- define "osmPreinstall.image" -}}
 {{- if .Values.osm.image.tag -}}
-{{- printf "%s/osm-preinstall:%s" .Values.osm.image.registry .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmPreinstall .Values.osm.image.tag -}}
 {{- else -}}
-{{- printf "%s/osm-preinstall@%s" .Values.osm.image.registry .Values.osm.image.digest.osmPreinstall -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmPreinstall .Values.osm.image.digest.osmPreinstall -}}
+{{- end -}}
+{{- end -}}
+
+{{/* osm-healthcheck image */}}
+{{- define "osmHealthcheck.image" -}}
+{{- if .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmHealthcheck .Values.osm.image.tag -}}
+{{- else -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmHealthcheck .Values.osm.image.digest.osmHealthcheck -}}
 {{- end -}}
 {{- end -}}

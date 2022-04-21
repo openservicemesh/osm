@@ -72,15 +72,10 @@ A Maintainer must meet the rights, responsiblities, and requirements of a Contri
 
 Process of becoming a maintainer:
 
-1. Any current Maintainer may nominate a current Contributor to become a new Maintainer, by opening a PR against the root of the [OSM repository](https://github.com/openservicemesh/osm) adding the nominee to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS).
+1. Any current Maintainer may nominate a current Contributor to become a new Maintainer, by opening a PR against the root of the [OSM repository](https://github.com/openservicemesh/osm) and adding the nominee to the [OWNERS file](https://github.com/openservicemesh/osm/blob/main/OWNERS). Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements, the nominee must be added to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS) in the same PR.
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
-## Approvers
-
-All pull requests must be reviewed and approved by at least 2 members in the [approvers list](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS).
-
-An approver may nominate a current contributor who has shown significant understanding in one or more areas of the project by adding the nominee to the [CODEOWNERS file](https://github.com/openservicemesh/osm/blob/main/CODEOWNERS) by opening a PR. The nominee must add a comment to the PR testifying they agree to become a code approver. A majority of the current approvers must then approve the PR for the nomination to succeed.
 
 ## Inactivity
 

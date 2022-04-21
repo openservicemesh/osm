@@ -60,7 +60,10 @@
         }
       ]
     },
-    "description": "OSM Workload to Service Metrics latest",
+    "title": "OSM Workload to Service Metrics",
+    "description": "Compatible with OSM v1.0.0. This dashboard provides the traffic metrics from a workload (deployment, replicaSet) to all the services it connects/talks to.",
+    "uid": "OSMWorkloadToServiceMetrics",
+    "version": 2,
     "editable": true,
     "gnetId": 11776,
     "graphTooltip": 0,
@@ -829,8 +832,5 @@
         "1d"
       ]
     },
-    "timezone": "",
-    "title": "OSM Workload to Service Metrics",
-    "uid": "OSMworkloadMetrics",
-    "version": 1
+    "timezone": ""
   }

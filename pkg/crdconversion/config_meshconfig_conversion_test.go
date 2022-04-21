@@ -17,7 +17,7 @@ func TestConvertMeshConfig(t *testing.T) {
 		name      string
 		request   runtime.Object
 		toVersion string
-		verifyFn  func(*assert.Assertions, *unstructured.Unstructured, metav1.Status)
+		verifyFn  func(*assert.Assertions, *unstructured.Unstructured, error)
 	}{
 		{
 			name: "v1alpha2 -> v1alpha1 should remove additional field",
@@ -30,14 +30,30 @@ func TestConvertMeshConfig(t *testing.T) {
 					Traffic: configv1alpha2.TrafficSpec{
 						OutboundIPRangeInclusionList: []string{"1.1.1.1/32"},
 					},
+					Sidecar: configv1alpha2.SidecarSpec{
+						TLSMinProtocolVersion: "TLSv1_2",
+						TLSMaxProtocolVersion: "TLSv1_3",
+						CipherSuites:          []string{"SomeCipherSuite"},
+						ECDHCurves:            []string{"SomeECDHCurve"},
+					},
 				},
 			},
 			toVersion: "config.openservicemesh.io/v1alpha1",
-			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, status metav1.Status) {
-				a.Equal(status, statusSucceed())
+			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, err error) {
+				a.NoError(err)
 
-				_, found, _ := unstructured.NestedSlice(converted.Object, "spec", "traffic", "outboundIPRangeInclusionList")
-				a.False(found)
+				unsupportedFields := [][]string{
+					{"spec", "traffic", "outboundIPRangeInclusionList"},
+					{"spec", "sidecar", "tlsMinProtocolVersion"},
+					{"spec", "sidecar", "tlsMaxProtocolVersion"},
+					{"spec", "sidecar", "cipherSuites"},
+					{"spec", "sidecar", "ecdhCurves"},
+				}
+
+				for _, unsupportedField := range unsupportedFields {
+					_, found, _ := unstructured.NestedSlice(converted.Object, unsupportedField...)
+					a.False(found)
+				}
 			},
 		},
 		{
@@ -50,8 +66,8 @@ func TestConvertMeshConfig(t *testing.T) {
 				Spec: configv1alpha1.MeshConfigSpec{},
 			},
 			toVersion: "config.openservicemesh.io/v1alpha2",
-			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, status metav1.Status) {
-				a.Equal(status, statusSucceed())
+			verifyFn: func(a *assert.Assertions, converted *unstructured.Unstructured, err error) {
+				a.NoError(err)
 			},
 		},
 	}

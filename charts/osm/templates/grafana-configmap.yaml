@@ -70,13 +70,13 @@ metadata:
     app: osm-grafana
 data:
   osm-pod.json: |
-{{ .Files.Get "grafana/dashboards/osm-pod.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{ .Files.Get "grafana/dashboards/osm-pod-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
   osm-workload.json: |
-{{ .Files.Get "grafana/dashboards/osm-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{ .Files.Get "grafana/dashboards/osm-workload-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
   osm-service-to-service.json: |
 {{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
   osm-data-plane-container.json: |
-{{ .Files.Get "grafana/dashboards/osm-data-plane-container.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{ .Files.Get "grafana/dashboards/osm-data-plane-performance.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
   osm-workload-to-workload.json: |
 {{ .Files.Get "grafana/dashboards/osm-workload-to-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
 

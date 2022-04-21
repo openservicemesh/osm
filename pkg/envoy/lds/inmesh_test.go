@@ -218,6 +218,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		EnableWASMStats:        false,
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -230,7 +231,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	testCases := []struct {
 		name           string
 		permissiveMode bool
-		port           uint32
+		port           uint16
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -286,7 +287,8 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
-			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService, tc.port)
+			proxyService.TargetPort = tc.port
+			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
@@ -314,6 +316,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -326,7 +329,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	testCases := []struct {
 		name           string
 		permissiveMode bool
-		port           uint32
+		port           uint16
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -383,7 +386,8 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
-			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService, tc.port)
+			proxyService.TargetPort = tc.port
+			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)

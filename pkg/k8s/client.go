@@ -333,6 +333,10 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 		obj := resource.(*policyv1alpha1.IngressBackend)
 		return c.policyClient.PolicyV1alpha1().IngressBackends(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 
+	case *policyv1alpha1.UpstreamTrafficSetting:
+		obj := resource.(*policyv1alpha1.UpstreamTrafficSetting)
+		return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+
 	default:
 		return nil, errors.Errorf("Unsupported type: %T", t)
 	}

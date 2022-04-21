@@ -19,8 +19,12 @@ import (
 )
 
 const (
-	inboundListenerName           = "inbound-listener"
-	outboundListenerName          = "outbound-listener"
+	// InboundListenerName is the name of the listener used for inbound traffic
+	InboundListenerName = "inbound-listener"
+
+	// OutboundListenerName is the name of the listener used for outbound traffic
+	OutboundListenerName = "outbound-listener"
+
 	multiclusterListenerName      = "multicluster-listener"
 	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
@@ -31,7 +35,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
 
 	listener := &xds_listener.Listener{
-		Name:             outboundListenerName,
+		Name:             OutboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
 		FilterChains:     serviceFilterChains,
@@ -42,6 +46,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 				Name: wellknown.OriginalDestination,
 			},
 		},
+		AccessLog: envoy.GetAccessLog(),
 	}
 
 	// Create a default passthrough filter chain when global egress is enabled.
@@ -107,7 +112,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 
 func newInboundListener() *xds_listener.Listener {
 	return &xds_listener.Listener{
-		Name:             inboundListenerName,
+		Name:             InboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		FilterChains:     []*xds_listener.FilterChain{},
@@ -122,6 +127,7 @@ func newInboundListener() *xds_listener.Listener {
 				Name: wellknown.OriginalDestination,
 			},
 		},
+		AccessLog: envoy.GetAccessLog(),
 	}
 }
 

@@ -99,6 +99,18 @@ func (c *FakeUpstreamTrafficSettings) Update(ctx context.Context, upstreamTraffi
 	return obj.(*v1alpha1.UpstreamTrafficSetting), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeUpstreamTrafficSettings) UpdateStatus(ctx context.Context, upstreamTrafficSetting *v1alpha1.UpstreamTrafficSetting, opts v1.UpdateOptions) (*v1alpha1.UpstreamTrafficSetting, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(upstreamtrafficsettingsResource, "status", c.ns, upstreamTrafficSetting), &v1alpha1.UpstreamTrafficSetting{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.UpstreamTrafficSetting), err
+}
+
 // Delete takes name of the upstreamTrafficSetting and deletes it. Returns an error if one occurs.
 func (c *FakeUpstreamTrafficSettings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

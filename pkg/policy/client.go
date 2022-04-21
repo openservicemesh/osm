@@ -8,11 +8,11 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -82,7 +82,7 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 		Update: announcements.UpstreamTrafficSettingUpdated,
 		Delete: announcements.UpstreamTrafficSettingDeleted,
 	}
-	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
+	informerCollection.upstreamTrafficSetting.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
 
 	err := client.run(stop)
 	if err != nil {
@@ -186,4 +186,33 @@ func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1
 	}
 
 	return retries
+}
+
+// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
+func (c client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
+	if options.MeshService == nil && options.NamespacedName == nil {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
+		return nil
+	}
+
+	if options.NamespacedName != nil {
+		// Filter by namespaced name
+		resource, exists, err := c.caches.upstreamTrafficSetting.GetByKey(options.NamespacedName.String())
+		if exists && err == nil {
+			return resource.(*policyV1alpha1.UpstreamTrafficSetting)
+		}
+		return nil
+	}
+
+	// Filter by MeshService
+	for _, resource := range c.caches.upstreamTrafficSetting.List() {
+		upstreamTrafficSetting := resource.(*policyV1alpha1.UpstreamTrafficSetting)
+
+		if upstreamTrafficSetting.Namespace == options.MeshService.Namespace &&
+			upstreamTrafficSetting.Spec.Host == options.MeshService.FQDN() {
+			return upstreamTrafficSetting
+		}
+	}
+
+	return nil
 }

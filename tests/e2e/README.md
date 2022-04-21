@@ -113,7 +113,7 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus="\bSimpleCl
 
 #### Setting installType:
 
-The `installType` flag can be used to specify whether the tests should install OSM themselves, or if they will be run on a cluster which already has OSM installed. 
+The `installType` flag can be used to specify whether the tests should install OSM themselves, or if they will be run on a cluster which already has OSM installed.
 
 ```console
 go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=NoInstall
@@ -122,16 +122,16 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=NoInstall
 The different values of installType are as follows:
 
 1. `installType=NoInstall`
-   
+
     The e2es will run on the cluster currently in the user's kubeconfig, which is already expected to have OSM installed prior to the test run. The tests will not install OSM before, or uninstall OSM after any of the tests run. The cluster can be of any CNCF certified distribution (though the k8s version cannot be an outdated version).
 
 1. `installType=KindCluster`
 
-	Each test in the e2e suite will spin up a kind cluster, and run that specific test on that kind cluster. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The user is not expected to have created any cluster beforehand. 
+	Each test in the e2e suite will spin up a kind cluster, and run that specific test on that kind cluster. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The user is not expected to have created any cluster beforehand.
 
 1. `installType=SelfInstall` (default)
 
-	By default, the e2es will run on the cluster currently in the user's kubeconfig. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The cluster can be of any CNCF certified distribution (though the k8s version cannot be an outdated version). The user is should not have OSM installed beforehand. 
+	By default, the e2es will run on the cluster currently in the user's kubeconfig. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The cluster can be of any CNCF certified distribution (though the k8s version cannot be an outdated version). The user is should not have OSM installed beforehand.
 
 
 #### Use Kind for testing

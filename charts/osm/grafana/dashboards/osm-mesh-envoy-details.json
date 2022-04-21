@@ -66,7 +66,10 @@
       }
     ]
   },
-  "description": "Mesh and Envoy Details latest",
+  "title": "OSM Mesh and Envoy Details",
+  "description": "Compatible with OSM v1.0.0. This dashboard lets you view the performance and behavior of OSM’s control plane.",
+  "uid": "OSMMeshAndEnvoyDetails",
+  "version": 4,
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -538,7 +541,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(rate(osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
+          "expr": "sum(rate(osm_http_response_duration_bucket{method=\"post\",path=\"/mutate-pod-creation\",source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
@@ -673,7 +676,7 @@
       "interval": "10s",
       "targets": [
         {
-          "expr": "osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}",
+          "expr": "osm_http_response_duration_bucket{method=\"post\",path=\"/mutate-pod-creation\",source_pod_name=~\"$osm_injector_instance\"}",
           "legendFormat": "{{le}}",
           "interval": "",
           "exemplar": true,
@@ -932,13 +935,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"true\", source_pod_name=~\"$osm_injector_instance\"}[1m])\n",
+          "expr": "irate(osm_admission_webhook_response_total{kind=\"Pod\",success=\"true\",source_pod_name=~\"$osm_injector_instance\"}[1m])\n",
           "interval": "",
           "legendFormat": "Success",
           "refId": "A"
         },
         {
-          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"false\", source_pod_name=~\"$osm_injector_instance\"}[1m])",
+          "expr": "irate(osm_admission_webhook_response_total{kind=\"Pod\",success=\"false\",source_pod_name=~\"$osm_injector_instance\"}[1m])\n",
           "interval": "",
           "legendFormat": "Failure",
           "refId": "B"
@@ -1457,14 +1460,14 @@
           ]
         },
         "datasource": "${DS_PROMETHEUS}",
-        "definition": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "definition": "label_values(osm_cert_issued_count, source_pod_name)",
         "hide": 0,
         "includeAll": true,
         "label": "OSM Injector instance",
         "multi": true,
         "name": "osm_injector_instance",
         "options": [],
-        "query": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "query": "label_values(osm_cert_issued_count, source_pod_name)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -1548,8 +1551,5 @@
       "1d"
     ]
   },
-  "timezone": "",
-  "title": "Mesh and Envoy Details",
-  "uid": "PLyKJcHGz",
-  "version": 3
+  "timezone": ""
 }

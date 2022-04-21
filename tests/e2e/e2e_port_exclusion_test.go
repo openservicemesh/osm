@@ -127,8 +127,8 @@ func testPodLevelPortExclusion() {
 			SimplePodAppDef{
 				PodName:   destName,
 				Namespace: destName,
-				Image:     "kennethreitz/httpbin",
-				Ports:     []int{80},
+				Image:     fortioImageName,
+				Ports:     []int{fortioHTTPPort},
 				OS:        Td.ClusterOS,
 			})
 		Expect(err).NotTo(HaveOccurred())
@@ -147,9 +147,8 @@ func testPodLevelPortExclusion() {
 		svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
 			PodName:   sourceName,
 			Namespace: sourceName,
-			Command:   []string{"sleep", "365d"},
-			Image:     "curlimages/curl",
-			Ports:     []int{80},
+			Image:     fortioImageName,
+			Ports:     []int{fortioHTTPPort},
 			OS:        Td.ClusterOS,
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -176,7 +175,7 @@ func testPodLevelPortExclusion() {
 			SourcePod:       srcPod.Name,
 			SourceContainer: srcPod.Name,
 
-			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+			Destination: fmt.Sprintf("%s.%s:%s", dstSvc.Name, dstSvc.Namespace, destinationPort),
 		}
 
 		srcToDestStr := fmt.Sprintf("%s -> %s",
@@ -184,14 +183,16 @@ func testPodLevelPortExclusion() {
 			clientToServer.Destination)
 
 		cond := Td.WaitForRepeatedSuccess(func() bool {
-			result := Td.HTTPRequest(clientToServer)
+			result := Td.FortioHTTPLoadTest(FortioHTTPLoadTestDef{
+				HTTPRequestDef: clientToServer,
+			})
 
-			if result.Err != nil || result.StatusCode != 200 {
-				Td.T.Logf("> (%s) HTTP Req failed %d %v",
-					srcToDestStr, result.StatusCode, result.Err)
+			if result.Err != nil || result.HasFailedHTTPRequests() {
+				Td.T.Logf("> (%s) HTTP Req failed with status codes %v: %v",
+					srcToDestStr, result.AllReturnCodes(), result.Err)
 				return false
 			}
-			Td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
+			Td.T.Logf("> (%s) HTTP Req succeeded with status codes: %v", srcToDestStr, result.AllReturnCodes())
 			return true
 		}, 5, 90*time.Second)
 

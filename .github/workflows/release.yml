@@ -56,33 +56,61 @@ jobs:
           release_name: ${{ github.ref }}
           body_path: release-notes.md
           prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.') }}
-      - name: Upload macOS .zip
+      - name: Upload macOS (amd64).zip
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.zip"
           asset_name: "osm-${{ env.VERSION }}-darwin-amd64.zip"
           asset_content_type: application/zip
-      - name: Upload macOS .tar.gz
+      - name: Upload macOS (amd64).tar.gz
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
           asset_name: "osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
           asset_content_type: application/gzip
-      - name: Upload Linux .zip
+      - name: Upload macOS (arm64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-arm64.zip"
+          asset_name: "osm-${{ env.VERSION }}-darwin-arm64.zip"
+          asset_content_type: application/zip
+      - name: Upload macOS (arm64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-arm64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-darwin-arm64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Linux (amd64).zip
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.zip"
           asset_name: "osm-${{ env.VERSION }}-linux-amd64.zip"
           asset_content_type: application/zip
-      - name: Upload Linux .tar.gz
+      - name: Upload Linux (amd64).tar.gz
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.tar.gz"
           asset_name: "osm-${{ env.VERSION }}-linux-amd64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Linux (arm64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-arm64.zip"
+          asset_name: "osm-${{ env.VERSION }}-linux-arm64.zip"
+          asset_content_type: application/zip
+      - name: Upload Linux (arm64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-arm64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-linux-arm64.tar.gz"
           asset_content_type: application/gzip
       - name: Upload Windows .zip
         uses: actions/upload-release-asset@v1

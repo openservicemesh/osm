@@ -16,7 +16,6 @@ import (
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -41,14 +40,13 @@ const (
 )
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller,
+func NewMeshSpecClient(smiKubeConfig *rest.Config, osmNamespace string, kubeController k8s.Controller,
 	stop chan struct{}, msgBroker *messaging.Broker) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
 
 	client, err := newSMIClient(
-		kubeClient,
 		smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet,
 		smiTrafficTargetClientSet,
@@ -99,7 +97,7 @@ func (c *client) run(stop <-chan struct{}) error {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface,
+func newSMIClient(smiTrafficSplitClient smiTrafficSplitClient.Interface,
 	smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface,
 	osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{},
 	msgBroker *messaging.Broker) (*client, error) {
@@ -183,15 +181,15 @@ func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSpli
 			continue
 		}
 
-		if filteredSplit := filterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
+		if filteredSplit := FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
 			trafficSplits = append(trafficSplits, filteredSplit)
 		}
 	}
 	return trafficSplits
 }
 
-// filterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
-func filterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
+// FilterTrafficSplit applies the given TrafficSplitListOption filter on the given TrafficSplit object
+func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficSplitListOption) *smiSplit.TrafficSplit {
 	if trafficSplit == nil {
 		return nil
 	}
@@ -302,7 +300,7 @@ func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAc
 		}
 
 		// Filter TrafficTarget based on the given options
-		if filteredTrafficTarget := filterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
+		if filteredTrafficTarget := FilterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
 			trafficTargets = append(trafficTargets, trafficTarget)
 		}
 	}
@@ -340,7 +338,8 @@ func hasValidRules(rules []smiAccess.TrafficTargetRule) bool {
 	return true
 }
 
-func filterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
+// FilterTrafficTarget applies the given TrafficTargetListOption filter on the given TrafficTarget object
+func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...TrafficTargetListOption) *smiAccess.TrafficTarget {
 	if trafficTarget == nil {
 		return nil
 	}

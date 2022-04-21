@@ -10,6 +10,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -85,6 +87,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 				Enable: false,
 			}).AnyTimes()
+			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 			actual := lb.getIngressFilterChains(testSvc)
 			assert.Len(actual, tc.expectedFilterChainCount)
@@ -176,7 +179,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 				Enable: false,
 			})
 
-			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch)
+			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch, configv1alpha2.SidecarSpec{})
 			assert.Equal(tc.expectError, err != nil)
 
 			if err == nil {

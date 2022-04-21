@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: ShellCheck
         run: shellcheck -x $(find . -name '*.sh')
 
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Setup Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -47,18 +47,17 @@ jobs:
       - name: go build deps
         run: make embed-files-test
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.41.1
+          version: latest
           skip-pkg-cache: true
-          args: --timeout 10m --skip-dirs pkg/gen --skip-files "zz_generated.deepcopy.go$"
 
   codegen:
     name: Codegen
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Setup Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -73,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Setup Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -88,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: chart checks
         run: make chart-checks
 
@@ -97,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -123,7 +122,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -156,7 +155,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -187,7 +186,7 @@ jobs:
       CTR_REGISTRY: "localhost:5000"
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Build docker images
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
@@ -209,7 +208,7 @@ jobs:
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -278,7 +277,7 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Restore Module Cache
         uses: actions/cache@v2

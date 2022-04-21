@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -17,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
+	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -30,6 +32,8 @@ const (
 	rootCertCountry      = "US"
 	rootCertLocality     = "CA"
 	rootCertOrganization = "Open Service Mesh"
+
+	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 // NewCertificateProvider returns a new certificate provider and associated config
@@ -233,19 +237,22 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 		return nil, nil, errors.Errorf("Failed to synchronize certificate on Secrets API : %v", err)
 	}
 
-	certManager, err := tresor.NewCertManager(
+	tresorClient, err := tresor.New(
 		rootCert,
 		rootCertOrganization,
-		c.cfg,
-		c.cfg.GetServiceCertValidityPeriod(),
 		c.cfg.GetCertKeyBitSize(),
-		c.msgBroker,
 	)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
 	}
 
-	return certManager, certManager, nil
+	tresorCertManager, err := certificate.NewManager(rootCert, tresorClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Tresor cert-manager : %w", err)
+	}
+	rotor.New(tresorCertManager).Start(checkCertificateExpirationInterval)
+
+	return tresorCertManager, tresorCertManager, nil
 }
 
 // GetCertFromKubernetes is a helper function that loads a certificate from a Kubernetes secret
@@ -287,24 +294,33 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
 func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[options.VaultProtocol]; !ok {
-		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", options.VaultProtocol)
+		return nil, nil, fmt.Errorf("value %s is not a valid Hashi Vault protocol", options.VaultProtocol)
 	}
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", options.VaultProtocol, options.VaultHost, options.VaultPort)
-	vaultCertManager, err := vault.NewCertManager(
+	vaultClient, err := vault.New(
 		vaultAddr,
 		options.VaultToken,
 		options.VaultRole,
-		c.cfg,
-		c.cfg.GetServiceCertValidityPeriod(),
-		c.msgBroker,
 	)
 	if err != nil {
-		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
+		return nil, nil, fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
 
-	return vaultCertManager, vaultCertManager, nil
+	vaultCert, err := vaultClient.GetRootCertificate()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
+	}
+
+	certManager, err := certificate.NewManager(vaultCert, vaultClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Vault cert-manager : %w", err)
+	}
+
+	rotor.New(certManager).Start(checkCertificateExpirationInterval)
+
+	return certManager, certManager, nil
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
@@ -329,7 +345,7 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 		return nil, nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
-	certmanagerCertManager, err := certmanager.NewCertManager(
+	cmClient, err := certmanager.New(
 		rootCert,
 		client,
 		c.providerNamespace,
@@ -338,14 +354,19 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 			Kind:  options.IssuerKind,
 			Group: options.IssuerGroup,
 		},
-		c.cfg,
-		c.cfg.GetServiceCertValidityPeriod(),
 		c.cfg.GetCertKeyBitSize(),
-		c.msgBroker,
 	)
 	if err != nil {
-		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
+		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager client: %+v", err)
 	}
 
-	return certmanagerCertManager, certmanagerCertManager, nil
+	certManager, err := certificate.NewManager(rootCert, cmClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	if err != nil {
+		return nil, nil, errors.Errorf("error instantiating osm certificate.Manager for Jetstack cert-manager : %+v", err)
+	}
+
+	// TODO(#4533): push this into the certificate.manager object.
+	rotor.New(certManager).Start(checkCertificateExpirationInterval)
+
+	return certManager, certManager, nil
 }

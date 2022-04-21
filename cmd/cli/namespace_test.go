@@ -56,7 +56,7 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 
 			It("should give error about non-existent mesh", func() {
-				Expect(err.Error()).To(Equal(fmt.Sprintf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", testMeshName)))
+				Expect(err.Error()).To(Equal(fmt.Sprintf("mesh [%s] does not exist, please specify another mesh using --mesh-name or create a new mesh", testMeshName)))
 			})
 		})
 
@@ -372,7 +372,7 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 
 			It("should give error about non-existent mesh", func() {
-				Expect(err.Error()).To(Equal(fmt.Sprintf("Mesh [%s] does not exist. Please specify another mesh using --mesh-name or create a new mesh.", testMeshName)))
+				Expect(err.Error()).To(Equal(fmt.Sprintf("mesh [%s] does not exist, please specify another mesh using --mesh-name or create a new mesh", testMeshName)))
 			})
 		})
 

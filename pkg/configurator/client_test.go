@@ -5,8 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
@@ -39,4 +41,65 @@ func TestGetMeshConfig(t *testing.T) {
 	err := c.cache.Add(newObj)
 	a.Nil(err)
 	a.Equal(*newObj, c.getMeshConfig())
+}
+
+type store struct {
+	cache.Store
+}
+
+func (s *store) GetByKey(_ string) (interface{}, bool, error) {
+	return nil, false, nil
+}
+
+func TestMetricsHandler(t *testing.T) {
+	a := assert.New(t)
+
+	c := &client{
+		cache:          &store{},
+		meshConfigName: osmMeshConfigName,
+	}
+	handlers := c.metricsHandler()
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
+
+	// Adding the MeshConfig
+	handlers.OnAdd(&configv1alpha2.MeshConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: osmMeshConfigName,
+		},
+		Spec: configv1alpha2.MeshConfigSpec{
+			FeatureFlags: configv1alpha2.FeatureFlags{
+				EnableRetryPolicy: true,
+			},
+		},
+	})
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 1` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
+
+	// Updating the MeshConfig
+	handlers.OnUpdate(nil, &configv1alpha2.MeshConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: osmMeshConfigName,
+		},
+		Spec: configv1alpha2.MeshConfigSpec{
+			FeatureFlags: configv1alpha2.FeatureFlags{
+				EnableSnapshotCacheMode: true,
+			},
+		},
+	})
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 1` + "\n"))
+
+	// Deleting the MeshConfig
+	handlers.OnDelete(&configv1alpha2.MeshConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: osmMeshConfigName,
+		},
+		Spec: configv1alpha2.MeshConfigSpec{
+			FeatureFlags: configv1alpha2.FeatureFlags{
+				EnableSnapshotCacheMode: true,
+			},
+		},
+	})
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
+	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
 }

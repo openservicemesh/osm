@@ -16,6 +16,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -68,6 +70,11 @@ func TestGetStdoutAccessLog(t *testing.T) {
 	assert.Equal(resAccessLogger, expAccessLogger)
 }
 
+var sidecarSpec = configv1alpha2.SidecarSpec{
+	TLSMinProtocolVersion: "TLSv1_2",
+	TLSMaxProtocolVersion: "TLSv1_3",
+}
+
 var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetAddress()", func() {
 		It("should return address", func() {
@@ -94,7 +101,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
 			svcAccount := identity.K8sServiceAccount{Name: "foo", Namespace: "test"}
-			tlsContext := GetDownstreamTLSContext(svcAccount.ToServiceIdentity(), true)
+			tlsContext := GetDownstreamTLSContext(svcAccount.ToServiceIdentity(), true, sidecarSpec)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -140,14 +147,14 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, true, sidecarSpec)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, false)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreServiceIdentity, false, sidecarSpec)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
@@ -155,7 +162,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
 			sni := "bookstore-v1.default.svc.cluster.local"
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service, sidecarSpec)
 
 			expectedTLSContext := &auth.UpstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -204,7 +211,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("creates correct UpstreamTlsContext.Sni field", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerServiceIdentity, tests.BookstoreV1Service, sidecarSpec)
 			// To show the actual string for human comprehension
 			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
 		})
@@ -233,10 +240,10 @@ var _ = Describe("Test Envoy tools", func() {
 				CertType: secrets.RootCertTypeForMTLSOutbound,
 			}
 
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
+			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
-				TlsParams: GetTLSParams(),
+				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 					Name:      "service-cert:default/bookbuyer",
 					SdsConfig: GetADSConfigSource(),
@@ -263,10 +270,10 @@ var _ = Describe("Test Envoy tools", func() {
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			}
 
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
+			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
-				TlsParams: GetTLSParams(),
+				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 					Name:      "service-cert:default/bookstore-v1",
 					SdsConfig: GetADSConfigSource(),
@@ -289,10 +296,10 @@ var _ = Describe("Test Envoy tools", func() {
 				CertType: secrets.ServiceCertType,
 			}
 
-			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */)
+			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
-				TlsParams: GetTLSParams(),
+				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 					Name:      "service-cert:default/bookstore-v1",
 					SdsConfig: GetADSConfigSource(),

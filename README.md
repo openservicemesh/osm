@@ -58,7 +58,7 @@ Documentation pertaining to development, release workflows, and other repository
 
 ### Project status
 
-OSM is under active development and is **NOT** ready for production workloads.
+OSM is under active development and is ready for production workloads.
 
 ### Support
 
@@ -73,7 +73,7 @@ OSM is under active development and is **NOT** ready for production workloads.
 | TCPRoute | tcproutes.specs.smi-spec.io | [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md#tcproute) | |
 | UDPRoute | udproutes.specs.smi-spec.io | _not supported_ | |
 | TrafficSplit | trafficsplits.split.smi-spec.io | [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
-| TrafficMetrics  | \*.metrics.smi-spec.io | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
+| TrafficMetrics  | \*.metrics.smi-spec.io | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** 🚧 |
 
 ## OSM Design
 
@@ -82,7 +82,7 @@ Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 ## Install
 
 ### Prerequisites
-- Kubernetes cluster running Kubernetes v1.19.0 or greater
+- Kubernetes cluster running Kubernetes v1.20.0 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 

@@ -2,7 +2,6 @@ package crdconversion
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
@@ -15,22 +14,17 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestUpdateCrdConfiguration(t *testing.T) {
 	testCases := []struct {
-		name             string
-		enableReconciler bool
+		name string
 	}{
-		{name: "reconciler enabled",
-			enableReconciler: true,
-		},
-		{name: "reconciler disabled",
-			enableReconciler: false,
+		{
+			name: "base case",
 		},
 	}
 
@@ -80,7 +74,7 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 				},
 			})
 
-			err := updateCrdConfiguration(cert, crdClient.ApiextensionsV1(), tests.Namespace, "tests.test.openservicemesh.io", "/testconversion", tc.enableReconciler)
+			err := updateCrdConfiguration(cert, crdClient.ApiextensionsV1(), tests.Namespace, "tests.test.openservicemesh.io", "/testconversion")
 			assert.Nil(err)
 
 			crds, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
@@ -88,16 +82,12 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 
 			crd := crds.Items[0]
 			assert.Equal(crd.Spec.Conversion.Strategy, apiv1.WebhookConverter)
-			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.CABundle, []byte("chain"))
+			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.CABundle, []byte("ca"))
 			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace, tests.Namespace)
 			assert.Equal(crd.Spec.Conversion.Webhook.ClientConfig.Service.Name, constants.OSMBootstrapName)
 			assert.Equal(crd.Spec.Conversion.Webhook.ConversionReviewVersions, conversionReviewVersions)
 
 			assert.Equal(crd.Labels[constants.OSMAppNameLabelKey], constants.OSMAppNameLabelValue)
-			if tc.enableReconciler {
-				assert.Len(crd.Labels, 2)
-				assert.Equal(crd.Labels[constants.ReconcileLabel], strconv.FormatBool(true))
-			}
 		})
 	}
 }
@@ -110,10 +100,7 @@ func TestNewConversionWebhook(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	keySize := 2048
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(keySize).AnyTimes()
-	fakeCertManager := tresor.NewFakeCertManager(mockConfigurator)
+	fakeCertManager := tresorFake.NewFake(nil)
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
 	stop := make(<-chan struct{})

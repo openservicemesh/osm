@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -154,6 +156,18 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 	trafficSplits := []*split.TrafficSplit{trafficSplitSvc3}
 
+	// Add UpstreamTrafficSetting config for service meshSvc1P1, meshSvc1P1: ns1/s1
+	// Both map to the same k8s service but different ports
+	upstreamTrafficSettingSvc1 := policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "meshSvc1P1",
+			Namespace: meshSvc1P1.Namespace,
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: meshSvc1P1.FQDN(),
+		},
+	}
+
 	testCases := []struct {
 		name           string
 		permissiveMode bool
@@ -166,7 +180,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -179,7 +193,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -192,7 +206,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -209,7 +223,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -222,7 +236,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -235,7 +249,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},
@@ -248,7 +262,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s5 on port 9091
-						Name:                "ns3/s5_9091_tcp-server-first",
+						Name:                meshSvc5.OutboundTrafficMatchName(),
 						DestinationPort:     9091,
 						DestinationProtocol: "tcp-server-first",
 						DestinationIPRanges: []string{"10.0.5.1/32"},
@@ -262,12 +276,14 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 					{
-						Name:    "ns1/s1|80",
-						Service: meshSvc1P1,
+						Name:                   "ns1/s1|80",
+						Service:                meshSvc1P1,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
-						Name:    "ns1/s1|90",
-						Service: meshSvc1P2,
+						Name:                   "ns1/s1|90",
+						Service:                meshSvc1P2,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
 						Name:    "ns3/s3|80",
@@ -422,7 +438,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -435,7 +451,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -448,7 +464,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns2/s2 on port 8080
-						Name:                "ns2/s2_8080_http",
+						Name:                meshSvc2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.2.1/32"},
@@ -461,7 +477,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -478,7 +494,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -491,7 +507,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -504,7 +520,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},
@@ -518,12 +534,14 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 					{
-						Name:    "ns1/s1|80",
-						Service: meshSvc1P1,
+						Name:                   "ns1/s1|80",
+						Service:                meshSvc1P1,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
-						Name:    "ns1/s1|90",
-						Service: meshSvc1P2,
+						Name:                   "ns1/s1|90",
+						Service:                meshSvc1P2,
+						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
 						Name:    "ns2/s2|80",
@@ -565,12 +583,15 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockPolicyController := policy.NewMockController(mockCtrl)
+
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
 				configurator:       mockCfg,
 				meshSpec:           mockMeshSpec,
+				policyController:   mockPolicyController,
 			}
 
 			// Mock calls to k8s client caches
@@ -588,7 +609,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					for _, opt := range options {
 						opt(o)
 					}
-					// In this test, only service ns3/s3 as a split configured
+					// In this test, only service ns3/s3 has a split configured
 					if o.ApexService.String() == "ns3/s3" {
 						return []*split.TrafficSplit{trafficSplitSvc3}
 					}
@@ -611,6 +632,17 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockEndpointProvider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).DoAndReturn(
 				func(svc service.MeshService) ([]endpoint.Endpoint, error) {
 					return svcToEndpointsMap[svc.String()], nil
+				}).AnyTimes()
+
+			// Mock calls to UpstreamTrafficSetting lookups
+			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
+				func(opt policy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
+					if opt.MeshService != nil &&
+						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+						return &upstreamTrafficSettingSvc1
+					}
+					return nil
 				}).AnyTimes()
 
 			actual := mc.GetOutboundMeshTrafficPolicy(downstreamIdentity)

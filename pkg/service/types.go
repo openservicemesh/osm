@@ -65,6 +65,16 @@ func (ms MeshService) FQDN() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
 }
 
+// OutboundTrafficMatchName returns the MeshService outbound traffic match name
+func (ms MeshService) OutboundTrafficMatchName() string {
+	return fmt.Sprintf("outbound_%s_%d_%s", ms, ms.Port, ms.Protocol)
+}
+
+// InboundTrafficMatchName returns the MeshService inbound traffic match name
+func (ms MeshService) InboundTrafficMatchName() string {
+	return fmt.Sprintf("inbound_%s_%d_%s", ms, ms.TargetPort, ms.Protocol)
+}
+
 // ClusterName is a type for a service name
 type ClusterName string
 

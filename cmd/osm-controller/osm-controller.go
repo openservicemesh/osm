@@ -171,7 +171,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, k8sClient, stop, msgBroker)
+	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, osmNamespace, k8sClient, stop, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
@@ -303,6 +303,12 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount,
 		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount,
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
+		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
+		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
+		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
+		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
+		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
+		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
 	)
 }
 

@@ -1,15 +1,15 @@
-#ref: https://github.com/orgs/openservicemesh/teams/osm-maintainers/members
-maintainers:
-  - draychev
-  - eduser25
-  - ksubrmnn
-  - michelleN
-  - nojnhuh
-  - nshankar13
-  - SanyaKochhar
-  - shalier
-  - shashankram
-  - snehachhabria
-  - phillipgibson
-emeritus:
-  -
+# Code maintainers (borrowed from https://github.com/openservicemesh/osm/blob/main/CODEOWNERS)
+
+- @shashankram
+- @snehachhabria
+- @nojnhuh
+- @draychev
+- @jaellio
+- @trstringer
+
+# Non-code maintainers
+- @phillipgibson
+
+# Emeritus maintainers
+- @michelleN
+- @eduser25

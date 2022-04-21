@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
@@ -10,6 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -37,6 +36,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity) {
+		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+
 		// Retrieve the destination IP address from the endpoints for this service
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
@@ -54,6 +55,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
 			EnableEnvoyActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
+				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
@@ -99,7 +102,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// for this upstream service, port, and destination IP ranges. This
 		// will be programmed on the downstream client.
 		trafficMatchForServicePort := &trafficpolicy.TrafficMatch{
-			Name:                fmt.Sprintf("%s_%d_%s", meshSvc, meshSvc.Port, meshSvc.Protocol),
+			Name:                meshSvc.OutboundTrafficMatchName(),
 			DestinationPort:     int(meshSvc.Port),
 			DestinationProtocol: meshSvc.Protocol,
 			DestinationIPRanges: destinationIPRanges,

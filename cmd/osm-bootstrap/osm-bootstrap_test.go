@@ -42,7 +42,7 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	"enablePrivilegedInitContainer": false,
 	"logLevel": "error",
 	"maxDataPlaneConnections": 0,
-	"envoyImage": "envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd",
+	"envoyImage": "envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3",
 	"initContainerImage": "openservicemesh/init:latest-main",
 	"configResyncInterval": "2s"
 },

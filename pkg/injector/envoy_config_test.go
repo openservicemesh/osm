@@ -17,7 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -63,9 +64,20 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	cert := tresor.NewFakeCertificate()
+	meshConfig := v1alpha2.MeshConfig{
+		Spec: v1alpha2.MeshConfigSpec{
+			Sidecar: v1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+				CipherSuites:          []string{},
+			},
+		},
+	}
+
+	cert := tresorFake.NewFakeCertificate()
 	mockCtrl := gomock.NewController(GinkgoT())
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	originalHealthProbes := healthProbes{
 		liveness:  &healthProbe{path: "/liveness", port: 81},
@@ -117,7 +129,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		XDSHost:        "osm-controller.b.svc.cluster.local",
 		XDSPort:        15128,
 
-		OriginalHealthProbes: probes,
+		OriginalHealthProbes:  probes,
+		TLSMinProtocolVersion: meshConfig.Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: meshConfig.Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          meshConfig.Spec.Sidecar.CipherSuites,
+		ECDHCurves:            meshConfig.Spec.Sidecar.ECDHCurves,
 	}
 
 	Context("Test getEnvoyConfigYAML()", func() {
@@ -140,6 +156,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
+				configurator:        mockConfigurator,
 			}
 			name := uuid.New().String()
 			namespace := "a"
@@ -197,6 +214,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
 				meshName:            "some-mesh",
+				configurator:        mockConfigurator,
 			}
 
 			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
@@ -223,6 +241,18 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	Context("Test getProbeResources()", func() {
 		It("Should not create listeners and clusters when there are no probes", func() {
 			config.OriginalHealthProbes = healthProbes{} // no probes
+			actualListeners, actualClusters, err := getProbeResources(config)
+			Expect(err).To(BeNil())
+			Expect(actualListeners).To(BeNil())
+			Expect(actualClusters).To(BeNil())
+		})
+
+		It("Should not create listeners and cluster for TCPSocket probes", func() {
+			config.OriginalHealthProbes = healthProbes{
+				liveness:  &healthProbe{port: 81, isTCPSocket: true},
+				readiness: &healthProbe{port: 82, isTCPSocket: true},
+				startup:   &healthProbe{port: 83, isTCPSocket: true},
+			}
 			actualListeners, actualClusters, err := getProbeResources(config)
 			Expect(err).To(BeNil())
 			Expect(actualListeners).To(BeNil())
@@ -287,7 +317,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-cluster", "svcacc.namespace",
-					"--bootstrap-version 3",
 				},
 				Env: []corev1.EnvVar{
 					{
@@ -414,7 +443,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-cluster", "svcacc.namespace",
-					"--bootstrap-version 3",
 				},
 				Env: []corev1.EnvVar{
 					{

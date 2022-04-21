@@ -30,7 +30,7 @@ Uninstalling OSM will:
 (which OSM adds to support multiple CR versions)
 
 The command will not delete:
-(1) the namespace the mesh was installed in unless specified via the 
+(1) the namespace the mesh was installed in unless specified via the
 --delete-namespace flag.
 (2) the cluster-wide resources (i.e. CRDs, mutating and validating webhooks and
 secrets) unless specified via via the --delete-cluster-wide-resources (or -a) flag
@@ -217,6 +217,8 @@ func (d *uninstallMeshCmd) uninstallCustomResourceDefinitions() error {
 		"egresses.policy.openservicemesh.io",
 		"ingressbackends.policy.openservicemesh.io",
 		"meshconfigs.config.openservicemesh.io",
+		"upstreamtrafficsettings.policy.openservicemesh.io",
+		"retries.policy.openservicemesh.io",
 		"multiclusterservices.config.openservicemesh.io",
 		"httproutegroups.specs.smi-spec.io",
 		"tcproutes.specs.smi-spec.io",
@@ -347,9 +349,6 @@ func (d *uninstallMeshCmd) uninstallValidatingWebhookConfigurations() error {
 func (d *uninstallMeshCmd) uninstallSecrets() error {
 	secrets := []string{
 		d.caBundleSecretName,
-		constants.CrdConverterCertificateSecretName,
-		constants.MutatingWebhookCertificateSecretName,
-		constants.ValidatingWebhookCertificateSecretName,
 	}
 
 	var failedDeletions []string

@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -15,8 +14,8 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (
@@ -38,16 +37,12 @@ const (
 	retryPolicyConverterPath           = "/convert/retrypolicy"
 )
 
-var crdConversionWebhookConfiguration = map[string]string{
-	"traffictargets.access.smi-spec.io":              trafficAccessConverterPath,
-	"httproutegroups.specs.smi-spec.io":              httpRouteGroupConverterPath,
-	"meshconfigs.config.openservicemesh.io":          meshConfigConverterPath,
-	"multiclusterservices.config.openservicemesh.io": multiclusterServiceConverterPath,
-	"egresses.policy.openservicemesh.io":             egressPolicyConverterPath,
-	"trafficsplits.split.smi-spec.io":                trafficSplitConverterPath,
-	"tcproutes.specs.smi-spec.io":                    tcpRoutesConverterPath,
-	"ingressbackends.policy.openservicemesh.io":      ingressBackendsPolicyConverterPath,
-	"retries.policy.openservicemesh.io":              retryPolicyConverterPath,
+// apiKindToPath maps the resource API kind to the HTTP path at which
+// the webhook server peforms the conversion
+// *Note: only add API kinds for which conversion is necessary so that
+// the webhook is not invoked otherwise.
+var apiKindToPath = map[string]string{
+	"meshconfigs.config.openservicemesh.io": meshConfigConverterPath,
 }
 
 var conversionReviewVersions = []string{"v1beta1", "v1"}
@@ -62,13 +57,6 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
-	}
-
-	// The following function ensures to atomically create or get the certificate from Kubernetes
-	// secret API store. Multiple instances should end up with the same crdConversionwebhookHandlerCert after this function executed.
-	crdConversionWebhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, constants.CrdConverterCertificateSecretName, crdConversionWebhookHandlerCert, kubeClient)
-	if err != nil {
-		return errors.Errorf("Error fetching crd-converter certificate from k8s secret: %s", err)
 	}
 
 	crdWh := crdConversionWebhook{
@@ -91,15 +79,20 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	defer cancel()
 
 	webhookMux := http.NewServeMux()
-	webhookMux.HandleFunc(meshConfigConverterPath, serveMeshConfigConversion)
-	webhookMux.HandleFunc(trafficAccessConverterPath, serveTrafficAccessConversion)
-	webhookMux.HandleFunc(httpRouteGroupConverterPath, serveHTTPRouteGroupConversion)
-	webhookMux.HandleFunc(multiclusterServiceConverterPath, serveMultiClusterServiceConversion)
-	webhookMux.HandleFunc(egressPolicyConverterPath, serveEgressPolicyConversion)
-	webhookMux.HandleFunc(trafficSplitConverterPath, serveTrafficSplitConversion)
-	webhookMux.HandleFunc(tcpRoutesConverterPath, serveTCPRouteConversion)
-	webhookMux.HandleFunc(ingressBackendsPolicyConverterPath, serveIngressBackendsPolicyConversion)
-	webhookMux.HandleFunc(retryPolicyConverterPath, serveRetryPolicyConversion)
+	handlers := map[string]http.HandlerFunc{
+		meshConfigConverterPath:            serveMeshConfigConversion,
+		trafficAccessConverterPath:         serveTrafficAccessConversion,
+		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,
+		multiclusterServiceConverterPath:   serveMultiClusterServiceConversion,
+		egressPolicyConverterPath:          serveEgressPolicyConversion,
+		trafficSplitConverterPath:          serveTrafficSplitConversion,
+		tcpRoutesConverterPath:             serveTCPRouteConversion,
+		ingressBackendsPolicyConverterPath: serveIngressBackendsPolicyConversion,
+		retryPolicyConverterPath:           serveRetryPolicyConversion,
+	}
+	for endpoint, h := range handlers {
+		webhookMux.Handle(endpoint, metricsstore.AddHTTPMetrics(h))
+	}
 
 	webhookServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),
@@ -128,7 +121,7 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}()
 
 	healthMux := http.NewServeMux()
-	healthMux.HandleFunc(webhookHealthPath, healthHandler)
+	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", healthPort),
@@ -167,8 +160,8 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
-	for crdName, crdConversionPath := range crdConversionWebhookConfiguration {
-		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
+	for crdName, crdConversionPath := range apiKindToPath {
+		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
 			return err
 		}
@@ -177,7 +170,7 @@ func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV
 }
 
 // updateCrdConfiguration updates the Conversion section of the CRD and adds a reconcile label if OSM's reconciler is enabled.
-func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
+func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string) error {
 	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -193,19 +186,10 @@ func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.A
 					Port:      pointer.Int32(constants.CRDConversionWebhookPort),
 					Path:      &crdConversionPath,
 				},
-				CABundle: cert.GetCertificateChain(),
+				CABundle: cert.GetIssuingCA(),
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},
-	}
-
-	if enableReconciler {
-		existingLabels := crd.Labels
-		if existingLabels == nil {
-			existingLabels = map[string]string{}
-		}
-		existingLabels[constants.ReconcileLabel] = strconv.FormatBool(true)
-		crd.Labels = existingLabels
 	}
 
 	if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {

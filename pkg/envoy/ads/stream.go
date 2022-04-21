@@ -34,6 +34,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
+		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected.Inc()
 		return errTooManyConnections
 	}
 
@@ -62,7 +63,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	defer s.proxyRegistry.UnregisterProxy(proxy)
 
 	quit := make(chan struct{})
-	requests := make(chan xds_discovery.DiscoveryRequest)
+	requests := make(chan *xds_discovery.DiscoveryRequest)
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
@@ -103,18 +104,20 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
-			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(&discoveryRequest))
+			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(discoveryRequest))
+
+			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(certCommonName.String(), discoveryRequest.TypeUrl).Inc()
 
 			// This function call runs xDS proto state machine given DiscoveryRequest as input.
 			// It's output is the decision to reply or not to this request.
-			if !respondToRequest(proxy, &discoveryRequest) {
-				log.Debug().Str("proxy", proxy.String()).Msgf("Ignoring DiscoveryRequest %s that does not need to be responded to", discoveryReqToStr(&discoveryRequest))
+			if !respondToRequest(proxy, discoveryRequest) {
+				log.Debug().Str("proxy", proxy.String()).Msgf("Ignoring DiscoveryRequest %s that does not need to be responded to", discoveryReqToStr(discoveryRequest))
 				continue
 			}
 
 			typesRequest := []envoy.TypeURI{envoy.TypeURI(discoveryRequest.TypeUrl)}
 
-			<-s.workqueues.AddJob(newJob(typesRequest, &discoveryRequest))
+			<-s.workqueues.AddJob(newJob(typesRequest, discoveryRequest))
 
 		case <-proxyUpdateChan:
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")

@@ -13,7 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -107,7 +107,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 
 			msgBroker := messaging.NewBroker(stop)
 			proxyRegistry := NewProxyRegistry(nil, msgBroker)
-			certManager := tresor.NewFakeCertManager(nil)
+			certManager := tresorFake.NewFake(msgBroker)
 
 			_, err := certManager.IssueCertificate(proxyCN, 1*time.Hour)
 			a.Nil(err)
