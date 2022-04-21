@@ -60,7 +60,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		// for this upstream service on the upstream server to accept inbound
 		// traffic.
 		trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
-			Name:                fmt.Sprintf("%s_%d_%s", upstreamSvc, upstreamSvc.TargetPort, upstreamSvc.Protocol),
+			Name:                upstreamSvc.InboundTrafficMatchName(),
 			DestinationPort:     int(upstreamSvc.TargetPort),
 			DestinationProtocol: upstreamSvc.Protocol,
 		}

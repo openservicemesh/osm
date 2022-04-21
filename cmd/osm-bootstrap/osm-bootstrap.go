@@ -189,6 +189,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
+	version.SetMetric()
 	/*
 	 * Initialize osm-bootstrap's HTTP server
 	 */
@@ -316,7 +317,7 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 	return &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
-			APIVersion: "config.openservicemesh.io/configv1alpha2",
+			APIVersion: "config.openservicemesh.io/configv1alpha3",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,

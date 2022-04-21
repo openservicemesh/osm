@@ -3,19 +3,24 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // validateFunc is a function type that accepts an AdmissionRequest and returns an AdmissionResponse.
@@ -61,6 +66,11 @@ func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionRes
 */
 type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
 
+// policyValidator is a validator that has access to a policy
+type policyValidator struct {
+	policyClient policy.Controller
+}
+
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	trafficTarget := &smiAccess.TrafficTarget{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(trafficTarget); err != nil {
@@ -76,13 +86,46 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 }
 
 // ingressBackendValidator validates the IngressBackend custom resource
-func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	ingressBackend := &policyv1alpha1.IngressBackend{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(ingressBackend); err != nil {
 		return nil, err
 	}
+	ns := ingressBackend.Namespace
 
+	type setEntry struct {
+		name string
+		port int
+	}
+
+	backends := mapset.NewSet()
+	var conflictString strings.Builder
+	conflictingIngressBackends := mapset.NewSet()
 	for _, backend := range ingressBackend.Spec.Backends {
+		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
+			return nil, errors.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+		}
+
+		fakeMeshSvc := service.MeshService{
+			Name:       backend.Name,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
+		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
+			// we've found a duplicate
+			if unique := conflictingIngressBackends.Add(matchingPolicy); !unique {
+				// we've already found the conflicts for this resource
+				continue
+			}
+			conflicts := policy.DetectIngressBackendConflicts(*ingressBackend, *matchingPolicy)
+			fmt.Fprintf(&conflictString, "[+] IngressBackend %s/%s conflicts with %s/%s:\n", ns, ingressBackend.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
+			for _, err := range conflicts {
+				fmt.Fprintf(&conflictString, "%s\n", err)
+			}
+			fmt.Fprintf(&conflictString, "\n")
+		}
+
 		// Validate port
 		switch strings.ToLower(backend.Port.Protocol) {
 		case constants.ProtocolHTTP:
@@ -106,6 +149,10 @@ func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 		default:
 			return nil, errors.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
 		}
+	}
+
+	if conflictString.Len() != 0 {
+		return nil, fmt.Errorf("duplicate backends detected\n%s", conflictString.String())
 	}
 
 	// Validate sources
@@ -177,6 +224,28 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 	// Can't have more than 1 UpstreamTrafficSetting match for an Egress policy
 	if upstreamTrafficSettingMatchCount > 1 {
 		return nil, errors.New("Cannot have more than 1 UpstreamTrafficSetting match")
+	}
+
+	return nil, nil
+}
+
+// upstreamTrafficSettingValidator validates the UpstreamTrafficSetting custom resource
+func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	upstreamTrafficSetting := &policyv1alpha1.UpstreamTrafficSetting{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(upstreamTrafficSetting); err != nil {
+		return nil, err
+	}
+
+	ns := upstreamTrafficSetting.Namespace
+	hostComponents := strings.Split(upstreamTrafficSetting.Spec.Host, ".")
+	if len(hostComponents) < 2 {
+		return nil, field.Invalid(field.NewPath("spec").Child("host"), upstreamTrafficSetting.Spec.Host, "invalid FQDN specified as host")
+	}
+
+	opt := policy.UpstreamTrafficSettingGetOpt{Host: upstreamTrafficSetting.Spec.Host}
+	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
+		// duplicate detected
+		return nil, errors.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
 	}
 
 	return nil, nil

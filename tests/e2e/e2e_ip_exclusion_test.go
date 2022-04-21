@@ -45,8 +45,8 @@ func testIPExclusion() {
 			SimplePodAppDef{
 				PodName:   destName,
 				Namespace: destName,
-				Image:     "kennethreitz/httpbin",
-				Ports:     []int{80},
+				Image:     fortioImageName,
+				Ports:     []int{fortioHTTPPort},
 				OS:        Td.ClusterOS,
 			})
 		Expect(err).NotTo(HaveOccurred())
@@ -76,7 +76,7 @@ func testIPExclusion() {
 			SourcePod:       srcPod.Name,
 			SourceContainer: srcPod.Name,
 
-			Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+			Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, fortioHTTPPort),
 		}
 
 		srcToDestStr := fmt.Sprintf("%s -> %s",

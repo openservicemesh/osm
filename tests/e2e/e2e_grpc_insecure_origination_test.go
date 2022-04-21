@@ -15,8 +15,6 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-const grpcbinInsecurePort = 9000
-
 // This test originates insecure (plaintext) gRPC traffic between a client and server and
 // verifies that the traffic is routable within the service mesh using HTTP routes.
 // <Client app plaintext request> --> <local proxy> -- |mTLS over HTTP routes| --> <remote proxy> -- <server app plaintext request>
@@ -53,8 +51,8 @@ func testGRPCTraffic() {
 			SimplePodAppDef{
 				PodName:     framework.RandomNameWithPrefix("pod"),
 				Namespace:   destNs,
-				Image:       "moul/grpcbin",
-				Ports:       []int{grpcbinInsecurePort},
+				Image:       fortioImageName,
+				Ports:       []int{fortioGRPCPort},
 				AppProtocol: "grpc",
 				OS:          Td.ClusterOS,
 			})
@@ -70,7 +68,7 @@ func testGRPCTraffic() {
 		// Expect it to be up and running in it's receiver namespace
 		Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1, nil)).To(Succeed())
 
-		srcPod := setupGRPCClient(sourceNs)
+		srcPod := setupFortioClient(sourceNs)
 
 		trafficTargetName := "test-target" //nolint: goconst
 		trafficRouteName := "routes"       //nolint: goconst
@@ -101,27 +99,27 @@ func testGRPCTraffic() {
 			SourcePod:       srcPod.Name,
 			SourceContainer: srcPod.Name,
 
-			Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, grpcbinInsecurePort),
+			Destination: fmt.Sprintf("%s.%s:%d", dstSvc.Name, dstSvc.Namespace, fortioGRPCPort),
 
-			JSONRequest: "{\"greeting\": \"client\"}",
-			Symbol:      "hello.HelloService/SayHello",
-			UseTLS:      false, // insecure gRPC, service mesh will upgrade connection to mTLS
+			UseTLS: false, // insecure gRPC, service mesh will upgrade connection to mTLS
 		}
 
 		srcToDestStr := fmt.Sprintf("%s/%s -> %s",
 			clientToServer.SourceNs, clientToServer.SourcePod, clientToServer.Destination)
 
 		cond := Td.WaitForRepeatedSuccess(func() bool {
-			result := Td.GRPCRequest(clientToServer)
+			result := Td.FortioGRPCLoadTest(FortioGRPCLoadTestDef{GRPCRequestDef: clientToServer, FortioLoadTestSpec: fortioSingleCallSpec})
 
-			if result.Err != nil {
-				Td.T.Logf("> (%s) gRPC req failed, response: %s, err: %s",
-					srcToDestStr, result.Response, result.Err)
-				return false
+			// Ensure the correct GRPC return code
+			for retCode := range result.ReturnCodes {
+				if retCode != fortioGRPCRetCodeSuccess {
+					Td.T.Logf("> (%s) Unexpected return code: %s.\n Return code expected to be: %s. ", srcToDestStr, retCode, fortioGRPCRetCodeSuccess)
+					continue
+				}
+				Td.T.Logf("> (%s) gRPC Req succeeded, return code: %s", srcToDestStr, retCode)
+				return true
 			}
-
-			Td.T.Logf("> (%s) gRPC req succeeded, response: %s", srcToDestStr, result.Response)
-			return true
+			return false
 		}, 5, 90*time.Second)
 
 		Expect(cond).To(BeTrue(), "Failed testing gRPC traffic for: %s", srcToDestStr)
@@ -132,26 +130,29 @@ func testGRPCTraffic() {
 
 		// Expect client not to reach server
 		cond = Td.WaitForRepeatedSuccess(func() bool {
-			result := Td.GRPCRequest(clientToServer)
+			result := Td.FortioGRPCLoadTest(FortioGRPCLoadTestDef{GRPCRequestDef: clientToServer, FortioLoadTestSpec: fortioSingleCallSpec})
 
-			if result.Err == nil {
-				Td.T.Logf("> (%s) gRPC req did not fail, expected it to fail,  response: %s", srcToDestStr, result.Response)
-				return false
+			// Look for failed GRPC return code
+			for retCode := range result.ReturnCodes {
+				if retCode != fortioGRPCRetCodeSuccess {
+					Td.T.Logf("> (%s) gRPC Req failed correctly, return code: %s, err: %s", srcToDestStr, retCode, result.Err)
+					return true
+				}
 			}
-			Td.T.Logf("> (%s) gRPC req failed correctly, response: %s, err: %s", srcToDestStr, result.Response, result.Err)
-			return true
+
+			Td.T.Logf("> (%s) gRPC Req did not fail, expected it to fail, return codes: %v", srcToDestStr, result.AllReturnCodes())
+			return false
 		}, 5, 150*time.Second)
 		Expect(cond).To(BeTrue())
 	})
 }
 
-func setupGRPCClient(sourceName string) *corev1.Pod {
+func setupFortioClient(sourceName string) *corev1.Pod {
 	// Get simple Pod definitions for the client
 	svcAccDef, podDef, _, err := Td.SimplePodApp(SimplePodAppDef{
 		PodName:   sourceName,
 		Namespace: sourceName,
-		Command:   []string{"sleep", "365d"},
-		Image:     "networld/grpcurl",
+		Image:     fortioImageName,
 		OS:        Td.ClusterOS,
 	})
 	Expect(err).NotTo(HaveOccurred())

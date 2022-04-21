@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/openservicemesh/osm/tests/framework"
@@ -140,4 +141,27 @@ func testSecureGRPCTraffic() {
 		}, 5, 150*time.Second)
 		Expect(cond).To(BeTrue())
 	})
+}
+
+func setupGRPCClient(sourceName string) *corev1.Pod {
+	// Get simple Pod definitions for the client
+	svcAccDef, podDef, _, err := Td.SimplePodApp(SimplePodAppDef{
+		PodName:   sourceName,
+		Namespace: sourceName,
+		Command:   []string{"sleep", "365d"},
+		Image:     "networld/grpcurl",
+		OS:        Td.ClusterOS,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = Td.CreateServiceAccount(sourceName, &svcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	srcPod, err := Td.CreatePod(sourceName, podDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
+
+	return srcPod
 }
