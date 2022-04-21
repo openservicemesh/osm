@@ -5,6 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	configv1alpha1 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha1"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha3 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha3"
 )
 
 // serveMeshConfigConversion servers endpoint for the converter defined as convertMeshConfig function.
@@ -24,20 +28,27 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 
 	log.Debug().Msgf("MeshConfig conversion request: from-version=%s, to-version=%s", fromVersion, toVersion)
 	switch fromVersion {
-	case "config.openservicemesh.io/v1alpha1":
+	case configv1alpha1.SchemeGroupVersion.String():
 		switch toVersion {
-		case "config.openservicemesh.io/v1alpha2":
+		case configv1alpha2.SchemeGroupVersion.String():
 			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha2")
 			// v1alpha2 is backward compatible with v1alpha1, so no conversion is
 			// necessary at this moment.
-
+		case configv1alpha3.SchemeGroupVersion.String():
+			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha3")
+			// v1alpha3 is backward compatible with v1alpha1, so no conversion is
+			// necessary at this moment.
 		default:
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
-	case "config.openservicemesh.io/v1alpha2":
+	case configv1alpha2.SchemeGroupVersion.String():
 		switch toVersion {
-		case "config.openservicemesh.io/v1alpha1":
+		case configv1alpha3.SchemeGroupVersion.String():
+			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha3")
+			// v1alpha3 is backward compatible with v1alpha2, so no conversion is
+			// necessary at this moment.
+		case configv1alpha1.SchemeGroupVersion.String():
 			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha1")
 			// Remove spec.traffic.outboundIPRangeInclusionList field not supported in v1alpha1
 			unsupportedFields := [][]string{
@@ -58,6 +69,43 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
+	case configv1alpha3.SchemeGroupVersion.String():
+		switch toVersion {
+		case configv1alpha2.SchemeGroupVersion.String():
+			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha2")
+			// Remove spec.sidecar.localProxyMode field not supported in v1alpha2
+			unsupportedFields := [][]string{
+				{"spec", "sidecar", "localProxyMode"},
+			}
+
+			for _, unsupportedField := range unsupportedFields {
+				_, found, err := unstructured.NestedSlice(convertedObject.Object, unsupportedField...)
+				if found && err == nil {
+					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
+				}
+			}
+		case configv1alpha1.SchemeGroupVersion.String():
+			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha1")
+			// Remove spec.sidecar.localProxyMode field not supported in v1alpha1
+			// as well as other v1alpha2 fields not supported in v1alpha1
+			unsupportedFields := [][]string{
+				{"spec", "traffic", "outboundIPRangeInclusionList"},
+				{"spec", "sidecar", "tlsMinProtocolVersion"},
+				{"spec", "sidecar", "tlsMaxProtocolVersion"},
+				{"spec", "sidecar", "cipherSuites"},
+				{"spec", "sidecar", "ecdhCurves"},
+				{"spec", "sidecar", "localProxyMode"},
+			}
+
+			for _, unsupportedField := range unsupportedFields {
+				_, found, err := unstructured.NestedSlice(convertedObject.Object, unsupportedField...)
+				if found && err == nil {
+					unstructured.RemoveNestedField(convertedObject.Object, unsupportedField...)
+				}
+			}
+		default:
+			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+		}
 	default:
 		return nil, errors.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}
