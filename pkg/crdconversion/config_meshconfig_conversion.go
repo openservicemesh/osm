@@ -73,9 +73,9 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 		switch toVersion {
 		case configv1alpha2.SchemeGroupVersion.String():
 			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha2")
-			// Remove spec.sidecar.proxyMode field not supported in v1alpha2
+			// Remove spec.sidecar.localProxyMode field not supported in v1alpha2
 			unsupportedFields := [][]string{
-				{"spec", "sidecar", "proxyMode"},
+				{"spec", "sidecar", "localProxyMode"},
 			}
 
 			for _, unsupportedField := range unsupportedFields {
@@ -86,7 +86,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			}
 		case configv1alpha1.SchemeGroupVersion.String():
 			log.Debug().Msgf("Converting MeshConfig v1alpha3 -> v1alpha1")
-			// Remove spec.sidecar.proxyMode field not supported in v1alpha1
+			// Remove spec.sidecar.localProxyMode field not supported in v1alpha1
 			// as well as other v1alpha2 fields not supported in v1alpha1
 			unsupportedFields := [][]string{
 				{"spec", "traffic", "outboundIPRangeInclusionList"},
@@ -94,7 +94,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 				{"spec", "sidecar", "tlsMaxProtocolVersion"},
 				{"spec", "sidecar", "cipherSuites"},
 				{"spec", "sidecar", "ecdhCurves"},
-				{"spec", "sidecar", "proxyMode"},
+				{"spec", "sidecar", "localProxyMode"},
 			}
 
 			for _, unsupportedField := range unsupportedFields {

@@ -84,7 +84,7 @@ func TestConvertMeshConfig(t *testing.T) {
 					{"spec", "sidecar", "tlsMaxProtocolVersion"},
 					{"spec", "sidecar", "cipherSuites"},
 					{"spec", "sidecar", "ecdhCurves"},
-					{"spec", "sidecar", "proxyMode"},
+					{"spec", "sidecar", "localProxyMode"},
 				}
 
 				for _, unsupportedField := range unsupportedFields {
