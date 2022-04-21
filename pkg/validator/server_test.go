@@ -18,6 +18,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/policy"
+
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -145,14 +149,17 @@ func TestNewValidatingWebhook(t *testing.T) {
 		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
+		broker := messaging.NewBroker(stop)
 		webhook := &admissionregv1.ValidatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "my-webhook",
 			},
 		}
-		kube := fake.NewSimpleClientset(webhook)
 
-		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		kube := fake.NewSimpleClientset(webhook)
+		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
+
+		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -163,9 +170,11 @@ func TestNewValidatingWebhook(t *testing.T) {
 		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
+		broker := messaging.NewBroker(stop)
 		kube := fake.NewSimpleClientset()
+		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -177,9 +186,12 @@ func TestNewValidatingWebhook(t *testing.T) {
 		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
-		kube := fake.NewSimpleClientset()
+		broker := messaging.NewBroker(stop)
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, nil)
+		kube := fake.NewSimpleClientset()
+		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
+
+		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 }
