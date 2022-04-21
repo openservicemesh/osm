@@ -22,7 +22,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	makeHTTPProbe := func(path string, port int32) *v1.Probe {
 		return &v1.Probe{
-			Handler: v1.Handler{
+			ProbeHandler: v1.ProbeHandler{
 				HTTPGet: &v1.HTTPGetAction{
 					Path: path,
 					Port: makePort(port),
@@ -38,7 +38,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	makeHTTPSProbe := func(path string, port int32) *v1.Probe {
 		return &v1.Probe{
-			Handler: v1.Handler{
+			ProbeHandler: v1.ProbeHandler{
 				HTTPGet: &v1.HTTPGetAction{
 					Path:   path,
 					Port:   makePort(port),
@@ -55,7 +55,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	makeTCPProbe := func(port int32) *v1.Probe {
 		return &v1.Probe{
-			Handler: v1.Handler{
+			ProbeHandler: v1.ProbeHandler{
 				TCPSocket: &v1.TCPSocketAction{
 					Port: makePort(port),
 				},
@@ -230,15 +230,15 @@ func TestRewriteProbe(t *testing.T) {
 
 				// Verify the probe was modified correctly
 				if test.probe != nil {
-					if test.probe.Handler.HTTPGet != nil {
-						assert.Equal(intstr.FromInt(int(test.newPort)), test.probe.Handler.HTTPGet.Port)
-						assert.Equal(test.newPath, test.probe.Handler.HTTPGet.Path)
+					if test.probe.ProbeHandler.HTTPGet != nil {
+						assert.Equal(intstr.FromInt(int(test.newPort)), test.probe.ProbeHandler.HTTPGet.Port)
+						assert.Equal(test.newPath, test.probe.ProbeHandler.HTTPGet.Path)
 					}
 					// After rewrite there should be no TCPSocket probes
-					assert.Nil(test.probe.Handler.TCPSocket)
+					assert.Nil(test.probe.ProbeHandler.TCPSocket)
 					if actual != nil && actual.isTCPSocket {
 						expectedHeader := makeOriginalTCPPortHeader(test.originalPort)
-						assert.Contains(test.probe.Handler.HTTPGet.HTTPHeaders, expectedHeader)
+						assert.Contains(test.probe.ProbeHandler.HTTPGet.HTTPHeaders, expectedHeader)
 					}
 				}
 			})

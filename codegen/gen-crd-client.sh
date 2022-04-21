@@ -38,7 +38,7 @@ ROOT_PACKAGE="github.com/openservicemesh/osm"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 # get code-generator version from go.sum
-CODEGEN_VERSION="v0.22.1" # Must match k8s.io/client-go version defined in go.mod
+CODEGEN_VERSION="v0.23.5" # Must match k8s.io/client-go version defined in go.mod
 CODEGEN_PKG="$(echo `go env GOPATH`/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
 
 echo ">>> using codegen: ${CODEGEN_PKG}"

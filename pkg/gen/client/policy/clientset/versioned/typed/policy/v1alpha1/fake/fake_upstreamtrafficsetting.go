@@ -114,7 +114,7 @@ func (c *FakeUpstreamTrafficSettings) UpdateStatus(ctx context.Context, upstream
 // Delete takes name of the upstreamTrafficSetting and deletes it. Returns an error if one occurs.
 func (c *FakeUpstreamTrafficSettings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(upstreamtrafficsettingsResource, c.ns, name), &v1alpha1.UpstreamTrafficSetting{})
+		Invokes(testing.NewDeleteActionWithOptions(upstreamtrafficsettingsResource, c.ns, name, opts), &v1alpha1.UpstreamTrafficSetting{})
 
 	return err
 }
