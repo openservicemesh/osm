@@ -359,7 +359,7 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 		// us to retrieve the TargetPort for the MeshService.
 		endpoints, _ := c.GetEndpoints(meshSvc)
 		if endpoints != nil {
-			meshSvc.TargetPort = getTargetPortFromEndpoints(portSpec.Name, *endpoints)
+			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
@@ -368,7 +368,8 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 	return meshServices
 }
 
-func getTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints) (endpointPort uint16) {
+// GetTargetPortFromEndpoints returns the endpoint port corresponding to the given endpoint name and endpoints
+func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints) (endpointPort uint16) {
 	// Per https://pkg.go.dev/k8s.io/api/core/v1#ServicePort and
 	// https://pkg.go.dev/k8s.io/api/core/v1#EndpointPort, if a service has multiple
 	// ports, then ServicePort.Name must match EndpointPort.Name when considering
