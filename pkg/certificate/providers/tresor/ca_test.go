@@ -14,7 +14,7 @@ func TestNewCA(t *testing.T) {
 	assert := tassert.New(t)
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
-	rootCertOrganization := "Open Service Mesh Tresor"
+	rootCertOrganization := testCertOrgName
 
 	cert, err := NewCA("Tresor CA for Testing", 2*time.Second, rootCertCountry, rootCertLocality, rootCertOrganization)
 	assert.Nil(err)
