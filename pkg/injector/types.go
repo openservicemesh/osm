@@ -13,9 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
-const (
-	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
-)
+const envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 
 var log = logger.New("sidecar-injector")
 
@@ -45,9 +43,6 @@ type envoyBootstrapConfigMeta struct {
 	EnvoyAdminPort uint32
 	XDSClusterName string
 	NodeID         string
-	RootCert       []byte
-	Cert           []byte
-	Key            []byte
 
 	// Host and port of the Envoy xDS server
 	XDSHost string

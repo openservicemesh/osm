@@ -43,9 +43,9 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
 
-	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-	// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
-	// when the request is a DryRun.
+	// The webhook has a side effect (making out-of-band changes) of creating a k8s
+	// Secret corresponding to the Envoy bootstrap config. Such a side effect needs to be
+	// skipped when the request is a DryRun.
 	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 	if req.DryRun != nil && *req.DryRun {
 		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
@@ -54,7 +54,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
-	// Create volume for envoy TLS secret
+	// Create volume for the envoy bootstrap config Secret
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges

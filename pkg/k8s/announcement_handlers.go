@@ -18,8 +18,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// WatchAndUpdateProxyBootstrapSecret watches for new pods being added to the mesh and updates
-// their corresponding proxy bootstrap secret's OwnerReference to point to the associated pod.
+// WatchAndUpdateProxyBootstrapSecret watches for new pods being added to the mesh
+// and updates their corresponding proxy bootstrap config Secret's OwnerReferences
+// to point to the associated pod.
 func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBroker *messaging.Broker, stop <-chan struct{}) {
 	kubePubSub := msgBroker.GetKubeEventPubSub()
 	podAddChan := kubePubSub.Sub(announcements.PodAdded.String())
@@ -66,7 +67,7 @@ func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBrok
 
 			if _, err = kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple controllers try to update the same resource
-				// One of the controllers will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
+				// One of the controllers will successfully update the resource, hence conflicts should be ignored and not treated as an error
 				if !apierrors.IsConflict(err) {
 					log.Error().Err(err).Msgf("Failed to update OwnerReference for Secret %s/%s to reference Pod %s/%s", namespace, secretName, namespace, podName)
 				}
