@@ -102,7 +102,7 @@ func (c *FakeMeshConfigs) Update(ctx context.Context, meshConfig *v1alpha3.MeshC
 // Delete takes name of the meshConfig and deletes it. Returns an error if one occurs.
 func (c *FakeMeshConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(meshconfigsResource, c.ns, name), &v1alpha3.MeshConfig{})
+		Invokes(testing.NewDeleteActionWithOptions(meshconfigsResource, c.ns, name, opts), &v1alpha3.MeshConfig{})
 
 	return err
 }

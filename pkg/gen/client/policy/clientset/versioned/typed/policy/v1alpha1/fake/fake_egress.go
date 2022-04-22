@@ -102,7 +102,7 @@ func (c *FakeEgresses) Update(ctx context.Context, egress *v1alpha1.Egress, opts
 // Delete takes name of the egress and deletes it. Returns an error if one occurs.
 func (c *FakeEgresses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(egressesResource, c.ns, name), &v1alpha1.Egress{})
+		Invokes(testing.NewDeleteActionWithOptions(egressesResource, c.ns, name, opts), &v1alpha1.Egress{})
 
 	return err
 }
