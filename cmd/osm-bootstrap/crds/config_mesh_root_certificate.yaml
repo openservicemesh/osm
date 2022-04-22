@@ -21,7 +21,7 @@ metadata:
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
 spec:
-  group: conifg.openservicemesh.io
+  group: config.openservicemesh.io
   scope: Namespaced
   names:
     kind: MeshRootCertificate
@@ -53,12 +53,17 @@ spec:
                 - provider
               properties:
                 provider:
-                  description: Provider used by the mesh control plane.
+                  description: Certificate provider used by the mesh control plane
                   type: object
                   properties:
                     certManager:
                       description: Cert-manager provider configuration
                       type: object
+                      required:
+                        - secretName
+                        - issuerName
+                        - issuerKind
+                        - issuerGroup
                       properties:
                         secretName:
                           description: The name of the kubernetes secret containing the root certificate
@@ -67,12 +72,11 @@ spec:
                           description: The name of the Issuer or ClusterIssuer resource
                           type: string
                         issuerKind:
-                          description: The kind of issuer resource. Defaults to Issuer
+                          description: The kind of issuer resource
                           type: string
                           enum:
                             - ClusterIssuer
                             - Issuer
-                          default: Issuer
                         issuerGroup:
                           description: The group that the issuer belongs to
                           type: string
@@ -88,14 +92,14 @@ spec:
                         host:
                           description: Host name for the Vault server
                           type: string
-                        role: Role created on Vault server for the mesh control plane
-                          description:
+                        role:
+                          description: Role created on Vault server for the mesh control plane
                           type: string
-                        protocol: Protocol for the Vault connection
-                          description:
+                        protocol:
+                          description: Protocol for the Vault connection
                           type: string
-                        token: Token used by the mesh control plane
-                          description:
+                        token:
+                          description: Token used by the mesh control plane
                           type: string
                     tresor:
                       description: Tresor provider configuration
@@ -107,27 +111,12 @@ spec:
                           description: Name of the kubernetes secret storing the root certificate
                           type: string
                   oneOf:
-                    - required: ['tresor']
-                      allOf:
-                        - not:
-                          - required: ['certManager']
-                        - not:
-                          - required: ['vault']
                     - required: ['certManager']
-                      allOf:
-                        - not:
-                          - required: ['tresor']
-                        - not:
-                          - required: ['vault']
                     - required: ['vault']
-                      allOf:
-                        - not:
-                          - required: ['certManager']
-                        - not:
-                          - required: ['tresor']
-          status:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-    subresources:
-      # status enables the status subresource
-      status: {}
+                    - required: ['tresor']
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        # status enables the status subresource
+        status: {}
