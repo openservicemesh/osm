@@ -609,7 +609,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
 func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha3.MeshConfig, error) {
-	meshConfig, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
+	meshConfig, err := td.ConfigClient.ConfigV1alpha3().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
 
 	if err != nil {
 		return nil, err
@@ -917,7 +917,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 
 // UpdateOSMConfig updates OSM MeshConfig
 func (td *OsmTestData) UpdateOSMConfig(meshConfig *configv1alpha3.MeshConfig) (*configv1alpha3.MeshConfig, error) {
-	updated, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
+	updated, err := td.ConfigClient.ConfigV1alpha3().MeshConfigs(td.OsmNamespace).Update(context.TODO(), meshConfig, metav1.UpdateOptions{})
 
 	if err != nil {
 		td.T.Logf("UpdateOSMConfig(): %s", err)
