@@ -102,7 +102,7 @@ func (c *FakeRetries) Update(ctx context.Context, retry *v1alpha1.Retry, opts v1
 // Delete takes name of the retry and deletes it. Returns an error if one occurs.
 func (c *FakeRetries) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(retriesResource, c.ns, name), &v1alpha1.Retry{})
+		Invokes(testing.NewDeleteActionWithOptions(retriesResource, c.ns, name, opts), &v1alpha1.Retry{})
 
 	return err
 }

@@ -745,7 +745,7 @@ tail /dev/random;
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/v1/sys/health",
 										Port:   intstr.FromInt(8200),
