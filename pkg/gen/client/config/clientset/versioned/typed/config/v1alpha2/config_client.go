@@ -24,6 +24,7 @@ import (
 type ConfigV1alpha2Interface interface {
 	RESTClient() rest.Interface
 	MeshConfigsGetter
+	MeshRootCertificatesGetter
 	MultiClusterServicesGetter
 }
 
@@ -34,6 +35,10 @@ type ConfigV1alpha2Client struct {
 
 func (c *ConfigV1alpha2Client) MeshConfigs(namespace string) MeshConfigInterface {
 	return newMeshConfigs(c, namespace)
+}
+
+func (c *ConfigV1alpha2Client) MeshRootCertificates(namespace string) MeshRootCertificateInterface {
+	return newMeshRootCertificates(c, namespace)
 }
 
 func (c *ConfigV1alpha2Client) MultiClusterServices(namespace string) MultiClusterServiceInterface {
