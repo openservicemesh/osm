@@ -66,6 +66,9 @@ type Configurator interface {
 	// GetEnvoyLogLevel returns the envoy log level
 	GetEnvoyLogLevel() string
 
+	// GetLocalProxyMode returns the envoy proxy mode
+	GetLocalProxyMode() configv1alpha2.LocalProxyMode
+
 	// GetEnvoyImage returns the envoy image
 	GetEnvoyImage() string
 
