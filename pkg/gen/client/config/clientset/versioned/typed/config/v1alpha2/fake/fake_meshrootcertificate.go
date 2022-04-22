@@ -114,7 +114,7 @@ func (c *FakeMeshRootCertificates) UpdateStatus(ctx context.Context, meshRootCer
 // Delete takes name of the meshRootCertificate and deletes it. Returns an error if one occurs.
 func (c *FakeMeshRootCertificates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(meshrootcertificatesResource, c.ns, name), &v1alpha2.MeshRootCertificate{})
+		Invokes(testing.NewDeleteActionWithOptions(meshrootcertificatesResource, c.ns, name, opts), &v1alpha2.MeshRootCertificate{})
 
 	return err
 }

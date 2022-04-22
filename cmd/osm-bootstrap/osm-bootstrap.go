@@ -317,7 +317,7 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 	return &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
-			APIVersion: "config.openservicemesh.io/configv1alpha3",
+			APIVersion: "config.openservicemesh.io/configv1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshConfigName,
