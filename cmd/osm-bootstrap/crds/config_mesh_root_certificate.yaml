@@ -17,7 +17,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: meshrootcertificate.config.openservicemesh.io
+  name: meshrootcertificates.config.openservicemesh.io
   labels:
     app.kubernetes.io/name : "openservicemesh.io"
 spec:
@@ -29,9 +29,9 @@ spec:
     shortNames:
       - mrc
     singular: meshrootcertificate
-    plural: meshrootcertificate
+    plural: meshrootcertificates
   versions:
-    - name: v1alpha1
+    - name: v1alpha2
       served: true
       storage: true
       additionalPrinterColumns:
@@ -56,17 +56,28 @@ spec:
                   description: Provider used by the mesh control plane.
                   type: object
                   properties:
-                    tresor:
-                      description: Configuration of the Tresor provider
+                    certManager:
+                      description: Cert-manager provider configuration
                       type: object
-                      required:
-                        - secretName
                       properties:
                         secretName:
-                          description: Name of the kubernetes secret storing the root certificate
+                          description: The name of the kubernetes secret containing the root certificate
+                          type: string
+                        issuerName:
+                          description: The name of the Issuer or ClusterIssuer resource
+                          type: string
+                        issuerKind:
+                          description: The kind of issuer resource. Defaults to Issuer
+                          type: string
+                          enum:
+                            - ClusterIssuer
+                            - Issuer
+                          default: Issuer
+                        issuerGroup:
+                          description: The group that the issuer belongs to
                           type: string
                     vault:
-                      description: Configuration of the Vault provider
+                      description: Vault provider configuration
                       type: object
                       required:
                         - host
@@ -86,30 +97,34 @@ spec:
                         token: Token used by the mesh control plane
                           description:
                           type: string
-                    certManager:
-                      description: Configuration of the cert-manager provider
+                    tresor:
+                      description: Tresor provider configuration
                       type: object
+                      required:
+                        - secretName
                       properties:
                         secretName:
-                          description: The name of the kubernetes secret containing the root certificate
+                          description: Name of the kubernetes secret storing the root certificate
                           type: string
-                        issuerName:
-                          description: The name of the Issuer or ClusterIssuer resource
-                          type: string
-                        issuerKind:
-                          description: The kind of issuer resource. Defaults to Issuer
-                          type: string
-                          enum:
-                            - ClusterIssuer
-                            - Issuer
-                          default: Issuer
-                        issuerGroup:
-                          description: The group that the issuer belongs to
-                          type: string
-                      oneOf:
-                        - required: ['tresor']
-                        - required: ['certManager']
-                        - required: ['vault']
+                  oneOf:
+                    - required: ['tresor']
+                      allOf:
+                        - not:
+                          - required: ['certManager']
+                        - not:
+                          - required: ['vault']
+                    - required: ['certManager']
+                      allOf:
+                        - not:
+                          - required: ['tresor']
+                        - not:
+                          - required: ['vault']
+                    - required: ['vault']
+                      allOf:
+                        - not:
+                          - required: ['certManager']
+                        - not:
+                          - required: ['tresor']
           status:
             type: object
             x-kubernetes-preserve-unknown-fields: true
