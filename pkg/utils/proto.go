@@ -24,3 +24,17 @@ func ProtoToYAML(m protoreflect.ProtoMessage) ([]byte, error) {
 	}
 	return configYAML, err
 }
+
+// YAMLToProto converts yaml to the provided proto message.
+func YAMLToProto(configYAML []byte, message protoreflect.ProtoMessage) error {
+	configJSON, err := yaml.YAMLToJSON(configYAML)
+	if err != nil {
+		return err
+	}
+
+	if err := protojson.Unmarshal(configJSON, message); err != nil {
+		log.Error().Err(err).Msgf("Error unmarshaling YAML to proto")
+		return err
+	}
+	return nil
+}

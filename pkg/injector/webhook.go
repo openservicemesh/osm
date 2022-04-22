@@ -37,6 +37,8 @@ const (
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
+
+	bootstrapSecretPrefix = "envoy-bootstrap-config-"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -182,7 +184,6 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
 	proxyUUID := uuid.New()
-
 	requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
