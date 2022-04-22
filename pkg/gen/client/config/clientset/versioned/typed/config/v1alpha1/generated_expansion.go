@@ -17,6 +17,4 @@ package v1alpha1
 
 type MeshConfigExpansion interface{}
 
-type MeshRootCertificateExpansion interface{}
-
 type MultiClusterServiceExpansion interface{}

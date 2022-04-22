@@ -1,4 +1,4 @@
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,8 +28,7 @@ type MeshRootCertificate struct {
 // MeshRootCertificateSpec defines the mesh root certificate specification
 type MeshRootCertificateSpec struct {
 	// Provider specifies the mesh certificate provider
-	// +optional
-	Provider *ProviderSpec `json:"provider,omitempty"`
+	Provider *ProviderSpec `json:"provider"`
 }
 
 // ProviderSpec defines the certificate provider used by the mesh control plane
