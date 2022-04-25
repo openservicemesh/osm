@@ -89,6 +89,21 @@ func TestRun(t *testing.T) {
 						ClusterIP: "10.96.15.1",
 					},
 				},
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "httpbin",
+						Namespace: "httpbin",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									Port: 14001,
+								},
+							},
+						},
+					},
+				},
 			},
 			trafficAttr: TrafficAttribute{
 				SrcPod:      &types.NamespacedName{Namespace: "curl", Name: "curl"},

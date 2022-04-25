@@ -8,16 +8,20 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -103,7 +107,7 @@ func (v *EnvoyConfigVerifier) Run() Result {
 
 func (v *EnvoyConfigVerifier) verifySource() Result {
 	result := Result{
-		Context: fmt.Sprintf("Verify Envoy config on source for traffic: %s", v.configAttr),
+		Context: "Verify Envoy config on source",
 	}
 
 	config, err := v.configAttr.srcConfigGetter.Get()
@@ -141,7 +145,20 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		return result
 	}
 
-	// Next, if the destination service is known, verify it has a matching filter chain
+	// Retrieve route configs
+	var routeConfigs []*xds_route.RouteConfiguration
+	if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
+		configs := config.Routes.GetDynamicRouteConfigs()
+		for _, r := range configs {
+			routeConfig := &xds_route.RouteConfiguration{}
+			//nolint: errcheck
+			//#nosec G104: Errors unhandled
+			r.GetRouteConfig().UnmarshalTo(routeConfig)
+			routeConfigs = append(routeConfigs, routeConfig)
+		}
+	}
+
+	// Next, if the destination service is known, verify it has a matching filter chain and route
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
 		svc, err := v.kubeClient.CoreV1().Services(dst.Namespace).Get(context.Background(), dst.Name, metav1.GetOptions{})
@@ -154,6 +171,14 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound filter chain for service %q: %s", dst, err)
 			return result
+		}
+
+		if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
+			if err := v.findHTTPRouteForService(svc, routeConfigs, true); err != nil {
+				result.Status = Failure
+				result.Reason = fmt.Sprintf("Did not find matching outbound route configuration for service %q: %s", dst, err)
+				return result
+			}
 		}
 	}
 
@@ -260,7 +285,7 @@ func getFilterForProtocol(protocol string) string {
 
 func (v *EnvoyConfigVerifier) verifyDestination() Result {
 	result := Result{
-		Context: fmt.Sprintf("Verify Envoy config on destination for traffic: %s", v.configAttr),
+		Context: "Verify Envoy config on destination",
 	}
 
 	config, err := v.configAttr.dstConfigGetter.Get()
@@ -298,6 +323,19 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		return result
 	}
 
+	// Retrieve route configs
+	var routeConfigs []*xds_route.RouteConfiguration
+	if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
+		configs := config.Routes.GetDynamicRouteConfigs()
+		for _, r := range configs {
+			routeConfig := &xds_route.RouteConfiguration{}
+			//nolint: errcheck
+			//#nosec G104: Errors unhandled
+			r.GetRouteConfig().UnmarshalTo(routeConfig)
+			routeConfigs = append(routeConfigs, routeConfig)
+		}
+	}
+
 	// Next, if the destination service is known, verify it has a matching filter chain
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
@@ -312,10 +350,40 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 			result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for service %q: %s", dst, err)
 			return result
 		}
+		if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
+			if err := v.findHTTPRouteForService(svc, routeConfigs, false); err != nil {
+				result.Status = Failure
+				result.Reason = fmt.Sprintf("Did not find matching inbound route configuration for service %q: %s", dst, err)
+				return result
+			}
+		}
 	}
 
 	result.Status = Success
 	return result
+}
+
+func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]service.MeshService, error) {
+	endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
+	if err != nil || endpoints == nil {
+		return nil, err
+	}
+
+	var meshServices []service.MeshService
+	for _, portSpec := range svc.Spec.Ports {
+		meshSvc := service.MeshService{
+			Namespace: svc.Namespace,
+			Name:      svc.Name,
+			Port:      uint16(portSpec.Port),
+			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
+		}
+
+		// The endpoints for the kubernetes service carry information that allows
+		// us to retrieve the TargetPort for the MeshService.
+		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
+		meshServices = append(meshServices, meshSvc)
+	}
+	return meshServices, nil
 }
 
 func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
@@ -323,13 +391,12 @@ func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Servi
 		return nil
 	}
 
-	for _, port := range svc.Spec.Ports {
-		meshSvc := service.MeshService{
-			Name:       svc.Name,
-			Namespace:  svc.Namespace,
-			Protocol:   v.configAttr.trafficAttr.AppProtocol,
-			TargetPort: uint16(port.TargetPort.IntVal),
-		}
+	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	if len(meshServices) == 0 || err != nil {
+		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+	}
+
+	for _, meshSvc := range meshServices {
 		if err := findInboundFilterChainForServicePort(meshSvc, filterChains); err != nil {
 			return err
 		}
@@ -370,6 +437,64 @@ func findInboundFilterChainForServicePort(meshSvc service.MeshService, filterCha
 	}
 	if !filterFound {
 		return errors.Errorf("filter %s not found", filterName)
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, routeConfigs []*xds_route.RouteConfiguration, isOutbound bool) error {
+	if svc == nil {
+		return nil
+	}
+
+	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	if len(meshServices) == 0 || err != nil {
+		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+	}
+
+	for _, meshSvc := range meshServices {
+		var desiredConfigName string
+		if isOutbound {
+			desiredConfigName = route.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
+		} else {
+			desiredConfigName = route.GetInboundMeshRouteConfigNameForPort(int(meshSvc.TargetPort))
+		}
+
+		if err := findHTTPRouteConfig(routeConfigs, desiredConfigName, meshSvc.FQDN()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireConfigName string, desiredDomain string) error {
+	var config *xds_route.RouteConfiguration
+
+	for _, c := range routeConfigs {
+		if c.Name == desireConfigName {
+			config = c
+			break
+		}
+	}
+
+	if config == nil {
+		return errors.Errorf("route configuration %s not found", desireConfigName)
+	}
+
+	// Look for the FQDN in the virtual hosts
+	var virtualHost *xds_route.VirtualHost
+	for _, vh := range config.VirtualHosts {
+		for _, domain := range vh.Domains {
+			if domain == desiredDomain {
+				virtualHost = vh
+				break
+			}
+		}
+	}
+
+	if virtualHost == nil {
+		return errors.Errorf("virtual host for domain %s not found", desiredDomain)
 	}
 
 	return nil
