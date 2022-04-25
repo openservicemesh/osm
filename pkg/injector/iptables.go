@@ -60,7 +60,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
+func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -73,6 +73,11 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPR
 
 	// 1. Create inbound rules
 	cmds = append(cmds, iptablesInboundStaticRules...)
+
+	// Ignore inbound traffic on specified interfaces
+	for _, iface := range networkInterfaceExclusionList {
+		cmds = append(cmds, fmt.Sprintf("-I OSM_PROXY_INBOUND -i %s -j RETURN", iface))
+	}
 
 	// 2. Create dynamic inbound ports exclusion rules
 	if len(inboundPortExclusionList) > 0 {
@@ -87,6 +92,11 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPR
 
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)
+
+	// Ignore outbound traffic in specified interfaces
+	for _, iface := range networkInterfaceExclusionList {
+		cmds = append(cmds, fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o %s -j RETURN", iface))
+	}
 
 	//
 	// Create outbound exclusion and inclusion rules.

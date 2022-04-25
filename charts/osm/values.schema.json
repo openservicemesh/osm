@@ -1121,6 +1121,21 @@
                         ]
                     ]
                 },
+                "networkInterfaceExclusionList": {
+                    "$id": "#/properties/osm/properties/networkInterfaceExclusionList",
+                    "type": "array",
+                    "title": "The networkInterfaceExclusionList schema",
+                    "description": "Network interface exluclusion list for sidecar traffic interception",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        [
+                            "eth0",
+                            "net1"
+                        ]
+                    ]
+                },
                 "grafana": {
                     "$id": "#/properties/osm/properties/grafana",
                     "type": "object",

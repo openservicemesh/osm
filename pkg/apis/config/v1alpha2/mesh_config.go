@@ -103,6 +103,11 @@ type TrafficSpec struct {
 	// InboundExternalAuthorization defines a ruleset that, if enabled, will configure a remote external authorization endpoint
 	// for all inbound and ingress traffic in the mesh.
 	InboundExternalAuthorization ExternalAuthzSpec `json:"inboundExternalAuthorization,omitempty"`
+
+	// NetworkInterfaceExclusionList defines a global list of network interface
+	// names to exclude from inbound and outbound traffic interception by the
+	// sidecar proxy.
+	NetworkInterfaceExclusionList []string `json:"networkInterfaceExclusionList"`
 }
 
 // ObservabilitySpec is the type to represent OSM's observability configurations.
