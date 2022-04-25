@@ -147,15 +147,13 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 
 	// Retrieve route configs
 	var routeConfigs []*xds_route.RouteConfiguration
-	if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
-		configs := config.Routes.GetDynamicRouteConfigs()
-		for _, r := range configs {
-			routeConfig := &xds_route.RouteConfiguration{}
-			//nolint: errcheck
-			//#nosec G104: Errors unhandled
-			r.GetRouteConfig().UnmarshalTo(routeConfig)
-			routeConfigs = append(routeConfigs, routeConfig)
-		}
+	configs := config.Routes.GetDynamicRouteConfigs()
+	for _, r := range configs {
+		routeConfig := &xds_route.RouteConfiguration{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		r.GetRouteConfig().UnmarshalTo(routeConfig)
+		routeConfigs = append(routeConfigs, routeConfig)
 	}
 
 	// Next, if the destination service is known, verify it has a matching filter chain and route
@@ -173,12 +171,10 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 			return result
 		}
 
-		if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
-			if err := v.findHTTPRouteForService(svc, routeConfigs, true); err != nil {
-				result.Status = Failure
-				result.Reason = fmt.Sprintf("Did not find matching outbound route configuration for service %q: %s", dst, err)
-				return result
-			}
+		if err := v.findHTTPRouteForService(svc, routeConfigs, true); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching outbound route configuration for service %q: %s", dst, err)
+			return result
 		}
 	}
 
@@ -211,13 +207,12 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 		dstIPRanges.Add(svc.Spec.ClusterIP)
 	}
 
-	for _, port := range svc.Spec.Ports {
-		meshSvc := service.MeshService{
-			Name:      svc.Name,
-			Namespace: svc.Namespace,
-			Protocol:  v.configAttr.trafficAttr.AppProtocol,
-			Port:      uint16(port.Port),
-		}
+	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	if len(meshServices) == 0 || err != nil {
+		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+	}
+
+	for _, meshSvc := range meshServices {
 		if err := findOutboundFilterChainForServicePort(meshSvc, dstIPRanges, filterChains); err != nil {
 			return err
 		}
@@ -325,15 +320,13 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 
 	// Retrieve route configs
 	var routeConfigs []*xds_route.RouteConfiguration
-	if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
-		configs := config.Routes.GetDynamicRouteConfigs()
-		for _, r := range configs {
-			routeConfig := &xds_route.RouteConfiguration{}
-			//nolint: errcheck
-			//#nosec G104: Errors unhandled
-			r.GetRouteConfig().UnmarshalTo(routeConfig)
-			routeConfigs = append(routeConfigs, routeConfig)
-		}
+	configs := config.Routes.GetDynamicRouteConfigs()
+	for _, r := range configs {
+		routeConfig := &xds_route.RouteConfiguration{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		r.GetRouteConfig().UnmarshalTo(routeConfig)
+		routeConfigs = append(routeConfigs, routeConfig)
 	}
 
 	// Next, if the destination service is known, verify it has a matching filter chain
@@ -350,12 +343,10 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 			result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for service %q: %s", dst, err)
 			return result
 		}
-		if v.configAttr.trafficAttr.AppProtocol == constants.ProtocolHTTP {
-			if err := v.findHTTPRouteForService(svc, routeConfigs, false); err != nil {
-				result.Status = Failure
-				result.Reason = fmt.Sprintf("Did not find matching inbound route configuration for service %q: %s", dst, err)
-				return result
-			}
+		if err := v.findHTTPRouteForService(svc, routeConfigs, false); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching inbound route configuration for service %q: %s", dst, err)
+			return result
 		}
 	}
 
@@ -453,6 +444,10 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 	}
 
 	for _, meshSvc := range meshServices {
+		if meshSvc.Protocol != constants.ProtocolHTTP {
+			continue
+		}
+
 		var desiredConfigName string
 		if isOutbound {
 			desiredConfigName = route.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
