@@ -2,7 +2,6 @@ package injector
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -41,21 +40,69 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
+	envoyBootstrapConfigName := bootstrapSecretPrefix + proxyUUID.String()
 
-	// The webhook has a side effect (making out-of-band changes) of creating a k8s
-	// Secret corresponding to the Envoy bootstrap config. Such a side effect needs to be
-	// skipped when the request is a DryRun.
-	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
-	if req.DryRun != nil && *req.DryRun {
+	// This needs to occur before replacing the label below.
+	originalUUID, alreadyInjected := getProxyUUID(pod)
+	switch {
+	case req.DryRun != nil && *req.DryRun:
+		// The webhook has a side effect (making out-of-band changes) of creating k8s secret
+		// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
+		// when the request is a DryRun.
+		// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	case alreadyInjected:
+		// Pod definitions can be copied via the `kubectl debug` command, which can lead to a pod being created that
+		// has already had injection occur. We could simply do nothing and return early, but that would leave 2 pods
+		// with the same UUID, so instead we change the UUID, and create a new bootstrap config, copied from the original,
+		// with the proxy UUID changed.
+		oldConfigName := bootstrapSecretPrefix + originalUUID
+		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			return nil, err
+		}
+	default:
+		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			return nil, err
+		}
+	}
+	enableMetrics, err := wh.isMetricsEnabled(namespace)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error checking if namespace %s is enabled for metrics", namespace)
 		return nil, err
+	}
+	if enableMetrics {
+		if pod.Annotations == nil {
+			pod.Annotations = make(map[string]string)
+		}
+		pod.Annotations[constants.PrometheusScrapeAnnotation] = strconv.FormatBool(true)
+		pod.Annotations[constants.PrometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
+		pod.Annotations[constants.PrometheusPathAnnotation] = constants.PrometheusScrapePath
+	}
+
+	// This will append a label to the pod, which points to the unique Envoy ID used in the
+	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
+	// connects to xDS (with the certificate's CN matching this label).
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string)
+	}
+	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+
+	if alreadyInjected {
+		// replace the volume and we're done.
+		for i, volume := range pod.Spec.Volumes {
+			// It should be the last, but we check all for posterity.
+			if volume.Name == envoyBootstrapConfigVolume {
+				pod.Spec.Volumes[i] = getVolumeSpec(envoyBootstrapConfigName)
+				break
+			}
+		}
+		return json.Marshal(makePatches(req, pod))
 	}
 
 	// Create volume for the envoy bootstrap config Secret
-	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName))
 
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
@@ -95,28 +142,6 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// Add the Envoy sidecar
 	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
-
-	enableMetrics, err := wh.isMetricsEnabled(namespace)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error checking if namespace %s is enabled for metrics", namespace)
-		return nil, err
-	}
-	if enableMetrics {
-		if pod.Annotations == nil {
-			pod.Annotations = make(map[string]string)
-		}
-		pod.Annotations[constants.PrometheusScrapeAnnotation] = strconv.FormatBool(true)
-		pod.Annotations[constants.PrometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
-		pod.Annotations[constants.PrometheusPathAnnotation] = constants.PrometheusScrapePath
-	}
-
-	// This will append a label to the pod, which points to the unique Envoy ID used in the
-	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
-	// connects to xDS (with the certificate's CN matching this label).
-	if pod.Labels == nil {
-		pod.Labels = make(map[string]string)
-	}
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
 	return json.Marshal(makePatches(req, pod))
 }
@@ -196,4 +221,14 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)
 	return admissionResponse.Patches
+}
+
+func getProxyUUID(pod *corev1.Pod) (string, bool) {
+	// kubectl debug does not recreate the object with the same metadata
+	for _, volume := range pod.Spec.Volumes {
+		if volume.Name == envoyBootstrapConfigVolume {
+			return strings.TrimPrefix(volume.Secret.SecretName, bootstrapSecretPrefix), true
+		}
+	}
+	return "", false
 }
