@@ -781,6 +781,14 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 				},
 			},
 		}
+	} else {
+		vals = map[string]interface{}{
+			"controller": map[string]interface{}{
+				"service": map[string]interface{}{
+					"externalTrafficPolicy": "Local",
+				},
+			},
+		}
 	}
 
 	if err := td.CreateNs(NginxIngressSvc.Namespace, nil); err != nil {
