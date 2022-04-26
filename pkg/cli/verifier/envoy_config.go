@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -156,6 +157,17 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		routeConfigs = append(routeConfigs, routeConfig)
 	}
 
+	// Retrieve clusters
+	var clusters []*xds_cluster.Cluster
+	clustersConfigs := config.Clusters.GetDynamicActiveClusters()
+	for _, c := range clustersConfigs {
+		cluster := &xds_cluster.Cluster{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		c.GetCluster().UnmarshalTo(cluster)
+		clusters = append(clusters, cluster)
+	}
+
 	// Next, if the destination service is known, verify it has a matching filter chain and route
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
@@ -174,6 +186,12 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		if err := v.findHTTPRouteForService(svc, routeConfigs, true); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound route configuration for service %q: %s", dst, err)
+			return result
+		}
+
+		if err := v.findClusterForService(svc, clusters, true); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching outbound cluster for service %q: %s", dst, err)
 			return result
 		}
 	}
@@ -329,6 +347,17 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		routeConfigs = append(routeConfigs, routeConfig)
 	}
 
+	// Retrieve clusters
+	var clusters []*xds_cluster.Cluster
+	clustersConfigs := config.Clusters.GetDynamicActiveClusters()
+	for _, c := range clustersConfigs {
+		cluster := &xds_cluster.Cluster{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		c.GetCluster().UnmarshalTo(cluster)
+		clusters = append(clusters, cluster)
+	}
+
 	// Next, if the destination service is known, verify it has a matching filter chain
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
@@ -346,6 +375,11 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		if err := v.findHTTPRouteForService(svc, routeConfigs, false); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching inbound route configuration for service %q: %s", dst, err)
+			return result
+		}
+		if err := v.findClusterForService(svc, clusters, false); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching inbound cluster for service %q: %s", dst, err)
 			return result
 		}
 	}
@@ -461,6 +495,42 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 	}
 
 	return nil
+}
+
+func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, clusters []*xds_cluster.Cluster, isOutbound bool) error {
+	if svc == nil {
+		return nil
+	}
+
+	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	if len(meshServices) == 0 || err != nil {
+		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+	}
+
+	for _, meshSvc := range meshServices {
+		var desiredClusterName string
+		if isOutbound {
+			desiredClusterName = meshSvc.EnvoyClusterName()
+		} else {
+			desiredClusterName = meshSvc.EnvoyLocalClusterName()
+		}
+
+		if err := findCluster(clusters, desiredClusterName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func findCluster(clusters []*xds_cluster.Cluster, name string) error {
+	for _, c := range clusters {
+		if c.Name == name {
+			return nil
+		}
+	}
+
+	return errors.Errorf("cluster %s not found", name)
 }
 
 func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireConfigName string, desiredDomain string) error {
