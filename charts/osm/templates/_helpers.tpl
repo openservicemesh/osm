@@ -9,11 +9,21 @@
 {{ default $address .Values.osm.tracing.address}}
 {{- end -}}
 
+{{- define "osm.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 {{/* Labels to be added to all resources */}}
 {{- define "osm.labels" -}}
+helm.sh/chart: {{ include "osm.chart" . }}
 app.kubernetes.io/name: openservicemesh.io
+app.kubernetes.io/component: service-mesh
 app.kubernetes.io/instance: {{ .Values.osm.meshName }}
 app.kubernetes.io/version: {{ .Chart.AppVersion }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.additionalLabels }}
+{{ toYaml .Values.additionalLabels }}
+{{- end }}
 {{- end -}}
 
 {{/* Security context values that ensure restricted access to host resources */}}

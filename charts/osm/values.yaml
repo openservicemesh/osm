@@ -4,6 +4,10 @@
 
 osm:
 
+  # -- Additional labels to add to all resources
+  # additionalLabels:
+  #   smi: osm
+
   #
   # -- OSM control plane image parameters
   image:
