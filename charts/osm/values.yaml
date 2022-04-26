@@ -375,6 +375,12 @@ contour:
       tag: v1.19.3
 
 #
+# -- Profiling configuration
+profiling:
+  # -- Enables deployment of continuous profiling tool on OSM control plane
+  enabled: false
+
+#
 # -- SMI configuration
 smi:
   # -- Enables validation of SMI Traffic Target

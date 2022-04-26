@@ -82,6 +82,8 @@ require (
 
 require k8s.io/kubectl v0.23.5
 
+require github.com/pyroscope-io/client v0.2.1
+
 require (
 	4d63.com/gochecknoglobals v0.0.0-20201008074935-acfc0b28355a // indirect
 	cloud.google.com/go v0.81.0 // indirect

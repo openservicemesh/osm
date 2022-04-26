@@ -7,6 +7,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
+const (
+	configV1alpha1Version = "config.openservicemesh.io/v1alpha1"
+	configV1alpha2Version = "config.openservicemesh.io/v1alpha2"
+)
+
 var log = logger.New("crd-conversion")
 
 // crdConversionWebhook is the type used to represent the webhook for the crd converter

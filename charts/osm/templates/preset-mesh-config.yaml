@@ -24,6 +24,7 @@ data:
       },
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
+        "enableProfiling": {{.Values.profiling.enabled | mustToJson}},
         "osmLogLevel": {{.Values.osm.controllerLogLevel | mustToJson}},
         "tracing": {
           "enable": {{.Values.osm.tracing.enable | mustToJson}}{{- if .Values.osm.tracing.enable }},{{- end }}

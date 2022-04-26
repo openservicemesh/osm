@@ -28,6 +28,7 @@ DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
+ENABLE_PROFILING="${ENABLE_PROFILING:-false}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_RECONCILER="${ENABLE_RECONCILER:-false}"
 DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
@@ -120,6 +121,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=profiling.enabled="$ENABLE_PROFILING" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -144,6 +146,7 @@ else
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=profiling.enabled="$ENABLE_PROFILING" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

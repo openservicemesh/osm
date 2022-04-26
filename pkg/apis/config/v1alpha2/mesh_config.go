@@ -131,6 +131,9 @@ type ObservabilitySpec struct {
 	// EnableDebugServer defines if the debug endpoint on the OSM controller pod is enabled.
 	EnableDebugServer bool `json:"enableDebugServer"`
 
+	// EnableProfiling defines if the OSM control plane performance profiling tool is installed.
+	EnableProfiling bool `json:"enableProfiling"`
+
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
 }

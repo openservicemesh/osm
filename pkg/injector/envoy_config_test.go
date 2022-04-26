@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -69,9 +69,9 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	meshConfig := v1alpha2.MeshConfig{
-		Spec: v1alpha2.MeshConfigSpec{
-			Sidecar: v1alpha2.SidecarSpec{
+	meshConfig := configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Sidecar: configv1alpha2.SidecarSpec{
 				TLSMinProtocolVersion: "TLSv1_2",
 				TLSMaxProtocolVersion: "TLSv1_3",
 				CipherSuites:          []string{},

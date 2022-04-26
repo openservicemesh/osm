@@ -24,20 +24,19 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 
 	log.Debug().Msgf("MeshConfig conversion request: from-version=%s, to-version=%s", fromVersion, toVersion)
 	switch fromVersion {
-	case "config.openservicemesh.io/v1alpha1":
+	case configV1alpha1Version:
 		switch toVersion {
-		case "config.openservicemesh.io/v1alpha2":
+		case configV1alpha2Version:
 			log.Debug().Msgf("Converting MeshConfig v1alpha1 -> v1alpha2")
 			// v1alpha2 is backward compatible with v1alpha1, so no conversion is
 			// necessary at this moment.
-
 		default:
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
-	case "config.openservicemesh.io/v1alpha2":
+	case configV1alpha2Version:
 		switch toVersion {
-		case "config.openservicemesh.io/v1alpha1":
+		case configV1alpha1Version:
 			log.Debug().Msgf("Converting MeshConfig v1alpha2 -> v1alpha1")
 			// Remove spec.traffic.outboundIPRangeInclusionList field not supported in v1alpha1
 			unsupportedFields := [][]string{
@@ -46,6 +45,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 				{"spec", "sidecar", "tlsMaxProtocolVersion"},
 				{"spec", "sidecar", "cipherSuites"},
 				{"spec", "sidecar", "ecdhCurves"},
+				{"spec", "observability", "enableProfiling"},
 			}
 
 			for _, unsupportedField := range unsupportedFields {
@@ -57,7 +57,6 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 		default:
 			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
-
 	default:
 		return nil, errors.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}

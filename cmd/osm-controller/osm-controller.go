@@ -28,6 +28,7 @@ import (
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/profile"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -192,6 +193,12 @@ func main() {
 		if err := bootstrapOSMMulticlusterGateway(kubeClient, certManager, osmNamespace); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
 				"Error bootstraping OSM multicluster gateway")
+		}
+	}
+
+	if cfg.GetMeshConfig().Spec.Observability.EnableProfiling {
+		if err := profile.ConnectPyroscope("osm-controller"); err != nil {
+			log.Warn().Err(err).Msgf("Error connecting to Pyroscope from osm-controller")
 		}
 	}
 

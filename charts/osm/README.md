@@ -179,6 +179,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |
 | osm.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
+| profiling.enabled | bool | `false` | Enables deployment of continuous profiling tool on OSM control plane |
 | smi.validateTrafficTarget | bool | `true` | Enables validation of SMI Traffic Target |
 
 <!-- markdownlint-enable MD013 MD034 -->

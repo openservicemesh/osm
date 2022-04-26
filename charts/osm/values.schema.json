@@ -492,6 +492,15 @@
                         false
                     ]
                 },
+                "enableProfiling": {
+                    "$id": "#/properties/osm/properties/enableProfiling",
+                    "type": "boolean",
+                    "title": "The enableProfiling schema",
+                    "description": "Indicates whether continuous profiling tool is deployed.",
+                    "examples": [
+                        false
+                    ]
+                },
                 "enablePermissiveTrafficPolicy": {
                     "$id": "#/properties/osm/properties/enablePermissiveTrafficPolicy",
                     "type": "boolean",

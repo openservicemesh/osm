@@ -200,6 +200,9 @@ spec:
                     enableDebugServer:
                       description: Enables a debug endpoint on the osm-controller pod to list information regarding the mesh such as proxy connections, certificates, and SMI policies.
                       type: boolean
+                    enableProfiling:
+                      description: Enables a performance profiling tool for OSM control plane.
+                      type: boolean
                     tracing:
                       description: Configuration for distributed tracing
                       type: object

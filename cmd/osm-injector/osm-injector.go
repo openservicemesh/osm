@@ -24,6 +24,7 @@ import (
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/profile"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -160,6 +161,12 @@ func main() {
 
 	// Initialize Configurator to retrieve mesh specific config
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+
+	if cfg.GetMeshConfig().Spec.Observability.EnableProfiling {
+		if err := profile.ConnectPyroscope("osm-injector"); err != nil {
+			log.Warn().Err(err).Msgf("Error connecting to Pyroscope from osm-injector")
+		}
+	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker, k8s.Namespaces)
