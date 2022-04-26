@@ -37,11 +37,11 @@ const (
 
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, enableDebug bool, osmNamespace string,
-	cfg configurator.Configurator, certManager certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+	cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
 	server := Server{
 		catalog:       meshCatalog,
 		proxyRegistry: proxyRegistry,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,
 			envoy.TypeRDS: rds.NewResponse,

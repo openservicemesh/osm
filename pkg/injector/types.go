@@ -21,7 +21,7 @@ var log = logger.New("sidecar-injector")
 type mutatingWebhook struct {
 	config                 Config
 	kubeClient             kubernetes.Interface
-	certManager            certificate.Manager
+	certManager            *certificate.Manager
 	kubeController         k8s.Controller
 	osmNamespace           string
 	meshName               string

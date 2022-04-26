@@ -55,36 +55,13 @@ type Certificate struct {
 	IssuingCA pem.RootCertificate
 }
 
-// Manager is the interface declaring the methods for the Certificate Manager.
-type Manager interface {
-	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
-
-	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (*Certificate, error)
-
-	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (*Certificate, error)
-
-	// ListCertificates lists all certificates issued
-	ListCertificates() ([]*Certificate, error)
-
-	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
-	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
-	ReleaseCertificate(CommonName)
-}
-
 type client interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 }
 
-// manager is a struct that is soon to replace the Manager interface.
-// TODO(#4533): export this struct and remove the Manager interface
-type manager struct {
+// Manager represents all necessary information for the certificate manager.
+type Manager struct {
 	client client
 
 	// The Certificate Authority root certificate to be used by this certificate manager

@@ -19,7 +19,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	// If request comes through and requests specific endpoints, just attempt to answer those
 	if request != nil && len(request.ResourceNames) > 0 {
 		return fulfillEDSRequest(meshCatalog, proxy, request)

@@ -41,13 +41,12 @@ var _ = Describe("Test ADS response functions", func() {
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator
-		mockCertManager  *certificate.MockManager
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	mockCertManager = certificate.NewMockManager(mockCtrl)
-
+	fakeCertManager, err := certificate.FakeCertManager()
+	Expect(err).ToNot(HaveOccurred())
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
@@ -71,7 +70,7 @@ var _ = Describe("Test ADS response functions", func() {
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -147,11 +146,9 @@ var _ = Describe("Test ADS response functions", func() {
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources for SDS
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
@@ -226,11 +223,9 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
