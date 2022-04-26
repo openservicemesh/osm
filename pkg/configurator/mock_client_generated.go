@@ -149,20 +149,6 @@ func (mr *MockConfiguratorMockRecorder) GetInitContainerImage() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInitContainerImage", reflect.TypeOf((*MockConfigurator)(nil).GetInitContainerImage))
 }
 
-// GetLocalProxyMode mocks base method.
-func (m *MockConfigurator) GetLocalProxyMode() v1alpha2.LocalProxyMode {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLocalProxyMode")
-	ret0, _ := ret[0].(v1alpha2.LocalProxyMode)
-	return ret0
-}
-
-// GetLocalProxyMode indicates an expected call of GetLocalProxyMode.
-func (mr *MockConfiguratorMockRecorder) GetLocalProxyMode() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLocalProxyMode", reflect.TypeOf((*MockConfigurator)(nil).GetLocalProxyMode))
-}
-
 // GetMaxDataPlaneConnections mocks base method.
 func (m *MockConfigurator) GetMaxDataPlaneConnections() int {
 	m.ctrl.T.Helper()

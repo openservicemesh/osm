@@ -706,7 +706,7 @@
                     "type": "string",
                     "title": "The localProxyMode schema",
                     "description": "Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'].",
-                    "pattern": "^(Localhost|PodIP)$",
+                    "enum": ["Localhost","PodIP"],
                     "examples": [
                         "Localhost"
                     ]

@@ -123,18 +123,6 @@ func (c *client) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }
 
-// GetLocalProxyMode returns the local proxy mode
-func (c *client) GetLocalProxyMode() configv1alpha2.LocalProxyMode {
-	proxyConfig := c.getMeshConfig().Spec.Sidecar.LocalProxyMode
-	switch proxyConfig {
-	case configv1alpha2.LocalProxyModeLocalhost, configv1alpha2.LocalProxyModePodIP:
-		return proxyConfig
-	default:
-		// unrecognized proxy mode; return the default: ProxyModeLocalhost
-		return configv1alpha2.LocalProxyModeLocalhost
-	}
-}
-
 // GetEnvoyImage returns the envoy image
 func (c *client) GetEnvoyImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.EnvoyImage
