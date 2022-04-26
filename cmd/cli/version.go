@@ -58,13 +58,8 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Long:  versionHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-<<<<<<< HEAD
-			var versionInfo versionInfo
-			var err error
-=======
 			var verInfo versionInfo
 			var multiError *multierror.Error
->>>>>>> a0d81ccb (ref(cli): refactor version subcommand to search all namespaces (#4611))
 
 			versionCmd.remoteVersion = &remoteVersion{}
 
@@ -73,13 +68,6 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			fmt.Fprintf(versionCmd.out, "CLI Version: %#v\n", *verInfo.cliVersionInfo)
 			if versionCmd.clientOnly {
 				return nil
-<<<<<<< HEAD
-			}
-
-			if err := versionCmd.setKubeClientset(); err != nil {
-				return err
-			}
-=======
 			}
 
 			if err := versionCmd.setKubeClientset(); err != nil {
@@ -103,7 +91,6 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			w := newTabWriter(versionCmd.out)
 			fmt.Fprint(w, versionCmd.outputPrettyVersionInfo(verInfo.remoteVersionInfoList))
 			_ = w.Flush()
->>>>>>> a0d81ccb (ref(cli): refactor version subcommand to search all namespaces (#4611))
 
 			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
 			if err != nil {
