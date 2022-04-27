@@ -76,6 +76,8 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPR
 
 	// Ignore inbound traffic on specified interfaces
 	for _, iface := range networkInterfaceExclusionList {
+		// *Note: it is important to use the insert option '-I' instead of the append option '-A' to ensure the
+		// exclusion of traffic to the network interface happens before the rule that redirects traffic to the proxy
 		cmds = append(cmds, fmt.Sprintf("-I OSM_PROXY_INBOUND -i %s -j RETURN", iface))
 	}
 
