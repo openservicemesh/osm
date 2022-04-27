@@ -328,6 +328,7 @@ nodeRegistration:
 	return nil
 }
 
+// WithLocalProxyMode sets the LocalProxyMode for OSM
 func WithLocalProxyMode(mode configv1alpha2.LocalProxyMode) InstallOsmOpt {
 	return func(opts *InstallOSMOpts) {
 		opts.LocalProxyMode = mode

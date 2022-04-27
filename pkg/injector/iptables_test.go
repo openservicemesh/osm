@@ -97,7 +97,8 @@ EOF
 `,
 		},
 		{
-			name: "proxy mode pod ip",
+			name:      "proxy mode pod ip",
+			proxyMode: configv1alpha2.LocalProxyModePodIP,
 			expected: `iptables-restore --noflush <<EOF
 # OSM sidecar interception rules
 *nat

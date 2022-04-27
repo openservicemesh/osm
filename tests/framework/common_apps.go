@@ -417,8 +417,10 @@ type SimpleDeploymentAppDef struct {
 	OS                 string
 }
 
+// PodCommand describes a command for a pod
 type PodCommand []string
 
+// PodCommandDefault is the default pod command (nothing)
 var PodCommandDefault = []string{}
 
 // SimpleDeploymentApp creates returns a set of k8s typed definitions for a deployment-based k8s definition.

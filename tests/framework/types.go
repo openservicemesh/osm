@@ -130,6 +130,7 @@ type InstallOSMOpts struct {
 	EnableIngressBackendPolicy    bool
 }
 
+// InstallOsmOpt is a function type for setting install options
 type InstallOsmOpt func(*InstallOSMOpts)
 
 // CleanupType identifies what triggered the cleanup

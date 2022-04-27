@@ -28,6 +28,13 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	Context("test getInitContainerSpec()", func() {
 		It("Creates init container without ip range exclusion list", func() {
 			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
+			mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+				Spec: configv1alpha2.MeshConfigSpec{
+					Sidecar: configv1alpha2.SidecarSpec{
+						LocalProxyMode: configv1alpha2.LocalProxyModeLocalhost,
+					},
+				},
+			}).Times(1)
 			privileged := privilegedFalse
 			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
 
