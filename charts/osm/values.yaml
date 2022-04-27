@@ -262,6 +262,9 @@ osm:
   # If specified, must be a list of positive integers.
   inboundPortExclusionList: []
 
+  # -- Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy.
+  networkInterfaceExclusionList: []
+
   #
   # -- OSM's sidecar injector parameters
   injector:
