@@ -521,6 +521,11 @@ func (in *TrafficSpec) DeepCopyInto(out *TrafficSpec) {
 		copy(*out, *in)
 	}
 	out.InboundExternalAuthorization = in.InboundExternalAuthorization
+	if in.NetworkInterfaceExclusionList != nil {
+		in, out := &in.NetworkInterfaceExclusionList, &out.NetworkInterfaceExclusionList
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

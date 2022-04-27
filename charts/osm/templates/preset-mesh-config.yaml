@@ -18,7 +18,8 @@ data:
         "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},
         "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
         "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}},
-        "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}}
+        "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}},
+        "networkInterfaceExclusionList": {{.Values.osm.networkInterfaceExclusionList | mustToJson}}
       },
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
