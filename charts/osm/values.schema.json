@@ -701,6 +701,16 @@
                         "error"
                     ]
                 },
+                "localProxyMode": {
+                    "$id": "#/properties/osm/properties/localProxyMode",
+                    "type": "string",
+                    "title": "The localProxyMode schema",
+                    "description": "Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'].",
+                    "enum": ["Localhost","PodIP"],
+                    "examples": [
+                        "Localhost"
+                    ]
+                },
                 "controllerLogLevel": {
                     "$id": "#/properties/osm/properties/controllerLogLevel",
                     "type": "string",
