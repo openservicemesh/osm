@@ -43,6 +43,9 @@ func (t configAttribute) String() string {
 	if t.trafficAttr.SrcPod != nil {
 		fmt.Fprintf(&s, "\tsource pod: %s\n", t.trafficAttr.SrcPod)
 	}
+	if t.trafficAttr.DstService != nil {
+		fmt.Fprintf(&s, "\tsource service: %s\n", t.trafficAttr.SrcService)
+	}
 	if t.trafficAttr.DstPod != nil {
 		fmt.Fprintf(&s, "\tdestination pod: %s\n", t.trafficAttr.DstPod)
 	}
@@ -435,11 +438,72 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 			result.Reason = fmt.Sprintf("Did not find matching inbound cluster for service %q: %s", dst, err)
 			return result
 		}
+
 		// Verify server TLS secret
 		if err := v.findTLSSecretsOnDestination(secrets); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Server TLS secret not found for pod %q: %s", v.configAttr.trafficAttr.DstPod, err)
 			return result
+		}
+
+		// Next, if ingress is enabled, check for ingress filters
+		// TODO: Add check for ingress filters
+		if v.configAttr.trafficAttr.IsIngress {
+			src := v.configAttr.trafficAttr.SrcService
+			// grab endpoints for ingress service
+			endpoints, err := v.kubeClient.CoreV1().Endpoints(src.Namespace).Get(context.Background(), src.Name, metav1.GetOptions{})
+			if err != nil {
+				result.Status = Failure
+				result.Reason = fmt.Sprintf("Ingress source service %q not found: %s", src, err)
+				return result
+			}
+
+			sourceIPs := map[string]bool{}
+			filterChainName := fmt.Sprintf("ingress_%s/%s_%d_%s", svc.GetName(), svc.GetNamespace(), v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
+			var chain *xds_listener.FilterChain
+			for _, c := range inboundListener.FilterChains {
+				if c.Name == filterChainName {
+					chain = c
+					break
+				}
+			}
+
+			if chain == nil {
+				result.Status = Failure
+				result.Reason = fmt.Sprintf("Ingress filter chain %s not found", filterChainName)
+				return result
+			}
+
+			for _, ip := range chain.FilterChainMatch.SourcePrefixRanges {
+				if ip.PrefixLen.GetValue() == 32 {
+					sourceIPs[ip.AddressPrefix] = false
+				}
+			}
+
+			for _, sub := range endpoints.Subsets {
+				for _, ip := range sub.Addresses {
+					matched, ok := sourceIPs[ip.IP]
+					// Filter chain is missing a service endpoint
+					if !ok {
+						result.Status = Failure
+						result.Reason = fmt.Sprintf("Service endpoint %s was not found in the ingress inbound filter chain", ip.IP)
+						return result
+					}
+					if ok && !matched {
+						// ingress endpoint found in filter chain match
+						sourceIPs[ip.IP] = true
+					}
+				}
+			}
+
+			for ip, matched := range sourceIPs {
+				// TODO: This situation may not actually be an error. Discuss
+				if !matched {
+					result.Status = Failure
+					result.Reason = fmt.Sprintf("Filter chain IP %s was not found in the ingress service's endpoints", ip)
+					return result
+				}
+			}
 		}
 	}
 
