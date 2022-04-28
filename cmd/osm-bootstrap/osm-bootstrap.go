@@ -18,10 +18,12 @@ import (
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/kubectl/pkg/util"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
@@ -225,7 +227,10 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 	}
 
 	// Create a default meshConfig
-	defaultMeshConfig := buildDefaultMeshConfig(presetsConfigMap)
+	defaultMeshConfig, err := buildDefaultMeshConfig(presetsConfigMap)
+	if err != nil {
+		return err
+	}
 	if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
@@ -240,19 +245,25 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 }
 
 func (b *bootstrap) ensureMeshConfig() error {
-	_, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
-	if err == nil {
-		return nil // default meshConfig was found
-	}
-
+	config, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		// create a default mesh config since it was not found
-		if err = b.createDefaultMeshConfig(); err != nil {
+		return b.createDefaultMeshConfig()
+	}
+	if err != nil {
+		return err
+	}
+
+	if _, exists := config.Annotations[corev1.LastAppliedConfigAnnotation]; !exists {
+		// Mesh was found, but may not have the last applied annotation.
+		if err := util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme); err != nil {
+			return err
+		}
+		if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Update(context.TODO(), config, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
-
-	return err
+	return nil
 }
 
 // initiatilizeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
@@ -305,7 +316,7 @@ func validateCLIParams() error {
 	return nil
 }
 
-func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alpha2.MeshConfig {
+func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) (*configv1alpha2.MeshConfig, error) {
 	presetMeshConfig := presetMeshConfigMap.Data[presetMeshConfigJSONKey]
 	presetMeshConfigSpec := configv1alpha2.MeshConfigSpec{}
 	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
@@ -313,7 +324,7 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
 	}
 
-	return &configv1alpha2.MeshConfig{
+	config := &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshConfig",
 			APIVersion: "config.openservicemesh.io/configv1alpha2",
@@ -323,4 +334,6 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 		},
 		Spec: presetMeshConfigSpec,
 	}
+
+	return config, util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme)
 }
