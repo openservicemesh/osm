@@ -58,14 +58,14 @@ type Certificate struct {
 type client interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+
+	// GetRootCertificate returns the root certificate.
+	GetRootCertificate() *Certificate
 }
 
-// Manager represents all necessary information for the certificate manager.
+// Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	client client
-
-	// The Certificate Authority root certificate to be used by this certificate manager
-	ca *Certificate
+	clients []client
 
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate

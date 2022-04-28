@@ -12,25 +12,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-var (
-	errNoIssuingCA  = errors.New("no issuing CA")
-	errCertNotFound = errors.New("certificate not found")
-)
+var errCertNotFound = errors.New("certificate not found")
 
 // NewManager creates a new CertManager with the passed CA and CA Private Key
 func NewManager(
-	ca *Certificate,
-	client client,
+	certClient client,
 	serviceCertValidityDuration time.Duration,
 	msgBroker *messaging.Broker) (*Manager, error) {
-	if ca == nil {
-		return nil, errNoIssuingCA
-	}
-
 	m := &Manager{
-		// The root certificate signing all newly issued certificates
-		ca:                          ca,
-		client:                      client,
+		clients:                     []client{certClient},
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
@@ -113,7 +103,8 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 		return cert, nil
 	}
 
-	cert, err := m.client.IssueCertificate(cn, validityPeriod)
+	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
+	cert, err := m.clients[0].IssueCertificate(cn, validityPeriod)
 	if err != nil {
 		return cert, err
 	}
@@ -182,9 +173,9 @@ func (m *Manager) ListCertificates() ([]*Certificate, error) {
 }
 
 // GetRootCertificate returns the root
-// TODO(#4533): remove the error from return value if not needed.
-func (m *Manager) GetRootCertificate() (*Certificate, error) {
-	return m.ca, nil
+func (m *Manager) GetRootCertificate() *Certificate {
+	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
+	return m.clients[0].GetRootCertificate()
 }
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.

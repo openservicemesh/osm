@@ -13,8 +13,7 @@ import (
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
 	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	adsCert := certManager.GetRootCertificate()
 
 	certPem := adsCert.GetCertificateChain()
 	keyPem := adsCert.GetPrivateKey()
@@ -52,8 +51,7 @@ func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
 	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	adsCert := certManager.GetRootCertificate()
 
 	serverType := "ADS"
 	port := 9999
