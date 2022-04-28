@@ -83,8 +83,8 @@ type Controller interface {
 	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
 	ListServiceAccounts() []*corev1.ServiceAccount
 
-	// GetService returns a corev1 Service representation if the object described by ProviderMapper exists in cache, otherwise nil
-	GetService(service.ProviderMapper) *corev1.Service
+	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
+	GetService(svc service.MeshService) *corev1.Service
 
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
 	// by the mesh
@@ -100,10 +100,10 @@ type Controller interface {
 	ListPods() []*corev1.Pod
 
 	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-	ListServiceIdentitiesForService(service.ProviderMapper) ([]identity.K8sServiceAccount, error)
+	ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error)
 
 	// GetEndpoints returns the endpoints for a given service, if found
-	GetEndpoints(service.ProviderMapper) (*corev1.Endpoints, error)
+	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 
 	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 	// The object within the 'interface{}' must be a pointer to the underlying resource

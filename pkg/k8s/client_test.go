@@ -717,6 +717,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 							Port: 80,
 						},
 					},
+					ClusterIP: "10.0.0.1",
 				},
 			},
 			svcEndpoints: []runtime.Object{
@@ -756,6 +757,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 					Name:      "s1",
 				},
 				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.0.0.1",
 					Ports: []corev1.ServicePort{
 						{
 							Name:        "p1",

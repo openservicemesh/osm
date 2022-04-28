@@ -3,6 +3,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 )
@@ -22,17 +23,16 @@ const (
 	RemoteCluster
 )
 
-// ProviderMapper describes any entity that can be mapped to a service.Provider based on NamespacedKey
-type ProviderMapper interface {
-	NamespacedKey() string
-}
-
 // MeshService is the struct representing a service (Kubernetes or otherwise) within the service mesh.
 type MeshService struct {
 	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
 	Namespace string
 
-	// The name of the service
+	// The name of the service. May include instance (e.g. pod) information if the backing service
+	// doesn't have a single, stable ip address. For example, a MeshService created by a headless
+	// Kubernetes service named mysql-headless, will have the name "mysql.mysql-headless"
+	// This imposes a restriction that service names cannot contain "." (which is already)
+	// the case in kubernetes. Thus, MeshService.Name will be of the form: [subdomain.]providerKey
 	Name string
 
 	// Port is the port number that clients use to access the service.
@@ -49,16 +49,59 @@ type MeshService struct {
 	// Protocol is the protocol served by the service's port
 	Protocol string
 
-	// ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service)
-	ProviderKey string
+	providerKey string
+
+	subdomain string
+
+	subdomainPopulated bool
 }
 
 // NamespacedKey is the key (i.e. namespace + name) with which to lookup the backing service within the provider
 func (ms MeshService) NamespacedKey() string {
-	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey)
+	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
 }
 
-// String returns the string representation of the given MeshService
+// Subdomain is an optional subdomain for this MeshService
+// It is calculated once based on Name and stored in an unexported field
+// which is why this function has a pointer receiver
+func (ms *MeshService) Subdomain() string {
+	if ms.subdomain == "" && !ms.subdomainPopulated {
+		nameComponents := strings.Split(ms.Name, ".")
+		if len(nameComponents) == 1 {
+			ms.subdomain = ""
+		} else {
+			ms.subdomain = nameComponents[0]
+		}
+
+		ms.subdomainPopulated = true
+	}
+
+	return ms.subdomain
+}
+
+// ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service name)
+// It is calculated once based on Name and stored in an unexported field which is why this function has a pointer receiver
+func (ms *MeshService) ProviderKey() string {
+	if ms.providerKey == "" {
+		nameComponents := strings.Split(ms.Name, ".")
+		if l := len(nameComponents); l == 1 {
+			ms.providerKey = nameComponents[0]
+		} else {
+			ms.providerKey = nameComponents[l-1]
+		}
+	}
+
+	return ms.providerKey
+}
+
+// SiblingTo returns true if svc and ms are derived from the same resource
+// in the service provder (based on namespace and provider key)
+func (ms MeshService) SiblingTo(svc MeshService) bool {
+	return ms.NamespacedKey() == svc.NamespacedKey()
+}
+
+// String returns the string representation of the given MeshService.
+// SHOULD NOT BE USED AS A MAPPING FOR ANYTHING. Use NamespacedKey and Subdomain
 func (ms MeshService) String() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
 }
@@ -75,7 +118,10 @@ func (ms MeshService) EnvoyLocalClusterName() string {
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
+	if ms.Subdomain() != "" {
+		return fmt.Sprintf("%s.%s.%s.svc.cluster.local", ms.Subdomain(), ms.ProviderKey(), ms.Namespace)
+	}
+	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.ProviderKey(), ms.Namespace)
 }
 
 // OutboundTrafficMatchName returns the MeshService outbound traffic match name

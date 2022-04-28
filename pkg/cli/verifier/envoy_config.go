@@ -466,6 +466,11 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]se
 		return nil, err
 	}
 
+	var headless bool
+	if len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+		headless = true
+	}
+
 	var meshServices []service.MeshService
 	for _, portSpec := range svc.Spec.Ports {
 		meshSvc := service.MeshService{
@@ -478,7 +483,25 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]se
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
 		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
-		meshServices = append(meshServices, meshSvc)
+
+		if headless {
+			for _, subset := range endpoints.Subsets {
+				for _, address := range subset.Addresses {
+					if address.Hostname != "" {
+						mSvc := service.MeshService{
+							Namespace:  svc.Namespace,
+							Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+							Port:       meshSvc.Port,
+							TargetPort: meshSvc.TargetPort,
+							Protocol:   meshSvc.Protocol,
+						}
+						meshServices = append(meshServices, mSvc)
+					}
+				}
+			}
+		} else {
+			meshServices = append(meshServices, meshSvc)
+		}
 	}
 	return meshServices, nil
 }

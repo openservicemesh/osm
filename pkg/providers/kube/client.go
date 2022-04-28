@@ -55,6 +55,10 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				continue
 			}
 			for _, address := range kubernetesEndpoint.Addresses {
+				if svc.Subdomain() != "" && svc.Subdomain() != address.Hostname {
+					// if there's a subdomain on this meshservice, make sure it matches the endpoint's hostname
+					continue
+				}
 				ip := net.ParseIP(address.IP)
 				if ip == nil {
 					log.Error().Msgf("Error parsing endpoint IP address %s for MeshService %s", address.IP, svc)

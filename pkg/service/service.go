@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -12,5 +11,5 @@ func (ms MeshService) Equals(service MeshService) bool {
 
 // ServerName returns the Server Name Identifier (SNI) for TLS connections
 func (ms MeshService) ServerName() string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
+	return ms.FQDN()
 }

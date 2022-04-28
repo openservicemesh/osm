@@ -244,13 +244,20 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 		}
 
 		for _, split := range mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitBackendService(svc)) {
+			svcName := k8s.GetServiceFromHostname(split.Spec.Service)
+			subdomain := k8s.GetSubdomainFromHostname(split.Spec.Service)
 			apexMeshService := service.MeshService{
+				Name:       svcName,
 				Namespace:  svc.Namespace,
-				Name:       k8s.GetServiceFromHostname(split.Spec.Service),
 				Port:       svc.Port,
 				TargetPort: svc.TargetPort,
 				Protocol:   svc.Protocol,
 			}
+
+			if subdomain != "" {
+				apexMeshService.Name = fmt.Sprintf("%s.%s", subdomain, svcName)
+			}
+
 			if newlyAdded := svcSet.Add(apexMeshService); newlyAdded {
 				allServices = append(allServices, apexMeshService)
 			}

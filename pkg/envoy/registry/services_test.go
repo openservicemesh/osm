@@ -485,6 +485,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 						Name:      "s1",
 					},
 					Spec: v1.ServiceSpec{
+						ClusterIP: "10.0.0.1",
 						Ports: []v1.ServicePort{{
 							Name: "p1",
 							Port: 80,
@@ -497,6 +498,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 						Name:      "s2",
 					},
 					Spec: v1.ServiceSpec{
+						ClusterIP: "10.0.0.1",
 						Ports: []v1.ServicePort{{
 							Name: "p2",
 							Port: 80,

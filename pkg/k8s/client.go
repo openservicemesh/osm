@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
@@ -201,9 +202,9 @@ func (c client) ListMonitoredNamespaces() ([]string, error) {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
-func (c client) GetService(m service.ProviderMapper) *corev1.Service {
+func (c client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(m.NamespacedKey())
+	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.NamespacedKey())
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -269,8 +270,8 @@ func (c client) ListPods() []*corev1.Pod {
 
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
-func (c client) GetEndpoints(m service.ProviderMapper) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(m.NamespacedKey())
+func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.NamespacedKey())
 	if err != nil {
 		return nil, err
 	}
@@ -281,12 +282,12 @@ func (c client) GetEndpoints(m service.ProviderMapper) (*corev1.Endpoints, error
 }
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-func (c client) ListServiceIdentitiesForService(m service.ProviderMapper) ([]identity.K8sServiceAccount, error) {
+func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	var svcAccounts []identity.K8sServiceAccount
 
-	k8sSvc := c.GetService(m)
+	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
-		return nil, errors.Errorf("Error fetching service %q: %s", m, errServiceNotFound)
+		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()
@@ -346,6 +347,10 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 // MeshService objects per port.
 func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
+	var headless bool
+	if len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+		headless = true
+	}
 
 	for _, portSpec := range svc.Spec.Ports {
 		meshSvc := service.MeshService{
@@ -363,8 +368,27 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
-		meshServices = append(meshServices, meshSvc)
+
+		if headless && endpoints != nil {
+			for _, subset := range endpoints.Subsets {
+				for _, address := range subset.Addresses {
+					if address.Hostname != "" {
+						mSvc := service.MeshService{
+							Namespace:  svc.Namespace,
+							Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+							Port:       meshSvc.Port,
+							TargetPort: meshSvc.TargetPort,
+							Protocol:   meshSvc.Protocol,
+						}
+						meshServices = append(meshServices, mSvc)
+					}
+				}
+			}
+		} else {
+			meshServices = append(meshServices, meshSvc)
+		}
 	}
+
 	return meshServices
 }
 

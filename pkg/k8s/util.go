@@ -37,15 +37,70 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 	return hostnames
 }
 
-// GetServiceFromHostname returns the service name from its hostname
-func GetServiceFromHostname(host string) string {
-	// The service name is the first string in the host name for a service.
-	// Ex. service.namespace, service.namespace.cluster.local
-	service := strings.Split(host, ".")[0]
+func splitHostName(host string) (service string, subdomain string) {
+	serviceComponents := strings.Split(host, ".")
+
+	// The service name is usually the first string in the host name for a service.
+	// Ex. service.namespace, service.namespace.svc.cluster.local
+	// However, if there's a subdomain, we the service name is the second string.
+	// Ex. mysql-0.service.namespace, mysql-0.service.namespace.svc.cluster.local, mysql-0.service.namespace.svc.cluster.local
+	switch l := len(serviceComponents); {
+	case l == 1:
+		// e.g. service
+		service = serviceComponents[0]
+		subdomain = ""
+	case l == 2:
+		// e.g. service.namespace, mysql-0.service
+		// NOTE: There's no way to tell which component is the service or not, so we're going to keep the default behavior
+		// Thus, we have a requirement that users who want to reference statefulsets must include the namespace in the host name
+		service = serviceComponents[0]
+		subdomain = ""
+	case l == 3:
+		if strings.Contains(serviceComponents[l-1], "svc") {
+			// e.g. service.namespace.svc
+			service = serviceComponents[0]
+			subdomain = ""
+		} else {
+			// e.g. mysql-0.service.namespace
+			service = serviceComponents[1]
+			subdomain = serviceComponents[0]
+		}
+	case l == 4:
+		// e.g mysql-0.service.namespace.svc
+		service = serviceComponents[1]
+		subdomain = serviceComponents[0]
+	case l == 5:
+		// e.g. service.namespace.svc.cluster.local
+		service = serviceComponents[0]
+		subdomain = ""
+	case l == 6:
+		// e.g. mysql-0.service.namespace.svc.cluster.local
+		service = serviceComponents[1]
+		subdomain = serviceComponents[0]
+	default:
+		service = serviceComponents[0]
+		subdomain = ""
+	}
 
 	// For services that are not namespaced the service name contains the port as well
 	// Ex. service:port
-	return strings.Split(service, ":")[0]
+	service = strings.Split(service, ":")[0]
+
+	return
+}
+
+// GetServiceFromHostname returns the service name from its hostname
+// This assumes the default k8s trustDomain: cluster.local
+func GetServiceFromHostname(host string) string {
+	svc, _ := splitHostName(host)
+	return svc
+}
+
+// GetSubdomainFromHostname returns the service subdomain from its hostname
+// This assumes the default k8s trustDomain: cluster.local
+func GetSubdomainFromHostname(host string) string {
+	_, subdomain := splitHostName(host)
+	return subdomain
 }
 
 // GetKubernetesServerVersionNumber returns the Kubernetes server version number in chunks, ex. v1.19.3 => [1, 19, 3]

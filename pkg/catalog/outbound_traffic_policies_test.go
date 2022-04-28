@@ -141,7 +141,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			Namespace: "ns3",
 		},
 		Spec: split.TrafficSplitSpec{
-			Service: "s3.ns3.cluster.local",
+			Service: "s3.ns3.svc.cluster.local",
 			Backends: []split.TrafficSplitBackend{
 				{
 					Service: "s3-v1",
