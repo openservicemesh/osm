@@ -10,7 +10,8 @@ import (
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
 	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy, networkInterfaceExclusionList []string) corev1.Container {
-	iptablesInitCommand := generateIptablesCommands(outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, networkInterfaceExclusionList)
+	proxyMode := cfg.GetMeshConfig().Spec.Sidecar.LocalProxyMode
+	iptablesInitCommand := generateIptablesCommands(proxyMode, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, networkInterfaceExclusionList)
 
 	return corev1.Container{
 		Name:            containerName,
@@ -31,6 +32,17 @@ func getInitContainerSpec(containerName string, cfg configurator.Configurator, o
 		Args: []string{
 			"-c",
 			iptablesInitCommand,
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "POD_IP",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.podIP",
+					},
+				},
+			},
 		},
 	}
 }

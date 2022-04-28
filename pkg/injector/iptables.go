@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -60,7 +62,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
+func generateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -94,6 +96,13 @@ func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPR
 
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)
+
+	if proxyMode == configv1alpha2.LocalProxyModePodIP {
+		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
+		// *Note: it is important to use the insert option '-I' instead of the append option '-A' to ensure the
+		// DNAT to the pod ip for envoy -> localhost traffic happens before the rule that redirects traffic to the proxy
+		cmds = append(cmds, fmt.Sprintf("-I OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
+	}
 
 	// Ignore outbound traffic in specified interfaces
 	for _, iface := range networkInterfaceExclusionList {
