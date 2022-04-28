@@ -41,7 +41,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 			// Prior iterations of OSM didn't allow mesh services to bind to the podIP
 			// This test ensures that that behavior is configurable via MeshConfig
 			withSourceKubernetesService := true
-			testTraffic(withSourceKubernetesService, []string{"gunicorn", "-b", "$(POD_IP):14001", "httpbin:app", "-k", "gevent"}, WithLocalProxyMode(v1alpha2.LocalProxyModePodIP))
+			testTraffic(withSourceKubernetesService, []string{"gunicorn", "-b", "$(POD_IP):80", "httpbin:app", "-k", "gevent"}, WithLocalProxyMode(v1alpha2.LocalProxyModePodIP))
 		})
 	})
 
