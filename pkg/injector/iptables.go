@@ -10,42 +10,31 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func genIPTablesOutboundStaticRules(proxyMode configv1alpha2.LocalProxyMode) []string {
-	// iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
-	iptablesOutboundStaticRules := []string{
-		// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Envoy's outbound listener port
-		fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.EnvoyOutboundListenerPort),
+// iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
+var iptablesOutboundStaticRules = []string{
+	// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Envoy's outbound listener port
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.EnvoyOutboundListenerPort),
 
-		// Traffic to the Proxy Admin port flows to the Proxy -- not redirected
-		fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.EnvoyAdminPort),
-	}
+	// Traffic to the Proxy Admin port flows to the Proxy -- not redirected
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.EnvoyAdminPort),
 
-	if proxyMode == configv1alpha2.LocalProxyModePodIP {
-		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
-		iptablesOutboundStaticRules = append(iptablesOutboundStaticRules, fmt.Sprintf("-A OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
-	}
+	// For outbound TCP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
+	"-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
 
-	iptablesOutboundStaticRules = append(iptablesOutboundStaticRules, []string{
-		// For all other outbound TCP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
-		"-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
+	// Outbound traffic from Envoy to the local app over the loopback interface should jump to the inbound proxy redirect chain.
+	// So when an app directs traffic to itself via the k8s service, traffic flows as follows:
+	// app -> local envoy's outbound listener -> iptables -> local envoy's inbound listener -> app
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner %d -j OSM_PROXY_IN_REDIRECT", constants.EnvoyUID),
 
-		// Outbound traffic from Envoy to the local app over the loopback interface should jump to the inbound proxy redirect chain.
-		// So when an app directs traffic to itself via the k8s service, traffic flows as follows:
-		// app -> local envoy's outbound listener -> iptables -> local envoy's inbound listener -> app
-		fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner %d -j OSM_PROXY_IN_REDIRECT", constants.EnvoyUID),
+	// Outbound traffic from the app to itself over the loopback interface is not be redirected via the proxy.
+	// E.g. when app sends traffic to itself via the pod IP.
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner %d -j RETURN", constants.EnvoyUID),
 
-		// Outbound traffic from the app to itself over the loopback interface is not be redirected via the proxy.
-		// E.g. when app sends traffic to itself via the pod IP.
-		fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner %d -j RETURN", constants.EnvoyUID),
+	// Don't redirect Envoy traffic back to itself, return it to the next chain for processing
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -m owner --uid-owner %d -j RETURN", constants.EnvoyUID),
 
-		// Don't redirect Envoy traffic back to itself, return it to the next chain for processing
-		fmt.Sprintf("-A OSM_PROXY_OUTBOUND -m owner --uid-owner %d -j RETURN", constants.EnvoyUID),
-
-		// Skip localhost traffic, doesn't need to be routed via the proxy
-		"-A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN",
-	}...)
-
-	return iptablesOutboundStaticRules
+	// Skip localhost traffic, doesn't need to be routed via the proxy
+	"-A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN",
 }
 
 // iptablesInboundStaticRules is the list of iptables rules related to inbound traffic interception and redirection
@@ -105,10 +94,15 @@ func generateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundI
 		cmds = append(cmds, rule)
 	}
 
-	iptablesOutboundStaticRules := genIPTablesOutboundStaticRules(proxyMode)
-
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)
+
+	if proxyMode == configv1alpha2.LocalProxyModePodIP {
+		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
+		// *Note: it is important to use the insert option '-I' instead of the append option '-A' to ensure the
+		// DNAT to the pod ip for envoy -> localhost traffic happens before the rule that redirects traffic to the proxy
+		iptablesOutboundStaticRules = append(cmds, fmt.Sprintf("-I OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
+	}
 
 	// Ignore outbound traffic in specified interfaces
 	for _, iface := range networkInterfaceExclusionList {
