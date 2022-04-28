@@ -101,7 +101,7 @@ func generateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundI
 		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
 		// *Note: it is important to use the insert option '-I' instead of the append option '-A' to ensure the
 		// DNAT to the pod ip for envoy -> localhost traffic happens before the rule that redirects traffic to the proxy
-		iptablesOutboundStaticRules = append(cmds, fmt.Sprintf("-I OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
+		cmds = append(cmds, fmt.Sprintf("-I OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
 	}
 
 	// Ignore outbound traffic in specified interfaces
