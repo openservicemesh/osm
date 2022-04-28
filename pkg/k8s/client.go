@@ -201,9 +201,9 @@ func (c client) ListMonitoredNamespaces() ([]string, error) {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
-func (c client) GetService(svc service.MeshService) *corev1.Service {
+func (c client) GetService(m service.ProviderMapper) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.String())
+	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(m.NamespacedKey())
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -269,8 +269,8 @@ func (c client) ListPods() []*corev1.Pod {
 
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
-func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.String())
+func (c client) GetEndpoints(m service.ProviderMapper) (*corev1.Endpoints, error) {
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(m.NamespacedKey())
 	if err != nil {
 		return nil, err
 	}
@@ -281,12 +281,12 @@ func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 }
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+func (c client) ListServiceIdentitiesForService(m service.ProviderMapper) ([]identity.K8sServiceAccount, error) {
 	var svcAccounts []identity.K8sServiceAccount
 
-	k8sSvc := c.GetService(svc)
+	k8sSvc := c.GetService(m)
 	if k8sSvc == nil {
-		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+		return nil, errors.Errorf("Error fetching service %q: %s", m, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()

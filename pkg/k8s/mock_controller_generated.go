@@ -38,7 +38,7 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // GetEndpoints mocks base method.
-func (m *MockController) GetEndpoints(arg0 service.MeshService) (*v1.Endpoints, error) {
+func (m *MockController) GetEndpoints(arg0 service.ProviderMapper) (*v1.Endpoints, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEndpoints", arg0)
 	ret0, _ := ret[0].(*v1.Endpoints)
@@ -67,7 +67,7 @@ func (mr *MockControllerMockRecorder) GetNamespace(arg0 interface{}) *gomock.Cal
 }
 
 // GetService mocks base method.
-func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
+func (m *MockController) GetService(arg0 service.ProviderMapper) *v1.Service {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetService", arg0)
 	ret0, _ := ret[0].(*v1.Service)
@@ -138,7 +138,7 @@ func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
 }
 
 // ListServiceIdentitiesForService mocks base method.
-func (m *MockController) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
+func (m *MockController) ListServiceIdentitiesForService(arg0 service.ProviderMapper) ([]identity.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
 	ret0, _ := ret[0].([]identity.K8sServiceAccount)

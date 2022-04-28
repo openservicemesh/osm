@@ -22,6 +22,11 @@ const (
 	RemoteCluster
 )
 
+// ProviderMapper describes any entity that can be mapped to a service.Provider based on NamespacedKey
+type ProviderMapper interface {
+	NamespacedKey() string
+}
+
 // MeshService is the struct representing a service (Kubernetes or otherwise) within the service mesh.
 type MeshService struct {
 	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
@@ -43,6 +48,14 @@ type MeshService struct {
 
 	// Protocol is the protocol served by the service's port
 	Protocol string
+
+	// ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service)
+	ProviderKey string
+}
+
+// NamespacedKey is the key (i.e. namespace + name) with which to lookup the backing service within the provider
+func (ms MeshService) NamespacedKey() string {
+	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey)
 }
 
 // String returns the string representation of the given MeshService
