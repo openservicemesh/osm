@@ -3,13 +3,9 @@ package injector
 import (
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
-	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 func TestGenerateIptablesCommands(t *testing.T) {
@@ -132,17 +128,8 @@ EOF
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-			mockCtrl := gomock.NewController(GinkgoT())
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
-				Spec: configv1alpha2.MeshConfigSpec{
-					Sidecar: configv1alpha2.SidecarSpec{
-						LocalProxyMode: tc.proxyMode,
-					},
-				},
-			}).Times(1)
 
-			actual := generateIptablesCommands(mockConfigurator, tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions, tc.networkInterfaceExclusions)
+			actual := generateIptablesCommands(tc.proxyMode, tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions, tc.networkInterfaceExclusions)
 			a.Equal(tc.expected, actual)
 		})
 	}

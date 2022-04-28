@@ -7,11 +7,10 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func genIPTablesOutboundStaticRules(cfg configurator.Configurator) []string {
+func genIPTablesOutboundStaticRules(proxyMode configv1alpha2.LocalProxyMode) []string {
 	// iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
 	iptablesOutboundStaticRules := []string{
 		// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Envoy's outbound listener port
@@ -21,9 +20,7 @@ func genIPTablesOutboundStaticRules(cfg configurator.Configurator) []string {
 		fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.EnvoyAdminPort),
 	}
 
-	localProxyMode := cfg.GetMeshConfig().Spec.Sidecar.LocalProxyMode
-
-	if localProxyMode == configv1alpha2.LocalProxyModePodIP {
+	if proxyMode == configv1alpha2.LocalProxyModePodIP {
 		// For envoy -> local service container proxying, send traffic to pod IP instead of localhost
 		iptablesOutboundStaticRules = append(iptablesOutboundStaticRules, fmt.Sprintf("-A OUTPUT -p tcp -o lo -d 127.0.0.1/32 -m owner --uid-owner %d -j DNAT --to-destination $POD_IP", constants.EnvoyUID))
 	}
@@ -76,7 +73,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(cfg configurator.Configurator, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
+func generateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -108,7 +105,7 @@ func generateIptablesCommands(cfg configurator.Configurator, outboundIPRangeExcl
 		cmds = append(cmds, rule)
 	}
 
-	iptablesOutboundStaticRules := genIPTablesOutboundStaticRules(cfg)
+	iptablesOutboundStaticRules := genIPTablesOutboundStaticRules(proxyMode)
 
 	// 3. Create outbound rules
 	cmds = append(cmds, iptablesOutboundStaticRules...)
