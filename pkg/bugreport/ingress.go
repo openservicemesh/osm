@@ -16,17 +16,20 @@ const (
 	ingressBackendResourceName string = "ingressbackends"
 )
 
-func (c *Config) collectIngressReport() error {
+func (c *Config) collectIngressReport() {
 	namespaceList, err := c.KubeClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return err
+		c.completionFailure("Error listing namespaces: %s", err)
+		return
 	}
 
 	for _, namespace := range namespaceList.Items {
 		ingressList, err := c.KubeClient.NetworkingV1().Ingresses(namespace.Name).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
-			return err
+			c.completionFailure("Error fetching Ingresses in namespace %s: %s", namespace.Name, err)
+			continue
 		}
+
 		for _, ingress := range ingressList.Items {
 			for _, cmd := range ingressReportCommands(namespace.Name, ingress.Name, ingressResourceName) {
 				filename := path.Join(
@@ -38,7 +41,8 @@ func (c *Config) collectIngressReport() error {
 					strings.Join(cmd, "_"),
 				)
 				if err := runCmdAndWriteToFile(cmd, filename); err != nil {
-					return err
+					c.completionFailure("Error writing Ingress command: %s", err)
+					continue
 				}
 			}
 			c.completionSuccess("Collected report for ingress %s/%s", ingress.Namespace, ingress.Name)
@@ -46,7 +50,8 @@ func (c *Config) collectIngressReport() error {
 
 		ingressBackendList, err := c.PolicyClient.PolicyV1alpha1().IngressBackends(namespace.Name).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
-			return err
+			c.completionFailure("Error fetching IngressBackends in namespace %s: %s", namespace.Name, err)
+			continue
 		}
 
 		for _, ingressBackend := range ingressBackendList.Items {
@@ -60,28 +65,25 @@ func (c *Config) collectIngressReport() error {
 					strings.Join(cmd, "_"),
 				)
 				if err := runCmdAndWriteToFile(cmd, filename); err != nil {
-					return err
+					c.completionFailure("Error writing IngressBackend command: %s", err)
+					continue
 				}
 			}
 			c.completionSuccess("Collected report for ingress backend %s/%s", ingressBackend.Namespace, ingressBackend.Name)
 		}
 	}
-
-	return nil
 }
 
-func (c *Config) collectIngressControllerReport() error {
+func (c *Config) collectIngressControllerReport() {
 	ingressControllerLabelsSelectors := []string{
 		nginxIngressControllerLabelSelector,
 		contourIngressControllerLabelSelector,
 	}
 	for _, labelSelector := range ingressControllerLabelsSelectors {
 		if err := c.collectIngressControllerReportByLabelSelector(labelSelector); err != nil {
-			return err
+			c.completionFailure("Error generating ingress controller report: %s", err)
 		}
 	}
-
-	return nil
 }
 
 func (c *Config) collectIngressControllerReportByLabelSelector(labelSelector string) error {
@@ -96,7 +98,8 @@ func (c *Config) collectIngressControllerReportByLabelSelector(labelSelector str
 			metav1.ListOptions{LabelSelector: labelSelector},
 		)
 		if err != nil {
-			return err
+			c.completionFailure("Error fetching ingress pods in namespace %s: %s", namespace.Name, err)
+			continue
 		}
 
 		for _, pod := range podList.Items {
@@ -114,7 +117,8 @@ func (c *Config) collectIngressControllerReportByLabelSelector(labelSelector str
 					strings.Join(cmd, "_"),
 				)
 				if err := runCmdAndWriteToFile(cmd, filename); err != nil {
-					return err
+					c.completionFailure("Error writing ingress command: %s", err)
+					continue
 				}
 			}
 			c.completionSuccess("Collected report for ingress controller %s/%s", pod.Namespace, pod.Name)
