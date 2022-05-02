@@ -303,7 +303,7 @@ func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	}
 
 	// PerTryTimeout default uses the global route timeout
-	// TODO: determine if disabling route config timeout affects perTryTimeout
+	// Disabling route config timeout does not affect perTryTimeout
 	if retry.PerTryTimeout != nil {
 		rp.PerTryTimeout = durationpb.New(retry.PerTryTimeout.Duration)
 	}
