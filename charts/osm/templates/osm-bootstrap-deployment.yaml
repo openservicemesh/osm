@@ -24,30 +24,6 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - osm-bootstrap
-              topologyKey: kubernetes.io/hostname
-            weight: 100
       priorityClassName: system-node-critical
       serviceAccountName: {{ .Release.Name }}
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
@@ -124,7 +100,15 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.osm.controlPlaneTolerations }}
+      {{- if .Values.osm.osmBootstrap.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.osmBootstrap.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.osmBootstrap.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.osmBootstrap.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.osmBootstrap.tolerations }}
       tolerations:
-{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
-    {{- end }}
+      {{- toYaml .Values.osm.osmBootstrap.tolerations | nindent 8 }}
+      {{- end }}

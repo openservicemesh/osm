@@ -232,6 +232,15 @@
                         },
                         "autoScale": {
                             "$ref": "#/definitions/autoScale"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -803,6 +812,15 @@
                             "examples": [
                                 "jaegertracing/all-in-one"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -883,6 +901,15 @@
                             "examples": [
                                 20
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -915,6 +942,15 @@
                             "title": "The podLabels schema",
                             "description": "Labels for the OSM bootstrap pod.",
                             "default": {}
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -937,6 +973,15 @@
                             "examples": [
                                 "error"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     }
                 },
@@ -1195,6 +1240,15 @@
                             "examples": [
                                 "grafana/grafana-image-renderer:3.2.1"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "examples": [
@@ -1350,6 +1404,15 @@
                             "examples": [
                                 "prom/prometheus:v2.18.1"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -1384,6 +1447,30 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "preinstall": {
+                    "$id": "#/properties/osm/properties/preinstall",
+                    "type": "object",
+                    "title": "The preinstall schema",
+                    "description": "Preinstall configurations",
+                    "required": [],
+                    "properties": {
+                        "affinity": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "cleanup": {
+                    "$id": "#/properties/osm/properties/preinstall",
+                    "type": "object",
+                    "title": "The preinstall schema",
+                    "description": "Preinstall configurations",
+                    "required": [],
+                    "properties": {
+                        "affinity": {
+                            "type": "object"
+                        }
+                    }
                 }
             },
             "additionalProperties": false
