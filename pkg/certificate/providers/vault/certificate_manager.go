@@ -30,6 +30,21 @@ const (
 
 // New constructs a new certificate client using Vault's cert-manager
 func New(vaultAddr, token, role string) (*CertManager, error) {
+	c, err := newClient(vaultAddr, token, role)
+	if err != nil {
+		return nil, err
+	}
+
+	vaultCert, err := c.GetRootCA()
+	if err != nil {
+		return nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
+	}
+	c.ca = vaultCert
+
+	return c, nil
+}
+
+func newClient(vaultAddr, token, role string) (*CertManager, error) {
 	if vaultAddr == "" {
 		return nil, fmt.Errorf("vault address must not be empty")
 	}
@@ -52,12 +67,6 @@ func New(vaultAddr, token, role string) (*CertManager, error) {
 	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", role, vaultAddr)
 
 	c.client.SetToken(token)
-
-	vaultCert, err := c.GetRootCA()
-	if err != nil {
-		return nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
-	}
-	c.ca = vaultCert
 
 	return c, nil
 }
