@@ -103,7 +103,7 @@ If your pull request is not ready to be reviewed, open it as a draft.
 
 Your pull request will be reviewed by the maintainers to ensure correctness. Reviewers might approve the pull request or suggest improvements to make before the changes can be committed.
 
-When addressing review comments, refrain from rewriting the Git history of your branch (e.g. with `git commit --amend` or `git rebase`) where possible to make those changes easy to review. Instead, prefer creating new commits without `--amend` and using `git merge` to resolve conflicts with the upstream branch. When the PR is merged, all commits in the PR will automatically be squashed into one commit added to the upstream branch.
+When addressing review comments, refrain from rewriting the Git history of your branch (e.g. with `git commit --amend` or `git rebase`) where possible to make those changes easy to review. Instead, prefer creating new commits without `--amend` and using `git merge` to resolve conflicts with the upstream branch. The commit style guidelines below will not be enforced for follow-up commits. When the PR is merged, all commits in the PR will automatically be squashed into one commit added to the upstream branch.
 
 ### Merging pull requests
 
@@ -119,6 +119,8 @@ Pull requests will be merged based on the following criteria:
 - All status checks have succeeded.
 - Commits in the pull request are squashed and have a valid [signature](#sign-your-work). If the commits in the PR are not squashed, maintainers must use the `squash and merge` option to squash the commits before merging. Maintainers may choose to update the commit message to meet the commit message guidelines without altering the signatures of the authors of the pull request. In certain situations, it is okay to have multiple related but independent commits in the same pull request. In such cases, a pull request may be merged as a `merge commit`.
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
+
+Maintainers may edit the commit message for `Squash and merge`d PRs to remove messages from follow-up commits.
 
 ### Commit Style Guideline
 
