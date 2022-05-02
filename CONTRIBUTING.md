@@ -103,16 +103,7 @@ If your pull request is not ready to be reviewed, open it as a draft.
 
 Your pull request will be reviewed by the maintainers to ensure correctness. Reviewers might approve the pull request or suggest improvements to make before the changes can be committed.
 
-#### Squash commits
-
-Address review comments, squash all commits in the pull request into a single commit and get your branch up to date with upstream's `main` branch before pushing to your remote.
-
-```sh
-git fetch upstream
-git rebase upstream/main
-
-git push -f
-```
+When addressing review comments, refrain from rewriting the Git history of your branch (e.g. with `git commit --amend` or `git rebase`) where possible to make those changes easy to review. Instead, prefer creating new commits without `--amend` and using `git merge` to resolve conflicts with the upstream branch. When the PR is merged, all commits in the PR will automatically be squashed into one commit added to the upstream branch.
 
 ### Merging pull requests
 
