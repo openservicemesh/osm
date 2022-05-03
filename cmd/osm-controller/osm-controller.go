@@ -121,6 +121,21 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
+// TODO(#4502): This function can be deleted once we get rid of cert options.
+func getCertOptions() (providers.Options, error) {
+	switch providers.Kind(certProviderKind) {
+	case providers.TresorKind:
+		tresorOptions.SecretName = caBundleSecretName
+		return tresorOptions, nil
+	case providers.VaultKind:
+		return vaultOptions, nil
+	case providers.CertManagerKind:
+		certManagerOptions.SecretName = caBundleSecretName
+		return certManagerOptions, nil
+	}
+	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -176,9 +191,13 @@ func main() {
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
-
-	certManager, certDebugger, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	certOpts, err := getCertOptions()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting certificate options")
+	}
+	// Intitialize certificate manager/provider
+	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
+		certOpts, msgBroker)
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
@@ -276,7 +295,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

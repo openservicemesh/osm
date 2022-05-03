@@ -161,6 +161,15 @@ const (
 	MetricsAnnotation = "openservicemesh.io/metrics"
 )
 
+// Annotations and labels used by the MeshRootCertificate
+const (
+	// MRCVersionAnnotation is the annotation used for the version of the MeshRootCertificate
+	MRCVersionAnnotation = "openservicemesh.io/mrc-version"
+
+	MRCStateValidating = "validating"
+	MRCStageComplete   = "complete"
+)
+
 // Labels used by the control plane
 const (
 	// IgnoreLabel is the label used to ignore a resource

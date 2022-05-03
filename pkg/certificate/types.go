@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -55,7 +58,8 @@ type Certificate struct {
 	IssuingCA pem.RootCertificate
 }
 
-type client interface {
+// Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
+type Issuer interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 
@@ -65,7 +69,7 @@ type client interface {
 
 // Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	clients []client
+	clients []Issuer
 
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
@@ -73,4 +77,17 @@ type Manager struct {
 
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
+}
+
+// MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
+type MRCClient interface {
+	// List for now.. can add watch and others later
+
+	// AddEventHandler uses the same interface as the k8s ResourceEventHandler, but doesn't require any
+	// hard dependency on K8s. We *do* expect the same semantics as the k8s ResourceEventHandler.
+	AddEventHandler(cache.ResourceEventHandler)
+	List() ([]*v1alpha2.MeshRootCertificate, error)
+
+	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, error)
 }

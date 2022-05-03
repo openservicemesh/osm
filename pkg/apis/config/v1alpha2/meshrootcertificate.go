@@ -66,6 +66,9 @@ type VaultProviderSpec struct {
 	// Host specifies the name of the Vault server
 	Host string `json:"host"`
 
+	// Port specifies the port of the Vault server
+	Port int `json:"port"`
+
 	// Role specifies the name of the role for use by mesh control plane
 	Role string `json:"role"`
 
