@@ -442,6 +442,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
+	meshConfig.Spec.Sidecar.LocalProxyMode = instOpts.LocalProxyMode
 
 	meshConfig.Spec.Certificate.ServiceCertValidityDuration = instOpts.CertValidtyDuration.String()
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
