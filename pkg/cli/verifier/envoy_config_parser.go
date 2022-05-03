@@ -45,8 +45,8 @@ type Config struct {
 	// Listeners is an Envoy xDS proto.
 	Listeners adminv3.ListenersConfigDump
 
-	// SecretsConfigDump is an Envoy xDS proto.
-	SecretsConfigDump adminv3.SecretsConfigDump
+	// Secrets is an Envoy xDS proto.
+	Secrets adminv3.SecretsConfigDump
 
 	// ScopedRoutesConfigDump is an Envoy xDS proto.
 	ScopedRoutesConfigDump adminv3.ScopedRoutesConfigDump
@@ -118,7 +118,7 @@ func parseEnvoyConfig(jsonBytes []byte) (*Config, error) {
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.SecretsConfigDump":
-			if err := configDump.Configs[idx].UnmarshalTo(&cfg.SecretsConfigDump); err != nil {
+			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Secrets); err != nil {
 				return nil, errors.Errorf("error parsing SecretsConfigDump: %s", err)
 			}
 

@@ -42,6 +42,7 @@ func TestRun(t *testing.T) {
 								Name: constants.EnvoyContainerName,
 							},
 						},
+						ServiceAccountName: "curl",
 					},
 				},
 				&corev1.Pod{
@@ -55,6 +56,7 @@ func TestRun(t *testing.T) {
 								Name: constants.EnvoyContainerName,
 							},
 						},
+						ServiceAccountName: "httpbin",
 					},
 				},
 				&corev1.Namespace{
