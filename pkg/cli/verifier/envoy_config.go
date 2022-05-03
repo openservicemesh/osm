@@ -627,7 +627,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 	for _, secret := range secrets {
 		actualSecrets.Add(secret.Name)
 	}
-	if !expectedSecrets.IsSubset((actualSecrets)) {
+	if !expectedSecrets.IsSubset(actualSecrets) {
 		diff := expectedSecrets.Difference(actualSecrets)
 		return errors.Errorf("expected secrets %s not found", diff.String())
 	}
@@ -659,7 +659,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 	for _, secret := range secrets {
 		actualSecrets.Add(secret.Name)
 	}
-	if !expectedSecrets.IsSubset((actualSecrets)) {
+	if !expectedSecrets.IsSubset(actualSecrets) {
 		diff := expectedSecrets.Difference(actualSecrets)
 		return errors.Errorf("expected secrets %s not found", diff.String())
 	}
