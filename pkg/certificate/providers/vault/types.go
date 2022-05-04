@@ -3,6 +3,7 @@ package vault
 
 import (
 	"github.com/hashicorp/vault/api"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 

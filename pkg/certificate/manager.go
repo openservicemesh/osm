@@ -14,8 +14,9 @@ import (
 
 var errCertNotFound = errors.New("certificate not found")
 
-// NewManager creates a new CertManager with the passed CA and CA Private Key
+// NewManager creates a new CertManager
 func NewManager(
+	ca *Certificate,
 	certClient client,
 	serviceCertValidityDuration time.Duration,
 	msgBroker *messaging.Broker) (*Manager, error) {

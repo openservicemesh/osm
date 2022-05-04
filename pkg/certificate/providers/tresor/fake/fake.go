@@ -25,7 +25,7 @@ func NewFake(msgBroker *messaging.Broker) *certificate.Manager {
 	if err != nil {
 		return nil
 	}
-	tresorCertManager, err := certificate.NewManager(tresorClient, 1*time.Hour, msgBroker)
+	tresorCertManager, err := certificate.NewManager(ca, tresorClient, 1*time.Hour, msgBroker)
 	if err != nil {
 		return nil
 	}

@@ -35,7 +35,7 @@ func New(vaultAddr, token, role string) (*CertManager, error) {
 		return nil, err
 	}
 
-	vaultCert, err := c.GetRootCA()
+	vaultCert, err := c.getRootCA()
 	if err != nil {
 		return nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
 	}
@@ -88,8 +88,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
 }
 
-// GetRootCA returns the root certificate.
-func (cm *CertManager) GetRootCA() (*certificate.Certificate, error) {
+func (cm *CertManager) getRootCA() (*certificate.Certificate, error) {
 	// Create a temp certificate to determine the public part of the issuing CA
 	cert, err := cm.IssueCertificate("localhost", decade)
 	if err != nil {
