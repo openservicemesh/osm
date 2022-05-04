@@ -226,16 +226,16 @@ osm:
   enableReconciler: false
 
   # -- Deploy Prometheus with OSM installation
-  deployPrometheus: true
+  deployPrometheus: false
 
   # -- Deploy Grafana with OSM installation
-  deployGrafana: true #false
+  deployGrafana: false
 
   # -- Deploy Jaeger during OSM installation
-  deployJaeger: true
+  deployJaeger: false
 
   # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
-  enableFluentbit: true
+  enableFluentbit: false
 
   #
   # -- FluentBit parameters
