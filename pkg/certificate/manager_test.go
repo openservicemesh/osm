@@ -37,7 +37,6 @@ var _ = Describe("Test Certificate Manager", func() {
 
 	Context("Test Getting a certificate from the cache", func() {
 		m, newCertError := NewManager(
-			&Certificate{},
 			&fakeIssuer{},
 			validity,
 			nil)
@@ -63,7 +62,7 @@ func TestRotor(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(&Certificate{}, &fakeIssuer{}, validityPeriod, msgBroker)
+	certManager, err := NewManager(&fakeIssuer{}, validityPeriod, msgBroker)
 	certManager.Start(5*time.Second, stop)
 	assert.NoError(err)
 

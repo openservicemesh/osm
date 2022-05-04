@@ -30,7 +30,6 @@ func (i *fakeIssuer) GetRootCertificate() *Certificate {
 // FakeCertManager is a testing helper that returns a *certificate.Manager
 func FakeCertManager() (*Manager, error) {
 	cm, err := NewManager(
-		&Certificate{},
 		&fakeIssuer{},
 		validity,
 		nil,

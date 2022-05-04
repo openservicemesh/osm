@@ -242,7 +242,7 @@ func (c *Config) getTresorOSMCertificateManager() (*certificate.Manager, debugge
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
 	}
 
-	tresorCertManager, err := certificate.NewManager(rootCert, tresorClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	tresorCertManager, err := certificate.NewManager(tresorClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Tresor cert-manager : %w", err)
 	}
@@ -302,7 +302,7 @@ func (c *Config) getHashiVaultOSMCertificateManager(options VaultOptions) (*cert
 		return nil, nil, fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
 
-	certManager, err := certificate.NewManager(vaultClient.GetRootCertificate(), vaultClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	certManager, err := certificate.NewManager(vaultClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error instantiating osm certificate.Manager for Vault cert-manager : %w", err)
 	}
@@ -346,7 +346,7 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager client: %+v", err)
 	}
 
-	certManager, err := certificate.NewManager(rootCert, cmClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
+	certManager, err := certificate.NewManager(cmClient, c.cfg.GetServiceCertValidityPeriod(), c.msgBroker)
 	if err != nil {
 		return nil, nil, errors.Errorf("error instantiating osm certificate.Manager for Jetstack cert-manager : %+v", err)
 	}
