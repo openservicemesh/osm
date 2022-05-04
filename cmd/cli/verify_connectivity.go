@@ -30,6 +30,7 @@ var (
 	toPod       string
 	appProtocol string
 	dstService  string
+	egress      bool
 )
 
 type verifyConnectCmd struct {
@@ -81,14 +82,22 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 				return errors.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
 			verifyCmd.trafficAttr.SrcPod = &srcName
+
+			if toPod == "" && !egress {
+				return errors.New("one of --to-pod|--egress must be set for connectivity verification")
+			}
+			if toPod != "" && egress {
+				return errors.New("--to-pod cannot be set with --egress")
+			}
 			dstName, err := k8s.NamespacedNameFrom(toPod)
 			if err != nil {
-				return errors.Errorf("--to-pod pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+				return errors.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 			}
 			verifyCmd.trafficAttr.DstPod = &dstName
 
 			verifyCmd.trafficAttr.AppProtocol = appProtocol
 			verifyCmd.trafficAttr.DstService = &types.NamespacedName{Namespace: dstName.Namespace, Name: dstService}
+			verifyCmd.trafficAttr.Egress = egress
 
 			return verifyCmd.run()
 		},
@@ -100,9 +109,8 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("from-pod")
 	f.StringVar(&toPod, "to-pod", "", "Namespaced name of destination pod: <namespace>/<name>")
-	//nolint: errcheck
-	//#nosec G104: Errors unhandled
-	cmd.MarkFlagRequired("to-pod")
+	f.BoolVar(&egress, "egress", false, "For egress traffic")
+
 	f.StringVar(&dstService, "service", "", "Name of the destination service")
 	//nolint: errcheck
 	//#nosec G104: Errors unhandled
@@ -114,9 +122,21 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 }
 
 func (cmd *verifyConnectCmd) run() error {
-	podConnectivityVerifier := verifier.NewPodConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
-		cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
-	result := podConnectivityVerifier.Run()
+	var verify verifier.Verifier
+
+	switch {
+	// Pod-to-pod connectivity verifier
+	case cmd.trafficAttr.DstPod != nil:
+		verify = verifier.NewPodConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
+			cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
+
+	// Egress connectivity verifier
+	case cmd.trafficAttr.Egress:
+		verify = verifier.NewEgressConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
+			cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
+	}
+
+	result := verify.Run()
 
 	fmt.Fprintln(cmd.stdout, "---------------------------------------------")
 	verifier.Print(result, cmd.stdout, 1)

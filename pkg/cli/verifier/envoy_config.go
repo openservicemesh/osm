@@ -217,6 +217,11 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		}
 	}
 
+	// TODO(#4634): verify egress configs
+	// if v.configAttr.trafficAttr.Egress {
+	// 	// Verify egress configs
+	// }
+
 	result.Status = Success
 	return result
 }
