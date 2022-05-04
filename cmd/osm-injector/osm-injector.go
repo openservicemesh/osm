@@ -158,8 +158,11 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
+	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller config.openservicemesh.io")
+	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker, k8s.Namespaces)

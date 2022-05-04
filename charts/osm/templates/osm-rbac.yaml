@@ -41,7 +41,7 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["meshconfigs"]
+    resources: ["meshconfigs", "meshrootcertificates"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["config.openservicemesh.io"]
     resources: ["multiclusterservices"]

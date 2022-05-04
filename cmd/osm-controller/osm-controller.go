@@ -163,9 +163,11 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// This component will be watching the OSM MeshConfig and will make it available
-	// to the rest of the components.
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	// This component will be watching resources in the config.openservicemesh.io API group
+	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+	}
 
 	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker)
 	if err != nil {

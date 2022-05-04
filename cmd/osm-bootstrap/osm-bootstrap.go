@@ -173,8 +173,11 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
+	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
+	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+	}
 
 	// Intitialize certificate manager/provider
 	certManager, _, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
