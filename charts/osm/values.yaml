@@ -204,6 +204,9 @@ osm:
   # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 
+  # -- Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP']
+  localProxyMode: Localhost
+
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
 
@@ -258,6 +261,9 @@ osm:
   # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   inboundPortExclusionList: []
+
+  # -- Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy.
+  networkInterfaceExclusionList: []
 
   #
   # -- OSM's sidecar injector parameters

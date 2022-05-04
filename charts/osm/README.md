@@ -138,10 +138,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
 | osm.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | osm.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
+| osm.localProxyMode | string | `"Localhost"` | Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'] |
 | osm.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | osm.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
 | osm.multicluster | object | `{"gatewayLogLevel":"error"}` | OSM multicluster feature configuration |
 | osm.multicluster.gatewayLogLevel | string | `"error"` | Log level for the multicluster gateway |
+| osm.networkInterfaceExclusionList | list | `[]` | Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy. |
 | osm.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
 | osm.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
 | osm.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"128M"},"requests":{"cpu":"0.3","memory":"128M"}}` | OSM bootstrap's container resource parameters |

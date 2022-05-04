@@ -328,13 +328,21 @@ nodeRegistration:
 	return nil
 }
 
+// WithLocalProxyMode sets the LocalProxyMode for OSM
+func WithLocalProxyMode(mode configv1alpha2.LocalProxyMode) InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.LocalProxyMode = mode
+	}
+}
+
 // GetOSMInstallOpts initializes install options for OSM
-func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
+func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpts {
 	enablePrivilegedInitContainer := false
 	if td.DeployOnOpenShift {
 		enablePrivilegedInitContainer = true
 	}
-	return InstallOSMOpts{
+
+	baseOpts := InstallOSMOpts{
 		ControlPlaneNS:          td.OsmNamespace,
 		CertManager:             defaultCertManager,
 		ContainerRegistryLoc:    td.CtrRegistryServer,
@@ -364,6 +372,12 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
 	}
+
+	for _, opt := range options {
+		opt(&baseOpts)
+	}
+
+	return baseOpts
 }
 
 // LoadImagesToKind loads the list of images to the node for Kind clusters
@@ -415,7 +429,7 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	return nil
 }
 
-func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.MeshConfig) (defaultConfig *configv1alpha2.MeshConfig) {
+func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.MeshConfig) *configv1alpha2.MeshConfig {
 	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
 	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
 	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
@@ -428,6 +442,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
+	meshConfig.Spec.Sidecar.LocalProxyMode = instOpts.LocalProxyMode
 
 	meshConfig.Spec.Certificate.ServiceCertValidityDuration = instOpts.CertValidtyDuration.String()
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
@@ -490,6 +505,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
 	)
+
+	if instOpts.LocalProxyMode != "" {
+		instOpts.SetOverrides = append(instOpts.SetOverrides, fmt.Sprintf("osm.localProxyMode=%s", instOpts.LocalProxyMode))
+	}
 
 	switch instOpts.CertManager {
 	case "vault":
@@ -745,7 +764,7 @@ tail /dev/random;
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/v1/sys/health",
 										Port:   intstr.FromInt(8200),
