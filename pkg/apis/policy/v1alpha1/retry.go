@@ -62,7 +62,7 @@ type RetryPolicySpec struct {
 
 	// RetryBackoffBaseInterval defines the base interval for exponential retry backoff.
 	// +optional
-	RetryBackoffBaseInterval *metav1.Duration `json:"retryBackoffInterval"`
+	RetryBackoffBaseInterval *metav1.Duration `json:"retryBackoffBaseInterval"`
 }
 
 // RetryList defines the list of Retry objects.
