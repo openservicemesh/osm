@@ -42,7 +42,7 @@ func NewEgressConnectivityVerifier(stdout io.Writer, stderr io.Writer, restConfi
 
 // Run executes the pod connectivity verifier
 func (v *EgressConnectivityVerifier) Run() Result {
-	ctx := fmt.Sprintf("Verify if pod %q can access external service %q", v.trafficAttr.SrcPod, v.trafficAttr.DstService)
+	ctx := fmt.Sprintf("Verify if pod %q can access external service on port %d", v.trafficAttr.SrcPod, v.trafficAttr.ExternalPort)
 
 	verifiers := Set{
 		//

@@ -17,11 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-const (
-	egressHTTPFilterChainPrefix = "egress-http"
-	egressTCPFilterChainPrefix  = "egress-tcp"
-)
-
 var (
 	// httpProtocols is the list of allowed HTTP protocols that the downstream can use in
 	// an HTTP request that will be subjected to HTTP routing rules.
@@ -38,7 +33,7 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 		switch match.DestinationProtocol {
 		case constants.ProtocolHTTP:
 			// HTTP protocol --> HTTPConnectionManager filter
-			if filterChain, err := lb.getEgressHTTPFilterChain(match.DestinationPort); err != nil {
+			if filterChain, err := lb.getEgressHTTPFilterChain(*match); err != nil {
 				log.Error().Err(err).Msgf("Error building egress HTTP filter chain for port [%d]", match.DestinationPort)
 			} else {
 				filterChains = append(filterChains, filterChain)
@@ -57,20 +52,19 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 	return filterChains
 }
 
-func (lb *listenerBuilder) getEgressHTTPFilterChain(destinationPort int) (*xds_listener.FilterChain, error) {
-	filter, err := lb.getOutboundHTTPFilter(route.GetEgressRouteConfigNameForPort(destinationPort))
+func (lb *listenerBuilder) getEgressHTTPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+	filter, err := lb.getOutboundHTTPFilter(route.GetEgressRouteConfigNameForPort(match.DestinationPort))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building HTTP filter chain for destination port [%d]", destinationPort)
+		log.Error().Err(err).Msgf("Error building HTTP filter chain for destination port [%d]", match.DestinationPort)
 		return nil, err
 	}
 
-	filterChainName := fmt.Sprintf("%s.%d", egressHTTPFilterChainPrefix, destinationPort)
 	return &xds_listener.FilterChain{
-		Name:    filterChainName,
+		Name:    match.Name,
 		Filters: []*xds_listener.Filter{filter},
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: uint32(destinationPort),
+				Value: uint32(match.DestinationPort),
 			},
 			ApplicationProtocols: httpProtocols,
 		},
@@ -107,7 +101,7 @@ func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMa
 	}
 
 	return &xds_listener.FilterChain{
-		Name:    fmt.Sprintf("%s.%d", egressTCPFilterChainPrefix, match.DestinationPort),
+		Name:    match.Name,
 		Filters: []*xds_listener.Filter{tcpFilter},
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			DestinationPort: &wrapperspb.UInt32Value{
