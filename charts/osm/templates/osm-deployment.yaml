@@ -27,6 +27,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
+      {{- if .Values.osm.osmController.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.osmController.affinity | nindent 8 }}
+      {{- end }}
       priorityClassName: system-node-critical
       serviceAccountName: {{ .Release.Name }}
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
@@ -153,10 +157,6 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-      {{- if .Values.osm.osmController.affinity }}
-      affinity:
-      {{- toYaml .Values.osm.osmController.affinity | nindent 8 }}
-      {{- end }}
       {{- if .Values.osm.osmController.nodeSelector }}
       nodeSelector:
       {{- toYaml .Values.osm.osmController.nodeSelector | nindent 8 }}
