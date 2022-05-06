@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
@@ -537,7 +535,6 @@ func TestUninstallClusterWideResources(t *testing.T) {
 		},
 	}
 
-	RegisterFailHandler(ginkgo.Fail)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
@@ -557,7 +554,7 @@ func TestUninstallClusterWideResources(t *testing.T) {
 
 			rel := release.Mock(&release.MockReleaseOptions{Name: testMeshName})
 			err := store.Create(rel)
-			Expect(err).To(BeNil())
+			assert.Nil(err)
 
 			testConfig := &helm.Configuration{
 				Releases: store,
@@ -569,7 +566,7 @@ func TestUninstallClusterWideResources(t *testing.T) {
 
 			fakeClientSet := fake.NewSimpleClientset(existingKubeClientsetObjects...)
 			_, err = addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
-			Expect(err).NotTo(HaveOccurred())
+			assert.Nil(err)
 
 			uninstall := uninstallMeshCmd{
 				in:                 in,
