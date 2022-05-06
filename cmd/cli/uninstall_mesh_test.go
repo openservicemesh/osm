@@ -134,7 +134,6 @@ func TestUninstallCmd(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		RegisterFailHandler(ginkgo.Fail)
 		t.Run(test.name, func(t *testing.T) {
 			assert := tassert.New(t)
 			out := new(bytes.Buffer)

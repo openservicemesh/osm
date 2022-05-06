@@ -94,7 +94,7 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.StringVar(&uninstall.meshName, "mesh-name", "", "Name of the service mesh")
 	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.")
 	f.BoolVarP(&uninstall.deleteClusterWideResources, "delete-cluster-wide-resources", "a", false, "Cluster wide resources (such as osm CRDs, mutating webhook configurations, validating webhook configurations and osm secrets) are fully deleted from the cluster after control plane components are deleted.")
 	f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
@@ -118,9 +118,9 @@ func (d *uninstallMeshCmd) run() error {
 			fmt.Fprintf(d.out, "No OSM control planes found\n")
 			return nil
 		}
-		specifiedMeshFound := false
 		// Searches for the mesh specified by the mesh-name flag if specified
-		if d.meshName != defaultMeshName {
+		specifiedMeshFound := false
+		if d.meshName != "" {
 			specifiedMeshFound = d.findMesh(meshInfoList)
 			if !specifiedMeshFound {
 				return nil
@@ -174,6 +174,8 @@ func (d *uninstallMeshCmd) run() error {
 				if !d.deleteClusterWideResources && !d.deleteNamespace {
 					return err
 				}
+
+				fmt.Fprintf(d.out, "Error %v when trying to uninstall mesh name [%s] in namespace [%s] - continuing to deleteClusterWideResources and/or deleteNamespace\n", err, m.name, m.namespace)
 			}
 
 			if err == nil {
