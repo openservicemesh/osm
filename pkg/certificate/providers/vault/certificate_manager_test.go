@@ -102,7 +102,7 @@ func TestNew(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			tassert := assert.New(t)
-			_, err := New(tc.vaultaddr, tc.token, tc.role)
+			_, err := newClient(tc.vaultaddr, tc.token, tc.role)
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
 			} else {
@@ -118,7 +118,7 @@ func TestIssueCertificate(t *testing.T) {
 
 	token, addr := mockVault(t)
 
-	cm, err := New(addr, token, vaultRole)
+	cm, err := newClient(addr, token, vaultRole)
 	if err != nil {
 		t.Fatalf("did not expect error, got %v", err)
 	}
