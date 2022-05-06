@@ -3,7 +3,6 @@ package route
 import (
 	"fmt"
 	"sort"
-	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -289,6 +288,7 @@ func buildWeightedCluster(weightedClusters mapset.Set) *xds_route.WeightedCluste
 }
 
 // TODO: Add validation webhook for retry policy
+// Remove checks when validation webhook is implemented
 func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	if retry == nil {
 		return nil
@@ -297,28 +297,25 @@ func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	rp := &xds_route.RetryPolicy{}
 
 	rp.RetryOn = retry.RetryOn
-	rp.NumRetries = &wrapperspb.UInt32Value{
-		Value: uint32(retry.NumRetries),
+	// NumRetries default is set to 1
+	if retry.NumRetries != nil {
+		rp.NumRetries = wrapperspb.UInt32(*retry.NumRetries)
 	}
-	rp.PerTryTimeout = timeToDuration(retry.PerTryTimeout)
-	rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
-		BaseInterval: timeToDuration(retry.RetryBackoffBaseInterval),
+
+	// PerTryTimeout default uses the global route timeout
+	// Disabling route config timeout does not affect perTryTimeout
+	if retry.PerTryTimeout != nil {
+		rp.PerTryTimeout = durationpb.New(retry.PerTryTimeout.Duration)
+	}
+
+	// RetryBackOff default base interval is 25 ms
+	if retry.RetryBackoffBaseInterval != nil {
+		rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
+			BaseInterval: durationpb.New(retry.RetryBackoffBaseInterval.Duration),
+		}
 	}
 
 	return rp
-}
-
-func timeToDuration(timeStr string) *durationpb.Duration {
-	if timeStr == "" {
-		return nil
-	}
-
-	duration, err := time.ParseDuration(timeStr)
-	if err != nil {
-		log.Error().Msgf("Error parsing time: %s", timeStr)
-		return nil
-	}
-	return durationpb.New(duration)
 }
 
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
