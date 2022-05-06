@@ -1,6 +1,9 @@
 package trafficpolicy
 
 import (
+	"fmt"
+	"strings"
+
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 )
 
@@ -68,4 +71,11 @@ type EgressHTTPRoutingRule struct {
 
 	// AllowedDestinationIPRanges defines the destination IP ranges allowed for the `Route` defined in the routing rule.
 	AllowedDestinationIPRanges []string
+}
+
+// GetEgressTrafficMatchName returns the name for the TrafficMatch object based on
+// its port and protocol
+func GetEgressTrafficMatchName(port int, protocol string) string {
+	protocol = strings.ToLower(protocol)
+	return fmt.Sprintf("egress-%s.%d", protocol, port)
 }

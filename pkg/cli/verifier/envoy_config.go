@@ -19,6 +19,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
@@ -48,11 +49,11 @@ func (t configAttribute) String() string {
 	if t.trafficAttr.DstService != nil {
 		fmt.Fprintf(&s, "\tdestination service: %s\n", t.trafficAttr.DstService)
 	}
-	if t.trafficAttr.DstHost != "" {
-		fmt.Fprintf(&s, "\tdestination host: %s\n", t.trafficAttr.DstHost)
+	if t.trafficAttr.ExternalHost != "" {
+		fmt.Fprintf(&s, "\texternal host: %s\n", t.trafficAttr.ExternalHost)
 	}
-	if t.trafficAttr.DstPort != 0 {
-		fmt.Fprintf(&s, "\tdestination port: %d\n", t.trafficAttr.DstPort)
+	if t.trafficAttr.ExternalPort != 0 {
+		fmt.Fprintf(&s, "\texternal port: %d\n", t.trafficAttr.ExternalPort)
 	}
 	fmt.Fprintf(&s, "\tdestination protocol: %s\n", t.trafficAttr.AppProtocol)
 
@@ -217,10 +218,19 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		}
 	}
 
-	// TODO(#4634): verify egress configs
-	// if v.configAttr.trafficAttr.Egress {
-	// 	// Verify egress configs
-	// }
+	if v.configAttr.trafficAttr.ExternalPort != 0 {
+		if err := v.findEgressFilterChain(outboundListener.FilterChains); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching filter chain: %s", err)
+			return result
+		}
+
+		if err := v.findEgressHTTPRoute(routeConfigs); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find outbound route configuration: %s", err)
+			return result
+		}
+	}
 
 	result.Status = Success
 	return result
@@ -314,7 +324,7 @@ func getFilterForProtocol(protocol string) string {
 	case constants.ProtocolHTTP:
 		return wellknown.HTTPConnectionManager
 
-	case constants.ProtocolTCP:
+	case constants.ProtocolTCP, constants.ProtocolHTTPS:
 		return wellknown.TCPProxy
 
 	default:
@@ -667,6 +677,83 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 	if !expectedSecrets.IsSubset(actualSecrets) {
 		diff := expectedSecrets.Difference(actualSecrets)
 		return errors.Errorf("expected secrets %s not found", diff.String())
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressFilterChain(filterChains []*xds_listener.FilterChain) error {
+	port := int(v.configAttr.trafficAttr.ExternalPort)
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	matchName := trafficpolicy.GetEgressTrafficMatchName(port, protocol)
+
+	var filterChain *xds_listener.FilterChain
+	for _, fc := range filterChains {
+		if fc.Name == matchName {
+			filterChain = fc
+			break
+		}
+	}
+	if filterChain == nil {
+		return errors.Errorf("filter chain not found for for port=%d, protocol=%s", port, protocol)
+	}
+
+	// Verify the app protocol filter is present
+	filterName := getFilterForProtocol(protocol)
+	if filterName == "" {
+		return errors.Errorf("unsupported protocol %s", protocol)
+	}
+	filterFound := false
+	for _, filter := range filterChain.Filters {
+		if filter.Name == filterName {
+			filterFound = true
+			break
+		}
+	}
+	if !filterFound {
+		return errors.Errorf("filter %s not found", filterName)
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.RouteConfiguration) error {
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	if protocol != constants.ProtocolHTTP {
+		return nil
+	}
+
+	port := int(v.configAttr.trafficAttr.ExternalPort)
+	desiredRouteConfigName := route.GetEgressRouteConfigNameForPort(port)
+
+	var config *xds_route.RouteConfiguration
+	for _, c := range routeConfigs {
+		if c.Name == desiredRouteConfigName {
+			config = c
+			break
+		}
+	}
+	if config == nil {
+		return errors.Errorf("route configuration %s not found", desiredRouteConfigName)
+	}
+
+	dstHost := v.configAttr.trafficAttr.ExternalHost
+	if dstHost == "" {
+		return nil
+	}
+
+	var virtualHost *xds_route.VirtualHost
+	for _, vh := range config.VirtualHosts {
+		for _, domain := range vh.Domains {
+			if domain == dstHost {
+				virtualHost = vh
+				break
+			}
+		}
+	}
+
+	if virtualHost == nil {
+		return errors.Errorf("virtual host for domain %s not found", dstHost)
 	}
 
 	return nil
