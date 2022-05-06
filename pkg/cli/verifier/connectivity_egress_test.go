@@ -42,20 +42,6 @@ func TestEgressRun(t *testing.T) {
 						ServiceAccountName: "curl",
 					},
 				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "httpbin1",
-						Namespace: "httpbin",
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name: constants.EnvoyContainerName,
-							},
-						},
-						ServiceAccountName: "httpbin",
-					},
-				},
 				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "curl",
@@ -95,20 +81,6 @@ func TestEgressRun(t *testing.T) {
 						ServiceAccountName: "curl",
 					},
 				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "httpbin1",
-						Namespace: "httpbin",
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name: constants.EnvoyContainerName,
-							},
-						},
-						ServiceAccountName: "httpbin",
-					},
-				},
 				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "curl",
@@ -146,20 +118,6 @@ func TestEgressRun(t *testing.T) {
 							},
 						},
 						ServiceAccountName: "curl",
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "httpbin1",
-						Namespace: "httpbin",
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name: constants.EnvoyContainerName,
-							},
-						},
-						ServiceAccountName: "httpbin",
 					},
 				},
 				&corev1.Namespace{
