@@ -95,7 +95,7 @@ func TestGetServiceFromHostname(t *testing.T) {
 
 			for _, hostname := range tc.hostnames {
 				actual := GetServiceFromHostname(hostname)
-				assert.Equal(actual, tc.expectedService)
+				assert.Equal(tc.expectedService, actual)
 			}
 		})
 	}
@@ -182,6 +182,52 @@ func TestNamespacedNameFrom(t *testing.T) {
 			actual, err := NamespacedNameFrom(tc.in)
 			assert.Equal(tc.out, actual)
 			assert.Equal(tc.expectErr, err != nil)
+		})
+	}
+}
+
+func TestGetSubdomainFromHostname(t *testing.T) {
+	testCases := []struct {
+		name              string
+		hostnames         []string
+		expectedSubdomain string
+	}{
+		{
+			name: "gets the subdomain from hostname (subdomain=my-subdomain)",
+			hostnames: []string{
+				fmt.Sprintf("my-subdomain.%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("my-subdomain.%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("my-subdomain.%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("my-subdomain.%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("my-subdomain.%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("my-subdomain.%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			expectedSubdomain: "my-subdomain",
+		},
+		{
+			name: "gets the subdomain from hostname (empty subdomain)",
+			hostnames: []string{
+				tests.BookbuyerServiceName,
+				fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			expectedSubdomain: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			for _, hostname := range tc.hostnames {
+				actual := GetSubdomainFromHostname(hostname)
+				assert.Equal(tc.expectedSubdomain, actual, "Hostname: %s", hostname)
+			}
 		})
 	}
 }

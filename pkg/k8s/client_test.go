@@ -186,6 +186,17 @@ func TestGetService(t *testing.T) {
 			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
 			expected: false,
 		},
+		{
+			name: "gets the headless service from the cache from a subdomained MeshService",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo-headless",
+					Namespace: "ns1",
+				},
+			},
+			svc:      service.MeshService{Name: "foo-0.foo-headless", Namespace: "ns1"},
+			expected: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -750,6 +761,61 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			},
 		},
 		{
+			name: "k8s headless service with single port and endpoint, no appProtocol set",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should default
+			// to http.
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "p1",
+							Port: 80,
+						},
+					},
+					ClusterIP: corev1.ClusterIPNone,
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP:       "10.1.0.1",
+									Hostname: "pod-0",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+			},
+		},
+		{
 			name: "multiple ports on k8s service with appProtocol specified",
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -810,6 +876,79 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 				{
 					Namespace:  "ns1",
 					Name:       "s1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "tcp",
+				},
+			},
+		},
+		{
+			name: "multiple ports on k8s headless service with appProtocol specified",
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: corev1.ClusterIPNone,
+					Ports: []corev1.ServicePort{
+						{
+							Name:        "p1",
+							Port:        80,
+							AppProtocol: pointer.StringPtr("http"),
+						},
+						{
+							Name:        "p2",
+							Port:        90,
+							AppProtocol: pointer.StringPtr("tcp"),
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP:       "10.1.0.1",
+									Hostname: "pod-0",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Name:        "p1",
+									Port:        8080, // TargetPort
+									AppProtocol: pointer.StringPtr("http"),
+								},
+								{
+									// Must match the port of 'svc.Spec.Ports[1]'
+									Name:        "p2",
+									Port:        9090, // TargetPort
+									AppProtocol: pointer.StringPtr("tcp"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
 					Port:       90,
 					TargetPort: 9090,
 					Protocol:   "tcp",

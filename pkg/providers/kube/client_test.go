@@ -92,6 +92,50 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 		}))
 	})
 
+	It("should correctly filter endpoints for a headless service pod endpoint", func() {
+		subdomainedSvc := service.MeshService{
+			Name:       "subdomain-0.test",
+			Namespace:  "default",
+			TargetPort: 90,
+		}
+		// Should be empty for now
+		mockKubeController.EXPECT().GetEndpoints(subdomainedSvc).Return(&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: subdomainedSvc.Namespace,
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP:       "1.1.1.1",
+							Hostname: "subdomain-0",
+						},
+						{
+							IP:       "8.8.8.8",
+							Hostname: "subdomain-1",
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Port: int32(subdomainedSvc.TargetPort), // Must match subdomainedSvc.TargetPort
+						},
+						{
+							Port: 8888, // Does not match subdomainedSvc.TargetPort, should be ignored
+						},
+					},
+				},
+			},
+		}, nil)
+		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
+
+		Expect(c.ListEndpointsForService(subdomainedSvc)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(1, 1, 1, 1),
+				Port: endpoint.Port(subdomainedSvc.TargetPort),
+			},
+		}))
+	})
+
 	It("should not filter the endpoints of a MeshService whose TargetPort is not known", func() {
 		svc := service.MeshService{
 			Name:      "test",

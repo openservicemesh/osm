@@ -9,11 +9,34 @@ import (
 func TestServerName(t *testing.T) {
 	assert := tassert.New(t)
 
-	namespacedService := MeshService{
-		Namespace: "namespace-here",
-		Name:      "service-name-here",
+	testCases := []struct {
+		name     string
+		service  MeshService
+		expected string
+	}{
+		{
+			name: "no subdomain",
+			service: MeshService{
+				Namespace: "namespace-here",
+				Name:      "service-name-here",
+			},
+			expected: "service-name-here.namespace-here.svc.cluster.local",
+		},
+		{
+			name: "subdomain",
+			service: MeshService{
+				Namespace: "namespace-here",
+				Name:      "subdomain-0.service-name-here",
+			},
+			expected: "subdomain-0.service-name-here.namespace-here.svc.cluster.local",
+		},
 	}
-	assert.Equal("service-name-here.namespace-here.svc.cluster.local", namespacedService.ServerName())
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(tt.expected, tt.service.ServerName())
+		})
+	}
 }
 
 func TestEquals(t *testing.T) {
@@ -47,13 +70,27 @@ func TestEquals(t *testing.T) {
 			},
 			isEqual: false,
 		},
+		{
+			name: "works even when unexported fields aren't initialized",
+			service: MeshService{
+				Namespace: "default",
+				Name:      "bookbuyer",
+			},
+			anotherService: MeshService{
+				Namespace: "default",
+				Name:      "bookbuyer",
+			},
+			isEqual: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := tc.service.Equals(tc.anotherService)
+			tc.service.Subdomain()                         // sets service.subdomain and subdomainPopulated (both unexported)
+			tc.anotherService.ProviderKey()                // sets service.providerKey (unexported)
+			actual := tc.service.Equals(tc.anotherService) // These should still be equal
 			assert.Equal(actual, tc.isEqual)
 		})
 	}
