@@ -33,7 +33,7 @@ The command will not delete:
 (1) the namespace the mesh was installed in unless specified via the
 --delete-namespace flag.
 (2) the cluster-wide resources (i.e. CRDs, mutating and validating webhooks and
-secrets) unless specified via via the --delete-cluster-wide-resources (or -a) flag
+secrets) unless specified via the --delete-cluster-wide-resources (or -a) flag
 
 Be careful when using this command as it is destructive and will
 disrupt traffic to applications left running with sidecar proxies.
@@ -53,6 +53,7 @@ type uninstallMeshCmd struct {
 	localPort                  uint16
 	deleteClusterWideResources bool
 	extensionsClientset        extensionsClientset.Interface
+	actionConfig               *action.Configuration
 }
 
 func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
@@ -67,6 +68,7 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 		Long:  uninstallMeshDescription,
 		Args:  cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, args []string) error {
+			uninstall.actionConfig = config
 			uninstall.client = action.NewUninstall(config)
 
 			// get kubeconfig and initialize k8s client
@@ -92,7 +94,7 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.StringVar(&uninstall.meshName, "mesh-name", "", "Name of the service mesh")
 	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.")
 	f.BoolVarP(&uninstall.deleteClusterWideResources, "delete-cluster-wide-resources", "a", false, "Cluster wide resources (such as osm CRDs, mutating webhook configurations, validating webhook configurations and osm secrets) are fully deleted from the cluster after control plane components are deleted.")
 	f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
@@ -105,92 +107,142 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 func (d *uninstallMeshCmd) run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	meshesToUninstall := []meshInfo{}
 
 	if !settings.IsManaged() {
-		if !d.force {
-			// print a list of meshes within the cluster for a better user experience
-			fmt.Fprintf(d.out, "\nList of meshes present in the cluster:\n")
-
-			listCmd := &meshListCmd{
-				out:       d.out,
-				config:    d.config,
-				clientSet: d.clientSet,
-				localPort: d.localPort,
+		meshInfoList, err := getMeshInfoList(d.config, d.clientSet)
+		if err != nil {
+			return errors.Wrapf(err, "unable to list meshes within the cluster")
+		}
+		if len(meshInfoList) == 0 {
+			fmt.Fprintf(d.out, "No OSM control planes found\n")
+			return nil
+		}
+		// Searches for the mesh specified by the mesh-name flag if specified
+		specifiedMeshFound := false
+		if d.meshName != "" {
+			specifiedMeshFound = d.findMesh(meshInfoList)
+			if !specifiedMeshFound {
+				return nil
 			}
+		}
 
-			err := listCmd.run()
+		// Adds the mesh to be force uninstalled
+		if d.force {
+			// For force uninstall, if single mesh in cluster, set default to that mesh
+			if len(meshInfoList) == 1 {
+				d.meshName = meshInfoList[0].name
+				d.meshNamespace = meshInfoList[0].namespace
+			}
+			forceMesh := meshInfo{name: d.meshName, namespace: d.meshNamespace}
+			meshesToUninstall = append(meshesToUninstall, forceMesh)
+		} else {
+			// print a list of meshes within the cluster for a better user experience
+			err := d.printMeshes()
+			if err != nil {
+				return err
+			}
+			// Prompts user on whether to uninstall each OSM mesh in the cluster
+			for _, mesh := range meshInfoList {
+				// Only prompt for specified mesh if `mesh-name` is specified
+				if specifiedMeshFound && mesh.name != d.meshName {
+					continue
+				}
+				confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources?", mesh.name, mesh.namespace), 3)
+				if err != nil {
+					return err
+				}
+				if confirm {
+					meshesToUninstall = append(meshesToUninstall, mesh)
+				}
+			}
+		}
 
-			// Unable to list meshes in the cluster
+		for _, m := range meshesToUninstall {
+			// Re-initializes uninstall config with the namespace of the mesh to be uninstalled
+			err := d.actionConfig.Init(settings.RESTClientGetter(), m.namespace, "secret", debug)
 			if err != nil {
 				return err
 			}
 
-			confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources ?", d.meshName, d.meshNamespace), 3)
-			if !confirm || err != nil {
-				return err
+			_, err = d.client.Run(m.name)
+			if err != nil {
+				if errors.Cause(err) == helmStorage.ErrReleaseNotFound {
+					fmt.Fprintf(d.out, "No OSM control plane with mesh name [%s] found in namespace [%s]\n", m.name, m.namespace)
+				}
+
+				if !d.deleteClusterWideResources && !d.deleteNamespace {
+					return err
+				}
+
+				fmt.Fprintf(d.out, "Error %v when trying to uninstall mesh name [%s] in namespace [%s] - continuing to deleteClusterWideResources and/or deleteNamespace\n", err, m.name, m.namespace)
 			}
-		}
 
-		_, err := d.client.Run(d.meshName)
-		if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound {
-			fmt.Fprintf(d.out, "No OSM control plane with mesh name [%s] found in namespace [%s]\n", d.meshName, d.meshNamespace)
-
-			if !d.deleteClusterWideResources && !d.deleteNamespace {
-				return err
+			if err == nil {
+				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
-		}
 
-		if err == nil {
-			fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", d.meshName, d.meshNamespace)
+			if d.deleteNamespace {
+				if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, m.namespace, v1.DeleteOptions{}); err != nil {
+					if k8sApiErrors.IsNotFound(err) {
+						fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", m.namespace)
+						return nil
+					}
+					return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", m.namespace, err)
+				}
+				fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", m.namespace)
+			}
 		}
 	} else {
-		fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] CANNOT be uninstalled in a managed environment\n", d.meshName, d.meshNamespace)
+		fmt.Fprintf(d.out, "OSM CANNOT be uninstalled in a managed environment\n")
+		if d.deleteNamespace {
+			fmt.Fprintf(d.out, "OSM namespace CANNOT be deleted in a managed environment\n")
+		}
 	}
-
 	if d.deleteClusterWideResources {
-		var failedDeletions []string
-
-		err := d.uninstallCustomResourceDefinitions()
+		meshInfoList, err := getMeshInfoList(d.config, d.clientSet)
 		if err != nil {
-			failedDeletions = append(failedDeletions, "CustomResourceDefinitions")
+			return errors.Wrapf(err, "unable to list meshes within the cluster")
+		}
+		if len(meshInfoList) != 0 {
+			fmt.Fprintf(d.out, "Deleting cluster resources will affect current mesh(es) in cluster:\n")
+			for _, m := range meshInfoList {
+				fmt.Fprintf(d.out, "[%s] mesh in namespace [%s]\n", m.name, m.namespace)
+			}
 		}
 
-		err = d.uninstallMutatingWebhookConfigurations()
-		if err != nil {
-			failedDeletions = append(failedDeletions, "MutatingWebhookConfigurations")
-		}
-
-		err = d.uninstallValidatingWebhookConfigurations()
-		if err != nil {
-			failedDeletions = append(failedDeletions, "ValidatingWebhookConfigurations")
-		}
-
-		err = d.uninstallSecrets()
-		if err != nil {
-			failedDeletions = append(failedDeletions, "Secrets")
-		}
-
+		failedDeletions := d.uninstallClusterResources()
 		if len(failedDeletions) != 0 {
 			return errors.Errorf("Failed to completely delete the following OSM resource types: %+v", failedDeletions)
 		}
 	}
 
-	if d.deleteNamespace {
-		if !settings.IsManaged() {
-			if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, d.meshNamespace, v1.DeleteOptions{}); err != nil {
-				if k8sApiErrors.IsNotFound(err) {
-					fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", d.meshNamespace)
-					return nil
-				}
-				return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", d.meshNamespace, err)
-			}
-			fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", d.meshNamespace)
-		} else {
-			fmt.Fprintf(d.out, "OSM namespace [%s] CANNOT be deleted in a managed environment\n", d.meshNamespace)
-		}
+	return nil
+}
+
+// uninstallClusterResources uninstalls all osm and smi-related cluster resources
+func (d *uninstallMeshCmd) uninstallClusterResources() []string {
+	var failedDeletions []string
+	err := d.uninstallCustomResourceDefinitions()
+	if err != nil {
+		failedDeletions = append(failedDeletions, "CustomResourceDefinitions")
 	}
 
-	return nil
+	err = d.uninstallMutatingWebhookConfigurations()
+	if err != nil {
+		failedDeletions = append(failedDeletions, "MutatingWebhookConfigurations")
+	}
+
+	err = d.uninstallValidatingWebhookConfigurations()
+	if err != nil {
+		failedDeletions = append(failedDeletions, "ValidatingWebhookConfigurations")
+	}
+
+	err = d.uninstallSecrets()
+	if err != nil {
+		failedDeletions = append(failedDeletions, "Secrets")
+	}
+	return failedDeletions
 }
 
 // uninstallCustomResourceDefinitions uninstalls osm and smi-related crds from the cluster.
@@ -358,5 +410,46 @@ func (d *uninstallMeshCmd) uninstallSecrets() error {
 		return errors.Errorf("Found but failed to delete the following OSM secrets in namespace %s: %+v", d.meshNamespace, failedDeletions)
 	}
 
+	return nil
+}
+
+// findMesh looks for specified `mesh-name` mesh from the meshes in the cluster
+func (d *uninstallMeshCmd) findMesh(meshInfoList []meshInfo) bool {
+	found := false
+	for _, m := range meshInfoList {
+		if m.name == d.meshName {
+			found = true
+			break
+		}
+	}
+	if found {
+		return true
+	}
+
+	fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
+	// print a list of meshes within the cluster for a better user experience
+	err := d.printMeshes()
+	if err != nil {
+		fmt.Fprintf(d.out, "Unable to list meshes in the cluster - [%v]", err)
+	}
+	return false
+}
+
+// printMeshes prints list of meshes within the cluster for a better user experience
+func (d *uninstallMeshCmd) printMeshes() error {
+	fmt.Fprintf(d.out, "List of meshes present in the cluster:\n")
+
+	listCmd := &meshListCmd{
+		out:       d.out,
+		config:    d.config,
+		clientSet: d.clientSet,
+		localPort: d.localPort,
+	}
+
+	err := listCmd.run()
+	// Unable to list meshes in the cluster
+	if err != nil {
+		return err
+	}
 	return nil
 }
