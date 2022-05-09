@@ -55,7 +55,7 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	cmd := &cobra.Command{
 		Use:   "ingress",
 		Short: "verify ingress connectivity between an ingress service and a destination",
-		Long:  verifyConnectivityDescription,
+		Long:  verifyIngressDescription,
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
@@ -123,6 +123,8 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("to-service")
 	f.StringVar(&ingressBackend, "ingress-backend", "", "Name of ingress backend")
+	//nolint: errcheck
+	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("ingress-backend")
 	f.Uint16Var(&backendPort, "to-port", 0, "Target port the backend pod is listening on")
 	f.StringVar(&appProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
@@ -132,8 +134,7 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 }
 
 func (cmd *verifyIngressConnectCmd) run() error {
-	var v verifier.Verifier
-	v = verifier.NewIngressConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
+	v := verifier.NewIngressConnectivityVerifier(cmd.stdout, cmd.stderr, cmd.restConfig,
 		cmd.kubeClient, cmd.policyClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
 	result := v.Run()
 

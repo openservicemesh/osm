@@ -21,7 +21,7 @@ type SidecarVerifier struct {
 	verifyAbsence bool
 }
 
-// SidecarVerifierOpts exposes a way to modify the behavior of the sidecar verifier without modifying the base contract
+// SidecarVerifierOpt exposes a way to modify the behavior of the sidecar verifier without modifying the base contract
 type SidecarVerifierOpt func(*SidecarVerifier)
 
 // NewSidecarVerifier returns a Verifier for Envoy sidecar verification
@@ -83,6 +83,7 @@ func (v *SidecarVerifier) Run() Result {
 	return result
 }
 
+// WithVerifyAbsence sets verifyAbsence to true
 func WithVerifyAbsence() SidecarVerifierOpt {
 	return func(sv *SidecarVerifier) {
 		sv.verifyAbsence = true

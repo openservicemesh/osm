@@ -11,6 +11,7 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
+// IngressBackendVerifier implements the Verifier interface for ingressbackend verification
 type IngressBackendVerifier struct {
 	stdout          io.Writer
 	stderr          io.Writer
@@ -20,6 +21,7 @@ type IngressBackendVerifier struct {
 	backendProtocol string
 }
 
+// NewIngressBackendVerifier creates a new IngressBackendVerifier
 func NewIngressBackendVerifier(stdout io.Writer, stderr io.Writer, policyClient policyClientset.Interface, backendProtocol string, ingressBackend, ingressService types.NamespacedName) Verifier {
 	return &IngressBackendVerifier{
 		stdout:          stdout,
@@ -31,6 +33,7 @@ func NewIngressBackendVerifier(stdout io.Writer, stderr io.Writer, policyClient 
 	}
 }
 
+// Run runs the IngressBackend verifier
 func (v *IngressBackendVerifier) Run() Result {
 	result := Result{
 		Context: fmt.Sprintf("Verify IngressBackend %q", v.ingressBackend),
