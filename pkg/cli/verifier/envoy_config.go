@@ -230,6 +230,12 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 			result.Reason = fmt.Sprintf("Did not find outbound route configuration: %s", err)
 			return result
 		}
+
+		if err := v.findEgressCluster(clusters); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find cluster for external port %d: %s", v.configAttr.trafficAttr.ExternalPort, err)
+			return result
+		}
 	}
 
 	result.Status = Success
@@ -757,4 +763,27 @@ func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.Rout
 	}
 
 	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressCluster(clusters []*xds_cluster.Cluster) error {
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	port := v.configAttr.trafficAttr.ExternalPort
+	host := v.configAttr.trafficAttr.ExternalHost
+
+	var clusterName string
+	switch protocol {
+	case constants.ProtocolHTTP:
+		clusterName = fmt.Sprintf("%s:%d", host, port)
+
+	default:
+		clusterName = fmt.Sprintf("%d", port)
+	}
+
+	for _, c := range clusters {
+		if c.Name == clusterName {
+			return nil
+		}
+	}
+
+	return errors.Errorf("cluster %s not found", clusterName)
 }
