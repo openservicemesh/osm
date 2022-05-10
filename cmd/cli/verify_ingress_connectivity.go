@@ -26,6 +26,12 @@ This command consists of multiple subcommands related to verifying
 connectivity related configurations.
 `
 
+const verifyIngressConnectivityExample = `
+# Verify ingress connectivity configuration for traffic from service 'ingress-nginx/ingress-nginx-controller'
+# to pod 'httpbin/httpbin-7c6464475-456pn' for the 'httpbin' service:
+osm verify ingress --from-service ingress-nginx/ingress-nginx-controller --to-pod httpbin/httpbin-7c6464475-456pn --to-service httpbin --ingress-backend httpbin --to-port 14001
+`
+
 var (
 	fromIngressService string
 	backendPod         string
@@ -53,10 +59,11 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	}
 
 	cmd := &cobra.Command{
-		Use:   "ingress",
-		Short: "verify ingress connectivity between an ingress service and a destination",
-		Long:  verifyIngressDescription,
-		Args:  cobra.NoArgs,
+		Use:     "ingress",
+		Short:   "verify ingress connectivity between an ingress service and a destination",
+		Long:    verifyIngressDescription,
+		Example: verifyIngressConnectivityExample,
+		Args:    cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
