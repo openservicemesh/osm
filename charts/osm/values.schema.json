@@ -1292,6 +1292,12 @@
                             "title": "Hashicorp Vault's role schema",
                             "description": "Role to use with Vault",
                             "type": "string"
+                        },
+                        "tokenSecretName": {
+                            "$id": "#/properties/osm/properties/vault/properties/tokenSecretName",
+                            "title": "Vault token secret name schema",
+                            "description": "Name of the Kubernetes Secret to store the vault token",
+                            "type": "string"
                         }
                     },
                     "examples": [

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: preset-mesh-root-certificate
+  namespace: {{ include "osm.namespace" . }}
+data:
+  preset-mesh-root-certificate.json: |
+    {
+      "provider": {
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "tresor"}}
+        "tresor": {
+          "ca": {
+            "secretRef": {
+              "name": {{.Values.osm.caBundleSecretName | mustToJson}},
+              "namespace": "{{include "osm.namespace" .}}"
+            }
+          }
+        }
+        {{- end}}
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "certmanager"}}
+        "certManager": {
+          "issuerName": {{.Values.osm.certManager.issuerName | mustToJson}},
+          "issuerKind": {{.Values.osm.certManager.issuerKind | mustToJson}},
+          "issuerGroup": {{.Values.osm.certManager.issuerGroup | mustToJson}}
+        }
+        {{- end}}
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "vault"}}
+        "vault": {
+          "token": {
+            "secretRef": {
+              "name": {{.Values.osm.vault.tokenSecretName | mustToJson}},
+              "namespace": "{{include "osm.namespace" .}}"
+            }
+          },
+          "host": {{.Values.osm.vault.host | mustToJson}},
+          "role": {{.Values.osm.vault.role | mustToJson}},
+          "protocol": {{.Values.osm.vault.protocol | mustToJson}}
+        }
+        {{- end}}
+      }
+    }

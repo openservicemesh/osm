@@ -129,6 +129,8 @@ osm:
     token: ""
     # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
+    # -- The Kubernetes secret name to store the Vault token used in OSM
+    tokenSecretName: osm-vault-token
 
   #
   # -- cert-manager.io configuration
