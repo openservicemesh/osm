@@ -23,7 +23,7 @@ import (
 
 const verifyIngressDescription = `
 This command consists of multiple subcommands related to verifying
-connectivity related configurations.
+ingress connectivity related configurations.
 `
 
 const verifyIngressConnectivityExample = `

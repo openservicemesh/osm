@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 
@@ -447,62 +448,11 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		}
 
 		// Next, if ingress is enabled, check for ingress filters
-		// TODO: Add check for ingress filters
 		if v.configAttr.trafficAttr.IsIngress {
-			src := v.configAttr.trafficAttr.SrcService
-			// grab endpoints for ingress service
-			endpoints, err := v.kubeClient.CoreV1().Endpoints(src.Namespace).Get(context.Background(), src.Name, metav1.GetOptions{})
-			if err != nil {
+			if err := v.findIngressFilterChainForService(svc, inboundListener.FilterChains); err != nil {
 				result.Status = Failure
-				result.Reason = fmt.Sprintf("Ingress source service %q not found: %s", src, err)
+				result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for ingress %q: %s", dst, err)
 				return result
-			}
-
-			sourceIPs := map[string]bool{}
-			filterChainName := fmt.Sprintf("ingress_%s/%s_%d_%s", svc.GetName(), svc.GetNamespace(), v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
-			var chain *xds_listener.FilterChain
-			for _, c := range inboundListener.FilterChains {
-				if c.Name == filterChainName {
-					chain = c
-					break
-				}
-			}
-
-			if chain == nil {
-				result.Status = Failure
-				result.Reason = fmt.Sprintf("Ingress filter chain %s not found", filterChainName)
-				return result
-			}
-
-			for _, ip := range chain.FilterChainMatch.SourcePrefixRanges {
-				if ip.PrefixLen.GetValue() == 32 {
-					sourceIPs[ip.AddressPrefix] = false
-				}
-			}
-
-			for _, sub := range endpoints.Subsets {
-				for _, ip := range sub.Addresses {
-					matched, ok := sourceIPs[ip.IP]
-					// Filter chain is missing a service endpoint
-					if !ok {
-						result.Status = Failure
-						result.Reason = fmt.Sprintf("Service endpoint %s was not found in the ingress inbound filter chain", ip.IP)
-						return result
-					}
-					if ok && !matched {
-						// ingress endpoint found in filter chain match
-						sourceIPs[ip.IP] = true
-					}
-				}
-			}
-
-			for ip, matched := range sourceIPs {
-				// TODO: This situation may not actually be an error. Discuss
-				if !matched {
-					result.Status = Failure
-					result.Reason = fmt.Sprintf("Filter chain IP %s was not found in the ingress service's endpoints", ip)
-					return result
-				}
 			}
 		}
 	}
@@ -532,6 +482,64 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]se
 		meshServices = append(meshServices, meshSvc)
 	}
 	return meshServices, nil
+}
+
+func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
+	if svc == nil {
+		return nil
+	}
+	src := v.configAttr.trafficAttr.SrcService
+	// grab endpoints for ingress service
+	endpoints, err := v.kubeClient.CoreV1().Endpoints(src.Namespace).Get(context.Background(), src.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("ingress source service %q not found: %w", src, err)
+	}
+
+	sourceIPs := map[string]bool{}
+	filterChainName := trafficpolicy.GetIngressTrafficMatchName(types.NamespacedName{
+		Name:      svc.GetName(),
+		Namespace: svc.GetNamespace(),
+	}, v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
+	var chain *xds_listener.FilterChain
+	for _, c := range filterChains {
+		if c.Name == filterChainName {
+			chain = c
+			break
+		}
+	}
+
+	if chain == nil {
+		return fmt.Errorf("ingress filter chain %s not found", filterChainName)
+	}
+
+	for _, ip := range chain.FilterChainMatch.SourcePrefixRanges {
+		if ip.PrefixLen.GetValue() == 32 {
+			sourceIPs[ip.AddressPrefix] = false
+		}
+	}
+
+	for _, sub := range endpoints.Subsets {
+		for _, ip := range sub.Addresses {
+			matched, ok := sourceIPs[ip.IP]
+			// Filter chain is missing a service endpoint
+			if !ok {
+				return fmt.Errorf("service endpoint %s was not found in the ingress inbound filter chain", ip.IP)
+			}
+			if ok && !matched {
+				// ingress endpoint found in filter chain match
+				sourceIPs[ip.IP] = true
+			}
+		}
+	}
+
+	for ip, matched := range sourceIPs {
+		// TODO: This situation may not actually be an error. Discuss
+		if !matched {
+			return fmt.Errorf("filter chain IP %s was not found in the ingress service's endpoints", ip)
+		}
+	}
+
+	return nil
 }
 
 func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {

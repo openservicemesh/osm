@@ -52,7 +52,7 @@ func NewIngressConnectivityVerifier(stdout io.Writer, stderr io.Writer, restConf
 func (v *IngressConnectivityVerifier) Run() Result {
 	ctx := fmt.Sprintf("Verify if service %q can access pod %q for app protocol %q via ingress", v.trafficAttr.SrcService, v.trafficAttr.DstPod, v.trafficAttr.AppProtocol)
 	if v.trafficAttr.AppProtocol != constants.ProtocolHTTP {
-		// We're not going to deal with mTLS yet
+		// TODO: Handle HTTPS
 		return Result{
 			Context: ctx,
 			Status:  Failure,
@@ -101,16 +101,13 @@ func (v *IngressConnectivityVerifier) Run() Result {
 		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.DstPod),
 
 		// IngressBackend verification
-		NewIngressBackendVerifier(v.stdout, v.stderr, v.policyClient, v.trafficAttr.AppProtocol, *v.trafficAttr.IngressBackend, *v.trafficAttr.SrcService),
+		NewIngressBackendVerifier(v.stdout, v.stderr, v.policyClient, v.trafficAttr.AppProtocol, v.trafficAttr.DstPort, *v.trafficAttr.IngressBackend, *v.trafficAttr.SrcService),
 
 		// Envoy config verification
 		NewEnvoyConfigVerifier(v.stdout, v.stderr, v.kubeClient, v.meshConfig, configAttribute{
 			trafficAttr:     v.trafficAttr,
 			dstConfigGetter: v.dstPodConfigGetter,
 		}),
-
-		// TODO: Verify there are no IngressBackend resources referencing the same backend
-
 	}...)
 
 	return verifiers.Run(ctx)

@@ -19,10 +19,11 @@ type IngressBackendVerifier struct {
 	ingressBackend  types.NamespacedName
 	ingressService  types.NamespacedName
 	backendProtocol string
+	backendPort     uint16
 }
 
 // NewIngressBackendVerifier creates a new IngressBackendVerifier
-func NewIngressBackendVerifier(stdout io.Writer, stderr io.Writer, policyClient policyClientset.Interface, backendProtocol string, ingressBackend, ingressService types.NamespacedName) Verifier {
+func NewIngressBackendVerifier(stdout io.Writer, stderr io.Writer, policyClient policyClientset.Interface, backendProtocol string, backendPort uint16, ingressBackend, ingressService types.NamespacedName) Verifier {
 	return &IngressBackendVerifier{
 		stdout:          stdout,
 		stderr:          stderr,
@@ -30,6 +31,7 @@ func NewIngressBackendVerifier(stdout io.Writer, stderr io.Writer, policyClient 
 		ingressBackend:  ingressBackend,
 		ingressService:  ingressService,
 		backendProtocol: backendProtocol,
+		backendPort:     backendPort,
 	}
 }
 
@@ -54,7 +56,20 @@ func (v *IngressBackendVerifier) Run() Result {
 		return result
 	}
 
-	// TODO: check that IngressBackend port/protocol matches backendService port/protocol
+	foundMatchingPort := false
+	for _, backend := range ib.Spec.Backends {
+		if uint16(backend.Port.Number) == v.backendPort && backend.Port.Protocol == v.backendProtocol {
+			foundMatchingPort = true
+			break
+		}
+	}
+
+	if !foundMatchingPort {
+		result.Status = Failure
+		result.Reason = fmt.Sprintf("No backend matching port %d and protocol %s found in IngressBackend %q", v.backendPort, v.backendProtocol, v.ingressBackend)
+		result.Suggestion = fmt.Sprintf("Add a backend matching port %d and protocol %s found in IngressBackend %q", v.backendPort, v.backendProtocol, v.ingressBackend)
+		return result
+	}
 
 	// No sources evaluates to a wildcard which shouldn't block anything
 	if len(ib.Spec.Sources) == 0 {
@@ -67,6 +82,7 @@ func (v *IngressBackendVerifier) Run() Result {
 	for _, src := range ib.Spec.Sources {
 		if src.Kind == "Service" && src.Namespace == v.ingressService.Namespace && src.Name == v.ingressService.Name {
 			foundMatchingSource = true
+			break
 		}
 	}
 

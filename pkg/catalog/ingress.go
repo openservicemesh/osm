@@ -7,6 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -43,8 +44,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
+		if backend.Port.Number < 0 {
+			// to prevent panics since (until this commit) there was no validating webhook to check
+			backend.Port.Number = 0
+		}
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     fmt.Sprintf("ingress_%s_%d_%s", svc, backend.Port.Number, backend.Port.Protocol),
+			Name: trafficpolicy.GetIngressTrafficMatchName(types.NamespacedName{
+				Name:      svc.Name,
+				Namespace: svc.Namespace,
+			}, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,
