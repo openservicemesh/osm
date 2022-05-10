@@ -1,9 +1,13 @@
 package verifier
 
 import (
+	"context"
 	"fmt"
 	"io"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -45,7 +49,7 @@ func NewIngressConnectivityVerifier(stdout io.Writer, stderr io.Writer, restConf
 
 // Run executes the pod connectivity verifier
 func (v *IngressConnectivityVerifier) Run() Result {
-	ctx := fmt.Sprintf("Verify if pod %q can access pod %q for app protocol %q via ingress", v.trafficAttr.SrcPod, v.trafficAttr.DstPod, v.trafficAttr.AppProtocol)
+	ctx := fmt.Sprintf("Verify if service %q can access pod %q for app protocol %q via ingress", v.trafficAttr.SrcService, v.trafficAttr.DstPod, v.trafficAttr.AppProtocol)
 	if v.trafficAttr.AppProtocol != constants.ProtocolHTTP {
 		// We're not going to deal with mTLS yet
 		return Result{
@@ -55,13 +59,44 @@ func (v *IngressConnectivityVerifier) Run() Result {
 		}
 	}
 
+	srcService, err := v.kubeClient.CoreV1().Services(v.trafficAttr.SrcService.Namespace).Get(context.Background(), v.trafficAttr.SrcService.Name, v1.GetOptions{})
+	if err != nil {
+		return Result{
+			Context: ctx,
+			Status:  Failure,
+			Reason:  fmt.Sprintf("Error retrieving source ingress service %s: %s", v.trafficAttr.SrcService, err),
+		}
+	}
+
+	selector, _ := labels.ValidatedSelectorFromSet(srcService.Spec.Selector)
+	pods, err := v.kubeClient.CoreV1().Pods(v.trafficAttr.SrcService.Namespace).List(context.Background(), v1.ListOptions{
+		LabelSelector: selector.String(),
+	})
+
+	if err != nil {
+		return Result{
+			Context: ctx,
+			Status:  Failure,
+			Reason:  fmt.Sprintf("Error retrieving pods from source ingress service %s: %s", v.trafficAttr.SrcService, err),
+		}
+	}
+
 	verifiers := Set{
 		// Namespace monitor verification
-		NewNamespaceMonitorVerifier(v.stdout, v.stderr, v.kubeClient, v.trafficAttr.SrcPod.Namespace, v.meshName),
+		NewNamespaceMonitorVerifier(v.stdout, v.stderr, v.kubeClient, v.trafficAttr.SrcService.Namespace, v.meshName),
 		NewNamespaceMonitorVerifier(v.stdout, v.stderr, v.kubeClient, v.trafficAttr.DstPod.Namespace, v.meshName),
+	}
 
+	for _, pod := range pods.Items {
+		verifiers = append(verifiers, NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, types.NamespacedName{
+			Namespace: pod.ObjectMeta.Namespace,
+			Name:      pod.ObjectMeta.Name,
+		}, WithVerifyAbsence())) // ingress pods shouldn't have a sidecar
+	}
+
+	verifiers = append(verifiers, Set{
 		// Envoy sidecar verification
-		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.SrcPod, WithVerifyAbsence()), // ingress pod shouldn't have a sidecar
+
 		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.DstPod),
 
 		// IngressBackend verification
@@ -74,7 +109,8 @@ func (v *IngressConnectivityVerifier) Run() Result {
 		}),
 
 		// TODO: Verify there are no IngressBackend resources referencing the same backend
-	}
+
+	}...)
 
 	return verifiers.Run(ctx)
 }

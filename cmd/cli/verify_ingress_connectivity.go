@@ -110,15 +110,15 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&fromPod, "from-service", "", "Namespaced name of ingress service: <namespace>/<name>")
+	f.StringVar(&fromIngressService, "from-service", "", "Namespaced name of ingress service: <namespace>/<name>")
 	//nolint: errcheck
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("from-service")
-	f.StringVar(&toPod, "to-pod", "", "Namespaced name of destination pod: <namespace>/<name>")
+	f.StringVar(&backendPod, "to-pod", "", "Namespaced name of destination pod: <namespace>/<name>")
 	//nolint: errcheck
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("to-pod")
-	f.StringVar(&dstService, "to-service", "", "Name of the destination service")
+	f.StringVar(&backendService, "to-service", "", "Name of the destination service")
 	//nolint: errcheck
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("to-service")
@@ -127,7 +127,8 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("ingress-backend")
 	f.Uint16Var(&backendPort, "to-port", 0, "Target port the backend pod is listening on")
-	f.StringVar(&appProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
+	cmd.MarkFlagRequired("to-port")
+	f.StringVar(&backendProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
 	f.StringVar(&verifyIngressCmd.meshName, "mesh-name", defaultMeshName, "Mesh name")
 
 	return cmd
