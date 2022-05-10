@@ -16,6 +16,7 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
+// IngressConnectivityVerifier implements verification for pod connectivity
 type IngressConnectivityVerifier struct {
 	stdout             io.Writer
 	stderr             io.Writer
@@ -27,7 +28,7 @@ type IngressConnectivityVerifier struct {
 	meshName           string
 }
 
-// NewIngressConnectivityVerifier implements verification for pod connectivity
+// NewIngressConnectivityVerifier creates a new IngressConnectivityVerifier
 func NewIngressConnectivityVerifier(stdout io.Writer, stderr io.Writer, restConfig *rest.Config, kubeClient kubernetes.Interface,
 	policyClient policyClientset.Interface, meshConfig *configv1alpha2.MeshConfig, trafficAttr TrafficAttribute,
 	meshName string) Verifier {

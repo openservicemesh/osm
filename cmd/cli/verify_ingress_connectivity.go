@@ -127,6 +127,8 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("ingress-backend")
 	f.Uint16Var(&backendPort, "to-port", 0, "Target port the backend pod is listening on")
+	//nolint: errcheck
+	//#nosec G104: Errors unhandled
 	cmd.MarkFlagRequired("to-port")
 	f.StringVar(&backendProtocol, "app-protocol", constants.ProtocolHTTP, "Application protocol")
 	f.StringVar(&verifyIngressCmd.meshName, "mesh-name", defaultMeshName, "Mesh name")
