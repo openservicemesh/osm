@@ -31,8 +31,9 @@ type MeshService struct {
 	// The name of the service. May include instance (e.g. pod) information if the backing service
 	// doesn't have a single, stable ip address. For example, a MeshService created by a headless
 	// Kubernetes service named mysql-headless, will have the name "mysql.mysql-headless"
-	// This imposes a restriction that service names cannot contain "." (which is already)
-	// the case in kubernetes. Thus, MeshService.Name will be of the form: [subdomain.]providerKey
+	// A MeshService created by a normal ClusterIP service named mysql will be named "mysql"
+	// This imposes a restriction that service names cannot contain "." (which is already
+	// the case in kubernetes). Thus, MeshService.Name will be of the form: [subdomain.]providerKey
 	Name string
 
 	// Port is the port number that clients use to access the service.
@@ -56,7 +57,7 @@ type MeshService struct {
 	subdomainPopulated bool
 }
 
-// NamespacedKey is the key (i.e. namespace + name) with which to lookup the backing service within the provider
+// NamespacedKey is the key (i.e. namespace + ProviderKey()) with which to lookup the backing service within the provider
 func (ms MeshService) NamespacedKey() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
 }
@@ -65,16 +66,18 @@ func (ms MeshService) NamespacedKey() string {
 // It is calculated once based on Name and stored in an unexported field
 // which is why this function has a pointer receiver
 func (ms *MeshService) Subdomain() string {
-	if ms.subdomain == "" && !ms.subdomainPopulated {
-		nameComponents := strings.Split(ms.Name, ".")
-		if len(nameComponents) == 1 {
-			ms.subdomain = ""
-		} else {
-			ms.subdomain = nameComponents[0]
-		}
-
-		ms.subdomainPopulated = true
+	if ms.subdomainPopulated {
+		return ms.subdomain
 	}
+
+	nameComponents := strings.Split(ms.Name, ".")
+	if len(nameComponents) == 1 {
+		ms.subdomain = ""
+	} else {
+		ms.subdomain = nameComponents[0]
+	}
+
+	ms.subdomainPopulated = true
 
 	return ms.subdomain
 }
@@ -82,13 +85,15 @@ func (ms *MeshService) Subdomain() string {
 // ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service name)
 // It is calculated once based on Name and stored in an unexported field which is why this function has a pointer receiver
 func (ms *MeshService) ProviderKey() string {
-	if ms.providerKey == "" {
-		nameComponents := strings.Split(ms.Name, ".")
-		if l := len(nameComponents); l == 1 {
-			ms.providerKey = nameComponents[0]
-		} else {
-			ms.providerKey = nameComponents[l-1]
-		}
+	if ms.providerKey != "" {
+		return ms.providerKey
+	}
+
+	nameComponents := strings.Split(ms.Name, ".")
+	if l := len(nameComponents); l == 1 {
+		ms.providerKey = nameComponents[0]
+	} else {
+		ms.providerKey = nameComponents[l-1]
 	}
 
 	return ms.providerKey

@@ -6,7 +6,7 @@ import (
 
 // Equals checks if two namespaced services are equal
 func (ms MeshService) Equals(service MeshService) bool {
-	// Must greedily initialize unexported fields to do
+	// Must eagerly initialize unexported fields to do
 	// an accurate comparison
 	if !ms.subdomainPopulated {
 		ms.Subdomain()

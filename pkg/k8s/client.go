@@ -345,12 +345,8 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
 // MeshService objects per port.
-func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
+func ServiceToMeshServices(svc corev1.Service, endpointsGetter func(service.MeshService) (*corev1.Endpoints, error)) []service.MeshService {
 	var meshServices []service.MeshService
-	var headless bool
-	if len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone {
-		headless = true
-	}
 
 	for _, portSpec := range svc.Spec.Ports {
 		meshSvc := service.MeshService{
@@ -362,30 +358,31 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
-		endpoints, _ := c.GetEndpoints(meshSvc)
+		endpoints, _ := endpointsGetter(meshSvc)
 		if endpoints != nil {
 			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
 
-		if headless && endpoints != nil {
-			for _, subset := range endpoints.Subsets {
-				for _, address := range subset.Addresses {
-					if address.Hostname != "" {
-						mSvc := service.MeshService{
-							Namespace:  svc.Namespace,
-							Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
-							Port:       meshSvc.Port,
-							TargetPort: meshSvc.TargetPort,
-							Protocol:   meshSvc.Protocol,
-						}
-						meshServices = append(meshServices, mSvc)
-					}
-				}
-			}
-		} else {
+		if !IsHeadlessService(svc) || endpoints == nil {
 			meshServices = append(meshServices, meshSvc)
+			continue
+		}
+
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				if address.Hostname == "" {
+					continue
+				}
+				meshServices = append(meshServices, service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				})
+			}
 		}
 	}
 

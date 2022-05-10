@@ -16,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -461,49 +460,18 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 }
 
 func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]service.MeshService, error) {
-	endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
-	if err != nil || endpoints == nil {
+	var err error
+	svcs := k8s.ServiceToMeshServices(svc, func(ms service.MeshService) (*corev1.Endpoints, error) {
+		endpoints, e := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
+		err = e
+		return endpoints, nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
-	var headless bool
-	if len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone {
-		headless = true
-	}
-
-	var meshServices []service.MeshService
-	for _, portSpec := range svc.Spec.Ports {
-		meshSvc := service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-			Port:      uint16(portSpec.Port),
-			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
-		}
-
-		// The endpoints for the kubernetes service carry information that allows
-		// us to retrieve the TargetPort for the MeshService.
-		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
-
-		if headless {
-			for _, subset := range endpoints.Subsets {
-				for _, address := range subset.Addresses {
-					if address.Hostname != "" {
-						mSvc := service.MeshService{
-							Namespace:  svc.Namespace,
-							Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
-							Port:       meshSvc.Port,
-							TargetPort: meshSvc.TargetPort,
-							Protocol:   meshSvc.Protocol,
-						}
-						meshServices = append(meshServices, mSvc)
-					}
-				}
-			}
-		} else {
-			meshServices = append(meshServices, meshSvc)
-		}
-	}
-	return meshServices, nil
+	return svcs, err
 }
 
 func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {

@@ -6,6 +6,7 @@ import (
 
 	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
@@ -37,6 +38,8 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 	return hostnames
 }
 
+// splitHostName takes a k8s FQDN (i.e. host) and retrieves the service name
+// as well as the subdomain (may be empty)
 func splitHostName(host string) (service string, subdomain string) {
 	serviceComponents := strings.Split(host, ".")
 
@@ -135,4 +138,9 @@ func NamespacedNameFrom(name string) (types.NamespacedName, error) {
 	nsName.Name = chunks[1]
 
 	return nsName, nil
+}
+
+// IsHeadlessService determines whether or not a corev1.Service is a headless service
+func IsHeadlessService(svc corev1.Service) bool {
+	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
 }

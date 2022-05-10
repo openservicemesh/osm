@@ -167,7 +167,9 @@ func (c *client) getServicesByLabels(podLabels map[string]string, targetNamespac
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, k8s.ServiceToMeshServices(c.kubeController, *svc)...)
+			finalList = append(finalList, k8s.ServiceToMeshServices(*svc, func(meshSvc service.MeshService) (*corev1.Endpoints, error) {
+				return c.kubeController.GetEndpoints(meshSvc)
+			})...)
 		}
 	}
 
@@ -212,7 +214,9 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 func (c *client) ListServices() []service.MeshService {
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
-		services = append(services, k8s.ServiceToMeshServices(c.kubeController, *svc)...)
+		services = append(services, k8s.ServiceToMeshServices(*svc, func(meshSvc service.MeshService) (*corev1.Endpoints, error) {
+			return c.kubeController.GetEndpoints(meshSvc)
+		})...)
 	}
 	return services
 }
