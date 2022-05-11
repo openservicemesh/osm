@@ -63,7 +63,8 @@ func TestNewResponse(t *testing.T) {
 	_, err = envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
 	assert.Equal(err, envoy.ErrInvalidCertificateCN)
 
-	cfg := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
+	cfg, err := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
+	assert.Nil(err)
 	certManager := tresorFake.NewFake(nil)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 

@@ -154,10 +154,10 @@ const (
 	ErrPubSubMessageFormat ErrCode = iota + 4100
 )
 
-// Range 4150-4200 reserved for MeshConfig related errors
+// Range 4150-4200 reserved for errors related to config.openservicemesh.io resources
 const (
-	// ErrMeshConfigInformerInitCache indicates failed to init cache sync for MeshConfig informer
-	ErrMeshConfigInformerInitCache ErrCode = iota + 4150
+	// ErrConfigInformerInitCache indicates failed to init cache sync for config.openservicemesh.io informers
+	ErrConfigInformerInitCache ErrCode = iota + 4150
 
 	// ErrMeshConfigStructParsing indicates failed to cast object to MeshConfig
 	ErrMeshConfigStructCasting
@@ -589,8 +589,8 @@ Failed parsing object into PubSub message.
 	//
 	// Range 4150-4200
 	//
-	ErrMeshConfigInformerInitCache: `
-Failed initial cache sync for MeshConfig informer.
+	ErrConfigInformerInitCache: `
+Failed initial cache sync for config.openservicemesh.io informer.
 `,
 	ErrMeshConfigStructCasting: `
 Failed to cast object to MeshConfig.

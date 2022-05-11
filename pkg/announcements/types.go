@@ -126,7 +126,7 @@ const (
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
 	CertificateRotated Kind = "certificate-rotated"
 
-	// ---
+	// --- config.openservicemesh.io API events
 
 	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig
 	MeshConfigAdded Kind = "meshconfig-added"
@@ -136,6 +136,15 @@ const (
 
 	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
 	MeshConfigUpdated Kind = "meshconfig-updated"
+
+	// MeshRootCertificateAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
+	MeshRootCertificateAdded Kind = "meshrootcertificate-added"
+
+	// MeshRootCertificateDeleted is the type of announcement emitted when we observe the deletion of a Kubernetes MeshRootCertificate
+	MeshRootCertificateDeleted Kind = "meshrootcertificate-deleted"
+
+	// MeshRootCertificateUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
+	MeshRootCertificateUpdated Kind = "meshrootcertificate-updated"
 
 	// --- policy.openservicemesh.io API events
 

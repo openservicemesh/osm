@@ -52,8 +52,10 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
-	cfg := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
-
+	cfg, err := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+	if err != nil {
+		return nil
+	}
 	certManager := tresorFake.NewFake(nil)
 
 	// #1683 tracks potential improvements to the following dynamic mocks
