@@ -16,7 +16,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -399,7 +398,7 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
+	cert, err := certificate.NewFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false

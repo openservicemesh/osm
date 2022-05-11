@@ -3,6 +3,7 @@ package route
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -11,7 +12,9 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -23,6 +26,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+)
+
+var (
+	thresholdUintVal         uint32 = 3
+	thresholdTimeoutDuration        = metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration        = metav1.Duration{Duration: time.Duration(1 * time.Second)}
 )
 
 func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
@@ -414,9 +423,9 @@ func TestBuildOutboundRoutes(t *testing.T) {
 			WeightedClusters: mapset.NewSet(testWeightedCluster),
 			RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:                  "4xx",
-				PerTryTimeout:            "2s",
-				NumRetries:               45,
-				RetryBackoffBaseInterval: "3s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 	}
@@ -430,10 +439,10 @@ func TestBuildOutboundRoutes(t *testing.T) {
 	assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
 	retry := &xds_route.RetryPolicy{
 		RetryOn:       "4xx",
-		PerTryTimeout: timeToDuration("2s"),
-		NumRetries:    &wrapperspb.UInt32Value{Value: 45},
+		PerTryTimeout: durationpb.New(thresholdTimeoutDuration.Duration),
+		NumRetries:    &wrapperspb.UInt32Value{Value: thresholdUintVal},
 		RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
-			BaseInterval: timeToDuration("3s"),
+			BaseInterval: durationpb.New(thresholdBackoffDuration.Duration),
 		},
 	}
 	assert.Equal(retry, actual[0].GetRoute().GetRetryPolicy())
@@ -461,9 +470,9 @@ func TestBuildRoute(t *testing.T) {
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2|80|local"), Weight: 70}}),
 				RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 					RetryOn:                  "4xx",
-					PerTryTimeout:            "2s",
-					NumRetries:               45,
-					RetryBackoffBaseInterval: "3s",
+					PerTryTimeout:            &thresholdTimeoutDuration,
+					NumRetries:               &thresholdUintVal,
+					RetryBackoffBaseInterval: &thresholdBackoffDuration,
 				},
 			},
 			method: "GET",
@@ -525,10 +534,10 @@ func TestBuildRoute(t *testing.T) {
 						Timeout: &duration.Duration{Seconds: 0},
 						RetryPolicy: &xds_route.RetryPolicy{
 							RetryOn:       "4xx",
-							PerTryTimeout: timeToDuration("2s"),
-							NumRetries:    &wrapperspb.UInt32Value{Value: 45},
+							PerTryTimeout: durationpb.New(thresholdTimeoutDuration.Duration),
+							NumRetries:    &wrapperspb.UInt32Value{Value: thresholdUintVal},
 							RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
-								BaseInterval: timeToDuration("3s"),
+								BaseInterval: durationpb.New(thresholdBackoffDuration.Duration),
 							},
 						},
 					},
@@ -603,9 +612,7 @@ func TestBuildRoute(t *testing.T) {
 						},
 						Timeout: &duration.Duration{Seconds: 0},
 						RetryPolicy: &xds_route.RetryPolicy{
-							RetryOn:      "4xx",
-							NumRetries:   &wrapperspb.UInt32Value{},
-							RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{},
+							RetryOn: "4xx",
 						},
 					},
 				},
@@ -782,27 +789,25 @@ func TestBuildRetryPolicy(t *testing.T) {
 				RetryOn: "2xx",
 			},
 			expRetry: &xds_route.RetryPolicy{
-				RetryOn:      "2xx",
-				NumRetries:   &wrapperspb.UInt32Value{},
-				RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{},
+				RetryOn: "2xx",
 			},
 		},
 		{
 			name: "valid retry policy with all fields",
 			retryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:                  "2xx",
-				PerTryTimeout:            "2s",
-				NumRetries:               4,
-				RetryBackoffBaseInterval: "9s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 			expRetry: &xds_route.RetryPolicy{
 				RetryOn:       "2xx",
-				PerTryTimeout: timeToDuration("2s"),
+				PerTryTimeout: durationpb.New(thresholdTimeoutDuration.Duration),
 				NumRetries: &wrapperspb.UInt32Value{
-					Value: uint32(4),
+					Value: thresholdUintVal,
 				},
 				RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
-					BaseInterval: timeToDuration("9s"),
+					BaseInterval: durationpb.New(thresholdBackoffDuration.Duration),
 				},
 			},
 		},

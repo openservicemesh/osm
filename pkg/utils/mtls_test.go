@@ -30,8 +30,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	}
 
 	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	adsCert := certManager.GetRootCertificate()
 
 	serverType := "ADS"
 	goodCertPem := adsCert.GetCertificateChain()

@@ -6,11 +6,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-var log = logger.New("cert-provider-util")
 
 // Kind specifies the certificate provider kind
 type Kind string

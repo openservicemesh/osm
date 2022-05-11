@@ -10,6 +10,7 @@ import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_secret "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -18,10 +19,13 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -45,11 +49,11 @@ func (t configAttribute) String() string {
 	if t.trafficAttr.DstService != nil {
 		fmt.Fprintf(&s, "\tdestination service: %s\n", t.trafficAttr.DstService)
 	}
-	if t.trafficAttr.DstHost != "" {
-		fmt.Fprintf(&s, "\tdestination host: %s\n", t.trafficAttr.DstHost)
+	if t.trafficAttr.ExternalHost != "" {
+		fmt.Fprintf(&s, "\texternal host: %s\n", t.trafficAttr.ExternalHost)
 	}
-	if t.trafficAttr.DstPort != 0 {
-		fmt.Fprintf(&s, "\tdestination port: %d\n", t.trafficAttr.DstPort)
+	if t.trafficAttr.ExternalPort != 0 {
+		fmt.Fprintf(&s, "\texternal port: %d\n", t.trafficAttr.ExternalPort)
 	}
 	fmt.Fprintf(&s, "\tdestination protocol: %s\n", t.trafficAttr.AppProtocol)
 
@@ -168,7 +172,18 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		clusters = append(clusters, cluster)
 	}
 
-	// Next, if the destination service is known, verify it has a matching filter chain and route
+	// Retrieve secrets
+	var secrets []*xds_secret.Secret
+	secretConfigs := config.Secrets.GetDynamicActiveSecrets()
+	for _, s := range secretConfigs {
+		secret := &xds_secret.Secret{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		s.GetSecret().UnmarshalTo(secret)
+		secrets = append(secrets, secret)
+	}
+
+	// If the destination service is known, verify it has a matching filter chain and route
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
 		svc, err := v.kubeClient.CoreV1().Services(dst.Namespace).Get(context.Background(), dst.Name, metav1.GetOptions{})
@@ -192,6 +207,33 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 		if err := v.findClusterForService(svc, clusters, true); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound cluster for service %q: %s", dst, err)
+			return result
+		}
+
+		// Verify client TLS secret
+		if err := v.findTLSSecretsOnSource(secrets); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Client TLS secret not found for pod %q: %s", v.configAttr.trafficAttr.SrcPod, err)
+			return result
+		}
+	}
+
+	if v.configAttr.trafficAttr.ExternalPort != 0 {
+		if err := v.findEgressFilterChain(outboundListener.FilterChains); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find matching filter chain: %s", err)
+			return result
+		}
+
+		if err := v.findEgressHTTPRoute(routeConfigs); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find outbound route configuration: %s", err)
+			return result
+		}
+
+		if err := v.findEgressCluster(clusters); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Did not find cluster for external port %d: %s", v.configAttr.trafficAttr.ExternalPort, err)
 			return result
 		}
 	}
@@ -288,7 +330,7 @@ func getFilterForProtocol(protocol string) string {
 	case constants.ProtocolHTTP:
 		return wellknown.HTTPConnectionManager
 
-	case constants.ProtocolTCP:
+	case constants.ProtocolTCP, constants.ProtocolHTTPS:
 		return wellknown.TCPProxy
 
 	default:
@@ -358,6 +400,17 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		clusters = append(clusters, cluster)
 	}
 
+	// Retrieve secrets
+	var secrets []*xds_secret.Secret
+	secretConfigs := config.Secrets.GetDynamicActiveSecrets()
+	for _, s := range secretConfigs {
+		secret := &xds_secret.Secret{}
+		//nolint: errcheck
+		//#nosec G104: Errors unhandled
+		s.GetSecret().UnmarshalTo(secret)
+		secrets = append(secrets, secret)
+	}
+
 	// Next, if the destination service is known, verify it has a matching filter chain
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
@@ -380,6 +433,12 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 		if err := v.findClusterForService(svc, clusters, false); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching inbound cluster for service %q: %s", dst, err)
+			return result
+		}
+		// Verify server TLS secret
+		if err := v.findTLSSecretsOnDestination(secrets); err != nil {
+			result.Status = Failure
+			result.Reason = fmt.Sprintf("Server TLS secret not found for pod %q: %s", v.configAttr.trafficAttr.DstPod, err)
 			return result
 		}
 	}
@@ -563,4 +622,168 @@ func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireCon
 	}
 
 	return nil
+}
+
+func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secret) error {
+	// Look for 2 secrets:
+	// 1. Client TLS secret (based on client's ServiceAccount)
+	// 2. Upstream peer validation secret (based on upstream service)
+	srcPod := v.configAttr.trafficAttr.SrcPod
+	pod, err := v.kubeClient.CoreV1().Pods(srcPod.Namespace).Get(context.Background(), srcPod.Name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Errorf("pod %s not found", srcPod)
+	}
+	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
+	downstreamSecretName := envoySecrets.SDSCert{
+		Name:     envoySecrets.GetSecretNameForIdentity(downstreamIdentity),
+		CertType: envoySecrets.ServiceCertType,
+	}.String()
+	upstreamPeerValidationSecretName := envoySecrets.SDSCert{
+		Name:     v.configAttr.trafficAttr.DstService.String(),
+		CertType: envoySecrets.RootCertTypeForMTLSOutbound,
+	}.String()
+
+	expectedSecrets := mapset.NewSetWith(downstreamSecretName, upstreamPeerValidationSecretName)
+	actualSecrets := mapset.NewSet()
+	for _, secret := range secrets {
+		actualSecrets.Add(secret.Name)
+	}
+	if !expectedSecrets.IsSubset(actualSecrets) {
+		diff := expectedSecrets.Difference(actualSecrets)
+		return errors.Errorf("expected secrets %s not found", diff.String())
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.Secret) error {
+	// Look for 2 secrets:
+	// 1. Server TLS secret (based on upstream ServiceAccount)
+	// 2. Downstream peer validation secret (based on upstream ServiceAccount)
+	dstPod := v.configAttr.trafficAttr.DstPod
+	pod, err := v.kubeClient.CoreV1().Pods(dstPod.Namespace).Get(context.Background(), dstPod.Name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Errorf("pod %s not found", dstPod)
+	}
+	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
+	upstreamSecretName := envoySecrets.SDSCert{
+		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
+		CertType: envoySecrets.ServiceCertType,
+	}.String()
+	downstreamPeerValidationSecretName := envoySecrets.SDSCert{
+		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
+		CertType: envoySecrets.RootCertTypeForMTLSInbound,
+	}.String()
+
+	expectedSecrets := mapset.NewSetWith(upstreamSecretName, downstreamPeerValidationSecretName)
+	actualSecrets := mapset.NewSet()
+	for _, secret := range secrets {
+		actualSecrets.Add(secret.Name)
+	}
+	if !expectedSecrets.IsSubset(actualSecrets) {
+		diff := expectedSecrets.Difference(actualSecrets)
+		return errors.Errorf("expected secrets %s not found", diff.String())
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressFilterChain(filterChains []*xds_listener.FilterChain) error {
+	port := int(v.configAttr.trafficAttr.ExternalPort)
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	matchName := trafficpolicy.GetEgressTrafficMatchName(port, protocol)
+
+	var filterChain *xds_listener.FilterChain
+	for _, fc := range filterChains {
+		if fc.Name == matchName {
+			filterChain = fc
+			break
+		}
+	}
+	if filterChain == nil {
+		return errors.Errorf("filter chain not found for for port=%d, protocol=%s", port, protocol)
+	}
+
+	// Verify the app protocol filter is present
+	filterName := getFilterForProtocol(protocol)
+	if filterName == "" {
+		return errors.Errorf("unsupported protocol %s", protocol)
+	}
+	filterFound := false
+	for _, filter := range filterChain.Filters {
+		if filter.Name == filterName {
+			filterFound = true
+			break
+		}
+	}
+	if !filterFound {
+		return errors.Errorf("filter %s not found", filterName)
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.RouteConfiguration) error {
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	if protocol != constants.ProtocolHTTP {
+		return nil
+	}
+
+	port := int(v.configAttr.trafficAttr.ExternalPort)
+	desiredRouteConfigName := route.GetEgressRouteConfigNameForPort(port)
+
+	var config *xds_route.RouteConfiguration
+	for _, c := range routeConfigs {
+		if c.Name == desiredRouteConfigName {
+			config = c
+			break
+		}
+	}
+	if config == nil {
+		return errors.Errorf("route configuration %s not found", desiredRouteConfigName)
+	}
+
+	dstHost := v.configAttr.trafficAttr.ExternalHost
+	if dstHost == "" {
+		return nil
+	}
+
+	var virtualHost *xds_route.VirtualHost
+	for _, vh := range config.VirtualHosts {
+		for _, domain := range vh.Domains {
+			if domain == dstHost {
+				virtualHost = vh
+				break
+			}
+		}
+	}
+
+	if virtualHost == nil {
+		return errors.Errorf("virtual host for domain %s not found", dstHost)
+	}
+
+	return nil
+}
+
+func (v *EnvoyConfigVerifier) findEgressCluster(clusters []*xds_cluster.Cluster) error {
+	protocol := v.configAttr.trafficAttr.AppProtocol
+	port := v.configAttr.trafficAttr.ExternalPort
+	host := v.configAttr.trafficAttr.ExternalHost
+
+	var clusterName string
+	switch protocol {
+	case constants.ProtocolHTTP:
+		clusterName = fmt.Sprintf("%s:%d", host, port)
+
+	default:
+		clusterName = fmt.Sprintf("%d", port)
+	}
+
+	for _, c := range clusters {
+		if c.Name == clusterName {
+			return nil
+		}
+	}
+
+	return errors.Errorf("cluster %s not found", clusterName)
 }

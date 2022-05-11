@@ -5,7 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 
 kubectl apply -f - <<EOF
 apiVersion: v1

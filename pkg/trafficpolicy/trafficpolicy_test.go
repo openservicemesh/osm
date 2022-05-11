@@ -2,9 +2,11 @@ package trafficpolicy
 
 import (
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -128,6 +130,10 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestAddRoute(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	testCases := []struct {
 		name                  string
 		existingRoutes        []*RouteWeightedClusters
@@ -192,7 +198,7 @@ func TestAddRoute(t *testing.T) {
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster, testWeightedCluster2},
 			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
-				PerTryTimeout: "5s",
+				PerTryTimeout: &thresholdTimeoutDuration,
 			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
@@ -204,7 +210,7 @@ func TestAddRoute(t *testing.T) {
 					WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
 					RetryPolicy: &v1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
-						PerTryTimeout: "5s",
+						PerTryTimeout: &thresholdTimeoutDuration,
 					},
 				},
 			},
@@ -222,8 +228,8 @@ func TestAddRoute(t *testing.T) {
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
 			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
-				NumRetries:    3,
-				PerTryTimeout: "5s",
+				NumRetries:    &thresholdUintVal,
+				PerTryTimeout: &thresholdTimeoutDuration,
 			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
@@ -231,8 +237,8 @@ func TestAddRoute(t *testing.T) {
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
 					RetryPolicy: &v1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
-						NumRetries:    3,
-						PerTryTimeout: "5s",
+						NumRetries:    &thresholdUintVal,
+						PerTryTimeout: &thresholdTimeoutDuration,
 					},
 				},
 			},
@@ -250,7 +256,7 @@ func TestAddRoute(t *testing.T) {
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
 			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				RetryBackoffBaseInterval: "4s",
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 			expectedRoutes: []*RouteWeightedClusters{
 				{

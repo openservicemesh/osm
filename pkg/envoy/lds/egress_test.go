@@ -60,7 +60,10 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false}).AnyTimes()
-			actual, err := lb.getEgressHTTPFilterChain(tc.destinationPort)
+			match := trafficpolicy.TrafficMatch{
+				DestinationPort: tc.destinationPort,
+			}
+			actual, err := lb.getEgressHTTPFilterChain(match)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)

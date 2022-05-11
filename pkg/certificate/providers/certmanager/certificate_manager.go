@@ -133,6 +133,11 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	return cert, nil
 }
 
+// GetRootCertificate returns the root certificate.
+func (cm *CertManager) GetRootCertificate() *certificate.Certificate {
+	return cm.ca
+}
+
 // New will construct a new certificate client using Jetstack's cert-manager,
 func New(
 	ca *certificate.Certificate,
