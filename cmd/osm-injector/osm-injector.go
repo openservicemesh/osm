@@ -161,7 +161,7 @@ func main() {
 	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
 	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller config.openservicemesh.io")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
 	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
