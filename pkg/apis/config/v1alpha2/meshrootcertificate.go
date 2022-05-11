@@ -1,6 +1,7 @@
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,8 +49,8 @@ type ProviderSpec struct {
 
 // CertManagerProviderSpec defines the configuration of the cert-manager provider
 type CertManagerProviderSpec struct {
-	// SecretName specifies the name of the k8s secret containing the root certificate
-	SecretName string `json:"secretName"`
+	// CA specifies cert-manager's ca configuration
+	CA CertManagerCASpec `json:"ca"`
 
 	// IssuerName specifies the name of the Issuer resource
 	IssuerName string `json:"issuerName"`
@@ -59,6 +60,12 @@ type CertManagerProviderSpec struct {
 
 	// IssuerGroup specifies the group the Issuer belongs to
 	IssuerGroup string `json:"issuerGroup"`
+}
+
+// CertManagerCASpec defines the configuration of cert-manager's root certificate
+type CertManagerCASpec struct {
+	// SecretRef specifies the secret in which the root certificate is stored
+	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // VaultProviderSpec defines the configuration of the Vault provider
@@ -75,15 +82,27 @@ type VaultProviderSpec struct {
 	// Protocol specifies the protocol for connections to Vault
 	Protocol string `json:"protocol"`
 
-	// Token specifies the name of the token to be used by mesh control plane
+	// Token specifies the configuration of the token to be used by mesh control plane
 	// to connect to Vault
-	Token string `json:"token"`
+	Token VaultTokenSpec `json:"token"`
+}
+
+// VaultTokenSpec defines the configuration of the Vault token
+type VaultTokenSpec struct {
+	// SecretRef specifies the secret in which the Vault token is stored
+	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // TresorProviderSpec defines the configuration of the Tresor provider
 type TresorProviderSpec struct {
-	// SecretName specifies the name of the secret storing the root certificate
-	SecretName string `json:"secretName"`
+	// CA specifies Tresor's ca configuration
+	CA TresorCASpec `json:"ca"`
+}
+
+// TresorCASpec defines the configuration of Tresor's root certificate
+type TresorCASpec struct {
+	// SecretRef specifies the secret in which the root certificate is stored
+	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // MeshRootCertificateStatus defines the status of the MeshRootCertificate resource

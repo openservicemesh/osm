@@ -60,14 +60,30 @@ spec:
                       description: Cert-manager provider configuration
                       type: object
                       required:
-                        - secretName
+                        - ca
                         - issuerName
                         - issuerKind
                         - issuerGroup
                       properties:
-                        secretName:
-                          description: The name of the kubernetes secret containing the root certificate
-                          type: string
+                        ca:
+                          description: The root certificate of the Issuer or ClusterIssuer
+                          type: object
+                          required:
+                            - secretRef
+                          properties:
+                            secretRef:
+                              description: Reference to the kubernetes secret storing the root certificate
+                              type: object
+                              required:
+                                - name
+                                - namespace
+                              properties:
+                                name:
+                                  description: Name of the kubernetes secret
+                                  type: string
+                                namespace:
+                                  description: Namespace of the kubernetes secret
+                                  type: string
                         issuerName:
                           description: The name of the Issuer or ClusterIssuer resource
                           type: string
@@ -106,16 +122,48 @@ spec:
                           type: string
                         token:
                           description: Token used by the mesh control plane
-                          type: string
+                          type: object
+                          required:
+                            - secretRef
+                          properties:
+                            secretRef:
+                              description: Reference to the kubernetes secret storing the vault token
+                              type: object
+                              required:
+                                - name
+                                - namespace
+                              properties:
+                                name:
+                                  description: Name of the kubernetes secret
+                                  type: string
+                                namespace:
+                                  description: Namespace of the kubernetes secret
+                                  type: string
                     tresor:
                       description: Tresor provider configuration
                       type: object
                       required:
-                        - secretName
+                        - ca
                       properties:
-                        secretName:
-                          description: Name of the kubernetes secret storing the root certificate
-                          type: string
+                        ca:
+                          description: The root certificate used by Tresor
+                          type: object
+                          required:
+                            - secretRef
+                          properties:
+                            secretRef:
+                              description: Reference to the kubernetes secret storing the root certificate
+                              type: object
+                              required:
+                                - name
+                                - namespace
+                              properties:
+                                name:
+                                  description: Name of the kubernetes secret
+                                  type: string
+                                namespace:
+                                  description: Namespace of the kubernetes secret
+                                  type: string
                   oneOf:
                     - required: ['certManager']
                     - required: ['vault']
