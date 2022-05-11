@@ -62,6 +62,18 @@ func (ms MeshService) NamespacedKey() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
 }
 
+// Init initializes the unexported variables within ms
+// this is helpful for comparison purposes
+func (ms *MeshService) Init() {
+	if !ms.subdomainPopulated {
+		ms.Subdomain()
+	}
+
+	if ms.providerKey == "" {
+		ms.ProviderKey()
+	}
+}
+
 // Subdomain is an optional subdomain for this MeshService
 // It is calculated once based on Name and stored in an unexported field
 // which is why this function has a pointer receiver

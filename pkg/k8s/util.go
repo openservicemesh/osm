@@ -59,7 +59,15 @@ func splitHostName(host string) (service string, subdomain string) {
 		service = serviceComponents[0]
 		subdomain = ""
 	case l == 3:
-		if strings.Contains(serviceComponents[l-1], "svc") {
+		tld := serviceComponents[l-1]
+		// tld may contain a port
+		tldComponents := strings.Split(tld, ":")
+		if len(tldComponents) > 1 {
+			// port detected
+			tld = tldComponents[0]
+		}
+
+		if tld == "svc" {
 			// e.g. service.namespace.svc
 			service = serviceComponents[0]
 			subdomain = ""

@@ -588,13 +588,14 @@ func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountNam
 }
 
 // NewServiceFixture creates a new Kubernetes service
-func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
-	return &corev1.Service{
+func NewServiceFixture(serviceName, namespace string, selectors map[string]string, headless bool) *corev1.Service {
+	svc := &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: namespace,
 		},
 		Spec: corev1.ServiceSpec{
+			ClusterIP: "10.0.0.1",
 			Ports: []corev1.ServicePort{{
 				Name: "servicePort",
 				TargetPort: intstr.IntOrString{
@@ -607,6 +608,12 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 			Selector: selectors,
 		},
 	}
+
+	if headless {
+		svc.Spec.ClusterIP = corev1.ClusterIPNone
+	}
+
+	return svc
 }
 
 // NewServiceAccountFixture creates a new Kubernetes service account

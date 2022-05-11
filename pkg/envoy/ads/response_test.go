@@ -75,7 +75,7 @@ var _ = Describe("Test ADS response functions", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels)
+	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels, false)
 	_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
@@ -83,7 +83,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	// Create Bookstore apex Service, since the fake catalog has a traffic split applied, needs to be
 	// able to be looked up
-	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil, false)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}

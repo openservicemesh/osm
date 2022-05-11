@@ -74,25 +74,25 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	}
 
 	// Create Bookstore-v1 Service
-	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v1"})
+	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v1"}, false)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore v1 service: %s", err.Error())
 	}
 
 	// Create Bookstore-v2 Service
-	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v2"})
+	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{constants.AppLabel: "bookstore", "version": "v2"}, false)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV2Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore v2 service: %s", err.Error())
 	}
 
 	// Create Bookstore-apex Service
-	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{constants.AppLabel: "bookstore"})
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{constants.AppLabel: "bookstore"}, false)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookstore Apex service: %s", err.Error())
 	}
 
 	// Create Bookbuyer Service
-	svc = tests.NewServiceFixture(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace, nil)
+	svc = tests.NewServiceFixture(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace, nil, false)
 	if _, err := kubeClient.CoreV1().Services(tests.BookbuyerService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new Bookbuyer service: %s", err.Error())
 	}

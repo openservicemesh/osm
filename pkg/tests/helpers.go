@@ -27,7 +27,7 @@ func GetUnique(slice []string) []string {
 
 // MakeService creates a new service for a set of pods with matching selectors
 func MakeService(kubeClient kubernetes.Interface, svcName string, selectors map[string]string) (*v1.Service, error) {
-	service := NewServiceFixture(svcName, Namespace, selectors)
+	service := NewServiceFixture(svcName, Namespace, selectors, false)
 	createdService, err := kubeClient.CoreV1().Services(Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err

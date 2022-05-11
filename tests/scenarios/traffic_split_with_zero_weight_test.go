@@ -223,7 +223,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Nil(err)
 
 			for _, meshSvc := range tc.meshServices {
-				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
+				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{}, false)
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
 			}
 

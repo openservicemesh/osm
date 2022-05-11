@@ -50,6 +50,8 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	}
 
 	meshServices := kubernetesServicesToMeshServices(k.KubeController, services)
+	// filter down meshServices to eliminate subdomains not from this pod (keeping empty subdomains)
+	meshServices = service.FilterMeshServicesBySubdomain(meshServices, pod.GetName(), true)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",

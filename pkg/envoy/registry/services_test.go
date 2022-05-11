@@ -37,21 +37,28 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 	Context("Test ListProxyServices()", func() {
 		It("works as expected", func() {
 			proxyUUID := uuid.New()
+			proxyUUID2 := uuid.New()
 
-			pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName,
+			podName := "pod-name"
+			podName2 := "pod-name-2"
+			pod := tests.NewPodFixture(tests.Namespace, podName, tests.BookstoreServiceAccountName,
 				map[string]string{
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					constants.AppLabel:               tests.SelectorValue})
+			pod2 := tests.NewPodFixture(tests.Namespace, podName2, tests.BookstoreServiceAccountName,
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID2.String(),
+					constants.AppLabel:               tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod, &pod2}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
 			selector := map[string]string{constants.AppLabel: tests.SelectorValue}
-			svc1 := tests.NewServiceFixture(svcName, tests.Namespace, selector)
+			svc1 := tests.NewServiceFixture(svcName, tests.Namespace, selector, false)
 
 			svcName2 := uuid.New().String()
-			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector)
+			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector, true)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc1, svc2}).Times(1)
 
 			expectedSvc1 := service.MeshService{
@@ -63,13 +70,55 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			expectedSvc2 := service.MeshService{
 				Namespace: tests.Namespace,
-				Name:      svcName2,
+				Name:      fmt.Sprintf("%s.%s", podName, svcName2),
 				Port:      tests.ServicePort,
 				Protocol:  "http",
 			}
+
+			// Subdomain gets called in the ListProxyServices
+			expectedSvc1.Subdomain()
+			expectedSvc2.Subdomain()
 			expectedList := []service.MeshService{expectedSvc1, expectedSvc2}
 
-			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil).Times(2)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      expectedSvc1.Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP: "8.8.8.8",
+							},
+							{
+								IP: "8.8.8.9",
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
+
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      expectedSvc2.Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP:       "8.8.8.9",
+								Hostname: podName,
+							},
+							{
+								IP:       "8.8.8.9",
+								Hostname: podName2,
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
 
 			certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
 			certSerialNumber := certificate.SerialNumber("123456")
@@ -97,7 +146,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			// Create the SERVICE
 			svcName := uuid.New().String()
 			selector := map[string]string{constants.AppLabel: tests.SelectorValue}
-			svc := tests.NewServiceFixture(svcName, namespace, selector)
+			svc := tests.NewServiceFixture(svcName, namespace, selector, false)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
@@ -111,9 +160,11 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 				Port:      tests.ServicePort,
 				Protocol:  "http",
 			}
+			expected.Subdomain()
 			expectedList := []service.MeshService{expected}
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
+			// Subdomain gets called in the ListProxyServices
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -131,7 +182,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			{
 				// Create a service
-				service := tests.NewServiceFixture(service1Name, namespace, selectors)
+				service := tests.NewServiceFixture(service1Name, namespace, selectors, false)
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -141,7 +192,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			{
 				// Create a second service
 				svc2Name := "svc-name-2"
-				service := tests.NewServiceFixture(svc2Name, namespace, selectors)
+				service := tests.NewServiceFixture(svc2Name, namespace, selectors, false)
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -163,7 +214,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			// Create a service
-			service := tests.NewServiceFixture(service1Name, namespace, selectors)
+			service := tests.NewServiceFixture(service1Name, namespace, selectors, false)
 			_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -186,7 +237,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			}
 
 			// Create a service
-			service := tests.NewServiceFixture(service1Name, namespace, selectors)
+			service := tests.NewServiceFixture(service1Name, namespace, selectors, false)
 			_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
