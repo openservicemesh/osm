@@ -44,10 +44,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
-		if backend.Port.Number < 0 {
-			// to prevent panics since (until this commit) there was no validating webhook to check
-			backend.Port.Number = 0
-		}
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
 			Name: trafficpolicy.GetIngressTrafficMatchName(types.NamespacedName{
 				Name:      svc.Name,

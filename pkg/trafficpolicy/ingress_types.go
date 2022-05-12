@@ -24,5 +24,5 @@ type IngressTrafficMatch struct {
 
 // GetIngressTrafficMatchName generates the traffic match name
 func GetIngressTrafficMatchName(svc types.NamespacedName, port uint16, protocol string) string {
-	return fmt.Sprintf("ingress_%s/%s_%d_%s", svc.Name, svc.Namespace, port, protocol)
+	return fmt.Sprintf("ingress_%s/%s_%d_%s", svc.Namespace, svc.Name, port, protocol)
 }

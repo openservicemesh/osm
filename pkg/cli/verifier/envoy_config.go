@@ -532,13 +532,6 @@ func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Servi
 		}
 	}
 
-	for ip, matched := range sourceIPs {
-		// TODO: This situation may not actually be an error. Discuss
-		if !matched {
-			return fmt.Errorf("filter chain IP %s was not found in the ingress service's endpoints", ip)
-		}
-	}
-
 	return nil
 }
 
