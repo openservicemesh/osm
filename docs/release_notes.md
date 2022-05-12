@@ -1,5 +1,11 @@
 # Release Notes
 
+## Release v1.2.0
+
+### Breaking changes
+
+Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
+
 ## Release v1.1.0
 
 ### Notable changes
