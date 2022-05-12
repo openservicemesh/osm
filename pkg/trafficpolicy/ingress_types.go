@@ -22,6 +22,7 @@ type IngressTrafficMatch struct {
 	SkipClientCertValidation bool
 }
 
+// GetIngressTrafficMatchName generates the traffic match name
 func GetIngressTrafficMatchName(svc types.NamespacedName, port uint16, protocol string) string {
 	return fmt.Sprintf("ingress_%s/%s_%d_%s", svc.Name, svc.Namespace, port, protocol)
 }
