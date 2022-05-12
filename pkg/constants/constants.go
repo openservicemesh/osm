@@ -269,3 +269,7 @@ const (
 	// ServiceAliveResponse is the response returned by the server to indicate it is alive
 	ServiceAliveResponse = "Service is alive"
 )
+
+var (
+	SupportedProtocols = []string{ProtocolHTTP, ProtocolHTTPS, ProtocolTCP, ProtocolGRPC, ProtocolTCPServerFirst}
+)

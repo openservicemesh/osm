@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -353,8 +354,20 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 			Port:      uint16(portSpec.Port),
-			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
 		}
+
+		// attempt to parse protocol from port name
+		protocol := constants.ProtocolHTTP
+		portNameProtocol := strings.Split(portSpec.Name, "-")[0]
+		for _, p := range constants.SupportedProtocols {
+			if p == portNameProtocol {
+				protocol = p
+				break
+			}
+		}
+
+		// use port.appProtocol if specified, else use port protocol
+		meshSvc.Protocol = pointer.StringDeref(portSpec.AppProtocol, protocol)
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
