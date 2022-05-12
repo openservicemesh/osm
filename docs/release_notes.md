@@ -16,7 +16,8 @@
   - `osm_proxy_response_send_error_count`
   - `osm_proxy_xds_request_count`
 - Support for Kubernetes 1.20 and 1.21 has been dropped
-		
+- Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
+
 ## Release v1.1.0
 
 ### Notable changes
