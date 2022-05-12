@@ -1,0 +1,40 @@
+{{- if .Values.osm.deployPrometheus }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{.Release.Name}}-prometheus
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy",  "nodes/metrics", "services", "endpoints", "pods", "ingresses", "configmaps"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["ingresses", "ingresses/status"]
+    verbs: ["list", "get", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{.Release.Name}}-prometheus
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: osm-prometheus
+    namespace: {{ include "osm.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{.Release.Name}}-prometheus
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+{{- end }}

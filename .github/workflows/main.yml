@@ -1,0 +1,334 @@
+name: Go
+on:
+  push:
+    branches:
+      - main
+      - release-*
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "scripts/cleanup/**"
+  pull_request:
+    branches:
+      - main
+      - release-*
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "scripts/cleanup/**"
+env:
+  CI_WAIT_FOR_OK_SECONDS: 60
+  CI_MAX_ITERATIONS_THRESHOLD: 60
+  CI_CLIENT_CONCURRENT_CONNECTIONS: 1
+  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
+  CI_MIN_SUCCESS_THRESHOLD: 1
+  OSM_HUMAN_DEBUG_LOG: true
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: ShellCheck
+        run: shellcheck -x $(find . -name '*.sh')
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: go build deps
+        run: make embed-files-test
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-pkg-cache: true
+
+  codegen:
+    name: Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: go mod tidy
+        run: make go-mod-tidy
+      - name: Codegen checks
+        run: make check-codegen
+
+  mocks:
+    name: Mocks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: go mod tidy
+        run: make go-mod-tidy
+      - name: gomock checks
+        run: make check-mocks
+
+  charts:
+    name: Chart checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: chart checks
+        run: make chart-checks
+
+  build:
+    name: Go build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Go Build
+        run: make build-ci
+
+  unittest:
+    name: Go test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: go mod tidy
+        run: make go-mod-tidy
+      - name: Test
+        run: make go-test-coverage
+      - name: Upload Coverage
+        if: ${{ success() }}
+        uses: codecov/codecov-action@v2
+        with:
+          flags: unittests
+
+  scenarios_tests:
+    name: Test various Envoy + SMI configuration scenarios
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Test
+        run: |
+          touch .env
+          make kind-up
+          go test -v ./tests/scenarios/...
+
+  imagescan:
+    name: Scan images for security vulnerabilities
+    runs-on: ubuntu-latest
+    env:
+      CTR_TAG: ${{ github.sha }}
+      CTR_REGISTRY: "localhost:5000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build docker images
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
+
+  e2etest:
+    name: Go test e2e
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    env:
+      CTR_TAG: ${{ github.sha }}
+      CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Build test dependencies
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm build-osm docker-build-tcp-echo-server
+      # PR Tests
+      - name: Run PR tests
+        id: pr_test
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          K8S_NAMESPACE: "osm-system"
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
+        continue-on-error: true
+      - name: Upload PR test logs
+        if: ${{ steps.pr_test.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: pr_test_logs_bucket_${{ matrix.bucket }}
+          path: /tmp/test**/*
+      - name: Check continue PR tests
+        if: ${{ steps.pr_test.conclusion != 'skipped' && steps.pr_test.outcome == 'failure'}}
+        run: exit 1
+      - name: Clean PR tests
+        if: ${{ steps.pr_test.conclusion != 'skipped' }}
+        run: rm -rf /tmp/test*
+
+      # Push Tests
+      - name: Run Push tests
+        id: push_test
+        if: ${{ github.event_name == 'push' }}
+        env:
+          K8S_NAMESPACE: "osm-system"
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
+        continue-on-error: true
+      - name: Upload Push test logs
+        if: ${{ steps.push_test.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: push_test_logs_bucket_${{ matrix.bucket }}
+          path: /tmp/test**/*
+      - name: Check continue Push tests
+        if: ${{ steps.push_test.conclusion != 'skipped' && steps.push_test.outcome == 'failure'}}
+        run: exit 1
+      - name: Clean Push tests logs
+        if: ${{ steps.push_test.conclusion != 'skipped' }}
+        run: rm -rf /tmp/test*
+
+  integration-tresor:
+    name: Integration Test with Tresor, SMI traffic policies, and egress disabled
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+        id: go
+
+      - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
+        env:
+          CERT_MANAGER: "tresor"
+          BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
+          ENABLE_EGRESS: "false"
+          ENABLE_RECONCILER: "false"
+          DEPLOY_TRAFFIC_SPLIT: "true"
+          CTR_TAG: ${{ github.sha }}
+          USE_PRIVATE_REGISTRY: "false"
+        run: |
+          touch .env
+          make kind-up
+          ./demo/run-osm-demo.sh
+          go run ./ci/cmd/maestro.go
+
+  images:
+    name: Docker Images
+    runs-on: ubuntu-latest
+    if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')) && github.event_name == 'push' }}
+    env:
+      DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
+      DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
+      CTR_REGISTRY: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Docker Login
+        run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
+      - name: Push images with git sha tag
+        env:
+          CTR_TAG: ${{ github.sha }}
+        run: make docker-build-cross

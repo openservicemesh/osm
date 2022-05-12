@@ -1,0 +1,44 @@
+#!/bin/bash
+
+go build ./... >/dev/null 2>&1
+if [ $? -ne 0 ]
+then
+	echo "Failed to build project. Please check the output of"
+	echo "go build or run commit with --no-verify if you know"
+	echo "what you are doing."
+	exit 1
+fi
+
+# try to create commit_logs folder
+mkdir -p commit_logs
+
+# run golangci-lint
+make go-lint >commit_logs/linter.log 2>&1
+if [ $? -ne 0 ]
+then
+    echo "'golangci-lint': has detected potential issues in the project."
+    echo "Details:"
+    cat commit_logs/linter.log
+    exit 1
+fi
+
+# run go mod tidy
+make go-mod-tidy >commit_logs/go_mod.log 2>&1
+if [ $? -ne 0 ]
+then
+    echo "'go mod tidy': has detected potential issues in the project."
+    echo "Details:"
+    cat commit_logs/go_mod.log
+    exit 1
+fi
+
+# run go test
+go test -v ./... >commit_logs/unit_tests.log 2>&1
+if [ $? -ne 0 ]
+then
+    echo "'go test': Failed to run tests."
+    echo "Please check the output of 'go test' in: 'commit_logs/unit_tests.log'"
+    echo "Details:"
+    cat commit_logs/unit_tests.log
+    exit 1
+fi

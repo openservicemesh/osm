@@ -1,0 +1,1 @@
+Congratulations! The OSM control plane has been installed in your Kubernetes cluster!

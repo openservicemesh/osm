@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-bootstrap
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-bootstrap
+    meshName: {{ .Values.osm.meshName }}
+spec:
+  replicas: {{ .Values.osm.osmBootstrap.replicaCount }}
+  selector:
+    matchLabels:
+      app: osm-bootstrap
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-bootstrap
+  {{- if .Values.osm.osmBootstrap.podLabels }}
+  {{- toYaml .Values.osm.osmBootstrap.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - osm-bootstrap
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      priorityClassName: system-node-critical
+      serviceAccountName: {{ .Release.Name }}
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      initContainers:
+        - name: init-osm-bootstrap
+          image: "{{ include "osmCRDs.image" . }}"
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+          command:
+          - sh
+          - -c
+          - >
+            kubectl apply -f /osm-crds;
+            {{- if .Values.osm.enableReconciler }}
+            kubectl label -f /osm-crds openservicemesh.io/reconcile=true --overwrite;
+            {{- end }}
+      containers:
+        - name: osm-bootstrap
+          image: "{{ include "osmBootstrap.image" . }}"
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+          ports:
+            - name: "crdconversion"
+              containerPort: 9443
+            - name: "metrics"
+              containerPort: 9091
+            - name: "health"
+              containerPort: 9095
+          command: ['/osm-bootstrap']
+          args: [
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-version", "{{ .Chart.AppVersion }}",
+            "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            {{ if eq .Values.osm.certificateProvider.kind "vault" }}
+            "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-protocol", "{{.Values.osm.vault.protocol}}",
+            "--vault-token", "{{.Values.osm.vault.token}}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
+          ]
+          resources:
+            limits:
+              cpu: "{{.Values.osm.osmBootstrap.resource.limits.cpu}}"
+              memory: "{{.Values.osm.osmBootstrap.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.osm.osmBootstrap.resource.requests.cpu}}"
+              memory: "{{.Values.osm.osmBootstrap.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /healthz
+              port: 9095
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /healthz
+              port: 9095
+          env:
+            # The BOOTSTRAP_POD_NAME env variable sets pod name dynamically, used by osm-bootstrap to register events
+            - name: BOOTSTRAP_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+    {{- if .Values.osm.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.osm.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
+    {{- end }}

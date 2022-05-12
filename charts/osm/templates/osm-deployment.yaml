@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-controller
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-controller
+    meshName: {{ .Values.osm.meshName }}
+    {{ if .Values.osm.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
+spec:
+  {{- if not .Values.osm.osmController.autoScale.enable }}
+  replicas: {{ .Values.osm.osmController.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: osm-controller
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-controller
+  {{- if .Values.osm.osmController.podLabels }}
+  {{- toYaml .Values.osm.osmController.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - osm-controller
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      priorityClassName: system-node-critical
+      serviceAccountName: {{ .Release.Name }}
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      initContainers:
+        - name: init-osm-controller
+          image: {{ .Values.osm.curlImage }}
+          command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
+      containers:
+        - name: osm-controller
+          image: "{{ include "osmController.image" . }}"
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+          ports:
+            - name: "admin-port"
+              containerPort: 15000
+            - name: "ads-port"
+              containerPort: 15128
+            - name: "metrics"
+              containerPort: 9091
+          command: ['/osm-controller']
+          args: [
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-version", "{{ .Chart.AppVersion }}",
+            "--osm-service-account", "{{ .Release.Name }}",
+            "--mesh-name", "{{.Values.osm.meshName}}",
+            "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
+            "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            {{ if eq .Values.osm.certificateProvider.kind "vault" }}
+            "--vault-host", "{{ required "osm.vault.host is required when osm.certificateProvider.kind==vault" .Values.osm.vault.host }}",
+            "--vault-protocol", "{{.Values.osm.vault.protocol}}",
+            "--vault-token", "{{ required "osm.vault.token is required when osm.certificateProvider.kind==vault" .Values.osm.vault.token }}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
+            "--validate-traffic-target={{.Values.smi.validateTrafficTarget}}",
+          ]
+          resources:
+            limits:
+              cpu: "{{.Values.osm.osmController.resource.limits.cpu}}"
+              memory: "{{.Values.osm.osmController.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.osm.osmController.resource.requests.cpu}}"
+              memory: "{{.Values.osm.osmController.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/ready
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/alive
+              port: 9091
+          env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
+            - name: CONTROLLER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      {{- if .Values.osm.enableFluentbit }}
+        - name: {{ .Values.osm.fluentBit.name }}
+          image: {{ .Values.osm.fluentBit.registry }}/fluent-bit:{{ .Values.osm.fluentBit.tag }}
+          imagePullPolicy: {{ .Values.osm.fluentBit.pullPolicy }}
+          env:
+          {{- if .Values.osm.fluentBit.enableProxySupport }}
+          - name: HTTP_PROXY
+            valueFrom:
+              secretKeyRef:
+                name: proxy-config
+                key: HTTP_PROXY
+          - name: HTTPS_PROXY
+            valueFrom:
+              secretKeyRef:
+                name: proxy-config
+                key: HTTPS_PROXY
+          {{- end }}
+          - name: CONTROLLER_POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          {{- include "fluentbit.securityContext" . | nindent 10 }}
+          {{- end }}
+          volumeMounts:
+          - name: config
+            mountPath: /fluent-bit/etc
+            readOnly: true
+          - name: var-log-containers
+            mountPath: /var/log/containers
+            readOnly: true
+          - name: var-log-pods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: var-lib-containers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+       {{- end }}
+    {{- if .Values.osm.enableFluentbit }}
+      volumes:
+      - name: config
+        configMap:
+          name: fluentbit-configmap
+      - name: var-log-containers
+        hostPath:
+          path: /var/log/containers
+      - name: var-log-pods
+        hostPath:
+          path: /var/log/pods
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/docker/containers
+    {{- end }}
+    {{- if .Values.osm.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.osm.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
+    {{- end }}

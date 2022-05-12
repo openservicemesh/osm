@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-controller
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-controller
+spec:
+  ports:
+    - name: ads-port
+      port: 15128
+      targetPort: 15128
+    - name: debug-port
+      port: 9092
+      targetPort: 9092
+    - name: healthz
+      port: 9091
+      targetPort: 9091
+  selector:
+    app: osm-controller

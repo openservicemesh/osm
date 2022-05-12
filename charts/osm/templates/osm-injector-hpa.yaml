@@ -1,0 +1,27 @@
+{{- if .Values.osm.injector.autoScale.enable }}
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: osm-injector-hpa
+  namespace: {{ include "osm.namespace" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: osm-injector
+  minReplicas: {{.Values.osm.injector.autoScale.minReplicas}}
+  maxReplicas: {{.Values.osm.injector.autoScale.maxReplicas}}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{.Values.osm.injector.autoScale.cpu.targetAverageUtilization}}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{.Values.osm.injector.autoScale.memory.targetAverageUtilization}}
+{{- end }}

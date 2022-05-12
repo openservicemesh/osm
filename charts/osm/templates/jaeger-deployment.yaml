@@ -1,0 +1,43 @@
+{{- if .Values.osm.deployJaeger }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: jaeger
+    spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      serviceAccountName: jaeger
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+      - name: jaeger
+        image: {{ .Values.osm.tracing.image }}
+        args:
+          - --collector.zipkin.host-port={{ .Values.osm.tracing.port }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.osm.tracing.port }}
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512M
+          requests:
+            cpu: 100m
+            memory: 256M
+{{- end }}

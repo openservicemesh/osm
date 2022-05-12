@@ -1,0 +1,13 @@
+name: envoy.access_loggers.stream
+typed_config:
+  '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+  log_format:
+    json_format:
+      bytes_received: '%BYTES_RECEIVED%'
+      bytes_sent: '%BYTES_SENT%'
+      duration: '%DURATION%'
+      requested_server_name: '%REQUESTED_SERVER_NAME%'
+      response_flags: '%RESPONSE_FLAGS%'
+      start_time: '%START_TIME%'
+      upstream_cluster: '%UPSTREAM_CLUSTER%'
+      upstream_host: '%UPSTREAM_HOST%'

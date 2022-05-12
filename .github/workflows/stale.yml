@@ -1,0 +1,26 @@
+name: 'Label and close stale issues and PRs'
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v4
+        with:
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-all-milestones: true
+          stale-issue-message: >
+            This issue will be closed due to a long period of inactivity. If you
+            would like this issue to remain open then please comment or update.
+          stale-pr-message: >
+            This PR will be closed due to a long period of inactivity. If you
+            would like this PR to remain open then please comment or update.
+          close-issue-message: Issue closed due to inactivity.
+          close-pr-message: PR closed due to inactivity.

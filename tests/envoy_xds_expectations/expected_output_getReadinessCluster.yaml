@@ -1,0 +1,11 @@
+load_assignment:
+  cluster_name: readiness_cluster
+  endpoints:
+  - lb_endpoints:
+    - endpoint:
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 82
+name: readiness_cluster
+type: STATIC

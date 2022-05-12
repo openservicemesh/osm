@@ -1,0 +1,69 @@
+name: OpenShift Nightly Job
+on:
+  workflow_run:
+    workflows: ["Nightly Images"]
+    types: [completed]
+
+env:
+  CTR_REGISTRY: openservicemesh
+  CTR_TAG: latest-main
+
+jobs:
+  test:
+    name: OpenShift Nightly Job
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout v2
+        uses: actions/checkout@v2
+      - name: Authenticate and set context
+        uses: redhat-actions/oc-login@v1
+        with:
+          openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+          openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+          insecure_skip_tls_verify: true
+      - name: Test oc
+        run: oc version --client
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Run e2es
+        run: |
+          make build-osm
+          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 180m -deployOnOpenShift=true
+      - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
+        env:
+          CERT_MANAGER: "tresor"
+          BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
+          ENABLE_EGRESS: "false"
+          ENABLE_RECONCILER: "false"
+          DEPLOY_TRAFFIC_SPLIT: "true"
+          DEPLOY_ON_OPENSHIFT: "true"
+          TIMEOUT: 150s
+          CI_WAIT_FOR_OK_SECONDS: 60
+          CI_MAX_ITERATIONS_THRESHOLD: 60
+          CI_CLIENT_CONCURRENT_CONNECTIONS: 1
+          CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 150
+          CI_MIN_SUCCESS_THRESHOLD: 1
+          OSM_HUMAN_DEBUG_LOG: true
+          USE_PRIVATE_REGISTRY: "false"
+          PUBLISH_IMAGES: "false"
+        run: |
+          touch .env
+          ./demo/run-osm-demo.sh
+          go run ./ci/cmd/maestro.go
+      - name: Cleanup resources
+        if: ${{ always() }}
+        env:
+          BOOKWAREHOUSE_NAMESPACE: bookwarehouse
+          BOOKBUYER_NAMESPACE: bookbuyer
+          BOOKSTORE_NAMESPACE: bookstore
+          BOOKTHIEF_NAMESPACE: bookthief
+          MESH_NAME: osm
+          K8S_NAMESPACE: osm-system
+          TIMEOUT: 90s
+        run: |
+          touch .env
+          ./demo/clean-kubernetes.sh

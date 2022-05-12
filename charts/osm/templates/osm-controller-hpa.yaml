@@ -1,0 +1,27 @@
+{{- if .Values.osm.osmController.autoScale.enable }}
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: osm-controller-hpa
+  namespace: {{ include "osm.namespace" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: osm-controller
+  minReplicas: {{.Values.osm.osmController.autoScale.minReplicas}}
+  maxReplicas: {{.Values.osm.osmController.autoScale.maxReplicas}}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{.Values.osm.osmController.autoScale.cpu.targetAverageUtilization}}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{.Values.osm.osmController.autoScale.memory.targetAverageUtilization}}
+{{- end }}

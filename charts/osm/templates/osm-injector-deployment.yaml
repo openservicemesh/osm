@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-injector
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-injector
+    meshName: {{ .Values.osm.meshName }}
+spec:
+  {{- if not .Values.osm.injector.autoScale.enable }}
+  replicas: {{ .Values.osm.injector.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: osm-injector
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-injector
+  {{- if .Values.osm.injector.podLabels }}
+  {{- toYaml .Values.osm.injector.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - osm-injector
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      priorityClassName: system-node-critical
+      serviceAccountName: {{ .Release.Name }}
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      initContainers:
+        - name: init-osm-injector
+          image: {{ .Values.osm.curlImage }}
+          command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
+      containers:
+        - name: osm-injector
+          image: "{{ include "osmInjector.image" . }}"
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+          ports:
+            - name: "sidecar-inject"
+              containerPort: 9090
+            - name: "metrics"
+              containerPort: 9091
+          command: ['/osm-injector']
+          args: [
+            "--verbosity", "{{.Values.osm.controllerLogLevel}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-version", "{{ .Chart.AppVersion }}",
+            "--mesh-name", "{{.Values.osm.meshName}}",
+            "--webhook-config-name", "{{.Values.osm.webhookConfigNamePrefix}}-{{.Values.osm.meshName}}",
+            "--webhook-timeout", "{{.Values.osm.injector.webhookTimeoutSeconds}}",
+            "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            {{ if eq .Values.osm.certificateProvider.kind "vault" }}
+            "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-protocol", "{{.Values.osm.vault.protocol}}",
+            "--vault-token", "{{.Values.osm.vault.token}}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.osm.certmanager.issuerGroup}}",
+            "--enable-reconciler={{.Values.osm.enableReconciler}}",
+            "--osm-container-pull-policy={{.Values.osm.image.pullPolicy}}",
+          ]
+          resources:
+            limits:
+              cpu: "{{.Values.osm.injector.resource.limits.cpu}}"
+              memory: "{{.Values.osm.injector.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.osm.injector.resource.requests.cpu}}"
+              memory: "{{.Values.osm.injector.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 9090
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 9090
+          env:
+            # The INJECTOR_POD_NAME env variable sets pod name dynamically, used by osm-injector to register events
+            - name: INJECTOR_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OSM_DEFAULT_ENVOY_IMAGE
+              value: "{{ .Values.osm.sidecarImage }}"
+            - name: OSM_DEFAULT_ENVOY_WINDOWS_IMAGE
+              value: "{{ .Values.osm.sidecarWindowsImage }}"
+            - name: OSM_DEFAULT_INIT_CONTAINER_IMAGE
+              value: '{{ include "osmSidecarInit.image" . }}'
+            - name: OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE
+              value: '{{ include "osmHealthcheck.image" . }}'
+    {{- if .Values.osm.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.osm.controlPlaneTolerations }}
+      tolerations:
+{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
+    {{- end }}

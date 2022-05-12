@@ -1,0 +1,14 @@
+{{- if .Values.osm.osmController.enablePodDisruptionBudget }}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: osm-controller-pdb
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-controller
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: osm-controller
+{{- end }}

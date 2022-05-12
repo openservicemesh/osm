@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-bootstrap
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-bootstrap
+spec:
+  ports:
+    - name: crdconversion
+      port: 9443
+    - name: health
+      port: 9095
+  selector:
+    app: osm-bootstrap

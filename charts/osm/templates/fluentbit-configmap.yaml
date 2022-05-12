@@ -1,0 +1,43 @@
+{{- if .Values.osm.enableFluentbit }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-configmap
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+data:
+  fluent-bit.conf: |-
+    [SERVICE]
+      Flush             5
+      Daemon            off
+      Log_Level         info
+      Parsers_File      parser.conf
+    [INPUT]
+      Name    tail
+      Tag     kube.*
+      Path    /var/log/containers/osm-controller-*_{{ include "osm.namespace" . }}_osm-controller-*.log
+      Parser  cri
+      Read_from_Head  on
+    # Adds controller pod name value to help users query logs in output
+    [FILTER]
+      Name           modify
+      Match          kube.*
+      Add            controller_pod_name ${CONTROLLER_POD_NAME}
+    [OUTPUT]
+      Name    {{ .Values.osm.fluentBit.outputPlugin }}
+      Match   *
+      {{- if eq (.Values.osm.fluentBit.outputPlugin | lower) "azure" }}
+      Customer_ID {{ .Values.osm.fluentBit.workspaceId }}
+      Shared_Key {{ .Values.osm.fluentBit.primaryKey }}
+      {{- end }}
+
+  parser.conf: |-
+    [PARSER]
+      # http://rubular.com/r/tjUt3Awgg4
+      Name    cri
+      Format  regex
+      Regex   ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<message>.*)$
+      Time_Key    time
+      Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+{{- end }}

@@ -1,0 +1,59 @@
+{{- if .Values.osm.deployPrometheus }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: osm-prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-prometheus
+    spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+      - name: prometheus
+        ports:
+        - containerPort: {{.Values.osm.prometheus.port}}
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus/
+        - --storage.tsdb.retention.time={{.Values.osm.prometheus.retention.time}}
+        - --web.listen-address=:{{.Values.osm.prometheus.port}}
+        image: {{.Values.osm.prometheus.image}}
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: "{{.Values.osm.prometheus.resources.limits.cpu}}"
+            memory: "{{.Values.osm.prometheus.resources.limits.memory}}"
+          requests:
+            cpu: "{{.Values.osm.prometheus.resources.requests.cpu}}"
+            memory: "{{.Values.osm.prometheus.resources.requests.memory}}"
+        volumeMounts:
+        - mountPath: /etc/prometheus/
+          name: prometheus-config-volume
+        - mountPath: /prometheus/
+          name: prometheus-storage-volume
+      serviceAccountName: osm-prometheus
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          defaultMode: 420
+          name: osm-prometheus-server-conf
+      - name: prometheus-storage-volume
+        emptyDir: {}
+{{- end }}

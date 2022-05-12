@@ -1,0 +1,14 @@
+{{- if .Values.osm.injector.enablePodDisruptionBudget }}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: osm-injector-pdb
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-injector
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: osm-injector
+{{- end }}

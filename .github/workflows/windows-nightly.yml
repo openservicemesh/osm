@@ -1,0 +1,36 @@
+name: Windows Nightly Job
+on:
+  workflow_run:
+    workflows: ["Nightly Images"]
+    types: [completed]
+
+env:
+  CTR_REGISTRY: openservicemesh
+  CTR_TAG: latest-main
+
+jobs:
+  test:
+    name: Windows Cluster Nightly Job
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout v2
+        uses: actions/checkout@v2
+      - name: Authenticate and set context
+        uses: azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.CI_WINDOWS_KUBECONFIG }}
+        id: setcontext
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Run e2es
+        run: |
+          make build-osm
+          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus='\[Cross-platform\]|\[windows\]' -test.timeout 180m -deployOnWindowsWorkers=true
+      - name: Cleanup resources
+        if: ${{ always() }}
+        run: |
+          kubectl delete service vault -n osm-system --ignore-not-found --wait

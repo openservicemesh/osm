@@ -1,0 +1,18 @@
+{{- if .Values.osm.deployJaeger }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: jaeger
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: jaeger
+spec:
+  selector:
+    app: jaeger
+  ports:
+  - protocol: TCP
+    # Service port and target port are the same
+    port: {{ .Values.osm.tracing.port }}
+  type: ClusterIP
+{{- end }}

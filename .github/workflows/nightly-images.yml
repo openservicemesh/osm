@@ -1,0 +1,21 @@
+name: Nightly Images
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  images:
+    name: Docker Images
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
+      DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
+      CTR_TAG: latest-main
+      CTR_REGISTRY: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Docker Login
+        run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
+      - name: Push images with git sha tag
+        run: make docker-build-cross

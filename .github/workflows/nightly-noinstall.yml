@@ -1,0 +1,66 @@
+name: OSM NoInstall Nightly Job
+on:
+  workflow_run:
+    workflows: ["Nightly Images"]
+    types: [completed]
+
+env:
+  CTR_REGISTRY: openservicemesh
+  CTR_TAG: latest-main
+
+jobs:
+  test:
+    name: NoInstall Nightly Job
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    env:
+      KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
+    steps:
+      - name: Checkout v2
+        uses: actions/checkout@v2
+      - name: Set random cluster name
+        run: echo "KIND_CLUSTER_NAME=kind-e2e-$(openssl rand -hex 6)" >> $GITHUB_ENV
+      - name: Setup Kind
+        run: |
+          # config for 1 control plane node and 2 workers (necessary for conformance)
+          cat <<EOF > "kind-config.yaml"
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+          - role: worker
+            kubeadmConfigPatches:
+            - |
+              kind: JoinConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+            extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+          - role: worker
+          EOF
+
+          cat kind-config.yaml
+
+          # use local kindest/node:latest image from kind build node-image
+          kind create cluster --name $KIND_CLUSTER_NAME -v=3 --wait=1m --config=kind-config.yaml --kubeconfig=kind-kubeconfig
+      - name: Get cluster version and nodes
+        run: |
+          kubectl version
+          kubectl get nodes
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Install OSM via OSM CLI
+        run: |
+          make build-osm
+          ./bin/osm install --verbose \
+            --set=osm.image.registry="$CTR_REGISTRY" \
+            --set=osm.image.tag="$CTR_TAG"
+      - name: Run e2es
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 60m -installType=NoInstall
+      - name: Kind cleanup
+        run: kind delete cluster --name $KIND_CLUSTER_NAME

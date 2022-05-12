@@ -1,0 +1,135 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  version:
+    name: Set Version from git ref
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - id: version
+        run: echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}')"
+
+  binaries:
+    name: Binaries
+    runs-on: ubuntu-latest
+    needs: version
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Build Binaries
+        run: |
+          make release-artifacts
+      - name: Generate Release Notes
+        run: scripts/release-notes.sh $VERSION > release-notes.md
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body_path: release-notes.md
+          prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.') }}
+      - name: Upload macOS (amd64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-darwin-amd64.zip"
+          asset_content_type: application/zip
+      - name: Upload macOS (amd64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload macOS (arm64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-arm64.zip"
+          asset_name: "osm-${{ env.VERSION }}-darwin-arm64.zip"
+          asset_content_type: application/zip
+      - name: Upload macOS (arm64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-arm64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-darwin-arm64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Linux (amd64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-linux-amd64.zip"
+          asset_content_type: application/zip
+      - name: Upload Linux (amd64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-linux-amd64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Linux (arm64).zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-arm64.zip"
+          asset_name: "osm-${{ env.VERSION }}-linux-arm64.zip"
+          asset_content_type: application/zip
+      - name: Upload Linux (arm64).tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-arm64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-linux-arm64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Windows .zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-windows-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-windows-amd64.zip"
+          asset_content_type: application/zip
+      - name: Upload Windows .tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.VERSION }}-windows-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-windows-amd64.tar.gz"
+          asset_content_type: application/gzip
+      - name: Upload Checksums
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: _dist/sha256sums.txt
+          asset_name: sha256sums.txt
+          asset_content_type: text/plain

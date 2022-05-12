@@ -1,0 +1,38 @@
+{{- if .Values.osm.deployGrafana}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-grafana
+  name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-grafana
+  name: {{.Release.Name}}-grafana
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{.Release.Name}}-grafana
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-grafana
+subjects:
+  - kind: ServiceAccount
+    name: osm-grafana
+    namespace: {{ include "osm.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{.Release.Name}}-grafana
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

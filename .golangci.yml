@@ -1,0 +1,44 @@
+run:
+  tests: true
+  timeout: 10m
+  skip-dirs:
+    - pkg/gen
+  skip-files:
+    - "zz_generated.deepcopy.go$"
+
+linters:
+  enable:
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
+    - govet
+    - misspell
+    - revive
+    - unused
+    - whitespace
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/openservicemesh/osm
+
+issues:
+  exclude-rules:
+    # Ignore error for ginkgo and gomega dot imports
+    - linters:
+        - revive
+      source: ". \"github.com/onsi/(ginkgo|gomega)\""
+      text: "dot imports"
+    # Ignore error for test framework imports
+    - linters:
+        - revive
+      source: ". \"github.com/openservicemesh/osm/tests/framework\""
+      text: "dot imports"
+    # Exclude staticcheck messages for deprecated function, variable or constant
+    # This causes issues with package github.com/golang/protobuf/proto
+    - linters:
+        - staticcheck
+      text: "SA1019:"
+  exclude-use-default: false
+

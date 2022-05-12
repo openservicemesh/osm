@@ -1,0 +1,12 @@
+{{- if .Values.osm.fluentBit.enableProxySupport }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: proxy-config
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+stringData:
+  HTTP_PROXY: {{ .Values.osm.fluentBit.httpProxy | quote }}
+  HTTPS_PROXY: {{ .Values.osm.fluentBit.httpsProxy | quote }}
+{{- end }}

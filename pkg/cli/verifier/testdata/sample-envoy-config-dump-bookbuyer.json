@@ -1,0 +1,531 @@
+{
+ "configs": [
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump",
+   "bootstrap": {
+    "node": {
+     "id": "38cf2479-bfea-4c1e-a961-f8f8e2b2e8cb.sidecar.bookbuyer.bookbuyer.cluster.local",
+     "hidden_envoy_deprecated_build_version": "98c1c9e9a40804b93b074badad1cdf284b47d58b/1.18.3/Clean/RELEASE/BoringSSL",
+     "user_agent_name": "envoy",
+     "user_agent_build_version": {
+      "version": {
+       "major_number": 1,
+       "minor_number": 18,
+       "patch": 3
+      },
+      "metadata": {
+       "ssl.version": "BoringSSL",
+       "revision.sha": "98c1c9e9a40804b93b074badad1cdf284b47d58b",
+       "build.type": "RELEASE",
+       "revision.status": "Clean"
+      }
+     },
+     "extensions": []
+    },
+    "static_resources": {
+     "clusters": [
+      {
+       "name": "osm-controller",
+       "type": "LOGICAL_DNS",
+       "connect_timeout": "0.250s",
+       "transport_socket": {
+        "name": "envoy.transport_sockets.tls",
+        "typed_config": {
+         "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+         "common_tls_context": {
+          "tls_params": {
+           "tls_minimum_protocol_version": "TLSv1_2",
+           "tls_maximum_protocol_version": "TLSv1_3"
+          },
+          "tls_certificates": [
+           {
+            "certificate_chain": {
+             "inline_bytes": ""
+            },
+            "private_key": {
+             "inline_bytes": ""
+            }
+           }
+          ],
+          "validation_context": {
+           "trusted_ca": {
+            "inline_bytes": ""
+           }
+          },
+          "alpn_protocols": [
+           "h2"
+          ]
+         }
+        }
+       },
+       "load_assignment": {
+        "cluster_name": "osm-controller",
+        "endpoints": [
+         {
+          "lb_endpoints": [
+           {
+            "endpoint": {
+             "address": {
+              "socket_address": {
+               "address": "osm-controller.osm-system.svc.cluster.local",
+               "port_value": 15128
+              }
+             }
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "typed_extension_protocol_options": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+         "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+         "explicit_http_config": {
+          "http2_protocol_options": {}
+         }
+        }
+       }
+      }
+     ]
+    },
+    "dynamic_resources": {
+     "lds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+     },
+     "cds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+     },
+     "ads_config": {
+      "api_type": "GRPC",
+      "grpc_services": [
+       {
+        "envoy_grpc": {
+         "cluster_name": "osm-controller"
+        }
+       }
+      ],
+      "set_node_on_first_message_only": true,
+      "transport_api_version": "V3"
+     }
+    },
+    "admin": {
+     "address": {
+      "socket_address": {
+       "address": "127.0.0.1",
+       "port_value": 15000
+      }
+     },
+     "access_log": [
+      {
+       "name": "envoy.access_loggers.stream",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog"
+       }
+      }
+     ]
+    }
+   },
+   "last_updated": "2021-07-26T20:40:24.344Z"
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ClustersConfigDump",
+   "version_info": "1",
+   "static_clusters": [
+    {
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "osm-controller",
+      "type": "LOGICAL_DNS",
+      "connect_timeout": "0.250s",
+      "transport_socket": {
+       "name": "envoy.transport_sockets.tls",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+        "common_tls_context": {
+         "tls_params": {
+          "tls_minimum_protocol_version": "TLSv1_2",
+          "tls_maximum_protocol_version": "TLSv1_3"
+         },
+         "tls_certificates": [
+          {
+           "certificate_chain": {
+            "inline_bytes": ""
+           },
+           "private_key": {
+            "inline_bytes": ""
+           }
+          }
+         ],
+         "validation_context": {
+          "trusted_ca": {
+           "inline_bytes": ""
+          }
+         },
+         "alpn_protocols": [
+          "h2"
+         ]
+        }
+       }
+      },
+      "load_assignment": {
+       "cluster_name": "osm-controller",
+       "endpoints": [
+        {
+         "lb_endpoints": [
+          {
+           "endpoint": {
+            "address": {
+             "socket_address": {
+              "address": "osm-controller.osm-system.svc.cluster.local",
+              "port_value": 15128
+             }
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "explicit_http_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      }
+     },
+     "last_updated": "2021-07-26T20:40:24.349Z"
+    }
+   ],
+   "dynamic_active_clusters": [
+    {
+     "version_info": "1",
+     "cluster": {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "bookstore/bookstore",
+      "type": "EDS",
+      "eds_cluster_config": {
+       "eds_config": {
+        "ads": {},
+        "resource_api_version": "V3"
+       }
+      },
+      "connect_timeout": "1s",
+      "transport_socket": {
+       "name": "envoy.transport_sockets.tls",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+        "common_tls_context": {
+         "tls_params": {
+          "tls_minimum_protocol_version": "TLSv1_2",
+          "tls_maximum_protocol_version": "TLSv1_3"
+         },
+         "alpn_protocols": [
+          "osm"
+         ],
+         "tls_certificate_sds_secret_configs": [
+          {
+           "name": "service-cert:bookbuyer/bookbuyer",
+           "sds_config": {
+            "ads": {},
+            "resource_api_version": "V3"
+           }
+          }
+         ],
+         "validation_context_sds_secret_config": {
+          "name": "root-cert-for-mtls-outbound:bookstore/bookstore",
+          "sds_config": {
+           "ads": {},
+           "resource_api_version": "V3"
+          }
+         }
+        },
+        "sni": "bookstore.bookstore.svc.cluster.local"
+       }
+      },
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "use_downstream_protocol_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      }
+     },
+     "last_updated": "2021-07-26T20:40:24.950Z"
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ListenersConfigDump",
+   "version_info": "5",
+   "dynamic_listeners": [
+    {
+     "name": "outbound-listener",
+     "active_state": {
+      "version_info": "2",
+      "listener": {
+       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+       "name": "outbound-listener",
+       "address": {
+        "socket_address": {
+         "address": "0.0.0.0",
+         "port_value": 15001
+        }
+       },
+       "filter_chains": [
+        {
+         "filter_chain_match": {
+          "prefix_ranges": [
+           {
+            "address_prefix": "10.0.77.207",
+            "prefix_len": 32
+           }
+          ],
+          "destination_port": 14001
+         },
+         "filters": [
+          {
+           "name": "envoy.filters.network.http_connection_manager",
+           "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "mesh-http-conn-manager.rds-outbound",
+            "rds": {
+             "config_source": {
+              "ads": {},
+              "resource_api_version": "V3"
+             },
+             "route_config_name": "rds-outbound"
+            },
+            "http_filters": [
+             {
+              "name": "envoy.filters.http.rbac"
+             },
+             {
+              "name": "envoy.filters.http.lua",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+               "inline_code": "--\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"osm-stats-name\", \"bookbuyer\")\n  request_handle:headers():add(\"osm-stats-pod\", \"bookbuyer-b545cc7c9-nwm5l\")\n  request_handle:headers():add(\"osm-stats-namespace\", \"bookbuyer\")\n  request_handle:headers():add(\"osm-stats-kind\", \"Deployment\")\nend"
+              }
+             },
+             {
+              "name": "envoy.filters.http.wasm",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm",
+               "config": {
+                "name": "stats",
+                "vm_config": {
+                 "runtime": "envoy.wasm.runtime.v8",
+                 "code": {
+                  "local": {
+                   "inline_bytes": ""
+                  }
+                 },
+                 "allow_precompiled": true
+                }
+               }
+              }
+             },
+             {
+              "name": "envoy.filters.http.router"
+             }
+            ],
+            "access_log": [
+             {
+              "name": "envoy.access_loggers.stream",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+               "log_format": {
+                "json_format": {
+                 "user_agent": "%REQ(USER-AGENT)%",
+                 "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                 "upstream_host": "%UPSTREAM_HOST%",
+                 "start_time": "%START_TIME%",
+                 "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                 "bytes_sent": "%BYTES_SENT%",
+                 "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+                 "response_code": "%RESPONSE_CODE%",
+                 "time_to_first_byte": "%RESPONSE_DURATION%",
+                 "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                 "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                 "request_id": "%REQ(X-REQUEST-ID)%",
+                 "method": "%REQ(:METHOD)%",
+                 "protocol": "%PROTOCOL%",
+                 "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                 "bytes_received": "%BYTES_RECEIVED%",
+                 "response_flags": "%RESPONSE_FLAGS%",
+                 "duration": "%DURATION%",
+                 "authority": "%REQ(:AUTHORITY)%"
+                }
+               }
+              }
+             }
+            ],
+            "local_reply_config": {
+             "mappers": [
+              {
+               "filter": {
+                "not_health_check_filter": {}
+               },
+               "headers_to_add": [
+                {
+                 "header": {
+                  "key": "osm-stats-pod",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-namespace",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-kind",
+                  "value": "unknown"
+                 }
+                },
+                {
+                 "header": {
+                  "key": "osm-stats-name",
+                  "value": "unknown"
+                 }
+                }
+               ]
+              }
+             ]
+            }
+           }
+          }
+         ],
+         "name": "outbound-mesh-http-filter-chain:bookstore/bookstore"
+        }
+       ],
+       "listener_filters": [
+        {
+         "name": "envoy.filters.listener.original_dst"
+        },
+        {
+         "name": "envoy.filters.listener.tls_inspector"
+        },
+        {
+         "name": "envoy.filters.listener.http_inspector"
+        }
+       ],
+       "traffic_direction": "OUTBOUND",
+       "continue_on_listener_filters_timeout": true
+      },
+      "last_updated": "2021-07-27T15:46:48.780Z"
+     }
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump"
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.RoutesConfigDump",
+   "dynamic_route_configs": [
+    {
+     "version_info": "2",
+     "route_config": {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "rds-outbound",
+      "virtual_hosts": [
+       {
+        "name": "outbound_virtual-host|bookstore.bookstore",
+        "domains": [
+         "bookstore.bookstore",
+         "bookstore.bookstore.svc",
+         "bookstore.bookstore.svc.cluster",
+         "bookstore.bookstore.svc.cluster.local",
+         "bookstore.bookstore:14001",
+         "bookstore.bookstore.svc:14001",
+         "bookstore.bookstore.svc.cluster:14001",
+         "bookstore.bookstore.svc.cluster.local:14001"
+        ],
+        "routes": [
+         {
+          "match": {
+           "headers": [
+            {
+             "name": ":method",
+             "safe_regex_match": {
+              "google_re2": {},
+              "regex": ".*"
+             }
+            }
+           ],
+           "safe_regex": {
+            "google_re2": {},
+            "regex": ".*"
+           }
+          },
+          "route": {
+           "weighted_clusters": {
+            "clusters": [
+             {
+              "name": "bookstore/bookstore",
+              "weight": 100
+             }
+            ],
+            "total_weight": 100
+           }
+          }
+         }
+        ]
+       }
+      ],
+      "validate_clusters": false
+     },
+     "last_updated": "2021-07-26T20:40:28.645Z"
+    }
+   ]
+  },
+  {
+   "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump",
+   "dynamic_active_secrets": [
+    {
+     "name": "service-cert:bookbuyer/bookbuyer",
+     "version_info": "3",
+     "last_updated": "2021-07-27T20:39:59.809Z",
+     "secret": {
+      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+      "name": "service-cert:bookbuyer/bookbuyer",
+      "tls_certificate": {
+       "certificate_chain": {
+        "inline_bytes": ""
+       },
+       "private_key": {
+        "inline_bytes": ""
+       }
+      }
+     }
+    },
+    {
+     "name": "root-cert-for-mtls-outbound:bookstore/bookstore",
+     "version_info": "3",
+     "last_updated": "2021-07-27T20:39:59.809Z",
+     "secret": {
+      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+      "name": "root-cert-for-mtls-outbound:bookstore/bookstore",
+      "validation_context": {
+       "trusted_ca": {
+        "inline_bytes": ""
+       },
+       "match_subject_alt_names": [
+        {
+         "exact": "bookstore.bookstore.cluster.local"
+        }
+       ]
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

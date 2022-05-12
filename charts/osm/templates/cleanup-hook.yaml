@@ -1,0 +1,96 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: ["config.openservicemesh.io"]
+    resources: ["meshconfigs"]
+    verbs: ["delete"]
+  - apiGroups: [ "" ]
+    resources: [ "secrets"]
+    verbs: ["delete"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "create", "delete", "update", "patch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-cleanup
+    namespace: {{ include "osm.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Release.Name }}-cleanup
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-cleanup
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-cleanup
+      restartPolicy: Never
+      containers:
+        # NOTE: The Helm post-delete hook's garbage-collector should always match the deletion logic in the osm cli command `osm uninstall cluster-wide-resources`.
+        - name: garbage-collector
+          image: "{{ include "osmCRDs.image" . }}"
+          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+          # NOTE: any changes to resources being cleaned up should be updated in the lists/commands in the uninstall guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the uninstall troubleshooting guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/uninstall.md)
+          command:
+            - sh
+            - -c
+            - >
+             kubectl replace -f /osm-crds;
+             kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
+             kubectl delete --ignore-not-found secret -n '{{ include "osm.namespace" . }}' {{ .Values.osm.caBundleSecretName }};
+             kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
+             kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+{{- if .Values.osm.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
+{{- end }}
+

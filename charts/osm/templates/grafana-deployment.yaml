@@ -1,0 +1,109 @@
+{{- if .Values.osm.deployGrafana}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: osm-grafana
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-grafana
+    spec:
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      serviceAccountName: osm-grafana
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+        - name: grafana
+          image: {{.Values.osm.grafana.image}}
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128M
+            requests:
+              cpu: 100m
+              memory: 64M
+          volumeMounts:
+            - name: osm-grafana-config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: osm-grafana-storage
+              mountPath: "/var/lib/grafana"
+            - name: osm-grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: osm-grafana-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: osm-grafana-dashboard-definition-controlplane
+              mountPath: /etc/grafana/provisioning/dashboards/controlplane
+              readOnly: true
+            - name: osm-grafana-dashboard-definition-dataplane
+              mountPath: /etc/grafana/provisioning/dashboards/dataplane
+              readOnly: true
+          ports:
+            - containerPort: {{.Values.osm.grafana.port}}
+{{- if .Values.osm.grafana.enableRemoteRendering}}
+          env:
+          - name: GF_RENDERING_SERVER_URL
+            value: "http://osm-grafana:8081/render"
+          - name: GF_RENDERING_CALLBACK_URL
+            value: "http://osm-grafana:3000/"
+          - name: GF_LOG_FILTERS
+            value: "rendering:debug"
+        - name: renderer
+          image: {{.Values.osm.grafana.rendererImage}}
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 1
+              memory: 256M
+            requests:
+              cpu: 100m
+              memory: 64M
+          ports:
+            - containerPort: 8081
+          env:
+          - name: ENABLE_METRICS
+            value: "true"
+          - name: RENDERING_MODE
+            value: "clustered"
+          - name: RENDERING_CLUSTERING_MODE
+            value: "context"
+          - name: RENDERING_CLUSTERING_MAX_CONCURRENCY
+            value: "5"
+{{- end }}
+      volumes:
+        - name: osm-grafana-config
+          configMap:
+            name: osm-grafana-config
+        - name: osm-grafana-datasources
+          configMap:
+            name: osm-grafana-datasources
+        - name: osm-grafana-dashboards
+          configMap:
+            name: osm-grafana-dashboards
+        - name: osm-grafana-dashboard-definition-controlplane
+          configMap:
+            name: osm-grafana-dashboard-definition-controlplane
+        - name: osm-grafana-dashboard-definition-dataplane
+          configMap:
+            name: osm-grafana-dashboard-definition-dataplane
+        - name: osm-grafana-storage
+          emptyDir: {}
+{{- end }}

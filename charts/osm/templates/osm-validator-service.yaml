@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-validator
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-controller
+spec:
+  ports:
+    - name: validator
+      port: 9093
+      targetPort: 9093
+  selector:
+    app: osm-controller

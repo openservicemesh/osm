@@ -1,0 +1,19 @@
+{{- if .Values.osm.deployPrometheus }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/port: "{{.Values.osm.prometheus.port}}"
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+  - port: {{.Values.osm.prometheus.port}}
+    protocol: TCP
+    targetPort: {{.Values.osm.prometheus.port}}
+  selector:
+    app: osm-prometheus
+{{- end }}

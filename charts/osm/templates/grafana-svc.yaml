@@ -1,0 +1,20 @@
+{{- if .Values.osm.deployGrafana}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-grafana
+spec:
+  ports:
+    - port: {{.Values.osm.grafana.port}}
+      name: grafana-dashboard
+{{- if .Values.osm.grafana.enableRemoteRendering}}
+    - port: 8081
+      name: grafana-renderer
+{{- end }}
+  selector:
+    app: osm-grafana
+{{- end }}

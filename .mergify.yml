@@ -1,0 +1,133 @@
+pull_request_rules:
+  # All conditions must be true before an action will be done
+  # For automerge and automerge-squash, if the PR is in conflict with the base branch, even if all conditions are true, the PR will not be merged
+  # Automerge and automerge-squash will also autorebase
+
+  - name: Automatic merge to main branch
+    conditions:
+      # True if the base branch is main
+      - base=main
+      # check-success are true if the check ran successfully
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Codegen"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=Go test e2e (5)"
+      - "check-success=Go test e2e (6)"
+      - "check-success=Go test e2e (7)"
+      - "check-success=Go test e2e (8)"
+      - "check-success=Go test e2e (9)"
+      - "check-success=Go test e2e (10)"
+      - "check-success=DCO"
+      # True if the PR has at least 2 approving reviews
+      - "#approved-reviews-by>=2"
+      # True if the PR has the automerge label
+      - label=automerge
+      # True if the PR does not have the wip label
+      - -label=wip
+      # True if the PR does not have the do-not-merge/hold label
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        # Currently we merge PRs by creating a merge commit
+        method: merge
+
+  - name: Automatic squash to main branch
+    conditions:
+      # True if the base branch is main
+      - base=main
+      # check-success are true if the check ran successfully
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Codegen"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=Go test e2e (5)"
+      - "check-success=Go test e2e (6)"
+      - "check-success=Go test e2e (7)"
+      - "check-success=Go test e2e (8)"
+      - "check-success=Go test e2e (9)"
+      - "check-success=Go test e2e (10)"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=DCO"
+      # True if the PR has at least 2 approving reviews
+      - "#approved-reviews-by>=2"
+      # True if the PR has the automerge label
+      - label=automerge-squash
+      # True if the PR does not have the wip label
+      - -label=wip
+      # True if the PR does not have the do-not-merge/hold label
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        # Squashes commits then merges PR
+        method: squash
+
+  - name: Automatic merge to release branch
+    conditions:
+      # True if the base branch has release-
+      - base~=^release-
+      # check-success are true if the check ran successfully
+      - "check-success=Shellcheck"
+      - "check-success=Lint"
+      - "check-success=Codegen"
+      - "check-success=Mocks"
+      - "check-success=Chart checks"
+      - "check-success=Go build"
+      - "check-success=Go test"
+      - "check-success=Test various Envoy + SMI configuration scenarios"
+      - "check-success=Go test e2e (1)"
+      - "check-success=Go test e2e (2)"
+      - "check-success=Go test e2e (3)"
+      - "check-success=Go test e2e (4)"
+      - "check-success=Go test e2e (5)"
+      - "check-success=Go test e2e (6)"
+      - "check-success=Go test e2e (7)"
+      - "check-success=Go test e2e (8)"
+      - "check-success=Go test e2e (9)"
+      - "check-success=Go test e2e (10)"
+      - "check-success=Integration Test with Tresor, SMI traffic policies, and egress disabled"
+      - "check-success=DCO"
+      # True if the PR has at least 2 approving reviews
+      - "#approved-reviews-by>=2"
+      # True if the PR has the automerge label
+      - label=automerge
+      # True if the PR does not have the wip label
+      - -label=wip
+      # True if the PR does not have the do-not-merge/hold label
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        # Currently we merge PRs by creating a merge commit
+        method: merge
+
+  - name: Automatic rebase
+    conditions:
+      # True if the PR has any of the following labels
+      - or:
+        - label=automerge
+        - label=autorebase
+        - label=automerge-squash
+      # True when the PR is not conflicting with the base branch
+      - -conflict
+      # True if the PR is not in draft state
+      - -draft
+    actions:
+      rebase:
+        # Mergify will use any OSM user that's logged into the Mergify dashboard for the rebasing
