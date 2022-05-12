@@ -20,14 +20,17 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 		return nil, err
 	}
 
-	client, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
+	client, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
 	if err != nil {
 		return nil, err
 	}
 
+	c := &issuer{Issuer: client, ID: clientID}
+
 	m := &Manager{
 		// The root certificate signing all newly issued certificates
-		clients:                     []Issuer{client},
+		keyIssuer:                   c,
+		pubIssuer:                   c,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
@@ -99,16 +102,32 @@ func (m *Manager) getFromCache(cn CommonName) *Certificate {
 
 // IssueCertificate implements Manager and returns a newly issued certificate from the given client.
 func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) (*Certificate, error) {
+	// var additionalRoot pem.RootCertificate
+	var err error
+	cert := m.getFromCache(cn) // Don't call this while holding the lock
+
+	m.mu.RLock()
+	pubIssuer := m.pubIssuer
+	keyIssuer := m.keyIssuer
+	m.mu.RUnlock()
+
 	start := time.Now()
+	if cert == nil || cert.keyIssuerID != keyIssuer.ID || cert.pubIssuerID != pubIssuer.ID {
+		cert, err = keyIssuer.IssueCertificate(cn, validityPeriod)
+		if err != nil {
+			return nil, err
+		}
+		if pubIssuer.ID != keyIssuer.ID {
+			pubCert, err := pubIssuer.IssueCertificate(cn, validityPeriod)
+			if err != nil {
+				return nil, err
+			}
 
-	if cert := m.getFromCache(cn); cert != nil {
-		return cert, nil
-	}
+			cert = cert.newMergedWithRoot(pubCert.GetIssuingCA())
+		}
 
-	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
-	cert, err := m.clients[0].IssueCertificate(cn, validityPeriod)
-	if err != nil {
-		return cert, err
+		cert.keyIssuerID = keyIssuer.ID
+		cert.pubIssuerID = pubIssuer.ID
 	}
 
 	m.cache.Store(cn, cert)
@@ -163,5 +182,19 @@ func (m *Manager) ListIssuedCertificates() []*Certificate {
 		certs = append(certs, certInterface.(*Certificate))
 		return true // continue the iteration
 	})
-	return certs
+	return certs, nil
+}
+
+// GetCertificate returns a certificate given its Common Name (CN)
+func (m *Manager) GetCertificate(cn CommonName) (*Certificate, error) {
+	if cert := m.getFromCache(cn); cert != nil {
+		return cert, nil
+	}
+	return nil, errCertNotFound
+}
+
+// GetRootCertificate returns the root
+func (m *Manager) GetRootCertificate() *Certificate {
+	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
+	return m.keyIssuer.GetRootCertificate()
 }

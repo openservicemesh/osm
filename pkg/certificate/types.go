@@ -48,6 +48,7 @@ type Certificate struct {
 	SerialNumber SerialNumber
 
 	// When the cert expires
+	// If this is a composite certificate, the expiration time is the earliest of them.
 	Expiration time.Time
 
 	// PEM encoded Certificate and Key (byte arrays)
@@ -56,6 +57,9 @@ type Certificate struct {
 
 	// Certificate authority signing this certificate
 	IssuingCA pem.RootCertificate
+
+	keyIssuerID string
+	pubIssuerID string
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
@@ -64,16 +68,23 @@ type Issuer interface {
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 }
 
+type issuer struct {
+	Issuer
+	ID string
+}
+
 // Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	clients []Issuer
-
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
+
+	mu        sync.RWMutex // mu syncrhonizes acces to the below resources.
+	keyIssuer *issuer
+	pubIssuer *issuer // empty if there is no additional public cert issuer.
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
@@ -86,5 +97,5 @@ type MRCClient interface {
 	List() ([]*v1alpha2.MeshRootCertificate, error)
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
-	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, error)
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, string, error)
 }

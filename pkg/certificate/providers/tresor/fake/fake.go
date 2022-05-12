@@ -18,14 +18,15 @@ const (
 
 type fakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
 	ca, err := tresor.NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return tresor.New(ca, rootCertOrganization, 2048)
+	issuer, err := tresor.New(ca, rootCertOrganization, 2048)
+	return issuer, "issuer-1", err
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
