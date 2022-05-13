@@ -17,8 +17,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
+
+// New will construct a new certificate client using Jetstack's cert-manager,
+func New(
+	client cmversionedclient.Interface,
+	namespace string,
+	issuerRef cmmeta.ObjectReference,
+	keySize int) (*CertManager, error) {
+	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
+	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
+
+	// TODO: pass through graceful shutdown
+	informerFactory.Start(make(chan struct{}))
+
+	if keySize == 0 {
+		return nil, errors.New("key bit size cannot be zero")
+	}
+
+	return &CertManager{
+		namespace: namespace,
+		client:    client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		keySize:   keySize,
+	}, nil
+}
 
 // certificateFromCertificateRequest will construct a certificate.Certificate
 // from a given CertificateRequest and private key.
@@ -38,7 +64,7 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 		Expiration:   cert.NotAfter,
 		CertChain:    cr.Status.Certificate,
 		PrivateKey:   privateKey,
-		IssuingCA:    cm.ca.IssuingCA,
+		IssuingCA:    pem.RootCertificate(cert.RawIssuer),
 	}, nil
 }
 
@@ -131,36 +157,4 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	}()
 
 	return cert, nil
-}
-
-// GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() *certificate.Certificate {
-	return cm.ca
-}
-
-// New will construct a new certificate client using Jetstack's cert-manager,
-func New(
-	ca *certificate.Certificate,
-	client cmversionedclient.Interface,
-	namespace string,
-	issuerRef cmmeta.ObjectReference,
-	keySize int) (*CertManager, error) {
-	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
-	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
-
-	// TODO: pass through graceful shutdown
-	informerFactory.Start(make(chan struct{}))
-
-	if keySize == 0 {
-		return nil, errors.New("key bit size cannot be zero")
-	}
-
-	return &CertManager{
-		ca:        ca,
-		namespace: namespace,
-		client:    client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef: issuerRef,
-		crLister:  crLister,
-		keySize:   keySize,
-	}, nil
 }

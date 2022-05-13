@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"fmt"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -140,28 +139,12 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
 func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.CertManager
-	rootCertSecret, err := c.kubeClient.CoreV1().Secrets(mrc.Namespace).Get(context.TODO(), provider.SecretName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", mrc.Namespace, provider.SecretName, err)
-	}
-
-	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
-	if !ok {
-		return nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", mrc.Namespace, provider.SecretName, constants.KubernetesOpaqueSecretCAKey)
-	}
-
-	rootCert, err := certificate.NewFromPEM(pemCert, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", mrc.Namespace, provider.SecretName, err)
-	}
-
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
 	cmClient, err := certmanager.New(
-		rootCert,
 		client,
 		mrc.Namespace,
 		cmmeta.ObjectReference{

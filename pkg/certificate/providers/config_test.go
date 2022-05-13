@@ -63,7 +63,7 @@ func TestGetCertificateManager(t *testing.T) {
 			kubeConfig:        &rest.Config{},
 			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
-			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "test-kind", IssuerGroup: "test-group", SecretName: "test-secret"},
+			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "test-kind", IssuerGroup: "test-group"},
 			expectError:       false,
 		},
 		{
@@ -76,13 +76,6 @@ func TestGetCertificateManager(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-
-			if opts, ok := tc.options.(CertManagerOptions); ok {
-				secret := corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: []byte(certificates.SampleCertificatePEM)}}
-				secret.Name = opts.SecretName
-				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Create(context.Background(), &secret, metav1.CreateOptions{})
-				assert.Nil(err)
-			}
 
 			manager, err := NewCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
 			assert.Equal(tc.expectError, manager == nil)
@@ -181,54 +174,43 @@ func TestGetCertManagerOSMCertificateManager(t *testing.T) {
 		},
 	}
 
+	mrc := &v1alpha2.MeshRootCertificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mrc",
+			Namespace: "osm-system",
+		},
+		Spec: v1alpha2.MeshRootCertificateSpec{
+			Provider: opt.AsProviderSpec(),
+		},
+	}
+
 	testCases := []struct {
-		name         string
-		createSecret bool
-		secret       corev1.Secret
-		expErr       bool
+		name   string
+		secret corev1.Secret
+		expErr bool
 	}{
 		{
-			name:         "No secret",
-			createSecret: false,
-			secret:       corev1.Secret{},
-			expErr:       true,
+			name:   "Doesn't have opaque key",
+			secret: corev1.Secret{},
+			expErr: true,
 		},
 		{
-			name:         "Doesn't have opaque key",
-			createSecret: true,
-			secret:       corev1.Secret{},
-			expErr:       true,
+			name:   "Failed to decode",
+			secret: corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: {}}},
+			expErr: true,
 		},
 		{
-			name:         "Failed to decode",
-			createSecret: true,
-			secret:       corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: {}}},
-			expErr:       true,
-		},
-		{
-			name:         "Successfully get CertManager",
-			createSecret: true,
-			secret:       corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: []byte(certificates.SampleCertificatePEM)}},
-			expErr:       false,
+			name:   "Successfully get CertManager",
+			secret: corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: []byte(certificates.SampleCertificatePEM)}},
+			expErr: false,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			if tc.createSecret {
-				tc.secret.Name = opt.SecretName
-				_, err := generator.kubeClient.CoreV1().Secrets(mrc.Namespace).Create(context.Background(), &tc.secret, metav1.CreateOptions{})
-				assert.Nil(err)
-			}
-
 			_, err := generator.getCertManagerOSMCertificateManager(mrc)
 			assert.Equal(tc.expErr, err != nil)
-
-			if tc.createSecret {
-				err := generator.kubeClient.CoreV1().Secrets(mrc.Namespace).Delete(context.Background(), opt.SecretName, metav1.DeleteOptions{})
-				assert.Nil(err)
-			}
 		})
 	}
 }

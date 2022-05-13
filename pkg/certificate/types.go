@@ -62,9 +62,6 @@ type Certificate struct {
 type Issuer interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate.
-	GetRootCertificate() *Certificate
 }
 
 // Manager represents all necessary information for the certificate managers.

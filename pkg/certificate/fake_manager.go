@@ -43,10 +43,6 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 	}, nil
 }
 
-func (i *fakeIssuer) GetRootCertificate() *Certificate {
-	return caCert
-}
-
 // FakeCertManager is a testing helper that returns a *certificate.Manager
 func FakeCertManager() (*Manager, error) {
 	cm, err := NewManager(

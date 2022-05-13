@@ -61,12 +61,7 @@ func (m *Manager) Start(checkInterval time.Duration, certRotation <-chan struct{
 }
 
 func (m *Manager) checkAndRotate() {
-	certs, err := m.ListCertificates()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing all certificates")
-	}
-
-	for _, cert := range certs {
+	for _, cert := range m.ListIssuedCertificates() {
 		shouldRotate := cert.ShouldRotate()
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
@@ -131,14 +126,6 @@ func (m *Manager) ReleaseCertificate(cn CommonName) {
 	m.cache.Delete(cn)
 }
 
-// GetCertificate returns a certificate given its Common Name (CN)
-func (m *Manager) GetCertificate(cn CommonName) (*Certificate, error) {
-	if cert := m.getFromCache(cn); cert != nil {
-		return cert, nil
-	}
-	return nil, errCertNotFound
-}
-
 // RotateCertificate implements Manager and rotates an existing
 func (m *Manager) RotateCertificate(cn CommonName) (*Certificate, error) {
 	start := time.Now()
@@ -169,22 +156,6 @@ func (m *Manager) RotateCertificate(cn CommonName) (*Certificate, error) {
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.SerialNumber, newCert.SerialNumber, time.Since(start))
 
 	return newCert, nil
-}
-
-// ListCertificates lists all certificates issued
-func (m *Manager) ListCertificates() ([]*Certificate, error) {
-	var certs []*Certificate
-	m.cache.Range(func(_ interface{}, certInterface interface{}) bool {
-		certs = append(certs, certInterface.(*Certificate))
-		return true // continue the iteration
-	})
-	return certs, nil
-}
-
-// GetRootCertificate returns the root
-func (m *Manager) GetRootCertificate() *Certificate {
-	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
-	return m.clients[0].GetRootCertificate()
 }
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.
