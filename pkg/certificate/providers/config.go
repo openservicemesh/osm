@@ -63,6 +63,11 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 		},
 	}
 
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := options.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.VaultToken = vaultOption.VaultToken
+	}
+
 	return certificate.NewManager(mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker)
 }
 
@@ -99,7 +104,7 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		return nil, errors.New("Root cert does not have a private key")
 	}
 
-	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.SecretName, rootCert, c.kubeClient)
+	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}
@@ -127,7 +132,7 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
 	vaultClient, err := vault.New(
 		vaultAddr,
-		provider.Token,
+		c.VaultToken,
 		provider.Role,
 	)
 	if err != nil {
