@@ -28,7 +28,6 @@ func FilterMeshServicesBySubdomain(svcs []MeshService, subdomain string, include
 			filteredSvcs = append(filteredSvcs, svc)
 			continue
 		}
-
 	}
 
 	return filteredSvcs
