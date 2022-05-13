@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 
@@ -496,10 +495,14 @@ func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Servi
 	}
 
 	sourceIPs := map[string]bool{}
-	filterChainName := trafficpolicy.GetIngressTrafficMatchName(types.NamespacedName{
-		Name:      svc.GetName(),
-		Namespace: svc.GetNamespace(),
-	}, v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
+	fakeMs := service.MeshService{
+		Name:       svc.GetName(),
+		Namespace:  svc.GetNamespace(),
+		TargetPort: v.configAttr.trafficAttr.DstPort,
+		Protocol:   v.configAttr.trafficAttr.AppProtocol,
+	}
+
+	filterChainName := fakeMs.IngressTrafficMatchName()
 	var chain *xds_listener.FilterChain
 	for _, c := range filterChains {
 		if c.Name == filterChainName {

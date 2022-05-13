@@ -7,7 +7,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -44,11 +43,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
+		fakeMs := service.MeshService{
+			Name:       svc.Name,
+			Namespace:  svc.Namespace,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name: trafficpolicy.GetIngressTrafficMatchName(types.NamespacedName{
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-			}, uint16(backend.Port.Number), backend.Port.Protocol),
+			Name:                     fakeMs.IngressTrafficMatchName(),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,

@@ -1,11 +1,5 @@
 package trafficpolicy
 
-import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/types"
-)
-
 // IngressTrafficPolicy defines the ingress traffic match and routes for a given backend
 type IngressTrafficPolicy struct {
 	TrafficMatches    []*IngressTrafficMatch
@@ -20,9 +14,4 @@ type IngressTrafficMatch struct {
 	SourceIPRanges           []string
 	ServerNames              []string
 	SkipClientCertValidation bool
-}
-
-// GetIngressTrafficMatchName generates the traffic match name
-func GetIngressTrafficMatchName(svc types.NamespacedName, port uint16, protocol string) string {
-	return fmt.Sprintf("ingress_%s/%s_%d_%s", svc.Namespace, svc.Name, port, protocol)
 }
