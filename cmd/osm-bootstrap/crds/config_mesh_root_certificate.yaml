@@ -60,30 +60,10 @@ spec:
                       description: Cert-manager provider configuration
                       type: object
                       required:
-                        - ca
                         - issuerName
                         - issuerKind
                         - issuerGroup
                       properties:
-                        ca:
-                          description: The root certificate of the Issuer or ClusterIssuer
-                          type: object
-                          required:
-                            - secretRef
-                          properties:
-                            secretRef:
-                              description: Reference to the kubernetes secret storing the root certificate
-                              type: object
-                              required:
-                                - name
-                                - namespace
-                              properties:
-                                name:
-                                  description: Name of the kubernetes secret
-                                  type: string
-                                namespace:
-                                  description: Namespace of the kubernetes secret
-                                  type: string
                         issuerName:
                           description: The name of the Issuer or ClusterIssuer resource
                           type: string

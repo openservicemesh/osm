@@ -49,9 +49,6 @@ type ProviderSpec struct {
 
 // CertManagerProviderSpec defines the configuration of the cert-manager provider
 type CertManagerProviderSpec struct {
-	// CA specifies cert-manager's ca configuration
-	CA CertManagerCASpec `json:"ca"`
-
 	// IssuerName specifies the name of the Issuer resource
 	IssuerName string `json:"issuerName"`
 
@@ -60,12 +57,6 @@ type CertManagerProviderSpec struct {
 
 	// IssuerGroup specifies the group the Issuer belongs to
 	IssuerGroup string `json:"issuerGroup"`
-}
-
-// CertManagerCASpec defines the configuration of cert-manager's root certificate
-type CertManagerCASpec struct {
-	// SecretRef specifies the secret in which the root certificate is stored
-	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // VaultProviderSpec defines the configuration of the Vault provider
