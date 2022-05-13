@@ -175,6 +175,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
+| osm.vault.port | int | `8200` | port to use to connect to Vault |
 | osm.vault.protocol | string | `"http"` | protocol to use to connect to Vault |
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |

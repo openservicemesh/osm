@@ -102,7 +102,7 @@ func (cm *CertManager) getRootCA() (*certificate.Certificate, error) {
 		Expiration:   time.Now().Add(decade),
 		CertChain:    cert.CertChain,
 		IssuingCA:    cert.IssuingCA,
-	}, err
+	}, nil
 }
 
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {

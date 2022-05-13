@@ -85,6 +85,7 @@ spec:
                       type: object
                       required:
                         - host
+                        - port
                         - role
                         - protocol
                         - token
@@ -92,6 +93,11 @@ spec:
                         host:
                           description: Host name for the Vault server
                           type: string
+                        port:
+                          description: Port for the Vault server
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
                         role:
                           description: Role created on Vault server for the mesh control plane
                           type: string
