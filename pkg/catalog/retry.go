@@ -28,7 +28,7 @@ func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentit
 				log.Error().Msgf("Retry policy destinations must be a service: %s is a %s", dest, dest.Kind)
 				continue
 			}
-			destMeshSvc := service.MeshService{Name: dest.Name, Namespace: dest.Namespace}
+			destMeshSvc := service.NewPartialMeshService(service.MeshService{Name: dest.Name, Namespace: dest.Namespace})
 			// we want all statefulset replicas to have the same retry policy regardless of how they're accessed
 			// for the default use-case, this is equivalent to a name + namespace equality check
 			if upstreamSvc.SiblingTo(destMeshSvc) {

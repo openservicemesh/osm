@@ -105,47 +105,47 @@ const (
 
 var (
 	// BookstoreV1Service is the bookstore service.
-	BookstoreV1Service = service.MeshService{
+	BookstoreV1Service = service.NewPartialMeshService(service.MeshService{
 		Namespace:  Namespace,
 		Name:       BookstoreV1ServiceName,
 		Port:       ServicePort,
 		TargetPort: ServicePort,
 		Protocol:   constants.ProtocolHTTP,
-	}
+	})
 
 	// BookstoreV2Service is the bookstore service.
-	BookstoreV2Service = service.MeshService{
+	BookstoreV2Service = service.NewPartialMeshService(service.MeshService{
 		Namespace:  Namespace,
 		Name:       BookstoreV2ServiceName,
 		Port:       ServicePort,
 		TargetPort: ServicePort,
 		Protocol:   constants.ProtocolHTTP,
-	}
+	})
 
 	// BookbuyerService is the bookbuyer service.
-	BookbuyerService = service.MeshService{
+	BookbuyerService = service.NewPartialMeshService(service.MeshService{
 		Namespace:  Namespace,
 		Name:       BookbuyerServiceName,
 		Port:       ServicePort,
 		TargetPort: ServicePort,
 		Protocol:   constants.ProtocolHTTP,
-	}
+	})
 
 	// BookstoreApexService is the bookstore-apex service
-	BookstoreApexService = service.MeshService{
+	BookstoreApexService = service.NewPartialMeshService(service.MeshService{
 		Namespace:  Namespace,
 		Name:       BookstoreApexServiceName,
 		Port:       ServicePort,
 		TargetPort: ServicePort,
 		Protocol:   constants.ProtocolHTTP,
-	}
+	})
 
 	// BookwarehouseService is the bookwarehouse service.
-	BookwarehouseService = service.MeshService{
+	BookwarehouseService = service.NewPartialMeshService(service.MeshService{
 		Namespace: Namespace,
 		Name:      BookwarehouseServiceName,
 		Port:      ServicePort,
-	}
+	})
 
 	// BookstoreHostnames are the hostnames for bookstore service
 	BookstoreHostnames = []string{
@@ -628,10 +628,10 @@ func NewServiceAccountFixture(svcAccountName, namespace string) *corev1.ServiceA
 
 // NewMeshServiceFixture creates a new mesh service
 func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
-	return service.MeshService{
+	return service.NewPartialMeshService(service.MeshService{
 		Name:      serviceName,
 		Namespace: namespace,
-	}
+	})
 }
 
 // NewSMITrafficTarget creates a new SMI Traffic Target

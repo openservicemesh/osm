@@ -349,12 +349,12 @@ func ServiceToMeshServices(svc corev1.Service, endpointsGetter func(service.Mesh
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {
-		meshSvc := service.MeshService{
+		meshSvc := service.NewPartialMeshService(service.MeshService{
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 			Port:      uint16(portSpec.Port),
 			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
-		}
+		})
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
@@ -375,13 +375,13 @@ func ServiceToMeshServices(svc corev1.Service, endpointsGetter func(service.Mesh
 				if address.Hostname == "" {
 					continue
 				}
-				meshServices = append(meshServices, service.MeshService{
-					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
-					Port:       meshSvc.Port,
-					TargetPort: meshSvc.TargetPort,
-					Protocol:   meshSvc.Protocol,
-				})
+				meshServices = append(meshServices, service.NewMeshService(
+					svc.Namespace,
+					fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					meshSvc.Port,
+					meshSvc.TargetPort,
+					meshSvc.Protocol,
+				))
 			}
 		}
 	}

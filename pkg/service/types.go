@@ -62,6 +62,28 @@ func (ms MeshService) NamespacedKey() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
 }
 
+// NewPartialMeshService returns an initialized MeshService
+// based on the value being passed in
+func NewPartialMeshService(ms MeshService) MeshService {
+	ms.Init()
+	return ms
+}
+
+// NewMeshService returns an initialized MeshService. It is recommended
+// to use this function over raw MeshService literals wherever possible
+func NewMeshService(namespace string, name string, port uint16, targetPort uint16, protocol string) MeshService {
+	ms := MeshService{
+		Namespace:  namespace,
+		Name:       name,
+		Port:       port,
+		TargetPort: targetPort,
+		Protocol:   protocol,
+	}
+
+	ms.Init()
+	return ms
+}
+
 // Init initializes the unexported variables within ms
 // this is helpful for comparison purposes
 func (ms *MeshService) Init() {

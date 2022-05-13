@@ -74,11 +74,11 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			// Program routes to the backends specified in the traffic split
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
 			for _, backend := range split.Spec.Backends {
-				backendMeshSvc := service.MeshService{
+				backendMeshSvc := service.NewPartialMeshService(service.MeshService{
 					Namespace:  meshSvc.Namespace, // Backends belong to the same namespace as the apex service
 					Name:       backend.Service,
 					TargetPort: meshSvc.TargetPort,
-				}
+				})
 				wc := service.WeightedCluster{
 					ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),
 					Weight:      backend.Weight,
@@ -219,13 +219,9 @@ func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity
 			for _, backend := range split.Spec.Backends {
 				if backend.Service == upstreamSvc.Name {
 					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
-					rootMeshService := service.MeshService{
-						Namespace:  split.Namespace,
-						Name:       rootServiceName,
-						Port:       upstreamSvc.Port,
-						TargetPort: upstreamSvc.TargetPort,
-						Protocol:   upstreamSvc.Protocol,
-					}
+					rootMeshService := service.NewMeshService(
+						split.Namespace, rootServiceName, upstreamSvc.Port, upstreamSvc.TargetPort, upstreamSvc.Protocol,
+					)
 
 					// Add this root service into the set
 					dstServicesSet[rootMeshService] = struct{}{}

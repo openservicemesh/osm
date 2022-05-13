@@ -6,8 +6,6 @@ import (
 
 // Equals checks if two namespaced services are equal
 func (ms MeshService) Equals(service MeshService) bool {
-	ms.Init()
-	service.Init()
 	return reflect.DeepEqual(ms, service)
 }
 
@@ -23,11 +21,14 @@ func FilterMeshServicesBySubdomain(svcs []MeshService, subdomain string, include
 	for _, svc := range svcs {
 		if svc.Subdomain() == subdomain {
 			filteredSvcs = append(filteredSvcs, svc)
+			continue
 		}
 
 		if includeEmptySubdomains && svc.Subdomain() == "" {
 			filteredSvcs = append(filteredSvcs, svc)
+			continue
 		}
+
 	}
 
 	return filteredSvcs

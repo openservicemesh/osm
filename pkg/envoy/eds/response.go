@@ -92,14 +92,14 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		return service.MeshService{}, errors.Errorf("Invalid cluster port %s, expected int value: %s", chunks[2], err)
 	}
 
-	return service.MeshService{
+	return service.NewPartialMeshService(service.MeshService{
 		Namespace: chunks[0],
 		Name:      chunks[1],
 
-		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
+		// The port always maps to MeshService.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),
-	}, nil
+	}), nil
 }
 
 // getUpstreamEndpointsForProxyIdentity returns only those service endpoints that belong to the allowed upstream service accounts for the proxy
