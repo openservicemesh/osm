@@ -39,63 +39,6 @@ func TestServerName(t *testing.T) {
 	}
 }
 
-func TestEquals(t *testing.T) {
-	testCases := []struct {
-		name           string
-		service        MeshService
-		anotherService MeshService
-		isEqual        bool
-	}{
-		{
-			name: "services are equal",
-			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			isEqual: true,
-		},
-		{
-			name: "services are NOT equal",
-			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookstore",
-			},
-			isEqual: false,
-		},
-		{
-			name: "works even when unexported fields aren't initialized",
-			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			isEqual: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			tc.service.Subdomain()                         // sets service.subdomain and subdomainPopulated (both unexported)
-			tc.anotherService.ProviderKey()                // sets service.providerKey (unexported)
-			actual := tc.service.Equals(tc.anotherService) // These should still be equal
-			assert.Equal(actual, tc.isEqual)
-		})
-	}
-}
-
 func TestString(t *testing.T) {
 	testCases := []struct {
 		name          string
