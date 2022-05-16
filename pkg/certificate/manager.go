@@ -12,8 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-var errCertNotFound = errors.New("certificate not found")
-
 // NewManager creates a new CertManager with the passed CA and CA Private Key
 func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, msgBroker *messaging.Broker) (*Manager, error) {
 	// TODO(#4502): transition this call to a watch function that knows how to handle multiple MRC and can react to changes.

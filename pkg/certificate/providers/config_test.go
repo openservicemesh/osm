@@ -174,16 +174,6 @@ func TestGetCertManagerOSMCertificateManager(t *testing.T) {
 		},
 	}
 
-	mrc := &v1alpha2.MeshRootCertificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-mrc",
-			Namespace: "osm-system",
-		},
-		Spec: v1alpha2.MeshRootCertificateSpec{
-			Provider: opt.AsProviderSpec(),
-		},
-	}
-
 	testCases := []struct {
 		name   string
 		secret corev1.Secret

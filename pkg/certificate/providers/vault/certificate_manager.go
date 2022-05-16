@@ -23,8 +23,6 @@ const (
 	issuingCAField    = "issuing_ca"
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
-
-	decade = 8765 * time.Hour
 )
 
 // New constructs a new certificate client using Vault's cert-manager

@@ -10,10 +10,6 @@ import (
 )
 
 var (
-	caCert = &Certificate{
-		CommonName: "Test CA",
-		Expiration: time.Now().Add(time.Hour * 24),
-	}
 	validity = time.Hour
 )
 
