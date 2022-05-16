@@ -8,17 +8,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/tests/certificates"
 )
 
 func TestGetCertificateManager(t *testing.T) {
@@ -94,6 +90,15 @@ func TestGetCertificateManager(t *testing.T) {
 			cfg:         mockConfigurator,
 			expectError: false,
 		},
+		{
+			name: "Invalid cert manager options",
+			options: CertManagerOptions{
+				IssuerKind:  "test-kind",
+				IssuerGroup: "test-group",
+			},
+			cfg:         mockConfigurator,
+			expectError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -108,61 +113,6 @@ func TestGetCertificateManager(t *testing.T) {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
 				assert.NoError(err)
 			}
-		})
-	}
-}
-
-func TestGetCertManagerOSMCertificateManager(t *testing.T) {
-	generator := &MRCProviderGenerator{
-		kubeClient: fake.NewSimpleClientset(),
-		kubeConfig: &rest.Config{},
-		KeyBitSize: 2048,
-	}
-
-	opt := CertManagerOptions{
-		IssuerName:  "test-name",
-		IssuerKind:  "test-kind",
-		IssuerGroup: "test-group",
-		SecretName:  "test-secret",
-	}
-
-	mrc := &v1alpha2.MeshRootCertificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-mrc",
-			Namespace: "osm-system",
-		},
-		Spec: v1alpha2.MeshRootCertificateSpec{
-			Provider: opt.AsProviderSpec(),
-		},
-	}
-
-	testCases := []struct {
-		name   string
-		secret corev1.Secret
-		expErr bool
-	}{
-		{
-			name:   "Doesn't have opaque key",
-			secret: corev1.Secret{},
-			expErr: true,
-		},
-		{
-			name:   "Failed to decode",
-			secret: corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: {}}},
-			expErr: true,
-		},
-		{
-			name:   "Successfully get CertManager",
-			secret: corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: []byte(certificates.SampleCertificatePEM)}},
-			expErr: false,
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-			_, err := generator.getCertManagerOSMCertificateManager(mrc)
-			assert.Equal(tc.expErr, err != nil)
 		})
 	}
 }
