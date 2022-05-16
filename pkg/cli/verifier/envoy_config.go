@@ -43,6 +43,9 @@ func (t configAttribute) String() string {
 	if t.trafficAttr.SrcPod != nil {
 		fmt.Fprintf(&s, "\tsource pod: %s\n", t.trafficAttr.SrcPod)
 	}
+	if t.trafficAttr.DstService != nil {
+		fmt.Fprintf(&s, "\tsource service: %s\n", t.trafficAttr.SrcService)
+	}
 	if t.trafficAttr.DstPod != nil {
 		fmt.Fprintf(&s, "\tdestination pod: %s\n", t.trafficAttr.DstPod)
 	}
@@ -435,11 +438,21 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 			result.Reason = fmt.Sprintf("Did not find matching inbound cluster for service %q: %s", dst, err)
 			return result
 		}
+
 		// Verify server TLS secret
 		if err := v.findTLSSecretsOnDestination(secrets); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Server TLS secret not found for pod %q: %s", v.configAttr.trafficAttr.DstPod, err)
 			return result
+		}
+
+		// Next, if ingress is enabled, check for ingress filters
+		if v.configAttr.trafficAttr.IsIngress {
+			if err := v.findIngressFilterChainForService(svc, inboundListener.FilterChains); err != nil {
+				result.Status = Failure
+				result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for ingress %q: %s", dst, err)
+				return result
+			}
 		}
 	}
 
@@ -468,6 +481,61 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]se
 		meshServices = append(meshServices, meshSvc)
 	}
 	return meshServices, nil
+}
+
+func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
+	if svc == nil {
+		return nil
+	}
+	src := v.configAttr.trafficAttr.SrcService
+	// grab endpoints for ingress service
+	endpoints, err := v.kubeClient.CoreV1().Endpoints(src.Namespace).Get(context.Background(), src.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("ingress source service %q not found: %w", src, err)
+	}
+
+	sourceIPs := map[string]bool{}
+	fakeMs := service.MeshService{
+		Name:       svc.GetName(),
+		Namespace:  svc.GetNamespace(),
+		TargetPort: v.configAttr.trafficAttr.DstPort,
+		Protocol:   v.configAttr.trafficAttr.AppProtocol,
+	}
+
+	filterChainName := fakeMs.IngressTrafficMatchName()
+	var chain *xds_listener.FilterChain
+	for _, c := range filterChains {
+		if c.Name == filterChainName {
+			chain = c
+			break
+		}
+	}
+
+	if chain == nil {
+		return fmt.Errorf("ingress filter chain %s not found", filterChainName)
+	}
+
+	for _, ip := range chain.FilterChainMatch.SourcePrefixRanges {
+		if ip.PrefixLen.GetValue() == 32 {
+			sourceIPs[ip.AddressPrefix] = false
+		}
+	}
+
+	for _, sub := range endpoints.Subsets {
+		for _, ip := range sub.Addresses {
+			matched, ok := sourceIPs[ip.IP]
+			// Filter chain is missing a service endpoint
+			if !ok {
+				return fmt.Errorf("service endpoint %s was not found in the ingress inbound filter chain", ip.IP)
+			}
+			if ok && !matched {
+				// ingress endpoint found in filter chain match
+				sourceIPs[ip.IP] = true
+			}
+		}
+	}
+
+	return nil
 }
 
 func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
