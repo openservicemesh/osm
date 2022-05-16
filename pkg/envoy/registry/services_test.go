@@ -179,6 +179,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			var serviceNames []string
 			var services []*v1.Service = []*v1.Service{}
+			svc2Name := "svc-name-2"
 
 			{
 				// Create a service
@@ -191,7 +192,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			{
 				// Create a second service
-				svc2Name := "svc-name-2"
 				service := tests.NewServiceFixture(svc2Name, namespace, selectors, false)
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
@@ -201,6 +201,36 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			mockKubeController.EXPECT().ListServices().Return(services)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      service1Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP: "8.8.8.8",
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      service1Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP: "8.8.8.8",
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
 			actualSvcs := listServicesForPod(&pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(2))
 
