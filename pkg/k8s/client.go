@@ -345,20 +345,20 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
 // MeshService objects per port.
-func ServiceToMeshServices(svc corev1.Service, endpointsGetter func(service.MeshService) (*corev1.Endpoints, error)) []service.MeshService {
+func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {
-		meshSvc := service.NewPartialMeshService(service.MeshService{
+		meshSvc := service.MeshService{
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 			Port:      uint16(portSpec.Port),
 			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
-		})
+		}
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
-		endpoints, _ := endpointsGetter(meshSvc)
+		endpoints, _ := c.GetEndpoints(meshSvc)
 		if endpoints != nil {
 			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 		} else {
@@ -375,13 +375,13 @@ func ServiceToMeshServices(svc corev1.Service, endpointsGetter func(service.Mesh
 				if address.Hostname == "" {
 					continue
 				}
-				meshServices = append(meshServices, service.NewMeshService(
-					svc.Namespace,
-					fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
-					meshSvc.Port,
-					meshSvc.TargetPort,
-					meshSvc.Protocol,
-				))
+				meshServices = append(meshServices, service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				})
 			}
 		}
 	}

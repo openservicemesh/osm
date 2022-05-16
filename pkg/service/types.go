@@ -49,12 +49,6 @@ type MeshService struct {
 
 	// Protocol is the protocol served by the service's port
 	Protocol string
-
-	providerKey string
-
-	subdomain string
-
-	subdomainPopulated bool
 }
 
 // NamespacedKey is the key (i.e. namespace + ProviderKey()) with which to lookup the backing service within the provider
@@ -62,75 +56,26 @@ func (ms MeshService) NamespacedKey() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
 }
 
-// NewPartialMeshService returns an initialized MeshService
-// based on the value being passed in
-func NewPartialMeshService(ms MeshService) MeshService {
-	ms.Init()
-	return ms
-}
-
-// NewMeshService returns an initialized MeshService. It is recommended
-// to use this function over raw MeshService literals wherever possible
-func NewMeshService(namespace string, name string, port uint16, targetPort uint16, protocol string) MeshService {
-	ms := MeshService{
-		Namespace:  namespace,
-		Name:       name,
-		Port:       port,
-		TargetPort: targetPort,
-		Protocol:   protocol,
-	}
-
-	ms.Init()
-	return ms
-}
-
-// Init initializes the unexported variables within ms
-// this is helpful for comparison purposes
-func (ms *MeshService) Init() {
-	if !ms.subdomainPopulated {
-		ms.Subdomain()
-	}
-
-	if ms.providerKey == "" {
-		ms.ProviderKey()
-	}
-}
-
 // Subdomain is an optional subdomain for this MeshService
-// It is calculated once based on Name and stored in an unexported field
-// which is why this function has a pointer receiver
 func (ms *MeshService) Subdomain() string {
-	if ms.subdomainPopulated {
-		return ms.subdomain
-	}
-
 	nameComponents := strings.Split(ms.Name, ".")
 	if len(nameComponents) == 1 {
-		ms.subdomain = ""
-	} else {
-		ms.subdomain = nameComponents[0]
+		return ""
 	}
-
-	ms.subdomainPopulated = true
-
-	return ms.subdomain
+	return nameComponents[0]
 }
 
 // ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service name)
 // It is calculated once based on Name and stored in an unexported field which is why this function has a pointer receiver
 func (ms *MeshService) ProviderKey() string {
-	if ms.providerKey != "" {
-		return ms.providerKey
-	}
-
 	nameComponents := strings.Split(ms.Name, ".")
-	if l := len(nameComponents); l == 1 {
-		ms.providerKey = nameComponents[0]
-	} else {
-		ms.providerKey = nameComponents[l-1]
+	l := len(nameComponents)
+
+	if l == 1 {
+		return nameComponents[0]
 	}
 
-	return ms.providerKey
+	return nameComponents[l-1]
 }
 
 // SiblingTo returns true if svc and ms are derived from the same resource

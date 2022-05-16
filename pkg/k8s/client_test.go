@@ -969,9 +969,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			assert.Nil(err)
 			assert.NotNil(kubeController)
 
-			actual := ServiceToMeshServices(tc.svc, func(meshSvc service.MeshService) (*corev1.Endpoints, error) {
-				return kubeController.GetEndpoints(meshSvc)
-			})
+			actual := ServiceToMeshServices(kubeController, tc.svc)
 			assert.ElementsMatch(tc.expected, actual)
 		})
 	}

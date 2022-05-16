@@ -60,10 +60,10 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 		return nil, errInvalidMeshServiceFormat
 	}
 
-	ms := service.NewPartialMeshService(service.MeshService{
+	ms := service.MeshService{
 		Namespace: slices[0],
 		Name:      slices[1],
-	})
+	}
 
 	return &ms, nil
 }

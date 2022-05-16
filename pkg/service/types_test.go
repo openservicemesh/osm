@@ -93,11 +93,7 @@ func TestMeshService_Subdomain(t *testing.T) {
 				Name:      tt.fields.Name,
 			}
 			assert := tassert.New(t)
-			assert.False(ms.subdomainPopulated)
-			assert.Equal(ms.subdomain, "")
 			assert.Equal(tt.want, ms.Subdomain())
-			assert.Equal(tt.want, ms.subdomain)
-			assert.True(ms.subdomainPopulated)
 		})
 	}
 }
@@ -136,9 +132,7 @@ func TestMeshService_ProviderKey(t *testing.T) {
 				Name:      tt.fields.Name,
 			}
 			assert := tassert.New(t)
-			assert.Equal(ms.providerKey, "")
 			assert.Equal(tt.want, ms.ProviderKey())
-			assert.Equal(tt.want, ms.providerKey)
 		})
 	}
 }

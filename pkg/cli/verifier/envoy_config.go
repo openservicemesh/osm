@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -270,7 +271,7 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 		dstIPRanges.Add(svc.Spec.ClusterIP)
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc, podName)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -461,24 +462,48 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 	return result
 }
 
-func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service, podName string) ([]service.MeshService, error) {
-	var err error
-	svcs := k8s.ServiceToMeshServices(svc, func(ms service.MeshService) (*corev1.Endpoints, error) {
-		endpoints, e := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
-		err = e
-		return endpoints, nil
-	})
-
-	if err != nil {
+func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, podName string) ([]service.MeshService, error) {
+	endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
+	if err != nil || endpoints == nil {
 		return nil, err
 	}
 
-	if k8s.IsHeadlessService(svc) {
-		// filter down meshServices to eliminate subdomains not from this pod
-		svcs = service.FilterMeshServicesBySubdomain(svcs, podName, false)
+	var meshServices []service.MeshService
+	for _, portSpec := range svc.Spec.Ports {
+		meshSvc := service.MeshService{
+			Namespace: svc.Namespace,
+			Name:      svc.Name,
+			Port:      uint16(portSpec.Port),
+			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
+		}
+
+		// The endpoints for the kubernetes service carry information that allows
+		// us to retrieve the TargetPort for the MeshService.
+		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
+
+		if !k8s.IsHeadlessService(svc) {
+			meshServices = append(meshServices, meshSvc)
+		}
+
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				if address.Hostname == "" {
+					continue
+				}
+				mSvc := service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				}
+				meshServices = append(meshServices, mSvc)
+
+			}
+		}
 	}
 
-	return svcs, err
+	return meshServices, nil
 }
 
 func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
@@ -541,7 +566,7 @@ func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Servi
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc, podName)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -597,7 +622,7 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc, podName)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -627,7 +652,7 @@ func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, cluster
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc, podName)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}

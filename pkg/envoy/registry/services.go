@@ -54,9 +54,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 
 func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		meshServices = append(meshServices, k8s.ServiceToMeshServices(svc, func(meshSvc service.MeshService) (*v1.Endpoints, error) {
-			return kubeController.GetEndpoints(meshSvc)
-		})...)
+		meshServices = append(meshServices, k8s.ServiceToMeshServices(kubeController, svc)...)
 	}
 	return meshServices
 }
