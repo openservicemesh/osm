@@ -53,7 +53,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(cm.releasedCount[proxyCN], 1)
+				a.Equal(1, cm.releasedCount[proxyCN])
 			},
 		},
 		{
@@ -128,6 +128,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 			time.Sleep(500 * time.Millisecond)
 
 			tc.eventFunc(msgBroker)
+			// Give some time for the notification to propagate. Note: we could use tassert's Eventually, but
+			// that doesn't do a good job of testing the negative case, which would (usually) return 0 immediately.
+			time.Sleep(500 * time.Millisecond)
 			tc.assertFunc(a, certManager)
 		})
 	}

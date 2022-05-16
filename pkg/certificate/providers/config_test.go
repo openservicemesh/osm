@@ -115,8 +115,7 @@ func TestGetHashiVaultOSMCertificateManager(t *testing.T) {
 		{
 			name:          "Valid protocol, but can't reach out to vault",
 			vaultProtocol: "http",
-			expErr:        true,
-			errMsg:        "error getting Vault Root Certificate",
+			expErr:        false,
 		},
 	}
 
