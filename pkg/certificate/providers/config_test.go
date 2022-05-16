@@ -71,6 +71,29 @@ func TestGetCertificateManager(t *testing.T) {
 			options:     VaultOptions{},
 			expectError: true,
 		},
+		{
+			name: "Not a valid Vault protocol",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultToken:    "vault-token",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "hi",
+			},
+			expectError: true,
+		},
+		{
+			name: "Valid Vault protocol",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultToken:    "vault-token",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "http",
+			},
+			cfg:         mockConfigurator,
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -84,66 +107,6 @@ func TestGetCertificateManager(t *testing.T) {
 			if opt, ok := tc.options.(TresorOptions); ok && !tc.expectError {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
 				assert.NoError(err)
-			}
-		})
-	}
-}
-
-func TestGetHashiVaultOSMCertificateManager(t *testing.T) {
-	generator := &MRCProviderGenerator{
-		KeyBitSize: 2048,
-	}
-
-	opt := VaultOptions{
-		VaultHost:  "vault.default.svc.cluster.local",
-		VaultToken: "vault-token",
-		VaultRole:  "role",
-		VaultPort:  8200,
-	}
-
-	testCases := []struct {
-		name          string
-		vaultProtocol string
-		expErr        bool
-		errMsg        string // optional error message to validate against
-	}{
-		{
-			name:          "Not a valid Vault protocol",
-			vaultProtocol: "hi",
-			expErr:        true,
-		},
-		{
-			name:          "Valid protocol, but can't reach out to vault",
-			vaultProtocol: "http",
-			expErr:        false,
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-
-			opt.VaultProtocol = tc.vaultProtocol
-
-			mrc := &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-mrc",
-					Namespace: "test-namespace",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: opt.AsProviderSpec(),
-				},
-			}
-
-			_, err := generator.getHashiVaultOSMCertificateManager(mrc)
-			if tc.expErr {
-				assert.Error(err)
-			} else {
-				assert.NoError(err)
-			}
-
-			if tc.errMsg != "" {
-				assert.Contains(err.Error(), tc.errMsg)
 			}
 		})
 	}

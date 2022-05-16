@@ -30,6 +30,12 @@ func (cm *fakeCertReleaser) ReleaseCertificate(cn certificate.CommonName) {
 	cm.releasedCount[cn]++
 }
 
+func (cm *fakeCertReleaser) getReleasedCount(cn certificate.CommonName) int {
+	cm.Lock()
+	defer cm.Unlock()
+	return cm.releasedCount[cn]
+}
+
 func TestReleaseCertificateHandler(t *testing.T) {
 	podUID := uuid.New().String()
 	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", podUID))
@@ -53,7 +59,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(1, cm.releasedCount[proxyCN])
+				a.Equal(cm.getReleasedCount(proxyCN), 1)
 			},
 		},
 		{
@@ -70,12 +76,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				// Give enough time for the cert to be removed
-				// and only then verify that the cert still exists.
-				// This delay is important because even when the cert is
-				// removed, it happens asynchronously.
-				time.Sleep(2 * time.Second)
-				a.Equal(cm.releasedCount[proxyCN], 0)
+				a.Equal(cm.getReleasedCount(proxyCN), 0)
 			},
 		},
 		{
@@ -92,12 +93,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodAdded.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				// Give enough time for the cert to be removed
-				// and only then verify that the cert still exists.
-				// This delay is important because even when the cert is
-				// removed, it happens asynchronously.
-				time.Sleep(2 * time.Second)
-				a.Equal(cm.releasedCount[proxyCN], 0)
+				a.Equal(cm.getReleasedCount(proxyCN), 0)
 			},
 		},
 	}
