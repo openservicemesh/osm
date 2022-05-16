@@ -58,13 +58,22 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 		return nil, err
 	}
 
+	ca := cr.Status.CA
+	if len(ca) == 0 {
+		ca = cert.RawIssuer
+	}
+
+	if len(ca) == 0 {
+		return nil, fmt.Errorf("CA not found in certificate request %s/%s", cr.Namespace, cr.Name)
+	}
+
 	return &certificate.Certificate{
 		CommonName:   certificate.CommonName(cert.Subject.CommonName),
 		SerialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
 		Expiration:   cert.NotAfter,
 		CertChain:    cr.Status.Certificate,
 		PrivateKey:   privateKey,
-		IssuingCA:    pem.RootCertificate(cert.RawIssuer),
+		IssuingCA:    pem.RootCertificate(ca),
 	}, nil
 }
 
