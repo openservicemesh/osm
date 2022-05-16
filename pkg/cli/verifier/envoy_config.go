@@ -498,7 +498,6 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, po
 					Protocol:   meshSvc.Protocol,
 				}
 				meshServices = append(meshServices, mSvc)
-
 			}
 		}
 	}
