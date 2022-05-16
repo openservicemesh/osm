@@ -1,12 +1,14 @@
 # Open Service Mesh Security Policies and Procedures
 
 This document outlines security procedures and general policies for the
-Open Service Mesh Open Source projects as found on https://github.com/openservicemesh/osm.
+Open Service Mesh open source project as found on https://github.com/openservicemesh/osm.
 
   * [Reporting a Vulnerability](#reporting-a-vulnerability)
   * [Disclosure Policy](#disclosure-policy)
 
 ## Reporting a Vulnerability 
+
+**IMPORTANT: Please do not open public issues on GitHub for security vulnerabilities**
 
 The OSM team and community take all security vulnerabilities
 seriously. Thank you for improving the security of our open source 
@@ -17,14 +19,22 @@ Report security vulnerabilities by emailing the OSM security team at:
 
     cncf-osm@cncf.io
 
-A maintainer will acknowledge your email within 48 hours, and will
-send a more detailed response within 72 hours indicating the next steps in 
+Please provide the following:
+
+  - Individual's identity and organization
+  - Detailed description of the issue and the consequences of the vulnerability
+  - Estimation of the attack surface
+  - 3rd party software, if any, used with OSM
+  - Detailed steps to reproduce the issue
+
+A maintainer will acknowledge your email and send a detailed
+response within 3 business days indicating the next steps in 
 handling your report. After the initial reply to your report, the team
 will endeavor to keep you informed of the progress towards a fix and
 full announcement, and may ask for additional information or guidance.
 
-Report security vulnerabilities in third-party modules to the person or 
-team maintaining the module.
+Report potential security issues, or known security issues in a 
+third party modules by opening a Github Issue.
 
 ## Disclosure Policy
 
