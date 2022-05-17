@@ -41,6 +41,12 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 // splitHostName takes a k8s FQDN (i.e. host) and retrieves the service name
 // as well as the subdomain (may be empty)
 func splitHostName(c Controller, host string) (svc string, subdomain string) {
+	defer func() {
+		// For services that are not namespaced the service name contains the port as well
+		// Ex. service:port
+		svc = strings.Split(svc, ":")[0]
+	}()
+
 	serviceComponents := strings.Split(host, ".")
 
 	// The service name is usually the first string in the host name for a service.
@@ -75,7 +81,6 @@ func splitHostName(c Controller, host string) (svc string, subdomain string) {
 		}
 
 		// namespace does exist in the cache, so this is service.namespace
-		return
 	case l == 3:
 		tld := serviceComponents[2]
 		// tld may contain a port
@@ -111,7 +116,6 @@ func splitHostName(c Controller, host string) (svc string, subdomain string) {
 		// tld is a namespace, so this is mysql-0.service.namespace
 		svc = serviceComponents[1]
 		subdomain = serviceComponents[0]
-		return
 	case l == 4:
 		// e.g mysql-0.service.namespace.svc
 		svc = serviceComponents[1]
@@ -128,10 +132,6 @@ func splitHostName(c Controller, host string) (svc string, subdomain string) {
 		svc = serviceComponents[0]
 		subdomain = ""
 	}
-
-	// For services that are not namespaced the service name contains the port as well
-	// Ex. service:port
-	svc = strings.Split(svc, ":")[0]
 
 	return
 }

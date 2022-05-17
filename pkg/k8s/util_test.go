@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
@@ -73,6 +74,8 @@ func TestGetServiceFromHostname(t *testing.T) {
 		name            string
 		hostnames       []string
 		expectedService string
+		withController  bool
+		namespaceFound  bool
 	}{
 		{
 			name: "gets the service name from hostname",
@@ -94,9 +97,19 @@ func TestGetServiceFromHostname(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			mockController := NewMockController(mockCtrl)
+			var mockController *MockController
+			if tc.withController {
+				mockCtrl := gomock.NewController(t)
+				defer mockCtrl.Finish()
+				mockController := NewMockController(mockCtrl)
+
+				var ns *corev1.Namespace
+
+				if tc.namespaceFound {
+					ns = &corev1.Namespace{}
+				}
+				mockController.EXPECT().GetNamespace(gomock.Any()).Return(ns).AnyTimes()
+			}
 
 			for _, hostname := range tc.hostnames {
 				actual := GetServiceFromHostname(mockController, hostname)
