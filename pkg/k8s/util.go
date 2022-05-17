@@ -40,7 +40,7 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 
 // splitHostName takes a k8s FQDN (i.e. host) and retrieves the service name
 // as well as the subdomain (may be empty)
-func splitHostName(host string) (service string, subdomain string) {
+func splitHostName(c Controller, host string) (svc string, subdomain string) {
 	serviceComponents := strings.Split(host, ".")
 
 	// The service name is usually the first string in the host name for a service.
@@ -50,16 +50,34 @@ func splitHostName(host string) (service string, subdomain string) {
 	switch l := len(serviceComponents); {
 	case l == 1:
 		// e.g. service
-		service = serviceComponents[0]
+		svc = serviceComponents[0]
 		subdomain = ""
 	case l == 2:
 		// e.g. service.namespace, mysql-0.service
-		// NOTE: There's no way to tell which component is the service or not, so we're going to keep the default behavior
-		// Thus, we have a requirement that users who want to reference statefulsets must include the namespace in the host name
-		service = serviceComponents[0]
+		p1 := serviceComponents[0] // service name or pod name
+		p2 := serviceComponents[1] // namespace name or service name
+
+		// by default, assume service.namespace
+		svc = p1
 		subdomain = ""
+
+		if c == nil {
+			// no controller was passed in; default to non-heuristic behavior
+			return
+		}
+
+		ns := c.GetNamespace(p2)
+		if ns == nil {
+			// namespace not present in cache/doesn't exist; this is probably subdomain.service
+			subdomain = p1
+			svc = p2
+			return
+		}
+
+		// namespace does exist in the cache, so this is service.namespace
+		return
 	case l == 3:
-		tld := serviceComponents[l-1]
+		tld := serviceComponents[2]
 		// tld may contain a port
 		tldComponents := strings.Split(tld, ":")
 		if len(tldComponents) > 1 {
@@ -67,50 +85,68 @@ func splitHostName(host string) (service string, subdomain string) {
 			tld = tldComponents[0]
 		}
 
-		if tld == "svc" {
-			// e.g. service.namespace.svc
-			service = serviceComponents[0]
-			subdomain = ""
-		} else {
+		if c == nil {
+			// use a more basic heuristic since we don't have a kubecontroller
+			if tld == "svc" {
+				// e.g. service.namespace.svc
+				svc = serviceComponents[0]
+				subdomain = ""
+				return
+			}
+
 			// e.g. mysql-0.service.namespace
-			service = serviceComponents[1]
+			svc = serviceComponents[1]
 			subdomain = serviceComponents[0]
+			return
 		}
+
+		ns := c.GetNamespace(tld)
+		if ns == nil {
+			// tld isn't a namespace; so this is service.namespace.svc
+			svc = serviceComponents[0]
+			subdomain = ""
+			return
+		}
+
+		// tld is a namespace, so this is mysql-0.service.namespace
+		svc = serviceComponents[1]
+		subdomain = serviceComponents[0]
+		return
 	case l == 4:
 		// e.g mysql-0.service.namespace.svc
-		service = serviceComponents[1]
+		svc = serviceComponents[1]
 		subdomain = serviceComponents[0]
 	case l == 5:
 		// e.g. service.namespace.svc.cluster.local
-		service = serviceComponents[0]
+		svc = serviceComponents[0]
 		subdomain = ""
 	case l == 6:
 		// e.g. mysql-0.service.namespace.svc.cluster.local
-		service = serviceComponents[1]
+		svc = serviceComponents[1]
 		subdomain = serviceComponents[0]
 	default:
-		service = serviceComponents[0]
+		svc = serviceComponents[0]
 		subdomain = ""
 	}
 
 	// For services that are not namespaced the service name contains the port as well
 	// Ex. service:port
-	service = strings.Split(service, ":")[0]
+	svc = strings.Split(svc, ":")[0]
 
 	return
 }
 
 // GetServiceFromHostname returns the service name from its hostname
 // This assumes the default k8s trustDomain: cluster.local
-func GetServiceFromHostname(host string) string {
-	svc, _ := splitHostName(host)
+func GetServiceFromHostname(c Controller, host string) string {
+	svc, _ := splitHostName(c, host)
 	return svc
 }
 
 // GetSubdomainFromHostname returns the service subdomain from its hostname
 // This assumes the default k8s trustDomain: cluster.local
-func GetSubdomainFromHostname(host string) string {
-	_, subdomain := splitHostName(host)
+func GetSubdomainFromHostname(c Controller, host string) string {
+	_, subdomain := splitHostName(c, host)
 	return subdomain
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/version"
@@ -93,8 +94,12 @@ func TestGetServiceFromHostname(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockController := NewMockController(mockCtrl)
+
 			for _, hostname := range tc.hostnames {
-				actual := GetServiceFromHostname(hostname)
+				actual := GetServiceFromHostname(mockController, hostname)
 				assert.Equal(tc.expectedService, actual)
 			}
 		})
@@ -224,8 +229,12 @@ func TestGetSubdomainFromHostname(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockController := NewMockController(mockCtrl)
+
 			for _, hostname := range tc.hostnames {
-				actual := GetSubdomainFromHostname(hostname)
+				actual := GetSubdomainFromHostname(mockController, hostname)
 				assert.Equal(tc.expectedSubdomain, actual, "Hostname: %s", hostname)
 			}
 		})

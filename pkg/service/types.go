@@ -57,6 +57,7 @@ func (ms MeshService) NamespacedKey() string {
 }
 
 // Subdomain is an optional subdomain for this MeshService
+// TODO: possibly memoize if performance suffers
 func (ms *MeshService) Subdomain() string {
 	nameComponents := strings.Split(ms.Name, ".")
 	if len(nameComponents) == 1 {
@@ -66,7 +67,7 @@ func (ms *MeshService) Subdomain() string {
 }
 
 // ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service name)
-// It is calculated once based on Name and stored in an unexported field which is why this function has a pointer receiver
+// TODO: possibly memoize if performance suffers
 func (ms *MeshService) ProviderKey() string {
 	nameComponents := strings.Split(ms.Name, ".")
 	l := len(nameComponents)
