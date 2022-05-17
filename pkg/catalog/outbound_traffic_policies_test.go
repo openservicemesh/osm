@@ -776,6 +776,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 	mockServiceProvider := service.NewMockProvider(mockCtrl)
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
+	mockController.EXPECT().GetNamespace(gomock.Any()).Return(nil).AnyTimes()
 
 	mc := MeshCatalog{
 		meshSpec:         mockMeshSpec,
