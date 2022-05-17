@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,15 +56,29 @@ func (v *PodStatusVerifier) Run() Result {
 		return result
 	}
 
-	var notRunning []string
+	var failureReasons []string
 	for _, pod := range podList.Items {
-		if pod.Status.Phase != corev1.PodRunning {
-			notRunning = append(notRunning, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+		for _, cond := range pod.Status.Conditions {
+			if cond.Type == corev1.PodScheduled && cond.Status != corev1.ConditionTrue {
+				failureReasons = append(failureReasons, fmt.Sprintf("%s/%s not scheduled", pod.Namespace, pod.Name))
+				break
+			}
+			if cond.Type == corev1.ContainersReady && cond.Status != corev1.ConditionTrue {
+				failureReasons = append(failureReasons, fmt.Sprintf("%s/%s containers not ready", pod.Namespace, pod.Name))
+				break
+			}
+			if cond.Type == corev1.PodInitialized && cond.Status != corev1.ConditionTrue {
+				failureReasons = append(failureReasons, fmt.Sprintf("%s/%s init-containers pending completion", pod.Namespace, pod.Name))
+				break
+			}
+			if cond.Type == corev1.PodReady && cond.Status != corev1.ConditionTrue {
+				failureReasons = append(failureReasons, fmt.Sprintf("%s/%s not ready", pod.Namespace, pod.Name))
+			}
 		}
 	}
-	if len(notRunning) > 0 {
+	if len(failureReasons) > 0 {
 		result.Status = Failure
-		result.Reason = fmt.Sprintf("Some pods are not running: %v", notRunning)
+		result.Reason = fmt.Sprintf("Pod not ready: %s", strings.Join(failureReasons, ", "))
 		return result
 	}
 
