@@ -97,10 +97,10 @@ func TestGetServiceFromHostname(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			var mockController *MockController
+			var c Controller
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			if tc.withController {
-				mockCtrl := gomock.NewController(t)
-				defer mockCtrl.Finish()
 				mockController := NewMockController(mockCtrl)
 
 				var ns *corev1.Namespace
@@ -109,10 +109,11 @@ func TestGetServiceFromHostname(t *testing.T) {
 					ns = &corev1.Namespace{}
 				}
 				mockController.EXPECT().GetNamespace(gomock.Any()).Return(ns).AnyTimes()
+				c = mockController
 			}
 
 			for _, hostname := range tc.hostnames {
-				actual := GetServiceFromHostname(mockController, hostname)
+				actual := GetServiceFromHostname(c, hostname)
 				assert.Equal(tc.expectedService, actual)
 			}
 		})
@@ -209,6 +210,8 @@ func TestGetSubdomainFromHostname(t *testing.T) {
 		name              string
 		hostnames         []string
 		expectedSubdomain string
+		withController    bool
+		foundNamespace    bool
 	}{
 		{
 			name: "gets the subdomain from hostname (subdomain=my-subdomain)",
@@ -236,18 +239,39 @@ func TestGetSubdomainFromHostname(t *testing.T) {
 			},
 			expectedSubdomain: "",
 		},
+		{
+			name: "distinguishes ambiguous hostname using controller (subdomain=my-subdomain)",
+			hostnames: []string{
+				fmt.Sprintf("my-subdomain.%s", tests.BookbuyerServiceName),
+				fmt.Sprintf("my-subdomain.%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
+			},
+			withController:    true,
+			expectedSubdomain: "my-subdomain",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
+			var c Controller
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockController := NewMockController(mockCtrl)
+			if tc.withController {
+				mockController := NewMockController(mockCtrl)
+
+				var ns *corev1.Namespace
+
+				if tc.foundNamespace {
+					ns = &corev1.Namespace{}
+				}
+
+				mockController.EXPECT().GetNamespace(gomock.Any()).Return(ns).AnyTimes()
+				c = mockController
+			}
 
 			for _, hostname := range tc.hostnames {
-				actual := GetSubdomainFromHostname(mockController, hostname)
+				actual := GetSubdomainFromHostname(c, hostname)
 				assert.Equal(tc.expectedSubdomain, actual, "Hostname: %s", hostname)
 			}
 		})
