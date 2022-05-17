@@ -61,8 +61,6 @@ type CertManagerOptions struct {
 	IssuerName  string
 	IssuerKind  string
 	IssuerGroup string
-
-	SecretName string
 }
 
 // MRCCompatClient is a backwards compatible client to convert old certificate options into an MRC.

@@ -10,10 +10,6 @@ import (
 )
 
 var (
-	caCert = &Certificate{
-		CommonName: "Test CA",
-		Expiration: time.Now().Add(time.Hour * 24),
-	}
 	validity = time.Hour
 )
 
@@ -41,10 +37,6 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 		CommonName: cn,
 		Expiration: time.Now().Add(validityPeriod),
 	}, nil
-}
-
-func (i *fakeIssuer) GetRootCertificate() *Certificate {
-	return caCert
 }
 
 // FakeCertManager is a testing helper that returns a *certificate.Manager

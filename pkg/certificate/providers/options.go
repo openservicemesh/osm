@@ -82,7 +82,6 @@ func (options CertManagerOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 			IssuerName:  options.IssuerName,
 			IssuerKind:  options.IssuerKind,
 			IssuerGroup: options.IssuerGroup,
-			SecretName:  options.SecretName,
 		},
 	}
 }
