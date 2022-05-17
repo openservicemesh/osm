@@ -136,17 +136,6 @@ func TestValidateCLIParams(t *testing.T) {
 				osmNamespace = "valid-ns"
 			},
 			verify: func(err error) {
-				assert.NotNil(err)
-				assert.Contains(err.Error(), "--ca-bundle-secret-name")
-			},
-		},
-		{
-			name: "osm-namespace and ca-bundle-secret-name is valid",
-			setup: func() {
-				osmNamespace = "valid-ns"
-				caBundleSecretName = "valid-ca-bundle"
-			},
-			verify: func(err error) {
 				assert.Nil(err)
 			},
 		},

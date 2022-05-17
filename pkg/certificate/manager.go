@@ -14,13 +14,22 @@ import (
 
 var errCertNotFound = errors.New("certificate not found")
 
-// NewManager creates a new CertManager
-func NewManager(
-	certClient client,
-	serviceCertValidityDuration time.Duration,
-	msgBroker *messaging.Broker) (*Manager, error) {
+// NewManager creates a new CertManager with the passed CA and CA Private Key
+func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, msgBroker *messaging.Broker) (*Manager, error) {
+	// TODO(#4502): transition this call to a watch function that knows how to handle multiple MRC and can react to changes.
+	mrcs, err := mrcClient.List()
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
+	if err != nil {
+		return nil, err
+	}
+
 	m := &Manager{
-		clients:                     []client{certClient},
+		// The root certificate signing all newly issued certificates
+		clients:                     []Issuer{client},
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
