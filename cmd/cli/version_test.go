@@ -217,7 +217,7 @@ func TestOutputPrettyVersionInfo(t *testing.T) {
 		{
 			name:                  "mesh versions with no remote version info",
 			remoteVersionInfoList: nil,
-			expected:              "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n",
+			expected:              "No meshes in the cluster\n",
 		},
 	}
 
