@@ -74,7 +74,7 @@ func (m *Manager) checkAndRotate() {
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager
-			newCert, err := m.RotateCertificate(cert.GetCommonName())
+			newCert, err := m.rotateCertificate(cert.GetCommonName())
 			if err != nil {
 				// TODO(#3962): metric might not be scraped before process restart resulting from this error
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
@@ -144,7 +144,7 @@ func (m *Manager) ReleaseCertificate(cn CommonName) {
 }
 
 // RotateCertificate implements Manager and rotates an existing
-func (m *Manager) RotateCertificate(cn CommonName) (*Certificate, error) {
+func (m *Manager) rotateCertificate(cn CommonName) (*Certificate, error) {
 	start := time.Now()
 
 	oldObj, ok := m.cache.Load(cn)
@@ -161,8 +161,6 @@ func (m *Manager) RotateCertificate(cn CommonName) (*Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	m.cache.Store(cn, newCert)
 
 	m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
 		Kind:   announcements.CertificateRotated,
@@ -182,19 +180,5 @@ func (m *Manager) ListIssuedCertificates() []*Certificate {
 		certs = append(certs, certInterface.(*Certificate))
 		return true // continue the iteration
 	})
-	return certs, nil
-}
-
-// GetCertificate returns a certificate given its Common Name (CN)
-func (m *Manager) GetCertificate(cn CommonName) (*Certificate, error) {
-	if cert := m.getFromCache(cn); cert != nil {
-		return cert, nil
-	}
-	return nil, errCertNotFound
-}
-
-// GetRootCertificate returns the root
-func (m *Manager) GetRootCertificate() *Certificate {
-	// TODO(#4502): determine client(s) to use based on the rotation stage(s) of the client(s)
-	return m.keyIssuer.GetRootCertificate()
+	return certs
 }
