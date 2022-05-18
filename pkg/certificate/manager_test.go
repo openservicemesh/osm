@@ -4,53 +4,12 @@ import (
 	"testing"
 	time "time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-var _ = Describe("Test Tresor Debugger", func() {
-	Context("test ListIssuedCertificates()", func() {
-		// Setup:
-		//   1. Create a new (fake) certificate
-		//   2. Reuse the same certificate as the Issuing CA
-		//   3. Populate the CertManager's cache w/ cert
-		cert := &Certificate{CommonName: "fake-cert-for-debugging"}
-		cm := &Manager{}
-		cm.cache.Store("foo", cert)
-
-		It("lists all issued certificates", func() {
-			actual := cm.ListIssuedCertificates()
-			expected := []*Certificate{cert}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-})
-
-var _ = Describe("Test Certificate Manager", func() {
-	defer GinkgoRecover()
-	const serviceFQDN = "a.b.c"
-
-	Context("Test Getting a certificate from the cache", func() {
-		m, newCertError := NewManager(
-			&fakeMRCClient{},
-			validity,
-			nil)
-		It("should get an issued certificate from the cache", func() {
-			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
-			Expect(issueCertificateError).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(CommonName(serviceFQDN)))
-
-			cachedCert := m.getFromCache(serviceFQDN)
-			Expect(cachedCert).To(Equal(cert))
-		})
-	})
-})
 
 func TestRotor(t *testing.T) {
 	assert := tassert.New(t)
