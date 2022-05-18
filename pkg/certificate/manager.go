@@ -3,7 +3,6 @@ package certificate
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -39,19 +38,13 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 
 // Start takes an interval to check if the certificate
 // needs to be rotated
-func (m *Manager) Start(checkInterval time.Duration, certRotation <-chan struct{}) {
-	// iterate over the list of certificates
-	// when a cert needs to be rotated - call RotateCertificate()
-	if certRotation == nil {
-		log.Error().Msgf("Cannot start certificate rotation, certRotation is nil")
-		return
-	}
+func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 	ticker := time.NewTicker(checkInterval)
 	go func() {
 		m.checkAndRotate()
 		for {
 			select {
-			case <-certRotation:
+			case <-stop:
 				ticker.Stop()
 				return
 			case <-ticker.C:
@@ -73,15 +66,21 @@ func (m *Manager) checkAndRotate() {
 			RenewBeforeCertExpires)
 
 		if shouldRotate {
-			// Remove the certificate from the cache of the certificate manager
-			newCert, err := m.rotateCertificate(cert.GetCommonName())
+			newCert, err := m.IssueCertificate(cert.GetCommonName(), m.serviceCertValidityDuration)
 			if err != nil {
 				// TODO(#3962): metric might not be scraped before process restart resulting from this error
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
 					Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
 				continue
 			}
-			log.Trace().Msgf("Rotated cert SerialNumber=%s", newCert.GetSerialNumber())
+
+			m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
+				Kind:   announcements.CertificateRotated,
+				NewObj: newCert,
+				OldObj: cert,
+			}, announcements.CertificateRotated.String())
+
+			log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
 		}
 	}
 }
@@ -141,36 +140,6 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 func (m *Manager) ReleaseCertificate(cn CommonName) {
 	log.Trace().Msgf("Releasing certificate %s", cn)
 	m.cache.Delete(cn)
-}
-
-// RotateCertificate implements Manager and rotates an existing
-func (m *Manager) rotateCertificate(cn CommonName) (*Certificate, error) {
-	start := time.Now()
-
-	oldObj, ok := m.cache.Load(cn)
-	if !ok {
-		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
-	}
-
-	oldCert, ok := oldObj.(*Certificate)
-	if !ok {
-		return nil, errors.Errorf("unexpected type %T for old certificate does not exist for CN=%s", oldCert, cn)
-	}
-
-	newCert, err := m.IssueCertificate(cn, m.serviceCertValidityDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
-		Kind:   announcements.CertificateRotated,
-		NewObj: newCert,
-		OldObj: oldCert,
-	}, announcements.CertificateRotated.String())
-
-	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s took %+v", oldCert.SerialNumber, newCert.SerialNumber, time.Since(start))
-
-	return newCert, nil
 }
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.
