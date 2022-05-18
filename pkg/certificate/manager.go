@@ -104,7 +104,6 @@ func (m *Manager) getFromCache(cn CommonName) *Certificate {
 
 // IssueCertificate implements Manager and returns a newly issued certificate from the given client.
 func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) (*Certificate, error) {
-	// var additionalRoot pem.RootCertificate
 	var err error
 	cert := m.getFromCache(cn) // Don't call this while holding the lock
 
