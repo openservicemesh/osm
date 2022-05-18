@@ -587,6 +587,7 @@ func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountNam
 	}
 }
 
+// HeadlessSvc converts a service into a headless service
 func HeadlessSvc(svc *corev1.Service) *corev1.Service {
 	svc.Spec.ClusterIP = corev1.ClusterIPNone
 
