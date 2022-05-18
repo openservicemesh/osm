@@ -4,8 +4,6 @@ import (
 	"fmt"
 	time "time"
 
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
@@ -25,10 +23,6 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
 	return []*v1alpha2.MeshRootCertificate{{}}, nil
 }
-
-// AddEventHandler is a no-op for the legacy client. The previous client could not handle changes, but we need this
-// method to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) AddEventHandler(cache.ResourceEventHandler) {}
 
 type fakeIssuer struct {
 	err bool
