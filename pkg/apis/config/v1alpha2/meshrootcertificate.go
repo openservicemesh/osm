@@ -1,6 +1,7 @@
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -75,15 +76,39 @@ type VaultProviderSpec struct {
 	// Protocol specifies the protocol for connections to Vault
 	Protocol string `json:"protocol"`
 
-	// Token specifies the name of the token to be used by mesh control plane
+	// Token specifies the configuration of the token to be used by mesh control plane
 	// to connect to Vault
-	Token string `json:"token"`
+	Token VaultTokenSpec `json:"token"`
+}
+
+// VaultTokenSpec defines the configuration of the Vault token
+type VaultTokenSpec struct {
+	// SecretKeyRef specifies the secret in which the Vault token is stored
+	SecretKeyRef SecretKeyReferenceSpec `json:"secretKeyRef"`
+}
+
+// SecretKeyReferenceSpec defines the configuration of the secret reference
+type SecretKeyReferenceSpec struct {
+	// Name specifies the name of the secret in which the Vault token is stored
+	Name string `json:"name"`
+
+	// Key specifies the key whose value is the Vault token
+	Key string `json:"key"`
+
+	// Namespace specifies the namespace of the secret in which the Vault token is stored
+	Namespace string `json:"namespace"`
 }
 
 // TresorProviderSpec defines the configuration of the Tresor provider
 type TresorProviderSpec struct {
-	// SecretName specifies the name of the secret storing the root certificate
-	SecretName string `json:"secretName"`
+	// CA specifies Tresor's ca configuration
+	CA TresorCASpec `json:"ca"`
+}
+
+// TresorCASpec defines the configuration of Tresor's root certificate
+type TresorCASpec struct {
+	// SecretRef specifies the secret in which the root certificate is stored
+	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // MeshRootCertificateStatus defines the status of the MeshRootCertificate resource
