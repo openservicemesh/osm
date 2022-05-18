@@ -70,13 +70,8 @@ func (ms *MeshService) Subdomain() string {
 // TODO: possibly memoize if performance suffers
 func (ms *MeshService) ProviderKey() string {
 	nameComponents := strings.Split(ms.Name, ".")
-	l := len(nameComponents)
 
-	if l == 1 {
-		return nameComponents[0]
-	}
-
-	return nameComponents[l-1]
+	return nameComponents[len(nameComponents)-1]
 }
 
 // SiblingTo returns true if svc and ms are derived from the same resource
@@ -103,10 +98,7 @@ func (ms MeshService) EnvoyLocalClusterName() string {
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
-	if ms.Subdomain() != "" {
-		return fmt.Sprintf("%s.%s.%s.svc.cluster.local", ms.Subdomain(), ms.ProviderKey(), ms.Namespace)
-	}
-	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.ProviderKey(), ms.Namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
 }
 
 // OutboundTrafficMatchName returns the MeshService outbound traffic match name

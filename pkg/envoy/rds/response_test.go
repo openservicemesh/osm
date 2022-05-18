@@ -269,7 +269,7 @@ func TestNewResponse(t *testing.T) {
 			}), nil)
 
 			for _, meshSvc := range tc.meshServices {
-				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{}, false)
+				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
 			}
 

@@ -52,9 +52,13 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service, subdomainFilter string) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		meshServices = append(meshServices, k8s.ServiceToMeshServices(kubeController, svc)...)
+		for _, meshSvc := range k8s.ServiceToMeshServices(kubeController, svc) {
+			if meshSvc.Subdomain() == subdomainFilter || meshSvc.Subdomain() == "" {
+				meshServices = append(meshServices, meshSvc)
+			}
+		}
 	}
 	return meshServices
 }
@@ -90,9 +94,7 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.Me
 		return nil
 	}
 
-	meshServices := kubernetesServicesToMeshServices(kubeController, serviceList)
-	// filter down meshServices to eliminate subdomains not from this pod (keeping empty subdomains)
-	meshServices = service.FilterMeshServicesBySubdomain(meshServices, pod.GetName(), true)
+	meshServices := kubernetesServicesToMeshServices(kubeController, serviceList, pod.GetName())
 
 	return meshServices
 }

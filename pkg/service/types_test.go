@@ -61,8 +61,7 @@ func TestMeshServiceCluster(t *testing.T) {
 
 func TestMeshService_Subdomain(t *testing.T) {
 	type fields struct {
-		Namespace string
-		Name      string
+		Name string
 	}
 	tests := []struct {
 		name   string
@@ -72,16 +71,14 @@ func TestMeshService_Subdomain(t *testing.T) {
 		{
 			name: "no subdomain",
 			fields: fields{
-				Namespace: "ns1",
-				Name:      "s1",
+				Name: "s1",
 			},
 			want: "",
 		},
 		{
 			name: "with subdomain",
 			fields: fields{
-				Namespace: "ns1",
-				Name:      "my-subdomain.s1",
+				Name: "my-subdomain.s1",
 			},
 			want: "my-subdomain",
 		},
@@ -89,8 +86,7 @@ func TestMeshService_Subdomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &MeshService{
-				Namespace: tt.fields.Namespace,
-				Name:      tt.fields.Name,
+				Name: tt.fields.Name,
 			}
 			assert := tassert.New(t)
 			assert.Equal(tt.want, ms.Subdomain())
@@ -100,8 +96,7 @@ func TestMeshService_Subdomain(t *testing.T) {
 
 func TestMeshService_ProviderKey(t *testing.T) {
 	type fields struct {
-		Namespace string
-		Name      string
+		Name string
 	}
 	tests := []struct {
 		name   string
@@ -111,16 +106,14 @@ func TestMeshService_ProviderKey(t *testing.T) {
 		{
 			name: "no subdomain",
 			fields: fields{
-				Namespace: "ns1",
-				Name:      "s1",
+				Name: "s1",
 			},
 			want: "s1",
 		},
 		{
 			name: "with subdomain",
 			fields: fields{
-				Namespace: "ns1",
-				Name:      "my-subdomain.s1",
+				Name: "my-subdomain.s1",
 			},
 			want: "s1",
 		},
@@ -128,8 +121,7 @@ func TestMeshService_ProviderKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &MeshService{
-				Namespace: tt.fields.Namespace,
-				Name:      tt.fields.Name,
+				Name: tt.fields.Name,
 			}
 			assert := tassert.New(t)
 			assert.Equal(tt.want, ms.ProviderKey())

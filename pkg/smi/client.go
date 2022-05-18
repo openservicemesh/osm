@@ -181,6 +181,8 @@ func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSpli
 			continue
 		}
 
+		options = append(options, WithKubeController(c.kubeController))
+
 		if filteredSplit := FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
 			trafficSplits = append(trafficSplits, filteredSplit)
 		}

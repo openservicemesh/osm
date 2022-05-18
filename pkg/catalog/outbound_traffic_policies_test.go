@@ -733,7 +733,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 		Namespace: "bookstore-ns",
 	}
 
-	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{}, false)
+	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
 	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()

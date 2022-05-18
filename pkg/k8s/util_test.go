@@ -91,6 +91,29 @@ func TestGetServiceFromHostname(t *testing.T) {
 			},
 			expectedService: tests.BookbuyerServiceName,
 		},
+		{
+			name: "distinguishes ambiguous hostname using controller (namespace not found)",
+			hostnames: []string{
+				fmt.Sprintf("my-subdomain.%s", tests.BookbuyerServiceName),
+				fmt.Sprintf("my-subdomain.%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			withController:  true,
+			expectedService: tests.BookbuyerServiceName,
+		},
+		{
+			name: "distinguishes ambiguous hostname using controller (namespace found)",
+			hostnames: []string{
+				fmt.Sprintf("my-subdomain.%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("my-subdomain.%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			withController:  true,
+			namespaceFound:  true,
+			expectedService: tests.BookbuyerServiceName,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -114,7 +137,7 @@ func TestGetServiceFromHostname(t *testing.T) {
 
 			for _, hostname := range tc.hostnames {
 				actual := GetServiceFromHostname(c, hostname)
-				assert.Equal(tc.expectedService, actual)
+				assert.Equal(tc.expectedService, actual, "Hostname: %s", hostname)
 			}
 		})
 	}
@@ -240,13 +263,42 @@ func TestGetSubdomainFromHostname(t *testing.T) {
 			expectedSubdomain: "",
 		},
 		{
-			name: "distinguishes ambiguous hostname using controller (subdomain=my-subdomain)",
+			name: "distinguishes ambiguous hostname using controller (namespace not found)",
+			hostnames: []string{
+				fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			withController:    true,
+			expectedSubdomain: "",
+		},
+		{
+			name: "distinguishes ambiguous hostname using controller (namespace not found)",
 			hostnames: []string{
 				fmt.Sprintf("my-subdomain.%s", tests.BookbuyerServiceName),
 				fmt.Sprintf("my-subdomain.%s:%d", tests.BookbuyerServiceName, tests.ServicePort),
 			},
 			withController:    true,
 			expectedSubdomain: "my-subdomain",
+		},
+		{
+			name: "distinguishes ambiguous hostname using controller (namespace found)",
+			hostnames: []string{
+				fmt.Sprintf("my-subdomain.%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("my-subdomain.%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			withController:    true,
+			foundNamespace:    true,
+			expectedSubdomain: "my-subdomain",
+		},
+		{
+			name: "distinguishes ambiguous hostname using controller (namespace found)",
+			hostnames: []string{
+				fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace),
+				fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort),
+			},
+			withController:    true,
+			foundNamespace:    true,
+			expectedSubdomain: "",
 		},
 	}
 

@@ -41,11 +41,7 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 // splitHostName takes a k8s FQDN (i.e. host) and retrieves the service name
 // as well as the subdomain (may be empty)
 func splitHostName(c Controller, host string) (svc string, subdomain string) {
-	defer func() {
-		// For services that are not namespaced the service name contains the port as well
-		// Ex. service:port
-		svc = strings.Split(svc, ":")[0]
-	}()
+	host = strings.Split(host, ":")[0] // chop port off the end
 
 	serviceComponents := strings.Split(host, ".")
 
@@ -83,12 +79,6 @@ func splitHostName(c Controller, host string) (svc string, subdomain string) {
 		// namespace does exist in the cache, so this is service.namespace
 	case l == 3:
 		tld := serviceComponents[2]
-		// tld may contain a port
-		tldComponents := strings.Split(tld, ":")
-		if len(tldComponents) > 1 {
-			// port detected
-			tld = tldComponents[0]
-		}
 
 		if c == nil {
 			// use a more basic heuristic since we don't have a kubecontroller

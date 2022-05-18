@@ -483,6 +483,7 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, po
 
 		if !k8s.IsHeadlessService(svc) {
 			meshServices = append(meshServices, meshSvc)
+			continue
 		}
 
 		for _, subset := range endpoints.Subsets {

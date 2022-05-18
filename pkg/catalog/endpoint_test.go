@@ -169,7 +169,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
-					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{}, false)
+					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
 				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
