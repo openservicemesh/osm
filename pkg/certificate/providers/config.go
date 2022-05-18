@@ -65,7 +65,7 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	if vaultOption, ok := options.(VaultOptions); ok {
-		mrcClient.MRCProviderGenerator.VaultToken = vaultOption.VaultToken
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
 	return certificate.NewManager(mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker)
@@ -130,9 +130,10 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
+	// TODO(#4502): If the DefaultVaultToken is empty, query the mrc.provider.vault.token.secretRef.
 	vaultClient, err := vault.New(
 		vaultAddr,
-		c.VaultToken,
+		c.DefaultVaultToken,
 		provider.Role,
 	)
 	if err != nil {

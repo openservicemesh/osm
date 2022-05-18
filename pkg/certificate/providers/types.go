@@ -80,5 +80,5 @@ type MRCProviderGenerator struct {
 	KeyBitSize int
 
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
-	VaultToken string
+	DefaultVaultToken string
 }
