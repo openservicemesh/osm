@@ -108,17 +108,21 @@ spec:
                           description: Token used by the mesh control plane
                           type: object
                           required:
-                            - secretRef
+                            - secretKeyRef
                           properties:
-                            secretRef:
+                            secretKeyRef:
                               description: Reference to the kubernetes secret storing the vault token
                               type: object
                               required:
                                 - name
+                                - key
                                 - namespace
                               properties:
                                 name:
                                   description: Name of the kubernetes secret
+                                  type: string
+                                key:
+                                  description: Kubernetes secret key
                                   type: string
                                 namespace:
                                   description: Namespace of the kubernetes secret

@@ -83,8 +83,20 @@ type VaultProviderSpec struct {
 
 // VaultTokenSpec defines the configuration of the Vault token
 type VaultTokenSpec struct {
-	// SecretRef specifies the secret in which the Vault token is stored
-	SecretRef corev1.SecretReference `json:"secretRef"`
+	// SecretKeyRef specifies the secret in which the Vault token is stored
+	SecretKeyRef SecretKeyReferenceSpec `json:"secretKeyRef"`
+}
+
+// SecretKeyReferenceSpec defines the configuration of the secret reference
+type SecretKeyReferenceSpec struct {
+	// Name specifies the name of the secret in which the Vault token is stored
+	Name string `json:"name"`
+
+	// Key specifies the key whose value is the Vault token
+	Key string `json:"key"`
+
+	// Namespace specifies the namespace of the secret in which the Vault token is stored
+	Namespace string `json:"namespace"`
 }
 
 // TresorProviderSpec defines the configuration of the Tresor provider

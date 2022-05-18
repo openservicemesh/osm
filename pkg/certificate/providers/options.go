@@ -60,7 +60,7 @@ func (options VaultOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 			Protocol: options.VaultProtocol,
 			Host:     options.VaultHost,
 			Token: v1alpha2.VaultTokenSpec{
-				SecretRef: corev1.SecretReference{
+				SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
 					Name: vaultTokenSecretName,
 				},
 			},
