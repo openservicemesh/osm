@@ -1298,6 +1298,12 @@
                             "title": "Vault token secret name schema",
                             "description": "Name of the Kubernetes Secret to store the vault token",
                             "type": "string"
+                        },
+                        "tokenSecretKey": {
+                            "$id": "#/properties/osm/properties/vault/properties/tokenSecretKey",
+                            "title": "Vault token secret key schema",
+                            "description": "Name of the Kubernetes Secret key with the value of the vault token",
+                            "type": "string"
                         }
                     },
                     "examples": [

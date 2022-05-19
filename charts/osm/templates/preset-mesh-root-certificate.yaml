@@ -27,14 +27,16 @@ data:
         {{- if eq (.Values.osm.certificateProvider.kind | lower) "vault"}}
         "vault": {
           "token": {
-            "secretRef": {
+            "secretKeyRef": {
               "name": {{.Values.osm.vault.tokenSecretName | mustToJson}},
+              "key": {{.Values.osm.vault.tokenSecretKey | mustToJson}},
               "namespace": "{{include "osm.namespace" .}}"
             }
           },
           "host": {{.Values.osm.vault.host | mustToJson}},
           "role": {{.Values.osm.vault.role | mustToJson}},
-          "protocol": {{.Values.osm.vault.protocol | mustToJson}}
+          "protocol": {{.Values.osm.vault.protocol | mustToJson}},
+          "port": {{.Values.osm.vault.port | mustToJson}}
         }
         {{- end}}
       }

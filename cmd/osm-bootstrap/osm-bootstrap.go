@@ -172,7 +172,7 @@ func main() {
 
 	err = bootstrap.ensureMeshRootCertificate()
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from Secret %s", meshRootCertificateName, presetMeshRootCertificateName)
+		log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", meshRootCertificateName, presetMeshRootCertificateName)
 		return
 	}
 
@@ -372,7 +372,7 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 	meshRootCertificateList, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).List(context.TODO(), listOptions)
 
 	if len(meshRootCertificateList.Items) == 0 {
-		// create a MeshRootCertificate since none were found in the complete state and issuing rotationState
+		// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
 		return b.createMeshRootCertificate()
 	}
 	if err != nil {
@@ -436,8 +436,8 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 		Spec: presetMeshRootCertificateSpec,
 		Status: configv1alpha2.MeshRootCertificateStatus{
-			State:         "complete",
-			RotationStage: "issuing",
+			State:         constants.MRCStateComplete,
+			RotationStage: constants.MRCStageIssuing,
 		},
 	}
 

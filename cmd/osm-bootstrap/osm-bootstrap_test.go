@@ -129,9 +129,11 @@ var testPresetMeshRootCertificate *corev1.ConfigMap = &corev1.ConfigMap{
 		presetMeshRootCertificateJSONKey: `{
 "provider": {
 	"tresor": {
-	 "secretRef": {
-	   "name": "osm-ca-bundle",
-	   "namespace": "test-namespace"
+	 "ca": {
+	  "secretRef": {
+		"name": "osm-ca-bundle",
+		"namespace": "test-namespace"
+	  }
 	 }
 	}
 	}
@@ -166,8 +168,8 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	assert.NoError(err)
 	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.Equal(meshRootCertificate.Name, meshRootCertificateName)
-	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.SecretRef.Name, "osm-ca-bundle")
-	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.SecretRef.Namespace, testNamespace)
+	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
+	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
 	assert.Nil(meshRootCertificate.Spec.Provider.Vault)
 	assert.Nil(meshRootCertificate.Spec.Provider.CertManager)
 }
