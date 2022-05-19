@@ -25,9 +25,6 @@ import (
 var (
 	// validationAPIPath is the API path for performing resource validations
 	validationAPIPath = "/validate"
-
-	// HealthAPIPath is the API path for health check
-	HealthAPIPath = "/healthz"
 )
 
 // validatingWebhookServer implements the K8s Validating Webhook API, and runs the associated validator func.
@@ -158,7 +155,7 @@ func (s *validatingWebhookServer) run(port int, cert *certificate.Certificate, s
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(validationAPIPath, s.doValidation)
-	mux.HandleFunc(HealthAPIPath, healthHandler)
+	mux.HandleFunc(constants.WebhookHealthPath, healthHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),

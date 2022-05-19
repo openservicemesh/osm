@@ -60,7 +60,7 @@ func newVerifyControlPlaneCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 }
 
 func (cmd *verifyControlPlaneCmd) run() error {
-	v := verifier.NewControlPlaneHealthVerifier(cmd.stdout, cmd.stderr, cmd.kubeClient, settings.Namespace())
+	v := verifier.NewControlPlaneHealthVerifier(cmd.stdout, cmd.stderr, cmd.kubeClient, cmd.restConfig, settings.Namespace())
 	result := v.Run()
 
 	fmt.Fprintln(cmd.stdout, "---------------------------------------------")

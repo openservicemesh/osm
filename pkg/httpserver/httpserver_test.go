@@ -9,8 +9,8 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
-	"github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -43,9 +43,12 @@ func TestNewHTTPServer(t *testing.T) {
 
 	httpServ := NewHTTPServer(testPort)
 
+	testReadinessPath := "/ready"
+	testLivenessPath := "/alive"
+
 	httpServ.AddHandlers(map[string]http.Handler{
-		constants.HealthReadinessPath: health.ReadinessHandler(testProbes, nil),
-		constants.HealthLivenessPath:  health.LivenessHandler(testProbes, nil),
+		testReadinessPath: health.ReadinessHandler(testProbes, nil),
+		testLivenessPath:  health.LivenessHandler(testProbes, nil),
 	})
 
 	httpServ.AddHandler(constants.MetricsPath, metricsStore.Handler())
@@ -62,14 +65,14 @@ func TestNewHTTPServer(t *testing.T) {
 
 	//Readiness/Liveness Check
 	newHTTPServerTests := []newHTTPServerTest{
-		{true, constants.HealthReadinessPath, http.StatusOK},
-		{false, constants.HealthReadinessPath, http.StatusServiceUnavailable},
-		{true, constants.HealthLivenessPath, http.StatusOK},
-		{false, constants.HealthLivenessPath, http.StatusServiceUnavailable},
+		{true, testReadinessPath, http.StatusOK},
+		{false, testReadinessPath, http.StatusServiceUnavailable},
+		{true, testLivenessPath, http.StatusOK},
+		{false, testLivenessPath, http.StatusServiceUnavailable},
 	}
 
 	for _, rt := range newHTTPServerTests {
-		if rt.path == constants.HealthReadinessPath {
+		if rt.path == testReadinessPath {
 			mockProbe.EXPECT().Readiness().Return(rt.readyLiveCheck).Times(1)
 		} else {
 			mockProbe.EXPECT().Liveness().Return(rt.readyLiveCheck).Times(1)
@@ -91,8 +94,8 @@ func TestNewHTTPServer(t *testing.T) {
 
 	// Ensure added metrics are generated based on previous requests in this
 	// test
-	assert.True(metricsStore.Contains(`osm_http_response_total{code="200",method="get",path="/health/alive"} 1` + "\n"))
-	assert.True(metricsStore.Contains(`osm_http_response_duration_bucket{code="200",method="get",path="/health/alive",le="+Inf"} 1` + "\n"))
+	assert.True(metricsStore.Contains(`osm_http_response_total{code="200",method="get",path="/alive"} 1` + "\n"))
+	assert.True(metricsStore.Contains(`osm_http_response_duration_bucket{code="200",method="get",path="/alive",le="+Inf"} 1` + "\n"))
 
 	err := httpServ.Start()
 	assert.Nil(err)

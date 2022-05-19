@@ -2,6 +2,7 @@ package verifier
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,9 +18,12 @@ func TestControlPlane(t *testing.T) {
 	testNs := "test"
 
 	testCases := []struct {
-		name      string
-		resources []runtime.Object
-		expected  Result
+		name               string
+		resources          []runtime.Object
+		controllerProbeErr error
+		injectorProbeErr   error
+		bootstrapProbeErr  error
+		expected           Result
 	}{
 		{
 			name: "all control plane pods are ready",
@@ -214,6 +218,98 @@ func TestControlPlane(t *testing.T) {
 				Status: Failure,
 			},
 		},
+		{
+			name: "control plane probes fails",
+			resources: []runtime.Object{
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-controller-1",
+						Namespace: testNs,
+						Labels:    map[string]string{constants.AppLabel: "osm-controller"},
+					},
+					Status: corev1.PodStatus{
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-injector-1",
+						Namespace: testNs,
+						Labels:    map[string]string{constants.AppLabel: "osm-injector"},
+					},
+					Status: corev1.PodStatus{
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-bootstrap-1",
+						Namespace: testNs,
+						Labels:    map[string]string{constants.AppLabel: "osm-bootstrap"},
+					},
+					Status: corev1.PodStatus{
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				},
+			},
+			controllerProbeErr: errors.New("fake error"), // fake probe error
+			injectorProbeErr:   errors.New("fake error"), // fake probe error
+			bootstrapProbeErr:  errors.New("fake error"), // fake probe error
+			expected: Result{
+				Status: Failure,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -221,9 +317,13 @@ func TestControlPlane(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset(tc.resources...)
+
 			v := &ControlPlaneHealthVerifier{
-				kubeClient: fakeClient,
-				namespace:  testNs,
+				kubeClient:       fakeClient,
+				namespace:        testNs,
+				controllerProber: fakeHTTPProber{err: tc.controllerProbeErr},
+				injectorProber:   fakeHTTPProber{err: tc.injectorProbeErr},
+				bootstrapProber:  fakeHTTPProber{err: tc.bootstrapProbeErr},
 			}
 
 			actual := v.Run()
