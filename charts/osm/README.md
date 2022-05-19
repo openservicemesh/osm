@@ -76,12 +76,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
-| osm.deployGrafana | bool | `true` | Deploy Grafana with OSM installation |
-| osm.deployJaeger | bool | `true` | Deploy Jaeger during OSM installation |
-| osm.deployPrometheus | bool | `true` | Deploy Prometheus with OSM installation |
+| osm.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
+| osm.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
+| osm.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
 | osm.enableDebugServer | bool | `false` | Enable the debug HTTP server on OSM controller |
 | osm.enableEgress | bool | `false` | Enable egress in the mesh |
-| osm.enableFluentbit | bool | `true` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
+| osm.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
 | osm.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | osm.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
