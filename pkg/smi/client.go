@@ -181,6 +181,8 @@ func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSpli
 			continue
 		}
 
+		options = append(options, WithKubeController(c.kubeController))
+
 		if filteredSplit := FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
 			trafficSplits = append(trafficSplits, filteredSplit)
 		}
@@ -201,7 +203,7 @@ func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficS
 
 	// If apex service filter option is set, ignore traffic splits whose apex service does not match
 	if o.ApexService.Name != "" && (o.ApexService.Namespace != trafficSplit.Namespace ||
-		o.ApexService.Name != k8s.GetServiceFromHostname(trafficSplit.Spec.Service)) {
+		o.ApexService.Name != k8s.GetServiceFromHostname(o.KubeController, trafficSplit.Spec.Service)) {
 		return nil
 	}
 

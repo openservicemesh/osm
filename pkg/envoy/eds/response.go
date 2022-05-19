@@ -96,7 +96,7 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		Namespace: chunks[0],
 		Name:      chunks[1],
 
-		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
+		// The port always maps to MeshService.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),
 	}, nil

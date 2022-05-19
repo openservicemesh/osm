@@ -218,7 +218,7 @@ func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity
 			}
 			for _, backend := range split.Spec.Backends {
 				if backend.Service == upstreamSvc.Name {
-					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
+					rootServiceName := k8s.GetServiceFromHostname(mc.kubeController, split.Spec.Service)
 					rootMeshService := service.MeshService{
 						Namespace:  split.Namespace,
 						Name:       rootServiceName,

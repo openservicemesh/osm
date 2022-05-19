@@ -189,25 +189,26 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 	// If the destination service is known, verify it has a matching filter chain and route
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
+		dstPod := v.configAttr.trafficAttr.DstPod
 		svc, err := v.kubeClient.CoreV1().Services(dst.Namespace).Get(context.Background(), dst.Name, metav1.GetOptions{})
 		if err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Destination service %q not found: %s", dst, err)
 			return result
 		}
-		if err := v.findOutboundFilterChainForService(svc, outboundListener.FilterChains); err != nil {
+		if err := v.findOutboundFilterChainForService(svc, outboundListener.FilterChains, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound filter chain for service %q: %s", dst, err)
 			return result
 		}
 
-		if err := v.findHTTPRouteForService(svc, routeConfigs, true); err != nil {
+		if err := v.findHTTPRouteForService(svc, routeConfigs, true, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound route configuration for service %q: %s", dst, err)
 			return result
 		}
 
-		if err := v.findClusterForService(svc, clusters, true); err != nil {
+		if err := v.findClusterForService(svc, clusters, true, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching outbound cluster for service %q: %s", dst, err)
 			return result
@@ -245,7 +246,7 @@ func (v *EnvoyConfigVerifier) verifySource() Result {
 	return result
 }
 
-func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
+func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain, podName string) error {
 	if svc == nil {
 		return nil
 	}
@@ -270,7 +271,7 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 		dstIPRanges.Add(svc.Spec.ClusterIP)
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -417,23 +418,24 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 	// Next, if the destination service is known, verify it has a matching filter chain
 	if v.configAttr.trafficAttr.DstService != nil {
 		dst := v.configAttr.trafficAttr.DstService
+		dstPod := v.configAttr.trafficAttr.DstPod
 		svc, err := v.kubeClient.CoreV1().Services(dst.Namespace).Get(context.Background(), dst.Name, metav1.GetOptions{})
 		if err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Destination service %q not found: %s", dst, err)
 			return result
 		}
-		if err := v.findInboundFilterChainForService(svc, inboundListener.FilterChains); err != nil {
+		if err := v.findInboundFilterChainForService(svc, inboundListener.FilterChains, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching inbound filter chain for service %q: %s", dst, err)
 			return result
 		}
-		if err := v.findHTTPRouteForService(svc, routeConfigs, false); err != nil {
+		if err := v.findHTTPRouteForService(svc, routeConfigs, false, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching inbound route configuration for service %q: %s", dst, err)
 			return result
 		}
-		if err := v.findClusterForService(svc, clusters, false); err != nil {
+		if err := v.findClusterForService(svc, clusters, false, dstPod.Name); err != nil {
 			result.Status = Failure
 			result.Reason = fmt.Sprintf("Did not find matching inbound cluster for service %q: %s", dst, err)
 			return result
@@ -460,7 +462,7 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 	return result
 }
 
-func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]service.MeshService, error) {
+func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, podName string) ([]service.MeshService, error) {
 	endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
 	if err != nil || endpoints == nil {
 		return nil, err
@@ -478,8 +480,29 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvc(svc corev1.Service) ([]se
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
 		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
-		meshServices = append(meshServices, meshSvc)
+
+		if !k8s.IsHeadlessService(svc) {
+			meshServices = append(meshServices, meshSvc)
+			continue
+		}
+
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				if address.Hostname == "" {
+					continue
+				}
+				mSvc := service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				}
+				meshServices = append(meshServices, mSvc)
+			}
+		}
 	}
+
 	return meshServices, nil
 }
 
@@ -538,12 +561,12 @@ func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Servi
 	return nil
 }
 
-func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain) error {
+func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Service, filterChains []*xds_listener.FilterChain, podName string) error {
 	if svc == nil {
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -594,12 +617,12 @@ func findInboundFilterChainForServicePort(meshSvc service.MeshService, filterCha
 	return nil
 }
 
-func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, routeConfigs []*xds_route.RouteConfiguration, isOutbound bool) error {
+func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, routeConfigs []*xds_route.RouteConfiguration, isOutbound bool, podName string) error {
 	if svc == nil {
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -624,12 +647,12 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 	return nil
 }
 
-func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, clusters []*xds_cluster.Cluster, isOutbound bool) error {
+func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, clusters []*xds_cluster.Cluster, isOutbound bool, podName string) error {
 	if svc == nil {
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvc(*svc)
+	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
 		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
