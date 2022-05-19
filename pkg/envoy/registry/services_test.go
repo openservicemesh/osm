@@ -86,10 +86,10 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					{
 						Addresses: []v1.EndpointAddress{
 							{
-								IP: "8.8.8.8",
+								IP: "8.8.8.8", // pod IP
 							},
 							{
-								IP: "8.8.8.9",
+								IP: "8.8.8.9", // pod2 IP
 							},
 						},
 					},
@@ -105,11 +105,11 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					{
 						Addresses: []v1.EndpointAddress{
 							{
-								IP:       "8.8.8.9",
+								IP:       "8.8.8.9", // pod IP
 								Hostname: podName,
 							},
 							{
-								IP:       "8.8.8.9",
+								IP:       "8.8.8.9", // pod2 IP
 								Hostname: podName2,
 							},
 						},
@@ -175,7 +175,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			var serviceNames []string
 			var services []*v1.Service = []*v1.Service{}
-			svc2Name := "svc-name-2"
+			svc2Name := "svc-name-2-headless"
+			podName := "pod-name"
 
 			{
 				// Create a service
@@ -187,15 +188,15 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			}
 
 			{
-				// Create a second service
-				service := tests.NewServiceFixture(svc2Name, namespace, selectors)
+				// Create a second (headless) service
+				service := tests.HeadlessSvc(tests.NewServiceFixture(svc2Name, namespace, selectors))
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				serviceNames = append(serviceNames, service.Name)
+				serviceNames = append(serviceNames, fmt.Sprintf("%s.%s", podName, service.Name))
 			}
 
-			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
+			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 			mockKubeController.EXPECT().ListServices().Return(services)
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
@@ -212,16 +213,18 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					},
 				},
 			}, nil).Times(1)
+
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      service1Name,
+					Namespace: tests.Namespace,
+					Name:      svc2Name,
 				},
 				Subsets: []v1.EndpointSubset{
 					{
 						Addresses: []v1.EndpointAddress{
 							{
-								IP: "8.8.8.8",
+								IP:       "8.8.8.8",
+								Hostname: pod.Name,
 							},
 						},
 					},
