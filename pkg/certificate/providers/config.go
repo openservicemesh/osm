@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"fmt"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -64,6 +63,11 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 		},
 	}
 
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := options.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
+	}
+
 	return certificate.NewManager(mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker)
 }
 
@@ -100,7 +104,7 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		return nil, errors.New("Root cert does not have a private key")
 	}
 
-	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.SecretName, rootCert, c.kubeClient)
+	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}
@@ -126,9 +130,10 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
+	// TODO(#4502): If the DefaultVaultToken is empty, query the mrc.provider.vault.token.secretRef.
 	vaultClient, err := vault.New(
 		vaultAddr,
-		provider.Token,
+		c.DefaultVaultToken,
 		provider.Role,
 	)
 	if err != nil {
@@ -140,28 +145,12 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
 func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.CertManager
-	rootCertSecret, err := c.kubeClient.CoreV1().Secrets(mrc.Namespace).Get(context.TODO(), provider.SecretName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", mrc.Namespace, provider.SecretName, err)
-	}
-
-	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
-	if !ok {
-		return nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", mrc.Namespace, provider.SecretName, constants.KubernetesOpaqueSecretCAKey)
-	}
-
-	rootCert, err := certificate.NewFromPEM(pemCert, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", mrc.Namespace, provider.SecretName, err)
-	}
-
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
 	cmClient, err := certmanager.New(
-		rootCert,
 		client,
 		mrc.Namespace,
 		cmmeta.ObjectReference{

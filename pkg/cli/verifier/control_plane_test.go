@@ -22,7 +22,7 @@ func TestControlPlane(t *testing.T) {
 		expected  Result
 	}{
 		{
-			name: "all control plane pods are running",
+			name: "all control plane pods are ready",
 			resources: []runtime.Object{
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -31,7 +31,24 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-controller"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
 					},
 				},
 				&corev1.Pod{
@@ -41,7 +58,24 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-controller"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
 					},
 				},
 				&corev1.Pod{
@@ -51,7 +85,24 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-injector"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
 					},
 				},
 				&corev1.Pod{
@@ -61,7 +112,24 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-bootstrap"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
 					},
 				},
 			},
@@ -70,7 +138,7 @@ func TestControlPlane(t *testing.T) {
 			},
 		},
 		{
-			name: "control plane pod is not running",
+			name: "control plane pods are not ready",
 			resources: []runtime.Object{
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -79,7 +147,24 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-controller"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodFailed, // not running
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodReady,
+								Status: corev1.ConditionFalse, // not ready
+							},
+						},
 					},
 				},
 				&corev1.Pod{
@@ -89,7 +174,20 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-injector"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.PodInitialized,
+								Status: corev1.ConditionFalse, // init-container pending
+							},
+						},
 					},
 				},
 				&corev1.Pod{
@@ -99,7 +197,16 @@ func TestControlPlane(t *testing.T) {
 						Labels:    map[string]string{constants.AppLabel: "osm-bootstrap"},
 					},
 					Status: corev1.PodStatus{
-						Phase: corev1.PodRunning,
+						Conditions: []corev1.PodCondition{
+							{
+								Type:   corev1.PodScheduled,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.ContainersReady,
+								Status: corev1.ConditionFalse, // containers not ready
+							},
+						},
 					},
 				},
 			},

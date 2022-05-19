@@ -355,11 +355,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			if !tc.expectSecretToExist {
 				a.Eventually(func() bool {
 					_, secretNotFoundErr := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
-
-					certCN := certificate.CommonName(tc.previousCertSpec.SubjectAltNames[0])
-					_, certNotFoundErr := c.certProvider.GetCertificate(certCN)
-
-					return secretNotFoundErr != nil && certNotFoundErr != nil
+					return secretNotFoundErr != nil
 				}, maxSecretPollTime, secretPollInterval, "Secret found, unexpected!")
 				return
 			}

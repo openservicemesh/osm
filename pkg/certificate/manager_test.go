@@ -46,8 +46,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(CommonName(serviceFQDN)))
 
-			cachedCert, getCertificateError := m.GetCertificate(serviceFQDN)
-			Expect(getCertificateError).ToNot(HaveOccurred())
+			cachedCert := m.getFromCache(serviceFQDN)
 			Expect(cachedCert).To(Equal(cert))
 		})
 	})
@@ -110,70 +109,14 @@ func TestReleaseCertificate(t *testing.T) {
 			assert := tassert.New(t)
 
 			manager.ReleaseCertificate(tc.commonName)
-			_, err := manager.GetCertificate(tc.commonName)
+			cert := manager.getFromCache(tc.commonName)
 
-			assert.ErrorIs(err, errCertNotFound)
+			assert.Nil(cert)
 		})
 	}
 }
 
-func TestGetCertificate(t *testing.T) {
-	cn := CommonName("Test Cert")
-	cert := &Certificate{
-		CommonName: cn,
-		Expiration: time.Now().Add(1 * time.Hour),
-	}
-
-	expiredCn := CommonName("Expired Test Cert")
-	expiredCert := &Certificate{
-		CommonName: expiredCn,
-		Expiration: time.Now().Add(-1 * time.Hour),
-	}
-
-	manager := &Manager{}
-	manager.cache.Store(cn, cert)
-	manager.cache.Store(expiredCn, expiredCert)
-
-	testCases := []struct {
-		name                string
-		commonName          CommonName
-		expectedCertificate *Certificate
-		expectedErr         error
-	}{
-		{
-			name:                "cache hit",
-			commonName:          cn,
-			expectedCertificate: cert,
-		},
-		{
-			name:        "cache miss",
-			commonName:  CommonName("Wrong Cert"),
-			expectedErr: errCertNotFound,
-		},
-		{
-			name:        "certificate expiration",
-			commonName:  expiredCn,
-			expectedErr: errCertNotFound,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			c, err := manager.GetCertificate(tc.commonName)
-			if tc.expectedErr != nil {
-				assert.ErrorIs(err, tc.expectedErr)
-				return
-			}
-
-			assert.Nil(err)
-			assert.Equal(tc.expectedCertificate, c)
-		})
-	}
-}
-
-func TestListCertificate(t *testing.T) {
+func TestListIssuedCertificate(t *testing.T) {
 	assert := tassert.New(t)
 
 	cn := CommonName("Test Cert")
@@ -192,9 +135,7 @@ func TestListCertificate(t *testing.T) {
 	manager.cache.Store(cn, cert)
 	manager.cache.Store(anotherCn, anotherCert)
 
-	cs, err := manager.ListCertificates()
-
-	assert.Nil(err)
+	cs := manager.ListIssuedCertificates()
 	assert.Len(cs, 2)
 
 	for i, c := range cs {
@@ -211,14 +152,4 @@ func TestListCertificate(t *testing.T) {
 			t.Fatalf("Certificate #%v %v does not exist", i, c.GetCommonName())
 		}
 	}
-}
-
-func TestGetRootCertificate(t *testing.T) {
-	assert := tassert.New(t)
-
-	manager := &Manager{clients: []Issuer{&fakeIssuer{}}}
-
-	got := manager.GetRootCertificate()
-
-	assert.Equal(caCert, got)
 }

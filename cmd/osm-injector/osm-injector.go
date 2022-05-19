@@ -119,7 +119,6 @@ func getCertOptions() (providers.Options, error) {
 	case providers.VaultKind:
 		return vaultOptions, nil
 	case providers.CertManagerKind:
-		certManagerOptions.SecretName = caBundleSecretName
 		return certManagerOptions, nil
 	}
 	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)

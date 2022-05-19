@@ -51,7 +51,7 @@ type TresorOptions struct {
 type VaultOptions struct {
 	VaultProtocol string
 	VaultHost     string
-	VaultToken    string
+	VaultToken    string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
 	VaultRole     string
 	VaultPort     int
 }
@@ -61,8 +61,6 @@ type CertManagerOptions struct {
 	IssuerName  string
 	IssuerKind  string
 	IssuerGroup string
-
-	SecretName string
 }
 
 // MRCCompatClient is a backwards compatible client to convert old certificate options into an MRC.
@@ -80,4 +78,7 @@ type MRCProviderGenerator struct {
 
 	// TODO(#4502): move these to the compat client once we have added these fields to the MRC.
 	KeyBitSize int
+
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	DefaultVaultToken string
 }

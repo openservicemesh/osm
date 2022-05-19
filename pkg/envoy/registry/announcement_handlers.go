@@ -9,7 +9,7 @@ import (
 )
 
 // ReleaseCertificateHandler releases certificates based on podDelete events
-func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager *certificate.Manager, stop <-chan struct{}) {
+func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleaser, stop <-chan struct{}) {
 	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
 	podDeleteChan := kubePubSub.Sub(announcements.PodDeleted.String())
 	defer pr.msgBroker.Unsub(kubePubSub, podDeleteChan)

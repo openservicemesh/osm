@@ -4,8 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
+
+const vaultTokenSecretName = "osm-vault-token" // #nosec G101: Potential hardcoded credentials
 
 // Validate validates the options for Tresor certificate provider
 func (options TresorOptions) Validate() error {
@@ -19,7 +23,11 @@ func (options TresorOptions) Validate() error {
 func (options TresorOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 	return v1alpha2.ProviderSpec{
 		Tresor: &v1alpha2.TresorProviderSpec{
-			SecretName: options.SecretName,
+			CA: v1alpha2.TresorCASpec{
+				SecretRef: corev1.SecretReference{
+					Name: options.SecretName,
+				},
+			},
 		},
 	}
 }
@@ -51,9 +59,13 @@ func (options VaultOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 		Vault: &v1alpha2.VaultProviderSpec{
 			Protocol: options.VaultProtocol,
 			Host:     options.VaultHost,
-			Token:    options.VaultToken,
-			Role:     options.VaultRole,
-			Port:     options.VaultPort,
+			Token: v1alpha2.VaultTokenSpec{
+				SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
+					Name: vaultTokenSecretName,
+				},
+			},
+			Role: options.VaultRole,
+			Port: options.VaultPort,
 		},
 	}
 }
@@ -82,7 +94,6 @@ func (options CertManagerOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 			IssuerName:  options.IssuerName,
 			IssuerKind:  options.IssuerKind,
 			IssuerGroup: options.IssuerGroup,
-			SecretName:  options.SecretName,
 		},
 	}
 }

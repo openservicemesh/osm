@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -33,4 +34,9 @@ type connectedProxy struct {
 
 	// When the proxy connected to the XDS control plane
 	connectedAt time.Time
+}
+
+// A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
+type certificateReleaser interface {
+	ReleaseCertificate(cn certificate.CommonName)
 }

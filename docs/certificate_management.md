@@ -8,29 +8,13 @@ Currently there are three supported certificate managers:
 - [cert-manager](https://cert-manager.io/)
 - [HashiCorp Vault](https://www.hashicorp.com/products/vault)
 
-All certificate managers implement the `Manager` interface (located in `pkg/certificate`). Currently this interface is defined as:
+All certificate managers implement the `Issuer` interface (located in `pkg/certificate`). Currently this interface is defined as:
 
 ```go
-// Manager is the interface declaring the methods for the Certificate Manager.
-type Manager interface {
+// Issuer is the interface declaring the methods for the Certificate Manager.
+type Issuer interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
-
-	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (*Certificate, error)
-
-	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (*Certificate, error)
-
-	// ListCertificates lists all certificates issued
-	ListCertificates() ([]*Certificate, error)
-
-	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
-	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
-	ReleaseCertificate(CommonName)
 }
 ```
 
