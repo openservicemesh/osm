@@ -99,29 +99,6 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.Me
 	return meshServices
 }
 
-func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1.Pod {
-	svcRawSelector := service.Spec.Selector
-	// service has no selectors, we do not need to match against the pod label
-	if len(svcRawSelector) == 0 {
-		return nil
-	}
-	selector := labels.Set(svcRawSelector).AsSelector()
-
-	allPods := kubeController.ListPods()
-
-	var matchedPods []v1.Pod
-	for _, pod := range allPods {
-		if service.Namespace != pod.Namespace {
-			continue
-		}
-		if selector.Matches(labels.Set(pod.Labels)) {
-			matchedPods = append(matchedPods, *pod)
-		}
-	}
-
-	return matchedPods
-}
-
 func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
 	proxyUIDStr, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]
 	if !exists {

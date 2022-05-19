@@ -37,7 +37,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 	Context("Test ListProxyServices()", func() {
 		It("works as expected", func() {
 			proxyUUID := uuid.New()
-			proxyUUID2 := uuid.New()
 
 			podName := "pod-name"
 			podName2 := "pod-name-2"
@@ -45,12 +44,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 				map[string]string{
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					constants.AppLabel:               tests.SelectorValue})
-			pod2 := tests.NewPodFixture(tests.Namespace, podName2, tests.BookstoreServiceAccountName,
-				map[string]string{
-					constants.EnvoyUniqueIDLabelName: proxyUUID2.String(),
-					constants.AppLabel:               tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod, &pod2}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -302,187 +297,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 		})
 	})
 })
-
-func TestListPodsForService(t *testing.T) {
-	tests := []struct {
-		name         string
-		service      *v1.Service
-		existingPods []*v1.Pod
-		expected     []v1.Pod
-	}{
-		{
-			name: "no existing pods",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: nil,
-			expected:     nil,
-		},
-		{
-			name: "match only pod",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"some": "labels",
-							"that": "match",
-							"a":    "selector",
-						},
-					},
-				},
-			},
-			expected: []v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"some": "labels",
-							"that": "match",
-							"a":    "selector",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "match pod except for namespace",
-			service: &v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "svc",
-				},
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod",
-						Namespace: "pod",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name: "empty service selector",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name: "match several pods",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod1",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod2",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "pod3",
-						Labels: map[string]string{},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod4",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: []v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod1",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod2",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod4",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			kubeController := k8s.NewMockController(ctrl)
-			if test.service != nil && len(test.service.Spec.Selector) != 0 {
-				kubeController.EXPECT().ListPods().Return(test.existingPods).Times(1)
-			}
-
-			actual := listPodsForService(test.service, kubeController)
-			tassert.Equal(t, test.expected, actual)
-		})
-	}
-}
 
 func TestGetCertCommonNameForPod(t *testing.T) {
 	tests := []struct {
