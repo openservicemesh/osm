@@ -13,6 +13,7 @@ import (
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
@@ -96,23 +97,8 @@ var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
 	Status: configv1alpha2.MeshRootCertificateStatus{
-		State:         "complete",
-		RotationStage: "issuing",
-	},
-}
-
-var testMeshRootCertificateWithLastAppliedAnnotation *configv1alpha2.MeshRootCertificate = &configv1alpha2.MeshRootCertificate{
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: testNamespace,
-		Name:      meshRootCertificateName,
-		Annotations: map[string]string{
-			"kubectl.kubernetes.io/last-applied-configuration": `{"metadata":{"name":"osm-mesh-root-certificate","namespace":"test-namespace","creationTimestamp":null},"spec":{}}`,
-		},
-	},
-	Spec: configv1alpha2.MeshRootCertificateSpec{},
-	Status: configv1alpha2.MeshRootCertificateStatus{
-		State:         "complete",
-		RotationStage: "issuing",
+		State:         constants.MRCStateComplete,
+		RotationStage: constants.MRCStageIssuing,
 	},
 }
 
@@ -166,7 +152,6 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 
 	meshRootCertificate, err := buildMeshRootCertificate(testPresetMeshRootCertificate)
 	assert.NoError(err)
-	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.Equal(meshRootCertificate.Name, meshRootCertificateName)
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
@@ -261,22 +246,10 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 			}
 
 			err := b.createDefaultMeshConfig()
-			if tc.expectErr {
-				assert.NotNil(err)
-			} else {
-				assert.Nil(err)
-			}
+			assert.Equal(tc.expectErr, err != nil)
 
 			_, err = b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
-			if tc.expectDefaultMeshConfig {
-				if err == nil {
-					assert.Nil(err)
-				}
-			} else {
-				if err == nil {
-					assert.NotNil(err)
-				}
-			}
+			assert.Equal(tc.expectDefaultMeshConfig, err == nil)
 		})
 	}
 }
@@ -329,10 +302,8 @@ func TestEnsureMeshConfig(t *testing.T) {
 			}
 
 			err := b.ensureMeshConfig()
-			if tc.expectErr {
-				assert.NotNil(err)
-			} else {
-				assert.Nil(err)
+			assert.Equal(tc.expectErr, err != nil)
+			if !tc.expectErr {
 				config, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 				assert.Nil(err)
 				assert.Contains(config.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
@@ -386,22 +357,10 @@ func TestCreateMeshRootCertificateConfig(t *testing.T) {
 			}
 
 			err := b.createMeshRootCertificate()
-			if tc.expectErr {
-				assert.NotNil(err)
-			} else {
-				assert.Nil(err)
-			}
+			assert.Equal(tc.expectErr, err != nil)
 
 			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
-			if tc.expectDefaultMeshRootCertificate {
-				if err == nil {
-					assert.Nil(err)
-				}
-			} else {
-				if err == nil {
-					assert.NotNil(err)
-				}
-			}
+			assert.Equal(tc.expectDefaultMeshRootCertificate, err == nil)
 		})
 	}
 }
@@ -415,17 +374,10 @@ func TestEnsureMeshRootCertificate(t *testing.T) {
 		expectErr    bool
 	}{
 		{
-			name:         "MeshRootCertificate found with no last-applied annotation",
+			name:         "MeshRootCertificate found",
 			namespace:    testNamespace,
 			kubeClient:   fakeKube.NewSimpleClientset(),
 			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
-			expectErr:    false,
-		},
-		{
-			name:         "MeshRootCertificate found with last-applied annotation",
-			namespace:    testNamespace,
-			kubeClient:   fakeKube.NewSimpleClientset(),
-			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificateWithLastAppliedAnnotation}...),
 			expectErr:    false,
 		},
 		{
@@ -454,14 +406,10 @@ func TestEnsureMeshRootCertificate(t *testing.T) {
 			}
 
 			err := b.ensureMeshRootCertificate()
-			if tc.expectErr {
-				assert.NotNil(err)
-			} else {
-				assert.Nil(err)
-				config, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
-				assert.Nil(err)
-				assert.Contains(config.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
-			}
+			assert.Equal(tc.expectErr, err != nil)
+
+			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			assert.Equal(tc.expectErr, err != nil)
 		})
 	}
 }
@@ -522,11 +470,7 @@ func TestGetBootstrapPod(t *testing.T) {
 			assert.Nil(err)
 
 			_, err = b.getBootstrapPod()
-			if tc.expectErr {
-				assert.NotNil(err)
-			} else {
-				assert.Nil(err)
-			}
+			assert.Equal(tc.expectErr, err != nil)
 		})
 	}
 }

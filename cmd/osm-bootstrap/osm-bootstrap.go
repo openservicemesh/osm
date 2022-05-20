@@ -370,32 +370,21 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 		FieldSelector: "status.state=complete,status.rotationStage=issuing",
 	}
 	meshRootCertificateList, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
 
 	if len(meshRootCertificateList.Items) == 0 {
 		// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
 		return b.createMeshRootCertificate()
 	}
-	if err != nil {
-		return err
-	}
 
-	meshRootCertificate := meshRootCertificateList.Items[0]
-	if _, exists := meshRootCertificate.Annotations[corev1.LastAppliedConfigAnnotation]; !exists {
-		// MeshRootCertificate was found, but may not have the last applied annotation.
-		if err := util.CreateApplyAnnotation(&meshRootCertificate, unstructured.UnstructuredJSONScheme); err != nil {
-			return err
-		}
-		if _, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Update(context.TODO(), &meshRootCertificate, metav1.UpdateOptions{}); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (b *bootstrap) createMeshRootCertificate() error {
 	// find preset config map to build the MeshRootCertificate from
 	presetMeshRootCertificate, err := b.kubeClient.CoreV1().ConfigMaps(b.namespace).Get(context.TODO(), presetMeshRootCertificateName, metav1.GetOptions{})
-	// If the preset MeshRootCertificate could not be loaded return the error
 	if err != nil {
 		return err
 	}
