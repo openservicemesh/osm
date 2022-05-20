@@ -112,7 +112,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 
 				cond := Td.WaitForRepeatedSuccess(func() bool {
 
-					var results map[string]error
+					results := map[string]error{}
 					for _, po := range pods.Items {
 						stdout, stderr, err := Td.RunRemote(testNS, po.GetName(), "zookeeper", strings.Fields(cmd))
 
@@ -135,14 +135,10 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 							continue
 						}
 
-						Td.T.Logf("> (%s) ZK status check suceeded!", podName)
+						Td.T.Logf("> (%s) ZK status check succeeded!", podName)
 					}
 
-					if hadErr {
-						return false
-					}
-
-					return true
+					return !hadErr
 				}, 5, Td.ReqSuccessTimeout)
 
 				Expect(cond).To(BeTrue())
