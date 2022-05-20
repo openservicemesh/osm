@@ -12,6 +12,7 @@ import (
 	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -19,7 +20,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
+var _ = OSMDescribe("Test traffic among Statefulset members",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 9,
@@ -47,7 +48,10 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 				saName := "zookeeper"
 				replicaCount := 3
 
-				chart, err := loader.Load("https://charts.bitnami.com/bitnami/zookeeper-9.0.2.tgz")
+				cli := cli.New()
+				chartPath, err := install.LocateChart("https://charts.bitnami.com/bitnami/zookeeper-9.0.2.tgz", cli)
+				Expect(err).NotTo(HaveOccurred())
+				chart, err := loader.Load(chartPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Install zookeeper
