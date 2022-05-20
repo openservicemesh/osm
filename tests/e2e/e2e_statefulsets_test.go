@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -145,7 +144,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 					}
 
 					return !hadErr
-				}, 5, Td.ReqSuccessTimeout)
+				}, 1, 90*time.Second)
 
 				Expect(cond).To(BeTrue())
 
