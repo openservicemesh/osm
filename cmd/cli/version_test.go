@@ -216,8 +216,8 @@ func TestOutputPrettyVersionInfo(t *testing.T) {
 		},
 		{
 			name:                  "mesh versions with no remote version info",
-			remoteVersionInfoList: nil,
-			expected:              "No meshes in the cluster\n",
+			remoteVersionInfoList: []*remoteVersionInfo{},
+			expected:              "Unable to find OSM control plane in the cluster\n",
 		},
 	}
 
