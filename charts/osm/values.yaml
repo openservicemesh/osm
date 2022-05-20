@@ -107,6 +107,7 @@ osm:
               operator: In
               values:
               - amd64
+              - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
         - podAffinityTerm:
@@ -395,6 +396,7 @@ osm:
               operator: In
               values:
               - amd64
+              - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
         - podAffinityTerm:
@@ -487,6 +489,7 @@ osm:
               operator: In
               values:
               - amd64
+              - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
         - podAffinityTerm:
