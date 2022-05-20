@@ -51,11 +51,14 @@ type TresorOptions struct {
 
 // VaultOptions is a type that specifies 'Hashicorp Vault' certificate provider options
 type VaultOptions struct {
-	VaultProtocol string
-	VaultHost     string
-	VaultToken    string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
-	VaultRole     string
-	VaultPort     int
+	VaultProtocol             string
+	VaultHost                 string
+	VaultToken                string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
+	VaultRole                 string
+	VaultPort                 int
+	VaultTokenSecretNamespace string
+	VaultTokenSecretName      string
+	VaultTokenSecretKey       string
 }
 
 // CertManagerOptions is a type that specifies 'cert-manager.io' certificate provider options

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -182,6 +183,76 @@ func TestGetCertificateManager(t *testing.T) {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
 				assert.NoError(err)
 			}
+		})
+	}
+}
+
+func TestGetHashiVaultOSMToken(t *testing.T) {
+	validVaultTokenSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "osm-system",
+			Name:      "osm-vault-token",
+		},
+		Data: map[string][]byte{
+			"token": []byte("token"),
+		},
+	}
+
+	invalidVaultTokenSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "osm-system",
+			Name:      "osm-vault-token",
+		},
+		Data: map[string][]byte{
+			"noop": []byte("noop"),
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		secretKeyRef *v1alpha2.SecretKeyReferenceSpec
+		kubeClient   kubernetes.Interface
+		expectError  bool
+	}{
+		{
+			name: "No Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset(),
+			expectError: true,
+		},
+		{
+			name: "Invalid Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset([]runtime.Object{invalidVaultTokenSecret}...),
+			expectError: true,
+		},
+		{
+			name: "Valid Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset([]runtime.Object{validVaultTokenSecret}...),
+			expectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			token, err := getHashiVaultOSMToken(tc.secretKeyRef, tc.kubeClient)
+			assert.Equal(tc.expectError, token == "")
+			assert.Equal(tc.expectError, err != nil)
 		})
 	}
 }

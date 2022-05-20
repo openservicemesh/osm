@@ -188,10 +188,20 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
-	// TODO(#4502): If the DefaultVaultToken is empty, query the mrc.provider.vault.token.secretRef.
+
+	// If the DefaultVaultToken is empty, query Vault token secret
+	var err error
+	vaultToken := c.DefaultVaultToken
+	if vaultToken == "" {
+		vaultToken, err = getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	vaultClient, err := vault.New(
 		vaultAddr,
-		c.DefaultVaultToken,
+		vaultToken,
 		provider.Role,
 	)
 	if err != nil {
@@ -202,6 +212,21 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 		return nil, "", err
 	}
 	return vaultClient, id, nil
+}
+
+// getHashiVaultOSMToken returns the Hashi Vault token
+func getHashiVaultOSMToken(secretKeyRef *v1alpha2.SecretKeyReferenceSpec, kubeClient kubernetes.Interface) (string, error) {
+	tokenSecret, err := kubeClient.CoreV1().Secrets(secretKeyRef.Namespace).Get(context.TODO(), secretKeyRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("error retrieving Hashi Vault token secret %s/%s: %w", secretKeyRef.Namespace, secretKeyRef.Name, err)
+	}
+
+	token, ok := tokenSecret.Data[secretKeyRef.Key]
+	if !ok {
+		return "", fmt.Errorf("failed to get Hashi Vault token with key %s from secret %s/%s", secretKeyRef.Key, secretKeyRef.Namespace, secretKeyRef.Name)
+	}
+
+	return string(token), nil
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider

@@ -103,16 +103,6 @@ func TestValidateVaultOptions(t *testing.T) {
 		{
 			testName: "Empty role",
 			options: VaultOptions{
-				VaultProtocol: "http",
-				VaultHost:     "vault-host",
-				VaultToken:    "vault-token",
-				VaultRole:     "",
-			},
-			expectErr: true,
-		},
-		{
-			testName: "Empty role",
-			options: VaultOptions{
 				VaultProtocol: "https",
 				VaultHost:     "vault-host",
 				VaultToken:    "vault-token",
