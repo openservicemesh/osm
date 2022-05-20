@@ -55,13 +55,15 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Install zookeeper
-				Expect(install.Run(chart, map[string]interface{}{
+				_, err = install.Run(chart, map[string]interface{}{
 					"replicaCount": replicaCount,
 					"serviceAccount": map[string]interface{}{
 						"create": true,
 						"name":   saName,
 					},
-				})).To(Succeed())
+				})
+
+				Expect(err).NotTo(HaveOccurred())
 
 				// Create SMI resources for Zookeeper
 				_, err = Td.CreateTCPRoute(testNS, v1alpha4.TCPRoute{
