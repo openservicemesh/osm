@@ -205,7 +205,7 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: #{}
+    nodeSelector:
       kubernetes.io/arch: amd64
       kubernetes.io/os: linux
 
@@ -312,7 +312,7 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: #{}
+    nodeSelector:
       kubernetes.io/arch: amd64
       kubernetes.io/os: linux
 
@@ -446,7 +446,7 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: #{}
+    nodeSelector:
       kubernetes.io/arch: amd64
       kubernetes.io/os: linux
 
@@ -547,7 +547,7 @@ osm:
   cleanup:
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: #{}
+    nodeSelector:
       kubernetes.io/arch: amd64
       kubernetes.io/os: linux
 
