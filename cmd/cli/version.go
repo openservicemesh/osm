@@ -171,10 +171,10 @@ func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, client
 }
 
 func (v *versionCmd) outputPrettyVersionInfo(remoteVerList []*remoteVersionInfo) string {
-	table := "No meshes in the cluster\n"
-	if remoteVerList != nil {
-		table = "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n"
+	if len(remoteVerList) == 0 {
+		return "Unable to find OSM control plane in the cluster\n"
 	}
+	table := "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n"
 	for _, remoteVersionInfo := range remoteVerList {
 		if remoteVersionInfo != nil && remoteVersionInfo.meshName != "" {
 			table += fmt.Sprintf(
