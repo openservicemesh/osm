@@ -88,6 +88,7 @@ func WithTrafficTargetDestination(d identity.K8sServiceAccount) TrafficTargetLis
 type TrafficSplitListOpt struct {
 	ApexService    service.MeshService
 	BackendService service.MeshService
+	KubeController k8s.Controller
 }
 
 // TrafficSplitListOption is a function type that implements filters on the TrafficSplit lister
@@ -104,5 +105,12 @@ func WithTrafficSplitApexService(s service.MeshService) TrafficSplitListOption {
 func WithTrafficSplitBackendService(s service.MeshService) TrafficSplitListOption {
 	return func(o *TrafficSplitListOpt) {
 		o.BackendService = s
+	}
+}
+
+// WithKubeController adds a KubeController to the TrafficSplit lister
+func WithKubeController(c k8s.Controller) TrafficSplitListOption {
+	return func(o *TrafficSplitListOpt) {
+		o.KubeController = c
 	}
 }

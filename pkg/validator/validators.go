@@ -106,10 +106,6 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			return nil, errors.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
 		}
 
-		if backend.Port.Number < 0 {
-			return nil, errors.Errorf("Port numbers can't be negative")
-		}
-
 		fakeMeshSvc := service.MeshService{
 			Name:       backend.Name,
 			TargetPort: uint16(backend.Port.Number),

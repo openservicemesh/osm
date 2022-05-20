@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
@@ -203,7 +204,7 @@ func (c client) ListMonitoredNamespaces() ([]string, error) {
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.String())
+	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.NamespacedKey())
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -270,7 +271,7 @@ func (c client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.String())
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.NamespacedKey())
 	if err != nil {
 		return nil, err
 	}
@@ -363,8 +364,28 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
-		meshServices = append(meshServices, meshSvc)
+
+		if !IsHeadlessService(svc) || endpoints == nil {
+			meshServices = append(meshServices, meshSvc)
+			continue
+		}
+
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				if address.Hostname == "" {
+					continue
+				}
+				meshServices = append(meshServices, service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				})
+			}
+		}
 	}
+
 	return meshServices
 }
 
