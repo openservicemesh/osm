@@ -90,8 +90,16 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
 {{- end }}
+      {{- if .Values.osm.cleanup.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.cleanup.affinity | nindent 8 }}
+      {{- end }}
       {{- if .Values.osm.cleanup.nodeSelector }}
       nodeSelector:
       {{- toYaml .Values.osm.cleanup.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.cleanup.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.cleanup.tolerations | nindent 8 }}
       {{- end }}
 
