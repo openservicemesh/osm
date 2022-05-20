@@ -8,7 +8,7 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/httpserver/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func setup() {

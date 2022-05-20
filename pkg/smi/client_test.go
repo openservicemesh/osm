@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	httpServerConstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -354,7 +353,7 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 
 	url := "http://localhost"
 	testHTTPServerPort := 8888
-	smiVerionPath := httpServerConstants.SmiVersionPath
+	smiVerionPath := constants.OSMControllerSMIVersionPath
 	recordCall := func(ts *httptest.Server, path string) *http.Response {
 		req := httptest.NewRequest("GET", path, nil)
 		w := httptest.NewRecorder()

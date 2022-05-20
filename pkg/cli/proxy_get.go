@@ -51,6 +51,9 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 		if err != nil {
 			return errors.Errorf("Error fetching url %s: %s", url, err)
 		}
+		//nolint: errcheck
+		//#nosec G307
+		defer resp.Body.Close()
 
 		envoyProxyConfig, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
