@@ -370,20 +370,15 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
-	var foundIssuingAndCompleteMRC bool
+
 	for _, mrc := range meshRootCertificateList.Items {
 		if mrc.Status.RotationStage == constants.MRCStageIssuing && mrc.Status.State == constants.MRCStateComplete {
-			foundIssuingAndCompleteMRC = true
-			break
+			return nil
 		}
 	}
 
-	if !foundIssuingAndCompleteMRC {
-		// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
-		return b.createMeshRootCertificate()
-	}
-
-	return nil
+	// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
+	return b.createMeshRootCertificate()
 }
 
 func (b *bootstrap) createMeshRootCertificate() error {
@@ -434,5 +429,5 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 	}
 
-	return config, nil
+	return config, util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme)
 }

@@ -151,6 +151,7 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	assert := tassert.New(t)
 
 	meshRootCertificate, err := buildMeshRootCertificate(testPresetMeshRootCertificate)
+	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.NoError(err)
 	assert.Equal(meshRootCertificate.Name, meshRootCertificateName)
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
@@ -312,7 +313,7 @@ func TestEnsureMeshConfig(t *testing.T) {
 	}
 }
 
-func TestCreateMeshRootCertificateConfig(t *testing.T) {
+func TestCreateMeshRootCertificate(t *testing.T) {
 	tests := []struct {
 		name                             string
 		namespace                        string
@@ -338,7 +339,7 @@ func TestCreateMeshRootCertificateConfig(t *testing.T) {
 			expectErr:                        true,
 		},
 		{
-			name:                             "default MeshRootCertificate already exists",
+			name:                             "MeshRootCertificate already exists",
 			namespace:                        testNamespace,
 			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
 			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
