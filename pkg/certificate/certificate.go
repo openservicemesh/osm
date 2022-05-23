@@ -20,6 +20,19 @@ const (
 	noiseSeconds = 5
 )
 
+// mergeRoot will merge in the provided root CA for future calls to GetIssuingCA. It guarantees to not mutate
+// the underlying IssuingCA field. By doing so, we ensure that we don't need locks.
+// NOTE: this does not return a full copy, mutations to the other byte slices could cause data races.
+func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
+	cert := *c
+
+	buf := make([]byte, 0, len(root)+len(c.IssuingCA))
+	buf = append(buf, c.IssuingCA...)
+	buf = append(buf, root...)
+	cert.IssuingCA = buf
+	return &cert
+}
+
 // GetCommonName returns the Common Name of the certificate
 func (c *Certificate) GetCommonName() CommonName {
 	return c.CommonName
