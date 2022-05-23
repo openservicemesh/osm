@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
@@ -111,7 +112,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:test/foo",
+						Name: "service-cert:foo.test.cluster.local",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -121,10 +122,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-							Name: secrets.SDSCert{
-								Name:     "test/foo",
-								CertType: secrets.RootCertTypeForMTLSInbound,
-							}.String(),
+							Name: secrets.GetSDSInboundRootCertForIdentity(identity.ServiceIdentity("foo.test.cluster.local")).String(),
 							SdsConfig: &core.ConfigSource{
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
@@ -172,7 +170,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookbuyer",
+						Name: "service-cert:bookbuyer.default.cluster.local",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -231,21 +229,15 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookbuyer",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSOutbound,
-			}
+			tlsSDSCert := secrets.GetSDSServiceCertForIdentity(identity.ServiceIdentity("bookbuyer.default.cluster.local"))
+			peerValidationSDSCert := secrets.GetSDSOutboundRootCertForService(service.MeshService{Name: "bookstore-v1", Namespace: "default"})
 
 			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookbuyer",
+					Name:      "service-cert:bookbuyer.default.cluster.local",
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
@@ -261,26 +253,20 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for inbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			}
+			tlsSDSCert := secrets.GetSDSServiceCertForIdentity(identity.ServiceIdentity("bookstore-v1.default.cluster.local"))
+			peerValidationSDSCert := secrets.GetSDSInboundRootCertForIdentity(identity.ServiceIdentity("bookstore-v1.default.cluster.local"))
 
 			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookstore-v1",
+					Name:      "service-cert:bookstore-v1.default.cluster.local",
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-for-mtls-inbound:default/bookstore-v1",
+						Name:      "root-cert-for-mtls-inbound:bookstore-v1.default.cluster.local",
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
@@ -291,17 +277,14 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for TLS (non-mTLS)", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
+			tlsSDSCert := secrets.GetSDSServiceCertForIdentity(identity.ServiceIdentity("bookstore-v1.default.cluster.local"))
 
 			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      "service-cert:default/bookstore-v1",
+					Name:      "service-cert:bookstore-v1.default.cluster.local",
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: nil, // TLS cert type should not validate the client certificate

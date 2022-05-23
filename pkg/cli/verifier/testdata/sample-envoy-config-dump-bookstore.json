@@ -690,7 +690,7 @@
          ],
          "tls_certificate_sds_secret_configs": [
           {
-           "name": "service-cert:bookstore/bookstore-v1",
+           "name": "service-cert:bookstore-v1.bookstore.cluster.local",
            "sds_config": {
             "ads": {},
             "resource_api_version": "V3"
@@ -1587,7 +1587,7 @@
             },
             "tls_certificate_sds_secret_configs": [
              {
-              "name": "service-cert:bookstore/bookstore-v1",
+              "name": "service-cert:bookstore-v1.bookstore.cluster.local",
               "sds_config": {
                "ads": {},
                "resource_api_version": "V3"
@@ -1595,7 +1595,7 @@
              }
             ],
             "validation_context_sds_secret_config": {
-             "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+             "name": "root-cert-for-mtls-inbound:bookstore-v1.bookstore.cluster.local",
              "sds_config": {
               "ads": {},
               "resource_api_version": "V3"
@@ -2274,12 +2274,12 @@
    "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump",
    "dynamic_active_secrets": [
     {
-     "name": "service-cert:bookstore/bookstore-v1",
+     "name": "service-cert:bookstore-v1.bookstore.cluster.local",
      "version_info": "4",
      "last_updated": "2021-08-02T18:54:19.804Z",
      "secret": {
       "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-      "name": "service-cert:bookstore/bookstore-v1",
+      "name": "service-cert:bookstore-v1.bookstore.cluster.local",
       "tls_certificate": {
        "certificate_chain": {
         "inline_bytes": ""
@@ -2310,12 +2310,12 @@
      }
     },
     {
-     "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+     "name": "root-cert-for-mtls-inbound:bookstore-v1.bookstore.cluster.local",
      "version_info": "4",
      "last_updated": "2021-08-02T18:54:19.802Z",
      "secret": {
       "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-      "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+      "name": "root-cert-for-mtls-inbound:bookstore-v1.bookstore.cluster.local",
       "validation_context": {
        "trusted_ca": {
         "inline_bytes": ""

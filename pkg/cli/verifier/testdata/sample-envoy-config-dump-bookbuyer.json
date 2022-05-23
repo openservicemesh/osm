@@ -228,7 +228,7 @@
          ],
          "tls_certificate_sds_secret_configs": [
           {
-           "name": "service-cert:bookbuyer/bookbuyer",
+           "name": "service-cert:bookbuyer.bookbuyer.cluster.local",
            "sds_config": {
             "ads": {},
             "resource_api_version": "V3"
@@ -490,12 +490,12 @@
    "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump",
    "dynamic_active_secrets": [
     {
-     "name": "service-cert:bookbuyer/bookbuyer",
+     "name": "service-cert:bookbuyer.bookbuyer.cluster.local",
      "version_info": "3",
      "last_updated": "2021-07-27T20:39:59.809Z",
      "secret": {
       "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-      "name": "service-cert:bookbuyer/bookbuyer",
+      "name": "service-cert:bookbuyer.bookbuyer.cluster.local",
       "tls_certificate": {
        "certificate_chain": {
         "inline_bytes": ""

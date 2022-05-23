@@ -270,7 +270,7 @@ func TestNewResponse(t *testing.T) {
 			}},
 			ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
-					Name: fmt.Sprintf("%s%s%s", secrets.RootCertTypeForMTLSOutbound, secrets.Separator, "default/bookstore-v1"),
+					Name: secrets.GetSDSOutboundRootCertForService(service.MeshService{Name: "bookstore-v1", Namespace: "default"}).String(),
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 							Ads: &xds_core.AggregatedConfigSource{},
@@ -301,7 +301,7 @@ func TestNewResponse(t *testing.T) {
 			}},
 			ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
-					Name: fmt.Sprintf("%s%s%s", secrets.RootCertTypeForMTLSOutbound, secrets.Separator, "default/bookstore-v2"),
+					Name: secrets.GetSDSOutboundRootCertForService(service.MeshService{Name: "bookstore-v2", Namespace: "default"}).String(),
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 							Ads: &xds_core.AggregatedConfigSource{},

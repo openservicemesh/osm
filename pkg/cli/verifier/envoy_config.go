@@ -24,7 +24,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
-	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
+	envoysecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -725,14 +725,8 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 		return errors.Errorf("pod %s not found", srcPod)
 	}
 	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	downstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(downstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	upstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     v.configAttr.trafficAttr.DstService.String(),
-		CertType: envoySecrets.RootCertTypeForMTLSOutbound,
-	}.String()
+	downstreamSecretName := envoysecrets.GetSDSServiceCertForIdentity(downstreamIdentity).String()
+	upstreamPeerValidationSecretName := envoysecrets.GetSDSOutboundRootCertForNamespacedName(v.configAttr.trafficAttr.DstService).String()
 
 	expectedSecrets := mapset.NewSetWith(downstreamSecretName, upstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()
@@ -757,14 +751,8 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 		return errors.Errorf("pod %s not found", dstPod)
 	}
 	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	upstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	downstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.RootCertTypeForMTLSInbound,
-	}.String()
+	upstreamSecretName := envoysecrets.GetSDSServiceCertForIdentity(upstreamIdentity).String()
+	downstreamPeerValidationSecretName := envoysecrets.GetSDSInboundRootCertForIdentity(upstreamIdentity).String()
 
 	expectedSecrets := mapset.NewSetWith(upstreamSecretName, downstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()

@@ -163,7 +163,7 @@ func pbStringValue(v string) *structpb.Value {
 // is used to indicate peer certificate validation should be skipped, and is used when mTLS is disabled (ex. with TLS
 // based ingress).
 // 'sidecarSpec' is the sidecar section of MeshConfig.
-func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secrets.SDSCert, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert secrets.SDSCert, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.CommonTlsContext {
 	commonTLSContext := &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(sidecarSpec),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
@@ -178,7 +178,6 @@ func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secr
 	if peerValidationSDSCert != nil {
 		commonTLSContext.ValidationContextType = &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
-				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name:      peerValidationSDSCert.String(),
 				SdsConfig: GetADSConfigSource(),
 			},
@@ -191,27 +190,18 @@ func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secr
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.DownstreamTlsContext {
-	upstreamSDSCert := secrets.SDSCert{
-		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: secrets.ServiceCertType,
-	}
+	upstreamSDSCert := secrets.GetSDSServiceCertForIdentity(upstreamIdentity)
 
-	var downstreamPeerValidationSDSCert *secrets.SDSCert
+	var downstreamPeerValidationSDSCert secrets.SDSCert
+	// When 'mTLS' is disabled, the upstream should not validate the certificate presented by the downstream.
+	// This is used for HTTPS ingress with mTLS disabled.
 	if mTLS {
 		// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
 		// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
 		// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 		// 'RootCertTypeForMTLSInbound' cert type is used for in-mesh downstreams.
-		downstreamPeerValidationSDSCert = &secrets.SDSCert{
-			Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
-			CertType: secrets.RootCertTypeForMTLSInbound,
-		}
-	} else {
-		// When 'mTLS' is disabled, the upstream should not validate the certificate presented by the downstream.
-		// This is used for HTTPS ingress with mTLS disabled.
-		downstreamPeerValidationSDSCert = nil
+		downstreamPeerValidationSDSCert = secrets.GetSDSInboundRootCertForIdentity(upstreamIdentity)
 	}
-
 	tlsConfig := &xds_auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(upstreamSDSCert, downstreamPeerValidationSDSCert, sidecarSpec),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
@@ -223,14 +213,9 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.UpstreamTlsContext {
-	downstreamSDSCert := secrets.SDSCert{
-		Name:     secrets.GetSecretNameForIdentity(downstreamIdentity),
-		CertType: secrets.ServiceCertType,
-	}
-	upstreamPeerValidationSDSCert := &secrets.SDSCert{
-		Name:     upstreamSvc.String(),
-		CertType: secrets.RootCertTypeForMTLSOutbound,
-	}
+	downstreamSDSCert := secrets.GetSDSServiceCertForIdentity(downstreamIdentity)
+
+	upstreamPeerValidationSDSCert := secrets.GetSDSOutboundRootCertForService(upstreamSvc)
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert, sidecarSpec)
 
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols

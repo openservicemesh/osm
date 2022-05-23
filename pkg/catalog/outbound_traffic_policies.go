@@ -2,7 +2,6 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -172,14 +171,6 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	}
 
 	return allowedServices
-}
-
-func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) []service.MeshService {
-	sa := identity.K8sServiceAccount{
-		Name:      t.Spec.Destination.Name,
-		Namespace: t.Spec.Destination.Namespace,
-	}
-	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
 }
 
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity
