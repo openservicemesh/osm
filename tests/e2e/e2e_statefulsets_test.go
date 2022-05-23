@@ -122,11 +122,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 					for _, po := range pods.Items {
 						stdout, stderr, err := Td.RunRemote(testNS, po.GetName(), "zookeeper", strings.Fields(cmd))
 
-						if err != nil {
-							Td.T.Logf("> (%s) Remote exec err: %v | stderr: %s", po.GetName(), err, stderr)
-						}
-
-						Td.T.Logf("> (%s) Stdout %s", po.GetName(), stdout)
+						Td.T.Logf("> (%s) Stdout %s | Stderr: %s", po.GetName(), stdout, stderr)
 
 						results[po.GetName()] = err
 					}
