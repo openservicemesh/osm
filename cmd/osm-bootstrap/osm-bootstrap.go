@@ -366,15 +366,19 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) (*configv1alp
 }
 
 func (b *bootstrap) ensureMeshRootCertificate() error {
-	listOptions := metav1.ListOptions{
-		FieldSelector: "status.state=complete,status.rotationStage=issuing",
-	}
-	meshRootCertificateList, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).List(context.TODO(), listOptions)
+	meshRootCertificateList, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
+	var foundIssuingAndCompleteMRC bool
+	for _, mrc := range meshRootCertificateList.Items {
+		if mrc.Status.RotationStage == constants.MRCStageIssuing && mrc.Status.State == constants.MRCStateComplete {
+			foundIssuingAndCompleteMRC = true
+			break
+		}
+	}
 
-	if len(meshRootCertificateList.Items) == 0 {
+	if !foundIssuingAndCompleteMRC {
 		// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
 		return b.createMeshRootCertificate()
 	}
@@ -390,11 +394,11 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	}
 
 	// Create a MeshRootCertificate
-	defaultMeshConfig, err := buildMeshRootCertificate(presetMeshRootCertificate)
+	defaultMeshRootCertificate, err := buildMeshRootCertificate(presetMeshRootCertificate)
 	if err != nil {
 		return err
 	}
-	if _, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshRootCertificate (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
@@ -430,5 +434,5 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 	}
 
-	return config, util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme)
+	return config, nil
 }
