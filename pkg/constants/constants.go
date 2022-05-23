@@ -269,3 +269,8 @@ const (
 	// ServiceAliveResponse is the response returned by the server to indicate it is alive
 	ServiceAliveResponse = "Service is alive"
 )
+
+var (
+	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
+	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}
+)

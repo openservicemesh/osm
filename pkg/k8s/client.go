@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -353,8 +354,23 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 			Port:      uint16(portSpec.Port),
-			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
 		}
+
+		// attempt to parse protocol from port name
+		// Order of Preference is:
+		// 1. port.appProtocol field
+		// 2. protocol prefixed to port name (e.g. tcp-my-port)
+		// 3. default to http
+		protocol := constants.ProtocolHTTP
+		for _, p := range constants.SupportedProtocolsInMesh {
+			if strings.HasPrefix(portSpec.Name, p+"-") {
+				protocol = p
+				break
+			}
+		}
+
+		// use port.appProtocol if specified, else use port protocol
+		meshSvc.Protocol = pointer.StringDeref(portSpec.AppProtocol, protocol)
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.

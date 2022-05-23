@@ -184,7 +184,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity
 // is authorized to communicate with, including traffic split apex services that are not backed by
-// pods.
+// pods as well as other sibling pods from the same headless service.
 func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity identity.ServiceIdentity) []service.MeshService {
 	upstreamServices := mc.ListOutboundServicesForIdentity(downstreamIdentity)
 	if len(upstreamServices) == 0 {
