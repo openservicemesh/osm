@@ -362,9 +362,8 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 		// 2. protocol prefixed to port name (e.g. tcp-my-port)
 		// 3. default to http
 		protocol := constants.ProtocolHTTP
-		portNameProtocol := strings.Split(portSpec.Name, "-")[0]
 		for _, p := range constants.SupportedProtocolsInMesh {
-			if p == portNameProtocol {
+			if strings.HasPrefix(portSpec.Name, p+"-") {
 				protocol = p
 				break
 			}

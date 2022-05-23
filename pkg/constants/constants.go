@@ -272,5 +272,5 @@ const (
 
 var (
 	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
-	SupportedProtocolsInMesh = []string{ProtocolHTTP, ProtocolTCP, ProtocolGRPC, ProtocolTCPServerFirst}
+	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}
 )

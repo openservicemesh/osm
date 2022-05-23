@@ -44,6 +44,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 
 				install.ReleaseName = "kafka"
 				install.Namespace = testNS
+				install.Timeout = 30 * time.Second
 				saName := "zookeeper"
 				replicaCount := 3
 
@@ -122,8 +123,6 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 						stdout, stderr, err := Td.RunRemote(testNS, po.GetName(), "zookeeper", strings.Fields(cmd))
 
 						if err != nil {
-							// Error codes from the execution come through err
-							// Curl 'Connection refused' err code = 7
 							Td.T.Logf("> (%s) Remote exec err: %v | stderr: %s", po.GetName(), err, stderr)
 						}
 
