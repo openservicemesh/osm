@@ -4,6 +4,7 @@ The OSM project accepts contributions via GitHub pull requests. This document ou
 
 ## Table of Contents
 
+- [Design Document](#design-document)
 - [Pull Request Workflow](#pull-request-workflow)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
@@ -11,6 +12,14 @@ The OSM project accepts contributions via GitHub pull requests. This document ou
 - [Milestones](#milestones)
 - [Semantic Versioning](#semantic-versioning)
 - [Attribution](#attribution)
+
+
+## Design Document
+
+The OSM project recommends drafting a design doc in a shareable Google doc for features that significantly alter core control plane components or change the existing behavior. It is recommended to have the design doc reviewed by the OSM project maintainers and relevant stakeholders before proceeding with an implementation. The design doc must be referenced in the Github issue corresponding to the feature being requested.
+
+Introduction of new custom APIs, feature changes requiring significant changes to the control plane, features impacting multiple OSM components, and refactoring work for performance optimization, are some of the examples of when a design doc is necessary.
+
 
 ## Pull Request Workflow
 
