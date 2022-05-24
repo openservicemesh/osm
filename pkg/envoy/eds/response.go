@@ -31,14 +31,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 // fulfillEDSRequest replies only to requested EDS endpoints on Discovery Request
 func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error looking up proxy identity")
-		return nil, err
-	}
-
 	if request == nil {
-		return nil, errors.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxyIdentity)
+		return nil, errors.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxy.Identity)
 	}
 
 	var rdsResources []types.Resource
@@ -48,8 +42,8 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
 			continue
 		}
-		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, meshSvc)
-		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxyIdentity, endpoints)
+		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
+		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
 		loadAssignment := newClusterLoadAssignment(meshSvc, endpoints)
 		rdsResources = append(rdsResources, loadAssignment)
 	}
@@ -59,14 +53,8 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 
 // generateEDSConfig generates all endpoints expected for a given proxy
 func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error looking up proxy identity")
-		return nil, err
-	}
-
 	var edsResources []types.Resource
-	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxyIdentity)
+	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxy.Identity)
 
 	for svc, endpoints := range upstreamSvcEndpoints {
 		loadAssignment := newClusterLoadAssignment(svc, endpoints)

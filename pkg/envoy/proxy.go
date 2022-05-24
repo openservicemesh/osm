@@ -23,6 +23,8 @@ type Proxy struct {
 	// UUID of the proxy
 	uuid.UUID
 
+	Identity identity.ServiceIdentity
+
 	// The Serial Number of the certificate used for Envoy to XDS communication.
 	xDSCertificateSerialNumber certificate.SerialNumber
 
@@ -168,6 +170,11 @@ func (p *Proxy) PodMetadataString() string {
 	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
 }
 
+// GetName returns a unique name for this proxy based on the identity and uuid.
+func (p *Proxy) GetName() string {
+	return fmt.Sprintf("%s-%s", p.Identity.String(), p.UUID.String())
+}
+
 // GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
 func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
 	return p.xDSCertificateCommonName
@@ -245,6 +252,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		xDSCertificateCommonName:   certCommonName,
 		xDSCertificateSerialNumber: certSerialNumber,
 		UUID:                       cnMeta.ProxyUUID,
+		Identity:                   cnMeta.ServiceIdentity,
 
 		Addr: ip,
 

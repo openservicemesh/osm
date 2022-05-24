@@ -4,7 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
@@ -33,13 +33,14 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 				continue
 			}
 
-			podUID := deletedPodObj.GetObjectMeta().GetUID()
-			if podIface, ok := pr.podUIDToCN.Load(podUID); ok {
-				endpointCN := podIface.(certificate.CommonName)
-				log.Warn().Msgf("Pod with UID %s found in proxy registry; releasing certificate %s", podUID, endpointCN)
-				certManager.ReleaseCertificate(endpointCN)
+			uuid := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
+			if proxyIface, ok := pr.connectedProxies.Load(uuid); ok {
+				connectedProxy := proxyIface.(connectedProxy)
+				cn := connectedProxy.proxy.GetCertificateCommonName()
+				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate %s", constants.EnvoyUniqueIDLabelName, uuid, cn)
+				certManager.ReleaseCertificate(cn)
 			} else {
-				log.Warn().Msgf("Pod with UID %s not found in proxy registry", podUID)
+				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.EnvoyUniqueIDLabelName, uuid)
 			}
 		}
 	}

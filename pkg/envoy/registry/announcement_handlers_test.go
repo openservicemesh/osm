@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -37,8 +37,8 @@ func (cm *fakeCertReleaser) getReleasedCount(cn certificate.CommonName) int {
 }
 
 func TestReleaseCertificateHandler(t *testing.T) {
-	podUID := uuid.New().String()
-	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", podUID))
+	proxyUUID := uuid.New().String()
+	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", proxyUUID))
 
 	testCases := []struct {
 		name       string
@@ -53,13 +53,15 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(podUID),
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: proxyUUID,
+							},
 						},
 					},
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(cm.getReleasedCount(proxyCN), 1)
+				a.Equal(1, cm.getReleasedCount(proxyCN))
 			},
 		},
 		{
@@ -70,7 +72,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(uuid.New().String()), // Pod UUID does not match cert
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+							},
 						},
 					},
 				}, announcements.PodDeleted.String())
@@ -87,7 +91,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(podUID),
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: proxyUUID,
+							},
 						},
 					},
 				}, announcements.PodAdded.String())
@@ -110,10 +116,6 @@ func TestReleaseCertificateHandler(t *testing.T) {
 
 			proxy, err := envoy.NewProxy(proxyCN, "-cert-serial-number-", nil)
 			a.Nil(err)
-
-			proxy.PodMetadata = &envoy.PodMetadata{
-				UID: podUID,
-			}
 
 			proxyRegistry.RegisterProxy(proxy)
 

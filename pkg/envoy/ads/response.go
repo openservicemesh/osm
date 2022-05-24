@@ -30,7 +30,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	}
 
 	if s.cfg.IsDebugServerEnabled() {
-		s.trackXDSLog(proxy.GetCertificateCommonName(), typeURI)
+		s.trackXDSLog(proxy.GetName(), typeURI)
 	}
 
 	// Invoke XDS handler
