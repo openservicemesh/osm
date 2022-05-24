@@ -202,7 +202,16 @@ jobs:
     needs: build
     strategy:
       matrix:
+        k8s_version: [""]
+        focus: [""]
         bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        include:
+          - k8s_version: v1.21.10
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+          - k8s_version: v1.22.7
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
     env:
       CTR_TAG: ${{ github.sha }}
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
@@ -233,13 +242,21 @@ jobs:
         id: test
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -kindClusterVersion='${{ matrix.k8s_version }}' -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\].*${{ matrix.focus }}'
         continue-on-error: true
+      - name: Set Logs name
+        if: ${{ steps.test.conclusion != 'skipped' }}
+        run: |
+          if [[ -n "${{ matrix.k8s_version }}" ]]; then
+            echo "ARTIFACT_NAME=test_logs_k8s_version_${{ matrix.k8s_version }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=test_logs_bucket_${{ matrix.bucket }}" >> $GITHUB_ENV
+          fi
       - name: Upload test logs
         if: ${{ steps.test.conclusion != 'skipped' }}
         uses: actions/upload-artifact@v2
         with:
-          name: test_logs_bucket_${{ matrix.bucket }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: /tmp/test**/*
       - name: Check continue tests
         if: ${{ steps.test.conclusion != 'skipped' && steps.test.outcome == 'failure'}}
