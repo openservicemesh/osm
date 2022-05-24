@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
@@ -95,30 +94,6 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	Context("Test makeRequestForAllSecrets()", func() {
-		It("returns service cert", func() {
-
-			actual := makeRequestForAllSecrets(proxy, mc)
-			expected := &xds_discovery.DiscoveryRequest{
-				TypeUrl: string(envoy.TypeSDS),
-				ResourceNames: []string{
-					secrets.SDSCert{
-						// Proxy's own cert to present to peer during mTLS/TLS handshake
-						Name:     proxySvcAccount.String(),
-						CertType: secrets.ServiceCertType,
-					}.String(),
-					secrets.SDSCert{
-						// Validation certificate for mTLS when this proxy is an upstream
-						Name:     proxySvcAccount.String(),
-						CertType: secrets.RootCertTypeForMTLSInbound,
-					}.String(),
-				},
-			}
-			Expect(actual).ToNot(BeNil())
-			Expect(actual).To(Equal(expected))
-		})
 	})
 
 	Context("Test sendAllResponses()", func() {

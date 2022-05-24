@@ -708,64 +708,6 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 	}
 }
 
-func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-		serviceProviders:   []service.Provider{mockServiceProvider},
-	}
-
-	destSA := identity.K8sServiceAccount{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destMeshService := service.MeshService{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
-	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
-	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
-
-	trafficTarget := &access.TrafficTarget{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha3",
-			Kind:       "TrafficTarget",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "target",
-			Namespace: "bookstore-ns",
-		},
-		Spec: access.TrafficTargetSpec{
-			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
-				Name:      "bookstore",
-				Namespace: "bookstore-ns",
-			},
-			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
-				Name:      "bookbuyer",
-				Namespace: "default",
-			}},
-		},
-	}
-
-	actual := mc.getDestinationServicesFromTrafficTarget(trafficTarget)
-	assert.Equal([]service.MeshService{destMeshService}, actual)
-}
-
 func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 	testCases := []struct {
 		name           string
