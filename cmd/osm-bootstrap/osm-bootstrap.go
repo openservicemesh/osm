@@ -371,13 +371,11 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 		return err
 	}
 
-	for _, mrc := range meshRootCertificateList.Items {
-		if mrc.Status.RotationStage == constants.MRCStageIssuing && mrc.Status.State == constants.MRCStateComplete {
-			return nil
-		}
+	if len(meshRootCertificateList.Items) != 0 {
+		return nil
 	}
 
-	// create a MeshRootCertificate since none were found in the complete state and issuing rotationStage
+	// create a MeshRootCertificate since none were found
 	return b.createMeshRootCertificate()
 }
 
@@ -393,17 +391,17 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
-	if _, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{}); err == nil {
-		log.Info().Msgf("MeshRootCertificate (%s) created in namespace %s", meshConfigName, b.namespace)
-		return nil
-	}
-
+	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
 		return nil
 	}
+	if err != nil {
+		return err
+	}
 
-	return err
+	log.Info().Msgf("Successfully created MeshRootCertificate %s in %s.", meshRootCertificateName, b.namespace)
+	return nil
 }
 
 func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigMap) (*configv1alpha2.MeshRootCertificate, error) {
@@ -411,10 +409,10 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 	presetMeshRootCertificateSpec := configv1alpha2.MeshRootCertificateSpec{}
 	err := json.Unmarshal([]byte(presetMeshRootCertificate), &presetMeshRootCertificateSpec)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Error converting preset-mesh-root-certificate json string to MeshRootCertificate object")
+		return nil, fmt.Errorf("error converting preset-mesh-root-certificate json string to MeshRootCertificate object: %w", err)
 	}
 
-	config := &configv1alpha2.MeshRootCertificate{
+	mrc := &configv1alpha2.MeshRootCertificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MeshRootCertificate",
 			APIVersion: "config.openservicemesh.io/configv1alpha2",
@@ -429,5 +427,5 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 	}
 
-	return config, util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme)
+	return mrc, util.CreateApplyAnnotation(mrc, unstructured.UnstructuredJSONScheme)
 }

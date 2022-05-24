@@ -17,19 +17,19 @@ data:
           }
         }
         {{- end}}
-        {{- if eq (.Values.osm.certificateProvider.kind | lower) "certmanager"}}
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "cert-manager"}}
         "certManager": {
-          "issuerName": {{.Values.osm.certManager.issuerName | mustToJson}},
-          "issuerKind": {{.Values.osm.certManager.issuerKind | mustToJson}},
-          "issuerGroup": {{.Values.osm.certManager.issuerGroup | mustToJson}}
+          "issuerName": {{.Values.osm.certmanager.issuerName | mustToJson}},
+          "issuerKind": {{.Values.osm.certmanager.issuerKind | mustToJson}},
+          "issuerGroup": {{.Values.osm.certmanager.issuerGroup | mustToJson}}
         }
         {{- end}}
         {{- if eq (.Values.osm.certificateProvider.kind | lower) "vault"}}
         "vault": {
           "token": {
             "secretKeyRef": {
-              "name": {{.Values.osm.vault.tokenSecretName | mustToJson}},
-              "key": {{.Values.osm.vault.tokenSecretKey | mustToJson}},
+              "name": {{.Values.osm.vault.secret.name | mustToJson}},
+              "key": {{.Values.osm.vault.secret.key | mustToJson}},
               "namespace": "{{include "osm.namespace" .}}"
             }
           },

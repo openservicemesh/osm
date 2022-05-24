@@ -1293,17 +1293,25 @@
                             "description": "Role to use with Vault",
                             "type": "string"
                         },
-                        "tokenSecretName": {
-                            "$id": "#/properties/osm/properties/vault/properties/tokenSecretName",
-                            "title": "Vault token secret name schema",
-                            "description": "Name of the Kubernetes Secret to store the vault token",
-                            "type": "string"
-                        },
-                        "tokenSecretKey": {
-                            "$id": "#/properties/osm/properties/vault/properties/tokenSecretKey",
-                            "title": "Vault token secret key schema",
-                            "description": "Name of the Kubernetes Secret key with the value of the vault token",
-                            "type": "string"
+                        "secret": {
+                            "$id": "#/properties/osm/properties/vault/properties/secret",
+                            "type": "object",
+                            "title": "Vault token secret schema",
+                            "description": "Vault token secret reference parameters",
+                            "properties": {
+                                "name": {
+                                    "$id": "#/properties/osm/properties/vault/properties/secret/properties/name",
+                                    "title": "Vault token secret name schema",
+                                    "description": "Name of the Kubernetes Secret to store the vault token",
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "$id": "#/properties/osm/properties/vault/properties/secret/properties/key",
+                                    "title": "Vault token secret key schema",
+                                    "description": "Name of the Kubernetes Secret key with the value of the vault token",
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "examples": [

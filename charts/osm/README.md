@@ -178,9 +178,10 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.vault.port | int | `8200` | port to use to connect to Vault |
 | osm.vault.protocol | string | `"http"` | protocol to use to connect to Vault |
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
+| osm.vault.secret | object | `{"key":"token","name":"osm-vault-token"}` | The Kubernetes secret storing the Vault token used in OSM |
+| osm.vault.secret.key | string | `"token"` | The Kubernetes secret key with the value bring the Vault token |
+| osm.vault.secret.name | string | `"osm-vault-token"` | The Kubernetes secret name storing the Vault token used in OSM |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |
-| osm.vault.tokenSecretKey | string | `"token"` | The Kubernetes secret key with the value bring the Vault token |
-| osm.vault.tokenSecretName | string | `"osm-vault-token"` | The Kubernetes secret name to store the Vault token used in OSM |
 | osm.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
 | smi.validateTrafficTarget | bool | `true` | Enables validation of SMI Traffic Target |
 
