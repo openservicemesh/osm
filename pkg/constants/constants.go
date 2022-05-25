@@ -166,8 +166,14 @@ const (
 	// MRCVersionAnnotation is the annotation used for the version of the MeshRootCertificate
 	MRCVersionAnnotation = "openservicemesh.io/mrc-version"
 
-	MRCStateValidating = "validating"
-	MRCStageComplete   = "complete"
+	// MRCStageValidating is the validating status option for the rotation stage of the MeshRootCertificate
+	MRCStageValidating = "validating"
+
+	// MRCStageIssuing is the issuing status option for the rotation stage of the MeshRootCertificate
+	MRCStageIssuing = "issuing"
+
+	// MRCStateComplete is the complete status option for the state of the MeshRootCertificate
+	MRCStateComplete = "complete"
 )
 
 // Labels used by the control plane

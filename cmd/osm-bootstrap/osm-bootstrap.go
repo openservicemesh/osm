@@ -44,9 +44,12 @@ import (
 )
 
 const (
-	meshConfigName          = "osm-mesh-config"
-	presetMeshConfigName    = "preset-mesh-config"
-	presetMeshConfigJSONKey = "preset-mesh-config.json"
+	meshConfigName                   = "osm-mesh-config"
+	presetMeshConfigName             = "preset-mesh-config"
+	presetMeshConfigJSONKey          = "preset-mesh-config.json"
+	meshRootCertificateName          = "osm-mesh-root-certificate"
+	presetMeshRootCertificateName    = "preset-mesh-root-certificate"
+	presetMeshRootCertificateJSONKey = "preset-mesh-root-certificate.json"
 )
 
 var (
@@ -76,9 +79,9 @@ var (
 )
 
 type bootstrap struct {
-	kubeClient       kubernetes.Interface
-	meshConfigClient configClientset.Interface
-	namespace        string
+	kubeClient   kubernetes.Interface
+	configClient configClientset.Interface
+	namespace    string
 }
 
 func init() {
@@ -156,14 +159,20 @@ func main() {
 	}
 
 	bootstrap := bootstrap{
-		kubeClient:       kubeClient,
-		meshConfigClient: configClient,
-		namespace:        osmNamespace,
+		kubeClient:   kubeClient,
+		configClient: configClient,
+		namespace:    osmNamespace,
 	}
 
 	err = bootstrap.ensureMeshConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error setting up default MeshConfig %s from ConfigMap %s", meshConfigName, presetMeshConfigName)
+		return
+	}
+
+	err = bootstrap.ensureMeshRootCertificate()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", meshRootCertificateName, presetMeshRootCertificateName)
 		return
 	}
 
@@ -253,7 +262,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 	if err != nil {
 		return err
 	}
-	if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
@@ -267,7 +276,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 }
 
 func (b *bootstrap) ensureMeshConfig() error {
-	config, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+	config, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		// create a default mesh config since it was not found
 		return b.createDefaultMeshConfig()
@@ -281,7 +290,7 @@ func (b *bootstrap) ensureMeshConfig() error {
 		if err := util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme); err != nil {
 			return err
 		}
-		if _, err := b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Update(context.TODO(), config, metav1.UpdateOptions{}); err != nil {
+		if _, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Update(context.TODO(), config, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -354,4 +363,69 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) (*configv1alp
 	}
 
 	return config, util.CreateApplyAnnotation(config, unstructured.UnstructuredJSONScheme)
+}
+
+func (b *bootstrap) ensureMeshRootCertificate() error {
+	meshRootCertificateList, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	if len(meshRootCertificateList.Items) != 0 {
+		return nil
+	}
+
+	// create a MeshRootCertificate since none were found
+	return b.createMeshRootCertificate()
+}
+
+func (b *bootstrap) createMeshRootCertificate() error {
+	// find preset config map to build the MeshRootCertificate from
+	presetMeshRootCertificate, err := b.kubeClient.CoreV1().ConfigMaps(b.namespace).Get(context.TODO(), presetMeshRootCertificateName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Create a MeshRootCertificate
+	defaultMeshRootCertificate, err := buildMeshRootCertificate(presetMeshRootCertificate)
+	if err != nil {
+		return err
+	}
+	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	log.Info().Msgf("Successfully created MeshRootCertificate %s in %s.", meshRootCertificateName, b.namespace)
+	return nil
+}
+
+func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigMap) (*configv1alpha2.MeshRootCertificate, error) {
+	presetMeshRootCertificate := presetMeshRootCertificateConfigMap.Data[presetMeshRootCertificateJSONKey]
+	presetMeshRootCertificateSpec := configv1alpha2.MeshRootCertificateSpec{}
+	err := json.Unmarshal([]byte(presetMeshRootCertificate), &presetMeshRootCertificateSpec)
+	if err != nil {
+		return nil, fmt.Errorf("error converting preset-mesh-root-certificate json string to MeshRootCertificate object: %w", err)
+	}
+
+	mrc := &configv1alpha2.MeshRootCertificate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshRootCertificate",
+			APIVersion: "config.openservicemesh.io/configv1alpha2",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: meshRootCertificateName,
+		},
+		Spec: presetMeshRootCertificateSpec,
+		Status: configv1alpha2.MeshRootCertificateStatus{
+			State:         constants.MRCStateComplete,
+			RotationStage: constants.MRCStageIssuing,
+		},
+	}
+
+	return mrc, util.CreateApplyAnnotation(mrc, unstructured.UnstructuredJSONScheme)
 }
