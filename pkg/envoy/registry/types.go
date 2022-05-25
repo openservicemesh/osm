@@ -2,10 +2,8 @@ package registry
 
 import (
 	"sync"
-	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -20,14 +18,6 @@ type ProxyRegistry struct {
 	connectedProxies sync.Map
 
 	msgBroker *messaging.Broker
-}
-
-type connectedProxy struct {
-	// Proxy which connected to the XDS control plane
-	proxy *envoy.Proxy
-
-	// When the proxy connected to the XDS control plane
-	connectedAt time.Time
 }
 
 // A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
