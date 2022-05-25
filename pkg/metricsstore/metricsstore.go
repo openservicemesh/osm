@@ -157,14 +157,14 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "response_send_success_count",
 		Help:      "Represents the number of responses successfully sent to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_name", "type"})
 
 	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "response_send_error_count",
 		Help:      "Represents the number of responses that errored when being set to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_name", "type"})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -191,7 +191,7 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "xds_request_count",
 		Help:      "Represents the number of XDS requests made by proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_name", "type"})
 
 	defaultMetricsStore.ProxyMaxConnectionsRejected = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,

@@ -6,10 +6,12 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
 
@@ -108,4 +110,7 @@ type Controller interface {
 	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 	// The object within the 'interface{}' must be a pointer to the underlying resource
 	UpdateStatus(interface{}) (metav1.Object, error)
+
+	// GetPodForProxy returns the pod for the given proxy
+	GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error)
 }

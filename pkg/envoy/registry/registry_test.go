@@ -1,27 +1,21 @@
 package registry
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry(nil, nil)
-	uuid := uuid.New()
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid))
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("Test register/unregister proxies", func() {

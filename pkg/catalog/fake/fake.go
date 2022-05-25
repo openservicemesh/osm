@@ -27,15 +27,9 @@ import (
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient configClientset.Interface) *catalog.MeshCatalog {
-	var (
-		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
-		mockPolicyController *policy.MockController
-	)
-
-	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockPolicyController = policy.NewMockController(mockCtrl)
+	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockPolicyController := policy.NewMockController(mockCtrl)
 
 	meshSpec := smiFake.NewFakeMeshSpecClient()
 

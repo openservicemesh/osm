@@ -1,19 +1,26 @@
 package k8s
 
 import (
+	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -1021,5 +1028,100 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			actual := ServiceToMeshServices(kubeController, tc.svc)
 			assert.ElementsMatch(tc.expected, actual)
 		})
+	}
+}
+
+func TestGetPodForProxy(t *testing.T) {
+	assert := tassert.New(t)
+	kubeClient := fake.NewSimpleClientset()
+	stop := make(chan struct{})
+	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, messaging.NewBroker(nil))
+	assert.Nil(err)
+
+	ctx := context.Background()
+
+	proxyUUID := uuid.New()
+	someOtherEnvoyUID := uuid.New()
+	namespace := tests.BookstoreServiceAccount.Namespace
+
+	podlabels := map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	}
+	someOthePodLabels := map[string]string{
+		constants.AppLabel:               tests.SelectorValue,
+		constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID.String(),
+	}
+
+	newPod0 := tests.NewPodFixture(namespace, "pod-0", tests.BookstoreServiceAccountName, someOthePodLabels)
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod0, metav1.CreateOptions{})
+	assert.NoError(err)
+
+	newPod1 := tests.NewPodFixture(namespace, "pod-1", tests.BookstoreServiceAccountName, podlabels)
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod1, metav1.CreateOptions{})
+	assert.NoError(err)
+
+	newPod2 := tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels)
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod2, metav1.CreateOptions{})
+	assert.NoError(err)
+
+	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, monitoredNS(namespace), metav1.CreateOptions{})
+	assert.NoError(err)
+
+	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, monitoredNS("bad-namespace"), metav1.CreateOptions{})
+	assert.NoError(err)
+
+	testCases := []struct {
+		name  string
+		pod   *corev1.Pod
+		proxy *envoy.Proxy
+		err   error
+	}{
+		{
+			name:  "fails when UUID does not match",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil),
+			err:   ErrDidNotFindPodForUUID,
+		},
+		{
+			name:  "fails when service account does not match certificate",
+			proxy: &envoy.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
+			err:   ErrServiceAccountDoesNotMatchProxy,
+		},
+		{
+			name:  "2 pods with same uuid",
+			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil),
+			err:   ErrMoreThanOnePodForUUID,
+		},
+		{
+			name:  "fails when namespace does not match certificate",
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil),
+			err:   ErrNamespaceDoesNotMatchProxy,
+		},
+		{
+			name:  "works as expected",
+			pod:   &newPod1,
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			pod, err := kubeController.GetPodForProxy(tc.proxy)
+
+			assert.Equal(tc.pod, pod)
+			assert.Equal(tc.err, err)
+		})
+	}
+}
+
+func monitoredNS(name string) *v1.Namespace {
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: "osm",
+			},
+		},
 	}
 }

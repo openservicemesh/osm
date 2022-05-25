@@ -37,8 +37,9 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 			proxyUUID := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
 			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
 				proxy := proxyIface.(*envoy.Proxy)
-				cn := proxy.GetCertificateCommonName()
-				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate %s", constants.EnvoyUniqueIDLabelName, proxyUUID, cn)
+				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate for proxy %s", constants.EnvoyUniqueIDLabelName, proxyUUID, proxy.Identity)
+				// NewXDSCertCommonName
+				cn := envoy.NewXDSCertCommonName(proxy.UUID, proxy.Kind(), proxy.Identity.ToK8sServiceAccount().Name, proxy.Identity.ToK8sServiceAccount().Namespace)
 				certManager.ReleaseCertificate(cn)
 			} else {
 				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.EnvoyUniqueIDLabelName, proxyUUID)

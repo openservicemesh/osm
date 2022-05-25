@@ -139,8 +139,7 @@ func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBinding
 
 // trafficTargetIdentityToServiceIdentity returns an identity of the form <namespace>/<service-account>
 func trafficTargetIdentityToServiceIdentity(identitySubject smiAccess.IdentityBindingSubject) identity.ServiceIdentity {
-	svcAccount := trafficTargetIdentityToSvcAccount(identitySubject)
-	return identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+	return trafficTargetIdentityToSvcAccount(identitySubject).ToServiceIdentity()
 }
 
 // trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target

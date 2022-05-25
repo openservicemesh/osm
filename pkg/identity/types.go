@@ -9,11 +9,19 @@ import (
 const (
 	// namespaceNameSeparator used for marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
+
+	// ClusterLocalTrustDomain is the trust domain for the local kubernetes cluster
+	ClusterLocalTrustDomain = "cluster.local"
 )
 
 // ServiceIdentity is the type used to represent the identity for a service
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
 type ServiceIdentity string
+
+// New returns a new ServiceIdentity for the given name and namespace.
+func New(name, namespace string) ServiceIdentity {
+	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", name, namespace, ClusterLocalTrustDomain))
+}
 
 // WildcardServiceIdentity is a wildcard to match all service identities
 const WildcardServiceIdentity ServiceIdentity = "*"
@@ -55,5 +63,5 @@ func (sa K8sServiceAccount) String() string {
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
 // TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
-	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", sa.Name, sa.Namespace, ClusterLocalTrustDomain))
+	return New(sa.Name, sa.Namespace)
 }

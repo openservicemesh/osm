@@ -16,9 +16,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -112,10 +112,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 				},
 			}, nil).Times(1)
 
-			certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
-			certSerialNumber := certificate.SerialNumber("123456")
-			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, tests.Namespace), nil)
+			mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&pod, nil).Times(1)
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -141,10 +139,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc := tests.NewServiceFixture(svcName, namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
-			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
-			certSerialNumber := certificate.SerialNumber("123456")
-			newProxy, err := envoy.NewProxy(podCN, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			newProxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, namespace), nil)
 
 			expected := service.MeshService{
 				Namespace: namespace,
@@ -155,6 +150,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expectedList := []service.MeshService{expected}
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
+			mockKubeController.EXPECT().GetPodForProxy(newProxy).Return(&newPod, nil).Times(1)
 			// Subdomain gets called in the ListProxyServices
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
