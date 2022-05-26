@@ -173,6 +173,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
 | osm.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
+| osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
 | osm.vault.port | int | `8200` | port to use to connect to Vault |

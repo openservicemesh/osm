@@ -30,6 +30,9 @@ type MeshRootCertificate struct {
 type MeshRootCertificateSpec struct {
 	// Provider specifies the mesh certificate provider
 	Provider ProviderSpec `json:"provider"`
+
+	// TrustDomain is the trust domain to use as a suffix in Common Names for new certificates.
+	TrustDomain string `json:"trustDomain"`
 }
 
 // ProviderSpec defines the certificate provider used by the mesh control plane

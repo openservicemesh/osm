@@ -432,6 +432,16 @@
                         "envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c"
                     ]
                 },
+                "trustDomain": {
+                    "$id": "#/properties/osm/properties/trustDomain",
+                    "type": "string",
+                    "title": "The certificate issuance Trust Domain",
+                    "description": "The trust domain to use as part of the common name when requesting new certificates.",
+                    "examples": [
+                        "cluster.local",
+                        "example.com"
+                    ]
+                },
                 "certificateProvider": {
                     "$id": "#/properties/osm/properties/certificateProvider",
                     "type": "object",

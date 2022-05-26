@@ -108,6 +108,9 @@ osm:
     # -- Image used for Prometheus
     image: prom/prometheus:v2.34.0
 
+  # -- The trust domain to use as part of the common name when requesting new certificates.
+  trustDomain: cluster.local
+
   certificateProvider:
     # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
     kind: tresor
