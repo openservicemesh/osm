@@ -4,7 +4,10 @@ import (
 	"math/rand"
 	time "time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 const (
@@ -16,6 +19,19 @@ const (
 	// to the early certificate renewal.
 	noiseSeconds = 5
 )
+
+// mergeRoot will merge in the provided root CA for future calls to GetIssuingCA. It guarantees to not mutate
+// the underlying IssuingCA field. By doing so, we ensure that we don't need locks.
+// NOTE: this does not return a full copy, mutations to the other byte slices could cause data races.
+func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
+	cert := *c
+
+	buf := make([]byte, 0, len(root)+len(c.IssuingCA))
+	buf = append(buf, c.IssuingCA...)
+	buf = append(buf, root...)
+	cert.IssuingCA = buf
+	return &cert
+}
 
 // GetCommonName returns the Common Name of the certificate
 func (c *Certificate) GetCommonName() CommonName {
@@ -57,4 +73,24 @@ func (c *Certificate) ShouldRotate() bool {
 	intNoise := rand.Intn(noiseSeconds) // #nosec G404
 	secondsNoise := time.Duration(intNoise) * time.Second
 	return time.Until(c.GetExpiration()) <= (RenewBeforeCertExpires + secondsNoise)
+}
+
+// NewFromPEM is a helper returning a *certificate.Certificate from the PEM components given.
+func NewFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, error) {
+	x509Cert, err := DecodePEMCertificate(pemCert)
+	if err != nil {
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
+			Msg("Error converting PEM cert to x509 to obtain serial number")
+		return nil, err
+	}
+
+	return &Certificate{
+		CommonName:   CommonName(x509Cert.Subject.CommonName),
+		SerialNumber: SerialNumber(x509Cert.SerialNumber.String()),
+		CertChain:    pemCert,
+		IssuingCA:    pem.RootCertificate(pemCert),
+		PrivateKey:   pemKey,
+		Expiration:   x509Cert.NotAfter,
+	}, nil
 }

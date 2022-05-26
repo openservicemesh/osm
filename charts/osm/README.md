@@ -1,6 +1,6 @@
 # Open Service Mesh Helm Chart
 
-![Version: 1.1.0](https://img.shields.io/badge/Version-1.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest-main](https://img.shields.io/badge/AppVersion-latest--main-informational?style=flat-square)
+![Version: 1.1.1](https://img.shields.io/badge/Version-1.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest-main](https://img.shields.io/badge/AppVersion-latest--main-informational?style=flat-square)
 
 A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
 
@@ -138,10 +138,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
 | osm.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | osm.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
+| osm.localProxyMode | string | `"Localhost"` | Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'] |
 | osm.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | osm.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |
 | osm.multicluster | object | `{"gatewayLogLevel":"error"}` | OSM multicluster feature configuration |
 | osm.multicluster.gatewayLogLevel | string | `"error"` | Log level for the multicluster gateway |
+| osm.networkInterfaceExclusionList | list | `[]` | Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy. |
 | osm.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
 | osm.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
 | osm.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"128M"},"requests":{"cpu":"0.3","memory":"128M"}}` | OSM bootstrap's container resource parameters |
@@ -173,8 +175,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
+| osm.vault.port | int | `8200` | port to use to connect to Vault |
 | osm.vault.protocol | string | `"http"` | protocol to use to connect to Vault |
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
+| osm.vault.secret | object | `{"key":"token","name":"osm-vault-token"}` | The Kubernetes secret storing the Vault token used in OSM |
+| osm.vault.secret.key | string | `"token"` | The Kubernetes secret key with the value bring the Vault token |
+| osm.vault.secret.name | string | `"osm-vault-token"` | The Kubernetes secret name storing the Vault token used in OSM |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |
 | osm.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
 | smi.validateTrafficTarget | bool | `true` | Enables validation of SMI Traffic Target |

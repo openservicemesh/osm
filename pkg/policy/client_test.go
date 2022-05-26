@@ -3,6 +3,7 @@ package policy
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -202,7 +203,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					Spec: policyV1alpha1.IngressBackendSpec{
 						Backends: []policyV1alpha1.BackendSpec{
 							{
-								Name: "backend2", // does not match the backend specified in the test case
+								Name: "backend3", // does not match the backend specified in the test case
 								Port: policyV1alpha1.PortSpec{
 									Number:   80,
 									Protocol: "http",
@@ -219,7 +220,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					},
 				},
 			},
-			backend: service.MeshService{Name: "backend1", Namespace: "test"},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
 			expectedIngressBackend: &policyV1alpha1.IngressBackend{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ingress-backend-1",
@@ -336,6 +337,10 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 }
 
 func TestListRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -376,9 +381,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -414,9 +419,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -448,9 +453,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},

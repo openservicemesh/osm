@@ -845,12 +845,9 @@ func TestWebhookMutate(t *testing.T) {
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
 		cfg.EXPECT().GetMeshConfig().AnyTimes()
-		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
-		cfg.EXPECT().GetProxyResources()
-		cfg.EXPECT().GetEnvoyLogLevel()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),

@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/policy"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -23,9 +25,6 @@ import (
 var (
 	// validationAPIPath is the API path for performing resource validations
 	validationAPIPath = "/validate"
-
-	// HealthAPIPath is the API path for health check
-	HealthAPIPath = "/healthz"
 )
 
 // validatingWebhookServer implements the K8s Validating Webhook API, and runs the associated validator func.
@@ -35,7 +34,7 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, port int, certManager certificate.Manager, kubeClient kubernetes.Interface, stop <-chan struct{}) error {
+func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, port int, certManager *certificate.Manager, kubeClient kubernetes.Interface, policyClient policy.Controller, stop <-chan struct{}) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ValidatingWebhookConfiguration
@@ -46,11 +45,16 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 		return errors.Errorf("Error issuing certificate for the validating webhook: %+v", err)
 	}
 
+	kv := &policyValidator{
+		policyClient: policyClient,
+	}
+
 	v := &validatingWebhookServer{
 		validators: map[string]validateFunc{
-			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String(): ingressBackendValidator,
-			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():         egressValidator,
-			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():       trafficTargetValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String():         kv.ingressBackendValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
+			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,
 		},
 	}
 
@@ -151,7 +155,7 @@ func (s *validatingWebhookServer) run(port int, cert *certificate.Certificate, s
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(validationAPIPath, s.doValidation)
-	mux.HandleFunc(HealthAPIPath, healthHandler)
+	mux.HandleFunc(constants.WebhookHealthPath, healthHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),

@@ -328,13 +328,21 @@ nodeRegistration:
 	return nil
 }
 
+// WithLocalProxyMode sets the LocalProxyMode for OSM
+func WithLocalProxyMode(mode configv1alpha2.LocalProxyMode) InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.LocalProxyMode = mode
+	}
+}
+
 // GetOSMInstallOpts initializes install options for OSM
-func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
+func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpts {
 	enablePrivilegedInitContainer := false
 	if td.DeployOnOpenShift {
 		enablePrivilegedInitContainer = true
 	}
-	return InstallOSMOpts{
+
+	baseOpts := InstallOSMOpts{
 		ControlPlaneNS:          td.OsmNamespace,
 		CertManager:             defaultCertManager,
 		ContainerRegistryLoc:    td.CtrRegistryServer,
@@ -346,10 +354,13 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		DeployFluentbit:         false,
 		EnableReconciler:        false,
 
-		VaultHost:     "vault." + td.OsmNamespace + ".svc.cluster.local",
-		VaultProtocol: "http",
-		VaultRole:     "openservicemesh",
-		VaultToken:    "token",
+		VaultHost:            "vault." + td.OsmNamespace + ".svc.cluster.local",
+		VaultProtocol:        "http",
+		VaultPort:            8200,
+		VaultRole:            "openservicemesh",
+		VaultToken:           "token",
+		VaultTokenSecretName: "osm-vault-token",
+		VaultTokenSecretKey:  "token-key",
 
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
@@ -364,6 +375,12 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
 	}
+
+	for _, opt := range options {
+		opt(&baseOpts)
+	}
+
+	return baseOpts
 }
 
 // LoadImagesToKind loads the list of images to the node for Kind clusters
@@ -415,7 +432,7 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 	return nil
 }
 
-func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.MeshConfig) (defaultConfig *configv1alpha2.MeshConfig) {
+func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.MeshConfig) *configv1alpha2.MeshConfig {
 	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
 	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
 	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
@@ -428,6 +445,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
+	meshConfig.Spec.Sidecar.LocalProxyMode = instOpts.LocalProxyMode
 
 	meshConfig.Spec.Certificate.ServiceCertValidityDuration = instOpts.CertValidtyDuration.String()
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
@@ -491,6 +509,10 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
 	)
 
+	if instOpts.LocalProxyMode != "" {
+		instOpts.SetOverrides = append(instOpts.SetOverrides, fmt.Sprintf("osm.localProxyMode=%s", instOpts.LocalProxyMode))
+	}
+
 	switch instOpts.CertManager {
 	case "vault":
 		if err := td.installVault(instOpts); err != nil {
@@ -500,7 +522,9 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			fmt.Sprintf("osm.vault.host=%s", instOpts.VaultHost),
 			fmt.Sprintf("osm.vault.role=%s", instOpts.VaultRole),
 			fmt.Sprintf("osm.vault.protocol=%s", instOpts.VaultProtocol),
-			fmt.Sprintf("osm.vault.token=%s", instOpts.VaultToken))
+			fmt.Sprintf("osm.vault.token=%s", instOpts.VaultToken),
+			fmt.Sprintf("osm.vault.port=%d", instOpts.VaultPort),
+		)
 		// Wait for the vault pod
 		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
 			return errors.Wrap(err, "failed waiting for vault pod to become ready")
@@ -745,7 +769,7 @@ tail /dev/random;
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/v1/sys/health",
 										Port:   intstr.FromInt(8200),

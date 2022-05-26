@@ -29,6 +29,10 @@ func (c *FakeConfigV1alpha2) MeshConfigs(namespace string) v1alpha2.MeshConfigIn
 	return &FakeMeshConfigs{c, namespace}
 }
 
+func (c *FakeConfigV1alpha2) MeshRootCertificates(namespace string) v1alpha2.MeshRootCertificateInterface {
+	return &FakeMeshRootCertificates{c, namespace}
+}
+
 func (c *FakeConfigV1alpha2) MultiClusterServices(namespace string) v1alpha2.MultiClusterServiceInterface {
 	return &FakeMultiClusterServices{c, namespace}
 }

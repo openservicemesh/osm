@@ -30,7 +30,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
 
 		stop := make(chan struct{})
-		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+		cfg, err := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+		tassert.Nil(t, err)
 		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
 
@@ -475,7 +476,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 			// Create configurator
 			stop := make(chan struct{})
 			defer close(stop)
-			cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+			cfg, err := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+			assert.Nil(err)
 
 			meshConfig := configv1alpha2.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
@@ -485,7 +487,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				Spec: *test.initialMeshConfigData,
 			}
 
-			err := cfg.cache.Add(&meshConfig)
+			err = cfg.caches.meshConfig.Add(&meshConfig)
 			assert.Nil(err)
 
 			test.checkCreate(assert, cfg)
@@ -495,7 +497,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			}
 
 			meshConfig.Spec = *test.updatedMeshConfigData
-			err = cfg.cache.Update(&meshConfig)
+			err = cfg.caches.meshConfig.Update(&meshConfig)
 			assert.Nil(err)
 
 			test.checkUpdate(assert, cfg)

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -45,6 +46,7 @@ type Certificate struct {
 	SerialNumber SerialNumber
 
 	// When the cert expires
+	// If this is a composite certificate, the expiration time is the earliest of them.
 	Expiration time.Time
 
 	// PEM encoded Certificate and Key (byte arrays)
@@ -53,47 +55,40 @@ type Certificate struct {
 
 	// Certificate authority signing this certificate
 	IssuingCA pem.RootCertificate
+
+	keyIssuerID string
+	pubIssuerID string
 }
 
-// Manager is the interface declaring the methods for the Certificate Manager.
-type Manager interface {
-	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
-
-	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (*Certificate, error)
-
-	// RotateCertificate rotates an existing certificate.
-	RotateCertificate(CommonName) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate in PEM format and its expiration.
-	GetRootCertificate() (*Certificate, error)
-
-	// ListCertificates lists all certificates issued
-	ListCertificates() ([]*Certificate, error)
-
-	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
-	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
-	ReleaseCertificate(CommonName)
-}
-
-type client interface {
+// Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
+type Issuer interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 }
 
-// manager is a struct that is soon to replace the Manager interface.
-// TODO(#4533): export this struct and remove the Manager interface
-type manager struct {
-	client client
+type issuer struct {
+	Issuer
+	ID string
+}
 
-	// The Certificate Authority root certificate to be used by this certificate manager
-	ca *Certificate
-
+// Manager represents all necessary information for the certificate managers.
+type Manager struct {
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
+
+	mu        sync.RWMutex // mu syncrhonizes acces to the below resources.
+	keyIssuer *issuer
+	pubIssuer *issuer // empty if there is no additional public cert issuer.
+}
+
+// MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
+type MRCClient interface {
+	List() ([]*v1alpha2.MeshRootCertificate, error)
+
+	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, string, error)
 }

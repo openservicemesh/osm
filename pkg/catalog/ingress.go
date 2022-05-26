@@ -43,8 +43,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
+		fakeMs := service.MeshService{
+			Name:       svc.Name,
+			Namespace:  svc.Namespace,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     fmt.Sprintf("ingress_%s_%d_%s", svc, backend.Port.Number, backend.Port.Protocol),
+			Name:                     fakeMs.IngressTrafficMatchName(),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,
@@ -56,7 +63,10 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		for _, source := range ingressBackendPolicy.Spec.Sources {
 			switch source.Kind {
 			case policyV1alpha1.KindService:
-				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
+				sourceMeshSvc := service.MeshService{
+					Name:      source.Name,
+					Namespace: source.Namespace,
+				}
 				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
 					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{

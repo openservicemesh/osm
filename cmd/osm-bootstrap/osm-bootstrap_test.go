@@ -13,6 +13,7 @@ import (
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
@@ -23,6 +24,17 @@ var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
+	},
+	Spec: configv1alpha2.MeshConfigSpec{},
+}
+
+var testMeshConfigWithLastAppliedAnnotation *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      meshConfigName,
+		Annotations: map[string]string{
+			"kubectl.kubernetes.io/last-applied-configuration": `{"metadata":{"name":"osm-mesh-config","namespace":"test-namespace","creationTimestamp":null},"spec":{}}`,
+		},
 	},
 	Spec: configv1alpha2.MeshConfigSpec{},
 }
@@ -78,10 +90,49 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	},
 }
 
+var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      meshRootCertificateName,
+	},
+	Spec: configv1alpha2.MeshRootCertificateSpec{},
+	Status: configv1alpha2.MeshRootCertificateStatus{
+		State:         constants.MRCStateComplete,
+		RotationStage: constants.MRCStageIssuing,
+	},
+}
+
+var testPresetMeshRootCertificate *corev1.ConfigMap = &corev1.ConfigMap{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      presetMeshRootCertificateName,
+		Namespace: testNamespace,
+	},
+	Data: map[string]string{
+		presetMeshRootCertificateJSONKey: `{
+"provider": {
+	"tresor": {
+	 "ca": {
+	  "secretRef": {
+		"name": "osm-ca-bundle",
+		"namespace": "test-namespace"
+	  }
+	 }
+	}
+	}
+}`,
+	},
+}
+
 func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert := tassert.New(t)
 
-	meshConfig := buildDefaultMeshConfig(testPresetMeshConfigMap)
+	meshConfig, err := buildDefaultMeshConfig(testPresetMeshConfigMap)
+	assert.NoError(err)
+	assert.Contains(meshConfig.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.Equal(meshConfig.Name, meshConfigName)
 	assert.Equal(meshConfig.Spec.Sidecar.LogLevel, "error")
 	assert.Equal(meshConfig.Spec.Sidecar.ConfigResyncInterval, "2s")
@@ -96,6 +147,19 @@ func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert.False(meshConfig.Spec.FeatureFlags.EnableRetryPolicy)
 }
 
+func TestBuildMeshRootCertificate(t *testing.T) {
+	assert := tassert.New(t)
+
+	meshRootCertificate, err := buildMeshRootCertificate(testPresetMeshRootCertificate)
+	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+	assert.NoError(err)
+	assert.Equal(meshRootCertificate.Name, meshRootCertificateName)
+	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
+	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
+	assert.Nil(meshRootCertificate.Spec.Provider.Vault)
+	assert.Nil(meshRootCertificate.Spec.Provider.CertManager)
+}
+
 func TestValidateCLIParams(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -103,12 +167,12 @@ func TestValidateCLIParams(t *testing.T) {
 	prevOsmNamespace := osmNamespace
 
 	tests := []struct {
-		caseName string
-		setup    func()
-		verify   func(error)
+		name   string
+		setup  func()
+		verify func(error)
 	}{
 		{
-			caseName: "osm-namespace is empty",
+			name: "osm-namespace is empty",
 			setup: func() {
 				osmNamespace = ""
 			},
@@ -118,20 +182,9 @@ func TestValidateCLIParams(t *testing.T) {
 			},
 		},
 		{
-			caseName: "osm-namespace is valid",
+			name: "osm-namespace is valid",
 			setup: func() {
 				osmNamespace = "valid-ns"
-			},
-			verify: func(err error) {
-				assert.NotNil(err)
-				assert.Contains(err.Error(), "--ca-bundle-secret-name")
-			},
-		},
-		{
-			caseName: "osm-namespace and ca-bundle-secret-name is valid",
-			setup: func() {
-				osmNamespace = "valid-ns"
-				caBundleSecretName = "valid-ca-bundle"
 			},
 			verify: func(err error) {
 				assert.Nil(err)
@@ -150,13 +203,11 @@ func TestValidateCLIParams(t *testing.T) {
 }
 
 func TestCreateDefaultMeshConfig(t *testing.T) {
-	assert := tassert.New(t)
-
 	tests := []struct {
 		name                    string
 		namespace               string
 		kubeClient              kubernetes.Interface
-		meshConfigClient        configClientset.Interface
+		configClient            configClientset.Interface
 		expectDefaultMeshConfig bool
 		expectErr               bool
 	}{
@@ -164,7 +215,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 			name:                    "successfully create default meshconfig from preset configmap",
 			namespace:               testNamespace,
 			kubeClient:              fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshConfigMap}...),
-			meshConfigClient:        fakeConfig.NewSimpleClientset(),
+			configClient:            fakeConfig.NewSimpleClientset(),
 			expectDefaultMeshConfig: true,
 			expectErr:               false,
 		},
@@ -172,7 +223,7 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 			name:                    "preset configmap does not exist",
 			namespace:               testNamespace,
 			kubeClient:              fakeKube.NewSimpleClientset(),
-			meshConfigClient:        fakeConfig.NewSimpleClientset(),
+			configClient:            fakeConfig.NewSimpleClientset(),
 			expectDefaultMeshConfig: false,
 			expectErr:               true,
 		},
@@ -180,85 +231,187 @@ func TestCreateDefaultMeshConfig(t *testing.T) {
 			name:                    "default MeshConfig already exists",
 			namespace:               testNamespace,
 			kubeClient:              fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshConfigMap}...),
-			meshConfigClient:        fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfig}...),
+			configClient:            fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfig}...),
 			expectDefaultMeshConfig: true,
 			expectErr:               false,
 		},
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			kubeClient:       tc.kubeClient,
-			meshConfigClient: tc.meshConfigClient,
-			namespace:        tc.namespace,
-		}
-
-		err := b.createDefaultMeshConfig()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
-			assert.Nil(err)
-		}
-
-		_, err = b.meshConfigClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
-		if tc.expectDefaultMeshConfig {
-			if err == nil {
-				assert.Nil(err)
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:   tc.kubeClient,
+				configClient: tc.configClient,
+				namespace:    tc.namespace,
 			}
-		} else {
-			if err == nil {
-				assert.NotNil(err)
-			}
-		}
+
+			err := b.createDefaultMeshConfig()
+			assert.Equal(tc.expectErr, err != nil)
+
+			_, err = b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+			assert.Equal(tc.expectDefaultMeshConfig, err == nil)
+		})
 	}
 }
 
 func TestEnsureMeshConfig(t *testing.T) {
-	assert := tassert.New(t)
-
 	tests := []struct {
-		name             string
-		namespace        string
-		kubeClient       kubernetes.Interface
-		meshConfigClient configClientset.Interface
-		expectErr        bool
+		name         string
+		namespace    string
+		kubeClient   kubernetes.Interface
+		configClient configClientset.Interface
+		expectErr    bool
 	}{
 		{
-			name:             "MeshConfig found",
-			namespace:        testNamespace,
-			kubeClient:       fakeKube.NewSimpleClientset(),
-			meshConfigClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfig}...),
-			expectErr:        false,
+			name:         "MeshConfig found with no last-applied annotation",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset(),
+			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfig}...),
+			expectErr:    false,
 		},
 		{
-			name:             "MeshConfig not found but successfully created",
-			namespace:        testNamespace,
-			kubeClient:       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshConfigMap}...),
-			meshConfigClient: fakeConfig.NewSimpleClientset(),
-			expectErr:        false,
+			name:         "MeshConfig found with last-applied annotation",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset(),
+			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshConfigWithLastAppliedAnnotation}...),
+			expectErr:    false,
 		},
 		{
-			name:             "MeshConfig not found and error creating it",
-			namespace:        testNamespace,
-			kubeClient:       fakeKube.NewSimpleClientset(),
-			meshConfigClient: fakeConfig.NewSimpleClientset(),
-			expectErr:        true,
+			name:         "MeshConfig not found but successfully created",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshConfigMap}...),
+			configClient: fakeConfig.NewSimpleClientset(),
+			expectErr:    false,
+		},
+		{
+			name:         "MeshConfig not found and error creating it",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset(),
+			configClient: fakeConfig.NewSimpleClientset(),
+			expectErr:    true,
 		},
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			kubeClient:       tc.kubeClient,
-			meshConfigClient: tc.meshConfigClient,
-			namespace:        tc.namespace,
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:   tc.kubeClient,
+				configClient: tc.configClient,
+				namespace:    tc.namespace,
+			}
 
-		err := b.ensureMeshConfig()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
-			assert.Nil(err)
-		}
+			err := b.ensureMeshConfig()
+			assert.Equal(tc.expectErr, err != nil)
+			if !tc.expectErr {
+				config, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+				assert.Nil(err)
+				assert.Contains(config.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+			}
+		})
+	}
+}
+
+func TestCreateMeshRootCertificate(t *testing.T) {
+	tests := []struct {
+		name                             string
+		namespace                        string
+		kubeClient                       kubernetes.Interface
+		configClient                     configClientset.Interface
+		expectDefaultMeshRootCertificate bool
+		expectErr                        bool
+	}{
+		{
+			name:                             "successfully create default MeshRootCertificate from preset configmap",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset(),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
+		},
+		{
+			name:                             "preset configmap does not exist",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset(),
+			configClient:                     fakeConfig.NewSimpleClientset(),
+			expectDefaultMeshRootCertificate: false,
+			expectErr:                        true,
+		},
+		{
+			name:                             "MeshRootCertificate already exists",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:   tc.kubeClient,
+				configClient: tc.configClient,
+				namespace:    tc.namespace,
+			}
+
+			err := b.createMeshRootCertificate()
+			assert.Equal(tc.expectErr, err != nil)
+
+			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			assert.Equal(tc.expectDefaultMeshRootCertificate, err == nil)
+		})
+	}
+}
+
+func TestEnsureMeshRootCertificate(t *testing.T) {
+	tests := []struct {
+		name         string
+		namespace    string
+		kubeClient   kubernetes.Interface
+		configClient configClientset.Interface
+		expectErr    bool
+	}{
+		{
+			name:         "MeshRootCertificate found",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset(),
+			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
+			expectErr:    false,
+		},
+		{
+			name:         "MeshRootCertificate not found but successfully created",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient: fakeConfig.NewSimpleClientset(),
+			expectErr:    false,
+		},
+		{
+			name:         "MeshRootCertificate not found and error creating it",
+			namespace:    testNamespace,
+			kubeClient:   fakeKube.NewSimpleClientset(),
+			configClient: fakeConfig.NewSimpleClientset(),
+			expectErr:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			b := bootstrap{
+				kubeClient:   tc.kubeClient,
+				configClient: tc.configClient,
+				namespace:    tc.namespace,
+			}
+
+			err := b.ensureMeshRootCertificate()
+			assert.Equal(tc.expectErr, err != nil)
+
+			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			assert.Equal(tc.expectErr, err != nil)
+		})
 	}
 }
 
@@ -304,24 +457,22 @@ func TestGetBootstrapPod(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		b := bootstrap{
-			namespace:  tc.namespace,
-			kubeClient: tc.kubeClient,
-		}
-		defer func() {
-			err := resetEnv("BOOTSTRAP_POD_NAME", os.Getenv("BOOTSTRAP_POD_NAME"))
-			assert.Nil(err)
-		}()
+		t.Run(tc.name, func(t *testing.T) {
+			b := bootstrap{
+				namespace:  tc.namespace,
+				kubeClient: tc.kubeClient,
+			}
+			defer func() {
+				err := resetEnv("BOOTSTRAP_POD_NAME", os.Getenv("BOOTSTRAP_POD_NAME"))
+				assert.Nil(err)
+			}()
 
-		err := os.Setenv("BOOTSTRAP_POD_NAME", tc.bootstrapPodNameEnv)
-		assert.Nil(err)
-
-		_, err = b.getBootstrapPod()
-		if tc.expectErr {
-			assert.NotNil(err)
-		} else {
+			err := os.Setenv("BOOTSTRAP_POD_NAME", tc.bootstrapPodNameEnv)
 			assert.Nil(err)
-		}
+
+			_, err = b.getBootstrapPod()
+			assert.Equal(tc.expectErr, err != nil)
+		})
 	}
 }
 

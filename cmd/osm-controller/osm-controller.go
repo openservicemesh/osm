@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -26,8 +27,6 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
@@ -41,14 +40,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
-	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -120,6 +120,20 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
+// TODO(#4502): This function can be deleted once we get rid of cert options.
+func getCertOptions() (providers.Options, error) {
+	switch providers.Kind(certProviderKind) {
+	case providers.TresorKind:
+		tresorOptions.SecretName = caBundleSecretName
+		return tresorOptions, nil
+	case providers.VaultKind:
+		return vaultOptions, nil
+	case providers.CertManagerKind:
+		return certManagerOptions, nil
+	}
+	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -162,9 +176,11 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// This component will be watching the OSM MeshConfig and will make it available
-	// to the rest of the components.
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	// This component will be watching resources in the config.openservicemesh.io API group
+	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+	}
 
 	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker)
 	if err != nil {
@@ -175,14 +191,20 @@ func main() {
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
-
-	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	certOpts, err := getCertOptions()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting certificate options")
+	}
+	// Intitialize certificate manager/provider
+	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
+		certOpts, msgBroker)
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
+	// watch for certificate rotation
+	certManager.Start(5*time.Second, stop)
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
 		log.Info().Msgf("Bootstrapping OSM multicluster gateway")
@@ -244,24 +266,26 @@ func main() {
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
-	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, constants.ValidatorWebhookPort, certManager, kubeClient, stop); err != nil {
+	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, constants.ValidatorWebhookPort, certManager, kubeClient, policyController, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
+
+	version.SetMetric()
 
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
-		httpserverconstants.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
-		httpserverconstants.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
+		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
 	})
 	// Metrics
-	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
 	// Supported SMI Versions
-	httpServer.AddHandler(httpserverconstants.SmiVersionPath, smi.GetSmiClientVersionHTTPHandler())
+	httpServer.AddHandler(constants.OSMControllerSMIVersionPath, smi.GetSmiClientVersionHTTPHandler())
 
 	// Start HTTP server
 	err = httpServer.Start()
@@ -271,7 +295,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets
@@ -306,9 +330,11 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.FeatureFlagEnabled,
+		metricsstore.DefaultMetricsStore.VersionInfo,
 		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount,
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
+		metricsstore.DefaultMetricsStore.EventsQueued,
 	)
 }
 
@@ -317,7 +343,7 @@ func getHTTPHealthProbes() []health.HTTPProbe {
 	return []health.HTTPProbe{
 		// Internal probe to validator's webhook port
 		{
-			URL:      joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, constants.ValidatorWebhookPort), validator.HealthAPIPath),
+			URL:      joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, constants.ValidatorWebhookPort), constants.WebhookHealthPath),
 			Protocol: health.ProtocolHTTPS,
 		},
 	}

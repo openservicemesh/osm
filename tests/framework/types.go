@@ -9,9 +9,11 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/kind/pkg/cluster"
 
-	"github.com/openservicemesh/osm/pkg/cli"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	versioned2 "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 // OSCrossPlatform indicates that a test can run on all operating systems.
@@ -104,10 +106,13 @@ type InstallOSMOpts struct {
 	DeployFluentbit         bool
 	EnableReconciler        bool
 
-	VaultHost     string
-	VaultProtocol string
-	VaultToken    string
-	VaultRole     string
+	VaultHost            string
+	VaultProtocol        string
+	VaultPort            int
+	VaultToken           string
+	VaultRole            string
+	VaultTokenSecretName string
+	VaultTokenSecretKey  string
 
 	CertmanagerIssuerGroup string
 	CertmanagerIssuerKind  string
@@ -119,6 +124,7 @@ type InstallOSMOpts struct {
 	EnablePermissiveMode bool
 	OSMLogLevel          string
 	EnvoyLogLevel        string
+	LocalProxyMode       configv1alpha2.LocalProxyMode
 	EnableDebugServer    bool
 
 	SetOverrides []string
@@ -126,6 +132,9 @@ type InstallOSMOpts struct {
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
 }
+
+// InstallOsmOpt is a function type for setting install options
+type InstallOsmOpt func(*InstallOSMOpts)
 
 // CleanupType identifies what triggered the cleanup
 type CleanupType string

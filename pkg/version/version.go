@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var log = logger.New("version")
@@ -53,4 +54,9 @@ func GetVersionHandler() http.Handler {
 			_, _ = fmt.Fprint(w, string(jsonVersionInfo))
 		}
 	})
+}
+
+// SetMetric is a one time call to expose the version info via prometheus metrics.
+func SetMetric() {
+	metricsstore.DefaultMetricsStore.VersionInfo.WithLabelValues(Version, BuildDate, GitCommit).Set(1)
 }

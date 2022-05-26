@@ -35,12 +35,11 @@ const (
 	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
 	webhookCreatePod = "/mutate-pod-creation"
 
-	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
-	WebhookHealthPath = "/healthz"
+	bootstrapSecretPrefix = "envoy-bootstrap-config-"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
+func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager *certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the MutatingWebhookConfiguration
@@ -85,7 +84,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 
 	mux := http.NewServeMux()
 
-	mux.Handle(WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+	mux.Handle(constants.WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	// We know that the events arriving at this handler are CREATE POD only
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
@@ -182,7 +181,6 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
 	proxyUUID := uuid.New()
-
 	requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)

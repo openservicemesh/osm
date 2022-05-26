@@ -141,7 +141,7 @@ location = /50x.html {
 		}
 
 		http := &corev1.Probe{
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/",
 					Port:   intstr.FromInt(80),
@@ -151,7 +151,7 @@ location = /50x.html {
 		}
 
 		https := &corev1.Probe{
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/",
 					Port:   intstr.FromInt(443),
@@ -161,7 +161,7 @@ location = /50x.html {
 		}
 
 		tcp := &corev1.Probe{
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				TCPSocket: &corev1.TCPSocketAction{
 					Port: intstr.FromInt(80),
 				},
@@ -169,7 +169,7 @@ location = /50x.html {
 		}
 
 		incorrectTCP := &corev1.Probe{
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				TCPSocket: &corev1.TCPSocketAction{
 					Port: intstr.FromInt(81),
 				},

@@ -19,7 +19,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	// If request comes through and requests specific endpoints, just attempt to answer those
 	if request != nil && len(request.ResourceNames) > 0 {
 		return fulfillEDSRequest(meshCatalog, proxy, request)
@@ -96,7 +96,7 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		Namespace: chunks[0],
 		Name:      chunks[1],
 
-		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
+		// The port always maps to MeshService.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),
 	}, nil

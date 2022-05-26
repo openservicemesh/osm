@@ -55,6 +55,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port based TrafficMatch for HTTP port
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 				})
@@ -70,6 +71,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
@@ -88,6 +90,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,

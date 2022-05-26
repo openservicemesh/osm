@@ -93,6 +93,13 @@ type MetricsStore struct {
 	// disabled (0)
 	FeatureFlagEnabled *prometheus.GaugeVec
 
+	// VersionInfo contains the static version information of OSM as labels. The gauge is always set to 1.
+	VersionInfo *prometheus.GaugeVec
+
+	// EventsQueued represents the number of events seen but not yet processed
+	// by the control plane
+	EventsQueued prometheus.Gauge
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -256,6 +263,18 @@ func init() {
 		Name:      "feature_flag_enabled",
 		Help:      "Represents whether a feature flag is enabled (1) or disabled (0)",
 	}, []string{"feature_flag"})
+
+	defaultMetricsStore.VersionInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "version_info",
+		Help:      "Contains the static information denoting the version of this OSM instance",
+	}, []string{"version", "build_date", "git_commit"})
+
+	defaultMetricsStore.EventsQueued = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "events_queued",
+		Help:      "Number of events seen but not yet processed by the control plane",
+	})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }

@@ -13,17 +13,29 @@ func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1al
 
 	// Check if the backends conflict
 	xSet := mapset.NewSet()
+	type setKey struct {
+		name string
+		port int
+	}
 	for _, backend := range x.Spec.Backends {
-		xSet.Add(backend.Name)
+		key := setKey{
+			name: backend.Name,
+			port: backend.Port.Number,
+		}
+		xSet.Add(key)
 	}
 	ySet := mapset.NewSet()
 	for _, backend := range y.Spec.Backends {
-		ySet.Add(backend.Name)
+		key := setKey{
+			name: backend.Name,
+			port: backend.Port.Number,
+		}
+		ySet.Add(key)
 	}
 
 	duplicates := xSet.Intersect(ySet)
 	for b := range duplicates.Iter() {
-		err := errors.Errorf("Backend %s specified in %s and %s conflicts", b.(string), x.Name, y.Name)
+		err := errors.Errorf("Backend %s specified in %s and %s conflicts", b.(setKey).name, x.Name, y.Name)
 		conflicts = append(conflicts, err)
 	}
 

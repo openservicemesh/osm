@@ -40,8 +40,22 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 
 	go b.runWorkqueueProcessor(stopCh)
 	go b.runProxyUpdateDispatcher(stopCh)
+	go b.queueLenMetric(stopCh, 5*time.Second)
 
 	return b
+}
+
+func (b *Broker) queueLenMetric(stop <-chan struct{}, interval time.Duration) {
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-tick.C:
+			metricsstore.DefaultMetricsStore.EventsQueued.Set(float64(b.queue.Len()))
+		}
+	}
 }
 
 // GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events

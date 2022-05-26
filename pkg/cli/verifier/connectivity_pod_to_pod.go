@@ -13,12 +13,16 @@ import (
 
 // TrafficAttribute describes the attributes of the traffic
 type TrafficAttribute struct {
-	SrcPod      *types.NamespacedName
-	DstPod      *types.NamespacedName
-	DstService  *types.NamespacedName
-	DstHost     string
-	DstPort     uint16
-	AppProtocol string
+	SrcPod         *types.NamespacedName
+	SrcService     *types.NamespacedName
+	DstPod         *types.NamespacedName
+	DstService     *types.NamespacedName
+	IngressBackend *types.NamespacedName
+	DstPort        uint16
+	ExternalHost   string
+	ExternalPort   uint16
+	AppProtocol    string
+	IsIngress      bool
 }
 
 // PodConnectivityVerifier implements the Verifier interface for pod connectivity
@@ -59,7 +63,7 @@ func NewPodConnectivityVerifier(stdout io.Writer, stderr io.Writer, restConfig *
 
 // Run executes the pod connectivity verifier
 func (v *PodConnectivityVerifier) Run() Result {
-	ctx := fmt.Sprintf("Verify if pod %q can access pod %q for app protocol %q", v.trafficAttr.SrcPod, v.trafficAttr.DstPod, v.trafficAttr.AppProtocol)
+	ctx := fmt.Sprintf("Verify if pod %q can access pod %q for service %q", v.trafficAttr.SrcPod, v.trafficAttr.DstPod, v.trafficAttr.DstService)
 
 	verifiers := Set{
 		//

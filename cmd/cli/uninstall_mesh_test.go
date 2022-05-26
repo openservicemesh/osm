@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -35,6 +35,8 @@ var (
 	someOtherWebhookName              = "someOtherWebhookName"
 	someOtherSecretName               = "someOtherSecretName"
 	osmTestVersion                    = "testVersion"
+	diffMesh                          = "diffMesh"
+	diffNamespace                     = "diffNs"
 )
 
 func TestUninstallCmd(t *testing.T) {
@@ -45,26 +47,39 @@ func TestUninstallCmd(t *testing.T) {
 		namespaceOfMesh string
 		force           bool
 		deleteNamespace bool
+		emptyMeshList   bool
 		meshExists      bool
 		userPromptsYes  bool
 		namespaceInMesh bool
 	}{
 		{
-			name:            "the mesh DOES NOT exists",
-			meshName:        testMeshName,
-			meshNamespace:   testNamespace,
+			name:            "no meshes in cluster",
+			meshName:        "",
+			meshNamespace:   "",
 			force:           false,
 			deleteNamespace: false,
 			userPromptsYes:  true,
+			emptyMeshList:   true,
 			meshExists:      false,
 		},
 		{
-			name:            "the mesh DOES NOT exists and force delete set to true",
-			meshName:        testMeshName,
-			meshNamespace:   testNamespace,
+			name:            "the mesh DOES NOT exist",
+			meshName:        diffMesh,
+			meshNamespace:   diffNamespace,
+			force:           false,
+			deleteNamespace: false,
+			userPromptsYes:  true,
+			emptyMeshList:   false,
+			meshExists:      false,
+		},
+		{
+			name:            "the mesh DOES NOT exist and force delete set to true",
+			meshName:        diffMesh,
+			meshNamespace:   diffNamespace,
 			force:           true,
 			deleteNamespace: false,
 			userPromptsYes:  true,
+			emptyMeshList:   false,
 			meshExists:      false,
 		},
 		{
@@ -74,6 +89,7 @@ func TestUninstallCmd(t *testing.T) {
 			force:           false,
 			deleteNamespace: false,
 			userPromptsYes:  true,
+			emptyMeshList:   false,
 			meshExists:      true,
 		},
 		{
@@ -94,6 +110,7 @@ func TestUninstallCmd(t *testing.T) {
 			force:           true,
 			deleteNamespace: false,
 			userPromptsYes:  true,
+			emptyMeshList:   false,
 			meshExists:      true,
 		},
 		{
@@ -103,6 +120,7 @@ func TestUninstallCmd(t *testing.T) {
 			force:           true,
 			deleteNamespace: true,
 			userPromptsYes:  true,
+			emptyMeshList:   false,
 			meshExists:      true,
 		},
 		{
@@ -112,6 +130,7 @@ func TestUninstallCmd(t *testing.T) {
 			force:           false,
 			deleteNamespace: true,
 			meshExists:      true,
+			emptyMeshList:   false,
 			userPromptsYes:  true,
 		},
 		{
@@ -120,6 +139,7 @@ func TestUninstallCmd(t *testing.T) {
 			meshNamespace:   testNamespace,
 			force:           false,
 			deleteNamespace: true,
+			emptyMeshList:   false,
 			meshExists:      true,
 			userPromptsYes:  true,
 		},
@@ -211,10 +231,10 @@ func TestUninstallCmd(t *testing.T) {
 				mem.SetNamespace(test.meshNamespace)
 			}
 
-			if test.meshExists {
-				rel := release.Mock(&release.MockReleaseOptions{Name: test.meshName})
+			if !test.emptyMeshList {
+				rel := release.Mock(&release.MockReleaseOptions{Name: testMeshName})
 				err := store.Create(rel)
-				Expect(err).To(BeNil())
+				assert.Nil(err)
 			}
 
 			testConfig := &helm.Configuration{
@@ -227,9 +247,9 @@ func TestUninstallCmd(t *testing.T) {
 
 			fakeClientSet := fake.NewSimpleClientset(existingKubeClientsetObjects...)
 
-			if test.meshExists {
-				_, err := addDeployment(fakeClientSet, "osm-controller-1", test.meshName, test.meshNamespace, osmTestVersion, true)
-				Expect(err).NotTo(HaveOccurred())
+			if !test.emptyMeshList {
+				_, err := addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
+				assert.Nil(err)
 			}
 
 			uninstall := uninstallMeshCmd{
@@ -243,42 +263,44 @@ func TestUninstallCmd(t *testing.T) {
 				clientSet:           fakeClientSet,
 				extensionsClientset: extensionsClientSetFake.NewSimpleClientset(existingCustomResourceDefinitions...),
 				deleteNamespace:     test.deleteNamespace,
+				actionConfig:        new(action.Configuration),
 			}
 
 			err := uninstall.run()
+			assert.Nil(err)
 
-			if !test.force {
-				if test.meshExists {
-					assert.Contains(out.String(), fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources ? [y/n]: ", test.meshName, test.meshNamespace))
-				} else {
-					assert.Contains(out.String(), "\nList of meshes present in the cluster:\nNo osm mesh control planes found\n")
-					assert.Contains(out.String(), fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources ? [y/n]: ", test.meshName, test.meshNamespace))
-				}
-			}
-
-			if test.namespaceInMesh {
-				assert.Contains(out.String(), fmt.Sprintf("Namespace [%s] successfully removed from mesh [%s]", test.namespaceOfMesh, test.meshName))
-				assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
-				assert.Nil(err)
-			}
-
-			if test.meshExists {
-				assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
-				assert.Nil(err)
+			if test.emptyMeshList {
+				assert.Contains(out.String(), "No OSM control planes found\n")
 			} else {
-				assert.Contains(out.String(), fmt.Sprintf("No OSM control plane with mesh name [%s] found in namespace [%s]", test.meshName, test.meshNamespace))
-			}
+				if !test.force {
+					if test.meshExists {
+						assert.Contains(out.String(), fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources? [y/n]: ", test.meshName, test.meshNamespace))
+					} else {
+						assert.Contains(out.String(), "List of meshes present in the cluster:\n")
+						assert.Contains(out.String(), fmt.Sprintf("Did not find mesh [%s] in namespace [%s]\n", test.meshName, test.meshNamespace))
+					}
+        }
 
-			if test.userPromptsYes {
-				if test.deleteNamespace {
-					assert.Contains(out.String(), fmt.Sprintf("OSM namespace [%s] deleted successfully\n", test.meshNamespace))
-					namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
-					assert.Nil(err)
-					assert.Equal(0, len(namespaces.Items)-len(nsInMesh))
-				} else {
-					namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
-					assert.Nil(err)
-					assert.Equal(len(existingNamespaces), len(namespaces.Items)-len(nsInMesh))
+        if test.namespaceInMesh {
+          assert.Contains(out.String(), fmt.Sprintf("Namespace [%s] successfully removed from mesh [%s]", test.namespaceOfMesh, test.meshName))
+          assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
+          assert.Nil(err)
+				}
+
+				if test.userPromptsYes {
+					if test.meshExists {
+						assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
+					}
+					if test.deleteNamespace {
+						assert.Contains(out.String(), fmt.Sprintf("OSM namespace [%s] deleted successfully\n", test.meshNamespace))
+						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+						assert.Nil(err)
+						assert.Equal(0, len(namespaces.Items)-len(nsInMesh))
+					} else {
+						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+						assert.Nil(err)
+						assert.Equal(len(existingNamespaces), len(namespaces.Items)-len(nsInMesh))
+					}
 				}
 			}
 
@@ -553,7 +575,7 @@ func TestUninstallClusterWideResources(t *testing.T) {
 
 			rel := release.Mock(&release.MockReleaseOptions{Name: testMeshName})
 			err := store.Create(rel)
-			Expect(err).To(BeNil())
+			assert.Nil(err)
 
 			testConfig := &helm.Configuration{
 				Releases: store,
@@ -563,6 +585,10 @@ func TestUninstallClusterWideResources(t *testing.T) {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet := fake.NewSimpleClientset(existingKubeClientsetObjects...)
+			_, err = addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
+			assert.Nil(err)
+
 			uninstall := uninstallMeshCmd{
 				in:                 in,
 				out:                out,
@@ -571,10 +597,11 @@ func TestUninstallClusterWideResources(t *testing.T) {
 				meshName:           testMeshName,
 				meshNamespace:      testNamespace,
 				caBundleSecretName: constants.DefaultCABundleSecretName,
-				clientSet:          fake.NewSimpleClientset(existingKubeClientsetObjects...),
+				clientSet:          fakeClientSet,
 				// CustomResourceDefinitions belong to the extensionsClientset
 				extensionsClientset:        extensionsClientSetFake.NewSimpleClientset(test.existingCustomResourceDefinitions...),
 				deleteClusterWideResources: true,
+				actionConfig:               new(action.Configuration),
 			}
 
 			err = uninstall.run()

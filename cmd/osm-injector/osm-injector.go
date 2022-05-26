@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -22,20 +23,19 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/httpserver"
-	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 )
@@ -109,6 +109,20 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
+// TODO(#4502): This function can be deleted once we get rid of cert options.
+func getCertOptions() (providers.Options, error) {
+	switch providers.Kind(certProviderKind) {
+	case providers.TresorKind:
+		tresorOptions.SecretName = caBundleSecretName
+		return tresorOptions, nil
+	case providers.VaultKind:
+		return vaultOptions, nil
+	case providers.CertManagerKind:
+		return certManagerOptions, nil
+	}
+	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-injector %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -157,8 +171,11 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
+	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker, k8s.Namespaces)
@@ -166,29 +183,34 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
+	certOpts, err := getCertOptions()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting certificate options")
+	}
 	// Intitialize certificate manager/provider
-	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
-
-	certManager, _, err := certProviderConfig.GetCertificateManager()
+	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
+		certOpts, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)
 	}
+	// watch for certificate rotation
+	certManager.Start(5*time.Second, stop)
 
 	// Initialize the sidecar injector webhook
 	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
+	version.SetMetric()
 	/*
 	 * Initialize osm-injector's HTTP server
 	 */
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Metrics
-	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
-	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
+	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {

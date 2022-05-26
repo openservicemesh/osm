@@ -18,5 +18,5 @@ type sdsImpl struct {
 	serviceIdentity identity.ServiceIdentity
 	meshCatalog     catalog.MeshCataloger
 	cfg             configurator.Configurator
-	certManager     certificate.Manager
+	certManager     *certificate.Manager
 }

@@ -53,13 +53,9 @@ func TestCertificateFromCertificateRequest(t *testing.T) {
 	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 	assert.Nil(err)
 
-	rootCertificate, err := NewRootCertificateFromPEM(rootCertPEM)
-	assert.Nil(err)
-
 	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
 
 	cm, err := New(
-		rootCertificate,
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},
@@ -124,7 +120,6 @@ func TestNew(t *testing.T) {
 	assert := tassert.New(t)
 	fakeClient := cmfakeclient.NewSimpleClientset()
 	_, err := New(
-		&certificate.Certificate{},
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},
@@ -133,7 +128,6 @@ func TestNew(t *testing.T) {
 
 	assert.Error(err, "expected error from key size of zero")
 	_, err = New(
-		&certificate.Certificate{},
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},

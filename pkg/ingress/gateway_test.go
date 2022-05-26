@@ -16,9 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -327,6 +325,7 @@ func TestHandleCertificateChange(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			fakeCertManager := tresorFake.NewFake(msgBroker)
+			fakeCertManager.Start(5*time.Second, stop)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -356,11 +355,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			if !tc.expectSecretToExist {
 				a.Eventually(func() bool {
 					_, secretNotFoundErr := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
-
-					certCN := certificate.CommonName(tc.previousCertSpec.SubjectAltNames[0])
-					_, certNotFoundErr := c.certProvider.GetCertificate(certCN)
-
-					return secretNotFoundErr != nil && certNotFoundErr != nil
+					return secretNotFoundErr != nil
 				}, maxSecretPollTime, secretPollInterval, "Secret found, unexpected!")
 				return
 			}
@@ -376,9 +371,6 @@ func TestHandleCertificateChange(t *testing.T) {
 				// original secret
 				originalSecret, err := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
 				a.Nil(err)
-
-				// Start the certificate rotor
-				rotor.New(fakeCertManager).Start(5 * time.Second)
 
 				a.Eventually(func() bool {
 					rotatedSecret, err := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
@@ -402,7 +394,7 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
+	cert, err := certificate.NewFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false

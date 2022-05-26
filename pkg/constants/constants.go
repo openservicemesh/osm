@@ -161,6 +161,21 @@ const (
 	MetricsAnnotation = "openservicemesh.io/metrics"
 )
 
+// Annotations and labels used by the MeshRootCertificate
+const (
+	// MRCVersionAnnotation is the annotation used for the version of the MeshRootCertificate
+	MRCVersionAnnotation = "openservicemesh.io/mrc-version"
+
+	// MRCStageValidating is the validating status option for the rotation stage of the MeshRootCertificate
+	MRCStageValidating = "validating"
+
+	// MRCStageIssuing is the issuing status option for the rotation stage of the MeshRootCertificate
+	MRCStageIssuing = "issuing"
+
+	// MRCStateComplete is the complete status option for the state of the MeshRootCertificate
+	MRCStateComplete = "complete"
+)
+
 // Labels used by the control plane
 const (
 	// IgnoreLabel is the label used to ignore a resource
@@ -224,9 +239,44 @@ const (
 
 // Logging contexts
 const (
-	// field key string for context
+	// LogFieldContext is the key used to specify the logging context
 	LogFieldContext = "context"
 
-	// multicluster field value for context field.
+	// LogContextMulticluster is the key used for multicluster log messages
 	LogContextMulticluster = "multicluster"
+)
+
+// Control plane HTTP server paths
+const (
+	// OSMControllerReadinessPath is the path at which OSM controller serves readiness probes
+	OSMControllerReadinessPath = "/health/ready"
+
+	// OSMControllerLivenessPath is the path at which OSM controller serves liveness probes
+	OSMControllerLivenessPath = "/health/alive"
+
+	// OSMControllerSMIVersionPath is the path at which OSM controller servers SMI version info
+	OSMControllerSMIVersionPath = "/smi/version"
+
+	// MetricsPath is the path at which OSM controller serves metrics
+	MetricsPath = "/metrics"
+
+	// VersionPath is the path at which OSM controller serves version info
+	VersionPath = "/version"
+
+	// WebhookHealthPath is the path at which the webooks serve health probes
+	WebhookHealthPath = "/healthz"
+)
+
+// OSM HTTP Server Responses
+const (
+	// ServiceReadyResponse is the response returned by the server to indicate it is ready
+	ServiceReadyResponse = "Service is ready"
+
+	// ServiceAliveResponse is the response returned by the server to indicate it is alive
+	ServiceAliveResponse = "Service is alive"
+)
+
+var (
+	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
+	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}
 )

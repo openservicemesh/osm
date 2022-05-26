@@ -6,7 +6,6 @@ import (
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -16,10 +15,6 @@ var (
 
 // CertManager implements certificate.Manager
 type CertManager struct {
-	// The Certificate Authority root certificate to be used by this certificate
-	// manager.
-	ca *certificate.Certificate
-
 	// Control plane namespace where CertificateRequests are created.
 	namespace string
 

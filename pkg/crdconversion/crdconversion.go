@@ -19,11 +19,8 @@ import (
 )
 
 const (
-	// webhookHealthPath is the HTTP path at which the health of the conversion webhook can be queried
-	webhookHealthPath = "/healthz"
-
-	// healthPort is the port on which the '/healthz` requests are served
-	healthPort = 9095
+	// HealthzPort is the port on which the '/healthz` requests are served
+	HealthzPort = 9095
 
 	// paths to convert CRD's
 	trafficAccessConverterPath         = "/convert/trafficaccess"
@@ -48,7 +45,7 @@ var apiKindToPath = map[string]string{
 var conversionReviewVersions = []string{"v1beta1", "v1"}
 
 // NewConversionWebhook starts a new web server handling requests from the CRD's
-func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager certificate.Manager, osmNamespace string, enableReconciler bool, stop <-chan struct{}) error {
+func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string, enableReconciler bool, stop <-chan struct{}) error {
 	// This is a certificate issued for the crd-converter webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ConversionWebhook on the CRD's
@@ -121,10 +118,10 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}()
 
 	healthMux := http.NewServeMux()
-	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+	healthMux.Handle(constants.WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", healthPort),
+		Addr:    fmt.Sprintf(":%d", HealthzPort),
 		Handler: healthMux,
 	}
 
