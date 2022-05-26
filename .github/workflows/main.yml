@@ -40,10 +40,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go build deps
         run: make embed-files-test
       - name: golangci-lint
@@ -58,10 +59,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: Codegen checks
@@ -73,10 +75,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: gomock checks
@@ -97,22 +100,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: Go Build
         run: make build-ci
 
@@ -123,22 +115,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: Test
@@ -189,22 +170,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: Build test dependencies
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
@@ -243,27 +213,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-        id: go
-
+          go-version-file: go.mod
+          cache: true
       - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
         env:
           CERT_MANAGER: "tresor"
