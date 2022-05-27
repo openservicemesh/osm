@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	. "github.com/openservicemesh/osm/tests/framework"
@@ -122,25 +123,28 @@ var _ = OSMDescribe("Test Retry Policy",
 						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:80/status/503", serverSvc.Name, server),
 					}
 
-					By("A request that will be retried NumRetries times then succeed")
-					time.Sleep(3 * time.Second)
-					result := Td.HTTPRequest(req)
-					stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
-					if err != nil {
-						Td.T.Logf("Could not get client stats: %v", stderr)
-					}
+					By("A request that will be retried NumRetries times then fail")
+					err = wait.Poll(time.Second*3, time.Second*30, func() (bool, error) {
+						result := Td.HTTPRequest(req)
 
-					metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
+						stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+						if err != nil {
+							Td.T.Logf("Could not get client stats: %v", stderr)
+						}
+
+						metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
+						Expect(err).ToNot((HaveOccurred()))
+
+						return Expect(result.StatusCode).To(Equal(503)) &&
+							// upstream_rq_retry: Total request retries
+							Expect(metrics["upstream_rq_retry"]).To(Equal("5")) &&
+							// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
+							Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("1")) &&
+							// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
+							Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("5")), nil
+					})
 					Expect(err).ToNot((HaveOccurred()))
 
-					// upstream_rq_retry: Total request retries
-					Expect(metrics["upstream_rq_retry"]).To(Equal("5"))
-					// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
-					Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("1"))
-					// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
-					Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("5"))
-
-					Expect(result.StatusCode).To(Equal(503))
 				})
 		})
 		Context("Retry policy disabled", func() {
@@ -234,23 +238,27 @@ var _ = OSMDescribe("Test Retry Policy",
 						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:80/status/503", serverSvc.Name, server),
 					}
 
-					By("A request that will be retried NumRetries times then succeed")
-					time.Sleep(3 * time.Second)
-					result := Td.HTTPRequest(req)
-					stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+					By("A request that will be retried 0 times and then fail")
+					err = wait.Poll(time.Second*3, time.Second*30, func() (bool, error) {
+						result := Td.HTTPRequest(req)
+
+						stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+						if err != nil {
+							Td.T.Logf("Could not get client stats: %v", stderr)
+						}
+
+						metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
+						Expect(err).ToNot((HaveOccurred()))
+
+						return Expect(result.StatusCode).To(Equal(503)) &&
+							// upstream_rq_retry: Total request retries
+							Expect(metrics["upstream_rq_retry"]).To(Equal("0")) &&
+							// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
+							Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("0")) &&
+							// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
+							Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("0")), nil
+					})
 					Expect(err).ToNot((HaveOccurred()))
-
-					metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
-					Expect(err).ToNot((HaveOccurred()))
-
-					// upstream_rq_retry: Total request retries
-					Expect(metrics["upstream_rq_retry"]).To(Equal("0"))
-					// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
-					Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("0"))
-					// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
-					Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("0"))
-
-					Expect(result.StatusCode).To(Equal(503))
 				})
 		})
 
