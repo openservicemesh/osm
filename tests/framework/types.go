@@ -106,10 +106,13 @@ type InstallOSMOpts struct {
 	DeployFluentbit         bool
 	EnableReconciler        bool
 
-	VaultHost     string
-	VaultProtocol string
-	VaultToken    string
-	VaultRole     string
+	VaultHost            string
+	VaultProtocol        string
+	VaultPort            int
+	VaultToken           string
+	VaultRole            string
+	VaultTokenSecretName string
+	VaultTokenSecretKey  string
 
 	CertmanagerIssuerGroup string
 	CertmanagerIssuerKind  string

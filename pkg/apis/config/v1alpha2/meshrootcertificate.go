@@ -49,9 +49,6 @@ type ProviderSpec struct {
 
 // CertManagerProviderSpec defines the configuration of the cert-manager provider
 type CertManagerProviderSpec struct {
-	// SecretName specifies the name of the k8s secret containing the root certificate
-	SecretName string `json:"secretName"`
-
 	// IssuerName specifies the name of the Issuer resource
 	IssuerName string `json:"issuerName"`
 

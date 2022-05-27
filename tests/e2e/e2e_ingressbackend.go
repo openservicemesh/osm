@@ -79,6 +79,19 @@ func testIngressBackend() {
 						IngressRuleValue: networkingv1.IngressRuleValue{
 							HTTP: &networkingv1.HTTPIngressRuleValue{
 								Paths: []networkingv1.HTTPIngressPath{
+									// Adding root path due to nginx ingress issue: https://github.com/kubernetes/ingress-nginx/issues/8518
+									{
+										Path:     "/",
+										PathType: (*networkingv1.PathType)(pointer.StringPtr(string(networkingv1.PathTypeImplementationSpecific))),
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: svcDef.Name,
+												Port: networkingv1.ServiceBackendPort{
+													Number: serverPort,
+												},
+											},
+										},
+									},
 									{
 										Path:     "/status/200",
 										PathType: (*networkingv1.PathType)(pointer.StringPtr(string(networkingv1.PathTypeImplementationSpecific))),
