@@ -33,14 +33,14 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 				continue
 			}
 
-			uuid := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
-			if proxyIface, ok := pr.connectedProxies.Load(uuid); ok {
+			proxyUUID := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
+			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
 				connectedProxy := proxyIface.(connectedProxy)
 				cn := connectedProxy.proxy.GetCertificateCommonName()
-				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate %s", constants.EnvoyUniqueIDLabelName, uuid, cn)
+				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate %s", constants.EnvoyUniqueIDLabelName, proxyUUID, cn)
 				certManager.ReleaseCertificate(cn)
 			} else {
-				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.EnvoyUniqueIDLabelName, uuid)
+				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.EnvoyUniqueIDLabelName, proxyUUID)
 			}
 		}
 	}
