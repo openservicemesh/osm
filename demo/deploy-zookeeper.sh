@@ -24,7 +24,7 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
-kubectl apply -nzookeeper -f - <<EOF
+kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha4
 kind: TCPRoute
 metadata:

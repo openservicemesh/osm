@@ -23,7 +23,7 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
-kubectl apply -nkafka -f - <<EOF
+kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha4
 kind: TCPRoute
 metadata:
@@ -83,7 +83,7 @@ spec:
 EOF
 
 # Use these commands to test out Kafka
-# kubectl run kafka-client --restart='Never' --image docker.io/bitnami/kafka:3.1.0-debian-10-r60 --namespace kafka --command -- sleep infinity
-# kubectl exec --tty -i kafka-client --namespace kafka -- bash
-# kafka-console-producer.sh --broker-list kafka-0.kafka-headless.kafka.svc.cluster.local:9092 --topic test
-# kafka-console-consumer.sh --bootstrap-server kafka.kafka.svc.cluster.local:9092 --topic test --from-beginning
+#   kubectl run kafka-client --restart='Never' --image docker.io/bitnami/kafka:3.1.0-debian-10-r60 --namespace kafka --command -- sleep infinity
+#   kubectl exec --tty -i kafka-client --namespace kafka -- bash
+#   kafka-console-producer.sh --broker-list kafka-0.kafka-headless.kafka.svc.cluster.local:9092 --topic test
+#   kafka-console-consumer.sh --bootstrap-server kafka.kafka.svc.cluster.local:9092 --topic test --from-beginning
