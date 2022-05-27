@@ -20,20 +20,78 @@ func TestRotor(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(&fakeMRCClient{}, validityPeriod, msgBroker)
+	certManager, err := NewManager(&fakeMRCClient{}, func() time.Duration { return validityPeriod }, msgBroker)
 	certManager.Start(5*time.Second, stop)
 	assert.NoError(err)
 
-	certA, err := certManager.IssueCertificate(cn, validityPeriod)
+	certA, _, err := certManager.IssueCertificate(cn, validityPeriod, Service)
 	assert.NoError(err)
 	certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
 
 	// Wait for two certificate rotations to be announced and terminate
 	<-certRotateChan
-	newCert, err := certManager.IssueCertificate(cn, validityPeriod)
+	newCert, _, err := certManager.IssueCertificate(cn, validityPeriod, Service)
 	assert.NoError(err)
 	assert.NotEqual(certA.GetExpiration(), newCert.GetExpiration())
 	assert.NotEqual(certA, newCert)
+}
+
+func TestShouldRotate(t *testing.T) {
+	manager := &Manager{}
+
+	testCases := []struct {
+		name             string
+		cert             *Certificate
+		managerKeyIssuer *issuer
+		managerPubIssuer *issuer
+		expectedRotation bool
+	}{
+		{
+			name: "Expired certificate",
+			cert: &Certificate{
+				Expiration:  time.Now().Add(-1 * time.Hour),
+				keyIssuerID: "1",
+				pubIssuerID: "1",
+			},
+			managerKeyIssuer: &issuer{ID: "1"},
+			managerPubIssuer: &issuer{ID: "1"},
+			expectedRotation: true,
+		},
+		{
+			name: "Mismatched certificate",
+			cert: &Certificate{
+				Expiration:  time.Now().Add(1 * time.Hour),
+				keyIssuerID: "1",
+				pubIssuerID: "2",
+			},
+			managerKeyIssuer: &issuer{ID: "2"},
+			managerPubIssuer: &issuer{ID: "1"},
+			expectedRotation: true,
+		},
+		{
+			name: "Valid certificate",
+			cert: &Certificate{
+				Expiration:  time.Now().Add(1 * time.Hour),
+				keyIssuerID: "1",
+				pubIssuerID: "1",
+			},
+			managerKeyIssuer: &issuer{ID: "1"},
+			managerPubIssuer: &issuer{ID: "1"},
+			expectedRotation: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			manager.keyIssuer = tc.managerKeyIssuer
+			manager.pubIssuer = tc.managerPubIssuer
+
+			rotate := manager.ShouldRotate(tc.cert)
+			assert.Equal(tc.expectedRotation, rotate)
+		})
+	}
 }
 
 func TestReleaseCertificate(t *testing.T) {
@@ -113,6 +171,7 @@ func TestListIssuedCertificate(t *testing.T) {
 func TestIssueCertificate(t *testing.T) {
 	cn := CommonName("fake-cert-cn")
 	assert := tassert.New(t)
+	certType := CertificateType("TEST")
 
 	t.Run("single key issuer", func(t *testing.T) {
 		cm := &Manager{
@@ -121,7 +180,7 @@ func TestIssueCertificate(t *testing.T) {
 			pubIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
 		}
 		// single keyIssuer, not cached
-		cert1, err := cm.IssueCertificate(cn, time.Minute)
+		cert1, _, err := cm.IssueCertificate(cn, time.Minute, CertificateType("TEST"))
 		assert.NoError(err)
 		assert.NotNil(cert1)
 		assert.Equal(cert1.keyIssuerID, "id1")
@@ -129,7 +188,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1"))
 
 		// single keyIssuer cached
-		cert2, err := cm.IssueCertificate(cn, time.Minute)
+		cert2, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 
@@ -138,7 +197,7 @@ func TestIssueCertificate(t *testing.T) {
 		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
 		cm.pubIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
 
-		cert3, err := cm.IssueCertificate(cn, time.Minute)
+		cert3, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotNil(cert3)
 		assert.Equal(cert3.keyIssuerID, "id2")
@@ -155,7 +214,7 @@ func TestIssueCertificate(t *testing.T) {
 		}
 
 		// Not cached
-		cert1, err := cm.IssueCertificate(cn, time.Minute)
+		cert1, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotNil(cert1)
 		assert.Equal(cert1.keyIssuerID, "id1")
@@ -163,13 +222,13 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1id2"))
 
 		// cached
-		cert2, err := cm.IssueCertificate(cn, time.Minute)
+		cert2, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 
 		// cached, but pubIssuer is removed
 		cm.pubIssuer = cm.keyIssuer
-		cert3, err := cm.IssueCertificate(cn, time.Minute)
+		cert3, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotEqual(cert1, cert3)
 		assert.Equal(cert3.keyIssuerID, "id1")
@@ -178,7 +237,7 @@ func TestIssueCertificate(t *testing.T) {
 
 		// cached, but keyIssuer is old
 		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
-		cert4, err := cm.IssueCertificate(cn, time.Minute)
+		cert4, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
 		assert.Equal(cert4.keyIssuerID, "id2")
@@ -187,7 +246,7 @@ func TestIssueCertificate(t *testing.T) {
 
 		// cached, but pubIssuer is old
 		cm.pubIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
-		cert5, err := cm.IssueCertificate(cn, time.Minute)
+		cert5, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
 		assert.Equal(cert5.keyIssuerID, "id2")
@@ -203,25 +262,25 @@ func TestIssueCertificate(t *testing.T) {
 		}
 
 		// bad private key
-		cert, err := cm.IssueCertificate(cn, time.Minute)
+		cert, _, err := cm.IssueCertificate(cn, time.Minute, certType)
 		assert.Nil(cert)
 		assert.EqualError(err, "id1 failed")
 
 		// bad public key
 		cm.keyIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
-		cert, err = cm.IssueCertificate(cn, time.Minute)
+		cert, _, err = cm.IssueCertificate(cn, time.Minute, certType)
 		assert.Nil(cert)
 		assert.EqualError(err, "id2 failed")
 
 		// insert a cached cert
 		cm.pubIssuer = cm.keyIssuer
-		cert, err = cm.IssueCertificate(cn, time.Minute)
+		cert, _, err = cm.IssueCertificate(cn, time.Minute, certType)
 		assert.NoError(err)
 		assert.NotNil(cert)
 
 		// bad public key on an existing cached cert, because the pubIssuer is new
 		cm.pubIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}}
-		cert, err = cm.IssueCertificate(cn, time.Minute)
+		cert, _, err = cm.IssueCertificate(cn, time.Minute, certType)
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
 	})

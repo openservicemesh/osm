@@ -38,9 +38,10 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ValidatingWebhookConfiguration
-	webhookHandlerCert, err := certManager.IssueCertificate(
+	webhookHandlerCert, _, err := certManager.IssueCertificate(
 		certificate.CommonName(fmt.Sprintf("%s.%s.svc", ValidatorWebhookSvc, osmNamespace)),
-		constants.XDSCertificateValidityPeriod)
+		constants.XDSCertificateValidityPeriod,
+		certificate.Webhook)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the validating webhook: %+v", err)
 	}

@@ -35,7 +35,8 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 
 // NewFake constructs a fake certificate client using a certificate
 func NewFake(msgBroker *messaging.Broker) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(&fakeMRCClient{}, 1*time.Hour, msgBroker)
+	validityPeriod := func() time.Duration { return 1 * time.Hour }
+	tresorCertManager, err := certificate.NewManager(&fakeMRCClient{}, validityPeriod, msgBroker)
 	if err != nil {
 		return nil
 	}

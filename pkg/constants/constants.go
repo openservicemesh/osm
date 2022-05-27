@@ -85,6 +85,9 @@ const (
 	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Envoy proxies
 	ADSServerPort = 15128
 
+	// XDSServerCertificateCommonName is the CN used for the ADS server certificate.
+	XDSServerCertificateCommonName = "ads"
+
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
 

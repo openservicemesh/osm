@@ -37,8 +37,26 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
+// CertificateType is the type of certificate. This is only used by OSM.
+type CertificateType string
+
+func (ct CertificateType) String() string {
+	return string(ct)
+}
+
+const (
+	ADS     CertificateType = "ads"
+	XDS     CertificateType = "xds"
+	Service CertificateType = "service"
+	Ingress CertificateType = "ingress"
+	Webhook CertificateType = "webhook"
+)
+
 // Certificate represents an x509 certificate.
 type Certificate struct {
+	// CertificateType is the type of OSM certificate
+	CertificateType CertificateType
+
 	// The CommonName of the certificate
 	CommonName CommonName
 
@@ -77,7 +95,7 @@ type Manager struct {
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
-	serviceCertValidityDuration time.Duration
+	serviceCertValidityDuration func() time.Duration
 	msgBroker                   *messaging.Broker
 
 	mu        sync.RWMutex // mu syncrhonizes acces to the below resources.

@@ -61,7 +61,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 
 	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
 	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certValidityDuration)
+	issuedCert, _, err := c.certProvider.IssueCertificate(certCN, certValidityDuration, certificate.Ingress)
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
 	}

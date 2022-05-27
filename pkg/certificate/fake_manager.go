@@ -47,7 +47,7 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 func FakeCertManager() (*Manager, error) {
 	cm, err := NewManager(
 		&fakeMRCClient{},
-		validity,
+		func() time.Duration { return validity },
 		nil,
 	)
 	if err != nil {

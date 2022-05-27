@@ -25,6 +25,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
@@ -54,10 +55,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
 	"github.com/openservicemesh/osm/pkg/version"
-)
-
-const (
-	xdsServerCertificateCommonName = "ads"
 )
 
 var (
@@ -253,7 +250,7 @@ func main() {
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
 	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
+	adsCert, _, err := certManager.IssueCertificate(constants.XDSServerCertificateCommonName, constants.XDSCertificateValidityPeriod, certificate.ADS)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
