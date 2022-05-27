@@ -126,8 +126,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					time.Sleep(3 * time.Second)
 					result := Td.HTTPRequest(req)
 					stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
-					Expect(err).ToNot((HaveOccurred()))
-					if stderr != nil {
+					if err != nil {
 						Td.T.Logf("Could not get client stats: %v", stderr)
 					}
 
