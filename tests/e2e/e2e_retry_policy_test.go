@@ -1,8 +1,12 @@
 package e2e
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -18,6 +22,9 @@ const server = "server"
 
 var meshNs = []string{client, server}
 
+var retryStats = map[string]string{"upstream_rq_retry": "", "upstream_rq_retry_limit_exceeded": "", "upstream_rq_retry_backoff_exponential": ""}
+var thresholdUintVal uint32 = 5
+
 var _ = OSMDescribe("Test Retry Policy",
 	OSMDescribeInfo{
 		Tier:   2,
@@ -25,7 +32,7 @@ var _ = OSMDescribe("Test Retry Policy",
 	},
 	func() {
 		Context("Retry policy enabled", func() {
-			It("tests retryOn and numRetries field for retry policy",
+			It("tests retry policy",
 				func() {
 					// Install OSM
 					installOpts := Td.GetOSMInstallOpts()
@@ -39,19 +46,14 @@ var _ = OSMDescribe("Test Retry Policy",
 						Expect(Td.AddNsToMesh(true, n)).To(Succeed())
 					}
 
-					// Load retry image
-					retryImage := fmt.Sprintf("%s/retry:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
-					Expect(Td.LoadImagesToKind([]string{"retry"})).To(Succeed())
-
+					// Get simple pod definitions for the HTTP server
 					svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 						SimplePodAppDef{
-							PodName:            server,
-							Namespace:          server,
-							ServiceAccountName: server,
-							Command:            []string{"/retry"},
-							Image:              retryImage,
-							Ports:              []int{9091},
-							OS:                 Td.ClusterOS,
+							PodName:   server,
+							Namespace: server,
+							Image:     "kennethreitz/httpbin",
+							Ports:     []int{80},
+							OS:        Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -105,7 +107,7 @@ var _ = OSMDescribe("Test Retry Policy",
 							RetryPolicy: v1alpha1.RetryPolicySpec{
 								RetryOn:                  "5xx",
 								PerTryTimeout:            &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-								NumRetries:               &NumRetries,
+								NumRetries:               &thresholdUintVal,
 								RetryBackoffBaseInterval: &metav1.Duration{Duration: time.Duration(5 * time.Second)},
 							},
 						},
@@ -117,22 +119,30 @@ var _ = OSMDescribe("Test Retry Policy",
 						SourceNs:        client,
 						SourcePod:       clientPod.Name,
 						SourceContainer: podDef.GetName(),
-						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:9091", serverSvc.Name, server),
+						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:80/status/503", serverSvc.Name, server),
 					}
 
 					By("A request that will be retried NumRetries times then succeed")
-					// wait for server
 					time.Sleep(3 * time.Second)
-					result := Td.RetryHTTPRequest(req)
-					// One count is the initial http request that returns a retriable status code
-					// followed by numRetries retries
-					Expect(result.RequestCount).To(Equal(int(NumRetries) + 1))
-					Expect(result.StatusCode).To(Equal(200))
-					Expect(result.Err).To(BeNil())
+					result := Td.HTTPRequest(req)
+					stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+					Expect(err).ToNot((HaveOccurred()))
+
+					metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
+					Expect(err).ToNot((HaveOccurred()))
+
+					// upstream_rq_retry: Total request retries
+					Expect(metrics["upstream_rq_retry"]).To(Equal("5"))
+					// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
+					Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("1"))
+					// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
+					Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("5"))
+
+					Expect(result.StatusCode).To(Equal(503))
 				})
 		})
 		Context("Retry policy disabled", func() {
-			It("tests retry does not occur",
+			It("tests retry policy",
 				func() {
 					// Install OSM
 					installOpts := Td.GetOSMInstallOpts()
@@ -145,19 +155,15 @@ var _ = OSMDescribe("Test Retry Policy",
 						Expect(Td.CreateNs(n, nil)).To(Succeed())
 						Expect(Td.AddNsToMesh(true, n)).To(Succeed())
 					}
-					// Load retry image
-					retryImage := fmt.Sprintf("%s/retry:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
-					Expect(Td.LoadImagesToKind([]string{"retry"})).To(Succeed())
 
+					// Get simple pod definitions for the HTTP server
 					svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
 						SimplePodAppDef{
-							PodName:            server,
-							Namespace:          server,
-							ServiceAccountName: server,
-							Command:            []string{"/retry"},
-							Image:              retryImage,
-							Ports:              []int{9091},
-							OS:                 Td.ClusterOS,
+							PodName:   server,
+							Namespace: server,
+							Image:     "kennethreitz/httpbin",
+							Ports:     []int{80},
+							OS:        Td.ClusterOS,
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -211,7 +217,7 @@ var _ = OSMDescribe("Test Retry Policy",
 							RetryPolicy: v1alpha1.RetryPolicySpec{
 								RetryOn:                  "5xx",
 								PerTryTimeout:            &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-								NumRetries:               &NumRetries,
+								NumRetries:               &thresholdUintVal,
 								RetryBackoffBaseInterval: &metav1.Duration{Duration: time.Duration(5 * time.Second)},
 							},
 						},
@@ -223,17 +229,53 @@ var _ = OSMDescribe("Test Retry Policy",
 						SourceNs:        client,
 						SourcePod:       clientPod.Name,
 						SourceContainer: podDef.GetName(),
-						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:9091", serverSvc.Name, server),
+						Destination:     fmt.Sprintf("%s.%s.svc.cluster.local:80/status/503", serverSvc.Name, server),
 					}
 
-					By("A request that will not be retried on")
-					// wait for server
+					By("A request that will be retried NumRetries times then succeed")
 					time.Sleep(3 * time.Second)
-					result := Td.RetryHTTPRequest(req)
-					// One count is the initial http request that is not retried on
-					Expect(result.RequestCount).To(Equal(1))
-					Expect(result.StatusCode).To(Equal(555))
-					Expect(result.Err).To(BeNil())
+					result := Td.HTTPRequest(req)
+					stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+					Expect(err).ToNot((HaveOccurred()))
+
+					metrics, err := findRetryStats(stdout.String(), serverSvc.Name+"|80", retryStats)
+					Expect(err).ToNot((HaveOccurred()))
+
+					// upstream_rq_retry: Total request retries
+					Expect(metrics["upstream_rq_retry"]).To(Equal("0"))
+					// upstream_rq_retry_limit_exceeded: Total requests not retried because max retries reached
+					Expect(metrics["upstream_rq_retry_limit_exceeded"]).To(Equal("0"))
+					// upstream_rq_retry_backoff_exponential: Total retries using the exponential backoff strategy
+					Expect(metrics["upstream_rq_retry_backoff_exponential"]).To(Equal("0"))
+
+					Expect(result.StatusCode).To(Equal(503))
 				})
 		})
+
 	})
+
+func findRetryStats(output, serverSvc string, retryStats map[string]string) (map[string]string, error) {
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		stat := scanner.Text()
+		if strings.Contains(stat, serverSvc) {
+			retryStats = getMetric(stat, retryStats)
+		}
+	}
+
+	err := scanner.Err()
+	return retryStats, err
+}
+
+func getMetric(stat string, retryStats map[string]string) map[string]string {
+	for r := range retryStats {
+		regR := r + "\\b"
+		match, _ := regexp.MatchString(regR, stat)
+		if match {
+			splitStat := strings.Split(stat, ":")
+			res := strings.ReplaceAll(splitStat[1], " ", "")
+			retryStats[r] = res
+		}
+	}
+	return retryStats
+}

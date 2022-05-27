@@ -74,13 +74,6 @@ type HTTPRequestResult struct {
 	Err        error
 }
 
-// RetryRequestResult represents the result of a HTTPRequest call for retry
-type RetryRequestResult struct {
-	RequestCount int
-	StatusCode   int
-	Err          error
-}
-
 // TCPRequestResult represents the result of a TCPRequest call
 type TCPRequestResult struct {
 	Response string
@@ -135,60 +128,6 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	return HTTPRequestResult{
 		statusCode,
 		curlMappedReturn,
-		nil,
-	}
-}
-
-// RetryHTTPRequest runs a synchronous call to run the HTTPRequestDef and returns a RetryRequestResult
-func (td *OsmTestData) RetryHTTPRequest(ht HTTPRequestDef) RetryRequestResult {
-	// -s silent progress, -L follow redirects
-	var commandStr string
-	if td.ClusterOS == constants.OSWindows {
-		commandStr = fmt.Sprintf("curl.exe -s -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
-	} else {
-		commandStr = fmt.Sprintf("/usr/bin/curl -s -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
-	}
-	command := strings.Fields(commandStr)
-
-	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
-	if err != nil {
-		// Error codes from the execution come through err
-		// Curl 'Connection refused' err code = 7
-		return RetryRequestResult{
-			0,
-			0,
-			fmt.Errorf("Remote exec err: %v | stderr: %s", err, stderr),
-		}
-	}
-	if len(stderr) > 0 {
-		// no error from execution and proper exit code, we got some stderr though
-		td.T.Logf("[warn] Stderr: %v", stderr)
-	}
-	split := strings.Split(stdout, "\n")
-	var fields [][]string
-	for _, s := range split {
-		fields = append(fields, strings.Split(s, ":"))
-	}
-	rqCount, err := strconv.Atoi(fields[0][1])
-	if err != nil {
-		return RetryRequestResult{
-			0,
-			0,
-			fmt.Errorf("Could not read request count as integer: %v", err),
-		}
-	}
-	statusCode, err := strconv.Atoi(fields[1][1])
-	if err != nil {
-		return RetryRequestResult{
-			0,
-			0,
-			fmt.Errorf("Could not read status code as integer: %v", err),
-		}
-	}
-
-	return RetryRequestResult{
-		rqCount,
-		statusCode,
 		nil,
 	}
 }
