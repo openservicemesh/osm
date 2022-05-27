@@ -253,6 +253,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		xDSCertificateSerialNumber: certSerialNumber,
 		UUID:                       cnMeta.ProxyUUID,
 
+		// Identity is of the form <name>.<namespace>.cluster.local
 		Identity: cnMeta.ServiceIdentity,
 
 		Addr: ip,

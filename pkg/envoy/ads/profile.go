@@ -28,15 +28,15 @@ func xdsPathTimeTrack(startedAt time.Time, typeURI envoy.TypeURI, proxy *envoy.P
 		Observe(elapsed.Seconds())
 }
 
-func (s *Server) trackXDSLog(proxyID string, typeURL envoy.TypeURI) {
+func (s *Server) trackXDSLog(proxyName string, typeURL envoy.TypeURI) {
 	s.withXdsLogMutex(func() {
-		if _, ok := s.xdsLog[proxyID]; !ok {
-			s.xdsLog[proxyID] = make(map[envoy.TypeURI][]time.Time)
+		if _, ok := s.xdsLog[proxyName]; !ok {
+			s.xdsLog[proxyName] = make(map[envoy.TypeURI][]time.Time)
 		}
 
-		timeSlice, ok := s.xdsLog[proxyID][typeURL]
+		timeSlice, ok := s.xdsLog[proxyName][typeURL]
 		if !ok {
-			s.xdsLog[proxyID][typeURL] = []time.Time{time.Now()}
+			s.xdsLog[proxyName][typeURL] = []time.Time{time.Now()}
 			return
 		}
 
@@ -44,7 +44,7 @@ func (s *Server) trackXDSLog(proxyID string, typeURL envoy.TypeURI) {
 		if len(timeSlice) > MaxXdsLogsPerProxy {
 			timeSlice = timeSlice[1:]
 		}
-		s.xdsLog[proxyID][typeURL] = timeSlice
+		s.xdsLog[proxyName][typeURL] = timeSlice
 	})
 }
 
