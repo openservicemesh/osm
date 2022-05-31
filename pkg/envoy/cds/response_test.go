@@ -426,14 +426,11 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxy, err := envoy.NewProxy(cn, "", nil)
 	tassert.Nil(t, err)
 
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
-	tassert.NoError(t, err)
-
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).AnyTimes()
+	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)

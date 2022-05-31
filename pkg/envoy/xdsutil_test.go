@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"fmt"
 	"testing"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -18,7 +17,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -358,15 +356,6 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 	})
 })
-
-func TestGetKindFromProxyCertificate(t *testing.T) {
-	assert := tassert.New(t)
-	cn := certificate.CommonName("fcbd7396-2e8c-49dc-91ff-7267d81287ba.gateway.2.3.4.5.6.7.8")
-	actualProxyKind, err := GetKindFromProxyCertificate(cn)
-	assert.Nil(err, fmt.Sprintf("Expected err to be nil; Actually it was %+v", err))
-	expectedProxyKind := KindGateway
-	assert.Equal(expectedProxyKind, actualProxyKind)
-}
 
 func TestGetCIDRRangeFromStr(t *testing.T) {
 	testCases := []struct {

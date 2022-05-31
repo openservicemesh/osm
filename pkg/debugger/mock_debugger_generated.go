@@ -118,10 +118,10 @@ func (m *MockXDSDebugger) EXPECT() *MockXDSDebuggerMockRecorder {
 }
 
 // GetXDSLog mocks base method.
-func (m *MockXDSDebugger) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time {
+func (m *MockXDSDebugger) GetXDSLog() map[string]map[envoy.TypeURI][]time.Time {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetXDSLog")
-	ret0, _ := ret[0].(*map[certificate.CommonName]map[envoy.TypeURI][]time.Time)
+	ret0, _ := ret[0].(map[string]map[envoy.TypeURI][]time.Time)
 	return ret0
 }
 

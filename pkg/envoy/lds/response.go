@@ -20,13 +20,6 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msgf("Error retrieving ServiceAccount for proxy")
-		return nil, err
-	}
-
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
@@ -34,7 +27,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	lb := newListenerBuilder(meshCatalog, proxyIdentity, cfg, statsHeaders)
+	lb := newListenerBuilder(meshCatalog, proxy.Identity, cfg, statsHeaders)
 
 	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
 		gatewayListener, err := lb.buildMulticlusterGatewayListener()

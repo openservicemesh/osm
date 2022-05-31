@@ -6,7 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
@@ -15,15 +14,15 @@ func (ds DebugConfig) getXDSHandler() http.Handler {
 		xdsLog := ds.xdsDebugger.GetXDSLog()
 
 		var proxies []string
-		for proxyCN := range *xdsLog {
-			proxies = append(proxies, proxyCN.String())
+		for proxyID := range xdsLog {
+			proxies = append(proxies, proxyID)
 		}
 
 		sort.Strings(proxies)
 
-		for _, proxyCN := range proxies {
-			xdsTypeWithTimestamps := (*xdsLog)[certificate.CommonName(proxyCN)]
-			_, _ = fmt.Fprintf(w, "---[ %s\n", proxyCN)
+		for _, proxyName := range proxies {
+			xdsTypeWithTimestamps := xdsLog[proxyName]
+			_, _ = fmt.Fprintf(w, "---[ %s\n", proxyName)
 
 			var xdsTypes []string
 			for xdsType := range xdsTypeWithTimestamps {

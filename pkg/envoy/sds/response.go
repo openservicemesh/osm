@@ -22,18 +22,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msg("Error retrieving ServiceAccount for proxy")
-		return nil, err
-	}
-
 	s := &sdsImpl{
 		meshCatalog:     meshCatalog,
 		certManager:     certManager,
 		cfg:             cfg,
-		serviceIdentity: proxyIdentity,
+		serviceIdentity: proxy.Identity,
 	}
 
 	var sdsResources []types.Resource
