@@ -83,7 +83,12 @@ spec:
 EOF
 
 # Use these commands to test out Kafka
-#   kubectl run kafka-client --restart='Never' --image docker.io/bitnami/kafka:3.1.0-debian-10-r60 --namespace kafka --command -- sleep infinity
-#   kubectl exec --tty -i kafka-client --namespace kafka -- bash
+#
+# Create and exec into a pod with a Kafka image
+#   kubectl run --rm -it kafka-client --image docker.io/bitnami/kafka:3.1.0-debian-10-r60 --namespace kafka -- bash
+# Run the Kafka producer command (opens an interactive prompt where each line entered is sent as a Kafka message)
+# You can exit the prompt with Ctrl-C
 #   kafka-console-producer.sh --broker-list kafka-0.kafka-headless.kafka.svc.cluster.local:9092 --topic test
+# Now, run the Kafka consumer command (starts a loop to read messages from Kafka)
+# You can exit the prompt with Ctrl-C
 #   kafka-console-consumer.sh --bootstrap-server kafka.kafka.svc.cluster.local:9092 --topic test --from-beginning
