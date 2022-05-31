@@ -29,7 +29,7 @@ var thresholdUintVal uint32 = 5
 var _ = OSMDescribe("Test Retry Policy",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 8,
+		Bucket: 4,
 	},
 	func() {
 		Context("Retry policy enabled", func() {
