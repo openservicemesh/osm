@@ -1,20 +1,27 @@
 # OSM Contributor Ladder
 
-Hello! We are excited to have you contribute to Open Service Mesh (OSM)! This contributor ladder outlines the different contributor roles within the project, along with the responsibilities and privileges that come with them. Community members generally start at the first levels of the "ladder" and advance up it as their involvement in the project grows. Our project members are happy to help you advance along the contributor ladder.
+Hello! We are excited to have you contribute to Open Service Mesh (OSM)! This contributor ladder outlines the different contributor roles within the project, along with the responsibilities and privileges that come with them. Community members generally start at the first levels of the "ladder" and advance up as their involvement in the project grows. Our project members are happy to help you advance along the contributor ladder.
 
-Each of the contributor roles below is organized into lists of three types of things.
-* "Responsibilities" are things that a contributor is expected to do
-* "Requirements" are qualifications a contributor needs to meet to be in that role
-* "Privileges" are things a contributor on that level is entitled to
+Each of the roles is organized into the following categories:
+* "Responsibilities" list what the role is expected to do
+* "Requirements" are qualifications the role needs to meet
+* "Privileges" list what the role is entitled to
+
+| Role | Responsibilities | Requirements | Privileges |
+| -----| ---------------- | ------------ | -------|
+| [Maintainer](#maintainer) | Active member of the community |<ul><li>Reviewer for ≥3 months</li><li> Demonstrates deep understanding of multiple areas of the project</li><li>Exercise good judgement for the project</li><li>Maintain contributions to the project</li></ul> | <ul><li>Has GitHub or CI/CD rights to approve any pull requests</li><li>Represent the project as a Maintainer</li><li>Communicate with CNCF on behalf of the project</li></ul> |
+| [Reviewer](#reviewer) | Review contributions from other members | <ul><li>Contributor for ≥3 months</li><li>Demonstrates knowledge in an area of the project</li><li>Reviews pull requests</li></ul> | Has GitHub or CI/CD rights to approve pull requests in specific directories |
+| [Contributor](#contributor) | Following the [CNCF Code of Conduct] and the project [contributing guide] | One or more contributions to the project | Invitations to contributor events |
+| [Community Participant](#community-participant) | Following the [CNCF Code of Conduct] | --- | --- |
 
 ## Community Participant
 
 Description: A Community Participant participates in the community and contributes their time, thoughts, etc.
 
 * Responsibilities:
-    * Must follow the [CNCF CoC]
+    * Must follow the [CNCF Code of Conduct]
 * How users can get involved with the community:
-    * Participating in community discussions in Github, Slack, and meetings
+    * Participating in community discussions in GitHub, Slack, and meetings
     * Helping other users
     * Submitting bug reports
     * Trying out new releases
@@ -27,7 +34,7 @@ Description: A Community Participant participates in the community and contribut
 Description: A Contributor contributes directly to the project and adds value to it. Contributions need not be code. People at the Contributor level may be new contributors, or they may only contribute occasionally.
 
 * Responsibilities include:
-    * Following the [CNCF CoC]
+    * Following the [CNCF Code of Conduct]
     * Following the project [contributing guide]
 * Requirements (one or several of the below):
     * Reports and sometimes resolves issues
@@ -43,6 +50,8 @@ Description: A Contributor contributes directly to the project and adds value to
     * Invitations to contributor events
     * Eligible to become a Reviewer
 
+Process of becoming a Contributor:
+1. There is no nomination process for this role. Being a contributor entails being a community member who does one or more of the listed requirements.
 
 ## Reviewer
 
@@ -69,7 +78,7 @@ A Reviewer must meet the rights, responsibilities, and requirements of a Contrib
     * Can recommend and review other contributors to become Reviewers
 
 Process of becoming a Reviewer:
-1. A current contributor may be self-nominated or nominated by a current Maintainer or Reviewer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *reviewers* entry.  Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements against a specific area of the codebase, the nominee must be added to the [CODEOWNERS file] for their specific area of ownership in the same PR.
+1. A current contributor may be self-nominated or nominated by a current Maintainer or Reviewer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *reviewers* entry.  Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements against a specific area of the codebase, the nominee must be added to the [CODEOWNERS file] for their specific area of ownership in the same PR. A codeowner is defined per the [GitHub definition](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#about-code-owners).
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Reviewer.
 3. A majority of the current Maintainers must then approve the PR.
 
@@ -109,7 +118,7 @@ A Maintainer must meet the rights, responsibilities, and requirements of a Revie
 
 Process of becoming a Maintainer:
 
-1. A current Reviewer may be self-nominated or be nominated by a current Maintainer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *owners* entry. Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements, the nominee must be added to the [CODEOWNERS file] in the same PR.
+1. A current Reviewer may be self-nominated or be nominated by a current Maintainer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *owners* entry. Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements, the nominee must be added to the [CODEOWNERS file] in the same PR. A codeowner is defined per the [GitHub definition](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#about-code-owners).
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
@@ -156,4 +165,4 @@ For inquiries, please reach out to: openservicemesh-maintainers@lists.cncf.io
 [CODEOWNERS file]: https://github.com/openservicemesh/osm/blob/main/CODEOWNERS
 [OSM repository]: https://github.com/openservicemesh/osm
 [contributing guide]: https://github.com/openservicemesh/osm/blob/main/CONTRIBUTING.md
-[CNCF CoC]: https://github.com/cncf/foundation/blob/master/code-of-conduct.md
+[CNCF Code of Conduct]: https://github.com/cncf/foundation/blob/master/code-of-conduct.md
