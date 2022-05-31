@@ -251,8 +251,13 @@ func TestGetHashiVaultOSMToken(t *testing.T) {
 			assert := tassert.New(t)
 
 			token, err := getHashiVaultOSMToken(tc.secretKeyRef, tc.kubeClient)
-			assert.Equal(tc.expectError, token == "")
-			assert.Equal(tc.expectError, err != nil)
+			if tc.expectError {
+				assert.Empty(token)
+				assert.Error(err)
+			} else {
+				assert.NotEmpty(token)
+				assert.NoError(err)
+			}
 		})
 	}
 }

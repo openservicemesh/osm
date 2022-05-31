@@ -223,7 +223,7 @@ func getHashiVaultOSMToken(secretKeyRef *v1alpha2.SecretKeyReferenceSpec, kubeCl
 
 	token, ok := tokenSecret.Data[secretKeyRef.Key]
 	if !ok {
-		return "", fmt.Errorf("failed to get Hashi Vault token with key %s from secret %s/%s", secretKeyRef.Key, secretKeyRef.Namespace, secretKeyRef.Name)
+		return "", fmt.Errorf("key %s not found in Hashi Vault token secret %s/%s", secretKeyRef.Key, secretKeyRef.Namespace, secretKeyRef.Name)
 	}
 
 	return string(token), nil
