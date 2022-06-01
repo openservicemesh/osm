@@ -119,7 +119,7 @@ func TestNewResponse(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&newPod1, nil)
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(newPod1, nil)
 
 	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)

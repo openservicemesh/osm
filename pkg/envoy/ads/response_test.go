@@ -172,7 +172,7 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: secrets.ServiceCertType,
 			}.String()))
 
-			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{proxy_name=%q,type=%q} 1\n", proxy.GetName(), envoy.TypeCDS))).To(BeTrue())
+			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{identity=%q,proxy_uuid=%q,type=%q} 1\n", proxy.Identity, proxy.UUID, envoy.TypeCDS))).To(BeTrue())
 		})
 	})
 

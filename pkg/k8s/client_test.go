@@ -1095,7 +1095,6 @@ func TestGetPodForProxy(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			pod, err := kubeController.GetPodForProxy(tc.proxy)
 
 			assert.Equal(tc.pod, pod)
@@ -1109,7 +1108,7 @@ func monitoredNS(name string) *v1.Namespace {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				constants.OSMKubeResourceMonitorAnnotation: "osm",
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
 			},
 		},
 	}

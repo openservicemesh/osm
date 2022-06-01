@@ -113,7 +113,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			}, nil).Times(1)
 
 			proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, tests.Namespace), nil)
-			mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&pod, nil).Times(1)
+			mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil).Times(1)
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -150,7 +150,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expectedList := []service.MeshService{expected}
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
-			mockKubeController.EXPECT().GetPodForProxy(newProxy).Return(&newPod, nil).Times(1)
+			mockKubeController.EXPECT().GetPodForProxy(newProxy).Return(newPod, nil).Times(1)
 			// Subdomain gets called in the ListProxyServices
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
