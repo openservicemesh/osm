@@ -87,8 +87,7 @@ func TestGetCertificateCommonNameMeta(t *testing.T) {
 		name     string
 		uuid     uuid.UUID
 		identity identity.ServiceIdentity
-		// trustDomain string
-		err error
+		err      error
 	}{
 		{
 			name:     "valid cn",
