@@ -2,6 +2,7 @@ package rds
 
 import (
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -296,7 +297,7 @@ func TestNewResponse(t *testing.T) {
 				ResourceNames: []string{},
 			}
 
-			mc := tresorfake.NewFake(nil)
+			mc := tresorfake.NewFake(nil, 1*time.Hour)
 
 			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
 			assert.Nil(err)
@@ -443,7 +444,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil
 	}), nil)
 
-	mc := tresorfake.NewFake(nil)
+	mc := tresorfake.NewFake(nil, 1*time.Hour)
 
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()

@@ -1,11 +1,17 @@
 package certificate
 
 import (
+	"context"
 	"fmt"
-	time "time"
+	"time"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 var (
@@ -26,6 +32,42 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 			TrustDomain: "fake.domain.com",
 		},
 	}}, nil
+}
+
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
+	ch := make(chan MRCEvent)
+	go func() {
+		ch <- MRCEvent{
+			Type: MRCEventAdded,
+			MRC: &v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+					Annotations: map[string]string{
+						constants.MRCVersionAnnotation: "0",
+					},
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Tresor: &v1alpha2.TresorProviderSpec{
+							CA: v1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			},
+		}
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 type fakeIssuer struct {
@@ -51,9 +93,11 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 // FakeCertManager is a testing helper that returns a *certificate.Manager
 func FakeCertManager() (*Manager, error) {
 	cm, err := NewManager(
+		context.Background(),
 		&fakeMRCClient{},
 		validity,
 		nil,
+		1*time.Hour,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating fakeCertManager, err: %w", err)

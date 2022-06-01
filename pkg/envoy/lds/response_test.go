@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -101,7 +102,7 @@ func TestNewResponse(t *testing.T) {
 		return nil, fmt.Errorf("dummy error")
 	}), nil)
 
-	cm := tresorfake.NewFake(nil)
+	cm := tresorfake.NewFake(nil, 1*time.Hour)
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)

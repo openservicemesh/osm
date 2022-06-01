@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -28,8 +29,8 @@ func TestSetupMutualTLS(t *testing.T) {
 		expectedError string
 	}
 
-	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.IssueCertificate("fake-ads")
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.WithValidityPeriod(1*time.Hour))
 
 	assert.NoError(err)
 
@@ -65,9 +66,9 @@ func TestValidateClient(t *testing.T) {
 		expectedError error
 	}
 
-	certManager := tresorFake.NewFake(nil)
-	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
-	certPEM, _ := certManager.IssueCertificate(cnPrefix)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	cn := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
+	certPEM, _ := certManager.IssueCertificate(cn, certificate.WithValidityPeriod(1*time.Hour))
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
 	validateClientTests := []validateClientTest{

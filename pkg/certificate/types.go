@@ -3,6 +3,7 @@
 package certificate
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -96,7 +97,34 @@ type Manager struct {
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
 	List() ([]*v1alpha2.MeshRootCertificate, error)
+	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
 	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error)
+}
+
+// MRCEventType is a type alias for a string describing the type of MRC event
+type MRCEventType string
+
+// MRCEvent describes a change event on a given MRC
+type MRCEvent struct {
+	Type MRCEventType
+	// The last observed version of the MRC as of the time of this event
+	MRC *v1alpha2.MeshRootCertificate
+}
+
+var (
+	// MRCEventAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
+	MRCEventAdded MRCEventType = "meshrootcertificate-added"
+
+	// MRCEventUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
+	MRCEventUpdated MRCEventType = "meshrootcertificate-updated"
+)
+
+// MRCEventBroker describes any type that allows the caller to Watch() MRCEvents
+type MRCEventBroker interface {
+	// Watch allows the caller to subscribe to events surrounding
+	// MRCs that belong to this particular mesh. Watch returns a channel
+	// that emits events, and an error if the subscription goes awry.
+	Watch(context.Context) (<-chan MRCEvent, error)
 }

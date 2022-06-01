@@ -100,7 +100,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresorFake.NewFake(msgBroker)
+			fakeCertProvider := tresorFake.NewFake(msgBroker, 1*time.Hour)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -189,7 +189,7 @@ func TestCreateAndStoreGatewayCert(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertProvider := tresorFake.NewFake(nil)
+			fakeCertProvider := tresorFake.NewFake(nil, 1*time.Hour)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -324,8 +324,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			msgBroker := messaging.NewBroker(stop)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertManager := tresorFake.NewFake(msgBroker)
-			fakeCertManager.Start(5*time.Second, stop)
+			fakeCertManager := tresorFake.NewFake(msgBroker, 5*time.Second)
 
 			c := client{
 				kubeClient:   fakeClient,
