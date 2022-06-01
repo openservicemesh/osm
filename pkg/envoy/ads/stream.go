@@ -335,7 +335,7 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
 	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>.<namespace>.<trust-domain>
 	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
-	if len(chunks) < 3 {
+	if len(chunks) < 4 {
 		return "", uuid.UUID{}, "", errInvalidCertificateCN
 	}
 	proxyUUID, err := uuid.Parse(chunks[0])
@@ -343,6 +343,15 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, u
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingXDSCertCN)).
 			Msgf("Error parsing %s into uuid.UUID", chunks[0])
 		return "", uuid.UUID{}, "", err
+	}
+
+	switch {
+	case chunks[1] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[2] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[3] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
 	}
 
 	return envoy.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil

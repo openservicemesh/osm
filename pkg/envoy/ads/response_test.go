@@ -114,7 +114,7 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
-		mc.GetKubeController().(*k8s.MockController).EXPECT().GetPodForProxy(proxy).Return(&pod, nil).AnyTimes()
+		mc.GetKubeController().(*k8s.MockController).EXPECT().GetPodForProxy(proxy).Return(pod, nil).AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
