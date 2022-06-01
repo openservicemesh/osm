@@ -467,9 +467,9 @@ func TestListEndpointsForIdentity(t *testing.T) {
 					podIps = append(podIps, corev1.PodIP{IP: ep.IP.String()})
 				}
 				pod.Status.PodIPs = podIps
-				_, err := kubeClient.CoreV1().Pods(sa.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+				_, err := kubeClient.CoreV1().Pods(sa.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 				assert.Nil(err)
-				pods = append(pods, &pod)
+				pods = append(pods, pod)
 			}
 			mockKubeController.EXPECT().ListPods().Return(pods).AnyTimes()
 

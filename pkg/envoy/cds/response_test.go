@@ -116,7 +116,7 @@ func TestNewResponse(t *testing.T) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
+	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&newPod1, nil)
@@ -456,7 +456,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
 		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 	})
-	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&pod, nil)
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
@@ -493,7 +493,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
 		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 	})
-	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(&pod, nil)
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)

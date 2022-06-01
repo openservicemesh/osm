@@ -45,7 +45,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					constants.AppLabel:               tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -131,7 +131,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{newPod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -221,7 +221,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					},
 				},
 			}, nil).Times(1)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(2))
 
 			actualNames := []string{actualSvcs[0].Name, actualSvcs[1].Name}
@@ -240,7 +240,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 
@@ -263,7 +263,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 	})

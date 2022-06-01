@@ -192,9 +192,9 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 					}
 					pod.Status.PodIPs = podIps
 					pod.Spec.ServiceAccountName = sa.Name
-					_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+					_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 					assert.Nil(err)
-					pods = append(pods, &pod)
+					pods = append(pods, pod)
 				}
 			}
 			mockKubeController.EXPECT().ListPods().Return(pods).AnyTimes()

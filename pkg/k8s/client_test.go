@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -1033,12 +1032,8 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 
 func TestGetPodForProxy(t *testing.T) {
 	assert := tassert.New(t)
-	kubeClient := fake.NewSimpleClientset()
 	stop := make(chan struct{})
-	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, messaging.NewBroker(nil))
-	assert.Nil(err)
-
-	ctx := context.Background()
+	defer close(stop)
 
 	proxyUUID := uuid.New()
 	someOtherEnvoyUID := uuid.New()
@@ -1052,23 +1047,17 @@ func TestGetPodForProxy(t *testing.T) {
 		constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID.String(),
 	}
 
-	newPod0 := tests.NewPodFixture(namespace, "pod-0", tests.BookstoreServiceAccountName, someOthePodLabels)
-	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod0, metav1.CreateOptions{})
-	assert.NoError(err)
+	pod := tests.NewPodFixture(namespace, "pod-1", tests.BookstoreServiceAccountName, podlabels)
+	kubeClient := fake.NewSimpleClientset(
+		monitoredNS(namespace),
+		monitoredNS("bad-namespace"),
+		tests.NewPodFixture(namespace, "pod-0", tests.BookstoreServiceAccountName, someOthePodLabels),
+		pod,
+		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
+	)
 
-	newPod1 := tests.NewPodFixture(namespace, "pod-1", tests.BookstoreServiceAccountName, podlabels)
-	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod1, metav1.CreateOptions{})
-	assert.NoError(err)
-
-	newPod2 := tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels)
-	_, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, &newPod2, metav1.CreateOptions{})
-	assert.NoError(err)
-
-	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, monitoredNS(namespace), metav1.CreateOptions{})
-	assert.NoError(err)
-
-	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, monitoredNS("bad-namespace"), metav1.CreateOptions{})
-	assert.NoError(err)
+	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, messaging.NewBroker(nil))
+	assert.Nil(err)
 
 	testCases := []struct {
 		name  string
@@ -1079,26 +1068,26 @@ func TestGetPodForProxy(t *testing.T) {
 		{
 			name:  "fails when UUID does not match",
 			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil),
-			err:   ErrDidNotFindPodForUUID,
+			err:   errDidNotFindPodForUUID,
 		},
 		{
 			name:  "fails when service account does not match certificate",
 			proxy: &envoy.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
-			err:   ErrServiceAccountDoesNotMatchProxy,
+			err:   errServiceAccountDoesNotMatchProxy,
 		},
 		{
 			name:  "2 pods with same uuid",
 			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil),
-			err:   ErrMoreThanOnePodForUUID,
+			err:   errMoreThanOnePodForUUID,
 		},
 		{
 			name:  "fails when namespace does not match certificate",
 			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil),
-			err:   ErrNamespaceDoesNotMatchProxy,
+			err:   errNamespaceDoesNotMatchProxy,
 		},
 		{
 			name:  "works as expected",
-			pod:   &newPod1,
+			pod:   pod,
 			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil),
 		},
 	}

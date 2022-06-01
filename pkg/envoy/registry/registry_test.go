@@ -14,7 +14,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry(nil, nil)
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
 
-	Context("Proxy is valid", func() {
+	It("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
 	})
 

@@ -30,20 +30,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-var (
-	// ErrMoreThanOnePodForUUID is an error for when OSM finds more than one pod for a given xDS certificate. There should always be exactly one Pod for a given xDS certificate.
-	ErrMoreThanOnePodForUUID = errors.New("found more than one pod for xDS uuid")
-
-	// ErrDidNotFindPodForUUID is an error for when OSM cannot not find a pod for the given xDS certificate.
-	ErrDidNotFindPodForUUID = errors.New("did not find pod for uuid")
-
-	// ErrServiceAccountDoesNotMatchProxy is an error for when the service account of a Pod does not match the xDS certificate.
-	ErrServiceAccountDoesNotMatchProxy = errors.New("service account does not match proxy")
-
-	// ErrNamespaceDoesNotMatchProxy is an error for when the namespace of the Pod does not match the xDS certificate.
-	ErrNamespaceDoesNotMatchProxy = errors.New("namespace does not match proxy")
-)
-
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
 func NewKubernetesController(kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, meshName string,
 	stop <-chan struct{}, msgBroker *messaging.Broker, selectInformers ...InformerKey) (Controller, error) {
@@ -470,7 +456,7 @@ func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
 			Msgf("Did not find Pod with label %s = %s in namespace %s",
 				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
-		return nil, ErrDidNotFindPodForUUID
+		return nil, errDidNotFindPodForUUID
 	}
 
 	// Each pod is assigned a unique UUID at the time of sidecar injection.
@@ -482,25 +468,27 @@ func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
 			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
 				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
-		return nil, ErrMoreThanOnePodForUUID
+		return nil, errMoreThanOnePodForUUID
 	}
 
 	pod := pods[0]
 	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, proxyUUID)
 
 	if pod.Namespace != svcAccount.Namespace {
-		log.Warn().Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
-			pod.ObjectMeta.UID, pod.Namespace, svcAccount.Namespace)
-		return nil, ErrNamespaceDoesNotMatchProxy
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
+				pod.ObjectMeta.UID, pod.Namespace, svcAccount.Namespace)
+		return nil, errNamespaceDoesNotMatchProxy
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
 	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
 	if pod.Spec.ServiceAccountName != svcAccount.Name {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
-		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
-			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, svcAccount)
-		return nil, ErrServiceAccountDoesNotMatchProxy
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
+				pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, svcAccount)
+		return nil, errServiceAccountDoesNotMatchProxy
 	}
 
 	return &pod, nil

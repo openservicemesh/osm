@@ -106,5 +106,6 @@ func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.EnvoyUniqueIDLabelName)
 	}
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.cluster.local", proxyUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)), nil
+	cn := envoy.NewXDSCertCommonName(proxyUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
+	return cn, nil
 }

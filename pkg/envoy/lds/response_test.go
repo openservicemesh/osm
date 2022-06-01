@@ -42,7 +42,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{}); err != nil {
 		return nil, nil, err
 	}
 
@@ -62,7 +62,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil), &newPod1, nil
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil), newPod1, nil
 }
 
 func TestNewResponse(t *testing.T) {
