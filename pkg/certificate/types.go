@@ -80,9 +80,9 @@ type Manager struct {
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
 
-	mu        sync.RWMutex // mu syncrhonizes acces to the below resources.
-	keyIssuer *issuer
-	pubIssuer *issuer // empty if there is no additional public cert issuer.
+	mu               sync.RWMutex // mu syncrhonizes acces to the below resources.
+	signingIssuer    *issuer
+	validatingIssuer *issuer // empty if there is no additional public cert issuer.
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.

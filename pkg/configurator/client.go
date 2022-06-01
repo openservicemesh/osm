@@ -72,12 +72,12 @@ func newConfigurator(configClient configClientset.Interface, stop <-chan struct{
 	informerCollection.meshConfig.AddEventHandler(k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
 	informerCollection.meshConfig.AddEventHandler(c.metricsHandler())
 
-	meshRootCertifictaeEventTypes := k8s.EventTypes{
+	meshRootCertificateEventTypes := k8s.EventTypes{
 		Add:    announcements.MeshRootCertificateAdded,
 		Update: announcements.MeshRootCertificateUpdated,
 		Delete: announcements.MeshRootCertificateDeleted,
 	}
-	informerCollection.meshRootCertificate.AddEventHandler(k8s.GetEventHandlerFuncs(nil, meshRootCertifictaeEventTypes, msgBroker))
+	informerCollection.meshRootCertificate.AddEventHandler(k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
 
 	err := c.run(stop)
 	if err != nil {

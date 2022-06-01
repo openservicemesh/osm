@@ -117,8 +117,8 @@ func TestIssueCertificate(t *testing.T) {
 	t.Run("single key issuer", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
-			pubIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
+			validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
 		}
 		// single keyIssuer, not cached
 		cert1, err := cm.IssueCertificate(cn, time.Minute)
@@ -135,8 +135,8 @@ func TestIssueCertificate(t *testing.T) {
 
 		// single key issuer, old version cached
 		// TODO: could use informer logic to test mrc updates instead of just manually making changes.
-		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
-		cm.pubIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
+		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
+		cm.validatingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
 
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
@@ -150,8 +150,8 @@ func TestIssueCertificate(t *testing.T) {
 	t.Run("2 issuers", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
-			pubIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
+			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}},
 		}
 
 		// Not cached
@@ -168,7 +168,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(cert1, cert2)
 
 		// cached, but pubIssuer is removed
-		cm.pubIssuer = cm.keyIssuer
+		cm.validatingIssuer = cm.signingIssuer
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert1, cert3)
@@ -177,7 +177,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(cert3.GetIssuingCA(), pem.RootCertificate("id1"))
 
 		// cached, but keyIssuer is old
-		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
+		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
 		cert4, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
@@ -186,7 +186,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(cert4.GetIssuingCA(), pem.RootCertificate("id2id1"))
 
 		// cached, but pubIssuer is old
-		cm.pubIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
+		cm.validatingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
 		cert5, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
@@ -198,8 +198,8 @@ func TestIssueCertificate(t *testing.T) {
 	t.Run("bad issuers", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}},
-			pubIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}},
+			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}},
 		}
 
 		// bad private key
@@ -208,19 +208,19 @@ func TestIssueCertificate(t *testing.T) {
 		assert.EqualError(err, "id1 failed")
 
 		// bad public key
-		cm.keyIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
+		cm.signingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
 		cert, err = cm.IssueCertificate(cn, time.Minute)
 		assert.Nil(cert)
 		assert.EqualError(err, "id2 failed")
 
 		// insert a cached cert
-		cm.pubIssuer = cm.keyIssuer
+		cm.validatingIssuer = cm.signingIssuer
 		cert, err = cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert)
 
 		// bad public key on an existing cached cert, because the pubIssuer is new
-		cm.pubIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}}
+		cm.validatingIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}}
 		cert, err = cm.IssueCertificate(cn, time.Minute)
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
