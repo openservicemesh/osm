@@ -39,6 +39,7 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 		Expiration: time.Now().Add(validityPeriod),
 		// simply used to distinguish the private/public key from other issuers
 		IssuingCA:  pem.RootCertificate(i.id),
+		TrustedCAs: pem.RootCertificate(i.id),
 		PrivateKey: pem.PrivateKey(i.id),
 	}, nil
 }

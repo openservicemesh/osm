@@ -238,6 +238,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		CertChain:  []byte("foo"),
 		PrivateKey: []byte("foo"),
 		IssuingCA:  []byte("foo"),
+		TrustedCAs: []byte("foo"),
 	}
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests

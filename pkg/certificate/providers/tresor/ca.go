@@ -75,6 +75,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		SerialNumber: certificate.SerialNumber(serialNumber.String()),
 		CertChain:    pemCert,
 		IssuingCA:    pem.RootCertificate(pemCert),
+		TrustedCAs:   pem.RootCertificate(pemCert),
 		PrivateKey:   pemKey,
 		Expiration:   template.NotAfter,
 	}, nil

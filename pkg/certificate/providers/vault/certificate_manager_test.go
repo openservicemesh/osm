@@ -40,6 +40,7 @@ var _ = Describe("Test client helpers", func() {
 
 			expected := &certificate.Certificate{
 				IssuingCA:    pem.RootCertificate("zz"),
+				TrustedCAs:   pem.RootCertificate("zz"),
 				PrivateKey:   pem.PrivateKey("yy"),
 				CertChain:    pem.Certificate("xx"),
 				Expiration:   expiration,

@@ -29,7 +29,7 @@ func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
 	buf := make([]byte, 0, len(root)+len(c.IssuingCA))
 	buf = append(buf, c.IssuingCA...)
 	buf = append(buf, root...)
-	cert.trustedCAs = buf
+	cert.TrustedCAs = buf
 	return &cert
 }
 
@@ -66,7 +66,7 @@ func (c *Certificate) GetIssuingCA() pem.RootCertificate {
 // GetTrustedCAs returns the PEM-encoded trust context
 // for this certificates holder
 func (c *Certificate) GetTrustedCAs() pem.RootCertificate {
-	return c.trustedCAs
+	return c.TrustedCAs
 }
 
 // ShouldRotate determines whether a certificate should be rotated.
@@ -96,6 +96,7 @@ func NewFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, e
 		SerialNumber: SerialNumber(x509Cert.SerialNumber.String()),
 		CertChain:    pemCert,
 		IssuingCA:    pem.RootCertificate(pemCert),
+		TrustedCAs:   pem.RootCertificate(pemCert),
 		PrivateKey:   pemKey,
 		Expiration:   x509Cert.NotAfter,
 	}, nil

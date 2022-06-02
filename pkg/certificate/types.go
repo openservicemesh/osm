@@ -58,7 +58,7 @@ type Certificate struct {
 
 	// The trust context of this certificate's recipient
 	// Includes both issuing CA and validating CA (if applicable)
-	trustedCAs pem.RootCertificate
+	TrustedCAs pem.RootCertificate
 
 	signingIssuerID    string
 	validatingIssuerID string

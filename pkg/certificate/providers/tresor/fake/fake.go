@@ -48,6 +48,7 @@ func NewFakeCertificate() *certificate.Certificate {
 		PrivateKey:   pem.PrivateKey("yy"),
 		CertChain:    pem.Certificate("xx"),
 		IssuingCA:    pem.RootCertificate("xx"),
+		TrustedCAs:   pem.RootCertificate("xx"),
 		Expiration:   time.Now(),
 		CommonName:   "foo.bar.co.uk",
 		SerialNumber: "-the-certificate-serial-number-",
