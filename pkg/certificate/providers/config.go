@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -30,7 +29,7 @@ const (
 
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
 // TODO(4502): Use an informer behind a feature flag.
-func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
+func NewCertificateManager(kubeClient kubernetes.Interface, certmanagerClient cmversionedclient.Interface, cfg configurator.Configurator,
 	providerNamespace string, options Options, msgBroker *messaging.Broker) (*certificate.Manager, error) {
 	if err := options.Validate(); err != nil {
 		return nil, err
@@ -40,9 +39,9 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 	// provider generator.
 	mrcClient := &MRCCompatClient{
 		MRCProviderGenerator: MRCProviderGenerator{
-			kubeClient: kubeClient,
-			kubeConfig: kubeConfig,
-			KeyBitSize: cfg.GetCertKeyBitSize(),
+			kubeClient:        kubeClient,
+			certmanagerClient: certmanagerClient,
+			KeyBitSize:        cfg.GetCertKeyBitSize(),
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -161,13 +160,9 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
 func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
 	provider := mrc.Spec.Provider.CertManager
-	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
-	if err != nil {
-		return nil, "", fmt.Errorf("Failed to build cert-manager client set: %s", err)
-	}
 
 	cmClient, err := certmanager.New(
-		client,
+		c.certmanagerClient,
 		mrc.Namespace,
 		cmmeta.ObjectReference{
 			Name:  provider.IssuerName,

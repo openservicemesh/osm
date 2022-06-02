@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -31,7 +33,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 		// params
 		kubeClient        kubernetes.Interface
-		kubeConfig        *rest.Config
+		certmanagerClient bool
 		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
@@ -56,10 +58,10 @@ func TestGetCertificateManager(t *testing.T) {
 		{
 			name:              "certManager as the certificate manager",
 			kubeClient:        fake.NewSimpleClientset(),
-			kubeConfig:        &rest.Config{},
+			certmanagerClient: true,
 			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
-			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "test-kind", IssuerGroup: "test-group"},
+			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
 			expectError:       false,
 		},
 		{
@@ -94,7 +96,7 @@ func TestGetCertificateManager(t *testing.T) {
 			name: "Invalid cert manager options",
 			options: CertManagerOptions{
 				IssuerKind:  "test-kind",
-				IssuerGroup: "test-group",
+				IssuerGroup: "cert-manager.io",
 			},
 			cfg:         mockConfigurator,
 			expectError: true,
@@ -105,9 +107,30 @@ func TestGetCertificateManager(t *testing.T) {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			manager, err := NewCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
-			assert.Equal(tc.expectError, manager == nil)
-			assert.Equal(tc.expectError, err != nil)
+			var objects []runtime.Object
+			if opt, ok := tc.options.(CertManagerOptions); ok && tc.certmanagerClient {
+				cmIssuer := &certmanager.ClusterIssuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: opt.IssuerName,
+					},
+					Spec: certmanager.IssuerSpec{
+						IssuerConfig: certmanager.IssuerConfig{
+							SelfSigned: &certmanager.SelfSignedIssuer{},
+						},
+					},
+				}
+				objects = append(objects, cmIssuer)
+			}
+			cmClient := cmfakeclient.NewSimpleClientset(objects...)
+
+			manager, err := NewCertificateManager(tc.kubeClient, cmClient, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
+			if tc.expectError {
+				assert.Empty(manager)
+				assert.Error(err)
+			} else {
+				assert.NotEmpty(manager)
+				assert.NoError(err)
+			}
 
 			if opt, ok := tc.options.(TresorOptions); ok && !tc.expectError {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
