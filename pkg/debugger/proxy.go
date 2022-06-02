@@ -6,71 +6,91 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 const (
-	specificProxyQueryKey = "proxy"
-	proxyConfigQueryKey   = "cfg"
+	uuidQueryKey        = "uuid"
+	proxyConfigQueryKey = "cfg"
 )
 
 func (ds DebugConfig) getProxies() http.Handler {
-	// This function is needed to convert the list of connected proxies to
-	// the type (map) required by the printProxies function.
-	listConnected := func() map[certificate.CommonName]time.Time {
-		proxies := make(map[certificate.CommonName]time.Time)
-		for _, proxy := range ds.proxyRegistry.ListConnectedProxies() {
-			proxies[proxy.GetCertificateCommonName()] = (*proxy).GetConnectedAt()
-		}
-		return proxies
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		if proxyConfigDump, ok := r.URL.Query()[proxyConfigQueryKey]; ok {
-			ds.getConfigDump(certificate.CommonName(proxyConfigDump[0]), w)
-		} else if specificProxy, ok := r.URL.Query()[specificProxyQueryKey]; ok {
-			ds.getProxy(certificate.CommonName(specificProxy[0]), w)
-		} else {
-			printProxies(w, listConnected(), "Connected")
+		proxyConfigDump := r.URL.Query()[proxyConfigQueryKey]
+		uuid := r.URL.Query()[uuidQueryKey]
+
+		switch {
+		case len(uuid) == 0:
+			ds.printProxies(w)
+		case len(proxyConfigDump) > 0:
+			ds.getConfigDump(uuid[0], w)
+		default:
+			ds.getProxy(uuid[0], w)
 		}
 	})
 }
 
-func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time.Time, category string) {
-	var commonNames []string
-	for cn := range proxies {
-		commonNames = append(commonNames, cn.String())
+func (ds DebugConfig) printProxies(w http.ResponseWriter) {
+	// This function is needed to convert the list of connected proxies to
+	// the type (map) required by the printProxies function.
+	proxyMap := ds.proxyRegistry.ListConnectedProxies()
+	proxies := make([]*envoy.Proxy, 0, len(proxyMap))
+	for _, proxy := range proxyMap {
+		proxies = append(proxies, proxy)
 	}
 
-	sort.Strings(commonNames)
+	sort.Slice(proxies, func(i, j int) bool {
+		return proxies[i].Identity.String() < proxies[j].Identity.String()
+	})
 
-	_, _ = fmt.Fprintf(w, "<h1>%s Proxies (%d):</h1>", category, len(proxies))
+	_, _ = fmt.Fprintf(w, "<h1>Connected Proxies (%d):</h1>", len(proxies))
 	_, _ = fmt.Fprint(w, `<table>`)
-	_, _ = fmt.Fprint(w, "<tr><td>#</td><td>Envoy's certificate CN</td><td>Connected At</td><td>How long ago</td><td>tools</td></tr>")
-	for idx, cn := range commonNames {
-		ts := proxies[certificate.CommonName(cn)]
-		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="/debug/proxy?%s=%s">certs</a></td><td><a href="/debug/proxy?%s=%s">cfg</a></td></tr>`,
-			idx, cn, ts, time.Since(ts), specificProxyQueryKey, cn, proxyConfigQueryKey, cn)
+	_, _ = fmt.Fprint(w, "<tr><td>#</td><td>Envoy's Service Identity</td><td>Envoy's UUID</td><td>Connected At</td><td>How long ago</td><td>tools</td></tr>")
+	for idx, proxy := range proxies {
+		ts := proxy.GetConnectedAt()
+		proxyURL := fmt.Sprintf("/debug/proxy?%s=%s", uuidQueryKey, proxy.UUID)
+		configDumpURL := fmt.Sprintf("%s&%s=%t", proxyURL, proxyConfigQueryKey, true)
+		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="%s">certs</a></td><td><a href="%s">cfg</a></td></tr>`,
+			idx+1, proxy.Identity, ts, time.Since(ts), proxyURL, configDumpURL)
 	}
 	_, _ = fmt.Fprint(w, `</table>`)
 }
 
-func (ds DebugConfig) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := envoy.GetPodFromCertificate(cn, ds.kubeController)
+func (ds DebugConfig) getConfigDump(uuid string, w http.ResponseWriter) {
+	proxy, ok := ds.proxyRegistry.GetConnectedProxy(uuid)
+	if !ok {
+		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
+		log.Error().Msg(msg)
+		http.Error(w, msg, http.StatusNotFound)
+		return
+	}
+	pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), ds.kubeController)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
+		msg := fmt.Sprintf("Error getting Pod from certificate with CN=%s", proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msg(msg)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	envoyConfig := ds.getEnvoyConfig(pod, "config_dump")
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }
 
-func (ds DebugConfig) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := envoy.GetPodFromCertificate(cn, ds.kubeController)
+func (ds DebugConfig) getProxy(uuid string, w http.ResponseWriter) {
+	proxy, ok := ds.proxyRegistry.GetConnectedProxy(uuid)
+	if !ok {
+		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
+		log.Error().Msg(msg)
+		http.Error(w, msg, http.StatusNotFound)
+		return
+	}
+	pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), ds.kubeController)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
+		msg := fmt.Sprintf("Error getting Pod from certificate with CN=%s", proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msg(msg)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	envoyConfig := ds.getEnvoyConfig(pod, "certs")
