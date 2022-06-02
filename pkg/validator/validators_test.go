@@ -786,6 +786,181 @@ func TestIngressBackendValidator(t *testing.T) {
 	}
 }
 
+func TestRetryValidator(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expResp   *admissionv1.AdmissionResponse
+		expErrStr string
+	}{
+		{
+			name: "valid retry",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Retry",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Retry",
+						"spec": {
+							"source": {
+								"kind": "ServiceAccount",
+								"name": "test",
+								"namespace": "testns"
+							},
+							"destinations": [
+								{
+									"kind": "Service",
+									"name": "testdest",
+									"namespace": "testns"
+								}
+							],
+							"retryPolicy": {
+								"retryOn": "5xx"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "invalid - source as not ServiceAccount",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Retry",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Retry",
+						"spec": {
+							"source": {
+								"kind": "Service",
+								"name": "test",
+								"namespace": "testns"
+							},
+							"destinations": [
+								{
+									"kind": "Service",
+									"name": "testdest",
+									"namespace": "testns"
+								}
+							],
+							"retryPolicy": {
+								"retryOn": "5xx"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Retry source test in namespace testns is a Service - must be a ServiceAccount",
+		},
+		{
+			name: "invalid destination as not Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Retry",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Retry",
+						"spec": {
+							"source": {
+								"kind": "ServiceAccount",
+								"name": "test",
+								"namespace": "testns"
+							},
+							"destinations": [
+								{
+									"kind": "ServiceAccount",
+									"name": "testdest",
+									"namespace": "testns"
+								}
+							],
+							"retryPolicy": {
+								"retryOn": "5xx"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Retry destination testdest in namespace testns is a ServiceAccount - must be a Service",
+		},
+		{
+			name: "invalid duplicate destination",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "Retry",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "Retry",
+						"spec": {
+							"source": {
+								"kind": "ServiceAccount",
+								"name": "test",
+								"namespace": "testns"
+							},
+							"destinations": [
+								{
+									"kind": "Service",
+									"name": "testdest",
+									"namespace": "testns"
+								},
+								{
+									"kind": "Service",
+									"name": "testdest",
+									"namespace": "testns"
+								}
+							],
+							"retryPolicy": {
+								"retryOn": "5xx"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Duplicate destinations - repeated service testdest in namespace testns",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			resp, err := retryValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
+
 func TestEgressValidator(t *testing.T) {
 	testCases := []struct {
 		name      string

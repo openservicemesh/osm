@@ -20,7 +20,7 @@ var (
 		Rule: admissionregv1.Rule{
 			APIGroups:   []string{"policy.openservicemesh.io"},
 			APIVersions: []string{"v1alpha1"},
-			Resources:   []string{"ingressbackends", "egresses"},
+			Resources:   []string{"ingressbackends", "egresses", "retries"},
 		},
 	}
 

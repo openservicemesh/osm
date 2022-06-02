@@ -287,20 +287,16 @@ func buildWeightedCluster(weightedClusters mapset.Set) *xds_route.WeightedCluste
 	return &wc
 }
 
-// TODO: Add validation webhook for retry policy
-// Remove checks when validation webhook is implemented
 func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	if retry == nil {
 		return nil
 	}
 
 	rp := &xds_route.RetryPolicy{}
-
 	rp.RetryOn = retry.RetryOn
+
 	// NumRetries default is set to 1
-	if retry.NumRetries != nil {
-		rp.NumRetries = wrapperspb.UInt32(*retry.NumRetries)
-	}
+	rp.NumRetries = wrapperspb.UInt32(*retry.NumRetries)
 
 	// PerTryTimeout default uses the global route timeout
 	// Disabling route config timeout does not affect perTryTimeout
@@ -309,10 +305,8 @@ func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	}
 
 	// RetryBackOff default base interval is 25 ms
-	if retry.RetryBackoffBaseInterval != nil {
-		rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
-			BaseInterval: durationpb.New(retry.RetryBackoffBaseInterval.Duration),
-		}
+	rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
+		BaseInterval: durationpb.New(retry.RetryBackoffBaseInterval.Duration),
 	}
 
 	return rp

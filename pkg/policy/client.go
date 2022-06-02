@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// kindSvcAccount is the ServiceAccount kind
-	kindSvcAccount = "ServiceAccount"
+	// KindSvcAccount is the ServiceAccount kind
+	KindSvcAccount = "ServiceAccount"
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
@@ -140,7 +140,7 @@ func (c client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAc
 		}
 
 		for _, sourceSpec := range egressPolicy.Spec.Sources {
-			if sourceSpec.Kind == kindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
+			if sourceSpec.Kind == KindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
 				policies = append(policies, egressPolicy)
 			}
 		}
@@ -178,7 +178,8 @@ func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1
 
 	for _, retryInterface := range c.caches.retry.List() {
 		retry := retryInterface.(*policyV1alpha1.Retry)
-		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
+
+		if retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
 			retries = append(retries, retry)
 		}
 	}

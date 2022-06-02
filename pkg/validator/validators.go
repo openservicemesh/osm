@@ -7,15 +7,18 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -181,6 +184,47 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			return nil, errors.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
 				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
 		}
+	}
+
+	return nil, nil
+}
+
+// retryValidator validates the Retry custom resource
+func retryValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	retryCRD := &policyv1alpha1.Retry{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(retryCRD); err != nil {
+		return nil, err
+	}
+
+	dests := mapset.NewSet()
+	for _, dest := range retryCRD.Spec.Destinations {
+		// check dest is a Service
+		if dest.Kind != v1alpha1.KindService {
+			return nil, errors.Errorf("Retry destination %s in namespace %s is a %s - must be a Service", dest.Name, dest.Namespace, dest.Kind)
+		}
+		// checks if duplicate destinations occur in the same retry policy
+		if unique := dests.Add(service.MeshService{Name: dest.Name, Namespace: dest.Namespace}); !unique {
+			return nil, errors.Errorf("Duplicate destinations - repeated service %s in namespace %s", dest.Name, dest.Namespace)
+		}
+	}
+
+	// check source is a Service Account
+	source := retryCRD.Spec.Source
+	if source.Kind != policy.KindSvcAccount {
+		return nil, errors.Errorf("Retry source %s in namespace %s is a %s - must be a ServiceAccount", source.Name, source.Namespace, source.Kind)
+	}
+
+	retryPolicy := retryCRD.Spec.RetryPolicy
+
+	var defaultNumRetries uint32 = 1
+	defaultBackoffBaseInterval := metav1.Duration{Duration: 25 * time.Millisecond}
+
+	// set defaults if nil
+	if retryPolicy.NumRetries == nil {
+		retryPolicy.NumRetries = &defaultNumRetries
+	}
+	if retryPolicy.RetryBackoffBaseInterval == nil {
+		retryPolicy.PerTryTimeout = &defaultBackoffBaseInterval
 	}
 
 	return nil, nil

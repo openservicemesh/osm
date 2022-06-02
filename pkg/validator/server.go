@@ -52,6 +52,7 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 	v := &validatingWebhookServer{
 		validators: map[string]validateFunc{
 			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String():         kv.ingressBackendValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("Retry").String():                  retryValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
 			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,

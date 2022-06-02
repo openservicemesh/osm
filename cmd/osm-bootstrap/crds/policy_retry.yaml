@@ -86,9 +86,6 @@ spec:
                   type: object
                   required:
                     - retryOn
-                    - perTryTimeout
-                    - numRetries
-                    - retryBackoffBaseInterval
                   properties:
                     retryOn:
                       description: Policies to retry on (delimited by commas).
