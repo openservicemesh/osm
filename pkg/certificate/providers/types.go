@@ -2,8 +2,8 @@
 package providers
 
 import (
-	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
@@ -73,8 +73,8 @@ type MRCCompatClient struct {
 
 // MRCProviderGenerator knows how to convert a given MRC to its appropriate provider.
 type MRCProviderGenerator struct {
-	kubeClient        kubernetes.Interface
-	certmanagerClient cmversionedclient.Interface // used to generate a CertificateManager client.
+	kubeClient kubernetes.Interface
+	kubeConfig *rest.Config // used to generate a CertificateManager client.
 
 	// TODO(#4502): move these to the compat client once we have added these fields to the MRC.
 	KeyBitSize int

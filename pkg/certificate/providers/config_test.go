@@ -8,12 +8,14 @@ import (
 
 	"github.com/golang/mock/gomock"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -33,7 +35,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 		// params
 		kubeClient        kubernetes.Interface
-		certmanagerClient bool
+		restConfig        *rest.Config
 		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
@@ -58,7 +60,7 @@ func TestGetCertificateManager(t *testing.T) {
 		{
 			name:              "certManager as the certificate manager",
 			kubeClient:        fake.NewSimpleClientset(),
-			certmanagerClient: true,
+			restConfig:        &rest.Config{},
 			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
 			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
@@ -108,7 +110,8 @@ func TestGetCertificateManager(t *testing.T) {
 			assert := tassert.New(t)
 
 			var objects []runtime.Object
-			if opt, ok := tc.options.(CertManagerOptions); ok && tc.certmanagerClient {
+
+			if opt, ok := tc.options.(CertManagerOptions); ok && tc.restConfig != nil {
 				cmIssuer := &certmanager.ClusterIssuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: opt.IssuerName,
@@ -122,8 +125,11 @@ func TestGetCertificateManager(t *testing.T) {
 				objects = append(objects, cmIssuer)
 			}
 			cmClient := cmfakeclient.NewSimpleClientset(objects...)
+			getCertManagerConfig = func(c *rest.Config) cmclient.Interface {
+				return cmClient
+			}
 
-			manager, err := NewCertificateManager(tc.kubeClient, cmClient, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
+			manager, err := NewCertificateManager(tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

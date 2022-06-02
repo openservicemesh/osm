@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -197,9 +196,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 
-	cmClient := cmclient.NewForConfigOrDie(kubeConfig)
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(kubeClient, cmClient, cfg, osmNamespace,
+	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
 		certOpts, msgBroker)
 
 	if err != nil {

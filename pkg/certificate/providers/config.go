@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -27,9 +28,13 @@ const (
 	rootCertOrganization = "Open Service Mesh"
 )
 
+var getCertManagerConfig func(*rest.Config) cmclient.Interface = func(r *rest.Config) cmclient.Interface {
+	return cmclient.NewForConfigOrDie(r)
+}
+
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
 // TODO(4502): Use an informer behind a feature flag.
-func NewCertificateManager(kubeClient kubernetes.Interface, certmanagerClient cmversionedclient.Interface, cfg configurator.Configurator,
+func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
 	providerNamespace string, options Options, msgBroker *messaging.Broker) (*certificate.Manager, error) {
 	if err := options.Validate(); err != nil {
 		return nil, err
@@ -39,9 +44,9 @@ func NewCertificateManager(kubeClient kubernetes.Interface, certmanagerClient cm
 	// provider generator.
 	mrcClient := &MRCCompatClient{
 		MRCProviderGenerator: MRCProviderGenerator{
-			kubeClient:        kubeClient,
-			certmanagerClient: certmanagerClient,
-			KeyBitSize:        cfg.GetCertKeyBitSize(),
+			kubeClient: kubeClient,
+			kubeConfig: kubeConfig,
+			KeyBitSize: cfg.GetCertKeyBitSize(),
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -162,7 +167,7 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 	provider := mrc.Spec.Provider.CertManager
 
 	cmClient, err := certmanager.New(
-		c.certmanagerClient,
+		getCertManagerConfig(c.kubeConfig),
 		mrc.Namespace,
 		cmmeta.ObjectReference{
 			Name:  provider.IssuerName,
