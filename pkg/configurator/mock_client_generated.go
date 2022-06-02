@@ -192,21 +192,6 @@ func (mr *MockConfiguratorMockRecorder) GetMeshConfigJSON() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfigJSON", reflect.TypeOf((*MockConfigurator)(nil).GetMeshConfigJSON))
 }
 
-// GetMeshRootCertificates mocks base method.
-func (m *MockConfigurator) GetMeshRootCertificates() ([]v1alpha2.MeshRootCertificate, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMeshRootCertificates")
-	ret0, _ := ret[0].([]v1alpha2.MeshRootCertificate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMeshRootCertificates indicates an expected call of GetMeshRootCertificates.
-func (mr *MockConfiguratorMockRecorder) GetMeshRootCertificates() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshRootCertificates", reflect.TypeOf((*MockConfigurator)(nil).GetMeshRootCertificates))
-}
-
 // GetOSMLogLevel mocks base method.
 func (m *MockConfigurator) GetOSMLogLevel() string {
 	m.ctrl.T.Helper()
