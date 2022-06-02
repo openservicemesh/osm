@@ -62,18 +62,14 @@ func (ds DebugConfig) getConfigDump(uuid string, w http.ResponseWriter) {
 	if proxy != nil {
 		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
 		log.Error().Msg(msg)
-		if _, err := w.Write([]byte(msg)); err != nil {
-			log.Error().Err(err).Msg("Error writing debugger response")
-		}
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
 		log.Error().Err(err).Msg(msg)
-		if _, err := w.Write([]byte(msg)); err != nil {
-			log.Error().Err(err).Msg("Error writing debugger response")
-		}
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -86,18 +82,14 @@ func (ds DebugConfig) getProxy(uuid string, w http.ResponseWriter) {
 	if proxy == nil {
 		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
 		log.Error().Msg(msg)
-		if _, err := w.Write([]byte(msg)); err != nil {
-			log.Error().Err(err).Msg("Error writing debugger response")
-		}
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
 		log.Error().Err(err).Msg(msg)
-		if _, err := w.Write([]byte(msg)); err != nil {
-			log.Error().Err(err).Msg("Error writing debugger response")
-		}
+		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
