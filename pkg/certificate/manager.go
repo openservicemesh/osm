@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -26,8 +27,16 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 
 	c := &issuer{Issuer: client, ID: clientID}
 
+	// get the CA by issuing a test certificate
+	cert, err := c.IssueCertificate("init-cert", 1*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing issuer: %w", err)
+	}
+
+	c.CertificateAuthority = cert.GetIssuingCA()
+
 	m := &Manager{
-		// The signingIssuer is the root certificate signing all newly issued certificates
+		// The signingIssuer is responsible for signing all newly issued certificates
 		// The validatingIssuer is the issuer that issued existing certificates.
 		// its underlying cert is still in the validating trust store
 		signingIssuer:               c,
@@ -115,23 +124,20 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 	m.mu.RUnlock()
 
 	start := time.Now()
-	if cert == nil || cert.keyIssuerID != signingIssuer.ID || cert.pubIssuerID != validatingIssuer.ID {
+	if cert == nil || cert.signingIssuerID != signingIssuer.ID || cert.validatingIssuerID != validatingIssuer.ID {
 		cert, err = signingIssuer.IssueCertificate(cn, validityPeriod)
 		if err != nil {
 			return nil, err
 		}
-		if validatingIssuer.ID != signingIssuer.ID {
-			pubCert, err := validatingIssuer.IssueCertificate(cn, validityPeriod)
-			if err != nil {
-				return nil, err
-			}
 
-			// FIX: We don't need to be merging CAs for service certs??
-			cert = cert.newMergedWithRoot(pubCert.GetIssuingCA())
+		// if we have different signing and validating issuers,
+		// create the cert's trust context
+		if validatingIssuer.ID != signingIssuer.ID {
+			cert = cert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
 		}
 
-		cert.keyIssuerID = signingIssuer.ID
-		cert.pubIssuerID = validatingIssuer.ID
+		cert.signingIssuerID = signingIssuer.ID
+		cert.validatingIssuerID = validatingIssuer.ID
 	}
 
 	m.cache.Store(cn, cert)

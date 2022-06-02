@@ -124,8 +124,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert1, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert1)
-		assert.Equal(cert1.keyIssuerID, "id1")
-		assert.Equal(cert1.pubIssuerID, "id1")
+		assert.Equal(cert1.signingIssuerID, "id1")
+		assert.Equal(cert1.validatingIssuerID, "id1")
 		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1"))
 
 		// single keyIssuer cached
@@ -141,8 +141,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert3)
-		assert.Equal(cert3.keyIssuerID, "id2")
-		assert.Equal(cert3.pubIssuerID, "id2")
+		assert.Equal(cert3.signingIssuerID, "id2")
+		assert.Equal(cert3.validatingIssuerID, "id2")
 		assert.NotEqual(cert2, cert3)
 		assert.Equal(cert3.GetIssuingCA(), pem.RootCertificate("id2"))
 	})
@@ -158,8 +158,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert1, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert1)
-		assert.Equal(cert1.keyIssuerID, "id1")
-		assert.Equal(cert1.pubIssuerID, "id2")
+		assert.Equal(cert1.signingIssuerID, "id1")
+		assert.Equal(cert1.validatingIssuerID, "id2")
 		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1id2"))
 
 		// cached
@@ -172,8 +172,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert1, cert3)
-		assert.Equal(cert3.keyIssuerID, "id1")
-		assert.Equal(cert3.pubIssuerID, "id1")
+		assert.Equal(cert3.signingIssuerID, "id1")
+		assert.Equal(cert3.validatingIssuerID, "id1")
 		assert.Equal(cert3.GetIssuingCA(), pem.RootCertificate("id1"))
 
 		// cached, but keyIssuer is old
@@ -181,8 +181,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert4, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
-		assert.Equal(cert4.keyIssuerID, "id2")
-		assert.Equal(cert4.pubIssuerID, "id1")
+		assert.Equal(cert4.signingIssuerID, "id2")
+		assert.Equal(cert4.validatingIssuerID, "id1")
 		assert.Equal(cert4.GetIssuingCA(), pem.RootCertificate("id2id1"))
 
 		// cached, but pubIssuer is old
@@ -190,8 +190,8 @@ func TestIssueCertificate(t *testing.T) {
 		cert5, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
-		assert.Equal(cert5.keyIssuerID, "id2")
-		assert.Equal(cert5.pubIssuerID, "id3")
+		assert.Equal(cert5.signingIssuerID, "id2")
+		assert.Equal(cert5.validatingIssuerID, "id3")
 		assert.Equal(cert5.GetIssuingCA(), pem.RootCertificate("id2id3"))
 	})
 

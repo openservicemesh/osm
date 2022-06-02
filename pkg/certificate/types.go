@@ -53,11 +53,15 @@ type Certificate struct {
 	CertChain  pem.Certificate
 	PrivateKey pem.PrivateKey
 
-	// Certificate authority signing this certificate
+	// Certificate Authority signing this certificate
 	IssuingCA pem.RootCertificate
 
-	keyIssuerID string
-	pubIssuerID string
+	// The trust context of this certificate's recipient
+	// Includes both issuing CA and validating CA (if applicable)
+	trustedCAs pem.RootCertificate
+
+	signingIssuerID    string
+	validatingIssuerID string
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
@@ -69,6 +73,8 @@ type Issuer interface {
 type issuer struct {
 	Issuer
 	ID string
+	// memoized once the first certificate is issued
+	CertificateAuthority pem.RootCertificate
 }
 
 // Manager represents all necessary information for the certificate managers.
@@ -80,9 +86,10 @@ type Manager struct {
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
 
-	mu               sync.RWMutex // mu syncrhonizes acces to the below resources.
-	signingIssuer    *issuer
-	validatingIssuer *issuer // empty if there is no additional public cert issuer.
+	mu            sync.RWMutex // mu syncrhonizes acces to the below resources.
+	signingIssuer *issuer
+	// equal to signingIssuer if there is no additional public cert issuer.
+	validatingIssuer *issuer
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.

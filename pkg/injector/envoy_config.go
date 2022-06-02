@@ -202,7 +202,7 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 			bootstrap.EnvoyBootstrapConfigFile:            configYAML,
 			bootstrap.EnvoyTLSCertificateSDSSecretFile:    tlsYamlContent,
 			bootstrap.EnvoyValidationContextSDSSecretFile: validationYamlContent,
-			bootstrap.EnvoyXDSCACertFile:                  cert.GetIssuingCA(),
+			bootstrap.EnvoyXDSCACertFile:                  cert.GetTrustedCAs(),
 			bootstrap.EnvoyXDSCertFile:                    cert.GetCertificateChain(),
 			bootstrap.EnvoyXDSKeyFile:                     cert.GetPrivateKey(),
 		},

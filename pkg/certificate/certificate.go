@@ -20,8 +20,8 @@ const (
 	noiseSeconds = 5
 )
 
-// mergeRoot will merge in the provided root CA for future calls to GetIssuingCA. It guarantees to not mutate
-// the underlying IssuingCA field. By doing so, we ensure that we don't need locks.
+// mergeRoot will merge in the provided root CA for future calls to GetTrustedCAs. It guarantees to not mutate
+// the underlying IssuingCA or trustedCAs fields. By doing so, we ensure that we don't need locks.
 // NOTE: this does not return a full copy, mutations to the other byte slices could cause data races.
 func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
 	cert := *c
@@ -29,7 +29,7 @@ func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
 	buf := make([]byte, 0, len(root)+len(c.IssuingCA))
 	buf = append(buf, c.IssuingCA...)
 	buf = append(buf, root...)
-	cert.IssuingCA = buf
+	cert.trustedCAs = buf
 	return &cert
 }
 
@@ -61,6 +61,12 @@ func (c *Certificate) GetPrivateKey() pem.PrivateKey {
 // GetIssuingCA returns the issuing CA of the certificate
 func (c *Certificate) GetIssuingCA() pem.RootCertificate {
 	return c.IssuingCA
+}
+
+// GetTrustedCAs returns the PEM-encoded trust context
+// for this certificates holder
+func (c *Certificate) GetTrustedCAs() pem.RootCertificate {
+	return c.trustedCAs
 }
 
 // ShouldRotate determines whether a certificate should be rotated.

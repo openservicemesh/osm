@@ -5,18 +5,15 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/pkg/errors"
 )
 
 type MRCClientImpl struct {
-	configurator configurator.Configurator
-	msgBroker    *messaging.Broker
 	MRCProviderGenerator
 }
 
 func (m *MRCClientImpl) List() ([]v1alpha2.MeshRootCertificate, error) {
-	return m.configurator.GetMeshRootCertificates()
+	return []v1alpha2.MeshRootCertificate{}, errors.New("not implemented")
 }
 
 func (m *MRCClientImpl) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
