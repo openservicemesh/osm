@@ -131,6 +131,7 @@ type InstallOSMOpts struct {
 
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
+	EnableRetryPolicy             bool
 }
 
 // InstallOsmOpt is a function type for setting install options

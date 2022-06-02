@@ -200,10 +200,6 @@ const (
 	// ErrRecordingSnapshot indicates the aggregated resources generate for a discovery response could not be created
 	ErrRecordingSnapshot
 
-	// ErrGettingServiceIdentity indicates the ServiceIdentity name encoded in the XDS certificate CN could not be
-	// obtained
-	ErrGettingServiceIdentity
-
 	// ErrStartingADSServer indicates the gPRC service failed to start
 	ErrStartingADSServer
 
@@ -648,12 +644,6 @@ The resources to be included in the DiscoveryResponse could not be generated.
 	ErrRecordingSnapshot: `
 The aggregated resources generated for a DiscoveryResponse failed to be configured as
 a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
-`,
-
-	ErrGettingServiceIdentity: `
-The ServiceIdentity specified in the XDS certificate CN could not be obtained when
-creating SDS DiscoveryRequests corresponding to all types of secrets associated with
-the proxy.
 `,
 
 	ErrStartingADSServer: `

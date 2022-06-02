@@ -19,13 +19,6 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var clusters []*xds_cluster.Cluster
 
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msgf("Error looking up proxy identity")
-		return nil, err
-	}
-
 	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
 		for _, dstService := range meshCatalog.ListOutboundServicesForMulticlusterGateway() {
 			cluster, err := getMulticlusterGatewayUpstreamServiceCluster(meshCatalog, dstService, cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
@@ -40,9 +33,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build upstream clusters based on allowed outbound traffic policies
-	outboundMeshTrafficPolicy := meshCatalog.GetOutboundMeshTrafficPolicy(proxyIdentity)
+	outboundMeshTrafficPolicy := meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)
 	if outboundMeshTrafficPolicy != nil {
-		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxyIdentity, outboundMeshTrafficPolicy.ClustersConfigs, cfg.GetMeshConfig().Spec.Sidecar)...)
+		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxy.Identity, outboundMeshTrafficPolicy.ClustersConfigs, cfg.GetMeshConfig().Spec.Sidecar)...)
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
@@ -52,14 +45,14 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			Str("proxy", proxy.String()).Msg("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
-	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
+	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
 		clusters = append(clusters, localClustersFromClusterConfigs(inboundMeshTrafficPolicy.ClustersConfigs)...)
 	}
 
 	// Add egress clusters based on applied policies
-	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxyIdentity); err != nil {
-		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxyIdentity)
+	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxy.Identity); err != nil {
+		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxy.Identity)
 	} else {
 		if egressTrafficPolicy != nil {
 			clusters = append(clusters, getEgressClusters(egressTrafficPolicy.ClustersConfigs)...)

@@ -34,7 +34,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(1))
 
-			_, ok := connectedProxies[certCommonName]
+			_, ok := connectedProxies[proxy.UUID.String()]
 			Expect(ok).To(BeTrue())
 		})
 

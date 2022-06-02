@@ -5,13 +5,12 @@ import (
 
 	"github.com/jinzhu/copier"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 // GetXDSLog implements XDSDebugger interface and a log of the XDS responses sent to Envoy proxies.
-func (s *Server) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time {
-	var logsCopy map[certificate.CommonName]map[envoy.TypeURI][]time.Time
+func (s *Server) GetXDSLog() map[string]map[envoy.TypeURI][]time.Time {
+	var logsCopy map[string]map[envoy.TypeURI][]time.Time
 	var err error
 
 	s.withXdsLogMutex(func() {
@@ -23,5 +22,5 @@ func (s *Server) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]tim
 		log.Error().Err(err).Msgf("Failed to copy xdsLogMap")
 	}
 
-	return &logsCopy
+	return logsCopy
 }

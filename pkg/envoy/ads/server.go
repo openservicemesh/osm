@@ -2,7 +2,6 @@ package ads
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -51,12 +50,10 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 		osmNamespace:   osmNamespace,
 		cfg:            cfg,
 		certManager:    certManager,
-		xdsMapLogMutex: sync.Mutex{},
-		xdsLog:         make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time),
+		xdsLog:         make(map[string]map[envoy.TypeURI][]time.Time),
 		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
 		kubecontroller: kubecontroller,
 		cacheEnabled:   cfg.GetFeatureFlags().EnableSnapshotCacheMode,
-		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
 		msgBroker:      msgBroker,
 	}

@@ -19,12 +19,6 @@ type ProxyRegistry struct {
 
 	connectedProxies sync.Map
 
-	// Maintain a mapping of pod UID to CN of the Envoy on the given pod
-	podUIDToCN sync.Map
-
-	// Maintain a mapping of pod UID to certificate SerialNumber of the Envoy on the given pod
-	podUIDToCertificateSerialNumber sync.Map
-
 	msgBroker *messaging.Broker
 }
 

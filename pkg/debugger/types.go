@@ -49,6 +49,7 @@ type MeshCatalogDebugger interface {
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.
 type XDSDebugger interface {
-	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies.
-	GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time
+	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies. It is keyed by proxy.GetName(), which is
+	// of the form <identity>:<uuid>.
+	GetXDSLog() map[string]map[envoy.TypeURI][]time.Time
 }
