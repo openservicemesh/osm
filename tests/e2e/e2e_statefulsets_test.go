@@ -54,6 +54,11 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 				chart, err := loader.Load(chartPath)
 				Expect(err).NotTo(HaveOccurred())
 
+				if Td.DeployOnOpenShift {
+					err = Td.AddOpenShiftSCC("privileged", saName, testNS)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
 				// Install zookeeper
 				_, err = install.Run(chart, map[string]interface{}{
 					"replicaCount": replicaCount,

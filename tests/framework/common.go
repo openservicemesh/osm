@@ -1554,8 +1554,8 @@ func (td *OsmTestData) GrabLogs() error {
 	return nil
 }
 
-// addOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
-func (td *OsmTestData) addOpenShiftSCC(scc, serviceAccount, namespace string) error {
+// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
 	if !td.DeployOnOpenShift {
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
