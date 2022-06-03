@@ -54,6 +54,12 @@ func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 	}()
 }
 
+// GetTrustDomain returns the current active trust domain for cert signing.
+func (m *Manager) GetTrustDomain() string {
+	// TODO(4754) return the trust domain of the first MRC, ***while grabbing the lock***
+	return ""
+}
+
 func (m *Manager) checkAndRotate() {
 	// NOTE: checkAndRotate can reintroduce a certificate that has been released, thereby creating an unbounded cache.
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.

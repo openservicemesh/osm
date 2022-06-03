@@ -5,6 +5,7 @@
 package catalog
 
 import (
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -26,6 +27,7 @@ type MeshCatalog struct {
 	serviceProviders   []service.Provider
 	meshSpec           smi.MeshSpec
 	configurator       configurator.Configurator
+	certManager        *certificate.Manager
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local

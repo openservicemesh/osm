@@ -30,8 +30,6 @@ var (
 
 	testHostnames = []string{"testHostname1", "testHostname2", "testHostname3"}
 
-	testHostnames2 = []string{"testing1", "testing2", "testing3"}
-
 	testWeightedCluster = service.WeightedCluster{
 		ClusterName: "testCluster",
 		Weight:      100,
@@ -41,15 +39,15 @@ var (
 		Weight:      100,
 	}
 
-	testServiceAccount1 = identity.K8sServiceAccount{
+	testServicePrincipal1 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount1",
 		Namespace: "testNamespace1",
-	}
+	}.ToServiceIdentity().AsPrincipal("cluster.local")
 
-	testServiceAccount2 = identity.K8sServiceAccount{
+	testServicePrincipal2 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount2",
 		Namespace: "testNamespace2",
-	}
+	}.ToServiceIdentity().AsPrincipal("cluster.local")
 
 	testRoute = RouteWeightedClusters{
 		HTTPRouteMatch:   testHTTPRouteMatch,
@@ -61,73 +59,6 @@ var (
 		WeightedClusters: mapset.NewSet(testWeightedCluster),
 	}
 )
-
-func TestAddRule(t *testing.T) {
-	testCases := []struct {
-		name                  string
-		existingRules         []*Rule
-		allowedServiceAccount identity.K8sServiceAccount
-		route                 RouteWeightedClusters
-		expectedRules         []*Rule
-	}{
-		{
-			name:                  "rule for route does not exist",
-			existingRules:         []*Rule{},
-			allowedServiceAccount: testServiceAccount1,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-		},
-		{
-			name: "rule exists for route but not for given service account",
-			existingRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-			allowedServiceAccount: testServiceAccount2,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
-				},
-			},
-		},
-		{
-			name: "rule exists for route and for given service account",
-			existingRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-			allowedServiceAccount: testServiceAccount1,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			inboundPolicy := newTestInboundPolicy(tc.name, tc.existingRules)
-			inboundPolicy.AddRule(tc.route, tc.allowedServiceAccount.ToServiceIdentity())
-			assert.Equal(tc.expectedRules, inboundPolicy.Rules)
-		})
-	}
-}
 
 func TestAddRoute(t *testing.T) {
 	var thresholdUintVal uint32 = 3
@@ -284,118 +215,14 @@ func TestAddRoute(t *testing.T) {
 	}
 }
 
-func TestMergeInboundPolicies(t *testing.T) {
-	testRule1 := Rule{
-		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-	}
-	testRule2 := Rule{
-		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
-	}
-	testRule1Modified := Rule{
-		Route: RouteWeightedClusters{
-			HTTPRouteMatch: HTTPRouteMatch{
-				Path:          "/hello",
-				PathMatchType: PathMatchRegex,
-				Methods:       []string{"*"},
-			},
-			WeightedClusters: mapset.NewSet(testWeightedCluster),
-		},
-	}
-	testCases := []struct {
-		name            string
-		originalInbound []*InboundTrafficPolicy
-		newInbound      []*InboundTrafficPolicy
-		expectedInbound []*InboundTrafficPolicy
-	}{
-		{
-			name: "hostnames match",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames do not match",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames match but rules differ",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1Modified},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2, &testRule1Modified},
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := MergeInboundPolicies(false, tc.originalInbound, tc.newInbound...)
-			assert.ElementsMatch(tc.expectedInbound, actual)
-		})
-	}
-}
-
 func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 	testRule1 := Rule{
-		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+		Route:             testRoute,
+		AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 	}
 	testRule2 := Rule{
-		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+		Route:             testRoute2,
+		AllowedPrincipals: mapset.NewSet(testServicePrincipal2),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
@@ -461,7 +288,7 @@ func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newInbound...)
+			actual := MergeInboundPolicies(tc.originalInbound, tc.newInbound...)
 			assert.ElementsMatch(actual, tc.expectedInbound)
 		})
 	}
@@ -478,20 +305,20 @@ func TestMergeRules(t *testing.T) {
 			name: "routes match",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal2),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1, testServicePrincipal2),
 				},
 			},
 		},
@@ -499,20 +326,20 @@ func TestMergeRules(t *testing.T) {
 			name: "routes match but with duplicate allowed service accounts",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 			},
 		},
@@ -520,24 +347,24 @@ func TestMergeRules(t *testing.T) {
 			name: "routes don't match, add rule",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute2,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 				{
-					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute2,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 			},
 		},
@@ -667,14 +494,6 @@ func TestTotalClustersWeight(t *testing.T) {
 			actual := tc.route.TotalClustersWeight()
 			assert.Equal(tc.expectedWeight, actual)
 		})
-	}
-}
-
-func newTestInboundPolicy(name string, rules []*Rule) *InboundTrafficPolicy {
-	return &InboundTrafficPolicy{
-		Name:      name,
-		Hostnames: testHostnames,
-		Rules:     rules,
 	}
 }
 

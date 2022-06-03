@@ -30,9 +30,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(),
+				AllowedPrincipals: mapset.NewSetFromSlice([]interface{}{
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity().AsPrincipal("cluster.local"),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity().AsPrincipal("cluster.local"),
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
@@ -71,7 +71,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
+				AllowedPrincipals: mapset.NewSetFromSlice([]interface{}{
 					identity.WildcardServiceIdentity, // setting a wildcard will result in all downstream identities being allowed
 				}),
 			},
@@ -96,7 +96,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: nil,
+				AllowedPrincipals: nil,
 			},
 			expectedRBACPolicy: nil,
 			expectError:        true,

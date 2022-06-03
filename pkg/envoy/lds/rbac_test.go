@@ -23,7 +23,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 		trafficTarget trafficpolicy.TrafficTargetWithRoutes
 
 		expectedPolicy *xds_rbac.Policy
-		expectErr      bool
 	}{
 		{
 			// Test 1
@@ -65,7 +64,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 					},
 				},
 			},
-			expectErr: false, // no error
 		},
 
 		{
@@ -80,10 +78,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
-						Ports: []int{1000, 2000},
+						Ports: []uint32{1000, 2000},
 					},
 					{
-						Ports: []int{3000},
+						Ports: []uint32{3000},
 					},
 				},
 			},
@@ -131,7 +129,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 					},
 				},
 			},
-			expectErr: false, // no error
 		},
 	}
 
@@ -140,9 +137,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy, err := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
+			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
 
-			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(tc.expectedPolicy, policy)
 		})
 	}

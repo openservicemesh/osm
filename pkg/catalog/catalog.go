@@ -22,6 +22,7 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 	mc := &MeshCatalog{
 		serviceProviders:   serviceProviders,
 		endpointsProviders: endpointsProviders,
+		certManager:        certManager,
 		meshSpec:           meshSpec,
 		policyController:   policyController,
 		configurator:       cfg,
@@ -41,4 +42,9 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 // GetKubeController returns the kube controller instance handling the current cluster
 func (mc *MeshCatalog) GetKubeController() k8s.Controller {
 	return mc.kubeController
+}
+
+// GetTrustDomain is a helper that plumbs through the certManager's TrustDomain.
+func (mc *MeshCatalog) GetTrustDomain() string {
+	return mc.certManager.GetTrustDomain()
 }

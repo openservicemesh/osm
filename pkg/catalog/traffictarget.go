@@ -118,6 +118,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 				}
 
 				allowed.Add(trafficTargetIdentityToSvcAccount(spec.Destination))
+				break
 			}
 		}
 	}
@@ -176,8 +177,12 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}
 
+		ports := make([]uint32, 0, len(tcpRoute.Spec.Matches.Ports))
+		for _, port := range tcpRoute.Spec.Matches.Ports {
+			ports = append(ports, uint32(port))
+		}
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
-			Ports: tcpRoute.Spec.Matches.Ports,
+			Ports: ports,
 		}
 		matches = append(matches, tcpRouteMatch)
 	}

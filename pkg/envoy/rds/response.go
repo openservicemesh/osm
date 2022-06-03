@@ -74,7 +74,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 			log.Trace().Msgf("No ingress policy configured for service %s", svc)
 			continue
 		}
-		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
 		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies)

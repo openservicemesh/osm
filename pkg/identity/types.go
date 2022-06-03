@@ -28,6 +28,15 @@ func (si ServiceIdentity) IsWildcard() bool {
 	return si == WildcardServiceIdentity
 }
 
+// AsPrincipal returns the ServiceIdentity as a Principal to be used for authentication in envoy.
+func (si ServiceIdentity) AsPrincipal(trustDomain string) string {
+	// TODO(4754): concatenate the trustdomain when it is removed from the SI.
+	if si.IsWildcard() {
+		return si.String()
+	}
+	return si.String()
+}
+
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
 func (si ServiceIdentity) ToK8sServiceAccount() K8sServiceAccount {
 	// By convention as of release-v0.8 ServiceIdentity is in the format: <ServiceAccount>.<Namespace>.cluster.local

@@ -113,7 +113,12 @@ func (ms MeshService) InboundTrafficMatchName() string {
 
 // IngressTrafficMatchName returns the ingress traffic match name
 func (ms MeshService) IngressTrafficMatchName() string {
-	return fmt.Sprintf("ingress_%s/%s_%d_%s", ms.Namespace, ms.Name, ms.TargetPort, ms.Protocol)
+	return IngressTrafficMatchName(ms.Namespace, ms.Name, ms.TargetPort, ms.Protocol)
+}
+
+// IngressTrafficMatchName returns the ingress traffic match name
+func IngressTrafficMatchName(namespace, name string, targetPort uint16, protocol string) string {
+	return fmt.Sprintf("ingress_%s/%s_%d_%s", namespace, name, targetPort, protocol)
 }
 
 // ClusterName is a type for a service name

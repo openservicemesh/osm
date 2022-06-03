@@ -99,7 +99,13 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 			ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
 			Weight:      constants.ClusterWeightAcceptAll,
 		}
-		inboundPolicyForUpstreamSvc.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}), identity.WildcardServiceIdentity)
+		// Only a single rule for permissive mode.
+		inboundPolicyForUpstreamSvc.Rules = []*trafficpolicy.Rule{
+			{
+				Route:             *trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}),
+				AllowedPrincipals: mapset.NewSetWith(identity.WildcardServiceIdentity.String()),
+			},
+		}
 	} else {
 		// Build the HTTP routes from SMI TrafficTarget and HTTPRouteGroup configurations
 		inboundPolicyForUpstreamSvc = mc.buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc, trafficTargets)
@@ -139,18 +145,20 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 		return nil
 	}
 
+	trustDomain := mc.GetTrustDomain()
 	// Compute the allowed downstream service identities for the given TrafficTarget object
-	allowedDownstreamIdentities := mapset.NewSet()
+	allowedPrincipals := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
-		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity()
-		allowedDownstreamIdentities.Add(sourceSvcIdentity)
+		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity().AsPrincipal(trustDomain)
+		allowedPrincipals.Add(sourceSvcIdentity)
 	}
 
 	var routingRules []*trafficpolicy.Rule
 	for _, httpRouteMatch := range httpRouteMatches {
 		rule := &trafficpolicy.Rule{
-			Route:                    *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}),
-			AllowedServiceIdentities: allowedDownstreamIdentities,
+			Route: *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}),
+			// steeling, maybe wildcard...
+			AllowedPrincipals: allowedPrincipals,
 		}
 		routingRules = append(routingRules, rule)
 	}
@@ -174,7 +182,7 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	}
 
 	for _, rule := range rules {
-		trafficSpecName := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficTargetNamespace, rule.Name)
+		trafficSpecName := getTrafficSpecName(smi.HTTPRouteGroupKind, trafficTargetNamespace, rule.Name)
 		for _, match := range rule.Matches {
 			matchedRoute, found := specMatchRoute[trafficSpecName][trafficpolicy.TrafficSpecMatchName(match)]
 			if found {
@@ -199,7 +207,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		}
 
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
-		specKey := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
+		specKey := getTrafficSpecName(smi.HTTPRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch)
 		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.HTTPRouteMatch{
@@ -223,7 +231,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 	return routePolicies, nil
 }
 
-func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
+func getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return trafficpolicy.TrafficSpecName(specKey)
 }
