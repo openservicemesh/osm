@@ -12,6 +12,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (
@@ -371,6 +372,10 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 		},
 	}
 
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	defer metricsstore.DefaultMetricsStore.Stop(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	expectedMetric := 0
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
@@ -401,6 +406,13 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 				a.Equal(crd, &tc.updatedCrd)
 			} else {
 				a.Equal(crd, &tc.originalCrd)
+			}
+
+			if tc.crdUpdated {
+				expectedMetric++
+			}
+			if expectedMetric > 0 {
+				a.True(metricsstore.DefaultMetricsStore.Contains(`osm_reconciliation_total{kind="CustomResourceDefinition"} ` + strconv.Itoa(expectedMetric) + "\n"))
 			}
 		})
 	}

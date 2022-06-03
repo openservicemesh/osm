@@ -191,6 +191,7 @@ func main() {
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal,
+		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
 
 	msgBroker := messaging.NewBroker(stop)

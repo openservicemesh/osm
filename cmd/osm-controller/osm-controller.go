@@ -335,6 +335,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
 		metricsstore.DefaultMetricsStore.EventsQueued,
+		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
 }
 
