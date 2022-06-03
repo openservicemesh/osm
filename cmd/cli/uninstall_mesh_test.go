@@ -44,13 +44,11 @@ func TestUninstallCmd(t *testing.T) {
 		name            string
 		meshName        string
 		meshNamespace   string
-		namespaceOfMesh string
 		force           bool
 		deleteNamespace bool
 		emptyMeshList   bool
 		meshExists      bool
 		userPromptsYes  bool
-		namespaceInMesh bool
 	}{
 		{
 			name:            "no meshes in cluster",
@@ -91,17 +89,6 @@ func TestUninstallCmd(t *testing.T) {
 			userPromptsYes:  true,
 			emptyMeshList:   false,
 			meshExists:      true,
-		},
-		{
-			name:            "the mesh exists with a namespace in a mesh",
-			meshName:        testMeshName,
-			meshNamespace:   testNamespace,
-			namespaceOfMesh: "testNamespaceMesh",
-			force:           false,
-			deleteNamespace: false,
-			userPromptsYes:  true,
-			meshExists:      true,
-			namespaceInMesh: true,
 		},
 		{
 			name:            "the mesh exists and force set to true",
@@ -165,7 +152,6 @@ func TestUninstallCmd(t *testing.T) {
 					},
 				},
 			}
-			nsInMesh := []runtime.Object{createNamespaceSpec(test.namespaceOfMesh, test.meshName, true, false, true)}
 			existingCustomResourceDefinitions := []runtime.Object{
 				// OSM CRD
 				&apiv1.CustomResourceDefinition{
@@ -221,7 +207,6 @@ func TestUninstallCmd(t *testing.T) {
 				},
 			}
 			existingKubeClientsetObjects = append(existingKubeClientsetObjects, existingNamespaces...)
-			existingKubeClientsetObjects = append(existingKubeClientsetObjects, nsInMesh...)
 			existingKubeClientsetObjects = append(existingKubeClientsetObjects, existingMutatingWebhookConfigurations...)
 			existingKubeClientsetObjects = append(existingKubeClientsetObjects, existingValidatingWebhookConfigurations...)
 			existingKubeClientsetObjects = append(existingKubeClientsetObjects, existingSecrets...)
@@ -279,12 +264,6 @@ func TestUninstallCmd(t *testing.T) {
 						assert.Contains(out.String(), "List of meshes present in the cluster:\n")
 						assert.Contains(out.String(), fmt.Sprintf("Did not find mesh [%s] in namespace [%s]\n", test.meshName, test.meshNamespace))
 					}
-        }
-
-        if test.namespaceInMesh {
-          assert.Contains(out.String(), fmt.Sprintf("Namespace [%s] successfully removed from mesh [%s]", test.namespaceOfMesh, test.meshName))
-          assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
-          assert.Nil(err)
 				}
 
 				if test.userPromptsYes {
@@ -295,11 +274,11 @@ func TestUninstallCmd(t *testing.T) {
 						assert.Contains(out.String(), fmt.Sprintf("OSM namespace [%s] deleted successfully\n", test.meshNamespace))
 						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 						assert.Nil(err)
-						assert.Equal(0, len(namespaces.Items)-len(nsInMesh))
+						assert.Equal(0, len(namespaces.Items))
 					} else {
 						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 						assert.Nil(err)
-						assert.Equal(len(existingNamespaces), len(namespaces.Items)-len(nsInMesh))
+						assert.Equal(len(existingNamespaces), len(namespaces.Items))
 					}
 				}
 			}
