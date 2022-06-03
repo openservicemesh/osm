@@ -43,15 +43,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
-		fakeMs := service.MeshService{
-			Name:       svc.Name,
-			Namespace:  svc.Namespace,
-			TargetPort: uint16(backend.Port.Number),
-			Protocol:   backend.Port.Protocol,
-		}
-
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     fakeMs.IngressTrafficMatchName(),
+			Name:                     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,

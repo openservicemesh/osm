@@ -322,15 +322,14 @@ func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 // the methods is a wildcard or sanitizes the input list to avoid duplicates.
 func sanitizeHTTPMethods(allowedMethods []string) []string {
 	var newAllowedMethods []string
-	keys := make(map[string]interface{})
+	keys := make(map[string]struct{})
 	for _, method := range allowedMethods {
 		if method != "" {
 			if method == constants.WildcardHTTPMethod {
-				newAllowedMethods = []string{constants.WildcardHTTPMethod}
-				return newAllowedMethods
+				return []string{constants.WildcardHTTPMethod}
 			}
-			if _, value := keys[method]; !value {
-				keys[method] = nil
+			if _, exists := keys[method]; !exists {
+				keys[method] = struct{}{}
 				newAllowedMethods = append(newAllowedMethods, method)
 			}
 		}

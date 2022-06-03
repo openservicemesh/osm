@@ -23,7 +23,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 		trafficTarget trafficpolicy.TrafficTargetWithRoutes
 
 		expectedPolicy *xds_rbac.Policy
-		expectErr      bool
 	}{
 		{
 			// Test 1
@@ -45,27 +44,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 					},
 				},
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 				},
 			},
-			expectErr: false, // no error
 		},
 
 		{
@@ -80,58 +62,25 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
-						Ports: []int{1000, 2000},
+						Ports: []uint32{1000, 2000},
 					},
 					{
-						Ports: []int{3000},
+						Ports: []uint32{3000},
 					},
 				},
 			},
 
 			expectedPolicy: &xds_rbac.Policy{
 				Permissions: []*xds_rbac.Permission{
-					{
-						Rule: &xds_rbac.Permission_OrRules{
-							OrRules: &xds_rbac.Permission_Set{
-								Rules: []*xds_rbac.Permission{
-									rbac.GetDestinationPortPermission(1000),
-									rbac.GetDestinationPortPermission(2000),
-								},
-							},
-						},
-					},
-					{
-						Rule: &xds_rbac.Permission_OrRules{
-							OrRules: &xds_rbac.Permission_Set{
-								Rules: []*xds_rbac.Permission{
-									rbac.GetDestinationPortPermission(3000),
-								},
-							},
-						},
-					},
+					rbac.GetDestinationPortPermission(1000),
+					rbac.GetDestinationPortPermission(2000),
+					rbac.GetDestinationPortPermission(3000),
 				},
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 				},
 			},
-			expectErr: false, // no error
 		},
 	}
 
@@ -140,9 +89,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy, err := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
+			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
 
-			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(tc.expectedPolicy, policy)
 		})
 	}

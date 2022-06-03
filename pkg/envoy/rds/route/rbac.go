@@ -26,42 +26,15 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceIdentities not set")
 	}
 
-	policy := &rbac.Policy{}
+	pb := &rbac.PolicyBuilder{}
 
 	// Create the list of principals for this policy
-	var principalRuleList []rbac.RulesList
 	for downstream := range rule.AllowedServiceIdentities.Iter() {
-		var principalRule rbac.RulesList
-		downstreamIdentity := downstream.(identity.ServiceIdentity)
-
-		if downstreamIdentity.IsWildcard() {
-			// When the downstream identity in a traffic policy rule is set to be empty, it implies
-			// we must allow all downstream principals. This can be accomplished by setting an empty
-			// principal rules list to generate an RBAC policy with principals set to ANY (all downstreams).
-			principalRule = rbac.RulesList{}
-		} else {
-			// The downstream principal in an RBAC policy is an authenticated principal type, which
-			// means the principal must correspond to the fully qualified SAN in the certificate presented
-			// by the downstream.
-			principalRule = rbac.RulesList{
-				OrRules: []rbac.Rule{
-					{Attribute: rbac.DownstreamAuthPrincipal, Value: downstreamIdentity.String()},
-				},
-			}
-		}
-
-		principalRuleList = append(principalRuleList, principalRule)
-	}
-
-	policy.Principals = principalRuleList
-
-	rbacPolicy, err := policy.Generate()
-	if err != nil {
-		return nil, err
+		pb.AddPrincipal(downstream.(identity.ServiceIdentity).String())
 	}
 
 	// A single RBAC policy per route
-	rbacPolicyMap := map[string]*xds_rbac.Policy{rbacPerRoutePolicyName: rbacPolicy}
+	rbacPolicyMap := map[string]*xds_rbac.Policy{rbacPerRoutePolicyName: pb.Build()}
 
 	// Map generic RBAC policy to HTTP RBAC policy
 	httpRBAC := &xds_http_rbac.RBAC{
@@ -79,6 +52,5 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 		return nil, err
 	}
 
-	rbacFilter := map[string]*any.Any{wellknown.HTTPRoleBasedAccessControl: marshalled}
-	return rbacFilter, nil
+	return map[string]*any.Any{wellknown.HTTPRoleBasedAccessControl: marshalled}, nil
 }

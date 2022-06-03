@@ -11,7 +11,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -61,26 +60,6 @@ func (rwc *RouteWeightedClusters) TotalClustersWeight() int {
 	return totalWeight
 }
 
-// AddRule adds a Rule to an InboundTrafficPolicy based on the given HTTP route match, weighted cluster, and allowed service account
-//	parameters. If a Rule for the given HTTP route match exists, it will add the given service account to the Rule. If the the given route
-//	match is not already associated with a Rule, it will create a Rule for the given route and service account.
-func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServiceIdentities identity.ServiceIdentity) {
-	routeExists := false
-	for _, rule := range in.Rules {
-		if reflect.DeepEqual(rule.Route, route) {
-			routeExists = true
-			rule.AllowedServiceIdentities.Add(allowedServiceIdentities)
-			break
-		}
-	}
-	if !routeExists {
-		in.Rules = append(in.Rules, &Rule{
-			Route:                    route,
-			AllowedServiceIdentities: mapset.NewSet(allowedServiceIdentities),
-		})
-	}
-}
-
 // AddRoute adds a route to an OutboundTrafficPolicy given an HTTP route match and weighted cluster. If a Route with the given HTTP route match
 //	already exists, an error will be returned. If a Route with the given HTTP route match does not exist,
 //	a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
@@ -116,22 +95,15 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, retryP
 // 2. when a policy having its hostnames from a host header needs to be merged with other inbound traffic policies
 // in either of these cases the will be only a single hostname and there is a possibility that this hostname is part of an existing traffic policy
 // hence the rules need to be merged
-func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTrafficPolicy, latest ...*InboundTrafficPolicy) []*InboundTrafficPolicy {
+func MergeInboundPolicies(original []*InboundTrafficPolicy, latest ...*InboundTrafficPolicy) []*InboundTrafficPolicy {
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
-			if !allowPartialHostnamesMatch {
-				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
-					foundHostnames = true
-					or.Rules = MergeRules(or.Rules, l.Rules)
-				}
-			} else {
-				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
-				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
-					or.Hostnames = hostsUnion
-					foundHostnames = true
-					or.Rules = MergeRules(or.Rules, l.Rules)
-				}
+			// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
+			if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
+				or.Hostnames = hostsUnion
+				foundHostnames = true
+				or.Rules = MergeRules(or.Rules, l.Rules)
 			}
 		}
 		if !foundHostnames {

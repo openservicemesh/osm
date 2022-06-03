@@ -1,8 +1,6 @@
 package lds
 
 import (
-	"strconv"
-
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_network_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
@@ -52,12 +50,7 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	rbacPolicies := make(map[string]*xds_rbac.Policy)
 	// Build an RBAC policies based on SMI TrafficTarget policies
 	for _, targetPolicy := range trafficTargets {
-		if policy, err := buildRBACPolicyFromTrafficTarget(targetPolicy); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicy)).
-				Msgf("Error building RBAC policy for proxy identity %s from TrafficTarget %s", proxyIdentity, targetPolicy.Name)
-		} else {
-			rbacPolicies[targetPolicy.Name] = policy
-		}
+		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy)
 	}
 
 	log.Debug().Msgf("RBAC policy for proxy with identity %s: %+v", proxyIdentity, rbacPolicies)
@@ -75,41 +68,20 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 }
 
 // buildRBACPolicyFromTrafficTarget creates an XDS RBAC policy from the given traffic target policy
-func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes) (*xds_rbac.Policy, error) {
-	policy := &rbac.Policy{}
+func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes) *xds_rbac.Policy {
+	pb := &rbac.PolicyBuilder{}
 
 	// Create the list of principals for this policy
-	var principalRuleList []rbac.RulesList
 	for _, downstreamPrincipal := range trafficTarget.Sources {
-		principalRule := rbac.RulesList{
-			OrRules: []rbac.Rule{
-				{Attribute: rbac.DownstreamAuthPrincipal, Value: downstreamPrincipal.String()},
-			},
-		}
-		principalRuleList = append(principalRuleList, principalRule)
+		pb.AddPrincipal(downstreamPrincipal.String())
 	}
-	policy.Principals = principalRuleList
-
 	// Create the list of permissions for this policy
-	var permissionRuleList []rbac.RulesList
 	for _, tcpRouteMatch := range trafficTarget.TCPRouteMatches {
 		// Matching ports have an OR relationship
-		var orPortRules []rbac.Rule
 		for _, port := range tcpRouteMatch.Ports {
-			portRule := rbac.Rule{
-				Attribute: rbac.DestinationPort, Value: strconv.Itoa(port),
-			}
-			orPortRules = append(orPortRules, portRule)
+			pb.AddAllowedDestinationPort(port)
 		}
-
-		// Each TCP route match is its own permission in an RBAC policy
-		permissionRule := rbac.RulesList{
-			OrRules: orPortRules,
-		}
-
-		permissionRuleList = append(permissionRuleList, permissionRule)
 	}
-	policy.Permissions = permissionRuleList
 
-	return policy.Generate()
+	return pb.Build()
 }
