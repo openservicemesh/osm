@@ -33,7 +33,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
-	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
+	if s.cfg.GetMaxDataPlaneConnections() > 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected.Inc()
 		return errTooManyConnections
 	}
@@ -322,12 +322,6 @@ func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 // Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
 // <svc-account>.<namespace>.<trust-domain>.
 func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Str("proxy", proxy.String()).Err(err).Msg("Error looking up proxy identity")
-		return false
-	}
-
 	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
 	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
 	if len(chunks) < 3 {
@@ -335,7 +329,7 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	}
 
 	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
-	return identityForCN == proxyIdentity.ToK8sServiceAccount()
+	return identityForCN == proxy.Identity.ToK8sServiceAccount()
 }
 
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
@@ -376,16 +370,9 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	}
 
 	// Verify Service account matches (cert to pod Service Account)
-	cn := p.GetCertificateCommonName()
-	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
-	if err != nil {
-		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
-		return err
-	}
-
-	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
+	if p.Identity.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).Str("proxy", p.String()).
-			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
+			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, p.Identity.ToK8sServiceAccount())
 		return errServiceAccountMismatch
 	}
 

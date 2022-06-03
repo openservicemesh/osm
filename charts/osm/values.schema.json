@@ -441,6 +441,16 @@
                         "envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c"
                     ]
                 },
+                "trustDomain": {
+                    "$id": "#/properties/osm/properties/trustDomain",
+                    "type": "string",
+                    "title": "The certificate issuance Trust Domain",
+                    "description": "The trust domain to use as part of the common name when requesting new certificates.",
+                    "examples": [
+                        "cluster.local",
+                        "example.com"
+                    ]
+                },
                 "certificateProvider": {
                     "$id": "#/properties/osm/properties/certificateProvider",
                     "type": "object",
@@ -1321,6 +1331,14 @@
                             "description": "Hashicorp Vault host/service - where Vault is installed",
                             "type": "string"
                         },
+                        "port": {
+                            "$id": "#/properties/osm/properties/vault/properties/port",
+                            "title": "Hashicorp Vault's port",
+                            "description": "Port to use to connect to vault",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
+                        },
                         "protocol": {
                             "$id": "#/properties/osm/properties/vault/properties/protocol",
                             "title": "Hashicorp Vault's protocol schema",
@@ -1338,6 +1356,26 @@
                             "title": "Hashicorp Vault's role schema",
                             "description": "Role to use with Vault",
                             "type": "string"
+                        },
+                        "secret": {
+                            "$id": "#/properties/osm/properties/vault/properties/secret",
+                            "type": "object",
+                            "title": "Vault token secret schema",
+                            "description": "Vault token secret reference parameters",
+                            "properties": {
+                                "name": {
+                                    "$id": "#/properties/osm/properties/vault/properties/secret/properties/name",
+                                    "title": "Vault token secret name schema",
+                                    "description": "Name of the Kubernetes Secret to store the vault token",
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "$id": "#/properties/osm/properties/vault/properties/secret/properties/key",
+                                    "title": "Vault token secret key schema",
+                                    "description": "Name of the Kubernetes Secret key with the value of the vault token",
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "examples": [

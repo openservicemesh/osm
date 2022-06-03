@@ -19,7 +19,7 @@ kind: CustomResourceDefinition
 metadata:
   name: meshrootcertificates.config.openservicemesh.io
   labels:
-    app.kubernetes.io/name : "openservicemesh.io"
+    app.kubernetes.io/name: "openservicemesh.io"
 spec:
   group: config.openservicemesh.io
   scope: Namespaced
@@ -35,14 +35,14 @@ spec:
       served: true
       storage: true
       additionalPrinterColumns:
-      - description: Current state of the MeshRootCertificate config
-        jsonPath: .status.currentState
-        name: State
-        type: string
-      - description: Current rotationStage of the MeshRootCertificate config
-        jsonPath: .status.currentRotationStage
-        name: RotationStage
-        type: string
+        - description: Current state of the MeshRootCertificate config
+          jsonPath: .status.currentState
+          name: State
+          type: string
+        - description: Current rotationStage of the MeshRootCertificate config
+          jsonPath: .status.currentRotationStage
+          name: RotationStage
+          type: string
       schema:
         openAPIV3Schema:
           type: object
@@ -52,6 +52,10 @@ spec:
               required:
                 - provider
               properties:
+                trustDomain:
+                  description: Trust Domain to use in common name for certificates, e.g. "example.com"
+                  type: string
+                  default: cluster.local
                 provider:
                   description: Certificate provider used by the mesh control plane
                   type: object
@@ -60,14 +64,10 @@ spec:
                       description: Cert-manager provider configuration
                       type: object
                       required:
-                        - secretName
                         - issuerName
                         - issuerKind
                         - issuerGroup
                       properties:
-                        secretName:
-                          description: The name of the kubernetes secret containing the root certificate
-                          type: string
                         issuerName:
                           description: The name of the Issuer or ClusterIssuer resource
                           type: string
@@ -85,6 +85,7 @@ spec:
                       type: object
                       required:
                         - host
+                        - port
                         - role
                         - protocol
                         - token
@@ -92,6 +93,11 @@ spec:
                         host:
                           description: Host name for the Vault server
                           type: string
+                        port:
+                          description: Port for the Vault server
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
                         role:
                           description: Role created on Vault server for the mesh control plane
                           type: string
@@ -100,20 +106,56 @@ spec:
                           type: string
                         token:
                           description: Token used by the mesh control plane
-                          type: string
+                          type: object
+                          required:
+                            - secretKeyRef
+                          properties:
+                            secretKeyRef:
+                              description: Reference to the kubernetes secret storing the vault token
+                              type: object
+                              required:
+                                - name
+                                - key
+                                - namespace
+                              properties:
+                                name:
+                                  description: Name of the kubernetes secret
+                                  type: string
+                                key:
+                                  description: Kubernetes secret key
+                                  type: string
+                                namespace:
+                                  description: Namespace of the kubernetes secret
+                                  type: string
                     tresor:
                       description: Tresor provider configuration
                       type: object
                       required:
-                        - secretName
+                        - ca
                       properties:
-                        secretName:
-                          description: Name of the kubernetes secret storing the root certificate
-                          type: string
+                        ca:
+                          description: The root certificate used by Tresor
+                          type: object
+                          required:
+                            - secretRef
+                          properties:
+                            secretRef:
+                              description: Reference to the kubernetes secret storing the root certificate
+                              type: object
+                              required:
+                                - name
+                                - namespace
+                              properties:
+                                name:
+                                  description: Name of the kubernetes secret
+                                  type: string
+                                namespace:
+                                  description: Namespace of the kubernetes secret
+                                  type: string
                   oneOf:
-                    - required: ['certManager']
-                    - required: ['vault']
-                    - required: ['tresor']
+                    - required: ["certManager"]
+                    - required: ["vault"]
+                    - required: ["tresor"]
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

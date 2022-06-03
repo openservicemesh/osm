@@ -17,11 +17,21 @@ var (
 	log = logger.New("configurator")
 )
 
+type informerCollection struct {
+	meshConfig          cache.SharedIndexInformer
+	meshRootCertificate cache.SharedIndexInformer
+}
+
+type cacheCollection struct {
+	meshConfig          cache.Store
+	meshRootCertificate cache.Store
+}
+
 // client is the type used to represent the Kubernetes client for the config.openservicemesh.io API group
 type client struct {
 	osmNamespace   string
-	informer       cache.SharedIndexInformer
-	cache          cache.Store
+	informers      *informerCollection
+	caches         *cacheCollection
 	meshConfigName string
 }
 

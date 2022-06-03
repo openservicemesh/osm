@@ -35,6 +35,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		permissiveMode            bool
 		trafficTargets            []*access.TrafficTarget
 		httpRouteGroups           []*spec.HTTPRouteGroup
+		tcpRoutes                 []*spec.TCPRoute
 		trafficSplits             []*split.TrafficSplit
 		prepare                   func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit)
 		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
@@ -203,6 +204,104 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    8080,
+					},
+					{
+						Name:    "ns1/s2|9090|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    9090,
+					},
+				},
+			},
+		},
+		{
+			name:             "multiple services, statefulset, SMI mode, 1 TrafficTarget, 1 TCPRoute, 0 TrafficSplit",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "mysql-0.mysql",
+					Namespace:  "ns1",
+					Port:       3306,
+					TargetPort: 3306,
+					Protocol:   "tcp",
+				},
+				{
+					Name:       "s2",
+					Namespace:  "ns1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode: false,
+			trafficTargets: []*access.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha3",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "t1",
+						Namespace: "ns1",
+					},
+					Spec: access.TrafficTargetSpec{
+						Destination: access.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa1",
+							Namespace: "ns1",
+						},
+						Sources: []access.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa2",
+							Namespace: "ns2",
+						}},
+						Rules: []access.TrafficTargetRule{{
+							Kind: "TCPRoute",
+							Name: "rule-1",
+						}},
+					},
+				},
+			},
+			tcpRoutes: []*spec.TCPRoute{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "specs.smi-spec.io/v1alpha4",
+						Kind:       "TCPRoute",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "rule-1",
+					},
+					Spec: spec.TCPRouteSpec{
+						Matches: spec.TCPMatch{
+							Ports: []int{3306},
+						},
+					},
+				},
+			},
+			trafficSplits: nil,
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.TrafficMatch{
+					{
+						Name:                "inbound_ns1/mysql-0.mysql_3306_tcp",
+						DestinationPort:     3306,
+						DestinationProtocol: "tcp",
+					},
+					{
+						Name:                "inbound_ns1/s2_9090_http",
+						DestinationPort:     9090,
+						DestinationProtocol: "http",
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/mysql-0.mysql|3306|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "mysql-0.mysql", Port: 3306, TargetPort: 3306, Protocol: "tcp"},
+						Address: "127.0.0.1",
+						Port:    3306,
 					},
 					{
 						Name:    "ns1/s2|9090|local",
@@ -1613,6 +1712,9 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			assert.ElementsMatch(tc.expectedInboundMeshPolicy.ClustersConfigs, actual.ClustersConfigs)
 			for expectedKey, expectedVal := range tc.expectedInboundMeshPolicy.HTTPRouteConfigsPerPort {
 				assert.ElementsMatch(expectedVal, actual.HTTPRouteConfigsPerPort[expectedKey])
+			}
+			if len(tc.expectedInboundMeshPolicy.TrafficMatches) != 0 {
+				assert.ElementsMatch(tc.expectedInboundMeshPolicy.TrafficMatches, actual.TrafficMatches)
 			}
 		})
 	}

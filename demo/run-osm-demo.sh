@@ -37,6 +37,7 @@ ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
+LOCAL_PROXY_MODE="${LOCAL_PROXY_MODE:-Localhost}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
@@ -120,6 +121,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -144,6 +146,7 @@ else
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

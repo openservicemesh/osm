@@ -154,10 +154,10 @@ const (
 	ErrPubSubMessageFormat ErrCode = iota + 4100
 )
 
-// Range 4150-4200 reserved for MeshConfig related errors
+// Range 4150-4200 reserved for errors related to config.openservicemesh.io resources
 const (
-	// ErrMeshConfigInformerInitCache indicates failed to init cache sync for MeshConfig informer
-	ErrMeshConfigInformerInitCache ErrCode = iota + 4150
+	// ErrConfigInformerInitCache indicates failed to init cache sync for config.openservicemesh.io informers
+	ErrConfigInformerInitCache ErrCode = iota + 4150
 
 	// ErrMeshConfigStructParsing indicates failed to cast object to MeshConfig
 	ErrMeshConfigStructCasting
@@ -199,10 +199,6 @@ const (
 
 	// ErrRecordingSnapshot indicates the aggregated resources generate for a discovery response could not be created
 	ErrRecordingSnapshot
-
-	// ErrGettingServiceIdentity indicates the ServiceIdentity name encoded in the XDS certificate CN could not be
-	// obtained
-	ErrGettingServiceIdentity
 
 	// ErrStartingADSServer indicates the gPRC service failed to start
 	ErrStartingADSServer
@@ -589,8 +585,8 @@ Failed parsing object into PubSub message.
 	//
 	// Range 4150-4200
 	//
-	ErrMeshConfigInformerInitCache: `
-Failed initial cache sync for MeshConfig informer.
+	ErrConfigInformerInitCache: `
+Failed initial cache sync for config.openservicemesh.io informer.
 `,
 	ErrMeshConfigStructCasting: `
 Failed to cast object to MeshConfig.
@@ -648,12 +644,6 @@ The resources to be included in the DiscoveryResponse could not be generated.
 	ErrRecordingSnapshot: `
 The aggregated resources generated for a DiscoveryResponse failed to be configured as
 a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
-`,
-
-	ErrGettingServiceIdentity: `
-The ServiceIdentity specified in the XDS certificate CN could not be obtained when
-creating SDS DiscoveryRequests corresponding to all types of secrets associated with
-the proxy.
 `,
 
 	ErrStartingADSServer: `

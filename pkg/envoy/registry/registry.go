@@ -1,10 +1,6 @@
 package registry
 
 import (
-	"time"
-
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -17,33 +13,40 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 	}
 }
 
-// RegisterProxy implements MeshCatalog and registers a newly connected proxy.
+// RegisterProxy registers a newly connected proxy.
 func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
-	pr.connectedProxies.Store(proxy.GetCertificateCommonName(), connectedProxy{
-		proxy:       proxy,
-		connectedAt: time.Now(),
-	})
-
-	// If this proxy object is on a Kubernetes Pod - it will have an UID
-	if proxy.HasPodMetadata() {
-		podUID := types.UID(proxy.PodMetadata.UID)
-
-		// Create a PodUID to Certificate CN map so we can easily determine the CN from the PodUID
-		pr.podUIDToCN.Store(podUID, proxy.GetCertificateCommonName())
-
-		// Create a PodUID to Cert Serial Number so we can easily look-up the SerialNumber of the cert issued to a proxy for a given Pod.
-		pr.podUIDToCertificateSerialNumber.Store(podUID, proxy.GetCertificateSerialNumber())
-	}
+	pr.connectedProxies.Store(proxy.UUID.String(), proxy)
 	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
+}
+
+// GetConnectedProxy loads a connected proxy from the registry.
+func (pr *ProxyRegistry) GetConnectedProxy(uuid string) (*envoy.Proxy, bool) {
+	p, ok := pr.connectedProxies.Load(uuid)
+	if !ok {
+		return nil, false
+	}
+	return p.(*envoy.Proxy), true
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
-	pr.connectedProxies.Delete(p.GetCertificateCommonName())
+	pr.connectedProxies.Delete(p.UUID.String())
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 
 // GetConnectedProxyCount counts the number of connected proxies
+// TODO(steeling): switch to a regular map with mutex so we can get the count without iterating the entire list.
 func (pr *ProxyRegistry) GetConnectedProxyCount() int {
 	return len(pr.ListConnectedProxies())
+}
+
+// ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
+func (pr *ProxyRegistry) ListConnectedProxies() map[string]*envoy.Proxy {
+	proxies := make(map[string]*envoy.Proxy)
+	pr.connectedProxies.Range(func(keyIface, propsIface interface{}) bool {
+		uuid := keyIface.(string)
+		proxies[uuid] = propsIface.(*envoy.Proxy)
+		return true // continue the iteration
+	})
+	return proxies
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -24,27 +23,10 @@ const (
 	issuingCAField    = "issuing_ca"
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
-
-	decade = 8765 * time.Hour
 )
 
 // New constructs a new certificate client using Vault's cert-manager
 func New(vaultAddr, token, role string) (*CertManager, error) {
-	c, err := newClient(vaultAddr, token, role)
-	if err != nil {
-		return nil, err
-	}
-
-	vaultCert, err := c.getRootCA()
-	if err != nil {
-		return nil, fmt.Errorf("error getting Vault Root Certificate, got: %w", err)
-	}
-	c.ca = vaultCert
-
-	return c, nil
-}
-
-func newClient(vaultAddr, token, role string) (*CertManager, error) {
 	if vaultAddr == "" {
 		return nil, fmt.Errorf("vault address must not be empty")
 	}
@@ -71,11 +53,6 @@ func newClient(vaultAddr, token, role string) (*CertManager, error) {
 	return c, nil
 }
 
-// GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() *certificate.Certificate {
-	return cm.ca
-}
-
 // IssueCertificate requests a new signed certificate from the configured Vault issuer.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(cn, validityPeriod))
@@ -86,23 +63,6 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
-}
-
-func (cm *CertManager) getRootCA() (*certificate.Certificate, error) {
-	// Create a temp certificate to determine the public part of the issuing CA
-	cert, err := cm.IssueCertificate("localhost", decade)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO(2068): implement a delete cert
-	return &certificate.Certificate{
-		CommonName:   constants.CertificationAuthorityCommonName,
-		SerialNumber: cert.GetSerialNumber(),
-		Expiration:   time.Now().Add(decade),
-		CertChain:    cert.CertChain,
-		IssuingCA:    cert.IssuingCA,
-	}, err
 }
 
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {

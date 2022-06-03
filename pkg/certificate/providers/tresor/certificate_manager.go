@@ -129,8 +129,3 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 	return cert, nil
 }
-
-// GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() *certificate.Certificate {
-	return cm.ca
-}

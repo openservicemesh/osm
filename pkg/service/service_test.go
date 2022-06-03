@@ -9,52 +9,32 @@ import (
 func TestServerName(t *testing.T) {
 	assert := tassert.New(t)
 
-	namespacedService := MeshService{
-		Namespace: "namespace-here",
-		Name:      "service-name-here",
-	}
-	assert.Equal("service-name-here.namespace-here.svc.cluster.local", namespacedService.ServerName())
-}
-
-func TestEquals(t *testing.T) {
 	testCases := []struct {
-		name           string
-		service        MeshService
-		anotherService MeshService
-		isEqual        bool
+		name     string
+		service  MeshService
+		expected string
 	}{
 		{
-			name: "services are equal",
+			name: "no subdomain",
 			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace: "namespace-here",
+				Name:      "service-name-here",
 			},
-			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
-			},
-			isEqual: true,
+			expected: "service-name-here.namespace-here.svc.cluster.local",
 		},
 		{
-			name: "services are NOT equal",
+			name: "subdomain",
 			service: MeshService{
-				Namespace: "default",
-				Name:      "bookbuyer",
+				Namespace: "namespace-here",
+				Name:      "subdomain-0.service-name-here",
 			},
-			anotherService: MeshService{
-				Namespace: "default",
-				Name:      "bookstore",
-			},
-			isEqual: false,
+			expected: "subdomain-0.service-name-here.namespace-here.svc.cluster.local",
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := tc.service.Equals(tc.anotherService)
-			assert.Equal(actual, tc.isEqual)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(tt.expected, tt.service.ServerName())
 		})
 	}
 }

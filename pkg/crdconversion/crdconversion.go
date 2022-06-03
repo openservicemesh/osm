@@ -19,11 +19,8 @@ import (
 )
 
 const (
-	// webhookHealthPath is the HTTP path at which the health of the conversion webhook can be queried
-	webhookHealthPath = "/healthz"
-
-	// healthPort is the port on which the '/healthz` requests are served
-	healthPort = 9095
+	// HealthzPort is the port on which the '/healthz` requests are served
+	HealthzPort = 9095
 
 	// paths to convert CRD's
 	trafficAccessConverterPath         = "/convert/trafficaccess"
@@ -121,10 +118,10 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}()
 
 	healthMux := http.NewServeMux()
-	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+	healthMux.Handle(constants.WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", healthPort),
+		Addr:    fmt.Sprintf(":%d", HealthzPort),
 		Handler: healthMux,
 	}
 

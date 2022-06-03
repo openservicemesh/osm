@@ -41,6 +41,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&MeshConfigList{},
 		&MultiClusterService{},
 		&MultiClusterServiceList{},
+		&MeshRootCertificate{},
+		&MeshRootCertificateList{},
 	)
 
 	metav1.AddToGroupVersion(

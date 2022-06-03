@@ -354,10 +354,13 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 		DeployFluentbit:         false,
 		EnableReconciler:        false,
 
-		VaultHost:     "vault." + td.OsmNamespace + ".svc.cluster.local",
-		VaultProtocol: "http",
-		VaultRole:     "openservicemesh",
-		VaultToken:    "token",
+		VaultHost:            "vault." + td.OsmNamespace + ".svc.cluster.local",
+		VaultProtocol:        "http",
+		VaultPort:            8200,
+		VaultRole:            "openservicemesh",
+		VaultToken:           "token",
+		VaultTokenSecretName: "osm-vault-token",
+		VaultTokenSecretKey:  "token-key",
 
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
@@ -448,6 +451,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Certificate.CertKeyBitSize = instOpts.CertKeyBitSize
 
 	meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy = instOpts.EnableIngressBackendPolicy
+	meshConfig.Spec.FeatureFlags.EnableRetryPolicy = instOpts.EnableRetryPolicy
 
 	return meshConfig
 }
@@ -503,6 +507,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enableFluentbit=%v", instOpts.DeployFluentbit),
 		fmt.Sprintf("osm.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
 		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
+		fmt.Sprintf("osm.featureFlags.enableRetryPolicy=%v", instOpts.EnableRetryPolicy),
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
 	)
 
@@ -519,7 +524,9 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			fmt.Sprintf("osm.vault.host=%s", instOpts.VaultHost),
 			fmt.Sprintf("osm.vault.role=%s", instOpts.VaultRole),
 			fmt.Sprintf("osm.vault.protocol=%s", instOpts.VaultProtocol),
-			fmt.Sprintf("osm.vault.token=%s", instOpts.VaultToken))
+			fmt.Sprintf("osm.vault.token=%s", instOpts.VaultToken),
+			fmt.Sprintf("osm.vault.port=%d", instOpts.VaultPort),
+		)
 		// Wait for the vault pod
 		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
 			return errors.Wrap(err, "failed waiting for vault pod to become ready")

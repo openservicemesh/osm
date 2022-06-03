@@ -35,9 +35,6 @@ const (
 	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
 	webhookCreatePod = "/mutate-pod-creation"
 
-	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
-	WebhookHealthPath = "/healthz"
-
 	bootstrapSecretPrefix = "envoy-bootstrap-config-"
 )
 
@@ -87,7 +84,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 
 	mux := http.NewServeMux()
 
-	mux.Handle(WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+	mux.Handle(constants.WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	// We know that the events arriving at this handler are CREATE POD only
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.

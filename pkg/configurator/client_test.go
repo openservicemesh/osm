@@ -23,7 +23,8 @@ func TestGetMeshConfig(t *testing.T) {
 
 	meshConfigClient := fakeConfig.NewSimpleClientset()
 	stop := make(chan struct{})
-	c := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+	c, err := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+	a.Nil(err)
 
 	// Returns empty MeshConfig if informer cache is empty
 	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())
@@ -38,7 +39,7 @@ func TestGetMeshConfig(t *testing.T) {
 			Name:      osmMeshConfigName,
 		},
 	}
-	err := c.cache.Add(newObj)
+	err = c.caches.meshConfig.Add(newObj)
 	a.Nil(err)
 	a.Equal(*newObj, c.getMeshConfig())
 }
@@ -55,7 +56,7 @@ func TestMetricsHandler(t *testing.T) {
 	a := assert.New(t)
 
 	c := &client{
-		cache:          &store{},
+		caches:         &cacheCollection{meshConfig: &store{}},
 		meshConfigName: osmMeshConfigName,
 	}
 	handlers := c.metricsHandler()

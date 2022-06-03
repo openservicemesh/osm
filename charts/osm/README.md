@@ -237,10 +237,15 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
+| osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
+| osm.vault.port | int | `8200` | port to use to connect to Vault |
 | osm.vault.protocol | string | `"http"` | protocol to use to connect to Vault |
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
+| osm.vault.secret | object | `{"key":"token","name":"osm-vault-token"}` | The Kubernetes secret storing the Vault token used in OSM |
+| osm.vault.secret.key | string | `"token"` | The Kubernetes secret key with the value bring the Vault token |
+| osm.vault.secret.name | string | `"osm-vault-token"` | The Kubernetes secret name storing the Vault token used in OSM |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |
 | osm.webhookConfigNamePrefix | string | `"osm-webhook"` | Prefix used in name of the webhook configuration resources |
 | smi.validateTrafficTarget | bool | `true` | Enables validation of SMI Traffic Target |

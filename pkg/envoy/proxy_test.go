@@ -434,21 +434,6 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(actualMeta).To(Equal(&expectedMeta))
 		})
 	})
-
-	Context("Test GetServiceIdentityFromProxyCertificate", func() {
-		It("should correctly return the ServiceAccount encoded in the XDS certificate CN", func() {
-			cn := certificate.CommonName(fmt.Sprintf("%s.sidecar.sa-name.sa-namespace.cluster.local", uuid.New()))
-			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(cn)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("sa-name.sa-namespace.cluster.local")))
-		})
-
-		It("should correctly error when the XDS certificate CN is invalid", func() {
-			proxyIdentity, err := GetServiceIdentityFromProxyCertificate(certificate.CommonName("invalid"))
-			Expect(err).To(HaveOccurred())
-			Expect(proxyIdentity).To(Equal(identity.ServiceIdentity("")))
-		})
-	})
 })
 
 func TestPodMetadataString(t *testing.T) {

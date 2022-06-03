@@ -15,7 +15,7 @@ import (
 )
 
 func TestEgressRun(t *testing.T) {
-	testMeshName := "test"
+	const testMeshName = "test"
 
 	testCases := []struct {
 		name            string

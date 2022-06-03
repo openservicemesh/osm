@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -13,7 +14,8 @@ import (
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry(nil, nil)
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New()))
+	uuid := uuid.New()
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
@@ -34,7 +36,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(1))
 
-			_, ok := connectedProxies[certCommonName]
+			_, ok := connectedProxies[proxy.UUID.String()]
 			Expect(ok).To(BeTrue())
 		})
 

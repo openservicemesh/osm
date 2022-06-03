@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -9,24 +10,40 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
+type fakeCertReleaser struct {
+	sync.Mutex
+	releasedCount map[certificate.CommonName]int // map of cn to release count
+}
+
+func (cm *fakeCertReleaser) ReleaseCertificate(cn certificate.CommonName) {
+	cm.Lock()
+	defer cm.Unlock()
+	cm.releasedCount[cn]++
+}
+
+func (cm *fakeCertReleaser) getReleasedCount(cn certificate.CommonName) int {
+	cm.Lock()
+	defer cm.Unlock()
+	return cm.releasedCount[cn]
+}
+
 func TestReleaseCertificateHandler(t *testing.T) {
-	podUID := uuid.New().String()
-	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", podUID))
+	proxyUUID := uuid.New().String()
+	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", proxyUUID))
 
 	testCases := []struct {
 		name       string
 		eventFunc  func(*messaging.Broker)
-		assertFunc func(*assert.Assertions, *certificate.Manager)
+		assertFunc func(*assert.Assertions, *fakeCertReleaser)
 	}{
 		{
 			name: "The certificate is released when the corresponding pod is deleted",
@@ -36,16 +53,15 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(podUID),
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: proxyUUID,
+							},
 						},
 					},
 				}, announcements.PodDeleted.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
-				a.Eventually(func() bool {
-					cert, err := cm.GetCertificate(proxyCN)
-					return err != nil && cert == nil
-				}, 2*time.Second, 500*time.Millisecond)
+			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
+				a.Equal(1, cm.getReleasedCount(proxyCN))
 			},
 		},
 		{
@@ -56,20 +72,15 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(uuid.New().String()), // Pod UUID does not match cert
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+							},
 						},
 					},
 				}, announcements.PodDeleted.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
-				// Give enough time for the cert to be removed
-				// and only then verify that the cert still exists.
-				// This delay is important because even when the cert is
-				// removed, it happens asynchronously.
-				time.Sleep(2 * time.Second)
-				cert, err := cm.GetCertificate(proxyCN)
-				a.Nil(err)
-				a.NotNil(cert)
+			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
+				a.Equal(cm.getReleasedCount(proxyCN), 0)
 			},
 		},
 		{
@@ -80,20 +91,15 @@ func TestReleaseCertificateHandler(t *testing.T) {
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							UID: types.UID(podUID),
+							Labels: map[string]string{
+								constants.EnvoyUniqueIDLabelName: proxyUUID,
+							},
 						},
 					},
 				}, announcements.PodAdded.String())
 			},
-			assertFunc: func(a *assert.Assertions, cm *certificate.Manager) {
-				// Give enough time for the cert to be removed
-				// and only then verify that the cert still exists.
-				// This delay is important because even when the cert is
-				// removed, it happens asynchronously.
-				time.Sleep(2 * time.Second)
-				cert, err := cm.GetCertificate(proxyCN)
-				a.Nil(err)
-				a.NotNil(cert)
+			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
+				a.Equal(cm.getReleasedCount(proxyCN), 0)
 			},
 		},
 	}
@@ -107,29 +113,22 @@ func TestReleaseCertificateHandler(t *testing.T) {
 
 			msgBroker := messaging.NewBroker(stop)
 			proxyRegistry := NewProxyRegistry(nil, msgBroker)
-			certManager := tresorFake.NewFake(msgBroker)
-
-			_, err := certManager.IssueCertificate(proxyCN, 1*time.Hour)
-			a.Nil(err)
-			cert, err := certManager.GetCertificate(proxyCN)
-			a.Nil(err)
-			a.NotNil(cert)
 
 			proxy, err := envoy.NewProxy(proxyCN, "-cert-serial-number-", nil)
 			a.Nil(err)
 
-			proxy.PodMetadata = &envoy.PodMetadata{
-				UID: podUID,
-			}
-
 			proxyRegistry.RegisterProxy(proxy)
 
+			certManager := &fakeCertReleaser{releasedCount: make(map[certificate.CommonName]int)}
 			go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 			// Subscription should happen before an event is published by the test, so
 			// add a delay before the test triggers events
 			time.Sleep(500 * time.Millisecond)
 
 			tc.eventFunc(msgBroker)
+			// Give some time for the notification to propagate. Note: we could use tassert's Eventually, but
+			// that doesn't do a good job of testing the negative case, which would (usually) return 0 immediately.
+			time.Sleep(500 * time.Millisecond)
 			tc.assertFunc(a, certManager)
 		})
 	}

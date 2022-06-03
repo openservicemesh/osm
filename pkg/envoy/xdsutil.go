@@ -385,26 +385,6 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	return &pod, nil
 }
 
-// GetServiceIdentityFromProxyCertificate returns the ServiceIdentity information encoded in the XDS certificate CN
-func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity.ServiceIdentity, error) {
-	cnMeta, err := getCertificateCommonNameMeta(cn)
-	if err != nil {
-		return "", err
-	}
-
-	return cnMeta.ServiceIdentity, nil
-}
-
-// GetKindFromProxyCertificate returns the proxy kind, which is encoded in the Common Name of the XDS certificate.
-func GetKindFromProxyCertificate(cn certificate.CommonName) (ProxyKind, error) {
-	cnMeta, err := getCertificateCommonNameMeta(cn)
-	if err != nil {
-		return "", err
-	}
-
-	return cnMeta.ProxyKind, nil
-}
-
 // GetCIDRRangeFromStr converts the given CIDR as a string to an XDS CidrRange object
 func GetCIDRRangeFromStr(cidr string) (*xds_core.CidrRange, error) {
 	ip, ipNet, err := net.ParseCIDR(cidr)

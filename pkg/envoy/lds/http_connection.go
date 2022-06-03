@@ -23,6 +23,7 @@ const (
 	meshHTTPConnManagerStatPrefix       = "mesh-http-conn-manager"
 	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
+	websocketUpgradeType                = "websocket"
 
 	// inbound defines in-mesh inbound or ingress traffic driections
 	inbound connectionDirection = "inbound"
@@ -65,6 +66,11 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 			},
 		},
 		AccessLog: envoy.GetAccessLog(),
+		UpgradeConfigs: []*xds_hcm.HttpConnectionManager_UpgradeConfig{
+			{
+				UpgradeType: websocketUpgradeType,
+			},
+		},
 	}
 
 	// For inbound connections, add the Authz filter

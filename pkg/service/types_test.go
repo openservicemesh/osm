@@ -58,3 +58,73 @@ func TestMeshServiceCluster(t *testing.T) {
 		})
 	}
 }
+
+func TestMeshService_Subdomain(t *testing.T) {
+	type fields struct {
+		Name string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "no subdomain",
+			fields: fields{
+				Name: "s1",
+			},
+			want: "",
+		},
+		{
+			name: "with subdomain",
+			fields: fields{
+				Name: "my-subdomain.s1",
+			},
+			want: "my-subdomain",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &MeshService{
+				Name: tt.fields.Name,
+			}
+			assert := tassert.New(t)
+			assert.Equal(tt.want, ms.Subdomain())
+		})
+	}
+}
+
+func TestMeshService_ProviderKey(t *testing.T) {
+	type fields struct {
+		Name string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "no subdomain",
+			fields: fields{
+				Name: "s1",
+			},
+			want: "s1",
+		},
+		{
+			name: "with subdomain",
+			fields: fields{
+				Name: "my-subdomain.s1",
+			},
+			want: "s1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &MeshService{
+				Name: tt.fields.Name,
+			}
+			assert := tassert.New(t)
+			assert.Equal(tt.want, ms.ProviderKey())
+		})
+	}
+}
