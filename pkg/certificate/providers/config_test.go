@@ -7,16 +7,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -72,17 +70,6 @@ func TestGetCertificateManager(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Not a valid Vault protocol",
-			options: VaultOptions{
-				VaultHost:     "vault.default.svc.cluster.local",
-				VaultToken:    "vault-token",
-				VaultRole:     "role",
-				VaultPort:     8200,
-				VaultProtocol: "hi",
-			},
-			expectError: true,
-		},
-		{
 			name: "Valid Vault protocol",
 			options: VaultOptions{
 				VaultHost:     "vault.default.svc.cluster.local",
@@ -93,6 +80,17 @@ func TestGetCertificateManager(t *testing.T) {
 			},
 			cfg:         mockConfigurator,
 			expectError: false,
+		},
+		{
+			name: "Not a valid Vault protocol",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultToken:    "vault-token",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "hi",
+			},
+			expectError: true,
 		},
 		{
 			name: "Invalid cert manager options",
@@ -109,25 +107,14 @@ func TestGetCertificateManager(t *testing.T) {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			var objects []runtime.Object
+			oldCA := getCA
+			getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
+				return pem.RootCertificate("id2"), nil
+			}
 
-			if opt, ok := tc.options.(CertManagerOptions); ok && tc.restConfig != nil {
-				cmIssuer := &certmanager.ClusterIssuer{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: opt.IssuerName,
-					},
-					Spec: certmanager.IssuerSpec{
-						IssuerConfig: certmanager.IssuerConfig{
-							SelfSigned: &certmanager.SelfSignedIssuer{},
-						},
-					},
-				}
-				objects = append(objects, cmIssuer)
-			}
-			cmClient := cmfakeclient.NewSimpleClientset(objects...)
-			getCertManagerConfig = func(c *rest.Config) cmclient.Interface {
-				return cmClient
-			}
+			defer func() {
+				getCA = oldCA
+			}()
 
 			manager, err := NewCertificateManager(tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
 			if tc.expectError {

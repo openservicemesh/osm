@@ -97,5 +97,5 @@ type MRCClient interface {
 	List() ([]*v1alpha2.MeshRootCertificate, error)
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
-	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, string, error)
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error)
 }

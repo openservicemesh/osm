@@ -6,6 +6,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 // Kind specifies the certificate provider kind
@@ -81,4 +83,5 @@ type MRCProviderGenerator struct {
 
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	DefaultVaultToken string
+	caExtractorFunc   func(certificate.Issuer) (pem.RootCertificate, error)
 }

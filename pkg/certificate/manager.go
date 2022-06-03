@@ -1,7 +1,6 @@
 package certificate
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -20,20 +19,12 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 		return nil, err
 	}
 
-	client, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
+	client, ca, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
 	if err != nil {
 		return nil, err
 	}
 
-	c := &issuer{Issuer: client, ID: clientID}
-
-	// get the CA by issuing a test certificate
-	cert, err := c.IssueCertificate("init-cert", 1*time.Second)
-	if err != nil {
-		return nil, fmt.Errorf("error initializing issuer: %w", err)
-	}
-
-	c.CertificateAuthority = cert.GetIssuingCA()
+	c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca}
 
 	m := &Manager{
 		// The signingIssuer is responsible for signing all newly issued certificates
