@@ -79,7 +79,7 @@ func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.Servic
 		return nil, err
 	}
 	if Td.DeployOnOpenShift {
-		err = Td.addOpenShiftSCC("privileged", svcAc.Name, svcAc.Namespace)
+		err = Td.AddOpenShiftSCC("privileged", svcAc.Name, svcAc.Namespace)
 		return svcAc, err
 	}
 	return svcAc, nil
