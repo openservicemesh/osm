@@ -146,13 +146,27 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector:
-      kubernetes.io/arch: amd64
-      kubernetes.io/os: linux
+    nodeSelector: {}
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity: {}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - arm
+              - ppc64le
+              - s390x
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
@@ -312,13 +326,26 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector:
-      kubernetes.io/arch: amd64
-      kubernetes.io/os: linux
+    nodeSelector: {}
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity: {}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - ppc64le
+              - s390x
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
