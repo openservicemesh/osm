@@ -555,7 +555,10 @@ func TestBuildRoute(t *testing.T) {
 				WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 					service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1|80|local"), Weight: 100}}),
 				RetryPolicy: &policyv1alpha1.RetryPolicySpec{
-					RetryOn: "4xx",
+					RetryOn:                  "4xx",
+					PerTryTimeout:            &thresholdTimeoutDuration,
+					NumRetries:               &thresholdUintVal,
+					RetryBackoffBaseInterval: &thresholdBackoffDuration,
 				},
 			},
 			method: "GET",
@@ -612,7 +615,12 @@ func TestBuildRoute(t *testing.T) {
 						},
 						Timeout: &duration.Duration{Seconds: 0},
 						RetryPolicy: &xds_route.RetryPolicy{
-							RetryOn: "4xx",
+							RetryOn:       "4xx",
+							PerTryTimeout: durationpb.New(thresholdTimeoutDuration.Duration),
+							NumRetries:    &wrapperspb.UInt32Value{Value: thresholdUintVal},
+							RetryBackOff: &xds_route.RetryPolicy_RetryBackOff{
+								BaseInterval: durationpb.New(thresholdBackoffDuration.Duration),
+							},
 						},
 					},
 				},
@@ -782,15 +790,6 @@ func TestBuildRetryPolicy(t *testing.T) {
 			name:        "no retry",
 			retryPolicy: nil,
 			expRetry:    nil,
-		},
-		{
-			name: "valid retry policy",
-			retryPolicy: &policyv1alpha1.RetryPolicySpec{
-				RetryOn: "2xx",
-			},
-			expRetry: &xds_route.RetryPolicy{
-				RetryOn: "2xx",
-			},
 		},
 		{
 			name: "valid retry policy with all fields",
