@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // validatingWebhookEventHandler creates validating webhook events handlers.
@@ -48,6 +49,7 @@ func (c client) reconcileValidatingWebhook(oldVwhc, newVwhc *admissionv1.Validat
 				Msgf("Error updating validating webhook: %s with error %v", newVwhc.Name, err)
 		}
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("ValidatingWebhookConfiguration").Inc()
 	log.Debug().Msgf("Successfully reconciled validating webhook %s", newVwhc.Name)
 }
 
@@ -57,6 +59,7 @@ func (c client) addValidatingWebhook(oldVwhc *admissionv1.ValidatingWebhookConfi
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingDeletedValidatingWebhook)).
 			Msgf("Error adding back deleted validating webhook: %s", oldVwhc.Name)
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("ValidatingWebhookConfiguration").Inc()
 	log.Debug().Msgf("Successfully added back validating webhook %s", oldVwhc.Name)
 }
 

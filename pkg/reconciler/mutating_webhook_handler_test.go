@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var testWebhookServicePath = "/path"
@@ -218,6 +219,10 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 		},
 	}
 
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	defer metricsstore.DefaultMetricsStore.Stop(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	expectedMetric := 0
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
@@ -248,6 +253,13 @@ func TestMutatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 				a.Equal(crd, &tc.updatedMwhc)
 			} else {
 				a.Equal(crd, &tc.originalMwhc)
+			}
+
+			if tc.mwhcUpdated {
+				expectedMetric++
+			}
+			if expectedMetric > 0 {
+				a.True(metricsstore.DefaultMetricsStore.Contains(`osm_reconciliation_total{kind="MutatingWebhookConfiguration"} ` + strconv.Itoa(expectedMetric) + "\n"))
 			}
 		})
 	}

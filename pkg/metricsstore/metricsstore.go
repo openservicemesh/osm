@@ -100,6 +100,9 @@ type MetricsStore struct {
 	// by the control plane
 	EventsQueued prometheus.Gauge
 
+	// ReconciliationTotal counts the number of resource reconciliations invoked
+	ReconciliationTotal *prometheus.CounterVec
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -275,6 +278,12 @@ func init() {
 		Name:      "events_queued",
 		Help:      "Number of events seen but not yet processed by the control plane",
 	})
+
+	defaultMetricsStore.ReconciliationTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "reconciliation_total",
+		Help:      "Counter of resource reconciliations invoked",
+	}, []string{"kind"})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
