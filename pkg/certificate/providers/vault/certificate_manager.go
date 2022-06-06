@@ -73,5 +73,6 @@ func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time
 		CertChain:    pem.Certificate(secret.Data[certificateField].(string)),
 		PrivateKey:   []byte(secret.Data[privateKeyField].(string)),
 		IssuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
+		TrustedCAs:   pem.RootCertificate(secret.Data[issuingCAField].(string)),
 	}
 }

@@ -14,8 +14,8 @@ var (
 
 type fakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, string, error) {
-	return &fakeIssuer{}, "fake-issuer-1", nil
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error) {
+	return &fakeIssuer{}, pem.RootCertificate("rootCA"), "fake-issuer-1", nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
@@ -39,6 +39,7 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 		Expiration: time.Now().Add(validityPeriod),
 		// simply used to distinguish the private/public key from other issuers
 		IssuingCA:  pem.RootCertificate(i.id),
+		TrustedCAs: pem.RootCertificate(i.id),
 		PrivateKey: pem.PrivateKey(i.id),
 	}, nil
 }

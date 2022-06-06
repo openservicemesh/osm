@@ -129,7 +129,7 @@ func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDS
 			ValidationContext: &xds_auth.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_InlineBytes{
-						InlineBytes: cert.GetIssuingCA(),
+						InlineBytes: cert.GetTrustedCAs(),
 					},
 				},
 			},

@@ -13,6 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -31,7 +33,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 		// params
 		kubeClient        kubernetes.Interface
-		kubeConfig        *rest.Config
+		restConfig        *rest.Config
 		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
@@ -56,26 +58,15 @@ func TestGetCertificateManager(t *testing.T) {
 		{
 			name:              "certManager as the certificate manager",
 			kubeClient:        fake.NewSimpleClientset(),
-			kubeConfig:        &rest.Config{},
+			restConfig:        &rest.Config{},
 			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
-			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "test-kind", IssuerGroup: "test-group"},
+			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
 			expectError:       false,
 		},
 		{
 			name:        "Fail to validate Config",
 			options:     VaultOptions{},
-			expectError: true,
-		},
-		{
-			name: "Not a valid Vault protocol",
-			options: VaultOptions{
-				VaultHost:     "vault.default.svc.cluster.local",
-				VaultToken:    "vault-token",
-				VaultRole:     "role",
-				VaultPort:     8200,
-				VaultProtocol: "hi",
-			},
 			expectError: true,
 		},
 		{
@@ -91,10 +82,21 @@ func TestGetCertificateManager(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name: "Not a valid Vault protocol",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultToken:    "vault-token",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "hi",
+			},
+			expectError: true,
+		},
+		{
 			name: "Invalid cert manager options",
 			options: CertManagerOptions{
 				IssuerKind:  "test-kind",
-				IssuerGroup: "test-group",
+				IssuerGroup: "cert-manager.io",
 			},
 			cfg:         mockConfigurator,
 			expectError: true,
@@ -105,9 +107,23 @@ func TestGetCertificateManager(t *testing.T) {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			manager, err := NewCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
-			assert.Equal(tc.expectError, manager == nil)
-			assert.Equal(tc.expectError, err != nil)
+			oldCA := getCA
+			getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
+				return pem.RootCertificate("id2"), nil
+			}
+
+			defer func() {
+				getCA = oldCA
+			}()
+
+			manager, err := NewCertificateManager(tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
+			if tc.expectError {
+				assert.Empty(manager)
+				assert.Error(err)
+			} else {
+				assert.NotEmpty(manager)
+				assert.NoError(err)
+			}
 
 			if opt, ok := tc.options.(TresorOptions); ok && !tc.expectError {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
