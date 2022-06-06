@@ -9,8 +9,7 @@ Each of the roles is organized into the following categories:
 
 | Role | Responsibilities | Requirements | Privileges |
 | -----| ---------------- | ------------ | -------|
-| [Maintainer](#maintainer) | Active member of the community |<ul><li>Reviewer for ≥3 months</li><li> Demonstrates deep understanding of multiple areas of the project</li><li>Exercise good judgement for the project</li><li>Maintain contributions to the project</li></ul> | <ul><li>Has GitHub or CI/CD rights to approve any pull requests</li><li>Represent the project as a Maintainer</li><li>Communicate with CNCF on behalf of the project</li></ul> |
-| [Reviewer](#reviewer) | Review contributions from other members | <ul><li>Contributor for ≥3 months</li><li>Demonstrates knowledge in an area of the project</li><li>Reviews pull requests</li></ul> | Has GitHub or CI/CD rights to approve pull requests in specific directories |
+| [Maintainer](#maintainer) | Active member of the community |<ul><li>Contributor for ≥3 months</li><li> Demonstrates deep understanding of multiple areas of the project</li><li>Exercise good judgement for the project</li><li>Maintain contributions to the project</li></ul> | <ul><li>Has GitHub or CI/CD rights to approve any pull requests</li><li>Represent the project as a Maintainer</li><li>Communicate with CNCF on behalf of the project</li></ul> |
 | [Contributor](#contributor) | Following the [CNCF Code of Conduct] and the project [contributing guide] | One or more contributions to the project | Invitations to contributor events |
 | [Community Participant](#community-participant) | Following the [CNCF Code of Conduct] | --- | --- |
 
@@ -27,7 +26,6 @@ Description: A Community Participant participates in the community and contribut
     * Trying out new releases
     * Attending community events
     * Talking about the project on social media, blogs, and talks
-
 
 ## Contributor
 
@@ -48,48 +46,18 @@ Description: A Contributor contributes directly to the project and adds value to
     * Promotes the project in public
 * Privileges:
     * Invitations to contributor events
-    * Eligible to become a Reviewer
+    * Eligible to become a Maintainer
 
 Process of becoming a Contributor:
 1. There is no nomination process for this role. Being a contributor entails being a community member who does one or more of the listed requirements.
 
-## Reviewer
-
-Description: Reviewers are able to review code for quality and correctness on some project areas. They are knowledgeable about both the codebase and software engineering principles.
-
-**Defined by**: *reviewers* entry in the [OWNERS file].
-
-A Reviewer must meet the rights, responsibilities, and requirements of a Contributor, plus:
-
-* Responsibilities include:
-    * Following the reviewing guide
-    * Reviewing Pull Request for project quality control
-    * Reviewing most Pull Requests against their specific areas of ownership
-    * Focus on code quality and correctness, including testing and refactoring
-    * Prompt response to review requests as per community expectations
-    * Resolving test bugs related to project area ownership
-* Requirements:
-    * Experience as a Contributor for at least 3 months
-    * Primary reviewer for at least 5 PRs in their specific areas of ownership
-    * Reviewed or merged substantial PRs to the codebase
-    * Demonstrated in-depth knowledge of a specific area of the codebase
-* Additional Privileges
-    * Has GitHub or CI/CD rights to approve pull requests in specific directories
-    * Can recommend and review other contributors to become Reviewers
-
-Process of becoming a Reviewer:
-1. A current contributor may be self-nominated or nominated by a current Maintainer or Reviewer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *reviewers* entry.  Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements against a specific area of the codebase, the nominee must be added to the [CODEOWNERS file] for their specific area of ownership in the same PR. A codeowner is defined per the [GitHub definition](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#about-code-owners).
-2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Reviewer.
-3. A majority of the current Maintainers must then approve the PR.
-
-
 ## Maintainer
 
-Description: Maintainers are very established contributors who are responsible for the entire project. As such, they have the ability to approve PRs against any area of the project, and are expected to participate in making decisions about the strategy and priorities of the project. Maintainers focus on a holistic review of contributions: performance, compatibility, adherence to convention, and overall quality.
+Description: Maintainers are established contributors who are responsible for the entire project. As such, they have the ability to approve PRs against any area of the project, and are expected to participate in making decisions about the strategy and priorities of the project. Maintainers focus on a holistic review of contributions: performance, compatibility, adherence to convention, and overall quality.
 
 **Defined by**: *owners* entry in the [OWNERS file].
 
-A Maintainer must meet the rights, responsibilities, and requirements of a Reviewer, plus:
+A Maintainer must meet the rights, responsibilities, and requirements of a Contributor, plus:
 
 * Responsibilities include:
     * Reviewing and approving PRs that involve multiple parts of the project
@@ -101,7 +69,7 @@ A Maintainer must meet the rights, responsibilities, and requirements of a Revie
     * Participating in, and leading, community meetings
     * Helps run the project infrastructure
 * Requirements:
-    * Experience as a Reviewer for at least 3 months
+    * Experience as a Contributor for at least 3 months
     * Deep understanding of the technical goals and direction of the project
     * Deep understanding of the technical domain of the project across multiple areas
     * Sustained contributions to design and direction by doing all of:
@@ -109,7 +77,7 @@ A Maintainer must meet the rights, responsibilities, and requirements of a Revie
       * Initiating, contributing, and resolving discussions (emails, GitHub issues, meetings)
       * Identifying subtle or complex issues in designs and implementation PRs
     * Is able to exercise judgement for the good of the project, independent of their employer, social circles, or teams
-    * Mentors other Contributors and Reviewers
+    * Mentors other Contributors
 * Additional privileges:
     * Approve PRs to any area of the project
     * Represent the project in public as a Maintainer
@@ -118,14 +86,14 @@ A Maintainer must meet the rights, responsibilities, and requirements of a Revie
 
 Process of becoming a Maintainer:
 
-1. A current Reviewer may be self-nominated or be nominated by a current Maintainer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *owners* entry. Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements, the nominee must be added to the [CODEOWNERS file] in the same PR. A codeowner is defined per the [GitHub definition](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#about-code-owners).
+1. A current contributor may be self-nominated or be nominated by a current Maintainer by opening a PR against the root of the [OSM repository] and adding the nominee to the [OWNERS file] under the *owners* entry. Additionally, if the nomination is for a code owner whose PR approvals are meant to satisfy the PR merge requirements, the nominee must be added to the [CODEOWNERS file] in the same PR. A codeowner is defined per the [GitHub definition](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#about-code-owners).
 2. The nominee will add a comment to the PR testifying that they agree to all requirements of becoming a Maintainer.
 3. A majority of the current Maintainers must then approve the PR.
 
 
 ## Inactivity
 
-It is important for contributors to be and stay active to set an example and show commitment to the project. Inactivity is harmful to the project as it may lead to unexpected delays, contributor attrition, and a lost of trust in the project.
+It is important for contributors to be and stay active to set an example and show commitment to the project. Inactivity is harmful to the project as it may lead to unexpected delays, contributor attrition, and a loss of trust in the project.
 
 * Inactivity is measured by:
     * Periods of no contributions for longer than 3 months
@@ -138,24 +106,24 @@ It is important for contributors to be and stay active to set an example and sho
 
 ## Involuntary Removal or Demotion
 
-Involuntary removal/demotion of a contributor (Reviewer or Maintainer) happens when responsibilities and requirements aren't being met. This may include repeated pattern of inactivity, extended period of inactivity, a period of failing to meet the requirements of your role, and/or a violation of the [CNCF CoC](https://github.com/cncf/foundation/blob/master/code-of-conduct.md). This process is important because it protects the community and its deliverables while also opens up opportunities for new contributors to step in.
-
+Involuntary removal/demotion of a Maintainer happens when responsibilities and requirements aren't being met. This may include repeated patterns of inactivity, extended periods of inactivity, a period of failing to meet the requirements of your role, and/or a violation of the [CNCF Code of Conduct]. This process is important because it protects the community and its deliverables while also opens up opportunities for new contributors to step in.
 
 Involuntary removal or demotion is handled through a vote by a majority of the current Maintainers.
 
 
 ## Stepping Down/Emeritus Process
 
-If and when contributors' commitment levels change, contributors can consider stepping down (moving down the contributor ladder) vs moving to emeritus status (completely stepping away from the project).
+If and when a contributor's commitment level changes, they can consider one of the following options: 
+1. Stepping down (moving down the contributor ladder)
+2. Moving to emeritus status (completely stepping away from the project).
 
-Contact the Maintainers about changing to Emeritus status, or reducing your contributor level.
+Contact the Maintainers about changing to Emeritus status or reducing your contributor level.
 
 
 ## Review Process
 
 - In addition to self nominated and Maintainer proposed nominations, Maintainers will meet quarterly to discuss Role promotions and demotions.
-- Prior to nomination or meeting the requirements of a role, Contributors and Reviewers can express their interest in taking on new role or expanding
-their ownership. The contributor can be assigned a Maintainer or area owner mentor to help guide them through the requirements for a desired role or area ownership.
+- Prior to nomination or meeting the requirements of the role, Contributors that express their interest in being a Maintainer can be assigned a Maintainer to help guide them through the requirements.
 
 ## Contact
 
