@@ -61,7 +61,6 @@ func (sa K8sServiceAccount) String() string {
 }
 
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
-// TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
 	return New(sa.Name, sa.Namespace)
 }

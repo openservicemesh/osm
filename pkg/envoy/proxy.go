@@ -231,7 +231,8 @@ func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdenti
 	}
 }
 
-// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
+// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>.cluster.local
 func NewXDSCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
 	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
 }
