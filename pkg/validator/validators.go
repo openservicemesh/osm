@@ -266,3 +266,63 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 
 	return nil, nil
 }
+
+// meshRootCertificateValidator validates the MeshRootCertificate CRD.
+func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	mcrSetting := &configv1alpha2.MeshRootCertificate{}
+
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mcrSetting); err != nil {
+		return nil, err
+	}
+
+	// todo(schristoff): this should grab real information
+	currMCRs := []configv1alpha2.MeshRootCertificate{}
+
+	numAppliedMCR := len(currMCRs)
+	switch req.Operation {
+	case admissionv1.Delete:
+		if numAppliedMCR == 1 {
+			return nil, errors.Errorf("Must have more than one Mesh Root Certificate to delete")
+		}
+		for _, v := range currMCRs{ 
+			if mcrSetting.Name == v.Name {
+				//in what cases should we not delete?
+			}
+		}
+	case admissionv1.Create:
+		if numAppliedMCR == 2 {
+			return nil, errors.Errorf("Cannot create more then two Mesh Root Certificates")
+		}
+	case admissionv1.Update:
+		//prevent out of order status changes
+		// we can do:
+		// pending-up -> complete, inactive, error, unknown
+		// pending-down -> inactive, error, unknown
+		// complete -> pending-down
+		for _, v := range currMCRs{ 
+			if mcrSetting.Name == v.Name {
+				switch v.Status.MeshRootState {
+					//where are the const for these? 
+					case "pending-up" {
+						if mcrSetting.Status == "pending-down" {
+							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+						}
+					}
+					case "pending-down" {
+						if mcrSetting.Status == "complete" || "pending-up" {
+							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+						}
+					}
+					case "complete" {
+						//maybe a footgun
+						if mcr.Setting.Status == "pending-up" || "inactive" || "error" || "unknown" {
+							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+						}
+					}
+				}
+			}
+	}
+
+
+	return nil, nil
+}
