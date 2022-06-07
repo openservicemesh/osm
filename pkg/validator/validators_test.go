@@ -796,16 +796,9 @@ func TestRetryValidator(t *testing.T) {
 		{
 			name: "valid retry",
 			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "policy.openservicemesh.io",
-					Kind:    "Retry",
-				},
 				Object: runtime.RawExtension{
 					Raw: []byte(`
 					{
-						"apiVersion": "v1alpha1",
-						"kind": "Retry",
 						"spec": {
 							"source": {
 								"kind": "ServiceAccount",
@@ -833,16 +826,9 @@ func TestRetryValidator(t *testing.T) {
 		{
 			name: "invalid - source as not ServiceAccount",
 			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "policy.openservicemesh.io",
-					Kind:    "Retry",
-				},
 				Object: runtime.RawExtension{
 					Raw: []byte(`
 					{
-						"apiVersion": "v1alpha1",
-						"kind": "Retry",
 						"spec": {
 							"source": {
 								"kind": "Service",
@@ -870,16 +856,9 @@ func TestRetryValidator(t *testing.T) {
 		{
 			name: "invalid destination as not Service",
 			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "policy.openservicemesh.io",
-					Kind:    "Retry",
-				},
 				Object: runtime.RawExtension{
 					Raw: []byte(`
 					{
-						"apiVersion": "v1alpha1",
-						"kind": "Retry",
 						"spec": {
 							"source": {
 								"kind": "ServiceAccount",
@@ -907,16 +886,9 @@ func TestRetryValidator(t *testing.T) {
 		{
 			name: "invalid duplicate destination",
 			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "policy.openservicemesh.io",
-					Kind:    "Retry",
-				},
 				Object: runtime.RawExtension{
 					Raw: []byte(`
 					{
-						"apiVersion": "v1alpha1",
-						"kind": "Retry",
 						"spec": {
 							"source": {
 								"kind": "ServiceAccount",
@@ -946,6 +918,41 @@ func TestRetryValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "Duplicate destinations - repeated service testdest in namespace testns",
 		},
+		{
+			name: "valid multiple destinations",
+			input: &admissionv1.AdmissionRequest{
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"spec": {
+							"source": {
+								"kind": "ServiceAccount",
+								"name": "test",
+								"namespace": "testns"
+							},
+							"destinations": [
+								{
+									"kind": "Service",
+									"name": "testdest1",
+									"namespace": "testns"
+								},
+								{
+									"kind": "Service",
+									"name": "testdest2",
+									"namespace": "testns"
+								}
+							],
+							"retryPolicy": {
+								"retryOn": "5xx"
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -954,9 +961,11 @@ func TestRetryValidator(t *testing.T) {
 
 			resp, err := retryValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
+			errStr := ""
 			if err != nil {
-				assert.Equal(tc.expErrStr, err.Error())
+				errStr = err.Error()
 			}
+			assert.Equal(tc.expErrStr, errStr)
 		})
 	}
 }
