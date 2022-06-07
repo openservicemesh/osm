@@ -275,54 +275,71 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 		return nil, err
 	}
 
-	// todo(schristoff): this should grab real information
-	currMCRs := []configv1alpha2.MeshRootCertificate{}
+	allMCRs := []configv1alpha2.MeshRootCertificate{}
+	for _, v := range currMCRs{ 
+		if mcrSetting.Name == v.Name {
+			currentMCR := v
+		}
+	}
 
 	numAppliedMCR := len(currMCRs)
+
 	switch req.Operation {
 	case admissionv1.Delete:
 		if numAppliedMCR == 1 {
 			return nil, errors.Errorf("Must have more than one Mesh Root Certificate to delete")
 		}
-		for _, v := range currMCRs{ 
-			if mcrSetting.Name == v.Name {
-				//in what cases should we not delete?
-			}
-		}
+		return validateMCRdelete(currentMCR, mcrSetting)
+
 	case admissionv1.Create:
 		if numAppliedMCR == 2 {
 			return nil, errors.Errorf("Cannot create more then two Mesh Root Certificates")
 		}
+		// return validateMCRcreate
 	case admissionv1.Update:
-		//prevent out of order status changes
-		// we can do:
-		// pending-up -> complete, inactive, error, unknown
-		// pending-down -> inactive, error, unknown
-		// complete -> pending-down
-		for _, v := range currMCRs{ 
-			if mcrSetting.Name == v.Name {
-				switch v.Status.MeshRootState {
-					//where are the const for these? 
-					case "pending-up" {
-						if mcrSetting.Status == "pending-down" {
-							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-						}
-					}
-					case "pending-down" {
-						if mcrSetting.Status == "complete" || "pending-up" {
-							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-						}
-					}
-					case "complete" {
-						//maybe a footgun
-						if mcr.Setting.Status == "pending-up" || "inactive" || "error" || "unknown" {
-							return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-						}
-					}
-				}
-			}
+		return validateMCRupdate(currentMCR, *mcrSetting)
 	}
 
 
 	return nil, nil
 }
+
+func validateMCRdelete(current *configv1alpha2.MeshRootCertificate, 
+	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error)  {
+	//in what cases should we not delete?
+	return nil, nil
+}
+
+
+func validateMCRupdate(current *configv1alpha2.MeshRootCertificate, 
+	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
+	//prevent out of order status changes
+	// we can do:
+	// pending-up -> complete, inactive, error, unknown
+	// pending-down -> inactive, error, unknown
+	// complete -> pending-down
+	switch current.Status.MeshRootState {
+		//where are the const for these? 
+		case "pending-up" {
+			if applied.Status == "pending-down" {
+				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+			}
+		}
+		case "pending-down" {
+			if applied.Status == "complete" || "pending-up" {
+				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+			}
+		}
+		case "complete" {
+			//maybe a footgun
+			if applied.Status == "pending-up" || "inactive" || "error" || "unknown" {
+				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
+			}
+		}
+	}
+}
+
+// just in case 
+// func validateMCRcreate(current *configv1alpha2.MeshRootCertificate, 
+// 	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {}
+
