@@ -36,6 +36,19 @@ full announcement, and may ask for additional information or guidance.
 Report potential security issues, or known security issues in a 
 third party modules by opening a Github Issue.
 
+### When To Send A Report
+
+If you think you have found a vulnerability in a OSM project.
+
+Report potential security issues, or known security issues in a 
+third party modules by opening a Github Issue.
+
+### When Not To Send A Report
+
+* For guidance on securing OSM please open a [Github Issue](https://github.com/openservicemesh/osm/issues/new/choose) or reach out on the OSM Slack Channel within the [CNCF Slack](https://slack.cncf.io)
+* For guidance on applying security updates
+
+
 ## Disclosure Policy
 
 When the team receives a security bug report, they will assign it
