@@ -300,7 +300,6 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 		return validateMCRupdate(currentMCR, *mcrSetting)
 	}
 
-
 	return nil, nil
 }
 
@@ -340,6 +339,6 @@ func validateMCRupdate(current *configv1alpha2.MeshRootCertificate,
 }
 
 // just in case 
-// func validateMCRcreate(current *configv1alpha2.MeshRootCertificate, 
+// func validateMCRcreate( 
 // 	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {}
 
