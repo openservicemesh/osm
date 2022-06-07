@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"context"
 	"fmt"
 	"runtime"
 	"strings"
@@ -9,35 +8,25 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test proxy methods", func() {
 	proxyUUID := uuid.New()
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", proxyUUID, KindSidecar))
-	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
-	proxy, err := NewProxy(certCommonName, certSerialNumber, tests.NewMockAddress("1.2.3.4"))
+	proxy := NewProxy(KindSidecar, proxyUUID, identity.New("svc-acc", "namespace"), tests.NewMockAddress("1.2.3.4"))
 
-	Context("Proxy is valid", func() {
+	It("creates a valid proxy", func() {
 		Expect(proxy).ToNot((BeNil()))
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("test GetLastAppliedVersion()", func() {
@@ -134,8 +123,6 @@ var _ = Describe("Test proxy methods", func() {
 
 	Context("test correctness proxy object creation", func() {
 		It("returns correct values", func() {
-			Expect(proxy.GetCertificateCommonName()).To(Equal(certCommonName))
-			Expect(proxy.GetCertificateSerialNumber()).To(Equal(certSerialNumber))
 			Expect(proxy.HasPodMetadata()).To(BeFalse())
 
 			proxy.PodMetadata = &PodMetadata{
@@ -144,7 +131,7 @@ var _ = Describe("Test proxy methods", func() {
 
 			Expect(proxy.HasPodMetadata()).To(BeTrue())
 			Expect(proxy.PodMetadata.UID).To(Equal(podUID))
-			Expect(strings.Contains(proxy.String(), "[Serial=123456]")).To(BeTrue())
+			Expect(strings.Contains(proxy.String(), fmt.Sprintf("[ProxyUUID=%s]", proxyUUID))).To(BeTrue())
 		})
 	})
 })
@@ -236,205 +223,6 @@ func TestStatsHeaders(t *testing.T) {
 		})
 	}
 }
-
-var _ = Describe("Test XDS certificate tooling", func() {
-	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
-	kubeClient := fake.NewSimpleClientset()
-
-	Context("Test GetPodFromCertificate()", func() {
-		It("works as expected", func() {
-			proxyUUID := uuid.New()
-			someOtherEnvoyUID := uuid.New().String()
-			namespace := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			podlabels := map[string]string{
-				constants.AppLabel:               tests.SelectorValue,
-				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
-			}
-			someOthePodLabels := map[string]string{
-				constants.AppLabel:               tests.SelectorValue,
-				constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID,
-			}
-
-			// Ensure correct presetup
-			pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pods.Items)).To(Equal(0))
-
-			newPod0 := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, someOthePodLabels)
-			_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod0, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			newPod1 := tests.NewPodFixture(namespace, fmt.Sprintf("pod-1-%s", uuid.New()), tests.BookstoreServiceAccountName, podlabels)
-			_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			newPod2 := tests.NewPodFixture(namespace, fmt.Sprintf("pod-2-%s", uuid.New()), tests.BookstoreServiceAccountName, someOthePodLabels)
-			_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod2, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Ensure correct setup
-			pods, err = kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pods.Items)).To(Equal(3))
-
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, tests.BookstoreServiceAccountName, namespace))
-
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod0, &newPod1, &newPod2})
-			actualPod, err := GetPodFromCertificate(newCN, mockKubeController)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(actualPod.Name).To(Equal(newPod1.Name))
-			Expect(actualPod).To(Equal(&newPod1))
-		})
-	})
-
-	Context("Test GetPodFromCertificate()", func() {
-		It("fails with invalid certificate", func() {
-			namespace := uuid.New().String()
-			proxyUUID := uuid.New()
-			mockKubeController := k8s.NewMockController(mockCtrl)
-
-			// Create a pod with the same certificateCN twice
-			for range []int{0, 1} {
-				podName := uuid.New().String()
-				newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-				newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-
-				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			// No service account in this CN
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s", proxyUUID, namespace))
-			actualPod, err := GetPodFromCertificate(newCN, mockKubeController)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(ErrInvalidCertificateCN))
-			Expect(actualPod).To(BeNil())
-		})
-	})
-
-	Context("Test GetPodFromCertificate()", func() {
-		It("fails with two pods with same cert", func() {
-			namespace := uuid.New().String()
-			proxyUUID := uuid.New()
-			mockKubeController := k8s.NewMockController(mockCtrl)
-
-			// Create a pod with the same certificateCN twice
-			var pods []*v1.Pod
-			for range []int{0, 1} {
-				podName := uuid.New().String()
-				tests.PodLabels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-				newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-				pods = append(pods, &newPod)
-
-				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			mockKubeController.EXPECT().ListPods().Return(pods)
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, tests.BookstoreServiceAccountName, namespace))
-			actualPod, err := GetPodFromCertificate(newCN, mockKubeController)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(ErrMoreThanOnePodForCertificate))
-			Expect(actualPod).To(BeNil())
-		})
-	})
-
-	Context("Test GetPodFromCertificate()", func() {
-		It("fails when service account does not match certificate", func() {
-			namespace := uuid.New().String()
-			proxyUUID := uuid.New()
-			randomServiceAccount := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
-
-			podName := uuid.New().String()
-			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-
-			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(newPod.Spec.ServiceAccountName).ToNot(Equal(randomServiceAccount))
-			Expect(newPod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, randomServiceAccount, namespace))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod})
-			actualPod, err := GetPodFromCertificate(newCN, mockKubeController)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(ErrServiceAccountDoesNotMatchCertificate))
-			Expect(actualPod).To(BeNil())
-		})
-	})
-
-	Context("Test GetPodFromCertificate()", func() {
-		It("fails when namespace does not match certificate", func() {
-			namespace := uuid.New().String()
-			proxyUUID := uuid.New()
-			someOtherRandomNamespace := uuid.New().String()
-			mockKubeController := k8s.NewMockController(mockCtrl)
-
-			podName := uuid.New().String()
-			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-
-			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, KindSidecar, tests.BookstoreServiceAccountName, someOtherRandomNamespace))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod})
-			actualPod, err := GetPodFromCertificate(newCN, mockKubeController)
-			Expect(err).To(HaveOccurred())
-			// Since the namespace on the certificate is different than where the pod is...
-			Expect(err).To(Equal(ErrDidNotFindPodForCertificate))
-			Expect(actualPod).To(BeNil())
-		})
-	})
-
-	Context("Test getCertificateCommonNameMeta()", func() {
-		It("parses CN into certificateCommonNameMeta", func() {
-			proxyUUID := uuid.New()
-			testNamespace := uuid.New().String()
-			serviceAccount := uuid.New().String()
-
-			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, testNamespace, identity.ClusterLocalTrustDomain))
-
-			cnMeta, err := getCertificateCommonNameMeta(cn)
-			Expect(err).ToNot(HaveOccurred())
-
-			expected := &certificateCommonNameMeta{
-				ProxyUUID:       proxyUUID,
-				ProxyKind:       KindSidecar,
-				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, testNamespace, identity.ClusterLocalTrustDomain)),
-			}
-			Expect(cnMeta).To(Equal(expected))
-		})
-
-		It("parses CN into certificateCommonNameMeta", func() {
-			_, err := getCertificateCommonNameMeta("a")
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("Test NewXDSCertCommonName() and getCertificateCommonNameMeta() together", func() {
-		It("returns the the CommonName of the form <proxyID>.<kind>.<service-account>.<namespace>", func() {
-			proxyUUID := uuid.New()
-			serviceAccount := uuid.New().String()
-			namespace := uuid.New().String()
-
-			cn := NewXDSCertCommonName(proxyUUID, KindSidecar, serviceAccount, namespace)
-			Expect(cn).To(Equal(certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID, KindSidecar, serviceAccount, namespace, identity.ClusterLocalTrustDomain))))
-
-			actualMeta, err := getCertificateCommonNameMeta(cn)
-			expectedMeta := certificateCommonNameMeta{
-				ProxyUUID:       proxyUUID,
-				ProxyKind:       KindSidecar,
-				ServiceIdentity: identity.ServiceIdentity(fmt.Sprintf("%s.%s.%s", serviceAccount, namespace, identity.ClusterLocalTrustDomain)),
-			}
-			Expect(err).ToNot(HaveOccurred())
-			Expect(actualMeta).To(Equal(&expectedMeta))
-		})
-	})
-})
 
 func TestPodMetadataString(t *testing.T) {
 	testCases := []struct {

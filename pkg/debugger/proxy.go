@@ -51,23 +51,23 @@ func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 		ts := proxy.GetConnectedAt()
 		proxyURL := fmt.Sprintf("/debug/proxy?%s=%s", uuidQueryKey, proxy.UUID)
 		configDumpURL := fmt.Sprintf("%s&%s=%t", proxyURL, proxyConfigQueryKey, true)
-		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="%s">certs</a></td><td><a href="%s">cfg</a></td></tr>`,
-			idx+1, proxy.Identity, ts, time.Since(ts), proxyURL, configDumpURL)
+		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="%s">certs</a></td><td><a href="%s">cfg</a></td></tr>`,
+			idx+1, proxy.Identity, proxy.UUID, ts, time.Since(ts), proxyURL, configDumpURL)
 	}
 	_, _ = fmt.Fprint(w, `</table>`)
 }
 
 func (ds DebugConfig) getConfigDump(uuid string, w http.ResponseWriter) {
-	proxy, ok := ds.proxyRegistry.GetConnectedProxy(uuid)
-	if !ok {
+	proxy := ds.proxyRegistry.GetConnectedProxy(uuid)
+	if proxy != nil {
 		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
 		log.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), ds.kubeController)
+	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from certificate with CN=%s", proxy.GetCertificateCommonName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
@@ -78,16 +78,16 @@ func (ds DebugConfig) getConfigDump(uuid string, w http.ResponseWriter) {
 }
 
 func (ds DebugConfig) getProxy(uuid string, w http.ResponseWriter) {
-	proxy, ok := ds.proxyRegistry.GetConnectedProxy(uuid)
-	if !ok {
+	proxy := ds.proxyRegistry.GetConnectedProxy(uuid)
+	if proxy == nil {
 		msg := fmt.Sprintf("Proxy for UUID %s not found, may have been disconnected", uuid)
 		log.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), ds.kubeController)
+	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from certificate with CN=%s", proxy.GetCertificateCommonName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return

@@ -57,19 +57,19 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
-	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV1Service.Namespace).Create(context.TODO(), &bookstoreV1Pod, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV1Service.Namespace).Create(context.TODO(), bookstoreV1Pod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
 
 	// Create a bookstoreV2 pod
 	bookstoreV2Pod := tests.NewPodFixture(tests.BookstoreV2Service.Namespace, tests.BookstoreV2Service.Name, tests.BookstoreV2ServiceAccountName, tests.PodLabels)
-	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV2Service.Namespace).Create(context.TODO(), &bookstoreV2Pod, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(tests.BookstoreV2Service.Namespace).Create(context.TODO(), bookstoreV2Pod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
 
 	// Create a bookbuyer pod
 	bookbuyerPod := tests.NewPodFixture(tests.BookbuyerService.Namespace, tests.BookbuyerService.Name, tests.BookbuyerServiceAccountName, tests.PodLabels)
-	if _, err := kubeClient.CoreV1().Pods(tests.BookbuyerService.Namespace).Create(context.TODO(), &bookbuyerPod, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(tests.BookbuyerService.Namespace).Create(context.TODO(), bookbuyerPod, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Error creating new pod: %s", err.Error())
 	}
 

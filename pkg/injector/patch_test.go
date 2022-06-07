@@ -164,7 +164,7 @@ func TestCreatePatch(t *testing.T) {
 				Object:    runtime.RawExtension{Raw: raw},
 				DryRun:    &tc.dryRun,
 			}
-			rawPatches, err := wh.createPatch(&pod, req, proxyUUID)
+			rawPatches, err := wh.createPatch(pod, req, proxyUUID)
 			assert.NoError(err)
 			patches := string(rawPatches)
 
@@ -200,7 +200,7 @@ func TestCreatePatch(t *testing.T) {
 			}
 
 			newUUID := uuid.New()
-			rawPatches, err = wh.createPatch(&pod, req, newUUID)
+			rawPatches, err = wh.createPatch(pod, req, newUUID)
 			assert.NoError(err)
 
 			patches = string(rawPatches)
@@ -259,7 +259,7 @@ func TestCreatePatch(t *testing.T) {
 			Namespace: namespace,
 			Object:    runtime.RawExtension{Raw: raw},
 		}
-		_, err = wh.createPatch(&pod, req, proxyUUID)
+		_, err = wh.createPatch(pod, req, proxyUUID)
 		assert.Error(err)
 	})
 }

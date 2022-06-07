@@ -38,7 +38,7 @@ func MakeService(kubeClient kubernetes.Interface, svcName string, selectors map[
 // MakePod creates a pod
 func MakePod(kubeClient kubernetes.Interface, namespace, podName, serviceAccountName string, labels map[string]string) (*v1.Pod, error) {
 	requestedPod := NewPodFixture(namespace, podName, serviceAccountName, labels)
-	createdPod, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &requestedPod, metav1.CreateOptions{})
+	createdPod, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), requestedPod, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}

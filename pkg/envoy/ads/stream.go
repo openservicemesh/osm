@@ -8,6 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -41,16 +42,15 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
+	kind, uuid, si, err := getCertificateCommonNameMeta(certCommonName)
+	if err != nil {
+		return fmt.Errorf("error parsing certificate common name %s: %w", certCommonName, err)
+	}
+
 	// This is the Envoy proxy that just connected to the control plane.
 	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
 	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
-	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).
-			Msgf("Error initializing proxy with certificate SerialNumber=%s", certSerialNumber)
-		return err
-	}
+	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(server.Context()))
 
 	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
 		// Service Account mismatch
@@ -106,7 +106,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(discoveryRequest))
 
-			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(certCommonName.String(), discoveryRequest.TypeUrl).Inc()
+			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(proxy.UUID.String(), proxy.Identity.String(), discoveryRequest.TypeUrl).Inc()
 
 			// This function call runs xDS proto state machine given DiscoveryRequest as input.
 			// It's output is the decision to reply or not to this request.
@@ -332,6 +332,32 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	return identityForCN == proxy.Identity.ToK8sServiceAccount()
 }
 
+func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
+	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>, where proxy-identity is of the
+	// form <name>.<namespace>
+	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
+	if len(chunks) < 4 {
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	}
+	proxyUUID, err := uuid.Parse(chunks[0])
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingXDSCertCN)).
+			Msgf("Error parsing %s into uuid.UUID", chunks[0])
+		return "", uuid.UUID{}, "", err
+	}
+
+	switch {
+	case chunks[1] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[2] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[3] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	}
+
+	return envoy.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil
+}
+
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
@@ -341,7 +367,7 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 		return nil
 	}
 
-	pod, err := envoy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubecontroller)
+	pod, err := s.kubecontroller.GetPodForProxy(p)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 		return nil

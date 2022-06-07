@@ -11,17 +11,19 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -30,7 +32,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
 	podLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -40,15 +42,15 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{}); err != nil {
-		return nil, err
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{}); err != nil {
+		return nil, nil, err
 	}
 
 	selectors := map[string]string{
 		constants.AppLabel: tests.BookbuyerServiceName,
 	}
 	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
@@ -56,13 +58,11 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 			constants.AppLabel: "bookstore",
 		}
 		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil), newPod1, nil
 }
 
 func TestNewResponse(t *testing.T) {
@@ -88,9 +88,13 @@ func TestNewResponse(t *testing.T) {
 		EnableMulticlusterMode: false,
 	}).AnyTimes()
 
-	proxy, err := getProxy(kubeClient)
+	proxy, pod, err := getProxy(kubeClient)
 	assert.Empty(err)
 	assert.NotNil(proxy)
+	assert.NotNil(pod)
+
+	mockController := meshCatalog.GetKubeController().(*k8s.MockController)
+	mockController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
@@ -169,9 +173,7 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 		EnableMulticlusterMode: true,
 	}).AnyTimes()
 
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	assert.Nil(err)
+	proxy := envoy.NewProxy(envoy.KindGateway, uuid.New(), identity.New("osm", "osm-system"), nil)
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil

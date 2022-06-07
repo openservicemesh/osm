@@ -53,15 +53,9 @@ func TestNewResponse(t *testing.T) {
 
 	// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
 	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
-	podID := uuid.New().String()
+	podID := uuid.New()
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", podID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace, identity.ClusterLocalTrustDomain))
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-	assert.Nil(err)
-
-	_, err = envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
-	assert.Equal(err, envoy.ErrInvalidCertificateCN)
+	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
 
 	cfg, err := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
 	assert.Nil(err)
@@ -357,8 +351,6 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, "sa-1", "ns-1"))
-			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				serviceIdentity: tc.serviceIdentity,
 				certManager:     fakeCertManager,
@@ -368,8 +360,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				cfg:         d.mockConfigurator,
 			}
 
-			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			assert.Nil(err)
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil)
 
 			// test the function
 			sdsSecrets := s.getSDSSecrets(cert, tc.requestedCerts, proxy)

@@ -9,6 +9,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,6 +19,8 @@ import (
 	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/messaging"
 
@@ -435,4 +438,58 @@ func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints)
 		}
 	}
 	return
+}
+
+func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
+	proxyUUID, svcAccount := proxy.UUID.String(), proxy.Identity.ToK8sServiceAccount()
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, proxyUUID)
+	podList := c.ListPods()
+	var pods []v1.Pod
+
+	for _, pod := range podList {
+		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == proxyUUID {
+			pods = append(pods, *pod)
+		}
+	}
+
+	if len(pods) == 0 {
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Did not find Pod with label %s = %s in namespace %s",
+				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
+		return nil, errDidNotFindPodForUUID
+	}
+
+	// Each pod is assigned a unique UUID at the time of sidecar injection.
+	// The certificate's CommonName encodes this UUID, and we lookup the pod
+	// whose label matches this UUID.
+	// Only 1 pod must match the UUID encoded in the given certificate. If multiple
+	// pods match, it is an error.
+	if len(pods) > 1 {
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
+			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
+				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
+		return nil, errMoreThanOnePodForUUID
+	}
+
+	pod := pods[0]
+	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, proxyUUID)
+
+	if pod.Namespace != svcAccount.Namespace {
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
+				pod.ObjectMeta.UID, pod.Namespace, svcAccount.Namespace)
+		return nil, errNamespaceDoesNotMatchProxy
+	}
+
+	// Ensure the Name encoded in the certificate matches that of the Pod
+	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
+	if pod.Spec.ServiceAccountName != svcAccount.Name {
+		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
+				pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, svcAccount)
+		return nil, errServiceAccountDoesNotMatchProxy
+	}
+
+	return &pod, nil
 }

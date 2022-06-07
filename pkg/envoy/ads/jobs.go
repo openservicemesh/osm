@@ -37,12 +37,5 @@ func (proxyJob *proxyResponseJob) Run() {
 
 // JobName implementation for this job, for logging purposes
 func (proxyJob *proxyResponseJob) JobName() string {
-	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.GetCertificateSerialNumber())
-}
-
-// Hash implementation for this job to hash into the worker queues
-func (proxyJob *proxyResponseJob) Hash() uint64 {
-	// Uses proxy hash to always serialize work for the same proxy to the same worker,
-	// this avoid out-of-order mishandling of envoy updates by multiple workers
-	return proxyJob.proxy.GetHash()
+	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.GetName())
 }
