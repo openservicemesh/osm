@@ -30,7 +30,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	}
 
 	certManager := tresorFake.NewFake(nil, 1*time.Hour)
-	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.WithValidityPeriod(1*time.Hour))
+	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 
 	assert.NoError(err)
 
@@ -67,8 +67,8 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	certManager := tresorFake.NewFake(nil, 1*time.Hour)
-	cn := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
-	certPEM, _ := certManager.IssueCertificate(cn, certificate.WithValidityPeriod(1*time.Hour))
+	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
+	certPEM, _ := certManager.IssueCertificate(cnPrefix, certificate.Internal)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
 	validateClientTests := []validateClientTest{

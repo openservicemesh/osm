@@ -37,7 +37,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(s.serviceIdentity.String())
+	cert, err := certManager.IssueCertificate(s.serviceIdentity.String(), certificate.Service)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err

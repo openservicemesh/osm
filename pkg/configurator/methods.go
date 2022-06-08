@@ -19,6 +19,9 @@ const (
 	// defaultServiceCertValidityDuration is the default validity duration for service certificates
 	defaultServiceCertValidityDuration = 24 * time.Hour
 
+	// defaultIngressGatewayCertValidityDuration is the default validity duration for ingress gateway certificates
+	defaultIngressGatewayCertValidityDuration = 24 * time.Hour
+
 	// defaultCertKeyBitSize is the default certificate key bit size
 	defaultCertKeyBitSize = 2048
 
@@ -156,6 +159,22 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	validityDuration, err := time.ParseDuration(durationStr)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s", durationStr)
+		return defaultServiceCertValidityDuration
+	}
+
+	return validityDuration
+}
+
+// GetIngressGatewayCertValidityPeriod returns the validity duration for ingress gateway certificates, and a default in case of unspecified or invalid duration
+func (c *Client) GetIngressGatewayCertValidityPeriod() time.Duration {
+	ingressGatewayCertSpec := c.getMeshConfig().Spec.Certificate.IngressGateway
+	if ingressGatewayCertSpec == nil {
+		log.Warn().Msgf("Attempting to get the ingress gateway certificate validity duration even though a cert has not been specified in the mesh config")
+		return defaultIngressGatewayCertValidityDuration
+	}
+	validityDuration, err := time.ParseDuration(ingressGatewayCertSpec.ValidityDuration)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing ingress gateway certificate validity duration %s", ingressGatewayCertSpec.ValidityDuration)
 		return defaultServiceCertValidityDuration
 	}
 

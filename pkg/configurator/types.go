@@ -77,6 +77,10 @@ type Configurator interface {
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 
+	// GetIngressGatewayCertValidityPeriod returns the validity duration for the Ingress
+	// Gateway certificate, default value if not specified
+	GetIngressGatewayCertValidityPeriod() time.Duration
+
 	// GetCertKeyBitSize returns the certificate key bit size
 	GetCertKeyBitSize() int
 

@@ -78,7 +78,7 @@ type MRCProviderGenerator struct {
 	kubeClient kubernetes.Interface
 	kubeConfig *rest.Config // used to generate a CertificateManager client.
 
-	// TODO(#4502): move these to the compat client once we have added these fields to the MRC.
+	// TODO(#4711): move these to the compat client once we have added these fields to the MRC.
 	KeyBitSize int
 
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.

@@ -94,8 +94,8 @@ const (
 	// CertificationAuthorityRootValidityPeriod is when the root certificate expires
 	CertificationAuthorityRootValidityPeriod = 87600 * time.Hour // a decade
 
-	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
-	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
+	// OSMCertificateValidityPeriod is the TTL of the certificates used in the OSM control plane or for Envoy to xDS communication.
+	OSMCertificateValidityPeriod = 87600 * time.Hour // a decade
 
 	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
 	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
