@@ -10,6 +10,8 @@ type PolicyBuilder struct {
 	allowedPorts       []uint32
 	allowedPrincipals  []string
 	allowAllPrincipals bool
+
+	applyPermissionsAsAnd bool
 }
 
 // Build constructs an RBAC policy for the policy object on which this method is called
@@ -29,18 +31,29 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	policy.Principals = prinicipals
 
 	// Construct the Permissions ---------------------------
+	// By default, permissions are applied with OR semantics.
 	permissions := make([]*xds_rbac.Permission, 0, len(p.allowedPorts))
 	for _, port := range p.allowedPorts {
-		permissions = append(permissions, GetDestinationPortPermission(port))
+		perm := GetDestinationPortPermission(port)
+		permissions = append(permissions, perm)
 	}
 	if len(permissions) == 0 {
 		// No principals specified for this policy, allow ANY
 		permissions = []*xds_rbac.Permission{getAnyPermission()}
 	}
 
-	policy.Permissions = permissions
+	if p.applyPermissionsAsAnd {
+		policy.Permissions = []*xds_rbac.Permission{andPermission(permissions)}
+	} else {
+		policy.Permissions = permissions
+	}
 
 	return policy
+}
+
+// UseAndForPermissions will apply all permissions with AND semantics.
+func (p *PolicyBuilder) UseAndForPermissions(val bool) {
+	p.applyPermissionsAsAnd = val
 }
 
 // AddPrincipal adds a principal to the list of allowed principals
@@ -92,6 +105,16 @@ func getAnyPrincipal() *xds_rbac.Principal {
 func getAnyPermission() *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_Any{Any: true},
+	}
+}
+
+func andPermission(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+	return &xds_rbac.Permission{
+		Rule: &xds_rbac.Permission_AndRules{
+			AndRules: &xds_rbac.Permission_Set{
+				Rules: permissions,
+			},
+		},
 	}
 }
 
