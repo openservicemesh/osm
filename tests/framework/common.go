@@ -909,7 +909,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Certificate "+cert.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
@@ -919,7 +919,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
@@ -929,7 +929,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Issuer "+ca.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
