@@ -195,6 +195,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
+
 	// Intitialize certificate manager/provider
 	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
 		certOpts, msgBroker)
@@ -335,6 +336,7 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected,
 		metricsstore.DefaultMetricsStore.AdmissionWebhookResponseTotal,
 		metricsstore.DefaultMetricsStore.EventsQueued,
+		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
 }
 

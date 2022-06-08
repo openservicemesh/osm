@@ -117,32 +117,32 @@ func TestIssueCertificate(t *testing.T) {
 	t.Run("single key issuer", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
-			pubIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1")},
+			validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1")},
 		}
-		// single keyIssuer, not cached
+		// single signingIssuer, not cached
 		cert1, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert1)
-		assert.Equal(cert1.keyIssuerID, "id1")
-		assert.Equal(cert1.pubIssuerID, "id1")
+		assert.Equal(cert1.signingIssuerID, "id1")
+		assert.Equal(cert1.validatingIssuerID, "id1")
 		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1"))
 
-		// single keyIssuer cached
+		// single signingIssuer cached
 		cert2, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 
 		// single key issuer, old version cached
 		// TODO: could use informer logic to test mrc updates instead of just manually making changes.
-		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
-		cm.pubIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
+		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
+		cm.validatingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
 
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert3)
-		assert.Equal(cert3.keyIssuerID, "id2")
-		assert.Equal(cert3.pubIssuerID, "id2")
+		assert.Equal(cert3.signingIssuerID, "id2")
+		assert.Equal(cert3.validatingIssuerID, "id2")
 		assert.NotEqual(cert2, cert3)
 		assert.Equal(cert3.GetIssuingCA(), pem.RootCertificate("id2"))
 	})
@@ -150,77 +150,83 @@ func TestIssueCertificate(t *testing.T) {
 	t.Run("2 issuers", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}},
-			pubIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1")},
+			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")},
 		}
 
 		// Not cached
 		cert1, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert1)
-		assert.Equal(cert1.keyIssuerID, "id1")
-		assert.Equal(cert1.pubIssuerID, "id2")
-		assert.Equal(cert1.GetIssuingCA(), pem.RootCertificate("id1id2"))
+		assert.Equal(cert1.signingIssuerID, "id1")
+		assert.Equal(cert1.validatingIssuerID, "id2")
+		assert.Equal(pem.RootCertificate("id1"), cert1.GetIssuingCA())
+		assert.Equal(pem.RootCertificate("id1id2"), cert1.GetTrustedCAs())
 
 		// cached
 		cert2, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 
-		// cached, but pubIssuer is removed
-		cm.pubIssuer = cm.keyIssuer
+		// cached, but validatingIssuer is removed
+		cm.validatingIssuer = cm.signingIssuer
 		cert3, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert1, cert3)
-		assert.Equal(cert3.keyIssuerID, "id1")
-		assert.Equal(cert3.pubIssuerID, "id1")
+		assert.Equal(cert3.signingIssuerID, "id1")
+		assert.Equal(cert3.validatingIssuerID, "id1")
 		assert.Equal(cert3.GetIssuingCA(), pem.RootCertificate("id1"))
 
-		// cached, but keyIssuer is old
-		cm.keyIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}}
+		// cached, but signingIssuer is old
+		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
 		cert4, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
-		assert.Equal(cert4.keyIssuerID, "id2")
-		assert.Equal(cert4.pubIssuerID, "id1")
-		assert.Equal(cert4.GetIssuingCA(), pem.RootCertificate("id2id1"))
+		assert.Equal(cert4.signingIssuerID, "id2")
+		assert.Equal(cert4.validatingIssuerID, "id1")
+		assert.Equal(pem.RootCertificate("id2"), cert4.GetIssuingCA())
+		assert.Equal(pem.RootCertificate("id2id1"), cert4.GetTrustedCAs())
 
-		// cached, but pubIssuer is old
-		cm.pubIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
+		// cached, but validatingIssuer is old
+		cm.validatingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3")}
 		cert5, err := cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
-		assert.Equal(cert5.keyIssuerID, "id2")
-		assert.Equal(cert5.pubIssuerID, "id3")
-		assert.Equal(cert5.GetIssuingCA(), pem.RootCertificate("id2id3"))
+		assert.Equal(cert5.signingIssuerID, "id2")
+		assert.Equal(cert5.validatingIssuerID, "id3")
+		assert.Equal(pem.RootCertificate("id2"), cert5.GetIssuingCA())
+		assert.Equal(pem.RootCertificate("id2id3"), cert5.GetTrustedCAs())
 	})
 
 	t.Run("bad issuers", func(t *testing.T) {
 		cm := &Manager{
 			// The root certificate signing all newly issued certificates
-			keyIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}},
-			pubIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}},
+			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")},
+			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}, CertificateAuthority: pem.RootCertificate("id2")},
 		}
 
-		// bad private key
+		// bad signingIssuer
 		cert, err := cm.IssueCertificate(cn, time.Minute)
 		assert.Nil(cert)
 		assert.EqualError(err, "id1 failed")
 
-		// bad public key
-		cm.keyIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}}
+		// bad validatingIssuer (should still succeed)
+		cm.signingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3")}
 		cert, err = cm.IssueCertificate(cn, time.Minute)
-		assert.Nil(cert)
-		assert.EqualError(err, "id2 failed")
+		assert.NoError(err)
+		assert.Equal(cert.signingIssuerID, "id3")
+		assert.Equal(cert.validatingIssuerID, "id2")
+		assert.Equal(pem.RootCertificate("id3"), cert.GetIssuingCA())
+		assert.Equal(pem.RootCertificate("id3id2"), cert.GetTrustedCAs())
 
 		// insert a cached cert
-		cm.pubIssuer = cm.keyIssuer
+		cm.validatingIssuer = cm.signingIssuer
 		cert, err = cm.IssueCertificate(cn, time.Minute)
 		assert.NoError(err)
 		assert.NotNil(cert)
 
-		// bad public key on an existing cached cert, because the pubIssuer is new
-		cm.pubIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}}
+		// bad signing cert on an existing cached cert, because the signingIssuer is new
+		cm.signingIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")}
 		cert, err = cm.IssueCertificate(cn, time.Minute)
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)

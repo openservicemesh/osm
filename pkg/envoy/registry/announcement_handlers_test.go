@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -38,7 +39,7 @@ func (cm *fakeCertReleaser) getReleasedCount(cn certificate.CommonName) int {
 
 func TestReleaseCertificateHandler(t *testing.T) {
 	proxyUUID := uuid.New().String()
-	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", proxyUUID))
+	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar.cluster.local", proxyUUID))
 
 	testCases := []struct {
 		name       string
@@ -114,8 +115,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 			msgBroker := messaging.NewBroker(stop)
 			proxyRegistry := NewProxyRegistry(nil, msgBroker)
 
-			proxy, err := envoy.NewProxy(proxyCN, "-cert-serial-number-", nil)
-			a.Nil(err)
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(proxyUUID), identity.New("foo", "bar"), nil)
 
 			proxyRegistry.RegisterProxy(proxy)
 

@@ -1,7 +1,6 @@
 package scenarios
 
 import (
-	"fmt"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
@@ -20,7 +19,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -359,7 +357,5 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceIdentity, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil), nil
 }

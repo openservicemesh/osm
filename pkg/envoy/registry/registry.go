@@ -20,12 +20,12 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.
-func (pr *ProxyRegistry) GetConnectedProxy(uuid string) (*envoy.Proxy, bool) {
+func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *envoy.Proxy {
 	p, ok := pr.connectedProxies.Load(uuid)
 	if !ok {
-		return nil, false
+		return nil
 	}
-	return p.(*envoy.Proxy), true
+	return p.(*envoy.Proxy)
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.

@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // crdEventHandler creates crd events handlers.
@@ -46,6 +47,7 @@ func (c client) reconcileCrd(oldCrd, newCrd *apiv1.CustomResourceDefinition) {
 				Msgf("Error updating crd: %s", newCrd.Name)
 		}
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("CustomResourceDefinition").Inc()
 	log.Debug().Msgf("Successfully reconciled CRD %s", newCrd.Name)
 }
 
@@ -55,6 +57,7 @@ func (c client) addCrd(oldCrd *apiv1.CustomResourceDefinition) {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingDeletedCRD)).
 			Msgf("Error adding back deleted crd: %s", oldCrd.Name)
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("CustomResourceDefinition").Inc()
 	log.Debug().Msgf("Successfully added back CRD %s", oldCrd.Name)
 }
 

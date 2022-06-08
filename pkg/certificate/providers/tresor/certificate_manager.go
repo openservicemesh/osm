@@ -122,6 +122,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		CertChain:    certPEM,
 		PrivateKey:   privKeyPEM,
 		IssuingCA:    pem.RootCertificate(cm.ca.GetCertificateChain()),
+		TrustedCAs:   pem.RootCertificate(cm.ca.GetCertificateChain()),
 		Expiration:   template.NotAfter,
 	}
 

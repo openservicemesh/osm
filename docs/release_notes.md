@@ -2,9 +2,18 @@
 
 ## Release v1.2.0
 
-### Breaking changes
+### Notable changes
 
-Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
+- Root certificate rotation is now supported through the new CRD, MeshRootCertificate.
+- Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
+
+### Breaking Changes
+
+- The following metrics no longer use the label `common_name`, due to the fact that the common name's trust domain can rotate. Instead 2 new labels, `proxy_uuid` and `identity` have been added.
+  - `osm_proxy_response_send_success_count`
+  - `osm_proxy_response_send_error_count`
+  - `osm_proxy_xds_request_count`
+- Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
 
 ## Release v1.1.0
 

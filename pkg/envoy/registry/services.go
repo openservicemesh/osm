@@ -36,9 +36,7 @@ type KubeProxyServiceMapper struct {
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
-	cn := p.GetCertificateCommonName()
-
-	pod, err := envoy.GetPodFromCertificate(cn, k.KubeController)
+	pod, err := k.KubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}

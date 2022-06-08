@@ -33,6 +33,7 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 		CertChain:    pem.Certificate("chain"),
 		PrivateKey:   pem.PrivateKey("key"),
 		IssuingCA:    pem.RootCertificate("ca"),
+		TrustedCAs:   pem.RootCertificate("ca"),
 		Expiration:   time.Now(),
 		SerialNumber: "serial_number",
 	}

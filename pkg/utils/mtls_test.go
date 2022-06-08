@@ -30,7 +30,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	}
 
 	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.IssueCertificate(certificate.CommonName("fake-ads"), time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads", time.Hour)
 
 	assert.NoError(err)
 

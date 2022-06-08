@@ -19,17 +19,19 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 		return nil, err
 	}
 
-	client, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
+	client, ca, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
 	if err != nil {
 		return nil, err
 	}
 
-	c := &issuer{Issuer: client, ID: clientID}
+	c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca}
 
 	m := &Manager{
-		// The root certificate signing all newly issued certificates
-		keyIssuer:                   c,
-		pubIssuer:                   c,
+		// The signingIssuer is responsible for signing all newly issued certificates
+		// The validatingIssuer is the issuer that issued existing certificates.
+		// its underlying cert is still in the validating trust store
+		signingIssuer:               c,
+		validatingIssuer:            c,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
@@ -108,27 +110,25 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 	cert := m.getFromCache(cn) // Don't call this while holding the lock
 
 	m.mu.RLock()
-	pubIssuer := m.pubIssuer
-	keyIssuer := m.keyIssuer
+	validatingIssuer := m.validatingIssuer
+	signingIssuer := m.signingIssuer
 	m.mu.RUnlock()
 
 	start := time.Now()
-	if cert == nil || cert.keyIssuerID != keyIssuer.ID || cert.pubIssuerID != pubIssuer.ID {
-		cert, err = keyIssuer.IssueCertificate(cn, validityPeriod)
+	if cert == nil || cert.signingIssuerID != signingIssuer.ID || cert.validatingIssuerID != validatingIssuer.ID {
+		cert, err = signingIssuer.IssueCertificate(cn, validityPeriod)
 		if err != nil {
 			return nil, err
 		}
-		if pubIssuer.ID != keyIssuer.ID {
-			pubCert, err := pubIssuer.IssueCertificate(cn, validityPeriod)
-			if err != nil {
-				return nil, err
-			}
 
-			cert = cert.newMergedWithRoot(pubCert.GetIssuingCA())
+		// if we have different signing and validating issuers,
+		// create the cert's trust context
+		if validatingIssuer.ID != signingIssuer.ID {
+			cert = cert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
 		}
 
-		cert.keyIssuerID = keyIssuer.ID
-		cert.pubIssuerID = pubIssuer.ID
+		cert.signingIssuerID = signingIssuer.ID
+		cert.validatingIssuerID = validatingIssuer.ID
 	}
 
 	m.cache.Store(cn, cert)

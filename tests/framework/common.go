@@ -909,7 +909,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Certificate "+cert.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
@@ -919,7 +919,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
@@ -929,7 +929,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 			return errors.Wrap(err, "failed to create Issuer "+ca.Name)
 		}
 		return nil
-	}, 5, 5*time.Second); err != nil {
+	}, 5, 20*time.Second); err != nil {
 		return err
 	}
 
@@ -1554,8 +1554,8 @@ func (td *OsmTestData) GrabLogs() error {
 	return nil
 }
 
-// addOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
-func (td *OsmTestData) addOpenShiftSCC(scc, serviceAccount, namespace string) error {
+// AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
+func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
 	if !td.DeployOnOpenShift {
 		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}

@@ -58,6 +58,8 @@ func TestGetHealthcheckHander(t *testing.T) {
 				//#nosec G307
 				defer listener.Close()
 
+				// required to avoid https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
+				test := test
 				go func() {
 					conn, err := listener.Accept()
 					assert.Nil(err)

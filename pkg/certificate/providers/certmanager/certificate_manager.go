@@ -74,6 +74,7 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 		CertChain:    cr.Status.Certificate,
 		PrivateKey:   privateKey,
 		IssuingCA:    pem.RootCertificate(ca),
+		TrustedCAs:   pem.RootCertificate(ca),
 	}, nil
 }
 

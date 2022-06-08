@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -13,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
@@ -28,6 +30,15 @@ const (
 	rootCertOrganization = "Open Service Mesh"
 )
 
+var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certificate.Issuer) (pem.RootCertificate, error) {
+	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert.GetIssuingCA(), nil
+}
+
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
 // TODO(4502): Use an informer behind a feature flag.
 func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
@@ -40,9 +51,10 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 	// provider generator.
 	mrcClient := &MRCCompatClient{
 		MRCProviderGenerator: MRCProviderGenerator{
-			kubeClient: kubeClient,
-			kubeConfig: kubeConfig,
-			KeyBitSize: cfg.GetCertKeyBitSize(),
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -72,18 +84,32 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.
-func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, string, error) {
 	p := mrc.Spec.Provider
+	var issuer certificate.Issuer
+	var id string
+	var err error
 	switch {
 	case p.Tresor != nil:
-		return c.getTresorOSMCertificateManager(mrc)
+		issuer, id, err = c.getTresorOSMCertificateManager(mrc)
 	case p.Vault != nil:
-		return c.getHashiVaultOSMCertificateManager(mrc)
+		issuer, id, err = c.getHashiVaultOSMCertificateManager(mrc)
 	case p.CertManager != nil:
-		return c.getCertManagerOSMCertificateManager(mrc)
+		issuer, id, err = c.getCertManagerOSMCertificateManager(mrc)
 	default:
-		return nil, "", fmt.Errorf("Unknown certificate provider: %+v", p)
+		return nil, nil, "", fmt.Errorf("Unknown certificate provider: %+v", p)
 	}
+
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	ca, err := c.caExtractorFunc(issuer)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("error generating init cert: %w", err)
+	}
+
+	return issuer, ca, id, nil
 }
 
 func getMRCID(mrc *v1alpha2.MeshRootCertificate) (string, error) {
