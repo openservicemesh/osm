@@ -134,6 +134,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.injector.autoScale.memory.targetAverageUtilization | int | `80` | Average target memory utilization (%) |
 | osm.injector.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
 | osm.injector.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
+| osm.injector.nodeAffinity.matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
+| osm.injector.nodeAffinity.matchExpressions[0].operator | string | `"In"` |  |
+| osm.injector.nodeAffinity.matchExpressions[0].values[0] | string | `"linux"` |  |
+| osm.injector.nodeAffinity.matchExpressions[1].key | string | `"kubernetes.io/arch"` |  |
+| osm.injector.nodeAffinity.matchExpressions[1].operator | string | `"In"` |  |
+| osm.injector.nodeAffinity.matchExpressions[1].values[0] | string | `"amd64"` |  |
+| osm.injector.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution | bool | `false` |  |
+| osm.injector.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution | bool | `true` |  |
 | osm.injector.podLabels | object | `{}` | Sidecar injector's pod labels |
 | osm.injector.replicaCount | int | `1` | Sidecar injector's replica count (ignored when autoscale.enable is true) |
 | osm.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
@@ -144,6 +152,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.multicluster | object | `{"gatewayLogLevel":"error"}` | OSM multicluster feature configuration |
 | osm.multicluster.gatewayLogLevel | string | `"error"` | Log level for the multicluster gateway |
 | osm.networkInterfaceExclusionList | list | `[]` | Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy. |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[0].operator | string | `"In"` |  |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[0].values[0] | string | `"linux"` |  |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[1].key | string | `"kubernetes.io/arch"` |  |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[1].operator | string | `"In"` |  |
+| osm.osmBootstrap.nodeAffinity.matchExpressions[1].values[0] | string | `"amd64"` |  |
+| osm.osmBootstrap.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution | bool | `false` |  |
+| osm.osmBootstrap.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution | bool | `true` |  |
 | osm.osmBootstrap.podLabels | object | `{}` | OSM bootstrap's pod labels |
 | osm.osmBootstrap.replicaCount | int | `1` | OSM bootstrap's replica count |
 | osm.osmBootstrap.resource | object | `{"limits":{"cpu":"0.5","memory":"128M"},"requests":{"cpu":"0.3","memory":"128M"}}` | OSM bootstrap's container resource parameters |
@@ -154,6 +170,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.osmController.autoScale.memory.targetAverageUtilization | int | `80` | Average target memory utilization (%) |
 | osm.osmController.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
 | osm.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
+| osm.osmController.nodeAffinity.matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
+| osm.osmController.nodeAffinity.matchExpressions[0].operator | string | `"In"` |  |
+| osm.osmController.nodeAffinity.matchExpressions[0].values[0] | string | `"linux"` |  |
+| osm.osmController.nodeAffinity.matchExpressions[1].key | string | `"kubernetes.io/arch"` |  |
+| osm.osmController.nodeAffinity.matchExpressions[1].operator | string | `"In"` |  |
+| osm.osmController.nodeAffinity.matchExpressions[1].values[0] | string | `"amd64"` |  |
+| osm.osmController.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution | bool | `false` |  |
+| osm.osmController.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution | bool | `true` |  |
 | osm.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | osm.osmController.replicaCount | int | `1` | OSM controller's replica count (ignored when autoscale.enable is true) |
 | osm.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"1G"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details. |

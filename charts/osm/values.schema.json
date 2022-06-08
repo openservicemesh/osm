@@ -157,6 +157,50 @@
                     "additionalProperties": false
                 }
             }
+        },
+        "nodeAffinity": {
+            "$id": "#/properties/definitions/properties/nodeAffinity",
+            "type": "object",
+            "title": "The nodeAffinity schema",
+            "description": "nodeAffinity configuration parameters",
+            "properties": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "$id": "#/properties/definitions/properties/nodeAffinity/properties/requiredDuringSchedulingIgnoredDuringExecution",
+                    "type": "boolean",
+                    "title": "Boolean for requiredDuringSchedulingIgnoredDuringExecution",
+                    "description": "Indicates whether nodeAffnity is requiredDuringSchedulingIgnoredDuringExecution.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "preferredDuringSchedulingIgnoredDuringExecution": {
+                    "$id": "#/properties/definitions/properties/nodeAffinity/properties/preferredDuringSchedulingIgnoredDuringExecution",
+                    "type": "boolean",
+                    "title": "Boolean for preferredDuringSchedulingIgnoredDuringExecution",
+                    "description": "Indicates whether nodeAffnity is preferredDuringSchedulingIgnoredDuringExecution.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "matchExpressions": {
+                    "$id": "#/properties/definitions/properties/nodeAffinity/properties/matchExpressions",
+                    "type": "array",
+                    "title": "The matchExpressions schema",
+                    "description": "Key, operator, and value(s) to match for node affinity",
+                    "items": {
+                        "type": "object"
+                    },
+                    "examples": [
+                        [
+                            {
+                                "key": "kubernetes.io/os",
+                                "operator": "In",
+                                "values": ["linux"]
+                            }
+                        ]
+                    ]
+                }
+            }
         }
     },
     "properties": {
@@ -232,6 +276,9 @@
                         },
                         "autoScale": {
                             "$ref": "#/definitions/autoScale"
+                        },
+                        "nodeAffinity": {
+                            "$ref": "#/definitions/nodeAffinity"
                         }
                     },
                     "additionalProperties": false
@@ -885,6 +932,9 @@
                         "autoScale": {
                             "$ref": "#/definitions/autoScale"
                         },
+                        "nodeAffinity": {
+                            "$ref": "#/definitions/nodeAffinity"
+                        },
                         "webhookTimeoutSeconds": {
                             "$id": "#/properties/osm/properties/webhookTimeout",
                             "type": "integer",
@@ -925,6 +975,9 @@
                             "title": "The podLabels schema",
                             "description": "Labels for the OSM bootstrap pod.",
                             "default": {}
+                        },
+                        "nodeAffinity": {
+                            "$ref": "#/definitions/nodeAffinity"
                         }
                     },
                     "additionalProperties": false

@@ -26,17 +26,42 @@ spec:
     spec:
       affinity:
         nodeAffinity:
+        {{- if .Values.osm.osmBootstrap.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution }}
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
+            - matchExpressions: 
+            {{- range $_, $map := .Values.osm.osmBootstrap.nodeAffinity.matchExpressions }}
+              {{ range $key, $val := $map -}}
+                {{ if eq $key "key" -}}
+                  - {{ $key }}: {{ $val }}
+                {{ else if eq $key "values" -}}
+                  {{ $key }}: {{ range $x := $val }}
+                  - {{$x -}}
+                  {{ end -}}
+                {{ else -}}
+                  {{ $key }}: {{ $val }}
+                {{ end }}
+              {{- end }}
+            {{- end }}
+        {{- end }}
+        {{- if .Values.osm.osmBootstrap.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
+            {{- range $_, $map := .Values.osm.osmBootstrap.nodeAffinity.matchExpressions }}
+              {{ range $key, $val := $map -}}
+                {{ if eq $key "key" -}}
+                  - {{ $key }}: {{ $val }}
+                {{ else if eq $key "values" -}}
+                  {{ $key }}: {{ range $x := $val }}
+                  - {{$x -}}
+                  {{ end -}}
+                {{ else -}}
+                  {{ $key }}: {{ $val }}
+                {{ end }}
+              {{- end }}
+            {{- end }}
+        {{- end }}
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:

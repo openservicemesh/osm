@@ -87,6 +87,10 @@ osm:
       memory:
         # -- Average target memory utilization (%)
         targetAverageUtilization: 80
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: true
+      preferredDuringSchedulingIgnoredDuringExecution: false
+      matchExpressions: [{"key": kubernetes.io/os,"operator": "In","values": ["linux"]}, {"key": kubernetes.io/arch,"operator": "In","values": ["amd64"]}]
 
   #
   # -- Prometheus parameters
@@ -309,6 +313,10 @@ osm:
         targetAverageUtilization: 80
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: true
+      preferredDuringSchedulingIgnoredDuringExecution: false
+      matchExpressions: [{"key": kubernetes.io/os,"operator": "In","values": ["linux"]}, {"key": kubernetes.io/arch,"operator": "In","values": ["amd64"]}]
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
@@ -360,6 +368,10 @@ osm:
         memory: "128M"
     # -- OSM bootstrap's pod labels
     podLabels: {}
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: true
+      preferredDuringSchedulingIgnoredDuringExecution: false
+      matchExpressions: [{"key": kubernetes.io/os,"operator": "In","values": ["linux"]}, {"key": kubernetes.io/arch,"operator": "In","values": ["amd64"]}]
 
   #
   # -- OSM resource validator webhook configuration
