@@ -62,10 +62,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
-						Ports: []uint32{1000, 2000},
+						Ports: []uint16{1000, 2000},
 					},
 					{
-						Ports: []uint32{3000},
+						Ports: []uint16{3000},
 					},
 				},
 			},

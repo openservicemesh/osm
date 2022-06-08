@@ -14,14 +14,14 @@ func TestBuild(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		principals            []string
-		ports                 []uint32
+		ports                 []uint16
 		applyPermissionsAsAND bool
 		expectedPolicy        *xds_rbac.Policy
 	}{
 		{
 			name:       "testing rules for single principal",
 			principals: []string{"foo.domain", "bar.domain"},
-			ports:      []uint32{80},
+			ports:      []uint16{80},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -59,7 +59,7 @@ func TestBuild(t *testing.T) {
 		{
 			name:       "testing rules for single principal",
 			principals: []string{"foo.domain"},
-			ports:      []uint32{80, 443},
+			ports:      []uint16{80, 443},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -93,7 +93,7 @@ func TestBuild(t *testing.T) {
 			// the logic.
 			name:                  "testing rules for AND ports",
 			principals:            []string{"foo.domain"},
-			ports:                 []uint32{80, 443},
+			ports:                 []uint16{80, 443},
 			applyPermissionsAsAND: true,
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
@@ -176,7 +176,7 @@ func TestBuild(t *testing.T) {
 				pb.AddAllowedDestinationPort(port)
 			}
 
-			pb.UseAndForPermissions(tc.applyPermissionsAsAND)
+			pb.UseANDForPermissions(tc.applyPermissionsAsAND)
 			policy := pb.Build()
 			assert.Equal(policy, tc.expectedPolicy)
 		})

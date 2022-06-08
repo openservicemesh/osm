@@ -42,7 +42,7 @@ type HTTPRouteMatch struct {
 
 // TCPRouteMatch is a struct to represent a TCP route matching based on ports
 type TCPRouteMatch struct {
-	Ports []uint32 `json:"ports:omitempty"`
+	Ports []uint16 `json:"ports:omitempty"`
 }
 
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains

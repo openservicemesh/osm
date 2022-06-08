@@ -11,6 +11,8 @@ type PolicyBuilder struct {
 	allowedPrincipals  []string
 	allowAllPrincipals bool
 
+	// All permissions are applied using OR semantics by default. If applyPermissionsAsAnd is set to true, then
+	// permissions are applied using AND semantics.
 	applyPermissionsAsAnd bool
 }
 
@@ -28,6 +30,8 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 		prinicipals = []*xds_rbac.Principal{getAnyPrincipal()}
 	}
 
+	// Policies are applied with OR semantics.
+	// See comments on the xds_rbac.Policy.Permissions field for more details.
 	policy.Principals = prinicipals
 
 	// Construct the Permissions ---------------------------
@@ -43,6 +47,8 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	}
 
 	if p.applyPermissionsAsAnd {
+		// Permissions are applied with OR semantics by default
+		// See comments on the xds_rbac.Policy.Permissions field for more details.
 		policy.Permissions = []*xds_rbac.Permission{andPermission(permissions)}
 	} else {
 		policy.Permissions = permissions
@@ -51,21 +57,19 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	return policy
 }
 
-// UseAndForPermissions will apply all permissions with AND semantics.
-func (p *PolicyBuilder) UseAndForPermissions(val bool) {
+// UseANDForPermissions will apply all permissions with AND semantics.
+func (p *PolicyBuilder) UseANDForPermissions(val bool) {
 	p.applyPermissionsAsAnd = val
 }
 
 // AddPrincipal adds a principal to the list of allowed principals
 func (p *PolicyBuilder) AddPrincipal(principal string) {
 	// We need this extra defense in depth because it is currently possible to configure a wildcard principal
-	// in addition to specific principals. We should instead not allow this, preventing this misconfiguration from
-	// happening through validating webhooks.
+	// in addition to specific principals. Future changes may look to avoid this.
 	if principal == "*" {
 		p.AllowAnyPrincipal()
 	}
 	if !p.allowAllPrincipals {
-		// TODO(4754) return the trust domain of the first MRC, ***while grabbing the lock***
 		p.allowedPrincipals = append(p.allowedPrincipals, principal)
 	}
 }
@@ -77,8 +81,9 @@ func (p *PolicyBuilder) AllowAnyPrincipal() {
 }
 
 // AddAllowedDestinationPort adds the allowed destination port to the list of allowed ports.
-func (p *PolicyBuilder) AddAllowedDestinationPort(port uint32) {
-	p.allowedPorts = append(p.allowedPorts, port)
+func (p *PolicyBuilder) AddAllowedDestinationPort(port uint16) {
+	// envoy uses uint32 for ports.
+	p.allowedPorts = append(p.allowedPorts, uint32(port))
 }
 
 // GetAuthenticatedPrincipal returns an authenticated RBAC principal object for the given principal

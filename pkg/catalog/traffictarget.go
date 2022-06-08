@@ -177,7 +177,7 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 		}
 
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
-			Ports: toUint32Slice(tcpRoute.Spec.Matches.Ports),
+			Ports: toUint16Slice(tcpRoute.Spec.Matches.Ports),
 		}
 		matches = append(matches, tcpRouteMatch)
 	}
@@ -185,9 +185,9 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 	return matches, nil
 }
 
-func toUint32Slice(ports []int) (ret []uint32) {
+func toUint16Slice(ports []int) (ret []uint16) {
 	for _, port := range ports {
-		ret = append(ret, uint32(port))
+		ret = append(ret, uint16(port))
 	}
 	return ret
 }
