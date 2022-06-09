@@ -41,7 +41,6 @@ func (ic *InformerCollection) initNamespaceMonitor() {
 	if customStore != nil {
 		informer.customStore = customStore
 	}
-
 	ic.informers[InformerKeyNamespace] = informer
 }
 

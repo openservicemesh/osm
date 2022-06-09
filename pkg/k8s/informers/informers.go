@@ -47,17 +47,18 @@ type InformerCollectionOption func(*InformerCollection)
 // NewInformerCollection creates a new InformerCollection
 func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
 	ic := &InformerCollection{
-		meshName:  meshName,
-		informers: map[InformerKey]*informer{},
+		meshName:          meshName,
+		informers:         map[InformerKey]*informer{},
+		selectedInformers: map[InformerKey]struct{}{},
 	}
 
+	// Execute all of the given options (e.g. set clients, set custom stores, etc.)
 	for _, opt := range opts {
 		if opt != nil {
 			opt(ic)
 		}
 	}
 
-	// Initialize informers
 	informerInitHandlerMap := map[InformerKey]informerInit{
 		// Kubernetes
 		InformerKeyNamespace:      ic.initNamespaceMonitor,
@@ -84,7 +85,7 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 	}
 
 	if len(ic.selectedInformers) == 0 {
-		// Initialize all informers
+		// Select all informers
 		ic.selectedInformers = map[InformerKey]struct{}{
 			InformerKeyNamespace:              {},
 			InformerKeyService:                {},
@@ -191,7 +192,7 @@ func (ic *InformerCollection) run(stop <-chan struct{}) error {
 			continue
 		}
 
-		go informer.Run(make(chan struct{}))
+		go informer.Run(stop)
 		names = append(names, string(name))
 		log.Info().Msgf("Waiting for %s informer cache sync...", name)
 		hasSynced = append(hasSynced, informer.HasSynced)
