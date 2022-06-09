@@ -51,9 +51,8 @@ const (
 )
 
 var (
-	errInitInformers       = errors.New("informer not initialized")
-	errSyncingCaches       = errors.New("failed initial cache sync for informers")
-	errReadFromNilInformer = errors.New("failed to read from a nil informer")
+	errInitInformers = errors.New("informer not initialized")
+	errSyncingCaches = errors.New("failed initial cache sync for informers")
 )
 
 type informer struct {
@@ -61,12 +60,8 @@ type informer struct {
 	informer    cache.SharedIndexInformer
 }
 
-type informerCollection map[InformerKey]*informer
-
-type getStoreFunc func() cache.Store
-
 type InformerCollection struct {
-	informers             informerCollection
+	informers             map[InformerKey]*informer
 	meshName              string
 	kubeClient            kubernetes.Interface
 	smiTrafficSplitClient smiTrafficSplitClient.Interface

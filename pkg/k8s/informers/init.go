@@ -101,7 +101,7 @@ func (ic *InformerCollection) initEndpointMonitor() {
 func (ic *InformerCollection) initTrafficSplitMonitor() {
 	informerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(ic.smiTrafficSplitClient, DefaultKubeEventResyncInterval)
 	informer := &informer{
-		informer: informerFactory.Split().V1alpha3().TrafficSplits().Informer(),
+		informer: informerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 	}
 
 	customStore := ic.customStores[InformerKeyTrafficSplit]
@@ -127,7 +127,7 @@ func (ic *InformerCollection) initTrafficTargetMonitor() {
 func (ic *InformerCollection) initHTTPRouteGroupMonitor() {
 	informerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(ic.smiTrafficSpecClient, DefaultKubeEventResyncInterval)
 	informer := &informer{
-		informer: informerFactory.Specs().V1alpha2().HTTPRouteGroups().Informer(),
+		informer: informerFactory.Specs().V1alpha4().HTTPRouteGroups().Informer(),
 	}
 
 	customStore := ic.customStores[InformerKeyHTTPRouteGroup]
@@ -140,7 +140,7 @@ func (ic *InformerCollection) initHTTPRouteGroupMonitor() {
 func (ic *InformerCollection) initTCPRouteMonitor() {
 	informerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(ic.smiTrafficSpecClient, DefaultKubeEventResyncInterval)
 	informer := &informer{
-		informer: informerFactory.Specs().V1alpha1().TCPRoutes().Informer(),
+		informer: informerFactory.Specs().V1alpha4().TCPRoutes().Informer(),
 	}
 
 	customStore := ic.customStores[InformerKeyTCPRoute]

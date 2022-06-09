@@ -48,7 +48,9 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	msgBroker := messaging.NewBroker(stop)
-	informerCollection, err := informers.NewInformerCollection(meshName, stop, kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, nil, nil,
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithSelectedInformers(
 			informers.InformerKeyNamespace,
 			informers.InformerKeyService,

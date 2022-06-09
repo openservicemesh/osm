@@ -12,21 +12,14 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
-type InformerCollectionOpt func(*InformerCollection)
+type InformerCollectionOption func(*InformerCollection)
 
-func NewInformerCollection(meshName string, stop <-chan struct{}, kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface,
-	smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiTrafficAccessClient.Interface, configClient configClientset.Interface,
-	policyClient policyClientset.Interface, opts ...InformerCollectionOpt) (*InformerCollection, error) {
+// NewInformerCollection creates a new InformerCollection
+func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
 
 	ic := &InformerCollection{
-		meshName:              meshName,
-		kubeClient:            kubeClient,
-		smiTrafficSplitClient: smiTrafficSplitClient,
-		smiTrafficSpecClient:  smiTrafficSpecClient,
-		smiAccessClient:       smiAccessClient,
-		configClient:          configClient,
-		policyClient:          policyClient,
-		informers:             make(informerCollection),
+		meshName:  meshName,
+		informers: map[InformerKey]*informer{},
 	}
 
 	for _, opt := range opts {
@@ -92,23 +85,54 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, kubeClient kub
 	return ic, nil
 }
 
-// WithCustomStore sets the shared store for the informerCollection to reference.
+// WithCustomStore sets the shared store for the InformerCollection to reference.
 // This store will be used instead of each informer's store. This should typically
 // only be used in tests
-func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOpt {
+func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.customStores = stores
 	}
 }
 
-func WithSelectedInformers(selectedInformers ...InformerKey) InformerCollectionOpt {
+// WithSelectedInformers sets the selected informers for the InformerCollection
+func WithSelectedInformers(selectedInformers ...InformerKey) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.selectedInformers = selectedInformers
 	}
 }
 
+// WithKubeClient sets the kubeClient for the InformerCollection
+func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		ic.kubeClient = kubeClient
+	}
+}
+
+// WithSMIClient sets the SMI clients for the InformerCollection
+func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiTrafficAccessClient.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		ic.smiTrafficSplitClient = smiTrafficSplitClient
+		ic.smiTrafficSpecClient = smiTrafficSpecClient
+		ic.smiAccessClient = smiAccessClient
+	}
+}
+
+// WithConfigClient sets the config client for the InformerCollection
+func WithConfigClient(configClient configClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		ic.configClient = configClient
+	}
+}
+
+// WithPolicyClient sets the policy client for the InformerCollection
+func WithPolicyClient(policyClient policyClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		ic.policyClient = policyClient
+	}
+}
+
 func (ic *InformerCollection) run(stop <-chan struct{}) error {
-	log.Info().Msg("Namespace controller client started")
+	log.Info().Msg("InformerCollection started")
 	var hasSynced []cache.InformerSynced
 	var names []string
 
