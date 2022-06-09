@@ -137,7 +137,13 @@ func (ic *InformerCollection) run(stop <-chan struct{}) error {
 }
 
 func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler cache.ResourceEventHandler) {
-	ic.informers[informerKey].informer.AddEventHandler(handler)
+	i, ok := ic.informers[informerKey]
+	if !ok {
+		log.Info().Msgf("attempted to add event handler for nil informer %s", informerKey)
+		return
+	}
+
+	i.informer.AddEventHandler(handler)
 }
 
 func (ic *InformerCollection) GetByKey(informerKey InformerKey, objectKey string) (interface{}, bool, error) {

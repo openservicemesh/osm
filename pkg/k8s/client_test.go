@@ -1243,8 +1243,10 @@ func TestGetPodForProxy(t *testing.T) {
 		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
 	)
 
-	kubeController, err := NewKubernetesController(kubeClient, nil, testMeshName, stop, messaging.NewBroker(nil))
+	ic, err := informers.NewInformerCollection(testMeshName, stop, kubeClient, nil, nil, nil, nil, nil, informers.WithSelectedInformers(k8sInformerKeys...))
 	assert.Nil(err)
+
+	kubeController := NewKubernetesController(ic, nil, messaging.NewBroker(nil))
 
 	testCases := []struct {
 		name  string
