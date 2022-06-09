@@ -12,6 +12,35 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
+var (
+	k8sInformerKeys = []InformerKey{
+		InformerKeyNamespace,
+		InformerKeyService,
+		InformerKeyServiceAccount,
+		InformerKeyPod,
+		InformerKeyEndpoints,
+	}
+
+	smiInformerKeys = []InformerKey{
+		InformerKeyTrafficSplit,
+		InformerKeyTrafficTarget,
+		InformerKeyHTTPRouteGroup,
+		InformerKeyTCPRoute,
+	}
+
+	configInformerKeys = []InformerKey{
+		InformerKeyMeshConfig,
+		InformerKeyMeshRootCertificate,
+	}
+
+	policyInformerKeys = []InformerKey{
+		InformerKeyEgress,
+		InformerKeyIngressBackend,
+		InformerKeyUpstreamTrafficSetting,
+		InformerKeyRetry,
+	}
+)
+
 // InformerCollectionOption is a function that modifies an informer collection
 type InformerCollectionOption func(*InformerCollection)
 
@@ -56,26 +85,26 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 
 	if len(ic.selectedInformers) == 0 {
 		// Initialize all informers
-		ic.selectedInformers = []InformerKey{
-			InformerKeyNamespace,
-			InformerKeyService,
-			InformerKeyPod,
-			InformerKeyEndpoints,
-			InformerKeyServiceAccount,
-			InformerKeyTrafficSplit,
-			InformerKeyTrafficTarget,
-			InformerKeyHTTPRouteGroup,
-			InformerKeyTCPRoute,
-			InformerKeyMeshConfig,
-			InformerKeyMeshRootCertificate,
-			InformerKeyEgress,
-			InformerKeyIngressBackend,
-			InformerKeyUpstreamTrafficSetting,
-			InformerKeyRetry,
+		ic.selectedInformers = map[InformerKey]struct{}{
+			InformerKeyNamespace:              {},
+			InformerKeyService:                {},
+			InformerKeyPod:                    {},
+			InformerKeyEndpoints:              {},
+			InformerKeyServiceAccount:         {},
+			InformerKeyTrafficSplit:           {},
+			InformerKeyTrafficTarget:          {},
+			InformerKeyHTTPRouteGroup:         {},
+			InformerKeyTCPRoute:               {},
+			InformerKeyMeshConfig:             {},
+			InformerKeyMeshRootCertificate:    {},
+			InformerKeyEgress:                 {},
+			InformerKeyIngressBackend:         {},
+			InformerKeyUpstreamTrafficSetting: {},
+			InformerKeyRetry:                  {},
 		}
 	}
 
-	for _, key := range ic.selectedInformers {
+	for key := range ic.selectedInformers {
 		informerInitHandlerMap[key]()
 	}
 
@@ -98,17 +127,15 @@ func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOpti
 	}
 }
 
-// WithSelectedInformers sets the selected informers for the InformerCollection
-func WithSelectedInformers(selectedInformers ...InformerKey) InformerCollectionOption {
-	return func(ic *InformerCollection) {
-		ic.selectedInformers = selectedInformers
-	}
-}
-
 // WithKubeClient sets the kubeClient for the InformerCollection
 func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.kubeClient = kubeClient
+
+		// select the k8s informers
+		for _, key := range k8sInformerKeys {
+			ic.selectedInformers[key] = struct{}{}
+		}
 	}
 }
 
@@ -118,6 +145,11 @@ func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTr
 		ic.smiTrafficSplitClient = smiTrafficSplitClient
 		ic.smiTrafficSpecClient = smiTrafficSpecClient
 		ic.smiAccessClient = smiAccessClient
+
+		// select the SMI informers
+		for _, key := range smiInformerKeys {
+			ic.selectedInformers[key] = struct{}{}
+		}
 	}
 }
 
@@ -125,6 +157,11 @@ func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTr
 func WithConfigClient(configClient configClientset.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.configClient = configClient
+
+		// select the config informers
+		for _, key := range configInformerKeys {
+			ic.selectedInformers[key] = struct{}{}
+		}
 	}
 }
 
@@ -132,6 +169,11 @@ func WithConfigClient(configClient configClientset.Interface) InformerCollection
 func WithPolicyClient(policyClient policyClientset.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.policyClient = policyClient
+
+		// select the policy informers
+		for _, key := range policyInformerKeys {
+			ic.selectedInformers[key] = struct{}{}
+		}
 	}
 }
 

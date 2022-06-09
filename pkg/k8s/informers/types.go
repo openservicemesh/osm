@@ -80,7 +80,7 @@ type InformerCollection struct {
 	smiAccessClient       smiTrafficAccessClient.Interface
 	configClient          configClientset.Interface
 	policyClient          policyClientset.Interface
-	selectedInformers     []InformerKey
+	selectedInformers     map[InformerKey]struct{}
 	customStores          map[InformerKey]cache.Store
 }
 

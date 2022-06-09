@@ -51,13 +51,6 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	informerCollection, err := informers.NewInformerCollection(meshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithSelectedInformers(
-			informers.InformerKeyNamespace,
-			informers.InformerKeyService,
-			informers.InformerKeyServiceAccount,
-			informers.InformerKeyPod,
-			informers.InformerKeyEndpoints,
-		),
 	)
 
 	if err != nil {
