@@ -62,7 +62,7 @@ OSM is under active development and is ready for production workloads.
 
 ### Support
 
-[Please search open issues on GitHub](https://github.com/openservicemesh/osm/issues), and if your issue isn't already represented please [open a new one](https://github.com/openservicemesh/osm/issues/new/choose). The OSM project maintainers will respond to the best of their abilities.
+See [SUPPORT](SUPPORT)
 
 ### SMI Specification support
 
