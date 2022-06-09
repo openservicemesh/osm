@@ -87,9 +87,11 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 	return ic, nil
 }
 
-// WithCustomStores sets the shared store for the InformerCollection to reference.
-// This store will be used instead of each informer's store. This should typically
-// only be used in tests
+// WithCustomStores provides the InformerCollection an set of `cache.Store`s indexed
+// by InformerKey. This functionality was added for the express purpose of testing
+// flexibility since the alternative often leads to flaky tests and race conditions
+// between the time an object is added to a fake clientset and when that object
+// is actually added to the informer `cache.Store`.
 func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.customStores = stores
