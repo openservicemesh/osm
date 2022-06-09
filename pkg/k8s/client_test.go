@@ -29,14 +29,7 @@ import (
 )
 
 var (
-	testMeshName    = "mesh"
-	k8sInformerKeys = []informers.InformerKey{
-		informers.InformerKeyNamespace,
-		informers.InformerKeyService,
-		informers.InformerKeyServiceAccount,
-		informers.InformerKeyPod,
-		informers.InformerKeyEndpoints,
-	}
+	testMeshName = "mesh"
 )
 
 func newFakeCacheStore(store map[string]interface{}, keyFunc func(obj interface{}) string) cache.Store {

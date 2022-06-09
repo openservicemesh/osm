@@ -71,6 +71,9 @@ type informer struct {
 	informer    cache.SharedIndexInformer
 }
 
+// InformerCollection is an abstraction around a set of informers
+// initialized with the clients stored in its fields. This data
+// type should only be passed around as a pointer
 type InformerCollection struct {
 	informers             map[InformerKey]*informer
 	meshName              string
