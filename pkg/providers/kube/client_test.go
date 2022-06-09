@@ -319,7 +319,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 	}{
 		{
 			name:        "Returns the list of MeshServices matching the given identity",
-			svcIdentity: identity.ServiceIdentity("sa1.ns1.cluster.local"), // Matches pod ns1/p1
+			svcIdentity: identity.ServiceIdentity("sa1.ns1"), // Matches pod ns1/p1
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{

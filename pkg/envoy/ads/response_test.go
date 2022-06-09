@@ -96,8 +96,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresorFake.NewFake(nil)
-		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certificate.CommonName(proxySvcAccount.ToServiceIdentity().String()), certDuration)
+		certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String())
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
@@ -105,8 +104,6 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 			EnableWASMStats:    false,
@@ -179,9 +176,9 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendSDSResponse()", func() {
 
 		certManager := tresorFake.NewFake(nil)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		certPEM, _ := certManager.IssueCertificate(certCNPrefix)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)

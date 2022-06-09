@@ -91,7 +91,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 		t.Run(fmt.Sprintf("Test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			rbacFilter, err := buildInboundRBACFilterForRule(tc.rule)
+			rbacFilter, err := buildInboundRBACFilterForRule(tc.rule, "cluster.local")
 
 			assert.Equal(tc.expectError, err != nil)
 			if err != nil {

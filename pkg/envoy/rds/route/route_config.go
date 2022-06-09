@@ -59,7 +59,7 @@ const (
 )
 
 // BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) []*xds_route.RouteConfiguration {
+func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator, trustDomain string) []*xds_route.RouteConfiguration {
 	var routeConfigs []*xds_route.RouteConfiguration
 
 	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
@@ -69,7 +69,7 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 		routeConfig := NewRouteConfigurationStub(GetInboundMeshRouteConfigNameForPort(port))
 		for _, config := range configs {
 			virtualHost := buildVirtualHostStub(inboundVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildInboundRoutes(config.Rules)
+			virtualHost.Routes = buildInboundRoutes(config.Rules, trustDomain)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
 		if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
@@ -89,7 +89,7 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 }
 
 // BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
-func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *xds_route.RouteConfiguration {
+func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, trustDomain string) *xds_route.RouteConfiguration {
 	if len(ingress) == 0 {
 		return nil
 	}
@@ -97,7 +97,7 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *x
 	ingressRouteConfig := NewRouteConfigurationStub(IngressRouteConfigName)
 	for _, in := range ingress {
 		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
-		virtualHost.Routes = buildInboundRoutes(in.Rules)
+		virtualHost.Routes = buildInboundRoutes(in.Rules, trustDomain)
 		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
 	}
 
@@ -167,7 +167,7 @@ func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds
 }
 
 // buildInboundRoutes takes a route information from the given inbound traffic policy and returns a list of xds routes
-func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
+func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, rule := range rules {
 		// For a given route path, sanitize the methods in case there
@@ -176,7 +176,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Create an RBAC policy derived from 'trafficpolicy.Rule'
 		// Each route is associated with an RBAC policy
-		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule)
+		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule, trustDomain)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicyForRoute)).
 				Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)

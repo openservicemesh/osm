@@ -3,7 +3,6 @@ package registry
 import (
 	"sync"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -22,5 +21,5 @@ type ProxyRegistry struct {
 
 // A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
 type certificateReleaser interface {
-	ReleaseCertificate(cn certificate.CommonName)
+	ReleaseCertificate(key string)
 }

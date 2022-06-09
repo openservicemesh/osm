@@ -19,4 +19,5 @@ type sdsImpl struct {
 	meshCatalog     catalog.MeshCataloger
 	cfg             configurator.Configurator
 	certManager     *certificate.Manager
+	TrustDomain     string
 }

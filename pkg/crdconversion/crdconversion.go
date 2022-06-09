@@ -50,8 +50,8 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the ConversionWebhook on the CRD's
 	crdConversionWebhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMBootstrapName, osmNamespace)),
-		constants.XDSCertificateValidityPeriod)
+		fmt.Sprintf("%s.%s.svc", constants.OSMBootstrapName, osmNamespace),
+		certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod), certificate.FullCNProvided())
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
 	}

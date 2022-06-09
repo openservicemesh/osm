@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -22,24 +21,24 @@ import (
 
 type fakeCertReleaser struct {
 	sync.Mutex
-	releasedCount map[certificate.CommonName]int // map of cn to release count
+	releasedCount map[string]int // map of cn to release count
 }
 
-func (cm *fakeCertReleaser) ReleaseCertificate(cn certificate.CommonName) {
+func (cm *fakeCertReleaser) ReleaseCertificate(key string) {
 	cm.Lock()
 	defer cm.Unlock()
-	cm.releasedCount[cn]++
+	cm.releasedCount[key]++
 }
 
-func (cm *fakeCertReleaser) getReleasedCount(cn certificate.CommonName) int {
+func (cm *fakeCertReleaser) getReleasedCount(key string) int {
 	cm.Lock()
 	defer cm.Unlock()
-	return cm.releasedCount[cn]
+	return cm.releasedCount[key]
 }
 
 func TestReleaseCertificateHandler(t *testing.T) {
 	proxyUUID := uuid.New().String()
-	proxyCN := certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar.cluster.local", proxyUUID))
+	proxyCNPrefix := fmt.Sprintf("%s.sidecar.foo.bar", proxyUUID)
 
 	testCases := []struct {
 		name       string
@@ -62,7 +61,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(1, cm.getReleasedCount(proxyCN))
+				a.Equal(1, cm.getReleasedCount(proxyCNPrefix))
 			},
 		},
 		{
@@ -81,7 +80,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodDeleted.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(cm.getReleasedCount(proxyCN), 0)
+				a.Equal(cm.getReleasedCount(proxyCNPrefix), 0)
 			},
 		},
 		{
@@ -100,7 +99,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 				}, announcements.PodAdded.String())
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
-				a.Equal(cm.getReleasedCount(proxyCN), 0)
+				a.Equal(cm.getReleasedCount(proxyCNPrefix), 0)
 			},
 		},
 	}
@@ -119,7 +118,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 
 			proxyRegistry.RegisterProxy(proxy)
 
-			certManager := &fakeCertReleaser{releasedCount: make(map[certificate.CommonName]int)}
+			certManager := &fakeCertReleaser{releasedCount: make(map[string]int)}
 			go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 			// Subscription should happen before an event is published by the test, so
 			// add a delay before the test triggers events

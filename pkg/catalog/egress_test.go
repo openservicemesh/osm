@@ -433,7 +433,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 		},
 	}
 
-	testSourceIdentity := identity.ServiceIdentity("foo.bar.cluster.local")
+	testSourceIdentity := identity.ServiceIdentity("foo.bar")
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {

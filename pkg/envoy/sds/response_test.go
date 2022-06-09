@@ -360,6 +360,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
 				cfg:         d.mockConfigurator,
+				TrustDomain: "cluster.local",
 			}
 
 			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil)
@@ -425,7 +426,7 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities)
+			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities, "cluster.local")
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
 	}

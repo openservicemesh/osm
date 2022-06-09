@@ -399,6 +399,5 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false
 	}
-
 	return cert.GetCommonName().String() == san
 }

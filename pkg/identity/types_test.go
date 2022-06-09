@@ -31,7 +31,7 @@ func TestK8sServiceAccountType(t *testing.T) {
 	assert.Equal("bar/foo", svcAccount.String())
 
 	// Test ToServiceIdentity
-	assert.Equal(ServiceIdentity("foo.bar.cluster.local"), svcAccount.ToServiceIdentity())
+	assert.Equal(ServiceIdentity("foo.bar"), svcAccount.ToServiceIdentity())
 }
 
 func TestToServiceIdentity(t *testing.T) {
@@ -41,11 +41,11 @@ func TestToServiceIdentity(t *testing.T) {
 	}{
 		{
 			K8sServiceAccount{Name: "foo", Namespace: "bar"},
-			ServiceIdentity("foo.bar.cluster.local"),
+			ServiceIdentity("foo.bar"),
 		},
 		{
 			K8sServiceAccount{Name: "foo", Namespace: "baz"},
-			ServiceIdentity("foo.baz.cluster.local"),
+			ServiceIdentity("foo.baz"),
 		},
 	}
 

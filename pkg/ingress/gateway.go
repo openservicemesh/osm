@@ -57,11 +57,11 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 
 	// Issue a certificate
 	// OSM only support configuring a single SAN per cert, so pick the first one
-	certCN := certificate.CommonName(spec.SubjectAltNames[0])
+	certCN := spec.SubjectAltNames[0]
 
 	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
 	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certValidityDuration)
+	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.WithValidityPeriod(certValidityDuration), certificate.FullCNProvided())
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
 	}
@@ -197,8 +197,7 @@ func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha2.Ingres
 		return err
 	}
 
-	certCN := certificate.CommonName(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
-	c.certProvider.ReleaseCertificate(certCN)
+	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0])
 
 	return nil
 }

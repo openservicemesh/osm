@@ -28,7 +28,7 @@ import (
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context(), nil)
+	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context())
 	if err != nil {
 		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
 	}
@@ -333,8 +333,7 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 }
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
-	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>, where proxy-identity is of the
-	// form <name>.<namespace>
+	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>.<trust-domain>
 	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
 	if len(chunks) < 4 {
 		return "", uuid.UUID{}, "", errInvalidCertificateCN

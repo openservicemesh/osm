@@ -9,7 +9,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -231,8 +230,8 @@ func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdenti
 	}
 }
 
-// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
-// where identity itself is of the form <name>.<namespace>.cluster.local
-func NewXDSCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
+// NewXDSCertCNPrefix returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>
+func NewXDSCertCNPrefix(proxyUUID uuid.UUID, kind ProxyKind, si identity.ServiceIdentity) string {
+	return fmt.Sprintf("%s.%s.%s", proxyUUID.String(), kind, si)
 }

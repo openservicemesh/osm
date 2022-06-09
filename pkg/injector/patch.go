@@ -14,9 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -24,12 +26,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
-	cn := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, namespace)
-	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
+	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
 		return nil, err
 	}
 	elapsed := time.Since(startTime)
@@ -58,12 +60,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		// with the proxy UUID changed.
 		oldConfigName := bootstrapSecretPrefix + originalUUID
 		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
 	default:
 		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
 	}

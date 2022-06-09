@@ -21,7 +21,7 @@ const (
 // buildInboundRBACFilterForRule builds an HTTP RBAC per route filter based on the given traffic policy rule.
 // The principals in the RBAC policy are derived from the allowed service accounts specified in the given rule.
 // The permissions in the RBAC policy are implicitly set to ANY (all permissions).
-func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.Any, error) {
+func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string) (map[string]*any.Any, error) {
 	if rule.AllowedServiceIdentities == nil {
 		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceIdentities not set")
 	}
@@ -32,6 +32,8 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 	for downstream := range rule.AllowedServiceIdentities.Iter() {
 		pb.AddIdentity(downstream.(identity.ServiceIdentity))
 	}
+
+	pb.SetTrustDomain(trustDomain)
 
 	// A single RBAC policy per route
 	rbacPolicyMap := map[string]*xds_rbac.Policy{rbacPerRoutePolicyName: pb.Build()}
