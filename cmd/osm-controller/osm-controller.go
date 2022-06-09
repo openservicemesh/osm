@@ -196,7 +196,7 @@ func main() {
 	}
 
 	// This component will be watching resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
+	cfg, err := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
 	}

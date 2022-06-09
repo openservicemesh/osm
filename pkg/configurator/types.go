@@ -5,9 +5,9 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -17,21 +17,10 @@ var (
 	log = logger.New("configurator")
 )
 
-type informerCollection struct {
-	meshConfig          cache.SharedIndexInformer
-	meshRootCertificate cache.SharedIndexInformer
-}
-
-type cacheCollection struct {
-	meshConfig          cache.Store
-	meshRootCertificate cache.Store
-}
-
 // client is the type used to represent the Kubernetes client for the config.openservicemesh.io API group
 type client struct {
 	osmNamespace   string
-	informers      *informerCollection
-	caches         *cacheCollection
+	informers      *informers.InformerCollection
 	meshConfigName string
 }
 

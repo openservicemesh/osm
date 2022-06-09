@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -13,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -31,44 +29,6 @@ import (
 var (
 	testMeshName = "mesh"
 )
-
-func newFakeCacheStore(store map[string]interface{}, keyFunc func(obj interface{}) string) cache.Store {
-	return &cache.FakeCustomStore{
-		AddFunc:    func(obj interface{}) error { store[keyFunc(obj)] = obj; return nil },
-		UpdateFunc: func(obj interface{}) error { store[keyFunc(obj)] = obj; return nil },
-		DeleteFunc: func(obj interface{}) error { delete(store, keyFunc(obj)); return nil },
-		ListFunc: func() []interface{} {
-			var objs []interface{}
-			for _, obj := range store {
-				objs = append(objs, obj)
-			}
-			return objs
-		},
-		ListKeysFunc: func() []string {
-			var keys []string
-			for key := range store {
-				keys = append(keys, key)
-			}
-			return keys
-		},
-		GetFunc: func(obj interface{}) (item interface{}, exists bool, err error) {
-			item, ok := store[keyFunc(obj)]
-			if !ok {
-				return nil, false, nil
-			}
-			return item, true, nil
-		},
-		GetByKeyFunc: func(key string) (item interface{}, exists bool, err error) {
-			item, ok := store[key]
-			if !ok {
-				return nil, false, nil
-			}
-			return item, true, nil
-		},
-		ResyncFunc:  func() error { return nil },
-		ReplaceFunc: func(list []interface{}, resourceVersion string) error { return nil },
-	}
-}
 
 func TestIsMonitoredNamespace(t *testing.T) {
 	testCases := []struct {
@@ -99,24 +59,14 @@ func TestIsMonitoredNamespace(t *testing.T) {
 		},
 	}
 
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			namespaceStore := map[string]interface{}{}
-			store := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: store,
-			}
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = store.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
 			a.Equal(tc.expected, actual)
@@ -153,23 +103,13 @@ func TestGetNamespace(t *testing.T) {
 		},
 	}
 
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			namespaceStore := map[string]interface{}{}
-			store := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: store,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = store.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.GetNamespace(tc.ns)
 			if tc.expected {
@@ -210,24 +150,14 @@ func TestListMonitoredNamespaces(t *testing.T) {
 		},
 	}
 
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			namespaceStore := map[string]interface{}{}
-			store := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: store,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			for _, ns := range tc.namespaces {
-				_ = store.Add(ns)
+				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
 
 			actual, err := c.ListMonitoredNamespaces()
@@ -279,23 +209,13 @@ func TestGetService(t *testing.T) {
 		},
 	}
 
-	serviceKeyFunc := func(obj interface{}) string {
-		svc := obj.(*corev1.Service)
-		return fmt.Sprintf("%s/%s", svc.GetNamespace(), svc.GetName())
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			serviceStore := map[string]interface{}{}
-			store := newFakeCacheStore(serviceStore, serviceKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyService: store,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = store.Add(tc.service)
+			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual := c.GetService(tc.svc)
 			if tc.expected {
@@ -346,34 +266,16 @@ func TestListServices(t *testing.T) {
 		},
 	}
 
-	serviceKeyFunc := func(obj interface{}) string {
-		svc := obj.(*corev1.Service)
-		return fmt.Sprintf("%s/%s", svc.GetNamespace(), svc.GetName())
-	}
-
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			serviceStore := map[string]interface{}{}
-			namespaceStore := map[string]interface{}{}
-			nsStore := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			svcStore := newFakeCacheStore(serviceStore, serviceKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: nsStore,
-				informers.InformerKeyService:   svcStore,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = nsStore.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.services {
-				_ = svcStore.Add(s)
+				_ = ic.Add(informers.InformerKeyService, s, t)
 			}
 
 			actual := c.ListServices()
@@ -421,34 +323,16 @@ func TestListServiceAccounts(t *testing.T) {
 		},
 	}
 
-	serviceAccountKeyFunc := func(obj interface{}) string {
-		svcAccount := obj.(*corev1.ServiceAccount)
-		return fmt.Sprintf("%s/%s", svcAccount.GetNamespace(), svcAccount.GetName())
-	}
-
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			serviceStore := map[string]interface{}{}
-			namespaceStore := map[string]interface{}{}
-			nsStore := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			svcAccountStore := newFakeCacheStore(serviceStore, serviceAccountKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace:      nsStore,
-				informers.InformerKeyServiceAccount: svcAccountStore,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = nsStore.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
-				_ = svcAccountStore.Add(s)
+				_ = ic.Add(informers.InformerKeyService, s, t)
 			}
 
 			actual := c.ListServiceAccounts()
@@ -496,34 +380,16 @@ func TestListPods(t *testing.T) {
 		},
 	}
 
-	podKeyFunc := func(obj interface{}) string {
-		pod := obj.(*corev1.Pod)
-		return fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())
-	}
-
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			podStore := map[string]interface{}{}
-			namespaceStore := map[string]interface{}{}
-			nsStore := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			pStore := newFakeCacheStore(podStore, podKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: nsStore,
-				informers.InformerKeyPod:       pStore,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = nsStore.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, p := range tc.pods {
-				_ = pStore.Add(p)
+				_ = ic.Add(informers.InformerKeyPod, p, t)
 			}
 
 			actual := c.ListPods()
@@ -568,23 +434,13 @@ func TestGetEndpoints(t *testing.T) {
 		},
 	}
 
-	endpointsKeyFunc := func(obj interface{}) string {
-		epts := obj.(*corev1.Endpoints)
-		return fmt.Sprintf("%s/%s", epts.GetNamespace(), epts.GetName())
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			endpointsStore := map[string]interface{}{}
-			eptsStore := newFakeCacheStore(endpointsStore, endpointsKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyEndpoints: eptsStore,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = eptsStore.Add(tc.endpoints)
+			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svc)
 			a.Nil(err)
@@ -677,43 +533,18 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		},
 	}
 
-	namespaceKeyFunc := func(obj interface{}) string {
-		ns := obj.(*corev1.Namespace)
-		return ns.GetName()
-	}
-
-	podKeyFunc := func(obj interface{}) string {
-		pod := obj.(*corev1.Pod)
-		return fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())
-	}
-
-	svcKeyFunc := func(obj interface{}) string {
-		svc := obj.(*corev1.Service)
-		return fmt.Sprintf("%s/%s", svc.GetNamespace(), svc.GetName())
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			podStore := map[string]interface{}{}
-			namespaceStore := map[string]interface{}{}
-			serviceStore := map[string]interface{}{}
-			nsStore := newFakeCacheStore(namespaceStore, namespaceKeyFunc)
-			pStore := newFakeCacheStore(podStore, podKeyFunc)
-			svcStore := newFakeCacheStore(serviceStore, svcKeyFunc)
-			stores := map[informers.InformerKey]cache.Store{
-				informers.InformerKeyNamespace: nsStore,
-				informers.InformerKeyPod:       pStore,
-				informers.InformerKeyService:   svcStore,
-			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores))
+
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
-			_ = nsStore.Add(tc.namespace)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 			for _, p := range tc.pods {
-				_ = pStore.Add(p)
+				_ = ic.Add(informers.InformerKeyPod, p, t)
 			}
-			_ = svcStore.Add(tc.service)
+			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual, err := c.ListServiceIdentitiesForService(tc.svc)
 			a.Equal(tc.expectErr, err != nil)

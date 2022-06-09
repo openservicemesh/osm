@@ -14,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
@@ -56,8 +57,10 @@ func TestNewResponse(t *testing.T) {
 	podID := uuid.New()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient))
+	assert.Nil(err)
 
-	cfg, err := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
+	cfg, err := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
 	assert.Nil(err)
 	certManager := tresorFake.NewFake(nil)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
