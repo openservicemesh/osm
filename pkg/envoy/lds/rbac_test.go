@@ -89,7 +89,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
+			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget, "cluster.local")
 
 			assert.Equal(tc.expectedPolicy, policy)
 		})

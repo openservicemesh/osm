@@ -406,7 +406,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
+	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil, "cluster.local")
 
 	testCases := []struct {
 		name                     string
@@ -581,7 +581,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
+			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil, "cluster.local")
 			filter, err := lb.getOutboundTCPFilter(tc.trafficMatch)
 
 			assert := tassert.New(t)

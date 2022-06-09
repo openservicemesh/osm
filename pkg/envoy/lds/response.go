@@ -19,7 +19,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
@@ -27,7 +27,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	lb := newListenerBuilder(meshCatalog, proxy.Identity, cfg, statsHeaders)
+	lb := newListenerBuilder(meshCatalog, proxy.Identity, cfg, statsHeaders, cm.GetTrustDomain())
 
 	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
 		gatewayListener, err := lb.buildMulticlusterGatewayListener()
@@ -96,11 +96,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string, trustDomain string) *listenerBuilder {
 	return &listenerBuilder{
 		meshCatalog:     meshCatalog,
 		serviceIdentity: svcIdentity,
 		cfg:             cfg,
 		statsHeaders:    statsHeaders,
+		trustDomain:     trustDomain,
 	}
 }

@@ -196,7 +196,7 @@ func TestNewOutboundListener(t *testing.T) {
 		EnableEgressPolicy: true,
 	}).Times(1)
 
-	lb := newListenerBuilder(meshCatalog, identity, cfg, nil)
+	lb := newListenerBuilder(meshCatalog, identity, cfg, nil, "cluster.local")
 
 	assert := tassert.New(t)
 	listener, err := lb.newOutboundListener()

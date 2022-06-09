@@ -72,7 +72,8 @@ type Issuer interface {
 
 type issuer struct {
 	Issuer
-	ID string
+	ID          string
+	TrustDomain string
 	// memoized once the first certificate is issued
 	CertificateAuthority pem.RootCertificate
 }
