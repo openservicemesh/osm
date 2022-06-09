@@ -56,6 +56,13 @@ func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 	}()
 }
 
+// GetTrustDomain returns the trust domain from the configured signingkey issuer.
+// Note that the CRD uses a default, so this value will always be set.
+func (m *Manager) GetTrustDomain() string {
+	// TODO(4754): implement
+	return ""
+}
+
 func (m *Manager) checkAndRotate() {
 	// NOTE: checkAndRotate can reintroduce a certificate that has been released, thereby creating an unbounded cache.
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.

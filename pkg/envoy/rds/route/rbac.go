@@ -30,7 +30,7 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (map[string]*any.An
 
 	// Create the list of principals for this policy
 	for downstream := range rule.AllowedServiceIdentities.Iter() {
-		pb.AddPrincipal(downstream.(identity.ServiceIdentity).String())
+		pb.AddIdentity(downstream.(identity.ServiceIdentity))
 	}
 
 	// A single RBAC policy per route

@@ -3,17 +3,20 @@ package rbac
 import (
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 // PolicyBuilder is a utility for constructing *xds_rbac.Policy's
 type PolicyBuilder struct {
 	allowedPorts       []uint32
-	allowedPrincipals  []string
+	allowedIdentities  []identity.ServiceIdentity
 	allowAllPrincipals bool
 
 	// All permissions are applied using OR semantics by default. If applyPermissionsAsAnd is set to true, then
 	// permissions are applied using AND semantics.
 	applyPermissionsAsAnd bool
+	trustDomain           string
 }
 
 // Build constructs an RBAC policy for the policy object on which this method is called
@@ -21,9 +24,9 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	policy := &xds_rbac.Policy{}
 
 	// Each RuleList follows OR semantics with other RuleList in the list of RuleList
-	prinicipals := make([]*xds_rbac.Principal, 0, len(p.allowedPrincipals))
-	for _, principal := range p.allowedPrincipals {
-		prinicipals = append(prinicipals, GetAuthenticatedPrincipal(principal))
+	prinicipals := make([]*xds_rbac.Principal, 0, len(p.allowedIdentities))
+	for _, svcIdentity := range p.allowedIdentities {
+		prinicipals = append(prinicipals, GetAuthenticatedPrincipal(svcIdentity.AsPrincipal(p.trustDomain)))
 	}
 	if len(prinicipals) == 0 {
 		// No principals specified for this policy, allow ANY
@@ -62,21 +65,21 @@ func (p *PolicyBuilder) UseANDForPermissions(val bool) {
 	p.applyPermissionsAsAnd = val
 }
 
-// AddPrincipal adds a principal to the list of allowed principals
-func (p *PolicyBuilder) AddPrincipal(principal string) {
+// AddIdentity adds an identity, later to be converted to a principal, to the list of allowed identities.
+func (p *PolicyBuilder) AddIdentity(svcIdentity identity.ServiceIdentity) {
 	// We need this extra defense in depth because it is currently possible to configure a wildcard principal
 	// in addition to specific principals. Future changes may look to avoid this.
-	if principal == "*" {
-		p.AllowAnyPrincipal()
+	if svcIdentity.IsWildcard() {
+		p.AllowAnyIdentity()
 	}
 	if !p.allowAllPrincipals {
-		p.allowedPrincipals = append(p.allowedPrincipals, principal)
+		p.allowedIdentities = append(p.allowedIdentities, svcIdentity)
 	}
 }
 
-// AllowAnyPrincipal allows any principal to access the permissions.
-func (p *PolicyBuilder) AllowAnyPrincipal() {
-	p.allowedPrincipals = nil
+// AllowAnyIdentity allows any principal to access the permissions.
+func (p *PolicyBuilder) AllowAnyIdentity() {
+	p.allowedIdentities = nil
 	p.allowAllPrincipals = true
 }
 
@@ -84,6 +87,11 @@ func (p *PolicyBuilder) AllowAnyPrincipal() {
 func (p *PolicyBuilder) AddAllowedDestinationPort(port uint16) {
 	// envoy uses uint32 for ports.
 	p.allowedPorts = append(p.allowedPorts, uint32(port))
+}
+
+// SetTrustDomain sets the trust domain for the policy, which is used when converting a ServiceIdentity to a Principal.
+func (p *PolicyBuilder) SetTrustDomain(td string) {
+	p.trustDomain = td
 }
 
 // GetAuthenticatedPrincipal returns an authenticated RBAC principal object for the given principal

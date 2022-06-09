@@ -6,6 +6,8 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/identity"
+
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 )
@@ -13,14 +15,15 @@ import (
 func TestBuild(t *testing.T) {
 	testCases := []struct {
 		name                  string
-		principals            []string
+		identities            []identity.ServiceIdentity
 		ports                 []uint16
 		applyPermissionsAsAND bool
+		trustDomain           string
 		expectedPolicy        *xds_rbac.Policy
 	}{
 		{
 			name:       "testing rules for single principal",
-			principals: []string{"foo.domain", "bar.domain"},
+			identities: []identity.ServiceIdentity{identity.New("foo", "domain"), identity.New("bar", "domain")},
 			ports:      []uint16{80},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
@@ -29,7 +32,7 @@ func TestBuild(t *testing.T) {
 							Authenticated: &xds_rbac.Principal_Authenticated{
 								PrincipalName: &xds_matcher.StringMatcher{
 									MatchPattern: &xds_matcher.StringMatcher_Exact{
-										Exact: "foo.domain",
+										Exact: "foo.domain.cluster.local",
 									},
 								},
 							},
@@ -40,7 +43,7 @@ func TestBuild(t *testing.T) {
 							Authenticated: &xds_rbac.Principal_Authenticated{
 								PrincipalName: &xds_matcher.StringMatcher{
 									MatchPattern: &xds_matcher.StringMatcher_Exact{
-										Exact: "bar.domain",
+										Exact: "bar.domain.cluster.local",
 									},
 								},
 							},
@@ -57,9 +60,10 @@ func TestBuild(t *testing.T) {
 			},
 		},
 		{
-			name:       "testing rules for single principal",
-			principals: []string{"foo.domain"},
-			ports:      []uint16{80, 443},
+			name:        "testing rules for single principal",
+			identities:  []identity.ServiceIdentity{identity.New("foo", "domain")},
+			trustDomain: "cluster.local",
+			ports:       []uint16{80, 443},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -67,7 +71,7 @@ func TestBuild(t *testing.T) {
 							Authenticated: &xds_rbac.Principal_Authenticated{
 								PrincipalName: &xds_matcher.StringMatcher{
 									MatchPattern: &xds_matcher.StringMatcher_Exact{
-										Exact: "foo.domain",
+										Exact: "foo.domain.cluster.local",
 									},
 								},
 							},
@@ -92,9 +96,10 @@ func TestBuild(t *testing.T) {
 			// Note that AND ports wouldn't make sense, since you can't have 2 ports at once, but we use it to test
 			// the logic.
 			name:                  "testing rules for AND ports",
-			principals:            []string{"foo.domain"},
+			identities:            []identity.ServiceIdentity{identity.New("foo", "domain")},
 			ports:                 []uint16{80, 443},
 			applyPermissionsAsAND: true,
+			trustDomain:           "cluster.local",
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -102,7 +107,7 @@ func TestBuild(t *testing.T) {
 							Authenticated: &xds_rbac.Principal_Authenticated{
 								PrincipalName: &xds_matcher.StringMatcher{
 									MatchPattern: &xds_matcher.StringMatcher_Exact{
-										Exact: "foo.domain",
+										Exact: "foo.domain.cluster.local",
 									},
 								},
 							},
@@ -133,7 +138,7 @@ func TestBuild(t *testing.T) {
 		},
 		{
 			name:       "testing rule for ANY principal when no ports specified",
-			principals: []string{"foo.domain", "*"},
+			identities: []identity.ServiceIdentity{identity.New("foo", "domain"), identity.WildcardServiceIdentity},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -169,8 +174,8 @@ func TestBuild(t *testing.T) {
 			assert := tassert.New(t)
 
 			pb := &PolicyBuilder{}
-			for _, principal := range tc.principals {
-				pb.AddPrincipal(principal)
+			for _, svcIdentity := range tc.identities {
+				pb.AddIdentity(svcIdentity)
 			}
 			for _, port := range tc.ports {
 				pb.AddAllowedDestinationPort(port)
@@ -178,7 +183,7 @@ func TestBuild(t *testing.T) {
 
 			pb.UseANDForPermissions(tc.applyPermissionsAsAND)
 			policy := pb.Build()
-			assert.Equal(policy, tc.expectedPolicy)
+			assert.Equal(tc.expectedPolicy, policy)
 		})
 	}
 }

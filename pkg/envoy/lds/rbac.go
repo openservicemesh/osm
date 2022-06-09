@@ -50,7 +50,7 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 	rbacPolicies := make(map[string]*xds_rbac.Policy)
 	// Build an RBAC policies based on SMI TrafficTarget policies
 	for _, targetPolicy := range trafficTargets {
-		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy)
+		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy, lb.trustDomain)
 	}
 
 	log.Debug().Msgf("RBAC policy for proxy with identity %s: %+v", proxyIdentity, rbacPolicies)
@@ -68,12 +68,12 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 }
 
 // buildRBACPolicyFromTrafficTarget creates an XDS RBAC policy from the given traffic target policy
-func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes) *xds_rbac.Policy {
+func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes, trustDomain string) *xds_rbac.Policy {
 	pb := &rbac.PolicyBuilder{}
 
-	// Create the list of principals for this policy
-	for _, downstreamPrincipal := range trafficTarget.Sources {
-		pb.AddPrincipal(downstreamPrincipal.String())
+	// Create the list of identities for this policy
+	for _, downstreamIdentity := range trafficTarget.Sources {
+		pb.AddIdentity(downstreamIdentity)
 	}
 	// Create the list of permissions for this policy
 	for _, tcpRouteMatch := range trafficTarget.TCPRouteMatches {
@@ -82,6 +82,8 @@ func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetW
 			pb.AddAllowedDestinationPort(port)
 		}
 	}
+
+	pb.SetTrustDomain(trustDomain)
 
 	return pb.Build()
 }
