@@ -86,6 +86,145 @@ spec:
                           description: Maximum number of parallel retries allowed.
                           type: integer
                           minimum: 0
+                rateLimit:
+                  description: Rate limiting policy.
+                  type: object
+                  properties:
+                    local:
+                      description: Policy responsible for rate limiting traffic at the upstream service.
+                      type: object
+                      properties:
+                        tcp:
+                          description: TCP level local rate limiting to limit the number of connections per unit of time.
+                          type: object
+                          properties:
+                            connections:
+                              description: Connections defines the number of connections allowed per unit of time before
+                                rate limiting occurs.
+                              type: integer
+                              minimum: 1
+                            unit:
+                              description: Unit defines the period of time within which connections over the limit will be
+                                rate limited. Valid values are "second", "minute" and "hour".
+                              type: string
+                              enum:
+                              - second
+                              - minute
+                              - hour
+                            burst:
+                              description: Burst (optional) defines the number of connections above the baseline rate that are allowed
+                                in a short period of time.
+                              type: integer
+                        http:
+                          description: HTTP level local rate limiting to limit the number of requests per unit of time.
+                          type: object
+                          properties:
+                            requests:
+                              description: Requests defines the number of requests allowed per unit of time before rate
+                                limiting occurs.
+                              type: integer
+                              minimum: 1
+                            unit:
+                              description: Unit defines the period of time within which requests over the limit will be
+                                rate limited. Valid values are "second", "minute" and "hour".
+                              type: string
+                              enum:
+                              - second
+                              - minute
+                              - hour
+                            burst:
+                              description: Burst (optional) defines the number of requests above the baseline rate that are allowed
+                                in a short period of time.
+                              type: integer
+                            responseStatusCode:
+                              description: ResponseStatusCode (optional) defines the HTTP status code to use for responses to rate
+                                limited requests. Code must be in the 400-599 (inclusive) error range. If not specified,
+                                a default of 429 (Too Many Requests) is used.
+                              type: integer
+                              minimum: 400
+                              maximum: 599
+                            responseHeadersToAdd:
+                              description: ResponseHeadersToAdd (optional) defines the list of HTTP headers that should be added
+                                to each response for requests that have been rate limited.
+                              type: array
+                              items:
+                                description: Defines an HTTP header name/value pair.
+                                type: object
+                                required:
+                                - name
+                                - value
+                                properties:
+                                  name:
+                                    description: Name defines the HTTP header name.
+                                    type: string
+                                    minLength: 1
+                                  value:
+                                    description: Value defines the HTTP header value.
+                                    type: string
+                                    minLength: 1
+                httpRoutes:
+                  description: HTTPRoutes defines the list of HTTP routes settings for the upstream host.
+                    Settings are applied at a per route level.
+                  type: array
+                  items:
+                    description: HTTP route settings for the given path.
+                    type: object
+                    properties:
+                      path:
+                        description: Path defines the HTTP path. This can be an RE2 regex value.
+                        type: string
+                        minLength: 1
+                      rateLimit:
+                        description: Rate limiting policy applied per route.
+                        type: object
+                        properties:
+                          local:
+                            description: Local rate limiting policy applied per route.
+                            type: object
+                            properties:
+                              requests:
+                                description: Requests defines the number of requests allowed per unit of time before rate
+                                  limiting occurs.
+                                type: integer
+                                minimum: 1
+                              unit:
+                                description: Unit defines the period of time within which requests over the limit will be
+                                  rate limited. Valid values are "second", "minute" and "hour".
+                                type: string
+                                enum:
+                                - second
+                                - minute
+                                - hour
+                              burst:
+                                description: Burst (optional) defines the number of requests above the baseline rate that are allowed
+                                  in a short period of time.
+                                type: integer
+                              responseStatusCode:
+                                description: ResponseStatusCode (optional) defines the HTTP status code to use for responses to rate
+                                  limited requests. Code must be in the 400-599 (inclusive) error range. If not specified,
+                                  a default of 429 (Too Many Requests) is used.
+                                type: integer
+                                minimum: 400
+                                maximum: 599
+                              responseHeadersToAdd:
+                                description: ResponseHeadersToAdd (optional) defines the list of HTTP headers that should be added
+                                  to each response for requests that have been rate limited.
+                                type: array
+                                items:
+                                  description: Defines an HTTP header name/value pair.
+                                  type: object
+                                  required:
+                                  - name
+                                  - value
+                                  properties:
+                                    name:
+                                      description: Name defines the HTTP header name.
+                                      type: string
+                                      minLength: 1
+                                    value:
+                                      description: Value defines the HTTP header value.
+                                      type: string
+                                      minLength: 1
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
