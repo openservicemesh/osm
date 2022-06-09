@@ -12,18 +12,20 @@ import (
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
+// InformerCollectionOption is a function that modifies an informer collection
 type InformerCollectionOption func(*InformerCollection)
 
 // NewInformerCollection creates a new InformerCollection
 func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
-
 	ic := &InformerCollection{
 		meshName:  meshName,
 		informers: map[InformerKey]*informer{},
 	}
 
 	for _, opt := range opts {
-		opt(ic)
+		if opt != nil {
+			opt(ic)
+		}
 	}
 
 	// Initialize informers
@@ -85,7 +87,7 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 	return ic, nil
 }
 
-// WithCustomStore sets the shared store for the InformerCollection to reference.
+// WithCustomStores sets the shared store for the InformerCollection to reference.
 // This store will be used instead of each informer's store. This should typically
 // only be used in tests
 func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOption {
@@ -108,7 +110,7 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 	}
 }
 
-// WithSMIClient sets the SMI clients for the InformerCollection
+// WithSMIClients sets the SMI clients for the InformerCollection
 func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiTrafficAccessClient.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.smiTrafficSplitClient = smiTrafficSplitClient
@@ -160,6 +162,7 @@ func (ic *InformerCollection) run(stop <-chan struct{}) error {
 	return nil
 }
 
+// AddEventHandler adds an handler to the informer indexed by the given InformerKey
 func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler cache.ResourceEventHandler) {
 	i, ok := ic.informers[informerKey]
 	if !ok {
@@ -170,6 +173,7 @@ func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler c
 	i.informer.AddEventHandler(handler)
 }
 
+// GetByKey retrieves an item (based on the given index) from the store of the informer indexed by the given InformerKey
 func (ic *InformerCollection) GetByKey(informerKey InformerKey, objectKey string) (interface{}, bool, error) {
 	informer, ok := ic.informers[informerKey]
 	if !ok {
@@ -180,6 +184,7 @@ func (ic *InformerCollection) GetByKey(informerKey InformerKey, objectKey string
 	return informer.GetStore().GetByKey(objectKey)
 }
 
+// List returns the contents of the store of the informer indexed by the given InformerKey
 func (ic *InformerCollection) List(informerKey InformerKey) []interface{} {
 	informer, ok := ic.informers[informerKey]
 	if !ok {

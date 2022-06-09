@@ -5,11 +5,12 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 
-	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
-	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 	smiAccessInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+
+	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
+	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )

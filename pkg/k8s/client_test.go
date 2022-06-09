@@ -230,7 +230,7 @@ func TestListMonitoredNamespaces(t *testing.T) {
 			stores := map[informers.InformerKey]cache.Store{
 				informers.InformerKeyNamespace: store,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			for _, ns := range tc.namespaces {
@@ -299,7 +299,7 @@ func TestGetService(t *testing.T) {
 			stores := map[informers.InformerKey]cache.Store{
 				informers.InformerKeyService: store,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = store.Add(tc.service)
@@ -374,7 +374,7 @@ func TestListServices(t *testing.T) {
 				informers.InformerKeyNamespace: nsStore,
 				informers.InformerKeyService:   svcStore,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = nsStore.Add(tc.namespace)
@@ -449,7 +449,7 @@ func TestListServiceAccounts(t *testing.T) {
 				informers.InformerKeyNamespace:      nsStore,
 				informers.InformerKeyServiceAccount: svcAccountStore,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = nsStore.Add(tc.namespace)
@@ -524,7 +524,7 @@ func TestListPods(t *testing.T) {
 				informers.InformerKeyNamespace: nsStore,
 				informers.InformerKeyPod:       pStore,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = nsStore.Add(tc.namespace)
@@ -588,7 +588,7 @@ func TestGetEndpoints(t *testing.T) {
 			stores := map[informers.InformerKey]cache.Store{
 				informers.InformerKeyEndpoints: eptsStore,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = eptsStore.Add(tc.endpoints)
@@ -713,7 +713,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 				informers.InformerKeyPod:       pStore,
 				informers.InformerKeyService:   svcStore,
 			}
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), nil, informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()), informers.WithCustomStores(stores), informers.WithSelectedInformers(k8sInformerKeys...))
 			a.Nil(err)
 			c := newClient(ic, nil, nil)
 			_ = nsStore.Add(tc.namespace)

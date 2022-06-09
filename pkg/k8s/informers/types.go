@@ -19,28 +19,39 @@ import (
 type InformerKey string
 
 const (
-	// Kubernetes
-	InformerKeyNamespace      InformerKey = "Namespace"
-	InformerKeyService        InformerKey = "Service"
-	InformerKeyPod            InformerKey = "Pod"
-	InformerKeyEndpoints      InformerKey = "Endpoints"
+	// InformerKeyNamespace is the InformerKey for a Namespace informer
+	InformerKeyNamespace InformerKey = "Namespace"
+	// InformerKeyService is the InformerKey for a Service informer
+	InformerKeyService InformerKey = "Service"
+	// InformerKeyPod is the InformerKey for a Pod informer
+	InformerKeyPod InformerKey = "Pod"
+	// InformerKeyEndpoints is the InformerKey for a Endpoints informer
+	InformerKeyEndpoints InformerKey = "Endpoints"
+	// InformerKeyServiceAccount is the InformerKey for a ServiceAccount informer
 	InformerKeyServiceAccount InformerKey = "ServiceAccount"
 
-	// SMI
-	InformerKeyTrafficSplit   InformerKey = "TrafficSplit"
-	InformerKeyTrafficTarget  InformerKey = "TrafficTarget"
+	// InformerKeyTrafficSplit is the InformerKey for a TrafficSplit informer
+	InformerKeyTrafficSplit InformerKey = "TrafficSplit"
+	// InformerKeyTrafficTarget is the InformerKey for a TrafficTarget informer
+	InformerKeyTrafficTarget InformerKey = "TrafficTarget"
+	// InformerKeyHTTPRouteGroup is the InformerKey for a HTTPRouteGroup informer
 	InformerKeyHTTPRouteGroup InformerKey = "HTTPRouteGroup"
-	InformerKeyTCPRoute       InformerKey = "TCPRoute"
+	// InformerKeyTCPRoute is the InformerKey for a TCPRoute informer
+	InformerKeyTCPRoute InformerKey = "TCPRoute"
 
-	// Config
-	InformerKeyMeshConfig          InformerKey = "MeshConfig"
+	// InformerKeyMeshConfig is the InformerKey for a MeshConfig informer
+	InformerKeyMeshConfig InformerKey = "MeshConfig"
+	// InformerKeyMeshRootCertificate is the InformerKey for a MeshRootCertificate informer
 	InformerKeyMeshRootCertificate InformerKey = "MeshRootCertificate"
 
-	// Policy
-	InformerKeyEgress                 InformerKey = "Egress"
-	InformerKeyIngressBackend         InformerKey = "IngressBackend"
+	// InformerKeyEgress is the InformerKey for a Egress informer
+	InformerKeyEgress InformerKey = "Egress"
+	// InformerKeyIngressBackend is the InformerKey for a IngressBackend informer
+	InformerKeyIngressBackend InformerKey = "IngressBackend"
+	// InformerKeyUpstreamTrafficSetting is the InformerKey for a UpstreamTrafficSetting informer
 	InformerKeyUpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
-	InformerKeyRetry                  InformerKey = "Retry"
+	// InformerKeyRetry is the InformerKey for a Retry informer
+	InformerKeyRetry InformerKey = "Retry"
 )
 
 const (
