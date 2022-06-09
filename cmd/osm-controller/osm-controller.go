@@ -14,6 +14,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
+	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
+	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -43,6 +46,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -151,6 +155,7 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
+	configClient := configClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -176,16 +181,27 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
+	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
+	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
+	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
+
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		informers.WithConfigClient(configClient),
+		informers.WithPolicyClient(policyClient),
+	)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
+	}
+
 	// This component will be watching resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
 	}
 
-	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
-	}
+	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
 
 	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, osmNamespace, k8sClient, stop, msgBroker)
 	if err != nil {
@@ -215,16 +231,16 @@ func main() {
 		}
 	}
 
-	var configClient config.Controller
+	var multiclusterConfigClient config.Controller
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
-		if configClient, err = config.NewConfigController(kubeConfig, k8sClient, stop, msgBroker); err != nil {
+		if multiclusterConfigClient, err = config.NewConfigController(kubeConfig, k8sClient, stop, msgBroker); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes config client")
 		}
 	}
 
-	// A nil configClient is passed in if multi cluster mode is not enabled.
-	kubeProvider := kube.NewClient(k8sClient, configClient, cfg)
+	// A nil multiclusterConfigClient is passed in if multi cluster mode is not enabled.
+	kubeProvider := kube.NewClient(k8sClient, multiclusterConfigClient, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}

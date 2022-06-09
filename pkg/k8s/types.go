@@ -8,15 +8,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -65,15 +64,10 @@ const (
 	ServiceAccounts InformerKey = "ServiceAccounts"
 )
 
-// informerCollection is the type holding the collection of informers we keep
-type informerCollection map[InformerKey]cache.SharedIndexInformer
-
 // client is the type used to represent the k8s client for the native k8s resources
 type client struct {
-	meshName     string
-	kubeClient   kubernetes.Interface
 	policyClient policyv1alpha1Client.Interface
-	informers    informerCollection
+	informers    *informers.InformerCollection
 	msgBroker    *messaging.Broker
 }
 

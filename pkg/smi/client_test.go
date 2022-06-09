@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -47,10 +48,16 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	msgBroker := messaging.NewBroker(stop)
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop, msgBroker)
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+
 	if err != nil {
 		return nil, nil, err
 	}
+
+	kubernetesClient := k8s.NewKubernetesController(informerCollection, nil, msgBroker)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
