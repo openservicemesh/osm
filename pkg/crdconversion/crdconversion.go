@@ -26,7 +26,6 @@ const (
 	trafficAccessConverterPath         = "/convert/trafficaccess"
 	httpRouteGroupConverterPath        = "/convert/httproutegroup"
 	meshConfigConverterPath            = "/convert/meshconfig"
-	multiclusterServiceConverterPath   = "/convert/multiclusterservice"
 	egressPolicyConverterPath          = "/convert/egresspolicy"
 	trafficSplitConverterPath          = "/convert/trafficsplit"
 	tcpRoutesConverterPath             = "/convert/tcproutes"
@@ -80,7 +79,6 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 		meshConfigConverterPath:            serveMeshConfigConversion,
 		trafficAccessConverterPath:         serveTrafficAccessConversion,
 		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,
-		multiclusterServiceConverterPath:   serveMultiClusterServiceConversion,
 		egressPolicyConverterPath:          serveEgressPolicyConversion,
 		trafficSplitConverterPath:          serveTrafficSplitConversion,
 		tcpRoutesConverterPath:             serveTCPRouteConversion,

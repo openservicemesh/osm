@@ -929,27 +929,6 @@
                     },
                     "additionalProperties": false
                 },
-                "multicluster": {
-                    "$id": "#/properties/osm/properties/multicluster",
-                    "type": "object",
-                    "title": "Multicluster",
-                    "description": "Configuration for multicluster features",
-                    "required": [
-                        "gatewayLogLevel"
-                    ],
-                    "properties": {
-                        "gatewayLogLevel": {
-                            "$id": "#/properties/osm/properties/multicluster/properties/gatewayLogLevel",
-                            "type": "string",
-                            "title": "the gatewayLogLevel port",
-                            "description": "Log level for the multicluster gateway",
-                            "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
-                            "examples": [
-                                "error"
-                            ]
-                        }
-                    }
-                },
                 "featureFlags": {
                     "$id": "#/properties/osm/properties/featureFlags",
                     "type": "object",
@@ -964,7 +943,6 @@
                     "required": [
                         "enableWASMStats",
                         "enableEgressPolicy",
-                        "enableMulticlusterMode",
                         "enableAsyncProxyServiceMapping",
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
@@ -986,15 +964,6 @@
                             "type": "boolean",
                             "title": "Enable OSM's Egress policy",
                             "description": "Enable OSM's Egress policy for fine grained control over egress (external) traffic",
-                            "examples": [
-                                true
-                            ]
-                        },
-                        "enableMulticlusterMode": {
-                            "$id": "#/properties/osm/properties/featureFlags/properties/enableMulticluster",
-                            "type": "boolean",
-                            "title": "Enable Multicluster mode",
-                            "description": "Enable multicluster mode in OSM",
                             "examples": [
                                 true
                             ]

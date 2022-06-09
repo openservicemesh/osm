@@ -16,10 +16,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
-	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -40,12 +36,11 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	mockConfigController := config.NewMockController(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		c = NewClient(mockKubeController, mockConfigController, mockConfigurator)
+		c = NewClient(mockKubeController, mockConfigurator)
 	})
 
 	It("tests GetID", func() {
@@ -82,7 +77,6 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(c.ListEndpointsForService(meshSvc)).To(Equal([]endpoint.Endpoint{
 			{
@@ -126,7 +120,6 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(c.ListEndpointsForService(subdomainedSvc)).To(Equal([]endpoint.Endpoint{
 			{
@@ -165,7 +158,6 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 				},
 			},
 		}, nil)
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
 		Expect(c.ListEndpointsForService(svc)).To(Equal([]endpoint.Endpoint{
 			{
@@ -449,10 +441,8 @@ func TestListEndpointsForIdentity(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockConfigController := config.NewMockController(mockCtrl)
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 
-			provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
+			provider := NewClient(mockKubeController, mockConfigurator)
 
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
@@ -478,70 +468,4 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
 		})
 	}
-}
-
-func TestGetMultiClusterServiceEndpointsForServiceAccount(t *testing.T) {
-	assert := tassert.New(t)
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigController := config.NewMockController(mockCtrl)
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	provider := NewClient(mockKubeController, mockConfigController, mockConfigurator)
-
-	destServiceIdentity := tests.BookstoreServiceIdentity
-	destSA := destServiceIdentity.ToK8sServiceAccount()
-
-	mcServices := []configv1alpha2.MultiClusterService{
-		{
-			Spec: configv1alpha2.MultiClusterServiceSpec{
-				Clusters: []configv1alpha2.ClusterSpec{
-					{
-						Address: "1.2.3.4:8080",
-						Name:    "remote-cluster-1",
-					},
-					{
-						Address:  "5.6.7.8:8080",
-						Name:     "remote-cluster-2",
-						Weight:   1,
-						Priority: 2,
-					},
-				},
-				ServiceAccount: destSA.Name,
-			},
-		},
-	}
-
-	configClient := fakeConfig.NewSimpleClientset()
-	for _, mcService := range mcServices {
-		mcServicePtr := mcService
-		_, err := configClient.ConfigV1alpha2().MultiClusterServices(tests.Namespace).Create(context.TODO(), &mcServicePtr, metav1.CreateOptions{})
-		assert.Nil(err)
-	}
-
-	mockConfigController.EXPECT().GetMultiClusterServiceByServiceAccount(destSA.Name, destSA.Namespace).Return(mcServices).AnyTimes()
-
-	endpoints := provider.getMultiClusterServiceEndpointsForServiceAccount(destSA.Name, destSA.Namespace)
-	assert.Equal(len(endpoints), 2)
-
-	assert.ElementsMatch(endpoints, []endpoint.Endpoint{
-		{
-			IP:       net.ParseIP("1.2.3.4"),
-			Port:     8080,
-			Weight:   0,
-			Priority: 0,
-			Zone:     "remote-cluster-1",
-		},
-		{
-			IP:       net.ParseIP("5.6.7.8"),
-			Port:     8080,
-			Weight:   1,
-			Priority: 2,
-			Zone:     "remote-cluster-2",
-		},
-	})
 }

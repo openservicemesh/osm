@@ -267,8 +267,6 @@ spec:
                       type: boolean
                     enableEgressPolicy:
                       type: boolean
-                    enableMulticlusterMode:
-                      type: boolean
                     enableSnapshotCacheMode:
                       type: boolean
                     enableAsyncProxyServiceMapping:
@@ -468,8 +466,6 @@ spec:
                     enableWASMStats:
                       type: boolean
                     enableEgressPolicy:
-                      type: boolean
-                    enableMulticlusterMode:
                       type: boolean
                     enableSnapshotCacheMode:
                       type: boolean

@@ -183,17 +183,6 @@ const (
 
 	// UpstreamTrafficSettingUpdated is the type of announcement emitted when we observe an update of upstreamtrafficsettings.policy.openservicemesh.io
 	UpstreamTrafficSettingUpdated Kind = "upstreamtrafficsetting-updated"
-
-	// ---
-
-	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceAdded Kind = "multiclusterservice-added"
-
-	// MultiClusterServiceDeleted is the type of announcement emitted when we observe an deletion of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceDeleted Kind = "multiclusterservice-deleted"
-
-	// MultiClusterServiceUpdated is the type of announcement emitted when we observe an update of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceUpdated Kind = "multiclusterservice-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration

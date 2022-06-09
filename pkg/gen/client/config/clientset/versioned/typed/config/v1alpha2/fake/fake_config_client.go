@@ -33,10 +33,6 @@ func (c *FakeConfigV1alpha2) MeshRootCertificates(namespace string) v1alpha2.Mes
 	return &FakeMeshRootCertificates{c, namespace}
 }
 
-func (c *FakeConfigV1alpha2) MultiClusterServices(namespace string) v1alpha2.MultiClusterServiceInterface {
-	return &FakeMultiClusterServices{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeConfigV1alpha2) RESTClient() rest.Interface {

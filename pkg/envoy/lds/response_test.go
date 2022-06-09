@@ -24,7 +24,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -85,9 +84,8 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:        false,
-		EnableEgressPolicy:     true,
-		EnableMulticlusterMode: false,
+		EnableWASMStats:    false,
+		EnableEgressPolicy: true,
 	}).AnyTimes()
 
 	proxy, pod, err := getProxy(kubeClient)
@@ -165,6 +163,7 @@ func TestNewResponse(t *testing.T) {
 	assert.NotNil(listener.FilterChains)
 	assert.Len(listener.FilterChains, 1)
 }
+<<<<<<< HEAD
 
 func TestNewResponseForMulticlusterGateway(t *testing.T) {
 	assert := tassert.New(t)
@@ -207,3 +206,5 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 	assert.Len(listener.FilterChains, 1)
 	assert.Equal(listener.FilterChains[0].Name, fmt.Sprintf("%s-%s", multiclusterGatewayFilterChainName, tests.BookstoreV1ServiceName))
 }
+=======
+>>>>>>> 61decdf1... Start with a clean slate for all multicluster work

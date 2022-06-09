@@ -34,7 +34,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
-	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -219,24 +218,8 @@ func main() {
 	// watch for certificate rotation
 	certManager.Start(5*time.Second, stop)
 
-	if cfg.GetFeatureFlags().EnableMulticlusterMode {
-		log.Info().Msgf("Bootstrapping OSM multicluster gateway")
-		if err := bootstrapOSMMulticlusterGateway(kubeClient, certManager, osmNamespace); err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
-				"Error bootstraping OSM multicluster gateway")
-		}
-	}
-
-	var multiclusterConfigClient config.Controller
-
-	if cfg.GetFeatureFlags().EnableMulticlusterMode {
-		if multiclusterConfigClient, err = config.NewConfigController(kubeConfig, k8sClient, stop, msgBroker); err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes config client")
-		}
-	}
-
-	// A nil multiclusterConfigClient is passed in if multi cluster mode is not enabled.
-	kubeProvider := kube.NewClient(k8sClient, multiclusterConfigClient, cfg)
+	// A nil configClient is passed in if multi cluster mode is not enabled.
+	kubeProvider := kube.NewClient(k8sClient, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}

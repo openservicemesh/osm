@@ -32,9 +32,6 @@ const (
 
 	// AccessLoggerName is name used for the envoy access loggers.
 	AccessLoggerName = "envoy.access_loggers.stream"
-
-	// MulticlusterGatewayCluster is the tls passthough cluster name for multicluster gateway
-	MulticlusterGatewayCluster = "passthrough-multicluster-gateway"
 )
 
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.

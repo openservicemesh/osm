@@ -89,7 +89,9 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
 fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
+    docker network disconnect kind kind-registry
     make docker-build
+    docker network connect kind kind-registry
 fi
 
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"

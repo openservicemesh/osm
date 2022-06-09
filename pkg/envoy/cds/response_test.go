@@ -421,7 +421,6 @@ func TestNewResponseListServicesError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
@@ -450,7 +449,6 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
@@ -487,7 +485,6 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}, nil).Times(1)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
@@ -499,30 +496,6 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
-}
-
-func TestNewResponseForMulticlusterGateway(t *testing.T) {
-	assert := tassert.New(t)
-
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-	proxy := envoy.NewProxy(envoy.KindGateway, uuid.New(), identity.New("osm", "osm-system"), nil)
-
-	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
-
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
-		tests.BookstoreV1Service,
-	}).AnyTimes()
-
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
-	assert.NoError(err)
-	assert.Len(resp, 1)
-	assert.Equal(tests.BookstoreV1Service.ServerName(), resp[0].(*xds_cluster.Cluster).Name)
 }
 
 func TestRemoveDups(t *testing.T) {
