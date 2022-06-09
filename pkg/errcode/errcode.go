@@ -238,9 +238,6 @@ const (
 	// ErrUnsupportedProtocolForService indicates a port's corresponding application protocol is not supported
 	ErrUnsupportedProtocolForService
 
-	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
-	ErrBuildingRBACPolicy
-
 	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
 	ErrIngressFilterChain
 
@@ -700,11 +697,6 @@ will not be sent to the Envoy proxy in a ClusterDiscovery response.
 	ErrUnsupportedProtocolForService: `
 The application protocol specified for a port is not supported for ingress
 traffic. The XDS filter chain for ingress traffic to the port was not created.
-`,
-
-	ErrBuildingRBACPolicy: `
-An XDS RBAC policy could not be generated from the specified traffic target
-policy.
 `,
 
 	ErrIngressFilterChain: `

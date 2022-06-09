@@ -507,7 +507,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
-							Ports: []int{8000, 9000},
+							Ports: []uint16{8000, 9000},
 						},
 					},
 				},
@@ -595,11 +595,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-1
-							Ports: []int{8000},
+							Ports: []uint16{8000},
 						},
 						{
 							// route-2
-							Ports: []int{9000},
+							Ports: []uint16{9000},
 						},
 					},
 				},
@@ -743,11 +743,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-1
-							Ports: []int{1000},
+							Ports: []uint16{1000},
 						},
 						{
 							// route-2
-							Ports: []int{2000},
+							Ports: []uint16{2000},
 						},
 					},
 				},
@@ -760,11 +760,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-3
-							Ports: []int{3000},
+							Ports: []uint16{3000},
 						},
 						{
 							// route-4
-							Ports: []int{4000},
+							Ports: []uint16{4000},
 						},
 					},
 				},

@@ -1964,9 +1964,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 func TestGetTrafficSpecName(t *testing.T) {
 	assert := tassert.New(t)
 
-	mc := MeshCatalog{meshSpec: smiFake.NewFakeMeshSpecClient()}
-
-	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+	actual := getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
 }

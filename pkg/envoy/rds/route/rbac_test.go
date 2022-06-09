@@ -37,24 +37,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("foo.ns-1.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("bar.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("foo.ns-1.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("bar.ns-2.cluster.local"),
 				},
 				Permissions: []*xds_rbac.Permission{
 					{
