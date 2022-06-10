@@ -7,7 +7,6 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -47,9 +46,14 @@ type TCPRouteMatch struct {
 
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
-	HTTPRouteMatch   HTTPRouteMatch            `json:"http_route_match:omitempty"`
-	WeightedClusters mapset.Set                `json:"weighted_clusters:omitempty"`
-	RetryPolicy      *v1alpha1.RetryPolicySpec `json:"retry_policy:omitempty"`
+	HTTPRouteMatch   HTTPRouteMatch                  `json:"http_route_match:omitempty"`
+	WeightedClusters mapset.Set                      `json:"weighted_clusters:omitempty"`
+	RetryPolicy      *policyv1alpha1.RetryPolicySpec `json:"retry_policy:omitempty"`
+
+	// RateLimit defines the rate limit settings applied at the route level
+	// for the given HTTPRouteMatch
+	// +optional
+	RateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec `json:"rate_limit:omitempty"`
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
@@ -57,6 +61,11 @@ type InboundTrafficPolicy struct {
 	Name      string   `json:"name:omitempty"`
 	Hostnames []string `json:"hostnames"`
 	Rules     []*Rule  `json:"rules:omitempty"`
+
+	// RateLimit defines the rate limit settings applied at the virtual_host level
+	// for the given set of hostnames (domains) corresponding to the virtual_host
+	// +optional
+	RateLimit *policyv1alpha1.RateLimitSpec `json:"rate_limit:omitempty"`
 }
 
 // Rule is a struct that represents which service identities (authenticated principals) can access a Route
@@ -179,4 +188,8 @@ type TrafficMatch struct {
 	// route traffic to. This is used by TCP based mesh clusters.
 	// +optional
 	WeightedClusters []service.WeightedCluster
+
+	// RateLimit defines the rate limiting policy applied for this TrafficMatch
+	// +optional
+	RateLimit *policyv1alpha1.RateLimitSpec
 }

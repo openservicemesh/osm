@@ -21,25 +21,48 @@ var WildCardRouteMatch = HTTPRouteMatch{
 	Methods:       []string{constants.WildcardHTTPMethod},
 }
 
-// NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
-func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.WeightedCluster) *RouteWeightedClusters {
+// NewRouteWeightedCluster takes a route, weighted cluster, UpstreamTrafficSetting and returns a *RouteWeightedCluster
+func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.WeightedCluster, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *RouteWeightedClusters {
 	weightedClusterSet := mapset.NewSet()
 	for _, wc := range weightedClusters {
 		weightedClusterSet.Add(wc)
 	}
 
-	return &RouteWeightedClusters{
+	routeWC := &RouteWeightedClusters{
 		HTTPRouteMatch:   route,
 		WeightedClusters: weightedClusterSet,
 	}
+
+	if upstreamTrafficSetting == nil {
+		return routeWC
+	}
+
+	// Apply the corresponding per route rate limit policy for the given
+	// HTTPRouteMatch's path
+	var perRouteRateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec
+	for _, httpRoute := range upstreamTrafficSetting.Spec.HTTPRoutes {
+		if httpRoute.Path == route.Path {
+			perRouteRateLimit = httpRoute.RateLimit
+			break
+		}
+	}
+	routeWC.RateLimit = perRouteRateLimit
+
+	return routeWC
 }
 
-// NewInboundTrafficPolicy takes a name and list of hostnames and returns an *InboundTrafficPolicy
-func NewInboundTrafficPolicy(name string, hostnames []string) *InboundTrafficPolicy {
-	return &InboundTrafficPolicy{
+// NewInboundTrafficPolicy takes a name, list of hostnames, UpstreamTrafficSetting, and returns an *InboundTrafficPolicy
+func NewInboundTrafficPolicy(name string, hostnames []string, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *InboundTrafficPolicy {
+	policy := &InboundTrafficPolicy{
 		Name:      name,
 		Hostnames: hostnames,
 	}
+
+	if upstreamTrafficSetting != nil {
+		policy.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+	}
+
+	return policy
 }
 
 // NewOutboundTrafficPolicy takes a name and list of hostnames and returns an *OutboundTrafficPolicy
