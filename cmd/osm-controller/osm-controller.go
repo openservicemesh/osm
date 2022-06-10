@@ -218,7 +218,6 @@ func main() {
 	// watch for certificate rotation
 	certManager.Start(5*time.Second, stop)
 
-	// A nil configClient is passed in if multi cluster mode is not enabled.
 	kubeProvider := kube.NewClient(k8sClient, cfg)
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
