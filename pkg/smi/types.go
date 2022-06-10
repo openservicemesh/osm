@@ -7,10 +7,9 @@ import (
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -19,27 +18,10 @@ var (
 	log = logger.New("smi-mesh-spec")
 )
 
-// informerCollection is a struct of the Kubernetes informers used for SMI resources
-type informerCollection struct {
-	TrafficSplit   cache.SharedIndexInformer
-	HTTPRouteGroup cache.SharedIndexInformer
-	TCPRoute       cache.SharedIndexInformer
-	TrafficTarget  cache.SharedIndexInformer
-}
-
-// cacheCollection is a struct of the Kubernetes caches used for SMI resources
-type cacheCollection struct {
-	TrafficSplit   cache.Store
-	HTTPRouteGroup cache.Store
-	TCPRoute       cache.Store
-	TrafficTarget  cache.Store
-}
-
 // client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
 type client struct {
-	caches         *cacheCollection
 	providerIdent  string
-	informers      *informerCollection
+	informers      *informers.InformerCollection
 	osmNamespace   string
 	kubeController k8s.Controller
 }

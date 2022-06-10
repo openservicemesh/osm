@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 
@@ -157,9 +157,11 @@ func TestNewValidatingWebhook(t *testing.T) {
 		}
 
 		kube := fake.NewSimpleClientset(webhook)
-		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
+		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
+		tassert.NoError(t, err)
+		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err := NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		err = NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -172,9 +174,11 @@ func TestNewValidatingWebhook(t *testing.T) {
 		defer close(stop)
 		broker := messaging.NewBroker(stop)
 		kube := fake.NewSimpleClientset()
-		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
+		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
+		tassert.NoError(t, err)
+		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		err = NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 
@@ -189,9 +193,11 @@ func TestNewValidatingWebhook(t *testing.T) {
 		broker := messaging.NewBroker(stop)
 
 		kube := fake.NewSimpleClientset()
-		policyClient, _ := policy.NewPolicyController(nil, fakePolicyClientset.NewSimpleClientset(), stop, broker)
+		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
+		tassert.NoError(t, err)
+		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err := NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		err = NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
 		tassert.NoError(t, err)
 	})
 }

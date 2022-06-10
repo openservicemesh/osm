@@ -12,6 +12,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -763,12 +764,17 @@ func TestIngressBackendValidator(t *testing.T) {
 				objects[i] = tc.existingIngressBackends[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -1330,12 +1336,17 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				objects[i] = tc.existingUpstreamTrafficSettings[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,

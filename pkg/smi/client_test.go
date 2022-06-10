@@ -82,14 +82,10 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*client, *fakeKubeClient
 	// Manually add namespace to test store (since the label selector won't work)
 	informerCollection.Add(informers.InformerKeyNamespace, &testNamespace, t)
 
-	meshSpec, err := newSMIClient(
-		smiTrafficSplitClientSet,
-		smiTrafficSpecClientSet,
-		smiTrafficTargetClientSet,
+	meshSpec := NewSMIClient(
+		informerCollection,
 		osmNamespace,
 		kubernetesClient,
-		kubernetesClientName,
-		stop,
 		msgBroker,
 	)
 
@@ -123,7 +119,7 @@ func TestListTrafficSplits(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.TrafficSplit.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTrafficSplit, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -183,7 +179,7 @@ func TestListTrafficTargets(t *testing.T) {
 			}},
 		},
 	}
-	err = c.caches.TrafficTarget.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTrafficTarget, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -239,7 +235,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.HTTPRouteGroup.Add(obj)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -289,7 +285,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.HTTPRouteGroup.Add(obj)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -320,7 +316,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.caches.TCPRoute.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -348,7 +344,7 @@ func TestGetTCPRoute(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.caches.TCPRoute.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
 	a.Nil(err)
 
 	// Verify

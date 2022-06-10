@@ -203,10 +203,8 @@ func main() {
 
 	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, osmNamespace, k8sClient, stop, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
-	}
+	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
+
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
@@ -249,7 +247,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
 
-	policyController, err := policy.NewPolicyController(k8sClient, policyClient, stop, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
