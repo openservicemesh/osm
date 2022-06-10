@@ -3,7 +3,6 @@ package k8s
 import (
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -332,7 +331,7 @@ func TestListServiceAccounts(t *testing.T) {
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
-				_ = ic.Add(informers.InformerKeyService, s, t)
+				_ = ic.Add(informers.InformerKeyServiceAccount, s, t)
 			}
 
 			actual := c.ListServiceAccounts()
@@ -1025,12 +1024,9 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
 
 			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			stop := make(chan struct{})
-			ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(fakeClient))
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
 
 			kubeController := NewKubernetesController(ic, nil, nil)

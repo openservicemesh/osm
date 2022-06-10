@@ -60,9 +60,10 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 			opt.LabelSelector = labelSelector
 		})
 
-		informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, option)
+		nsInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, option)
+		informerFactory := informers.NewSharedInformerFactory(kubeClient, DefaultKubeEventResyncInterval)
 		v1api := informerFactory.Core().V1()
-		ic.informers[InformerKeyNamespace] = v1api.Namespaces().Informer()
+		ic.informers[InformerKeyNamespace] = nsInformerFactory.Core().V1().Namespaces().Informer()
 		ic.informers[InformerKeyService] = v1api.Services().Informer()
 		ic.informers[InformerKeyServiceAccount] = v1api.ServiceAccounts().Informer()
 		ic.informers[InformerKeyPod] = v1api.Pods().Informer()
