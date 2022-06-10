@@ -24,35 +24,6 @@ import (
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
 
-var (
-	k8sInformerKeys = []InformerKey{
-		InformerKeyNamespace,
-		InformerKeyService,
-		InformerKeyServiceAccount,
-		InformerKeyPod,
-		InformerKeyEndpoints,
-	}
-
-	smiInformerKeys = []InformerKey{
-		InformerKeyTrafficSplit,
-		InformerKeyTrafficTarget,
-		InformerKeyHTTPRouteGroup,
-		InformerKeyTCPRoute,
-	}
-
-	configInformerKeys = []InformerKey{
-		InformerKeyMeshConfig,
-		InformerKeyMeshRootCertificate,
-	}
-
-	policyInformerKeys = []InformerKey{
-		InformerKeyEgress,
-		InformerKeyIngressBackend,
-		InformerKeyUpstreamTrafficSetting,
-		InformerKeyRetry,
-	}
-)
-
 // InformerCollectionOption is a function that modifies an informer collection
 type InformerCollectionOption func(*InformerCollection)
 
@@ -90,18 +61,18 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 		})
 
 		informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, option)
-		ic.informers[InformerKeyNamespace] = informerFactory.Core().V1().Namespaces().Informer()
-		ic.informers[InformerKeyService] = informerFactory.Core().V1().Services().Informer()
-		ic.informers[InformerKeyServiceAccount] = informerFactory.Core().V1().ServiceAccounts().Informer()
-		ic.informers[InformerKeyPod] = informerFactory.Core().V1().Pods().Informer()
-		ic.informers[InformerKeyEndpoints] = informerFactory.Core().V1().Endpoints().Informer()
+		v1api := informerFactory.Core().V1()
+		ic.informers[InformerKeyNamespace] = v1api.Namespaces().Informer()
+		ic.informers[InformerKeyService] = v1api.Services().Informer()
+		ic.informers[InformerKeyServiceAccount] = v1api.ServiceAccounts().Informer()
+		ic.informers[InformerKeyPod] = v1api.Pods().Informer()
+		ic.informers[InformerKeyEndpoints] = v1api.Endpoints().Informer()
 	}
 }
 
 // WithSMIClients sets the SMI clients for the InformerCollection
 func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiTrafficAccessClient.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
-
 		accessInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, DefaultKubeEventResyncInterval)
 		splitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, DefaultKubeEventResyncInterval)
 		specInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, DefaultKubeEventResyncInterval)
@@ -165,7 +136,10 @@ func (ic *InformerCollection) run(stop <-chan struct{}) error {
 }
 
 // Add is only exported for the sake of tests and requires a testing.T to ensure it's
-// never used in production
+// never used in production. This functionality was added for the express purpose of testing
+// flexibility since alternatives can often leads to flaky tests and race conditions
+// between the time an object is added to a fake clientset and when that object
+// is actually added to the informer `cache.Store`
 func (ic *InformerCollection) Add(key InformerKey, obj interface{}, t *testing.T) error {
 	if t == nil {
 		return errors.New("this method should only be used in tests")
@@ -180,7 +154,10 @@ func (ic *InformerCollection) Add(key InformerKey, obj interface{}, t *testing.T
 }
 
 // Update is only exported for the sake of tests and requires a testing.T to ensure it's
-// never used in production
+// never used in production. This functionality was added for the express purpose of testing
+// flexibility since the alternatives can often leads to flaky tests and race conditions
+// between the time an object is added to a fake clientset and when that object
+// is actually added to the informer `cache.Store`
 func (ic *InformerCollection) Update(key InformerKey, obj interface{}, t *testing.T) error {
 	if t == nil {
 		return errors.New("this method should only be used in tests")

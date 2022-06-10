@@ -34,7 +34,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 		tassert.Nil(t, err)
 
-		cfg, err := newConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
+		cfg, err := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 		tassert.Nil(t, err)
 		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
@@ -484,7 +484,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 			assert.Nil(err)
 
-			cfg, err := newConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
+			cfg, err := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 			assert.Nil(err)
 
 			meshConfig := configv1alpha2.MeshConfig{

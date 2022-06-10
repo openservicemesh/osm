@@ -17,14 +17,7 @@ import (
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string,
-	msgBroker *messaging.Broker) (Configurator, error) {
-	return newConfigurator(informerCollection, osmNamespace, meshConfigName, msgBroker)
-}
-
-func newConfigurator(informerCollection *informers.InformerCollection, osmNamespace string, meshConfigName string,
-	msgBroker *messaging.Broker) (*client, error) {
-
+func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) (*client, error) {
 	c := &client{
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,

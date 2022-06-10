@@ -40,7 +40,7 @@ type fakeKubeClientSet struct {
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
 }
 
-func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
+func bootstrapClient(stop chan struct{}, t *testing.T) (*client, *fakeKubeClientSet, error) {
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	kubeClient := testclient.NewSimpleClientset()
@@ -67,15 +67,20 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	}
 
 	// Create a test namespace that is monitored
+	// Label selectors don't work with fake clients, only here to signify its importance
+	// https://github.com/kubernetes/client-go/issues/352#issuecomment-614740790
 	testNamespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNamespaceName,
-			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName}, // Label selectors don't work with fake clients, only here to signify its importance
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName},
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		return nil, nil, err
 	}
+
+	// Manually add namespace to test store (since the label selector won't work)
+	informerCollection.Add(informers.InformerKeyNamespace, &testNamespace, t)
 
 	meshSpec, err := newSMIClient(
 		smiTrafficSplitClientSet,
@@ -96,7 +101,7 @@ func TestListTrafficSplits(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSplit.TrafficSplit{
@@ -148,7 +153,7 @@ func TestListTrafficTargets(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiAccess.TrafficTarget{
@@ -198,7 +203,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.HTTPRouteGroup{
@@ -248,7 +253,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.HTTPRouteGroup{
@@ -301,7 +306,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.TCPRoute{
@@ -329,7 +334,7 @@ func TestGetTCPRoute(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.TCPRoute{
