@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -779,6 +780,15 @@ func TestIngressBackendValidator(t *testing.T) {
 				policyClient: policyClient,
 			}
 
+			// Block until we start getting ingressbackend updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests
+			if len(objects) > 0 {
+				events := broker.GetKubeEventPubSub().Sub(announcements.IngressBackendAdded.String())
+				<-events
+			}
+
 			resp, err := pv.ingressBackendValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
 			if tc.expErrStr == "" {
@@ -1350,6 +1360,15 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 
 			pv := &policyValidator{
 				policyClient: policyClient,
+			}
+
+			// Block until we start getting ingressbackend updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests (due to the kubeController mockss)
+			if len(objects) > 0 {
+				events := broker.GetKubeEventPubSub().Sub(announcements.UpstreamTrafficSettingAdded.String())
+				<-events
 			}
 
 			resp, err := pv.upstreamTrafficSettingValidator(tc.input)
