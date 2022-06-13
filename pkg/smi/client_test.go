@@ -40,7 +40,7 @@ type fakeKubeClientSet struct {
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
 }
 
-func bootstrapClient(stop chan struct{}, t *testing.T) (*client, *fakeKubeClientSet, error) {
+func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClientSet, error) {
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	kubeClient := testclient.NewSimpleClientset()
@@ -80,7 +80,10 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*client, *fakeKubeClient
 	}
 
 	// Manually add namespace to test store (since the label selector won't work)
-	informerCollection.Add(informers.InformerKeyNamespace, &testNamespace, t)
+	err = informerCollection.Add(informers.InformerKeyNamespace, &testNamespace, t)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	meshSpec := NewSMIClient(
 		informerCollection,

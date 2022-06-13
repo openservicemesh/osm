@@ -17,8 +17,8 @@ import (
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) (*client, error) {
-	c := &client{
+func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) *Client {
+	c := &Client{
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
@@ -41,15 +41,15 @@ func NewConfigurator(informerCollection *informers.InformerCollection, osmNamesp
 	}
 	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
 
-	return c, nil
+	return c
 }
 
-func (c *client) getMeshConfigCacheKey() string {
+func (c *Client) getMeshConfigCacheKey() string {
 	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
 }
 
 // Returns the current MeshConfig
-func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
+func (c *Client) getMeshConfig() configv1alpha2.MeshConfig {
 	var meshConfig configv1alpha2.MeshConfig
 
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
@@ -68,7 +68,7 @@ func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
 	return meshConfig
 }
 
-func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
+func (c *Client) metricsHandler() cache.ResourceEventHandlerFuncs {
 	handleMetrics := func(obj interface{}) {
 		config := obj.(*configv1alpha2.MeshConfig)
 

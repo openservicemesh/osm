@@ -207,10 +207,7 @@ func main() {
 	}
 
 	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
-	}
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

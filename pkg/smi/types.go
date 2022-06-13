@@ -18,8 +18,8 @@ var (
 	log = logger.New("smi-mesh-spec")
 )
 
-// client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
-type client struct {
+// Client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
+type Client struct {
 	providerIdent  string
 	informers      *informers.InformerCollection
 	osmNamespace   string

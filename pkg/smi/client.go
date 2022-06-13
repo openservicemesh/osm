@@ -32,8 +32,8 @@ const (
 )
 
 // NewSMIClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller, msgBroker *messaging.Broker) *client {
-	client := client{
+func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+	client := Client{
 		providerIdent:  kubernetesClientName,
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
@@ -79,7 +79,7 @@ func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
-func (c *client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSplit.TrafficSplit {
+func (c *Client) ListTrafficSplits(options ...TrafficSplitListOption) []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
 
 	for _, splitIface := range c.informers.List(informers.InformerKeyTrafficSplit) {
@@ -137,7 +137,7 @@ func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficS
 }
 
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
-func (c *client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
+func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 	var httpTrafficSpec []*smiSpecs.HTTPRouteGroup
 	for _, specIface := range c.informers.List(informers.InformerKeyHTTPRouteGroup) {
 		routeGroup := specIface.(*smiSpecs.HTTPRouteGroup)
@@ -151,7 +151,7 @@ func (c *client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 }
 
 // GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
-func (c *client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGroup {
+func (c *Client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGroup {
 	// client-go cache uses <namespace>/<name> as key
 	routeIf, exists, err := c.informers.GetByKey(informers.InformerKeyHTTPRouteGroup, namespacedName)
 	if exists && err == nil {
@@ -166,7 +166,7 @@ func (c *client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGro
 }
 
 // ListTCPTrafficSpecs lists SMI TCPRoute resources
-func (c *client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
+func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	var tcpRouteSpec []*smiSpecs.TCPRoute
 	for _, specIface := range c.informers.List(informers.InformerKeyTCPRoute) {
 		tcpRoute := specIface.(*smiSpecs.TCPRoute)
@@ -180,7 +180,7 @@ func (c *client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 }
 
 // GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
-func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
+func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 	// client-go cache uses <namespace>/<name> as key
 	routeIf, exists, err := c.informers.GetByKey(informers.InformerKeyTCPRoute, namespacedName)
 	if exists && err == nil {
@@ -195,7 +195,7 @@ func (c *client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
-func (c *client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAccess.TrafficTarget {
+func (c *Client) ListTrafficTargets(options ...TrafficTargetListOption) []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
 
 	for _, targetIface := range c.informers.List(informers.InformerKeyTrafficTarget) {
@@ -268,7 +268,7 @@ func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...Traf
 }
 
 // ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
-func (c *client) ListServiceAccounts() []identity.K8sServiceAccount {
+func (c *Client) ListServiceAccounts() []identity.K8sServiceAccount {
 	var serviceAccounts []identity.K8sServiceAccount
 	for _, targetIface := range c.informers.List(informers.InformerKeyTrafficTarget) {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)

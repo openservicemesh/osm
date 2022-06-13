@@ -19,8 +19,8 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(informerCollection *informers.InformerCollection, kubeController k8s.Controller, msgBroker *messaging.Broker) *client {
-	client := &client{
+func NewPolicyController(informerCollection *informers.InformerCollection, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+	client := &Client{
 		informers:      informerCollection,
 		kubeController: kubeController,
 	}
@@ -64,7 +64,7 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 }
 
 // ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity based on service accounts
-func (c *client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyV1alpha1.Egress {
+func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyV1alpha1.Egress {
 	var policies []*policyV1alpha1.Egress
 
 	for _, egressIface := range c.informers.List(informers.InformerKeyEgress) {
@@ -85,7 +85,7 @@ func (c *client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceA
 }
 
 // GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-func (c *client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1.IngressBackend {
+func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1.IngressBackend {
 	for _, ingressBackendIface := range c.informers.List(informers.InformerKeyIngressBackend) {
 		ingressBackend := ingressBackendIface.(*policyV1alpha1.IngressBackend)
 
@@ -108,7 +108,7 @@ func (c *client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha
 }
 
 // ListRetryPolicies returns the retry policies for the given source identity based on service accounts.
-func (c *client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1alpha1.Retry {
+func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1alpha1.Retry {
 	var retries []*policyV1alpha1.Retry
 
 	for _, retryInterface := range c.informers.List(informers.InformerKeyRetry) {
@@ -122,7 +122,7 @@ func (c *client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV
 }
 
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-func (c *client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
+func (c *Client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
 	if options.MeshService == nil && options.NamespacedName == nil && options.Host == "" {
 		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil

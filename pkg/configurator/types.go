@@ -17,8 +17,8 @@ var (
 	log = logger.New("configurator")
 )
 
-// client is the type used to represent the Kubernetes client for the config.openservicemesh.io API group
-type client struct {
+// Client is the type used to represent the Kubernetes Client for the config.openservicemesh.io API group
+type Client struct {
 	osmNamespace   string
 	informers      *informers.InformerCollection
 	meshConfigName string

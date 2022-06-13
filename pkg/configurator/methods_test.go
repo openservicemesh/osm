@@ -17,7 +17,7 @@ import (
 )
 
 func TestGetMeshConfigCacheKey(t *testing.T) {
-	c := client{
+	c := Client{
 		meshConfigName: "configName",
 		osmNamespace:   "namespaceName",
 	}
@@ -34,8 +34,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 		tassert.Nil(t, err)
 
-		cfg, err := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
-		tassert.Nil(t, err)
+		cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
 
@@ -484,8 +483,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 			assert.Nil(err)
 
-			cfg, err := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
-			assert.Nil(err)
+			cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 			meshConfig := configv1alpha2.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{

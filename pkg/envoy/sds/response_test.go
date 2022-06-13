@@ -60,8 +60,7 @@ func TestNewResponse(t *testing.T) {
 	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient))
 	assert.Nil(err)
 
-	cfg, err := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
-	assert.Nil(err)
+	cfg := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
 	certManager := tresorFake.NewFake(nil)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 

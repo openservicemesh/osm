@@ -17,8 +17,8 @@ var (
 	log = logger.New("policy-controller")
 )
 
-// client is the type used to represent the Kubernetes client for the policy.openservicemesh.io API group
-type client struct {
+// Client is the type used to represent the Kubernetes Client for the policy.openservicemesh.io API group
+type Client struct {
 	informers      *informers.InformerCollection
 	kubeController k8s.Controller
 }

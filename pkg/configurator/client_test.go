@@ -27,8 +27,7 @@ func TestGetMeshConfig(t *testing.T) {
 	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient))
 	a.Nil(err)
 
-	c, err := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
-	a.Nil(err)
+	c := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
 	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())
@@ -51,7 +50,7 @@ func TestGetMeshConfig(t *testing.T) {
 func TestMetricsHandler(t *testing.T) {
 	a := assert.New(t)
 
-	c := &client{
+	c := &Client{
 		meshConfigName: osmMeshConfigName,
 		informers:      &informers.InformerCollection{},
 	}
