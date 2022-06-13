@@ -124,7 +124,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(backendCluster),
 			},
-			// TODO(steeling): one place its set
 			AllowedServiceIdentities: sourceServiceIdentities,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
