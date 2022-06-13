@@ -196,17 +196,12 @@ func main() {
 	}
 
 	// This component will be watching resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
-	}
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
 
-	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, osmNamespace, k8sClient, stop, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
-	}
+	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
+
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
@@ -249,10 +244,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
 
-	policyController, err := policy.NewPolicyController(k8sClient, policyClient, stop, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
-	}
+	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,

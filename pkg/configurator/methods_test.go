@@ -11,12 +11,13 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func TestGetMeshConfigCacheKey(t *testing.T) {
-	c := client{
+	c := Client{
 		meshConfigName: "configName",
 		osmNamespace:   "namespaceName",
 	}
@@ -28,10 +29,12 @@ func TestGetMeshConfigCacheKey(t *testing.T) {
 func TestCreateUpdateConfig(t *testing.T) {
 	t.Run("MeshConfig doesn't exist", func(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
-
 		stop := make(chan struct{})
-		cfg, err := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+
+		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 		tassert.Nil(t, err)
+
+		cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
 
@@ -476,8 +479,11 @@ func TestCreateUpdateConfig(t *testing.T) {
 			// Create configurator
 			stop := make(chan struct{})
 			defer close(stop)
-			cfg, err := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, nil)
+
+			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
 			assert.Nil(err)
+
+			cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 			meshConfig := configv1alpha2.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{
@@ -487,7 +493,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 				Spec: *test.initialMeshConfigData,
 			}
 
-			err = cfg.caches.meshConfig.Add(&meshConfig)
+			err = cfg.informers.Add(informers.InformerKeyMeshConfig, &meshConfig, t)
 			assert.Nil(err)
 
 			test.checkCreate(assert, cfg)
@@ -497,7 +503,8 @@ func TestCreateUpdateConfig(t *testing.T) {
 			}
 
 			meshConfig.Spec = *test.updatedMeshConfigData
-			err = cfg.caches.meshConfig.Update(&meshConfig)
+			err = cfg.informers.Update(informers.InformerKeyMeshConfig, &meshConfig, t)
+
 			assert.Nil(err)
 
 			test.checkUpdate(assert, cfg)

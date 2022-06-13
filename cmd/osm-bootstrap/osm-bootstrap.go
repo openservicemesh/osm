@@ -35,6 +35,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/crdconversion"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -196,11 +197,17 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithConfigClient(configClient),
+	)
+
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
+
+	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

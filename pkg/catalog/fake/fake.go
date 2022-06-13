@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
@@ -46,10 +47,13 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
-	cfg, err := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient))
 	if err != nil {
 		return nil
 	}
+
+	cfg := configurator.NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
+
 	certManager := tresorFake.NewFake(nil)
 
 	// #1683 tracks potential improvements to the following dynamic mocks

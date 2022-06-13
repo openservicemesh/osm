@@ -9,9 +9,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -763,14 +765,28 @@ func TestIngressBackendValidator(t *testing.T) {
 				objects[i] = tc.existingIngressBackends[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
+			}
+
+			// Block until we start getting ingressbackend updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests
+			if len(objects) > 0 {
+				events := broker.GetKubeEventPubSub().Sub(announcements.IngressBackendAdded.String())
+				<-events
 			}
 
 			resp, err := pv.ingressBackendValidator(tc.input)
@@ -1330,15 +1346,29 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				objects[i] = tc.existingUpstreamTrafficSettings[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,
+			}
+
+			// Block until we start getting upstreamtrafficsetting updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests (due to the kubeController mockss)
+			if len(objects) > 0 {
+				events := broker.GetKubeEventPubSub().Sub(announcements.UpstreamTrafficSettingAdded.String())
+				<-events
 			}
 
 			resp, err := pv.upstreamTrafficSettingValidator(tc.input)

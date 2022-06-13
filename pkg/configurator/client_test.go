@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/cache"
 
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -23,8 +23,11 @@ func TestGetMeshConfig(t *testing.T) {
 
 	meshConfigClient := fakeConfig.NewSimpleClientset()
 	stop := make(chan struct{})
-	c, err := newConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient))
 	a.Nil(err)
+
+	c := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
 	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())
@@ -39,25 +42,17 @@ func TestGetMeshConfig(t *testing.T) {
 			Name:      osmMeshConfigName,
 		},
 	}
-	err = c.caches.meshConfig.Add(newObj)
+	err = c.informers.Add(informers.InformerKeyMeshConfig, newObj, t)
 	a.Nil(err)
 	a.Equal(*newObj, c.getMeshConfig())
-}
-
-type store struct {
-	cache.Store
-}
-
-func (s *store) GetByKey(_ string) (interface{}, bool, error) {
-	return nil, false, nil
 }
 
 func TestMetricsHandler(t *testing.T) {
 	a := assert.New(t)
 
-	c := &client{
-		caches:         &cacheCollection{meshConfig: &store{}},
+	c := &Client{
 		meshConfigName: osmMeshConfigName,
+		informers:      &informers.InformerCollection{},
 	}
 	handlers := c.metricsHandler()
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
