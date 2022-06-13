@@ -138,7 +138,7 @@ func (ic *InformerCollection) run(stop <-chan struct{}) error {
 
 // Add is only exported for the sake of tests and requires a testing.T to ensure it's
 // never used in production. This functionality was added for the express purpose of testing
-// flexibility since alternatives can often leads to flaky tests and race conditions
+// flexibility since alternatives can often lead to flaky tests and race conditions
 // between the time an object is added to a fake clientset and when that object
 // is actually added to the informer `cache.Store`
 func (ic *InformerCollection) Add(key InformerKey, obj interface{}, t *testing.T) error {
@@ -156,7 +156,7 @@ func (ic *InformerCollection) Add(key InformerKey, obj interface{}, t *testing.T
 
 // Update is only exported for the sake of tests and requires a testing.T to ensure it's
 // never used in production. This functionality was added for the express purpose of testing
-// flexibility since the alternatives can often leads to flaky tests and race conditions
+// flexibility since the alternatives can often lead to flaky tests and race conditions
 // between the time an object is added to a fake clientset and when that object
 // is actually added to the informer `cache.Store`
 func (ic *InformerCollection) Update(key InformerKey, obj interface{}, t *testing.T) error {

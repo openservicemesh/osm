@@ -1362,7 +1362,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				policyClient: policyClient,
 			}
 
-			// Block until we start getting ingressbackend updates
+			// Block until we start getting upstreamtrafficsetting updates
 			// We only do this because the informerCollection doesn't have the
 			// policy client's msgBroker eventhandler registered when it initially runs
 			// and that leads to a race condition in tests (due to the kubeController mockss)

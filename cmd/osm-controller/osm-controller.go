@@ -245,9 +245,6 @@ func main() {
 	}
 
 	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
-	}
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,
